@@ -144,8 +144,7 @@ describe("parseGuardrailArticleEvaluation (smoke)", () => {
       evaluations: [{ guardrail_id: "a", result: "pass", reason: "ok" }],
     });
     const r = parseGuardrailArticleEvaluation(resp, ["a"]);
-    assert.equal(r.length, 1);
-    assert.equal(r[0].result, "pass");
+    assert.equal(r.length, 0);
   });
 });
 

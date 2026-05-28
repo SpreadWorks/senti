@@ -305,6 +305,12 @@ export async function dispatch({
   // Hook ctx combines container reference with parsed input for convenience.
   // Domains with richer shared state (e.g. flow) can override via buildHookCtx.
   const hookCtx = buildRuntimeHookCtx(input);
+  const runtimeLogMutationOpts = hookCtx.flowState
+    ? {
+        ...(hookCtx.specId ? { specId: hookCtx.specId } : {}),
+        taskId: hookCtx.flowState.currentTaskId ?? null,
+      }
+    : null;
 
   openRuntimeLog(hookCtx);
 
@@ -317,8 +323,8 @@ export async function dispatch({
   const persistRuntimeLogMetadata = (result) => {
     const metadata = closedRuntimeLogMetadata;
     const stepId = runtimeLogStepId(entry, hookCtx, result);
-    if (metadata && stepId && hookCtx.flowManager) {
-      hookCtx.flowManager.setStepRuntimeLog(stepId, metadata.toStepMetadata(), hookCtx.specId ? { specId: hookCtx.specId } : undefined);
+    if (metadata && stepId && hookCtx.flowManager && runtimeLogMutationOpts) {
+      hookCtx.flowManager.setStepRuntimeLog(stepId, metadata.toStepMetadata(), runtimeLogMutationOpts);
     }
   };
 

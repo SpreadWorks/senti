@@ -1747,7 +1747,13 @@ export function checkRetryBelowMax(ctx, phase) {
     "Stop the automatic retry loop and return control to the user.",
   ];
   appendGateEscalationIssueLog(ctx, phase, messages);
-  return buildGateRetryExhaustedEnvelope({ phase, attempts: count, max, reason: messages.join("\n") });
+  return Envelope.fail(
+    "run",
+    "gate",
+    "ESCALATE_RETRY_EXHAUSTED",
+    messages,
+    { phase, attempts: count, max },
+  );
 }
 
 export async function evaluateGuardrailObservationsWithRetry({
@@ -2022,7 +2028,6 @@ export function findPreviousFailState({ flowState, issueLog, phase }) {
       worktreeHash: memory.worktreeHash,
     };
   }
-  if (phase === "task-impl" || phase === "integration") return null;
   const entry = findPreviousFailEntry(issueLog, phase);
   return entry ? { headSha: entry.headSha, worktreeHash: entry.worktreeHash } : null;
 }
@@ -2194,7 +2199,6 @@ export function assertNoRepeatedFail({ issueLog, phase, currentEvaluations, prio
     err.data = { phase, matched };
     throw err;
   }
-  if (phase === "task-impl" || phase === "integration") return;
   const current = buildFailedEvaluations(currentEvaluations);
   if (current.length === 0) return;
   const previous = findPreviousFailedEvaluations({ issueLog, phase });
@@ -2261,7 +2265,6 @@ export function findPreviousPassedGuardrails({ issueLog, phase }) {
       worktreeHash: memory.worktreeHash,
     };
   }
-  if (phase === "task-impl" || phase === "integration") return null;
   const entries = Array.isArray(issueLog?.entries) ? issueLog.entries : [];
   for (let i = entries.length - 1; i >= 0; i--) {
     const e = entries[i];
@@ -2365,6 +2368,10 @@ const PASS_NEXT = {
   "task-impl": null,
   "integration": "retro",
 };
+const PASS_PRESCRIPTION = {
+  ...PASS_NEXT,
+  "task-impl": "complete-task",
+};
 const FAIL_NEXT = {
   "draft": "draft",
   "spec": "spec",
@@ -2437,7 +2444,7 @@ function gatePass(level, phase, targetPath, evaluations, warnings) {
     phase,
     evaluations: evaluations || [],
     reasons: reasonsFromEvaluations(evaluations),
-    nextAction: nextActionFromGateEvaluations(evaluations || [], PASS_NEXT[phase]),
+    nextAction: nextActionFromGateEvaluations(evaluations || [], PASS_PRESCRIPTION[phase]),
   };
   if (Array.isArray(warnings) && warnings.length > 0) {
     artifacts.warnings = warnings;
@@ -3176,6 +3183,10 @@ export function appendIssueLogFromGateResult(ctx, result) {
   }
   const passedGuardrails = buildPassedGuardrails(result?.artifacts?.evaluations);
   entry.passedGuardrails = passedGuardrails;
+  const failedEvaluations = buildFailedEvaluations(result?.artifacts?.evaluations);
+  if (failedEvaluations.length > 0) {
+    entry.failedEvaluations = failedEvaluations;
+  }
 
   if (RETRY_TRACKED_PHASES.includes(ctx.phase) && observations.length > 0) {
     const status = observations.some((observation) => observation.severity === "blocking")

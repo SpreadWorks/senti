@@ -175,8 +175,12 @@ export class RunPrepareSpecCommand extends FlowCommand {
     // both cases leave existing dirty files untouched.
     if (!dryRun && !skipBranch && !useWorktree) {
       const { dirty, dirtyFiles } = getWorktreeStatus(root);
-      if (dirty) {
-        throw new Error(`dirty worktree: ${dirtyFiles.join(", ")}. commit/stash before spec, or use --worktree to isolate.`);
+      const blockingDirtyFiles = dirtyFiles.filter((file) => {
+        const rel = file.replace(/^[ AMDRCU?!]{2}\s+/, "");
+        return !rel.startsWith(".tmp/");
+      });
+      if (dirty && blockingDirtyFiles.length > 0) {
+        throw new Error(`dirty worktree: ${blockingDirtyFiles.join(", ")}. commit/stash before spec, or use --worktree to isolate.`);
       }
     }
     if (!skipBranch) ensureBaseBranch(root, resolvedBase);

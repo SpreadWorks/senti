@@ -27,11 +27,11 @@ describe("parseGuardrailArticleEvaluation", () => {
       ],
     });
     const result = parseGuardrailArticleEvaluation(resp, known);
-    assert.equal(result.length, 2);
-    assert.equal(result[0].guardrail_id, "g1");
-    assert.equal(result[0].result, "pass");
-    assert.equal(result[1].result, "fail");
-    assert.equal(result[1].reason, "vague phrase — no measurable criteria (at section A)");
+    assert.equal(result.length, 1);
+    assert.equal(result[0].kind, "violation");
+    assert.equal(result[0].requirementRef, "g2");
+    assert.equal(result[0].observed, "no measurable criteria");
+    assert.deepEqual(result[0].where, { file: "section A" });
   });
 
   it("strips code-fence wrappers before parsing", () => {
@@ -39,8 +39,7 @@ describe("parseGuardrailArticleEvaluation", () => {
       evaluations: [{ guardrail_id: "g1", result: "skip", reason: "n/a" }],
     }) + "\n```";
     const result = parseGuardrailArticleEvaluation(resp, ["g1"]);
-    assert.equal(result.length, 1);
-    assert.equal(result[0].result, "skip");
+    assert.equal(result.length, 0);
   });
 
   it("throws on non-JSON free text", () => {
