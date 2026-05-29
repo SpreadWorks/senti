@@ -1,0 +1,152 @@
+{
+  "version": 1,
+  "phase": "review-test",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "experimental/workflow.js とその依存一式（registry.js, lib/config.js, lib/graphql.js, lib/board-helpers.js, lib/hash.js, lib/validation.js, lib/category.js, lib/base-command.js, lib/commands/*）を src/workflow/ へ移設し、import パスを src/ 構造に合わせて調整する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/promote-workflow-cli.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "src/sdd-forge.js の NAMESPACE_SCRIPTS に workflow を追加し、`sdd-forge workflow <subcommand>` が src/workflow ディスパッチャへルーティングされる。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/promote-workflow-cli.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "enable ゲートを撤廃する。`sdd-forge workflow` は config に enable フラグがなくても実行でき、NOT_ENABLED エラーパスは削除される。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/promote-workflow-cli.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "config キーを experimental.workflow.* から workflow.* へ移行する。config スキーマは workflow.languages.{source,publish} を定義し enable を持たない。languages.source/publish の読み取り箇所を workflow.languages.* に更新する。旧キーの後方互換は持たない。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/promote-workflow-cli.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "skill ソース（SKILL.md）を src/skills/sdd-forge.exp.workflow/ へ移し、flow 系 skill と同じく MAIN_SKILLS_DIR から無条件配置する。EXPERIMENTAL_WORKFLOW_SKILLS_DIR と src/upgrade.js の enable 条件付き配置分岐を削除する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/promote-workflow-cli.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "skill 本文の `node experimental/workflow.js` 呼び出しを `sdd-forge workflow` に書き換える。languages.source 参照も workflow.languages.source に更新する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/promote-workflow-cli.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "`sdd-forge workflow --help` の冒頭（タイトル行・サブコマンド一覧の頭）に [EXPERIMENTAL] ラベルを表示する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/promote-workflow-cli.test.js"
+      ]
+    },
+    {
+      "id": "R8",
+      "desc": "README.md・AGENTS.md・CLAUDE.md それぞれの非生成領域（{{data}}/{{text}} ディレクティブ外）に workflow が experimental（usage patterns may change）である旨を記載する。3 ファイルとも対象（AGENTS.md と CLAUDE.md は別個の通常ファイル）。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/promote-workflow-cli.test.js"
+      ]
+    },
+    {
+      "id": "R9",
+      "desc": "昇格条件（運用方法論が docs/skill に再現可能な手順として明文化済み、サブコマンド名・フィールド名・status enum の契約が固定済み、ideas からの publish フローが skill に手順化され契約変更なしに実行可能、既存ユーザー向け breaking change を伴わない API）を src/workflow/AGENTS.md に明記する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/promote-workflow-cli.test.js"
+      ]
+    },
+    {
+      "id": "R10",
+      "desc": "experimental/workflow.js と src/workflow/ へ移設したファイルを experimental/ から削除し、experimental/AGENTS.md を「workflow.js を唯一の入口とする」記述から「src/ 昇格前の試験コード置き場」へ改訂する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/promote-workflow-cli.test.js"
+      ]
+    },
+    {
+      "id": "R11",
+      "desc": "experimental/tests/*.test.js を tests/unit/ へ移動し、import パスを src/workflow/ に合わせて調整する。npm test で実行・パスする。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/promote-workflow-cli.test.js"
+      ]
+    },
+    {
+      "id": "R12",
+      "desc": "top-level `sdd-forge help` が workflow を [EXPERIMENTAL] 公式コマンドとして列挙する（src/help.js の LAYOUT と src/locale/{en,ja} の該当キー追加）。workflow ディスパッチャ／registry の全 usage 文字列が `sdd-forge workflow <subcommand>` を使い、ユーザー向け `workflow.js` 呼称が残らない。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/promote-workflow-cli.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/promote-workflow-cli.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R11",
+        "R12"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R11",
+        "R12"
+      ]
+    }
+  ]
+}

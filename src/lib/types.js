@@ -82,6 +82,17 @@
  */
 
 /**
+ * @typedef {Object} WorkflowLanguages
+ * @property {string} [source]  - Source language for board drafts (default: config.lang)
+ * @property {string} [publish] - Target language when publishing issues (default: config.lang)
+ */
+
+/**
+ * @typedef {Object} WorkflowConfig
+ * @property {WorkflowLanguages} [languages] - Language settings for `sdd-forge workflow` ([EXPERIMENTAL])
+ */
+
+/**
  * @typedef {Object} SddConfig
  * @property {string} [name]                 - Project name (optional, set by setup wizard)
  * @property {DocsConfig} docs               - Documentation configuration (required)
@@ -93,4 +104,5 @@
  * @property {TestConfig} [test]             - Project-level regression test configuration
  * @property {CommandsConfig} [commands]     - External command availability
  * @property {LogsConfig} [logs]             - Logging configuration
+ * @property {WorkflowConfig} [workflow]     - `sdd-forge workflow` settings ([EXPERIMENTAL])
  */

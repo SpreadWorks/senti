@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "spec 検証テストを review 指摘に沿い強化（R1 import sweep, R9 を ideas→publish/status enum で具体化）。変更済み evidence で 1 回再評価する",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "ad83d6212852e0385e618e633202eed669eba5821d77a87205fff87fc1cbc47d",
+        "currentHash": "588cef8566d893e4de7b5d211b53ce95c6aa0fd2e3457c8ec6a84f2b2c50df6f",
+        "changedPaths": [
+          "specs/269-promote-workflow-cli/tests/.raw/scenario-validity.log",
+          "specs/269-promote-workflow-cli/tests/promote-workflow-cli.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"spec 検証テストを review 指摘に沿い強化（R1 import sweep, R9 を ideas→publish/status enum で具体化）。変更済み evidence で 1 回再評価する\" --yes",
+      "createdAt": "2026-05-29T08:19:54.864Z"
+    }
+  ]
+}

@@ -3,13 +3,10 @@
   "logs": {
     "enabled": true
   },
-  "experimental": {
-    "workflow": {
-      "enable": true,
-      "languages": {
-        "source": "ja",
-        "publish": "en"
-      }
+  "workflow": {
+    "languages": {
+      "source": "ja",
+      "publish": "en"
     }
   },
   "lang": "ja",
@@ -84,6 +81,11 @@
   "flow": {
     "merge": "squash"
   },
+  "test": {
+    "command": "node tests/run.js",
+    "projectPaths": ["tests/unit/"],
+    "testExecuteRegression": "full"
+  },
   "agent": {
     "default": "codex",
     "workDir": ".tmp",
@@ -151,7 +153,7 @@
         "flow.test.review":       "codex/gpt-5.5",
         "flow.finalize.retro":    "claude/haiku",
         "flow.context.search":    "claude/haiku",
-        "experimental.workflow.publish": "claude/sonnet"
+        "workflow.publish": "claude/sonnet"
       },
       "codex-main": {
         "docs.init":                 "claude/sonnet",
@@ -173,7 +175,7 @@
         "flow.test.review":          "claude/opus",
         "flow.finalize.retro":       "claude/haiku",
         "flow.context.search":       "claude/haiku",
-        "experimental.workflow.publish": "claude/sonnet"
+        "workflow.publish": "claude/sonnet"
       },
       "claude-only": {
         "docs":                      "claude/sonnet",
@@ -190,7 +192,7 @@
         "flow.test.review":          "claude/opus",
         "flow.finalize.retro":       "claude/haiku",
         "flow.context.search":       "claude/haiku",
-        "experimental.workflow.publish": "claude/sonnet"
+        "workflow.publish": "claude/sonnet"
       },
       "codex-only": {
         "docs.init":                 "codex/gpt-5.4",

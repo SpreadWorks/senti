@@ -12,9 +12,6 @@ import { loadRules, expandSkillRulesDirectives } from "./skill-rules.js";
 /** Canonical path to the bundled main skill source directory. */
 export const MAIN_SKILLS_DIR = path.join(PKG_DIR, "skills");
 
-/** Canonical path to the bundled experimental workflow skill source directory. */
-export const EXPERIMENTAL_WORKFLOW_SKILLS_DIR = path.join(PKG_DIR, "..", "experimental", "workflow", "skills");
-
 /** Directories under workRoot where skills are deployed. */
 const SKILL_TARGET_BASES = [".agents", ".claude"];
 
@@ -132,25 +129,6 @@ function deploySkillsFromDir({ skillsDir, workRoot, dryRun = false }) {
 export function deploySkills(workRoot, opts = {}) {
   return deploySkillsFromDir({
     skillsDir: MAIN_SKILLS_DIR,
-    workRoot,
-    dryRun: opts.dryRun,
-  });
-}
-
-/**
- * Deploy skill files from a project-local skills source directory.
- * Used for opt-in skills that ship outside the main `src/skills/`
- * (e.g. experimental features enabled via config flags).
- *
- * @param {string} workRoot       Project root directory
- * @param {string} skillsDir      Absolute path to a skills source directory
- * @param {object} [opts]
- * @param {boolean} [opts.dryRun=false]
- * @returns {{ name: string, status: "updated" | "unchanged" }[]}
- */
-export function deployProjectSkills(workRoot, skillsDir, opts = {}) {
-  return deploySkillsFromDir({
-    skillsDir,
     workRoot,
     dryRun: opts.dryRun,
   });

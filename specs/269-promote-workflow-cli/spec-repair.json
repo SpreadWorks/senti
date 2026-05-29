@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-review-triage.json",
+  "summary": "両 apply item を反映。help surface 更新を R12・新 AC・T-12・T-6 拡張で要件化。CLAUDE.md/AGENTS.md symlink 誤前提を decision・R8・T-8・AC で別個ファイル前提へ修正。",
+  "items": [
+    {
+      "title": "Official help surfaces are underspecified",
+      "target": "Goal, R2, R7, Acceptance Criteria; src/help.js; src/locale/{en,ja}/messages.json; experimental/workflow/registry.js",
+      "decision": "applied",
+      "rationale": "top-level help 登録と usage 文字列更新を要件化。R12 を追加し、registry usage 文字列対応を R6/T-6 に明記、help.js+locale 対応を T-12 として追加。AC に help 表示と workflow.js 残存禁止を追加。overview.decisions に [VERIFY] エントリ追加。",
+      "evidence": "spec.json requirements[11] (R12), tasks T-12, tasks T-6 acceptance/implementation_notes, acceptance_criteria 末尾 2 件, overview.decisions の help [VERIFY] エントリ。",
+      "changedFields": [
+        "requirements[11]",
+        "acceptance_criteria",
+        "overview.decisions",
+        "tasks[5]",
+        "tasks[11]"
+      ]
+    },
+    {
+      "title": "CLAUDE.md target relies on a false symlink assumption",
+      "target": "Decision about CLAUDE.md; R8; Acceptance Criteria",
+      "decision": "applied",
+      "rationale": "AGENTS.md と CLAUDE.md を別個の通常ファイルとして扱うよう修正。overview.decisions の symlink 記述を [CORRECTION] へ、R8 を 3 ファイル対象へ、T-8 を 3 ファイル対象へ、AC に 3 ファイル記載を追加。",
+      "evidence": "spec.json overview.decisions[CORRECTION], requirements[7] (R8), tasks T-8, acceptance_criteria の 3 ファイル記載項目。",
+      "changedFields": [
+        "overview.decisions",
+        "requirements[7]",
+        "acceptance_criteria",
+        "tasks[7]"
+      ]
+    }
+  ]
+}

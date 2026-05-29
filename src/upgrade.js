@@ -20,10 +20,8 @@ import { translate } from "./lib/i18n.js";
 import { validatePresetChain } from "./lib/presets.js";
 import {
   deploySkills,
-  deployProjectSkills,
   cleanupObsoleteSkills,
   MAIN_SKILLS_DIR,
-  EXPERIMENTAL_WORKFLOW_SKILLS_DIR,
 } from "./lib/skills.js";
 import { deployPresetCopies } from "./lib/preset-deploy.js";
 
@@ -94,32 +92,18 @@ async function main() {
     }
   }
 
-  // Skills upgrade
-  const activeSkillSources = [
-    { dir: MAIN_SKILLS_DIR, deploy: () => deploySkills(root, { dryRun }) },
-  ];
-  if (config.experimental?.workflow?.enable === true) {
-    activeSkillSources.push({
-      dir: EXPERIMENTAL_WORKFLOW_SKILLS_DIR,
-      deploy: () => deployProjectSkills(root, EXPERIMENTAL_WORKFLOW_SKILLS_DIR, { dryRun }),
-    });
+  // Skills upgrade — single unconditional source (MAIN_SKILLS_DIR).
+  let skillResults;
+  try {
+    skillResults = deploySkills(root, { dryRun });
+  } catch (e) {
+    console.error(`upgrade failed: ${e.message}`);
+    process.exit(EXIT_ERROR);
   }
+  logSkillResults(skillResults);
 
-  const skillResults = [];
-  for (const source of activeSkillSources) {
-    let results;
-    try {
-      results = source.deploy();
-    } catch (e) {
-      console.error(`upgrade failed: ${e.message}`);
-      process.exit(EXIT_ERROR);
-    }
-    logSkillResults(results);
-    skillResults.push(...results);
-  }
-
-  // Remove obsolete sdd-forge.* skills no longer in any skill source directory
-  const removedSkills = cleanupObsoleteSkills(root, activeSkillSources.map((source) => source.dir), { dryRun });
+  // Remove obsolete sdd-forge.* skills no longer in the skill source directory
+  const removedSkills = cleanupObsoleteSkills(root, [MAIN_SKILLS_DIR], { dryRun });
   for (const { name } of removedSkills) {
     console.log(t("ui:upgrade.skillRemoved", { name }));
   }

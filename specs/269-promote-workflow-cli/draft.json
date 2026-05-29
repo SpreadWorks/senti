@@ -1,0 +1,111 @@
+{
+  "devType": "refactor",
+  "goal": "experimental/workflow.js を src/workflow/ に昇格させ、`sdd-forge workflow <subcommand>` として公式 CLI surface に組み込む。実装は安定だが運用方法論が未確定であることを [EXPERIMENTAL] ラベルで明示する。サブコマンド（add/update/show/search/list/publish）の振る舞いは現状を保持する。",
+  "analysis": {
+    "problem": "workflow（GitHub Projects ボードのドラフト管理 + issue 化）は実運用されており実装は安定しているが、skill `sdd-forge.exp.workflow` 経由で `node experimental/workflow.js` を直接呼ぶ現状は、他コマンド（sdd-forge docs/spec/flow）と異なり CLI surface として一貫性がない。一方で運用方法論（ボードに何を載せるか、ideas→todo の昇格判断、published issue との突き合わせ）は未確定である。",
+    "proposedApproach": "実装一式（dispatcher, registry, lib/, skills/SKILL.md）を src/workflow/ に移設し、src/sdd-forge.js の NAMESPACE_SCRIPTS に workflow ルートを追加して `sdd-forge workflow <subcommand>` を peer コマンド化する。`sdd-forge workflow --help` 冒頭に [EXPERIMENTAL] ラベルを表示し、README.md / CLAUDE.md に experimental である旨と昇格条件を記載する。skill 本文を新 CLI 呼び出しに書き換え、experimental/workflow.js を削除する。",
+    "validation": "サブコマンドの振る舞いを変えずに呼び出し経路のみを変える relocation であり、運用方法論の未確定性は CLI surface の一貫性問題とは独立。CLI 一貫性（surface の問題）と方法論の安定性（運用の問題）を分離し、前者を解決しつつ後者を [EXPERIMENTAL] ラベルで明示する方針は、根本問題（surface 不整合）に正対している。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "experimental/workflow.js は dispatcher。experimental/workflow/registry.js, lib/（commands, graphql, config, board-helpers, hash, validation, category）, skills/sdd-forge.exp.workflow/SKILL.md で構成される。",
+      "現状コマンドと skill 配置の両方が config.experimental.workflow.enable === true でゲートされる（src/upgrade.js:101, workflow.js の NOT_ENABLED チェック）。",
+      "skill 配置元は src/lib/skills.js の EXPERIMENTAL_WORKFLOW_SKILLS_DIR（experimental/workflow/skills）で、deployProjectSkills により条件付きで配置される。flow 系 skill は MAIN_SKILLS_DIR（src/skills）から無条件配置される。",
+      "src/sdd-forge.js の NAMESPACE_SCRIPTS に workflow を追加すれば src/workflow.js へルーティングされる（docs/spec/flow と同じ機構）。--help は help.js へ委譲される。",
+      "ドラフト言語は config.experimental.workflow.languages.source（既定 config.lang）で決まる。",
+      "experimental/ は npm パッケージに含まれない（files: [\"src/\"]）。src/ へ移すと配布対象になる。",
+      "experimental/tests/*.test.js は npm test 既定実行から除外され、experimental/AGENTS.md が experimental 配下テストの配置を規定している。"
+    ],
+    "decisionPoints": [],
+    "resolvedByProjectRules": [
+      "移設後のテストは src コードのテストとして tests/unit/ へ置く（experimental/AGENTS.md の experimental テスト配置規則はコードが src/ へ移ることで適用対象外になる）。",
+      "コマンド実装は既存のコマンドクラス構造を維持し、src/ の OOP 型表現・カプセル化ルールに従う。",
+      "後方互換コードは書かない（alpha 版ポリシー）。experimental/workflow.js は移行完了後に削除し、experimental.workflow.* 旧 config キーの互換も持たない。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "`sdd-forge workflow --help` での [EXPERIMENTAL] ラベル表示の実装方法（help.js 連携 vs workflow.js 内 help）。",
+      "experimental/AGENTS.md の改訂内容（workflow.js を唯一の入口とする記述の更新、experimental/ ディレクトリの再定義）。",
+      "src/workflow/ 配下の正確なファイルレイアウトと import パス調整。",
+      "config キー experimental.workflow.* → workflow.* 移行に伴う config 読み取り箇所（languages.source 等）の更新。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] experimental/workflow.js とその依存一式の src/workflow/ への移設",
+      "[must] src/sdd-forge.js への workflow ルート追加（NAMESPACE_SCRIPTS）",
+      "[must] enable ゲート撤廃と config キー experimental.workflow.* → workflow.* 移行",
+      "[must] skill を src/skills/ へ移し無条件配置（EXPERIMENTAL_WORKFLOW_SKILLS_DIR と条件付き分岐の削除）",
+      "[must] sdd-forge.exp.workflow skill 本文の新 CLI 呼び出しへの書き換え",
+      "[must] experimental/workflow.js の削除",
+      "[should] sdd-forge workflow --help 冒頭の [EXPERIMENTAL] ラベル表示",
+      "[should] README.md / CLAUDE.md への experimental 旨の記載",
+      "[should] 昇格条件の src/workflow/AGENTS.md への明記",
+      "[must] 移設に伴うテスト（既存 experimental/tests/*.test.js）の tests/unit/ への移動と import パス調整"
+    ],
+    "out": [
+      "skill 名の sdd-forge.exp.workflow → sdd-forge.workflow へのリネーム（Issue が別途検討と明記）",
+      "サブコマンドの振る舞い変更・新規サブコマンド追加",
+      "運用方法論（ボード章立て、ideas→todo 昇格ルール）の確定"
+    ]
+  },
+  "impactOnExisting": [
+    "src/sdd-forge.js: NAMESPACE_SCRIPTS に workflow を追加。",
+    "src/lib/skills.js: EXPERIMENTAL_WORKFLOW_SKILLS_DIR の参照先が変わる（または廃止）。",
+    "src/upgrade.js: experimental.workflow.enable による skill 配置分岐（決定次第で変更）。",
+    "experimental/AGENTS.md: workflow.js を入口とする記述の改訂。",
+    "config.json: experimental.workflow.* の扱い（決定次第）。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "本 spec のゴールは「experimental/workflow.js とその依存一式を src/workflow/ へ移設し、`sdd-forge workflow <subcommand>` として公式 CLI surface に組み込む。サブコマンド（add/update/show/search/list/publish）の振る舞いは変えず、[EXPERIMENTAL] ラベルで方法論未確定を明示し、experimental/workflow.js を削除する」で正しいですか。skill 名リネームと運用方法論の確定はスコープ外とします。",
+      "answer": "正しい。Issue #348 の Goal/Acceptance Criteria に沿って relocation + CLI surface 化を行い、サブコマンドの振る舞いは保持。skill 名リネームと運用方法論確定はスコープ外。",
+      "evidence": "B.3 意図確認でユーザーが [1]（この理解で進める）を選択。Issue #348 本文の Goal / Acceptance Criteria と一致。",
+      "why": "ゴールとスコープ境界を spec 着手前に固定するため。",
+      "considered": "",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "昇格後の有効化ゲートをどうしますか。現状は config.experimental.workflow.enable === true がコマンド実行と skill 配置の両方をゲートしています。選択肢は (A) ゲートと config キー experimental.workflow.* を維持（最小変更、要 opt-in のまま）、(B) ゲートを撤廃し workflow を常時利用可能にして config キーを workflow.* へ移行、の2案です。どちらにしますか。",
+      "answer": "B を選択。config.experimental.workflow.enable ゲートを撤廃し、sdd-forge workflow を常時利用可能にする。config キー名前空間を experimental.workflow.* から workflow.* へ移行する（例: workflow.enable は廃止、workflow.languages.source 等を workflow.* 直下へ）。alpha 版ポリシー上、旧キーの後方互換は持たない。",
+      "evidence": "ユーザーが q2 で [2] を選択。現状ゲートは src/upgrade.js:101 と workflow.js の NOT_ENABLED チェックに存在。config キーは config.experimental.workflow.{enable,languages.source}。",
+      "why": "公式 CLI surface への昇格を opt-in ゲートなしの first-class コマンドとして実現する方針。experimental の性質は [EXPERIMENTAL] ラベルで表現し、有効化ゲートとは分離する。",
+      "considered": "A（ゲート + experimental.workflow.* キー維持）を検討したが、ユーザーは常時利用可能な first-class 化を選択。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "skill `sdd-forge.exp.workflow` のソース（SKILL.md）の配置先と配置モデルをどうしますか。選択肢は (A) src/skills/ へ移して flow 系 skill と同様に無条件配置、(B) src/workflow/skills/ に置き experimental.workflow.enable ゲートによる条件付き配置を維持、の2案です。これは q2 のゲート方針と整合させる必要があります。どちらにしますか。",
+      "answer": "A を選択。SKILL.md を src/skills/sdd-forge.exp.workflow/ へ移し、flow 系 skill と同じく MAIN_SKILLS_DIR から無条件配置する。src/lib/skills.js の EXPERIMENTAL_WORKFLOW_SKILLS_DIR と src/upgrade.js の experimental.workflow.enable 条件付き配置分岐を削除し、skill 配置経路を MAIN_SKILLS_DIR 1 本に統一する。",
+      "evidence": "ユーザーが q3 で [1] を選択。現状は src/lib/skills.js:16 の EXPERIMENTAL_WORKFLOW_SKILLS_DIR（experimental/workflow/skills）を src/upgrade.js:101 で enable=true 時のみ deployProjectSkills。flow skill は src/skills（MAIN_SKILLS_DIR）から deploySkills で無条件配置。",
+      "why": "q2 で enable ゲートを撤廃したため、skill 配置だけがゲートに依存し続けるのは矛盾。配置経路を 1 本化して整合させる。",
+      "considered": "B（src/workflow/skills/ + 条件付き配置維持）を検討したが、撤廃した enable ゲートに skill 配置が依存し続けるため不採用。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "follow-up-coverage",
+      "question": "昇格条件（experimental ラベルを外せる条件: 運用方法論が docs/skill に再現可能な手順として明文化済み、サブコマンド名・フィールド名・status enum の契約が固定済み、ideas からの publish フローが skill に手順化され契約変更なしに実行可能、既存ユーザー向け breaking change を伴わない API）の記載先をどこにしますか。Issue は CHANGELOG.md または src/workflow/AGENTS.md を挙げています。どちらにしますか。",
+      "answer": "src/workflow/AGENTS.md に記載する。昇格条件（運用方法論が docs/skill に再現可能な手順として明文化済み、サブコマンド名・フィールド名・status enum の契約が固定済み、ideas からの publish フローが skill に手順化され契約変更なしに実行可能、既存ユーザー向け breaking change を伴わない API）を新設する src/workflow/AGENTS.md に節として明記する。",
+      "evidence": "ユーザーが q4 で [1] を選択。Issue #348 は CHANGELOG.md または src/workflow/AGENTS.md を選択肢として提示。",
+      "why": "昇格条件はコードと co-locate され、workflow 改修時に AI エージェントが参照する継続的基準であるため、リリース履歴用 CHANGELOG.md より適切。",
+      "considered": "CHANGELOG.md を検討したが、リリース履歴に埋もれ継続参照に不向きなため不採用。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-29",
+    "notes": "q1（ゴール）B.3 で承認。q2=[2] ゲート撤廃・workflow.* へ移行、q3=[1] src/skills/ 無条件配置、q4=[1] src/workflow/AGENTS.md。全 QA answered。"
+  }
+}

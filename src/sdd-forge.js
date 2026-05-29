@@ -9,6 +9,7 @@
  *   check   → src/check.js
  *   metrics → src/metrics.js
  *   spec    → src/spec.js
+ *   workflow → src/workflow/index.js  ([EXPERIMENTAL])
  *   setup   → src/setup.js
  *   upgrade → src/upgrade.js
  *   help    → src/help.js
@@ -67,6 +68,7 @@ const NAMESPACE_SCRIPTS = {
   check: "check",
   metrics: "metrics",
   spec: "spec",
+  workflow: "workflow/index",
 };
 
 /** Independent commands — receive rest args directly */

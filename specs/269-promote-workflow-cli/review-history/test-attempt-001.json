@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-05-29T08:08:41.258Z",
+  "verdict": "FAIL",
+  "coverageArtifact": "specs/269-promote-workflow-cli/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R1 file relocation coverage is incomplete",
+      "target": "specs/269-promote-workflow-cli/tests/promote-workflow-cli.test.js R1 test",
+      "issue": "The R1 test only asserts src/workflow/registry.js, src/workflow/lib/, and a subset of command files. It does not assert the relocated dispatcher or the required dependency files lib/config.js, lib/graphql.js, lib/board-helpers.js, lib/hash.js, lib/validation.js, lib/category.js, and lib/base-command.js.",
+      "requiredChange": "Extend the R1 test to assert every file named by R1 exists under src/workflow/, including the dispatcher and all listed lib dependencies.",
+      "whyBlocking": "R1 is a must requirement, and the current spec-local test coverage can pass while several explicitly required relocated files are missing."
+    },
+    {
+      "kind": "blocking",
+      "title": "R2 routing test does not verify routing target or subcommand dispatch",
+      "target": "specs/269-promote-workflow-cli/tests/promote-workflow-cli.test.js R2 test",
+      "issue": "The R2 test only searches src/sdd-forge.js for a workflow key in NAMESPACE_SCRIPTS. It does not prove that sdd-forge workflow <subcommand> routes to the src/workflow dispatcher.",
+      "requiredChange": "Add an executable assertion that invokes at least one workflow subcommand through node src/sdd-forge.js workflow <subcommand> and/or statically asserts the workflow namespace target points at src/workflow, not just that a workflow key exists.",
+      "whyBlocking": "R2 is a must requirement, and the current test would pass for a workflow namespace entry that points somewhere other than the promoted src/workflow dispatcher."
+    },
+    {
+      "kind": "blocking",
+      "title": "R12 help test misses required experimental labeling and usage sweep",
+      "target": "specs/269-promote-workflow-cli/tests/promote-workflow-cli.test.js R12 test",
+      "issue": "The R12 test only checks that top-level help contains workflow and that workflow --help omits workflow.js. It does not assert top-level help lists workflow as [EXPERIMENTAL], and it does not inspect dispatcher/registry usage strings beyond workflow --help output.",
+      "requiredChange": "Assert top-level sdd-forge help contains workflow with [EXPERIMENTAL], and inspect or exercise workflow dispatcher/registry usage surfaces so all user-facing usage strings use sdd-forge workflow <subcommand> and do not mention workflow.js.",
+      "whyBlocking": "R12 is a must requirement, and the current coverage can pass while the official help lacks the required [EXPERIMENTAL] label or while stale workflow.js usage remains outside the single help path tested."
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R5 upgrade branch removal is only partially checked",
+      "target": "specs/269-promote-workflow-cli/tests/promote-workflow-cli.test.js R5 test",
+      "improvement": "Also inspect src/upgrade.js for removal of the enable-conditioned workflow skill placement branch, since R5 explicitly calls it out.",
+      "whyNonBlocking": "The unconditional skill relocation is partly covered by the source path and skills helper check, but directly checking src/upgrade.js would make the test intent clearer."
+    },
+    {
+      "kind": "advisory",
+      "title": "R4 runtime config reads are not exercised",
+      "target": "specs/269-promote-workflow-cli/tests/promote-workflow-cli.test.js R4 test",
+      "improvement": "Add a focused check that workflow command code reads workflow.languages.source/publish rather than only validating the schema accepts and rejects keys.",
+      "whyNonBlocking": "Schema migration is covered, but runtime read-site coverage would catch a likely implementation slip without being strictly necessary for this static test set."
+    }
+  ],
+  "toolingFailure": null,
+  "counts": {
+    "blocking": 3,
+    "advisory": 2,
+    "total": 5
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "test-001-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R1 file relocation coverage is incomplete",
+      "body": "The R1 test only asserts src/workflow/registry.js, src/workflow/lib/, and a subset of command files. It does not assert the relocated dispatcher or the required dependency files lib/config.js, lib/graphql.js, lib/board-helpers.js, lib/hash.js, lib/validation.js, lib/category.js, and lib/base-command.js.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R2 routing test does not verify routing target or subcommand dispatch",
+      "body": "The R2 test only searches src/sdd-forge.js for a workflow key in NAMESPACE_SCRIPTS. It does not prove that sdd-forge workflow <subcommand> routes to the src/workflow dispatcher.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R12 help test misses required experimental labeling and usage sweep",
+      "body": "The R12 test only checks that top-level help contains workflow and that workflow --help omits workflow.js. It does not assert top-level help lists workflow as [EXPERIMENTAL], and it does not inspect dispatcher/registry usage strings beyond workflow --help output.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-non-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "R5 upgrade branch removal is only partially checked",
+      "body": "R5 upgrade branch removal is only partially checked",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-non-blocking-005",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "R4 runtime config reads are not exercised",
+      "body": "R4 runtime config reads are not exercised",
+      "category": "unknown"
+    }
+  ]
+}

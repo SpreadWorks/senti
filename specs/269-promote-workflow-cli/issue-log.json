@@ -1,0 +1,541 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-29T07:05:54.272Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft approval is required: set approval.approved = true",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Requirement is one of more than three requirement items but has no priority of must, should, or nice-to-have.; Requirement is one of more than three requirement items but has no priority of must, should, or nice-to-have.; Requirement is one of more than three requirement items but has no priority of must, should, or nice-to-have.; Requirement is one of more than three requirement items but has no priority of must, should, or nice-to-have.; Requirement is one of more than three requirement items but has no priority of must, should, or nice-to-have.; Requirement is one of more than three requirement items but has no priority of must, should, or nice-to-have.; Requirement is one of more than three requirement items but has no priority of must, should, or nice-to-have.; Requirement is one of more than three requirement items but has no priority of must, should, or nice-to-have.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-29T07:06:28.652Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[0]"
+          },
+          "observed": "Requirement is one of more than three requirement items but has no priority of must, should, or nice-to-have.",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[1]"
+          },
+          "observed": "Requirement is one of more than three requirement items but has no priority of must, should, or nice-to-have.",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[2]"
+          },
+          "observed": "Requirement is one of more than three requirement items but has no priority of must, should, or nice-to-have.",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[3]"
+          },
+          "observed": "Requirement is one of more than three requirement items but has no priority of must, should, or nice-to-have.",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[4]"
+          },
+          "observed": "Requirement is one of more than three requirement items but has no priority of must, should, or nice-to-have.",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[5]"
+          },
+          "observed": "Requirement is one of more than three requirement items but has no priority of must, should, or nice-to-have.",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[6]"
+          },
+          "observed": "Requirement is one of more than three requirement items but has no priority of must, should, or nice-to-have.",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[7]"
+          },
+          "observed": "Requirement is one of more than three requirement items but has no priority of must, should, or nice-to-have.",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "Requirement is one of more than three requirement items but has no priority of must, should, or nice-to-have."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "Requirement is one of more than three requirement items but has no priority of must, should, or nice-to-have."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "Requirement is one of more than three requirement items but has no priority of must, should, or nice-to-have."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "Requirement is one of more than three requirement items but has no priority of must, should, or nice-to-have."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "Requirement is one of more than three requirement items but has no priority of must, should, or nice-to-have."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "Requirement is one of more than three requirement items but has no priority of must, should, or nice-to-have."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "Requirement is one of more than three requirement items but has no priority of must, should, or nice-to-have."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "Requirement is one of more than three requirement items but has no priority of must, should, or nice-to-have."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The promotion condition `利用パターンの安定` uses a subjective term without measurable criteria, so independent reviewers may not agree whether it is satisfied.; The promotion condition `利用パターンの安定` uses a subjective term without measurable criteria, so independent reviewers may not agree whether it is satisfied.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-29T07:07:24.718Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "qa[3].question"
+          },
+          "observed": "The promotion condition `利用パターンの安定` uses a subjective term without measurable criteria, so independent reviewers may not agree whether it is satisfied.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "qa[3].answer"
+          },
+          "observed": "The promotion condition `利用パターンの安定` uses a subjective term without measurable criteria, so independent reviewers may not agree whether it is satisfied.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The promotion condition `利用パターンの安定` uses a subjective term without measurable criteria, so independent reviewers may not agree whether it is satisfied."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The promotion condition `利用パターンの安定` uses a subjective term without measurable criteria, so independent reviewers may not agree whether it is satisfied."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Requirement says tests should be moved/adjusted to \"tests/unit/ 等\", but \"等\" does not specify the allowed target locations, so independent reviewers may disagree on whether the implementation satisfies it.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-29T07:08:06.072Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[9]"
+          },
+          "observed": "Requirement says tests should be moved/adjusted to \"tests/unit/ 等\", but \"等\" does not specify the allowed target locations, so independent reviewers may disagree on whether the implementation satisfies it.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirement says tests should be moved/adjusted to \"tests/unit/ 等\", but \"等\" does not specify the allowed target locations, so independent reviewers may disagree on whether the implementation satisfies it."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "reason": "draft gate FAIL: scopeVerification.in に優先度欠如、graduation 条件と test 配置先に主観/曖昧表現",
+      "trigger": "prioritize-requirements と complete-context guardrail 評価",
+      "resolution": "in[] に must/should 優先度付与、利用パターンの安定を検証可能条件へ書換、tests/unit/ へ配置先確定",
+      "guardrailCandidate": "draft の scopeVerification.in 作成時に 4 項目以上なら優先度を初めから付与し、曖昧語(等/安定)を排除する",
+      "taskId": null,
+      "timestamp": "2026-05-29T07:08:52.407Z"
+    },
+    {
+      "step": "review-spec",
+      "reason": "spec の前提誤り: root CLAUDE.md を AGENTS.md の symlink と記載したが実際は別個の通常ファイル",
+      "trigger": "spec review blocking finding 2 と ls -la による検証",
+      "resolution": "R8/AC を README.md・AGENTS.md・CLAUDE.md の非生成領域更新へ修正。help.js LAYOUT+locale と registry usage 文字列の更新要件を追加",
+      "guardrailCandidate": "spec に file 関係(symlink 等)の前提を書く前に ls -la で実体を検証する",
+      "taskId": null,
+      "timestamp": "2026-05-29T07:19:43.003Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "scope.out[2]: unresolved marker \"todo\" in value (運用方法論（ボード章立て、ideas→todo 昇格ルール）の確定); background: unresolved marker \"todo\" in value (workflow（GitHub Projects ボードのドラフト管理 + issue 化）は実運用され実装は安定しているが、skill `sdd-forge.exp.workflow` 経由で `node experimental/workflow.js` を直接呼ぶ現状は他コマンド（sdd-forge docs/spec/flow）と異なり CLI surface として一貫性がない。一方で運用方法論（ボードに何を載せるか、ideas→todo 昇格判断、published issue との突き合わせ）は未確定である。本 spec は CLI 一貫性問題を解決しつつ、方法論未確定性を [EXPERIMENTAL] ラベルと docs で明示する。experimental/ は npm パッケージに含まれない（files: [\"src/\"]）ため、src/ へ移すと配布対象になる。)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-29T07:21:52.068Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "scope.out[2]: unresolved marker \"todo\" in value (運用方法論（ボード章立て、ideas→todo 昇格ルール）の確定)",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "background: unresolved marker \"todo\" in value (workflow（GitHub Projects ボードのドラフト管理 + issue 化）は実運用され実装は安定しているが、skill `sdd-forge.exp.workflow` 経由で `node experimental/workflow.js` を直接呼ぶ現状は他コマンド（sdd-forge docs/spec/flow）と異なり CLI surface として一貫性がない。一方で運用方法論（ボードに何を載せるか、ideas→todo 昇格判断、published issue との突き合わせ）は未確定である。本 spec は CLI 一貫性問題を解決しつつ、方法論未確定性を [EXPERIMENTAL] ラベルと docs で明示する。experimental/ は npm パッケージに含まれない（files: [\"src/\"]）ため、src/ へ移すと配布対象になる。)",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "reason": "spec gate が ideas→todo の todo を unresolved TODO マーカーと誤検出して FAIL",
+      "trigger": "scope.out と background に含まれる ideas→todo 表記",
+      "resolution": "Ideas ステータスからの繰り上げ昇格 という表現に書き換え todo トークンを除去",
+      "guardrailCandidate": "spec 本文でボード status 名 Todo を未解決マーカー検出を避ける表現に置き換える",
+      "taskId": null,
+      "timestamp": "2026-05-29T07:22:49.079Z"
+    },
+    {
+      "step": "review-test",
+      "reason": "review-test が retry 上限 5/5 に到達。AI review が実行毎に新観点で blocking を出し収束しなかった",
+      "trigger": "spec 検証テストの網羅性に対する AI static review の逐次的な追加指摘",
+      "resolution": "各 round で指摘に沿いテストを強化（R1 全依存+import sweep, R2 routing 実証, R6/R8/R9 を testable 化, R10 削除網羅, R12 tree sweep）。上限到達で停止しユーザー判断を仰ぐ",
+      "guardrailCandidate": "spec 検証テスト初版で file 存在だけでなく import/usage sweep・配置厳密化まで一括で書き、review 往復を減らす",
+      "taskId": null,
+      "timestamp": "2026-05-29T08:18:19.393Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "spec 検証テストを review 指摘に沿い強化（R1 import sweep, R9 を ideas→publish/status enum で具体化）。変更済み evidence で 1 回再評価する",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "ad83d6212852e0385e618e633202eed669eba5821d77a87205fff87fc1cbc47d",
+        "currentHash": "588cef8566d893e4de7b5d211b53ce95c6aa0fd2e3457c8ec6a84f2b2c50df6f",
+        "changedPaths": [
+          "specs/269-promote-workflow-cli/tests/.raw/scenario-validity.log",
+          "specs/269-promote-workflow-cli/tests/promote-workflow-cli.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"spec 検証テストを review 指摘に沿い強化（R1 import sweep, R9 を ideas→publish/status enum で具体化）。変更済み evidence で 1 回再評価する\" --yes",
+      "createdAt": "2026-05-29T08:19:54.864Z"
+    },
+    {
+      "step": "implement",
+      "reason": "移設テスト workflow-config-validation が存在しない validateConfig を types.js から import しており壊れていた（experimental/tests は npm test 除外で見逃されていた）",
+      "trigger": "tests/unit/ へ移設し npm test 対象化した際の import 解決失敗",
+      "resolution": "実在する config.js の validate を validateConfig 別名で import するよう修正",
+      "guardrailCandidate": "experimental/tests のコードを src へ昇格する際は npm test で実行し、除外期間中に蓄積した壊れた import を検出する",
+      "taskId": null,
+      "timestamp": "2026-05-29T08:30:08.589Z"
+    },
+    {
+      "step": "implement",
+      "reason": "config キー移行後、main に npm link されたグローバル sdd-forge(旧スキーマ)が worktree の新 config.json を unknown field で拒否し、flow コマンドが全て失敗する dogfooding bootstrap 衝突が判明",
+      "trigger": "sdd-forge flow run lint が main repo の旧 config.js スキーマで workflow キーを拒否",
+      "resolution": "worktree config.json を旧キーに一時復旧して flow ツールを再開。repo 自身の config.json 移行の取り込み方をユーザー判断に委ねる",
+      "guardrailCandidate": "自己ホスト型 CLI で config スキーマを破壊的変更する spec では、リンク済みグローバル CLI のコード/スキーマ lag を考慮し、repo 自身の config.json 移行の適用順序を spec 時点で決める",
+      "taskId": null,
+      "timestamp": "2026-05-29T08:36:10.040Z"
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: gate-impl が必須とする file-map.json(requirement→ファイル対応) が未作成で ARTIFACT_PLACEHOLDER(file-map.json missing) になった",
+      "resolution": "全要件 R1-R12 を変更ファイル+spec テストへ対応付ける file-map.json を作成。plan.test の説明はヘッダー中心だが gate は file-map.json も必須のため補完",
+      "taskId": null,
+      "timestamp": "2026-05-29T08:47:19.402Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "NAMESPACE_SCRIPTS adds workflow: \"workflow/index\", but the diff does not add src/workflow/index.js/dispatcher, so sdd-forge workflow <subcommand> would not route to an implemented dispatcher.; experimental/AGENTS.md is revised appropriately and lib files are renamed out of experimental/, but the diff does not show deletion of experimental/workflow.js or experimental/workflow/registry.js, so the full removal requirement is not satisfied.; Top-level help layout and locale keys add workflow with [EXPERIMENTAL], and registry usage strings were updated, but the diff does not show the workflow dispatcher usage strings updated or prove no user-facing workflow.js reference remains there.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-29T08:50:35.969Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R2",
+          "where": null,
+          "observed": "NAMESPACE_SCRIPTS adds workflow: \"workflow/index\", but the diff does not add src/workflow/index.js/dispatcher, so sdd-forge workflow <subcommand> would not route to an implemented dispatcher.",
+          "severity": "blocking",
+          "refs": [
+            "R2"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R10",
+          "where": null,
+          "observed": "experimental/AGENTS.md is revised appropriately and lib files are renamed out of experimental/, but the diff does not show deletion of experimental/workflow.js or experimental/workflow/registry.js, so the full removal requirement is not satisfied.",
+          "severity": "blocking",
+          "refs": [
+            "R10"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R12",
+          "where": null,
+          "observed": "Top-level help layout and locale keys add workflow with [EXPERIMENTAL], and registry usage strings were updated, but the diff does not show the workflow dispatcher usage strings updated or prove no user-facing workflow.js reference remains there.",
+          "severity": "blocking",
+          "refs": [
+            "R12"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R2",
+          "reason": "NAMESPACE_SCRIPTS adds workflow: \"workflow/index\", but the diff does not add src/workflow/index.js/dispatcher, so sdd-forge workflow <subcommand> would not route to an implemented dispatcher."
+        },
+        {
+          "guardrail_id": "R10",
+          "reason": "experimental/AGENTS.md is revised appropriately and lib files are renamed out of experimental/, but the diff does not show deletion of experimental/workflow.js or experimental/workflow/registry.js, so the full removal requirement is not satisfied."
+        },
+        {
+          "guardrail_id": "R12",
+          "reason": "Top-level help layout and locale keys add workflow with [EXPERIMENTAL], and registry usage strings were updated, but the diff does not show the workflow dispatcher usage strings updated or prove no user-facing workflow.js reference remains there."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: gate の committed diff(main...HEAD) が未コミットで空、未コミット変更は git mv の rename 表示となり gate AI が R2/R10/R12 の add/delete を diff 上で認識できず blocking",
+      "resolution": "実装一式を feature ブランチにコミットして committed diff を可視化。squash マージ前提のため中間コミットは finalize で吸収される",
+      "taskId": null,
+      "timestamp": "2026-05-29T08:53:51.219Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "Workflow tests were moved to tests/unit with src/workflow imports adjusted, but the provided execution evidence is spec-local node --test only; no npm test run/pass evidence is shown.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-29T08:56:47.208Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R11",
+          "where": null,
+          "observed": "Workflow tests were moved to tests/unit with src/workflow imports adjusted, but the provided execution evidence is spec-local node --test only; no npm test run/pass evidence is shown.",
+          "severity": "blocking",
+          "refs": [
+            "R11"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R12"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R11",
+          "reason": "Workflow tests were moved to tests/unit with src/workflow imports adjusted, but the provided execution evidence is spec-local node --test only; no npm test run/pass evidence is shown."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "option1(旧キー据え置き)が実現不可能と判明: npm test の新コードは config.json 新キーを要求し(preset テスト16件が experimental を unknown field で拒否)、グローバル旧コード flow ツールは旧キーを要求する。同一 config.json で両立不可",
+      "trigger": "node tests/run.js が experimental: unknown field で 16 件 fail",
+      "resolution": "ユーザー判断待ち: グローバル CLI を新コードで動かす方針(再 link 等)が必要",
+      "guardrailCandidate": "自己ホスト型 CLI の config 破壊的変更では、flow 検証時にグローバル CLI が新コードを実行できる手段(再 link / worktree 直接実行)を事前に用意する",
+      "taskId": null,
+      "timestamp": "2026-05-29T09:04:10.126Z"
+    },
+    {
+      "step": "gate",
+      "reason": "gate-impl escalation: repeated similar FAIL detected for phase \"integration\".\nMatching (guardrail, similar prior reason) pairs:\n  R11 (jaccard=0.76): Workflow tests were moved to tests/unit and imports adjusted, but no npm test pass evidence is provided; only spec-local node --test evidence appears. ↔ Workflow tests were moved to tests/unit with src/workflow imports adjusted, but the provided execution evidence is spec-local node --test only; no npm test run/pass evidence is shown.\n\nThe AI has failed on a semantically similar requirement to a previous attempt.\nFix the spec wording or implementation so the failure mode changes, then retry.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-05-29T11:35:19.534Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-05-29T11:46:10.586Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-05-29T11:47:10.887Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "finalize-merge が config.json で衝突。main の作業ツリーにユーザーの事前未コミット変更(agent profile: useProfile codex-main, claude/haiku 追加等)があり、feature の config.json 移行と同一ファイル内で衝突する",
+      "trigger": "squash merge を main の dirty 作業ツリーに適用",
+      "resolution": "ユーザー判断待ち: main の未コミット config.json をコミット/退避してもらう必要がある(AI は main で stash/reset/checkout 禁止)",
+      "guardrailCandidate": "flow 開始前に base ブランチ作業ツリーがクリーンか確認し、dirty な場合はユーザーに退避を促す",
+      "taskId": null,
+      "timestamp": "2026-05-29T11:48:41.652Z"
+    }
+  ]
+}

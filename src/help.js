@@ -35,6 +35,8 @@ const LAYOUT = [
   { name: "flow run" },
   { section: "Metrics" },
   { name: "metrics token" },
+  { section: "Workflow" },
+  { name: "workflow" },
   { section: "Info" },
   { name: "presets list" },
 ];

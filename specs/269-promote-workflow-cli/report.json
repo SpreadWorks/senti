@@ -1,0 +1,447 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".sdd-forge/config.json                             |   22 +-\n .sdd-forge/output/analysis.json                    |    2 +-\n AGENTS.md                                          |    4 +-\n CLAUDE.md                                          |    4 +-\n README.md                                          |    2 +\n experimental/AGENTS.md                             |   25 +-\n .../tests/workflow-config-validation.test.js       |   85 --\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-questions-repair.json                    |    8 +\n .../draft-questions-triage.json                    |    8 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   11 +\n specs/269-promote-workflow-cli/draft.json          |  111 ++\n specs/269-promote-workflow-cli/file-map.json       |   67 +\n specs/269-promote-workflow-cli/flow.json           | 1381 ++++++++++++++++++++\n specs/269-promote-workflow-cli/impl-review.json    |   26 +\n specs/269-promote-workflow-cli/issue-log.json      |  522 ++++++++\n specs/269-promote-workflow-cli/issue.md            |  134 ++\n specs/269-promote-workflow-cli/retry-recovery.json |   29 +\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |   14 +\n .../review-history/impl-attempt-001.json           |   40 +\n .../review-history/impl-attempt-001.md             |   22 +\n .../review-history/spec-attempt-001.json           |  111 ++\n .../review-history/spec-attempt-001.md             |   35 +\n .../review-history/test-attempt-001.json           |  109 ++\n .../review-history/test-attempt-001.md             |   38 +\n .../review-history/test-attempt-002.json           |   56 +\n .../review-history/test-attempt-002.md             |   21 +\n .../review-history/test-attempt-003.json           |   92 ++\n .../review-history/test-attempt-003.md             |   33 +\n .../review-history/test-attempt-004.json           |  145 ++\n .../review-history/test-attempt-004.md             |   50 +\n .../review-history/test-attempt-005.json           |   73 ++\n .../review-history/test-attempt-005.md             |   26 +\n .../review-history/test-attempt-006.json           |   37 +\n .../review-history/test-attempt-006.md             |   16 +\n specs/269-promote-workflow-cli/review.md           |   22 +\n specs/269-promote-workflow-cli/spec-repair.json    |   35 +\n .../spec-review-triage.json                        |   22 +\n specs/269-promote-workflow-cli/spec-review.json    |   57 +\n specs/269-promote-workflow-cli/spec-review.md      |   35 +\n specs/269-promote-workflow-cli/spec.json           |  416 ++++++\n specs/269-promote-workflow-cli/spec.md             |  155 +++\n specs/269-promote-workflow-cli/tasks/T-1.md        |   19 +\n specs/269-promote-workflow-cli/tasks/T-10.md       |   19 +\n specs/269-promote-workflow-cli/tasks/T-11.md       |   19 +\n specs/269-promote-workflow-cli/tasks/T-12.md       |   20 +\n specs/269-promote-workflow-cli/tasks/T-2.md        |   18 +\n specs/269-promote-workflow-cli/tasks/T-3.md        |   19 +\n specs/269-promote-workflow-cli/tasks/T-4.md        |   20 +\n specs/269-promote-workflow-cli/tasks/T-5.md        |   20 +\n specs/269-promote-workflow-cli/tasks/T-6.md        |   21 +\n specs/269-promote-workflow-cli/tasks/T-7.md        |   18 +\n specs/269-promote-workflow-cli/tasks/T-8.md        |   19 +\n specs/269-promote-workflow-cli/tasks/T-9.md        |   18 +\n specs/269-promote-workflow-cli/test-coverage.json  |  152 +++\n .../test-execute-result.json                       |  539 ++++++++\n .../test-result-review.json                        |   22 +\n .../269-promote-workflow-cli/test-result-review.md |   12 +\n specs/269-promote-workflow-cli/test-review.json    |   22 +\n specs/269-promote-workflow-cli/test-review.md      |   16 +\n .../tests/.raw/test-execution.log                  |   98 ++\n .../tests/promote-workflow-cli.test.js             |  351 +++++\n src/help.js                                        |    2 +\n src/lib/config.js                                  |   14 +-\n src/lib/skills.js                                  |   22 -\n src/lib/types.js                                   |   12 +\n src/locale/en/ui.json                              |    1 +\n src/locale/ja/ui.json                              |    1 +\n src/sdd-forge.js                                   |    2 +\n .../skills/sdd-forge.exp.workflow/SKILL.md         |   14 +-\n src/upgrade.js                                     |   36 +-\n src/workflow/AGENTS.md                             |   30 +\n experimental/workflow.js => src/workflow/index.js  |   47 +-\n {experimental => src}/workflow/lib/base-command.js |    0\n .../workflow/lib/board-helpers.js                  |    2 +-\n {experimental => src}/workflow/lib/category.js     |    0\n {experimental => src}/workflow/lib/commands/add.js |    0\n .../workflow/lib/commands/list.js                  |    0\n .../workflow/lib/commands/publish.js               |    8 +-\n .../workflow/lib/commands/search.js                |    0\n .../workflow/lib/commands/show.js                  |    0\n .../workflow/lib/commands/update.js                |    0\n {experimental => src}/workflow/lib/config.js       |    0\n {experimental => src}/workflow/lib/graphql.js      |    0\n {experimental => src}/workflow/lib/hash.js         |    0\n {experimental => src}/workflow/lib/validation.js   |    0\n {experimental => src}/workflow/registry.js         |   14 +-\n .../tests => tests/unit}/workflow-category.test.js |    2 +-\n tests/unit/workflow-config-validation.test.js      |   60 +\n .../unit}/workflow-dispatcher.test.js              |    2 +-\n .../unit}/workflow-graphql-option.test.js          |    2 +-\n .../unit}/workflow-validation.test.js              |    2 +-\n 95 files changed, 5642 insertions(+), 215 deletions(-)",
+      "commits": [
+        "feat: feature/269-promote-workflow-cli",
+        "Configure test-execute full regression for this repo",
+        "Migrate this repo's config to the workflow.* key",
+        "Promote workflow to src/workflow and expose as sdd-forge workflow command"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 18,
+      "fullLogPath": "specs/269-promote-workflow-cli/issue-log.json",
+      "importantTotal": 5,
+      "importantShown": 5,
+      "importantOmitted": 0,
+      "recentOtherTotal": 13,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 8,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "gate-draft",
+          "reason": "draft gate FAIL: scopeVerification.in に優先度欠如、graduation 条件と test 配置先に主観/曖昧表現",
+          "resolution": "in[] に must/should 優先度付与、利用パターンの安定を検証可能条件へ書換、tests/unit/ へ配置先確定"
+        },
+        {
+          "classification": "important",
+          "step": "gate",
+          "reason": "spec gate が ideas→todo の todo を unresolved TODO マーカーと誤検出して FAIL",
+          "resolution": "Ideas ステータスからの繰り上げ昇格 という表現に書き換え todo トークンを除去"
+        },
+        {
+          "classification": "important",
+          "step": "retry-recovery",
+          "reason": "spec 検証テストを review 指摘に沿い強化（R1 import sweep, R9 を ideas→publish/status enum で具体化）。変更済み evidence で 1 回再評価する",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "gate-impl",
+          "reason": "option1(旧キー据え置き)が実現不可能と判明: npm test の新コードは config.json 新キーを要求し(preset テスト16件が experimental を unknown field で拒否)、グローバル旧コード flow ツールは旧キーを要求する。同一 config.json で両立不可",
+          "resolution": "ユーザー判断待ち: グローバル CLI を新コードで動かす方針(再 link 等)が必要"
+        },
+        {
+          "classification": "important",
+          "step": "gate",
+          "reason": "gate-impl escalation: repeated similar FAIL detected for phase \"integration\".\nMatching (guardrail, similar prior reason) pairs:\n  R11 (jaccard=0.76): Workflow tests were moved to tests/unit and imports adjusted, but no npm test pass evid...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "implement",
+          "reason": "config キー移行後、main に npm link されたグローバル sdd-forge(旧スキーマ)が worktree の新 config.json を unknown field で拒否し、flow コマンドが全て失敗する dogfooding bootstrap 衝突が判明",
+          "resolution": "worktree config.json を旧キーに一時復旧して flow ツールを再開。repo 自身の config.json 移行の取り込み方をユーザー判断に委ねる"
+        },
+        {
+          "classification": "recent-other",
+          "step": "gate-impl",
+          "reason": "fix: gate-impl が必須とする file-map.json(requirement→ファイル対応) が未作成で ARTIFACT_PLACEHOLDER(file-map.json missing) になった",
+          "resolution": "全要件 R1-R12 を変更ファイル+spec テストへ対応付ける file-map.json を作成。plan.test の説明はヘッダー中心だが gate は file-map.json も必須のため補完"
+        },
+        {
+          "classification": "recent-other",
+          "step": "gate",
+          "reason": "NAMESPACE_SCRIPTS adds workflow: \"workflow/index\", but the diff does not add src/workflow/index.js/dispatcher, so sdd-forge workflow <subcommand> would not route to an implemented dispatcher.; experimental/AGENTS.md is revised appropriat...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "gate-impl",
+          "reason": "fix: gate の committed diff(main...HEAD) が未コミットで空、未コミット変更は git mv の rename 表示となり gate AI が R2/R10/R12 の add/delete を diff 上で認識できず blocking",
+          "resolution": "実装一式を feature ブランチにコミットして committed diff を可視化。squash マージ前提のため中間コミットは finalize で吸収される"
+        },
+        {
+          "classification": "recent-other",
+          "step": "gate",
+          "reason": "Workflow tests were moved to tests/unit with src/workflow imports adjusted, but the provided execution evidence is spec-local node --test only; no npm test run/pass evidence is shown.",
+          "resolution": null
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 9
+    },
+    "tokenMetrics": {
+      "input": 1268134,
+      "output": 33657,
+      "cacheRead": 1867776,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 34,
+      "durationMs": 857684,
+      "phaseDurations": [
+        {
+          "phase": "review-draft-questions",
+          "durationMs": 16139
+        },
+        {
+          "phase": "review-draft-coverage",
+          "durationMs": 7038
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 73167
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 304591
+        },
+        {
+          "phase": "gate",
+          "durationMs": 13874
+        },
+        {
+          "phase": "review-test",
+          "durationMs": 145160
+        },
+        {
+          "phase": "review",
+          "durationMs": 15746
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 281969
+        }
+      ]
+    },
+    "tests": {
+      "total": 12,
+      "passed": 12,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/269-promote-workflow-cli/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 99,
+          "end_line": 5279
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "modified",
+            "path": ".sdd-forge/config.json"
+          },
+          {
+            "status": "deleted",
+            "path": "experimental/tests/workflow-config-validation.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/help.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/config.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/skills.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/types.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/sdd-forge.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/upgrade.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/workflow.js",
+            "path": "src/workflow/index.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/workflow/lib/base-command.js",
+            "path": "src/workflow/lib/base-command.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/workflow/lib/board-helpers.js",
+            "path": "src/workflow/lib/board-helpers.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/workflow/lib/category.js",
+            "path": "src/workflow/lib/category.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/workflow/lib/commands/add.js",
+            "path": "src/workflow/lib/commands/add.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/workflow/lib/commands/list.js",
+            "path": "src/workflow/lib/commands/list.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/workflow/lib/commands/publish.js",
+            "path": "src/workflow/lib/commands/publish.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/workflow/lib/commands/search.js",
+            "path": "src/workflow/lib/commands/search.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/workflow/lib/commands/show.js",
+            "path": "src/workflow/lib/commands/show.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/workflow/lib/commands/update.js",
+            "path": "src/workflow/lib/commands/update.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/workflow/lib/config.js",
+            "path": "src/workflow/lib/config.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/workflow/lib/graphql.js",
+            "path": "src/workflow/lib/graphql.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/workflow/lib/hash.js",
+            "path": "src/workflow/lib/hash.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/workflow/lib/validation.js",
+            "path": "src/workflow/lib/validation.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/workflow/registry.js",
+            "path": "src/workflow/registry.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/tests/workflow-category.test.js",
+            "path": "tests/unit/workflow-category.test.js"
+          },
+          {
+            "status": "added",
+            "path": "tests/unit/workflow-config-validation.test.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/tests/workflow-dispatcher.test.js",
+            "path": "tests/unit/workflow-dispatcher.test.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/tests/workflow-graphql-option.test.js",
+            "path": "tests/unit/workflow-graphql-option.test.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/tests/workflow-validation.test.js",
+            "path": "tests/unit/workflow-validation.test.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "modified",
+            "path": ".sdd-forge/config.json"
+          },
+          {
+            "status": "deleted",
+            "path": "experimental/tests/workflow-config-validation.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/help.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/config.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/skills.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/types.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/sdd-forge.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/upgrade.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/workflow.js",
+            "path": "src/workflow/index.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/workflow/lib/base-command.js",
+            "path": "src/workflow/lib/base-command.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/workflow/lib/board-helpers.js",
+            "path": "src/workflow/lib/board-helpers.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/workflow/lib/category.js",
+            "path": "src/workflow/lib/category.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/workflow/lib/commands/add.js",
+            "path": "src/workflow/lib/commands/add.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/workflow/lib/commands/list.js",
+            "path": "src/workflow/lib/commands/list.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/workflow/lib/commands/publish.js",
+            "path": "src/workflow/lib/commands/publish.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/workflow/lib/commands/search.js",
+            "path": "src/workflow/lib/commands/search.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/workflow/lib/commands/show.js",
+            "path": "src/workflow/lib/commands/show.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/workflow/lib/commands/update.js",
+            "path": "src/workflow/lib/commands/update.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/workflow/lib/config.js",
+            "path": "src/workflow/lib/config.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/workflow/lib/graphql.js",
+            "path": "src/workflow/lib/graphql.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/workflow/lib/hash.js",
+            "path": "src/workflow/lib/hash.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/workflow/lib/validation.js",
+            "path": "src/workflow/lib/validation.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/workflow/registry.js",
+            "path": "src/workflow/registry.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/tests/workflow-category.test.js",
+            "path": "tests/unit/workflow-category.test.js"
+          },
+          {
+            "status": "added",
+            "path": "tests/unit/workflow-config-validation.test.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/tests/workflow-dispatcher.test.js",
+            "path": "tests/unit/workflow-dispatcher.test.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/tests/workflow-graphql-option.test.js",
+            "path": "tests/unit/workflow-graphql-option.test.js"
+          },
+          {
+            "status": "renamed",
+            "old_path": "experimental/tests/workflow-validation.test.js",
+            "path": "tests/unit/workflow-validation.test.js"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/269-promote-workflow-cli/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/269-promote-workflow-cli\n    Configure test-execute full regression for this repo\n    Migrate this repo's config to the workflow.* key\n    Promote workflow to src/workflow and expose as sdd-forge workflow command\n    95 files changed, 5642 insertions(+), 215 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 9\n    agent calls ................. 34\n    input tokens ................ 1,268,134\n    output tokens ............... 33,657\n    cache-read tokens ........... 1,867,776\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 857.7s\n      review-draft-questions .... 16.1s\n      review-draft-coverage ..... 7.0s\n      gate-draft ................ 73.2s\n      review-spec ............... 304.6s\n      gate ...................... 13.9s\n      review-test ............... 145.2s\n      review .................... 15.7s\n      gate-impl ................. 282.0s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 12  passed 12  failed 0 verdict=pass\n    raw_output: specs/269-promote-workflow-cli/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (18 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/269-promote-workflow-cli/issue-log.json\n\n    Important (5)\n    - [gate-draft] draft gate FAIL: scopeVerification.in に優先度欠如、graduation 条件と test 配置先に主観/曖昧表現\n    - [gate] spec gate が ideas→todo の todo を unresolved TODO マーカーと誤検出して FAIL\n    - [retry-recovery] spec 検証テストを review 指摘に沿い強化（R1 import sweep, R9 を ideas→publish/status enum で具体化）。変更済み evidence で 1 回再評価する\n    - [gate-impl] option1(旧キー据え置き)が実現不可能と判明: npm test の新コードは config.json 新キーを要求し(preset テスト16件が experimental を unknown field で拒否)、グローバル旧コード flow ツールは旧キーを要求する。同一 config.json で両立不可\n    - [gate] gate-impl escalation: repeated similar FAIL detected for phase \"integration\".\nMatching (guardrail, similar prior reason) pairs:\n  R11 (jaccard=0.76): Workflow tests were moved to tests/unit and imports adjusted, but no npm test pass evid...\n\n    Recent Other (5 of 13)\n    - [implement] config キー移行後、main に npm link されたグローバル sdd-forge(旧スキーマ)が worktree の新 config.json を unknown field で拒否し、flow コマンドが全て失敗する dogfooding bootstrap 衝突が判明\n    - [gate-impl] fix: gate-impl が必須とする file-map.json(requirement→ファイル対応) が未作成で ARTIFACT_PLACEHOLDER(file-map.json missing) になった\n    - [gate] NAMESPACE_SCRIPTS adds workflow: \"workflow/index\", but the diff does not add src/workflow/index.js/dispatcher, so sdd-forge workflow <subcommand> would not route to an implemented dispatcher.; experimental/AGENTS.md is revised appropriat...\n    - [gate-impl] fix: gate の committed diff(main...HEAD) が未コミットで空、未コミット変更は git mv の rename 表示となり gate AI が R2/R10/R12 の add/delete を diff 上で認識できず blocking\n    - [gate] Workflow tests were moved to tests/unit with src/workflow imports adjusted, but the provided execution evidence is spec-local node --test only; no npm test run/pass evidence is shown.\n    ... 8 other issue-log entries omitted"
+}

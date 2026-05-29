@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-05-29T08:43:48.853Z",
+  "verdict": "ADVISORY",
+  "summary": {
+    "blocking": 0,
+    "nonBlocking": 1,
+    "total": 1
+  },
+  "blockingFindings": [],
+  "nonBlockingImprovements": [
+    {
+      "title": "Referenced graduation criteria file is not present",
+      "failureMode": "docs_consistency",
+      "file": "CLAUDE.md",
+      "issue": "The new experimental notice tells readers to see `src/workflow/AGENTS.md`, but that file is not in the touched file set and the diff does not create or update it. The same missing reference appears in the workflow dispatcher comment.",
+      "suggestion": "Replace the notice sentence in `CLAUDE.md` with a reference to an existing artifact, or add the referenced graduation criteria artifact and keep the dispatcher comment in `src/workflow/index.js` aligned with it.",
+      "rationale": "A broken internal reference does not block the CLI promotion behavior, but it leaves maintainers without the stated promotion criteria location."
+    }
+  ],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "impl-001-non-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "Referenced graduation criteria file is not present",
+      "body": "The new experimental notice tells readers to see `src/workflow/AGENTS.md`, but that file is not in the touched file set and the diff does not create or update it. The same missing reference appears in the workflow dispatcher comment.",
+      "category": "docs_consistency"
+    }
+  ]
+}

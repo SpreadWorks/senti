@@ -4,18 +4,23 @@
 
 ## 目的
 
-- `experimental/` は試験的なワークフローや補助ツールを置く領域である
-- `experimental/workflow.js` はボード操作や Issue 化などの運用補助 CLI（dispatcher アーキテクチャ）
+- `experimental/` は **src/ への昇格前の試験コード** を置く領域である。
+- ここに置いたコードが安定し、運用方法論が固まったら src/ へ昇格させる（promotion）。動いたら src/ に上げる運用とする。
+- 昇格後は experimental/ 側の実体を削除し、src/ を唯一の正とする。
+
+## 運用フロー
+
+1. 新しいワークフローや補助ツールをまず `experimental/` で試作する。
+2. 実装が安定し、CLI surface・config キー・利用パターンが固まったら src/ へ昇格する。
+3. 昇格時に呼び出し経路（skill / docs）を新しい src/ コマンドへ更新し、experimental/ の旧実体を削除する。
+
+## 昇格の実例
+
+- `sdd-forge workflow`（GitHub Projects ボード管理 + issue 化）は `experimental/` から `src/workflow/` へ昇格済み。昇格条件は `src/workflow/AGENTS.md` を参照。
 
 ## テスト
 
 - **MUST: `experimental/` 配下のコードをテストするファイルは `experimental/tests/` に置くこと。**
 - **MUST: `experimental/` 配下のテストを `tests/unit/` や `tests/e2e/` に置いてはならない。**
-- `experimental/workflow.js` や `experimental/workflow/lib/*.js` のテストは `experimental/tests/*.test.js` に置く
-- テスト内の import は `experimental/` 配下の相対パスを使う
-
-## ボード運用コード
-
-- `experimental/workflow.js` をボード操作の唯一の入口として扱う
-- 詳細な運用ルールは skill `sdd-forge.exp.workflow` を参照（`config.experimental.workflow.enable` を true にして `sdd-forge upgrade` で配置）
-- 出力は JSON envelope 形式（`{ ok, type, key, data, errors }`）
+- src/ へ昇格したコードのテストは `tests/unit/` 等の通常のテスト配置に従う（experimental のテスト配置規則は適用しない）。
+- 出力は JSON envelope 形式（`{ ok, type, key, data, errors }`）を推奨する。

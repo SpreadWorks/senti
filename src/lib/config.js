@@ -267,20 +267,14 @@ const CONFIG_SCHEMA = {
       },
     },
 
-    experimental: {
+    workflow: {
       type: "object",
       properties: {
-        workflow: {
+        languages: {
           type: "object",
           properties: {
-            enable: { type: "boolean" },
-            languages: {
-              type: "object",
-              properties: {
-                source: { type: "string" },
-                publish: { type: "string" },
-              },
-            },
+            source: { type: "string" },
+            publish: { type: "string" },
           },
         },
       },

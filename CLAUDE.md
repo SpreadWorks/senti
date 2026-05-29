@@ -4,7 +4,9 @@
 
 ## タスク管理
 
-ボード操作は skill `sdd-forge.exp.workflow` を使うこと。
+ボード操作は skill `sdd-forge.exp.workflow` を使うこと。skill は `sdd-forge workflow <subcommand>` コマンドを呼ぶ。
+
+> **`sdd-forge workflow` は experimental である。** 実装は安定しているが運用方法論は未確定で、usage patterns may change（使い方は今後変わる可能性がある）。昇格条件は `src/workflow/AGENTS.md` を参照。
 
 ## プロジェクトルール
 

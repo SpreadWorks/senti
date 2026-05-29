@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "spec-review-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "両 blocking finding を検証し apply。help surface（top-level help.js LAYOUT + locale + registry usage 文字列）の更新要件欠如、および CLAUDE.md/AGENTS.md の symlink 誤前提を spec-repair で修正する。",
+  "items": [
+    {
+      "title": "Official help surfaces are underspecified",
+      "target": "Goal, R2, R7, Acceptance Criteria; src/help.js; src/locale/{en,ja}/messages.json; experimental/workflow/registry.js",
+      "decision": "apply",
+      "rationale": "検証の結果、src/help.js は静的 LAYOUT + locale ui:help.commands.* で構成され workflow は未登録。registry.js の help 文字列は `Usage: workflow.js ...` をハードコード（registry.js:13-60）。experimental/workflow.js 削除後にこれらが残ると、top-level help が新コマンドを欠き、サブコマンド help が削除済み入口を指す。実装・テスト・リリースに直結する blocking。小さな追加要件で対処可能。",
+      "evidence": "src/help.js:12 LAYOUT + :48 t(`ui:help.commands.${entry.name}`); grep で locale に workflow なし; experimental/workflow/registry.js:13-60 が `Usage: workflow.js` をハードコード。spec の R2/R7 は routing と --help ラベルのみ要求し help.js/locale/registry usage を含まない。"
+    },
+    {
+      "title": "CLAUDE.md target relies on a false symlink assumption",
+      "target": "Decision about CLAUDE.md; R8; Acceptance Criteria",
+      "decision": "apply",
+      "rationale": "ls -la で検証した結果、root の AGENTS.md と CLAUDE.md は別個の通常ファイル（symlink ではない）。spec の overview.decisions と R8/AC が symlink 前提のため、AGENTS.md のみ更新で AC を満たせてしまい CLAUDE.md に experimental 警告が入らない曖昧さがある。R8・AC・該当 decision を README.md/AGENTS.md/CLAUDE.md の非生成領域更新へ修正する。",
+      "evidence": "ls -la: AGENTS.md (8758B) と CLAUDE.md (11106B) はともに `-rw-rw-r--` の通常ファイル。spec.json overview.decisions の『root CLAUDE.md は AGENTS.md のシンボリックリンク』記述が誤り。"
+    }
+  ]
+}
