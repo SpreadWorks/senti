@@ -84,11 +84,15 @@ export class FlowManager {
     });
   }
 
-  updateStepStatus(stepId, status, opts) { return this._store.updateStepStatus(stepId, status, opts); }
+  updateStepStatus(stepId, status, opts) {
+    return this._store.updateStepStatus(stepId, status, withSpecIdDefault(opts, this._boundSpecId));
+  }
   setStepRuntimeLog(stepId, runtimeLog, opts) {
     return this._store.setStepRuntimeLog(stepId, runtimeLog, withSpecIdDefault(opts, this._boundSpecId));
   }
-  setMergeOutcome(outcome, opts) { return this._store.setMergeOutcome(outcome, opts); }
+  setMergeOutcome(outcome, opts) {
+    return this._store.setMergeOutcome(outcome, withSpecIdDefault(opts, this._boundSpecId));
+  }
   setRequest(text, opts) { return this._store.setRequest(text, withSpecIdDefault(opts, this._boundSpecId)); }
   setIssue(issue, opts) { return this._store.setIssue(issue, withSpecIdDefault(opts, this._boundSpecId)); }
   addNote(text, opts) { return this._store.addNote(text, withSpecIdDefault(opts, this._boundSpecId)); }
@@ -104,16 +108,16 @@ export class FlowManager {
   // ── task primitives (cac6/T2) ───────────────────────────────────────────────
 
   /** Add a new task and set it as the current task. */
-  addTask(task) { return this._store.addTask(task); }
+  addTask(task, opts) { return this._store.addTask(task, withSpecIdDefault(opts, this._boundSpecId)); }
 
   /** Mark a task done; clears currentTaskId if it pointed at this task. */
-  completeTask(taskId) {
-    return this._store.completeTask(taskId);
+  completeTask(taskId, opts) {
+    return this._store.completeTask(taskId, withSpecIdDefault(opts, this._boundSpecId));
   }
 
   /** Get the current task object or null. */
   getCurrentTask() {
-    const state = this._store.load();
+    const state = this.load();
     if (!state || state.currentTaskId == null) return null;
     return (state.tasks || []).find((t) => t.id === state.currentTaskId) ?? null;
   }
@@ -126,8 +130,8 @@ export class FlowManager {
   }
 
   /** Update a step status on the current task. */
-  setCurrentTaskStep(stepId, status) {
-    return this._store.setCurrentTaskStep(stepId, status);
+  setCurrentTaskStep(stepId, status, opts) {
+    return this._store.setCurrentTaskStep(stepId, status, withSpecIdDefault(opts, this._boundSpecId));
   }
 
   /**
@@ -136,7 +140,7 @@ export class FlowManager {
    * null when no active flow is present (expected outside SDD contexts).
    */
   resolveCurrentContext() {
-    const state = this._store.load();
+    const state = this.load();
     if (!state) return { spec: null, sddPhase: null, taskId: null };
     const spec = specIdFromPath(state.spec) ?? null;
     const inProgress = findInProgressLeaf(state.steps);

@@ -94,6 +94,54 @@ function listMainRepoDirtyFiles(mainRepoPath, specId) {
     .map((line) => line.slice(3));
 }
 
+function listOtherDirtyFlowJsonPaths(mainRepoPath, specId) {
+  const res = runGit([
+    "-C",
+    mainRepoPath,
+    "status",
+    "--porcelain",
+    "--untracked-files=all",
+    "--",
+    ":(glob)specs/*/flow.json",
+  ]);
+  if (!res.ok) {
+    throw new Error(res.stderr || res.stdout || "git status failed");
+  }
+  const targetPath = `specs/${specId}/flow.json`;
+  const paths = [];
+  const seen = new Set();
+  for (const line of res.stdout.split("\n")) {
+    if (!line.trim()) continue;
+    const relPath = line.slice(3).trim();
+    if (!relPath || relPath === targetPath || seen.has(relPath)) continue;
+    seen.add(relPath);
+    paths.push(relPath);
+  }
+  return paths;
+}
+
+function attachOtherFlowMetadataWarning(env, mainRepoPath, specId) {
+  let paths;
+  try {
+    paths = listOtherDirtyFlowJsonPaths(mainRepoPath, specId);
+  } catch (err) {
+    env.addWarning(
+      "OTHER_FLOW_METADATA_STATUS_FAILED",
+      `Failed to inspect other flow metadata dirtiness: ${err.message}`,
+    );
+    return env;
+  }
+  if (paths.length === 0) return env;
+  env.addWarning(
+    "OTHER_FLOW_METADATA_DIRTY",
+    [
+      "Other active flow metadata remains dirty in the main repository:",
+      ...paths.map((p) => `  - ${p}`),
+    ],
+  );
+  return env;
+}
+
 /**
  * R1/R3/R6: parse `git log --reverse <baseline>..<featureBranch>` output into
  * { sha, subject } pairs and apply the 50-commit cap.
@@ -571,7 +619,11 @@ async function runTeardown(ctx, { worktreePath, mainRepoPath, reportRoot, specId
     runGit(["-C", targetRoot, "add", "--", issueLogRel]);
   }
   const commitMsg = `chore: finalize ${specId}`;
-  const commitRes = runGit(["-C", targetRoot, "commit", "-m", commitMsg]);
+  const commitPaths = [flowJsonRel];
+  if (fs.existsSync(path.join(targetRoot, issueLogRel))) {
+    commitPaths.push(issueLogRel);
+  }
+  const commitRes = runGit(["-C", targetRoot, "commit", "-m", commitMsg, "--", ...commitPaths]);
   if (!commitRes.ok) {
     // (iii) rollback so retry is meaningful.
     try {
@@ -598,10 +650,14 @@ async function runTeardown(ctx, { worktreePath, mainRepoPath, reportRoot, specId
     runGit(["branch", "-D", featureBranch], { cwd: targetRoot });
   }
 
-  return attachReport(
+  const env = attachReport(
     Envelope.ok("run", "finalize-cleanup", { status: "done" }),
     reportRoot,
   );
+  if (worktree && mainRepoPath) {
+    attachOtherFlowMetadataWarning(env, mainRepoPath, specId);
+  }
+  return env;
 }
 
 /**

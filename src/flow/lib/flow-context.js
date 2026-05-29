@@ -32,7 +32,7 @@ function resolveAuthorityFlowState(container, baseFlowManager, mainRoot) {
     if (specId) {
       const mainFlowPath = path.join(mainRoot, "specs", specId, STATE_FILE);
       if (fs.existsSync(mainFlowPath)) {
-        const mainFm = baseFlowManager.forRoot(mainRoot);
+        const mainFm = baseFlowManager.forRoot(mainRoot, { specId });
         const mainState = mainFm.load(specId);
         if (mainState) {
           return { flowManager: mainFm, flowState: mainState, authorityRoot: mainRoot };

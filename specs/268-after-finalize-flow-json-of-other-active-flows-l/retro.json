@@ -1,0 +1,43 @@
+{
+  "spec": "specs/268-after-finalize-flow-json-of-other-active-flows-l/spec.json",
+  "date": "2026-05-29T01:15:03.390Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Flow metadata writes performed through command context must target only the selected current flow's authoritative flow.json, including the post-merge worktree authority-switch path where the main repository is checked out to another active flow branch; regression coverage must show that another active flow's flow.json content is unchanged by a current-flow metric/context write.",
+      "status": "done",
+      "note": "R1: metadata write after worktree authority switch preserves other active flow.json"
+    },
+    {
+      "desc": "After successful worktree-mode finalize-cleanup, the command must detect dirty main-repository paths matching specs/*/flow.json except the finalized spec's own flow.json, including staged non-target flow.json paths, and report those relative paths in a warning.",
+      "status": "done",
+      "note": "R2: reports staged non-target flow.json before finalize cleanup commit"
+    },
+    {
+      "desc": "The target finalize-cleanup commit and the new warning path must not stage, commit, stash, reset, delete, or otherwise modify other active flows' flow.json files, including other-flow flow.json files that were already staged before cleanup.",
+      "status": "done",
+      "note": "R3: does not include staged other-flow flow.json in the target finalize commit"
+    },
+    {
+      "desc": "When no other dirty specs/*/flow.json path remains, successful finalize-cleanup output must not include the new other-flow dirty warning.",
+      "status": "done",
+      "note": "R4: successful cleanup output omits other-flow warning when no non-target flow.json is dirty"
+    },
+    {
+      "desc": "Spec-local tests under specs/268-after-finalize-flow-json-of-other-active-flows-l/tests must cover R1 through R4 with // spec: R<N> headers.",
+      "status": "done",
+      "note": "R5: declares all testable requirements in the spec coverage header"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 5,
+    "done": 5,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

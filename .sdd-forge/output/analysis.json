@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-25T04:34:19.517Z",
+  "analyzedAt": "2026-05-29T00:27:13.678Z",
   "package": {
     "entries": [
       {
@@ -4580,9 +4580,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "858a858d7a0a915e787501e0776dcedf",
-        "lines": 3216,
-        "mtime": "2026-05-25T01:30:29.359Z",
+        "hash": "045ae517f6a9c79e68540705a7aca712",
+        "lines": 3227,
+        "mtime": "2026-05-29T00:27:13.419Z",
         "className": "run-gate",
         "methods": [
           "executeGateSideEffects",
@@ -4767,25 +4767,7 @@
           "src/flow/lib/gate-recovery-display.js",
           "src/flow/lib/set-retry.js"
         ],
-        "id": "b4aa4dad",
-        "enrich": {
-          "processedAt": "2026-05-25T04:34:52.964Z",
-          "attempts": 3
-        },
-        "summary": "Implements the gate engine for SDD flow phases, including validation, AI guardrail evaluation, retry handling, and artifact generation. It centralizes pass/fail decisions for draft, spec, task implementation, and integration checkpoints.",
-        "detail": "The module combines Git diff analysis, untracked-file capture, and requirement-to-file mapping to scope what is evaluated at each gate phase. It validates multiple artifact families such as spec review triage/repair files, draft review artifacts, test evidence, and lifecycle consistency before allowing progression. Guardrail prompts and JSON schemas are built in-code, then AI responses are parsed with strict structural checks and explicit schema errors. It tracks retry history, detects no-progress or repeated-failure patterns, supports flip overrides for identical states, and persists recovery baselines and gate memory artifacts. Final results are normalized into envelopes, reports, and issue-log entries so downstream flow steps can react deterministically.",
-        "chapter": "internal_design",
-        "role": "Core gate orchestration and policy enforcement for flow quality checks",
-        "keywords": [
-          "gate validation",
-          "guardrail evaluation",
-          "retry logic",
-          "diff scoping",
-          "artifact verification",
-          "issue log",
-          "flow phase control",
-          "quality gate"
-        ]
+        "id": "b4aa4dad"
       },
       {
         "file": "src/flow/lib/run-impl-confirm.js",
@@ -4868,9 +4850,9 @@
       },
       {
         "file": "src/flow/lib/run-prepare-spec.js",
-        "hash": "7d3bfdff214198286b2caf835a099e87",
-        "lines": 352,
-        "mtime": "2026-05-19T16:44:37.373Z",
+        "hash": "b60abdbfb8a50dfe634844f2a3b9f480",
+        "lines": 356,
+        "mtime": "2026-05-29T00:27:13.420Z",
         "className": "run-prepare-spec",
         "methods": [
           "buildDraftTemplate",
@@ -4903,24 +4885,7 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "59eeacc6",
-        "summary": "Implements the `flow prepare` command that creates a new spec scaffold and initial flow state. It supports branch, worktree, and spec-only modes with safety checks.",
-        "detail": "The command computes the next numeric spec index by scanning both existing `specs/` directories and `feature/*` branches, then slugifies the title for stable naming. It resolves base branch defaults, validates base existence, and blocks in-place branch creation on dirty worktrees while allowing isolated worktree/spec-only paths. It writes `spec.json`, `draft.json`, optional cached `issue.md`, and initializes `flow.json` with `draft` set to `in_progress` and earlier setup steps marked done. It always runs docs scan validation after initialization and updates active-flow tracking, with a dry-run mode that returns planned artifacts without side effects.",
-        "chapter": "cli_commands",
-        "role": "Spec preparation command",
-        "enrich": {
-          "processedAt": "2026-05-19T16:47:37.879Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "prepare-spec",
-          "branch bootstrap",
-          "worktree mode",
-          "draft template",
-          "flow initialization",
-          "docs scan validation",
-          "spec scaffolding"
-        ]
+        "id": "59eeacc6"
       },
       {
         "file": "src/flow/lib/run-reopen-draft.js",
@@ -7067,9 +7032,9 @@
       },
       {
         "file": "src/lib/dispatcher.js",
-        "hash": "67de7792eca8898467552f0156893c80",
-        "lines": 450,
-        "mtime": "2026-05-25T04:34:08.445Z",
+        "hash": "d9deb404066823ad2adf908d442e0c56",
+        "lines": 456,
+        "mtime": "2026-05-29T00:27:13.426Z",
         "className": "dispatcher",
         "methods": [
           "parseEntryInput",
@@ -7106,24 +7071,7 @@
           "src/metrics.js",
           "src/spec.js"
         ],
-        "id": "18d5f63b",
-        "summary": "Implements the top-level dispatcher that parses command inputs, runs pre/post hooks, captures runtime logs, and emits standardized envelopes. It is the execution boundary between CLI entrypoints and command implementations.",
-        "detail": "The dispatcher splits positional and option arguments using command specs and raises clear errors for unknown options or missing values. During execution it wraps stdout/stderr handling, supports output modes, and safely suppresses recursive capture when forwarding writes. It decorates envelopes with runtime-log metadata and emits structured JSON responses for success and failure paths. Special handling formats finalize-cleanup warnings into concise user-facing diagnostic text while preserving machine-readable envelope data. The design ensures consistent exit behavior and error propagation across all command families.",
-        "chapter": "project_structure",
-        "role": "Unified CLI dispatch, I/O mediation, and envelope emission layer",
-        "enrich": {
-          "processedAt": "2026-05-25T04:34:52.964Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "CLI dispatcher",
-          "argument parsing",
-          "envelope output",
-          "runtime log metadata",
-          "error handling",
-          "stdout stderr capture",
-          "output mode"
-        ]
+        "id": "18d5f63b"
       },
       {
         "file": "src/lib/finalize-cleanup-paths.js",

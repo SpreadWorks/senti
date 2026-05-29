@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "spec-review-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "Apply both blocking findings: add pre-commit protection for staged other-flow flow.json files and pin post-merge worktree metadata writes to the selected spec id.",
+  "items": [
+    {
+      "title": "Post-commit dirty detection cannot prevent committing staged other-flow metadata",
+      "target": "Data Flow / R2 / R3 / T-2",
+      "decision": "apply",
+      "rationale": "The finding identifies a concrete ownership violation: a staged other-flow flow.json could be included in the target finalize commit before any post-cleanup warning scan runs.",
+      "evidence": "src/flow/lib/run-finalize-cleanup.js runTeardown stages the target flow.json then calls git commit. spec.json currently requires post-cleanup detection but does not require a pre-commit safeguard for already-staged non-target specs/*/flow.json paths."
+    },
+    {
+      "title": "R1 does not pin the actual cross-flow mutation integration path",
+      "target": "R1 / Decisions / src/flow/lib/flow-context.js / src/flow/registry.js",
+      "decision": "apply",
+      "rationale": "The finding points to the likely root path from Issue #345: after worktree authority switches to the main repo, an unbound FlowManager can resolve another active flow in the main repo and mutate its flow.json.",
+      "evidence": "src/flow/lib/flow-context.js uses baseFlowManager.forRoot(mainRoot) when the main repo flow.json exists, without binding specId. spec.json R1 currently requires generic current-flow writes but does not name the post-merge worktree authority-switch scenario."
+    }
+  ]
+}

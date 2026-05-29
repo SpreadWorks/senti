@@ -844,7 +844,7 @@ export class FlowStore {
 
   // ── task primitives (cac6/T2) ───────────────────────────────────────────────
 
-  addTask(task) {
+  addTask(task, opts) {
     validateTaskShape(task);
     this.mutate((state) => {
       if ((state.tasks || []).some((t) => t.id === task.id)) {
@@ -852,10 +852,10 @@ export class FlowStore {
       }
       state.tasks.push(task);
       state.currentTaskId = task.id;
-    });
+    }, opts);
   }
 
-  completeTask(taskId) {
+  completeTask(taskId, opts) {
     this.mutate((state) => {
       const task = (state.tasks || []).find((t) => t.id === taskId);
       if (!task) throw new Error(`unknown task id: ${taskId}`);
@@ -898,10 +898,10 @@ export class FlowStore {
       }
       // NOTE: promoteNextPending is intentionally NOT called here.
       // Callers (gate-impl post-hook, CLI) must invoke it explicitly.
-    });
+    }, opts);
   }
 
-  setCurrentTaskStep(stepId, status) {
+  setCurrentTaskStep(stepId, status, opts) {
     this.mutate((state) => {
       if (state.currentTaskId == null) {
         throw new Error("no current task (currentTaskId is null)");
@@ -920,7 +920,7 @@ export class FlowStore {
         }
       }
       step.status = status;
-    });
+    }, opts);
   }
 
   // ── internal ────────────────────────────────────────────────────────────────

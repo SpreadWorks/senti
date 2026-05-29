@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-review-triage.json",
+  "summary": "Applied both triaged spec review findings: added staged non-target flow.json protection and pinned post-merge worktree metadata writes to the selected spec id.",
+  "items": [
+    {
+      "title": "Post-commit dirty detection cannot prevent committing staged other-flow metadata",
+      "target": "Data Flow / R2 / R3 / T-2",
+      "decision": "applied",
+      "rationale": "The spec now requires a pre-commit safeguard for already-staged non-target specs/*/flow.json entries, while keeping post-cleanup warning visibility for dirty other-flow metadata.",
+      "evidence": "spec.json scope.in, constraints, overview.data_flow[0], requirements R2/R3, acceptance_criteria, and T-2/T-3 acceptance now cover staged other-flow flow.json exclusion from the target finalize commit.",
+      "changedFields": [
+        "scope.in",
+        "constraints",
+        "overview.data_flow[0].text",
+        "requirements[1].desc",
+        "requirements[2].desc",
+        "acceptance_criteria",
+        "tasks[1].acceptance",
+        "tasks[1].implementation_notes",
+        "tasks[2].acceptance"
+      ]
+    },
+    {
+      "title": "R1 does not pin the actual cross-flow mutation integration path",
+      "target": "R1 / Decisions / src/flow/lib/flow-context.js / src/flow/registry.js",
+      "decision": "applied",
+      "rationale": "The spec now treats the unbound main-repo FlowManager as a source-verified correction and requires post-merge worktree authority-switch coverage where the main repo is on another active flow branch.",
+      "evidence": "spec.json overview.decisions[1], overview.decisions[2], requirements[0].desc, acceptance_criteria[0], and T-1 goal/acceptance/implementation_notes now require selected spec id binding or explicit routing after authority switch.",
+      "changedFields": [
+        "overview.decisions[1]",
+        "overview.decisions[2]",
+        "requirements[0].desc",
+        "acceptance_criteria[0]",
+        "tasks[0].goal",
+        "tasks[0].acceptance",
+        "tasks[0].implementation_notes"
+      ]
+    }
+  ]
+}

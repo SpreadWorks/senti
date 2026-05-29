@@ -1,0 +1,190 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".sdd-forge/output/analysis.json                    |   78 +-\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-questions-repair.json                    |    8 +\n .../draft-questions-triage.json                    |    8 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   11 +\n .../draft.json                                     |   72 ++\n .../file-map.json                                  |   23 +\n .../flow.json                                      | 1102 ++++++++++++++++++++\n .../impl-review.json                               |   17 +\n .../issue-log.json                                 |   75 ++\n .../review.md                                      |   16 +\n .../spec-repair.json                               |   42 +\n .../spec-review-triage.json                        |   22 +\n .../spec-review.json                               |   41 +\n .../spec-review.md                                 |   25 +\n .../spec.json                                      |  246 +++++\n .../spec.md                                        |  122 +++\n .../tasks/T-1.md                                   |   21 +\n .../tasks/T-2.md                                   |   22 +\n .../tasks/T-3.md                                   |   22 +\n .../test-coverage.json                             |   75 ++\n .../test-review.json                               |   14 +\n .../test-review.md                                 |   13 +\n .../tests/concurrent-flow-metadata.test.js         |  260 +++++\n src/flow/lib/flow-context.js                       |    2 +-\n src/flow/lib/run-finalize-cleanup.js               |   60 +-\n src/lib/flow-manager.js                            |   22 +-\n src/lib/flow-store.js                              |   12 +-\n 30 files changed, 2375 insertions(+), 83 deletions(-)",
+      "commits": [
+        "fix: isolate concurrent flow metadata during finalize"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 3,
+      "fullLogPath": "specs/268-after-finalize-flow-json-of-other-active-flows-l/issue-log.json",
+      "importantTotal": 0,
+      "importantShown": 0,
+      "importantOmitted": 0,
+      "recentOtherTotal": 3,
+      "recentOtherShown": 3,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "recent-other",
+          "step": "gate-draft",
+          "reason": "draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "gate-draft",
+          "reason": "The question rationale cites Issue #345 but does not state one of the required bases: project docs/, guardrail principles, or existing code patterns.",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "gate-impl",
+          "reason": "fix: added missing requirement file-map artifact",
+          "resolution": "Recorded R1-R5 changed-file mappings so gate artifact validation can verify diff coverage."
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 15,
+      "question": 0,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 403212,
+      "output": 34248,
+      "cacheRead": 905856,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 21,
+      "durationMs": 764396,
+      "phaseDurations": [
+        {
+          "phase": "review-draft-questions",
+          "durationMs": 11367
+        },
+        {
+          "phase": "review-draft-coverage",
+          "durationMs": 7310
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 30428
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 157304
+        },
+        {
+          "phase": "gate",
+          "durationMs": 13426
+        },
+        {
+          "phase": "review-test",
+          "durationMs": 304474
+        },
+        {
+          "phase": "review",
+          "durationMs": 167935
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 72152
+        }
+      ]
+    },
+    "tests": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/268-after-finalize-flow-json-of-other-active-flows-l/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "specs/268-after-finalize-flow-json-of-other-active-flows-l/",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/flow-context.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-finalize-cleanup.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/flow-manager.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/flow-store.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/268-after-finalize-flow-json-of-other-active-flows-l/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/flow-context.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-finalize-cleanup.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-manager.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-store.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/268-after-finalize-flow-json-of-other-active-flows-l/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/flow-context.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-finalize-cleanup.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-manager.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-store.js"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/268-after-finalize-flow-json-of-other-active-flows-l/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    fix: isolate concurrent flow metadata during finalize\n    30 files changed, 2375 insertions(+), 83 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 15\n    Q&A ......................... 0\n    issue-log ................... 1\n    agent calls ................. 21\n    input tokens ................ 403,212\n    output tokens ............... 34,248\n    cache-read tokens ........... 905,856\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 764.4s\n      review-draft-questions .... 11.4s\n      review-draft-coverage ..... 7.3s\n      gate-draft ................ 30.4s\n      review-spec ............... 157.3s\n      gate ...................... 13.4s\n      review-test ............... 304.5s\n      review .................... 167.9s\n      gate-impl ................. 72.2s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 5  passed 5  failed 0 verdict=pass\n    raw_output: specs/268-after-finalize-flow-json-of-other-active-flows-l/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=pass\n\n  Issue Log Summary (3 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/268-after-finalize-flow-json-of-other-active-flows-l/issue-log.json\n\n    Recent Other (3)\n    - [gate-draft] draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved\n    - [gate-draft] The question rationale cites Issue #345 but does not state one of the required bases: project docs/, guardrail principles, or existing code patterns.\n    - [gate-impl] fix: added missing requirement file-map artifact"
+}

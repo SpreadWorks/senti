@@ -1,0 +1,246 @@
+{
+  "goal": "Prevent worktree-mode finalize from silently leaving another active flow's flow.json dirty in the main repository.",
+  "scope": {
+    "in": [
+      "must: enforce or preserve that flow metadata writes performed by a flow command mutate only the selected current flow's authoritative flow.json.",
+      "must: after worktree-mode finalize-cleanup, detect dirty specs/*/flow.json files in the main repository that do not belong to the finalized spec.",
+      "must: prevent already-staged non-target specs/*/flow.json files from being included in the finalized flow's cleanup commit.",
+      "must: surface detected other-flow dirty flow.json paths as a warning without committing, staging, deleting, or rescuing those files.",
+      "must: add spec-local regression coverage for concurrent active flows where one worktree-mode finalize path must not silently orphan another flow's flow.json.",
+      "should: keep single-flow finalize-cleanup behavior unchanged except for bounded no-op detection work."
+    ],
+    "out": [
+      "Changing GitHub Issue workflow semantics.",
+      "Committing, staging, stashing, or auto-rescuing another active flow's metadata as part of the finalized flow.",
+      "Changing finalize command names, user-facing options, or merge strategy behavior.",
+      "Changing orphan commit recovery policy.",
+      "Adding external dependencies, TypeScript, release commands, npm publish, or npm dist-tag operations."
+    ]
+  },
+  "constraints": [
+    "Use Node.js built-in modules and existing git/process/flow helpers only; do not add dependencies.",
+    "src/ changes must be project-generic and must not encode observed repository names, spec ids, branch names, or commit shas from Issue #345.",
+    "backward-compatible-cli-interface: `sdd-forge flow run finalize-cleanup` keeps its existing command name, flags, and option meanings. The new behavior is an additional warning for an already-successful cleanup path.",
+    "exit-code-contract: successful finalize-cleanup remains ok:true / exit 0 when the only new condition is detected dirty other-flow flow.json files. Existing failure conditions such as commit failure, orphan recovery halt, dirty auto-rescue preflight, and invalid flags keep their current non-zero or fail-envelope behavior.",
+    "validate-user-input-at-entry-point: no new user-facing arguments are added. Existing `--auto-rescue`, `--force`, and `--agent-work-dir` validation remains unchanged.",
+    "bounded-resource-usage: dirty-flow detection must use bounded git status/index scans for specs/*/flow.json paths and exclude the finalized spec id. It must not recursively inspect all repository files or iterate over unbounded active-flow history.",
+    "Before the target finalize-cleanup commit is created, staged non-target specs/*/flow.json entries must be detected and must not be included in the finalized flow's commit.",
+    "No implementation may silently swallow git/status errors during the new warning path; errors must be logged, returned as warnings, or left to existing failure handling."
+  ],
+  "design_principles": [
+    "Each active flow owns its own flow.json writes; one flow's finalize must not assume responsibility for another flow's metadata snapshot.",
+    "Visibility is preferred over implicit repair for other-flow dirty state, because automatically committing another active flow's metadata would cross flow ownership boundaries.",
+    "The current spec's finalize transaction remains narrow: it commits the finalized spec's terminal metadata and reports external dirty metadata separately.",
+    "Concurrent-flow tests should demonstrate both absence of cross-flow mutation and presence of warning visibility."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/flow/lib/run-finalize-cleanup.js - owns finalize-cleanup teardown, final flow.json commit, active-flow removal, and the response envelope that can carry warnings."
+      },
+      {
+        "text": "src/flow/lib/flow-context.js - resolves the authoritative flow manager/state for the selected flow, including worktree-to-main authority after merge."
+      },
+      {
+        "text": "src/flow/registry.js - wires flow command hooks and metric recording through the current command context and ctx.flowManager."
+      },
+      {
+        "text": "src/lib/flow-manager.js and src/lib/flow-store.js - provide flow.json mutation surfaces that must continue to target the selected spec."
+      },
+      {
+        "text": "specs/268-after-finalize-flow-json-of-other-active-flows-l/tests - spec-local coverage for concurrent flow metadata isolation and cleanup warning behavior."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "worktree flow finalize-cleanup -> pre-commit staged non-target specs/*/flow.json safeguard -> commit target specs/<target>/flow.json -> clear target active-flow -> inspect main repo specs/*/flow.json dirty state -> attach warning."
+      },
+      {
+        "text": "flow command context -> resolveFlowContext / selected specId -> ctx.flowManager mutation -> only the current authoritative flow.json is written."
+      },
+      {
+        "text": "concurrent active flows -> one target worktree cleanup runs -> other active flow metadata remains owned by its own flow -> dirty state is reported, not auto-committed."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] finalize-cleanup currently commits only target spec metadata.",
+        "evidence": "src/flow/lib/run-finalize-cleanup.js runTeardown updates finalize-cleanup for specId, stages specs/${specId}/flow.json and specs/${specId}/issue-log.json if present, then commits `chore: finalize ${specId}`."
+      },
+      {
+        "text": "[CORRECTION] worktree authority switch must keep the selected spec id bound.",
+        "evidence": "src/flow/lib/flow-context.js derives specId from cwdState.spec, but the main-repo branch currently uses baseFlowManager.forRoot(mainRoot) without binding that specId. Post-hook mutations need a manager bound to or explicitly routed with the selected spec id."
+      },
+      {
+        "text": "[VERIFY] metric hooks use ctx.flowManager, so binding that manager fixes the integration path.",
+        "evidence": "src/flow/registry.js `get context` post hook derives the active phase and calls ctx.flowManager.incrementMetric(...). src/lib/flow-manager.js delegates incrementMetric to FlowStore with the bound or selected spec id."
+      },
+      {
+        "text": "Warn rather than repair other-flow dirty metadata.",
+        "evidence": "Draft q1 resolved Issue #345 scope to include both warning visibility and own-flow-only metadata writes. The Issue's mitigation asks for warning logs and treats cross-flow metric writes as the root bug if present.",
+        "consideredAlternatives": "Auto-committing other flow.json files was rejected because it would cross active-flow ownership boundaries and could persist another flow's in-progress metadata without that flow's finalize transaction."
+      },
+      {
+        "text": "Limit dirty detection to specs/*/flow.json.",
+        "evidence": "Issue #345 names dirty `specs/<otherSpecId>/flow.json` as the symptom. issue-log.json and other spec artifacts have separate ownership and are not part of the reported orphaned metadata condition."
+      }
+    ]
+  },
+  "background": "Issue #345 describes a concurrent-flow failure mode: a branch-mode flow and a worktree-mode flow can coexist, and after the worktree-mode flow finalizes, a different active flow's specs/<id>/flow.json can remain modified and unstaged in the main repository. The finalized worktree cannot see or commit that other main-repo-side file, and finalize-cleanup intentionally commits only its target spec's terminal metadata. The bugfix therefore needs two verifiable properties: current flow commands must not mutate other active flows' flow.json files, and cleanup must warn when another flow's dirty flow.json remains in the main repo instead of leaving it silent.",
+  "requirements": [
+    {
+      "id": "R1",
+      "priority": "must",
+      "status": "done",
+      "desc": "Flow metadata writes performed through command context must target only the selected current flow's authoritative flow.json, including the post-merge worktree authority-switch path where the main repository is checked out to another active flow branch; regression coverage must show that another active flow's flow.json content is unchanged by a current-flow metric/context write."
+    },
+    {
+      "id": "R2",
+      "priority": "must",
+      "status": "done",
+      "desc": "After successful worktree-mode finalize-cleanup, the command must detect dirty main-repository paths matching specs/*/flow.json except the finalized spec's own flow.json, including staged non-target flow.json paths, and report those relative paths in a warning."
+    },
+    {
+      "id": "R3",
+      "priority": "must",
+      "status": "done",
+      "desc": "The target finalize-cleanup commit and the new warning path must not stage, commit, stash, reset, delete, or otherwise modify other active flows' flow.json files, including other-flow flow.json files that were already staged before cleanup."
+    },
+    {
+      "id": "R4",
+      "priority": "must",
+      "status": "done",
+      "desc": "When no other dirty specs/*/flow.json path remains, successful finalize-cleanup output must not include the new other-flow dirty warning."
+    },
+    {
+      "id": "R5",
+      "priority": "should",
+      "status": "done",
+      "desc": "Spec-local tests under specs/268-after-finalize-flow-json-of-other-active-flows-l/tests must cover R1 through R4 with // spec: R<N> headers."
+    }
+  ],
+  "acceptance_criteria": [
+    "Given two active flows exist, the current command runs from a worktree after authority has switched to the main repository, and the main repository branch corresponds to another active flow, a selected-flow metadata write changes the selected flow.json and leaves the other active flow.json byte-for-byte unchanged.",
+    "Given worktree-mode finalize-cleanup succeeds and git status in the main repository contains ` M specs/<otherSpecId>/flow.json`, the cleanup envelope or stderr includes a warning code/message naming that relative path.",
+    "Given `specs/<otherSpecId>/flow.json` is already staged before the target finalize-cleanup commit, that file is not included in the target flow's finalize commit and the warning names the staged non-target path.",
+    "Given worktree-mode finalize-cleanup succeeds and the only dirty specs/*/flow.json path is the finalized spec's own path, the new other-flow dirty warning is absent.",
+    "Given worktree-mode finalize-cleanup reports another dirty flow.json, git status after the command still shows that other flow.json with the same dirty state and no commit was created for it by the finalized flow.",
+    "Given single-flow finalize-cleanup succeeds with no dirty other-flow flow.json paths, cleanup still returns ok:true / exit 0 and follows the existing teardown behavior.",
+    "Spec-local tests contain // spec headers that collectively reference R1, R2, R3, R4, and R5."
+  ],
+  "clarifications": [
+    {
+      "q": "What counts as another flow's flow.json?",
+      "a": "A dirty main-repository path matching specs/*/flow.json whose spec id is different from the spec being finalized."
+    },
+    {
+      "q": "Does the finalized flow repair the other flow's dirty metadata?",
+      "a": "No. It reports the path so the user can decide how that active flow should persist its own metadata."
+    },
+    {
+      "q": "Does the warning fail cleanup?",
+      "a": "No. The warning is visibility for a concurrent-flow state after an otherwise successful cleanup. Existing cleanup failures keep their current behavior."
+    },
+    {
+      "q": "Does this spec add a new CLI argument?",
+      "a": "No. The behavior is internal to existing flow command execution."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Only warn about dirty other-flow flow.json files",
+      "reason": "Rejected because Issue #345 also identifies cross-flow metric writes as a root bug if present. The spec must lock the own-flow-only write invariant with tests."
+    },
+    {
+      "option": "Auto-commit all dirty specs/*/flow.json files during finalize-cleanup",
+      "reason": "Rejected because it would let one flow persist another active flow's in-progress metadata without that flow's own command or finalize transaction."
+    },
+    {
+      "option": "Fail finalize-cleanup when other dirty flow.json paths remain",
+      "reason": "Rejected because Issue #345 asks for a warning as short-term mitigation, and failing after a successful target cleanup would change the exit-code contract for a state the target flow does not own."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "finalize-cleanup",
+    "flow.json",
+    "active flow",
+    "worktree mode",
+    "main repo",
+    "metric writes",
+    "flow context",
+    "dirty status",
+    "warning envelope",
+    "run-finalize-cleanup",
+    "flow-manager",
+    "flow-store"
+  ],
+  "implementationTargets": [
+    "src/flow/lib/run-finalize-cleanup.js",
+    "src/flow/lib/flow-context.js",
+    "src/flow/registry.js",
+    "src/lib/flow-manager.js",
+    "src/lib/flow-store.js",
+    "specs/268-after-finalize-flow-json-of-other-active-flows-l/tests"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Lock metadata ownership",
+      "goal": "Verify and, if needed, constrain flow metadata writes so a command mutates only the selected current flow's authoritative flow.json, including after a worktree flow switches authority to the main repository.",
+      "acceptance": [
+        "A regression test creates or simulates at least two active flows and proves a current-flow metadata write does not change the other flow.json after the worktree authority switch.",
+        "The selected spec id remains bound or is explicitly routed when a worktree flow uses a main-repository FlowManager after merge.",
+        "If production code contains a cross-flow write path, the path is changed to use the selected current spec or bound flow manager.",
+        "The implementation does not introduce a loop that writes metrics or step state to every active flow."
+      ],
+      "implementation_notes": "Start with src/flow/registry.js, src/flow/lib/flow-context.js, src/lib/flow-manager.js, and src/lib/flow-store.js. The likely correction is binding the selected spec id when flow-context switches to a main-repository FlowManager after merge, or passing the selected spec id explicitly through post-hook metadata mutations.",
+      "test_strategy": "Spec-local unit or integration test with temporary flow state files should assert the other flow.json content before and after the selected-flow write.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Report dirty flow metadata",
+      "goal": "Add finalize-cleanup warning visibility for dirty main-repository specs/*/flow.json paths that belong to specs other than the finalized spec.",
+      "acceptance": [
+        "The warning lists relative dirty paths for non-target specs/*/flow.json files.",
+        "The warning is absent when no non-target dirty specs/*/flow.json paths remain.",
+        "The warning path does not stage, commit, stash, reset, delete, or modify the reported files.",
+        "Already-staged non-target specs/*/flow.json paths are not included in the target finalize commit.",
+        "Successful cleanup remains ok:true / exit 0 when only this warning condition is present."
+      ],
+      "implementation_notes": "Use existing runGit/status helpers and Envelope warning conventions. Keep the scan bounded to specs/*/flow.json and exclude the finalized spec id. Include staged non-target flow.json paths in the safeguard before creating the target finalize commit.",
+      "test_strategy": "Spec-local test should exercise a successful cleanup or extracted helper path with a dirty non-target flow.json and assert warning plus unchanged dirty state.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-3",
+      "title": "Cover concurrent finalize",
+      "goal": "Add spec-local regression coverage that ties the metadata ownership invariant and cleanup warning behavior to the Issue #345 concurrent-flow scenario.",
+      "acceptance": [
+        "Tests include // spec headers covering R1 through R5.",
+        "At least one test covers two active flows with one worktree-mode finalized target and one separate active flow in the main repository.",
+        "Tests verify both warning presence for dirty other-flow flow.json and warning absence for the clean/single-flow case.",
+        "Tests verify a staged other-flow flow.json is not included in the target finalize commit.",
+        "Tests avoid network, gh, and external dependencies."
+      ],
+      "implementation_notes": "Keep fixtures synthetic and repository-local. If full cleanup orchestration is too costly for a unit test, isolate the dirty-flow detection helper and add one integration-style fixture for command wiring.",
+      "test_strategy": "Run the spec-local tests via the SDD test-execute phase and include them in normal Node test execution where practical.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-05-29T00:42:23.139Z",
+    "notes": "User selected [1] approve gate-passed spec."
+  }
+}

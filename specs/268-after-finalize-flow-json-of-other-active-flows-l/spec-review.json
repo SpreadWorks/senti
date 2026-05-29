@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "generatedAt": "2026-05-29T00:36:02.029Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "nonBlocking": 1,
+    "total": 3
+  },
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Post-commit dirty detection cannot prevent committing staged other-flow metadata",
+      "target": "Data Flow / R2 / R3 / T-2",
+      "body": "**Target:** Data Flow / R2 / R3 / T-2\n**Issue:** The spec orders cleanup as committing the target specs/<target>/flow.json before inspecting main-repository dirty specs/*/flow.json paths. In the current implementation, src/flow/lib/run-finalize-cleanup.js stages the target path and then runs plain `git commit -m ...`; Git will include any other paths already staged in the index, including another specs/<id>/flow.json, before the proposed post-cleanup warning scan can see them.\n**Required change:** Specify the smallest required pre-commit safeguard for non-target specs/*/flow.json entries already staged or otherwise dirty in the index, and add acceptance/test coverage that a staged other-flow flow.json is not included in the finalized flow's commit.\n**Why blocking:** Without this correction, an implementation that follows the spec literally can pass the ` M specs/<other>/flow.json` warning test while still committing a pre-staged other active flow's flow.json in the finalized flow's `chore: finalize <spec>` commit, directly violating R3 and the ownership boundary.",
+      "issue": "The spec orders cleanup as committing the target specs/<target>/flow.json before inspecting main-repository dirty specs/*/flow.json paths. In the current implementation, src/flow/lib/run-finalize-cleanup.js stages the target path and then runs plain `git commit -m ...`; Git will include any other paths already staged in the index, including another specs/<id>/flow.json, before the proposed post-cleanup warning scan can see them.",
+      "requiredChange": "Specify the smallest required pre-commit safeguard for non-target specs/*/flow.json entries already staged or otherwise dirty in the index, and add acceptance/test coverage that a staged other-flow flow.json is not included in the finalized flow's commit.",
+      "whyBlocking": "Without this correction, an implementation that follows the spec literally can pass the ` M specs/<other>/flow.json` warning test while still committing a pre-staged other active flow's flow.json in the finalized flow's `chore: finalize <spec>` commit, directly violating R3 and the ownership boundary."
+    },
+    {
+      "kind": "blocking",
+      "title": "R1 does not pin the actual cross-flow mutation integration path",
+      "target": "R1 / Decisions / src/flow/lib/flow-context.js / src/flow/registry.js",
+      "body": "**Target:** R1 / Decisions / src/flow/lib/flow-context.js / src/flow/registry.js\n**Issue:** The spec's VERIFY decision says flow context switches to the main repo flow.json for the same spec after merge, but the current code returns `baseFlowManager.forRoot(mainRoot)` without binding the selected spec id. Subsequent hook calls such as `ctx.flowManager.incrementMetric(...)` can call `load()` with no spec id, and in a main repo with multiple active flows that resolves by the main repo's current branch, not necessarily the worktree-selected spec.\n**Required change:** Revise R1 or the Decisions section to require coverage of the post-merge worktree authority-switch path where the main repo is on another active flow branch, and state that the selected spec id must remain bound or explicitly routed for post-hook metadata mutations.\n**Why blocking:** If the spec keeps treating this as already verified behavior, implementers can test only direct FlowManager writes or a single-current-branch scenario and miss the concrete concurrent-flow bug: a command run from the worktree after merge can append metrics to another active flow's flow.json.",
+      "issue": "The spec's VERIFY decision says flow context switches to the main repo flow.json for the same spec after merge, but the current code returns `baseFlowManager.forRoot(mainRoot)` without binding the selected spec id. Subsequent hook calls such as `ctx.flowManager.incrementMetric(...)` can call `load()` with no spec id, and in a main repo with multiple active flows that resolves by the main repo's current branch, not necessarily the worktree-selected spec.",
+      "requiredChange": "Revise R1 or the Decisions section to require coverage of the post-merge worktree authority-switch path where the main repo is on another active flow branch, and state that the selected spec id must remain bound or explicitly routed for post-hook metadata mutations.",
+      "whyBlocking": "If the spec keeps treating this as already verified behavior, implementers can test only direct FlowManager writes or a single-current-branch scenario and miss the concrete concurrent-flow bug: a command run from the worktree after merge can append metrics to another active flow's flow.json."
+    }
+  ],
+  "nonBlockingImprovements": [
+    {
+      "kind": "improvement",
+      "title": "Name the warning code",
+      "target": "R2 / Acceptance Criteria",
+      "body": "**Target:** R2 / Acceptance Criteria\n**Improvement:** Consider specifying the machine-readable warning code expected for dirty other-flow flow.json paths, instead of leaving it to implementation choice.\n**Why non-blocking:** Envelope warnings already support arbitrary codes and tests can assert path/message visibility, so implementation remains possible without a preselected code.",
+      "improvement": "Consider specifying the machine-readable warning code expected for dirty other-flow flow.json paths, instead of leaving it to implementation choice.",
+      "whyNonBlocking": "Envelope warnings already support arbitrary codes and tests can assert path/message visibility, so implementation remains possible without a preselected code."
+    }
+  ]
+}

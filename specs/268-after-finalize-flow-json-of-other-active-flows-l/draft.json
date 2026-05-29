@@ -1,0 +1,72 @@
+{
+  "devType": "bugfix",
+  "goal": "Ensure worktree-mode finalize does not leave another active flow's flow.json silently dirty in the main repository.",
+  "analysis": {
+    "problem": "Issue #345 reports that when multiple active flows coexist, finalizing a worktree-mode flow can leave a different active flow's specs/<id>/flow.json modified and unstaged in the main repository. The affected metadata file is outside the finalized worktree, so the target flow's finalize transaction does not commit it and the user may miss the orphaned dirty state.",
+    "proposedApproach": "Add finalize-cleanup visibility for dirty specs/*/flow.json files that remain in the main repository outside the finalized spec, and verify that automatic metric writes target only the currently active flow's authoritative flow.json. If a cross-flow write path exists, constrain it to the selected current flow instead of all active flows.",
+    "validation": "This addresses both parts of the issue: users are alerted when another flow's flow.json remains dirty after cleanup, and any metric-write side effect that mutates other active flows is treated as the root bug rather than only masking the symptom."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #345 describes a concurrent-flow case with one branch-mode flow and one worktree-mode flow active at the same time.",
+      "The observed symptom is an unstaged specs/<otherSpecId>/flow.json in the main repository after the worktree-mode flow finalized successfully.",
+      "src/flow/lib/run-finalize-cleanup.js currently stages and commits only the target spec's flow.json and issue-log.json during cleanup.",
+      "src/flow/lib/flow-context.js selects the authoritative flow state for the current spec, switching to the main repository copy after merge when it exists.",
+      "src/flow/registry.js records metrics for flow get context through ctx.flowManager.incrementMetric using the current flow context.",
+      "The bugfix scope includes both warning visibility and verification/enforcement that automatic metadata writes do not mutate other active flows."
+    ],
+    "decisionPoints": [
+      "Whether the scope should include both warning visibility and enforcing the own-flow-only metadata write invariant.",
+      "Whether residual dirty other-flow flow.json files should block cleanup or emit a warning while preserving existing cleanup success behavior.",
+      "Which files count for the post-cleanup warning: the issue names specs/*/flow.json specifically, not all spec metadata."
+    ],
+    "resolvedByProjectRules": [
+      "The change is one Issue-defined concern and must remain one spec.",
+      "src/ changes must be generic and cannot encode project-specific spec names or observed repository values.",
+      "The implementation must use Node.js built-in modules only and follow existing flow command patterns.",
+      "In alpha, no backward compatibility shims are required for obsolete internal behavior."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "Exact helper/class placement for dirty flow.json detection.",
+      "Exact regression scenario shape for concurrent branch-mode and worktree-mode flows.",
+      "Whether the final warning is represented as an Envelope warning, stderr log, or both according to existing command conventions."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "Detect dirty specs/*/flow.json files in the main repository that belong to other specs after the target worktree-mode flow cleanup path runs.",
+      "Verify and, if needed, fix metric/state write paths so they mutate only the selected current flow's authoritative flow.json.",
+      "Add regression coverage for concurrent active flows where finalizing one worktree-mode flow must not silently leave another flow's flow.json orphaned."
+    ],
+    "out": [
+      "Changing GitHub Issue workflow semantics.",
+      "Committing or auto-rescuing another active flow's metadata as part of the finalized flow.",
+      "Changing user-facing command names or removing existing finalize options."
+    ]
+  },
+  "impactOnExisting": [
+    "finalize-cleanup gains an additional visibility check for main-repository dirty flow.json files outside the target spec.",
+    "Metric recording and other flow metadata writes may be constrained more tightly to the current flow context if cross-flow mutation is found.",
+    "Existing single-flow finalize behavior should remain unchanged except for no-op detection work."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "Issue #345 includes two possible layers: warning when another active flow's flow.json remains dirty, and enforcing that automatic metadata writes only touch the current flow. Should this spec include both layers?",
+      "answer": "Yes. The spec should include both layers: emit visibility when other-spec flow.json files remain dirty in the main repository, and verify or fix automatic metadata writes so they target only the current flow's authoritative flow.json.",
+      "evidence": "Existing code patterns: src/flow/lib/run-finalize-cleanup.js commits only the target spec's flow.json, and src/flow/registry.js metric hooks write through the current ctx.flowManager. Issue #345 also requests a warning for dirty specs/*/flow.json and verification that metric writes target only the currently active spec.",
+      "why": "The recommendation is based on existing code patterns: finalize cleanup already owns only the target spec snapshot, while metric writes are expected to use the current flow manager. Warning-only behavior would alert the user but leave a suspected cross-flow write path unresolved.",
+      "considered": "Warning-only mitigation was considered, but rejected because the Issue explicitly calls out cross-flow metric writes as a bug if present.",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-29T00:30:20.000Z",
+    "notes": "All draft QA entries are answered or dropped; coverage review passed with no unresolved user decisions."
+  }
+}
