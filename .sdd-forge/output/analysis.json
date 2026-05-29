@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-29T06:38:11.121Z",
+  "analyzedAt": "2026-05-29T12:02:53.108Z",
   "package": {
     "entries": [
       {
@@ -220,7 +220,7 @@
         ],
         "id": "7cccb0de",
         "enrich": {
-          "attempts": 11
+          "attempts": 12
         }
       },
       {
@@ -245,7 +245,7 @@
         ],
         "id": "8e7abcbd",
         "enrich": {
-          "attempts": 14
+          "attempts": 15
         }
       },
       {
@@ -268,7 +268,7 @@
         "usedBy": null,
         "id": "05590bea",
         "enrich": {
-          "attempts": 14
+          "attempts": 15
         }
       },
       {
@@ -288,7 +288,7 @@
         "usedBy": null,
         "id": "fdf0f411",
         "enrich": {
-          "attempts": 14
+          "attempts": 15
         }
       },
       {
@@ -309,7 +309,7 @@
         "usedBy": null,
         "id": "b9d76d8b",
         "enrich": {
-          "attempts": 14
+          "attempts": 15
         }
       },
       {
@@ -329,7 +329,7 @@
         "usedBy": null,
         "id": "39b2aa36",
         "enrich": {
-          "attempts": 14
+          "attempts": 15
         }
       },
       {
@@ -351,7 +351,7 @@
         ],
         "id": "e1379661",
         "enrich": {
-          "attempts": 14
+          "attempts": 15
         }
       },
       {
@@ -1015,7 +1015,7 @@
         ],
         "id": "7c5e7654",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -1142,7 +1142,7 @@
         "usedBy": null,
         "id": "f3ac0c38",
         "enrich": {
-          "attempts": 11
+          "attempts": 12
         }
       },
       {
@@ -1386,7 +1386,7 @@
         ],
         "id": "bbb893ea",
         "enrich": {
-          "attempts": 13
+          "attempts": 14
         }
       },
       {
@@ -1888,7 +1888,7 @@
         ],
         "id": "f6126150",
         "enrich": {
-          "attempts": 13
+          "attempts": 14
         }
       },
       {
@@ -1920,7 +1920,7 @@
         "usedBy": null,
         "id": "cb355898",
         "enrich": {
-          "attempts": 14
+          "attempts": 15
         }
       },
       {
@@ -2034,7 +2034,7 @@
         "usedBy": null,
         "id": "cf9f71e2",
         "enrich": {
-          "attempts": 11
+          "attempts": 12
         }
       },
       {
@@ -2247,7 +2247,7 @@
         "usedBy": null,
         "id": "1ab08f2b",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -2293,7 +2293,7 @@
         "usedBy": null,
         "id": "3a0db928",
         "enrich": {
-          "attempts": 8
+          "attempts": 9
         }
       },
       {
@@ -2338,7 +2338,7 @@
         "usedBy": null,
         "id": "5f80ffd2",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -6508,7 +6508,9 @@
           "FLOW_COMMANDS"
         ],
         "extends": null,
-        "usedBy": null,
+        "usedBy": [
+          "src/workflow/index.js"
+        ],
         "id": "d64f4095",
         "summary": "Acts as the central flow command registry and lifecycle hook coordinator. It maps phases and step transitions to runtime behaviors, review routes, and finalize side effects.",
         "detail": "The module defines constants for valid review verdicts, retry-help phases, runtime-step mappings, and finalize downstream behavior. It includes utility functions to derive active phase/step, update statuses defensively, and isolate best-effort side effects without collapsing the main flow. Draft-review boundaries are codified with explicit responsibility metadata and assertion checks. Registry entries provide command help text and wire command execution to gate, commit, merge, and regression validation logic. This creates a single integration surface for flow command semantics and operational policy.",
@@ -6530,9 +6532,9 @@
       },
       {
         "file": "src/help.js",
-        "hash": "484931fac113200e4f857fe3780041b7",
-        "lines": 76,
-        "mtime": "2026-04-17T09:02:28.841Z",
+        "hash": "aff0fa0cff4f54eca3b5bf035f2d6f6e",
+        "lines": 78,
+        "mtime": "2026-05-29T12:02:35.115Z",
         "className": "help",
         "methods": [
           "main"
@@ -6548,21 +6550,9 @@
         "extends": null,
         "usedBy": null,
         "id": "4ac07fa0",
-        "summary": "help.js builds localized CLI help content and command listings. It composes version-aware help text from translation keys.",
-        "detail": "A static layout definition drives which commands are displayed and in what order. The `main` function maps each entry to localized descriptions through i18n lookup. Output is structured for CLI consumption rather than ad-hoc string assembly. This keeps help generation deterministic and translatable.",
-        "chapter": "cli_commands",
-        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:50.164Z",
           "attempts": 1
-        },
-        "keywords": [
-          "help output",
-          "i18n",
-          "command list",
-          "version display",
-          "cli UX"
-        ]
+        }
       },
       {
         "file": "src/lib/active-flow-registry.js",
@@ -6589,7 +6579,8 @@
         ],
         "extends": null,
         "usedBy": [
-          "src/lib/flow-manager.js"
+          "src/lib/flow-manager.js",
+          "src/workflow/index.js"
         ],
         "id": "7463ee9a",
         "summary": "ActiveFlowRegistry manages `.active-flow` records and stale-entry cleanup. It validates branch/worktree existence with fail-open git checks.",
@@ -6826,7 +6817,8 @@
           "src/docs.js",
           "src/flow.js",
           "src/metrics.js",
-          "src/spec.js"
+          "src/spec.js",
+          "src/workflow/index.js"
         ],
         "id": "0d680f4f",
         "summary": "Builds the top-level command registry by composing flow, docs, check, metrics, and spec command groups. It decorates flow entries with envelope output behavior.",
@@ -6882,9 +6874,9 @@
       },
       {
         "file": "src/lib/config.js",
-        "hash": "227df32754178984da0ca576cbef2cb6",
-        "lines": 404,
-        "mtime": "2026-05-18T02:59:24.725Z",
+        "hash": "59e0f0f156fb099e21d577950fb58f3d",
+        "lines": 398,
+        "mtime": "2026-05-29T12:02:35.115Z",
         "className": "config",
         "methods": [
           "resolveConcurrency",
@@ -6934,26 +6926,13 @@
           "src/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
           "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
           "src/setup.js",
-          "src/upgrade.js"
+          "src/upgrade.js",
+          "src/workflow/index.js"
         ],
         "id": "dff6e5b4",
         "enrich": {
-          "processedAt": "2026-05-19T16:47:37.879Z",
-          "attempts": 3
-        },
-        "summary": "Loads and validates `.sdd-forge/config.json` while exposing runtime defaults and path helpers. It enforces schema-level and cross-field constraints for docs, agent, flow, and test settings.",
-        "detail": "The module provides utility loaders for JSON files and optional `package.json` fields, with explicit missing-file error codes where required. Path helpers standardize `.sdd-forge` locations and resolve agent work directories with override precedence. Validation combines schema checks with additional logic such as `docs.defaultLanguage` membership and provider-profile reference integrity. Test-specific hardening rejects unsafe shell syntax in `test.command`, validates root-relative POSIX `test.projectPaths`, and enforces integer timeout semantics. `loadConfig` is the single entry that reads and validates config before command execution.",
-        "chapter": "configuration",
-        "role": "Configuration loader and validator",
-        "keywords": [
-          "config schema",
-          "cross-field validation",
-          "work directory resolution",
-          "provider profiles",
-          "test command safety",
-          "project paths",
-          "default language"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/lib/constants.js",
@@ -8488,13 +8467,12 @@
       },
       {
         "file": "src/lib/skills.js",
-        "hash": "fb3d7d516c9a3e1c11f0bc004b2e4f14",
-        "lines": 200,
-        "mtime": "2026-05-20T05:29:29.616Z",
+        "hash": "49298905fdff54de0eae6146fa142b8c",
+        "lines": 178,
+        "mtime": "2026-05-29T12:02:35.115Z",
         "className": "skills",
         "methods": [
           "deploySkills",
-          "deployProjectSkills",
           "cleanupObsoleteSkills",
           "deployedSkillsDir",
           "listSkillDirNames",
@@ -8512,10 +8490,8 @@
         ],
         "exports": [
           "deploySkills",
-          "deployProjectSkills",
           "cleanupObsoleteSkills",
-          "MAIN_SKILLS_DIR",
-          "EXPERIMENTAL_WORKFLOW_SKILLS_DIR"
+          "MAIN_SKILLS_DIR"
         ],
         "extends": null,
         "usedBy": [
@@ -8524,21 +8500,8 @@
         ],
         "id": "a1344e4a",
         "enrich": {
-          "processedAt": "2026-05-20T06:48:20.404Z",
-          "attempts": 4
-        },
-        "summary": "Manages skill deployment from package sources into project-local agent directories. It resolves includes and rule directives before writing deterministic SKILL.md outputs.",
-        "detail": "The module defines source directories and destination targets, then enumerates skill folders and resolves each skill entry file. During deployment it composes final content by stripping data markers, expanding include directives, and injecting rule-based directives from loaded rule definitions. It compares existing destination content, removes symlink targets when necessary, and writes only changed files to minimize churn. It supports dry-run reporting and project-specific skill sources in addition to built-in skills. Cleanup logic removes obsolete deployed skills not present in active source directories.",
-        "chapter": "development",
-        "role": "Skill distribution and synchronization manager for .agents/.claude environments.",
-        "keywords": [
-          "skill deployment",
-          "SKILL.md generation",
-          "content expansion",
-          "symlink cleanup",
-          "dry run",
-          "project skills"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/lib/spec-json.js",
@@ -8641,9 +8604,9 @@
       },
       {
         "file": "src/lib/types.js",
-        "hash": "ab6c2a6bfbe6374f0966573b801cb518",
-        "lines": 97,
-        "mtime": "2026-05-18T02:59:29.600Z",
+        "hash": "55b774e69b548a3a769029c59511dcf5",
+        "lines": 109,
+        "mtime": "2026-05-29T12:02:35.116Z",
         "className": "types",
         "methods": [],
         "imports": [],
@@ -8652,20 +8615,8 @@
         "usedBy": null,
         "id": "69d5afb4",
         "enrich": {
-          "processedAt": "2026-05-19T04:50:12.342Z",
-          "attempts": 2
-        },
-        "summary": "Serves as a shared type-contract module for the codebase. In the provided extract, it has little or no runtime behavior.",
-        "detail": "This file appears to act as a boundary for reusable type semantics rather than operational logic. Keeping such contracts centralized helps maintain consistent interfaces across modules. A minimal runtime footprint avoids side effects and keeps imports cheap. The pattern supports clearer internal design even in plain JavaScript projects.",
-        "chapter": "internal_design",
-        "role": "Shared type/contract anchor module for internal interfaces.",
-        "keywords": [
-          "shared types",
-          "interface contracts",
-          "domain modeling",
-          "JSDoc typing",
-          "internal API boundaries"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/metrics.js",
@@ -11722,9 +11673,9 @@
       },
       {
         "file": "src/sdd-forge.js",
-        "hash": "a3f63d86df898afc2842514cdbc6f04e",
-        "lines": 102,
-        "mtime": "2026-05-20T01:09:12.554Z",
+        "hash": "aa831ef2357c503bbaf12fa878a45145",
+        "lines": 104,
+        "mtime": "2026-05-29T12:02:35.117Z",
         "className": "sdd-forge",
         "methods": [],
         "imports": [
@@ -11738,24 +11689,9 @@
         "extends": null,
         "usedBy": null,
         "id": "a8608997",
-        "summary": "Top-level `sdd-forge` CLI entrypoint that routes subcommands to namespace dispatchers or independent scripts via dynamic import.",
-        "detail": "Reads `process.argv`, exits early on missing args, and shims `process.argv` to point at the help script when `-h/--help` is the only arg. Maintains two tables: `NAMESPACE_SCRIPTS` for subcommands that delegate to a namespaced dispatcher and `INDEPENDENT` for self-contained scripts. Builds an absolute script path against `PKG_DIR`, rewrites `process.argv` to mirror direct invocation, then either dynamically imports the dispatcher file or imports the module and awaits its `main()` export. Initializes the DI container before dispatch and exits with `EXIT_ERROR` on unknown subcommands or thrown errors.",
-        "chapter": "cli_commands",
-        "role": "Root CLI bin script dispatching `sdd-forge <subcommand>` invocations to namespace dispatchers or independent module entrypoints",
         "enrich": {
-          "processedAt": "2026-05-20T01:10:08.721Z",
           "attempts": 1
-        },
-        "keywords": [
-          "CLI entrypoint",
-          "sdd-forge",
-          "subcommand routing",
-          "dynamic import",
-          "process.argv",
-          "PKG_DIR",
-          "exit code",
-          "initContainer"
-        ]
+        }
       },
       {
         "file": "src/setup.js",
@@ -11909,9 +11845,9 @@
       },
       {
         "file": "src/upgrade.js",
-        "hash": "1ae5404f49da616294e0d110b27db19c",
-        "lines": 162,
-        "mtime": "2026-05-25T01:30:29.360Z",
+        "hash": "e47b90fd42af8eeb2dc02d8e83bfed50",
+        "lines": 146,
+        "mtime": "2026-05-29T12:02:35.117Z",
         "className": "upgrade",
         "methods": [
           "parseUpgradeArgs",
@@ -11934,29 +11870,455 @@
         "usedBy": null,
         "id": "a631f658",
         "enrich": {
-          "processedAt": "2026-05-25T04:35:01.585Z",
-          "attempts": 3
-        },
-        "summary": "Implements the `upgrade` CLI entry point that validates project configuration, updates skill/preset assets, and rewrites config metadata when needed. It is the orchestration layer for upgrade-time consistency checks and deployment actions.",
-        "detail": "The command parses arguments, resolves repository context, and loads config before running preset-chain validation and related guard checks. It invokes upgrade helpers for skills/config synchronization and calls preset-copy deployment to refresh workspace-local preset artifacts. Error paths terminate with a defined error exit code, while success paths log actionable results for updated skills or copied assets. The file also reads and rewrites JSON config with normalized formatting to keep generated structure stable. This module acts as a thin coordinator over lower-level libraries, concentrating upgrade workflow control in one command entry point.",
-        "chapter": "cli_commands",
-        "role": "Upgrade command orchestrator",
-        "keywords": [
-          "CLI upgrade",
-          "configuration validation",
-          "preset chain",
-          "asset synchronization",
-          "command entrypoint",
-          "exit codes",
-          "project maintenance"
-        ]
+          "attempts": 1
+        }
+      },
+      {
+        "file": "src/workflow/index.js",
+        "hash": "861d97714f0cfed44ab0ea41905ce1b6",
+        "lines": 149,
+        "mtime": "2026-05-29T12:02:35.117Z",
+        "className": "index",
+        "methods": [
+          "printHelp",
+          "firstLine",
+          "parseEntryArgs",
+          "dispatch"
+        ],
+        "imports": [
+          "../lib/cli.js",
+          "../lib/config.js",
+          "../lib/container.js",
+          "../lib/flow-envelope.js",
+          "../lib/constants.js",
+          "./registry.js",
+          "./lib/config.js"
+        ],
+        "exports": [],
+        "extends": null,
+        "usedBy": null,
+        "id": "cc286b88",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
+        "file": "src/workflow/lib/base-command.js",
+        "hash": "60c303e20460cefc6c66b2d1876a07bc",
+        "lines": 11,
+        "mtime": "2026-05-29T12:02:35.117Z",
+        "className": "base-command",
+        "methods": [
+          "WorkflowCommand"
+        ],
+        "imports": [],
+        "exports": [
+          "WorkflowCommand"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/get-check.js",
+          "src/flow/lib/get-context.js",
+          "src/flow/lib/get-guardrail.js",
+          "src/flow/lib/get-issue.js",
+          "src/flow/lib/get-next-action.js",
+          "src/flow/lib/get-prompt.js",
+          "src/flow/lib/get-qa-count.js",
+          "src/flow/lib/get-resolve-context.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/run-auto-check.js",
+          "src/flow/lib/run-complete-task.js",
+          "src/flow/lib/run-final-regression.js",
+          "src/flow/lib/run-finalize-cleanup.js",
+          "src/flow/lib/run-finalize-commit.js",
+          "src/flow/lib/run-finalize-merge.js",
+          "src/flow/lib/run-finalize-sync.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-impl-confirm.js",
+          "src/flow/lib/run-lint.js",
+          "src/flow/lib/run-prepare-spec.js",
+          "src/flow/lib/run-reopen-draft.js",
+          "src/flow/lib/run-report.js",
+          "src/flow/lib/run-resume.js",
+          "src/flow/lib/run-retro.js",
+          "src/flow/lib/run-review.js",
+          "src/flow/lib/run-scenario-validity.js",
+          "src/flow/lib/run-start-task.js",
+          "src/flow/lib/run-sync.js",
+          "src/flow/lib/run-test-execute.js",
+          "src/flow/lib/run-test-result-review.js",
+          "src/flow/lib/run-update-overview.js",
+          "src/flow/lib/set-approval.js",
+          "src/flow/lib/set-auto.js",
+          "src/flow/lib/set-broad.js",
+          "src/flow/lib/set-files.js",
+          "src/flow/lib/set-init.js",
+          "src/flow/lib/set-issue-log.js",
+          "src/flow/lib/set-issue.js",
+          "src/flow/lib/set-metric.js",
+          "src/flow/lib/set-note.js",
+          "src/flow/lib/set-req.js",
+          "src/flow/lib/set-request.js",
+          "src/flow/lib/set-retry.js",
+          "src/flow/lib/set-step.js",
+          "src/flow/lib/set-summary.js",
+          "src/lib/dispatcher.js"
+        ],
+        "id": "c9908fa4",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
+        "file": "src/workflow/lib/board-helpers.js",
+        "hash": "9f89379e75071ce6353f9ce91f445250",
+        "lines": 68,
+        "mtime": "2026-05-29T12:02:35.117Z",
+        "className": "board-helpers",
+        "methods": [
+          "ensureStatusOption",
+          "findItem",
+          "formatItem",
+          "parseJsonResponse"
+        ],
+        "imports": [
+          "./hash.js",
+          "./graphql.js"
+        ],
+        "exports": [
+          "ensureStatusOption",
+          "findItem",
+          "formatItem",
+          "parseJsonResponse"
+        ],
+        "extends": null,
+        "usedBy": null,
+        "id": "4e4593ba",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
+        "file": "src/workflow/lib/category.js",
+        "hash": "9a23503c531471855b16ec920e6ca333",
+        "lines": 16,
+        "mtime": "2026-05-29T12:02:35.117Z",
+        "className": "category",
+        "methods": [
+          "prefixCategory"
+        ],
+        "imports": [],
+        "exports": [
+          "prefixCategory",
+          "VALID_CATEGORIES"
+        ],
+        "extends": null,
+        "usedBy": null,
+        "id": "11e11b10",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
+        "file": "src/workflow/lib/commands/add.js",
+        "hash": "b270ca537ac80c4a836023a2f67b3b21",
+        "lines": 41,
+        "mtime": "2026-05-29T12:02:35.117Z",
+        "className": "add",
+        "methods": [],
+        "imports": [
+          "node:child_process",
+          "../base-command.js",
+          "../hash.js",
+          "../category.js",
+          "../validation.js",
+          "../graphql.js",
+          "../board-helpers.js"
+        ],
+        "exports": [
+          "default"
+        ],
+        "extends": "WorkflowCommand",
+        "usedBy": null,
+        "id": "9219bc6c",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
+        "file": "src/workflow/lib/commands/list.js",
+        "hash": "b9920ba28133ae4b99113453f711291e",
+        "lines": 24,
+        "mtime": "2026-05-29T12:02:35.117Z",
+        "className": "list",
+        "methods": [],
+        "imports": [
+          "../base-command.js",
+          "../graphql.js",
+          "../board-helpers.js"
+        ],
+        "exports": [
+          "default"
+        ],
+        "extends": "WorkflowCommand",
+        "usedBy": null,
+        "id": "8dd05cbb",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
+        "file": "src/workflow/lib/commands/publish.js",
+        "hash": "b933618e39f8d804cd8d6846ade46623",
+        "lines": 129,
+        "mtime": "2026-05-29T12:02:35.117Z",
+        "className": "publish",
+        "methods": [],
+        "imports": [
+          "node:child_process",
+          "../base-command.js",
+          "../graphql.js",
+          "../board-helpers.js",
+          "../validation.js",
+          "../../../lib/container.js"
+        ],
+        "exports": [
+          "default"
+        ],
+        "extends": "WorkflowCommand",
+        "usedBy": null,
+        "id": "c1034289",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
+        "file": "src/workflow/lib/commands/search.js",
+        "hash": "6bf985b00462359c044b108dffbadf4d",
+        "lines": 26,
+        "mtime": "2026-05-29T12:02:35.117Z",
+        "className": "search",
+        "methods": [],
+        "imports": [
+          "../base-command.js",
+          "../graphql.js",
+          "../board-helpers.js"
+        ],
+        "exports": [
+          "default"
+        ],
+        "extends": "WorkflowCommand",
+        "usedBy": null,
+        "id": "b70ba15e",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
+        "file": "src/workflow/lib/commands/show.js",
+        "hash": "1c5e4f51178b1554d7f3f8b737cbd66e",
+        "lines": 28,
+        "mtime": "2026-05-29T12:02:35.117Z",
+        "className": "show",
+        "methods": [],
+        "imports": [
+          "../base-command.js",
+          "../graphql.js",
+          "../board-helpers.js"
+        ],
+        "exports": [
+          "default"
+        ],
+        "extends": "WorkflowCommand",
+        "usedBy": null,
+        "id": "7752e8c4",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
+        "file": "src/workflow/lib/commands/update.js",
+        "hash": "7df32c451e83ad7e60d5d63e6bcf64cd",
+        "lines": 49,
+        "mtime": "2026-05-29T12:02:35.117Z",
+        "className": "update",
+        "methods": [],
+        "imports": [
+          "../base-command.js",
+          "../graphql.js",
+          "../board-helpers.js",
+          "../validation.js"
+        ],
+        "exports": [
+          "default"
+        ],
+        "extends": "WorkflowCommand",
+        "usedBy": null,
+        "id": "e75cf809",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
+        "file": "src/workflow/lib/config.js",
+        "hash": "5774b437b5febedabb97aed621ab5e4e",
+        "lines": 24,
+        "mtime": "2026-05-29T12:02:35.117Z",
+        "className": "config",
+        "methods": [
+          "loadBoardConfig",
+          "gh"
+        ],
+        "imports": [
+          "node:child_process"
+        ],
+        "exports": [
+          "loadBoardConfig"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/lib/active-flow-registry.js",
+          "src/lib/container.js",
+          "src/lib/flow-manager.js",
+          "src/lib/flow-store.js",
+          "src/lib/guardrail.js",
+          "src/lib/i18n.js",
+          "src/lib/preparing-flow-store.js",
+          "src/presets/base/tests/acceptance/fixtures/src/index.js",
+          "src/presets/cli/tests/acceptance/fixtures/src/cli.js",
+          "src/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
+          "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
+          "src/setup.js",
+          "src/upgrade.js",
+          "src/workflow/index.js"
+        ],
+        "id": "60bcd438",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
+        "file": "src/workflow/lib/graphql.js",
+        "hash": "c82cda409c94dd4af9ac115bbc9ba58e",
+        "lines": 202,
+        "mtime": "2026-05-29T12:02:35.118Z",
+        "className": "graphql",
+        "methods": [
+          "searchItems",
+          "listItems",
+          "getProjectMeta",
+          "updateDraftIssue",
+          "convertDraftToIssue",
+          "getRepositoryId",
+          "addSingleSelectOption",
+          "setItemStatus",
+          "ghGraphQL"
+        ],
+        "imports": [
+          "node:child_process"
+        ],
+        "exports": [
+          "searchItems",
+          "listItems",
+          "getProjectMeta",
+          "updateDraftIssue",
+          "convertDraftToIssue",
+          "getRepositoryId",
+          "addSingleSelectOption",
+          "setItemStatus"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/workflow/lib/board-helpers.js"
+        ],
+        "id": "731ada65",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
+        "file": "src/workflow/lib/hash.js",
+        "hash": "25230f01665985f56b80937b80e32888",
+        "lines": 16,
+        "mtime": "2026-05-29T12:02:35.118Z",
+        "className": "hash",
+        "methods": [
+          "generateId",
+          "prefixTitle",
+          "extractId"
+        ],
+        "imports": [
+          "node:crypto"
+        ],
+        "exports": [
+          "generateId",
+          "prefixTitle",
+          "extractId"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/workflow/lib/board-helpers.js",
+          "src/workflow/lib/validation.js"
+        ],
+        "id": "d5313dab",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
+        "file": "src/workflow/lib/validation.js",
+        "hash": "f45a0d5e5efb29d93f61205c5dfe1733",
+        "lines": 31,
+        "mtime": "2026-05-29T12:02:35.118Z",
+        "className": "validation",
+        "methods": [
+          "containsJapanese",
+          "stripHashPrefix",
+          "assertJapaneseDraftField",
+          "assertJapaneseDraft"
+        ],
+        "imports": [
+          "./hash.js"
+        ],
+        "exports": [
+          "containsJapanese",
+          "stripHashPrefix",
+          "assertJapaneseDraftField",
+          "assertJapaneseDraft"
+        ],
+        "extends": null,
+        "usedBy": null,
+        "id": "e88a4b0e",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
+        "file": "src/workflow/registry.js",
+        "hash": "f42a6690ff97b24ee706e7305b889a6e",
+        "lines": 70,
+        "mtime": "2026-05-29T12:02:35.118Z",
+        "className": "registry",
+        "methods": [],
+        "imports": [],
+        "exports": [
+          "WORKFLOW_COMMANDS"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/workflow/index.js"
+        ],
+        "id": "780bd655",
+        "enrich": {
+          "attempts": 1
+        }
       }
     ],
     "summary": {
-      "total": 316,
-      "totalMethods": 1557
+      "total": 331,
+      "totalMethods": 1584
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-29T02:08:56.769Z"
+  "enrichedAt": "2026-05-29T12:07:41.233Z"
 }

@@ -10,8 +10,6 @@
 
 > **Alpha:** APIs, command structure, and configuration formats may change without notice.
 
-> **`sdd-forge workflow` is experimental.** The implementation is stable, but the usage methodology is not finalized and usage patterns may change. See `src/workflow/AGENTS.md` for the graduation criteria.
-
 ## Spec-Driven Development — Design, implement, and document in a single flow
 
 A spec-first development flow manager designed to work with AI coding agents.
