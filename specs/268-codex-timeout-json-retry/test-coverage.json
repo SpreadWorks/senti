@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "review-test",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Timeout exits identified by SIGTERM from agent subprocess timeout must be retried by _callOnceWithRetry until the normalized retryCount is exhausted; after exhaustion, the final timeout error must be thrown.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/codex-timeout-json-retry.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "Built-in codex profiles used by ProviderRegistry must keep --json in args and jsonOutputFlag set to --json for codex/gpt-5.4 and codex/gpt-5.3.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/codex-timeout-json-retry.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "Agent errors that include captured stdout must include provider key, profile key, and a stdout preview capped at 200 characters in the thrown error message.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/codex-timeout-json-retry.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "docs text batch JSON parse failures must throw an error containing the file name and a preview of the normalized agent response capped at 200 characters.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/codex-timeout-json-retry.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "docs text batch JSON parse failures must preserve fail-fast behavior: the affected file is counted as an error and the command exits non-zero through the existing DocsTextCommand error path.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/codex-timeout-json-retry.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "Regression coverage must include spec-local tests for timeout retry, codex JSON profile settings, and docs text parse error preview without waiting for a real 300 second codex CLI timeout.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/codex-timeout-json-retry.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/codex-timeout-json-retry.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ]
+    }
+  ]
+}

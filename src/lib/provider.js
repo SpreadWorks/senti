@@ -95,6 +95,11 @@ class ClaudeProvider extends Provider {
 
 class CodexProvider extends Provider {
   static key = "codex";
+  static jsonOutputFlag = "--json";
+
+  static execArgs(model) {
+    return ["exec", this.jsonOutputFlag, "-m", model, "--sandbox", "workspace-write", "{{PROMPT}}"];
+  }
 
   parse(stdout) {
     const lines = stdout.trim().split("\n");
@@ -133,15 +138,15 @@ class CodexProvider extends Provider {
     return {
       "codex/gpt-5.4": {
         command: "codex",
-        args: ["exec", "--json", "-m", "gpt-5.4", "--sandbox", "workspace-write", "{{PROMPT}}"],
-        jsonOutputFlag: "--json",
+        args: CodexProvider.execArgs("gpt-5.4"),
+        jsonOutputFlag: CodexProvider.jsonOutputFlag,
         jsonSchemaFlag: "--output-schema",
         jsonSchemaMode: "file",
       },
       "codex/gpt-5.3": {
         command: "codex",
-        args: ["exec", "--json", "-m", "gpt-5.3-codex", "--sandbox", "workspace-write", "{{PROMPT}}"],
-        jsonOutputFlag: "--json",
+        args: CodexProvider.execArgs("gpt-5.3-codex"),
+        jsonOutputFlag: CodexProvider.jsonOutputFlag,
         jsonSchemaFlag: "--output-schema",
         jsonSchemaMode: "file",
       },

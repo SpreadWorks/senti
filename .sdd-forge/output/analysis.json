@@ -4555,7 +4555,11 @@
         "file": "src/flow/lib/run-gate.js",
         "hash": "045ae517f6a9c79e68540705a7aca712",
         "lines": 3227,
+<<<<<<< HEAD
         "mtime": "2026-05-29T00:27:13.419Z",
+=======
+        "mtime": "2026-05-29T00:51:16.534Z",
+>>>>>>> f05f8d57 (feat: feature/268-codex-timeout-json-retry)
         "className": "run-gate",
         "methods": [
           "executeGateSideEffects",
@@ -4740,6 +4744,7 @@
           "src/flow/lib/gate-recovery-display.js",
           "src/flow/lib/set-retry.js"
         ],
+<<<<<<< HEAD
         "id": "b4aa4dad",
         "summary": "Implements the flow gate engine that validates draft/spec/implementation phases and produces standardized pass/fail envelopes. It combines diff analysis, artifact checks, AI guardrail evaluation, and retry/recovery control in one command pipeline.",
         "detail": "The module maps gate phases to strict levels and rejects invalid level-phase combinations before running checks. It gathers committed, uncommitted, and untracked diffs with size limits, then scopes requirement-level evaluation using file maps and per-file diff slicing. It builds guardrail prompts, parses JSON-only AI responses against explicit schemas, and raises typed schema errors for malformed or unknown fields. It also enforces artifact lifecycle rules (spec review/triage/repair and draft review variants), tracks retry history and recovery baselines, applies repeated-failure and flip-override logic, and writes issue-log/memory artifacts for subsequent gate rounds.",
@@ -4759,6 +4764,9 @@
           "spec lifecycle audit",
           "integration evidence"
         ]
+=======
+        "id": "b4aa4dad"
+>>>>>>> f05f8d57 (feat: feature/268-codex-timeout-json-retry)
       },
       {
         "file": "src/flow/lib/run-impl-confirm.js",
@@ -4843,7 +4851,11 @@
         "file": "src/flow/lib/run-prepare-spec.js",
         "hash": "b60abdbfb8a50dfe634844f2a3b9f480",
         "lines": 356,
+<<<<<<< HEAD
         "mtime": "2026-05-29T00:27:13.420Z",
+=======
+        "mtime": "2026-05-29T00:51:16.534Z",
+>>>>>>> f05f8d57 (feat: feature/268-codex-timeout-json-retry)
         "className": "run-prepare-spec",
         "methods": [
           "buildDraftTemplate",
@@ -4876,6 +4888,7 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
+<<<<<<< HEAD
         "id": "59eeacc6",
         "summary": "Implements the `prepare spec` flow command that creates a new spec workspace and initializes core spec artifacts. It also performs repository hygiene checks and analysis preconditions before state creation.",
         "detail": "The command derives a slugged spec directory name, assigns the next numeric index, and can target either the current repo or an isolated worktree path. It validates base branch availability, blocks dirty worktrees (with scoped exceptions), and resolves branch defaults safely when branch detection fails. It runs a docs scan command and verifies that `analysis.json` exists and is valid JSON before proceeding. It writes initial files such as `spec.json`, `draft.json`, and `issue.md`, then persists flow state metadata and initial step structure for downstream SDD execution.",
@@ -4895,6 +4908,9 @@
           "spec scaffold",
           "slug generation"
         ]
+=======
+        "id": "59eeacc6"
+>>>>>>> f05f8d57 (feat: feature/268-codex-timeout-json-retry)
       },
       {
         "file": "src/flow/lib/run-reopen-draft.js",
@@ -7043,7 +7059,11 @@
         "file": "src/lib/dispatcher.js",
         "hash": "d9deb404066823ad2adf908d442e0c56",
         "lines": 456,
+<<<<<<< HEAD
         "mtime": "2026-05-29T00:27:13.426Z",
+=======
+        "mtime": "2026-05-29T00:51:16.540Z",
+>>>>>>> f05f8d57 (feat: feature/268-codex-timeout-json-retry)
         "className": "dispatcher",
         "methods": [
           "parseEntryInput",
@@ -7080,6 +7100,7 @@
           "src/metrics.js",
           "src/spec.js"
         ],
+<<<<<<< HEAD
         "id": "18d5f63b",
         "summary": "Provides the central CLI dispatcher that parses entry arguments, executes command lifecycle hooks, and normalizes output/error behavior. It supports envelope-based reporting and runtime log attachment across command modes.",
         "detail": "The dispatcher splits positional and option arguments using per-command flag/option specs and throws deterministic errors for unknown or missing option values. It resolves output mode (`raw` or envelope-oriented), then runs `pre`, command execution, `post`, and `onError` hooks with consistent failure routing. It temporarily intercepts stdout/stderr writes to suppress recursive capture paths and to integrate runtime logging metadata into emitted envelopes. It also formats finalize-cleanup warnings into concise display text with truncation and message limits, ensuring actionable terminal output without unbounded noise.",
@@ -7099,6 +7120,9 @@
           "output modes",
           "cleanup warnings"
         ]
+=======
+        "id": "18d5f63b"
+>>>>>>> f05f8d57 (feat: feature/268-codex-timeout-json-retry)
       },
       {
         "file": "src/lib/finalize-cleanup-paths.js",

@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-review-triage.json",
+  "summary": "Clarified preview source for docs text batch JSON parse failures: R4/T-4 use the normalized agent response passed to parseBatchJsonResponse, while R3 keeps agent-level stdout preview for subprocess failures.",
+  "items": [
+    {
+      "title": "Docs text preview source conflicts with available data path",
+      "target": "R4 / T-4 / Acceptance Criteria",
+      "decision": "applied",
+      "rationale": "Updated spec language so docs text parse errors preview the normalized agent response available in src/docs/commands/text.js, not raw subprocess stdout owned by src/lib/agent.js.",
+      "evidence": "spec.json requirements[3].desc and acceptance_criteria[3] now name the normalized agent response passed to parseBatchJsonResponse.",
+      "changedFields": [
+        "goal",
+        "scope.in[3]",
+        "overview.decisions[2].evidence",
+        "requirements[3].desc",
+        "acceptance_criteria[3]",
+        "keywords"
+      ]
+    }
+  ]
+}

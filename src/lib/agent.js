@@ -20,6 +20,7 @@ import path from "path";
 import { spawn } from "child_process";
 import { generateRequestId } from "./log.js";
 import { ProviderRegistry } from "./provider.js";
+import { formatPreview } from "./error-preview.js";
 
 const DEFAULT_AGENT_TIMEOUT_MS = 300_000;
 const DEFAULT_STDIN_FALLBACK_THRESHOLD = 100_000;
@@ -202,7 +203,6 @@ class Agent {
         if (result.text) return result;
         lastError = new Error("empty response");
       } catch (err) {
-        if (err.killed || err.signal) throw err;
         lastError = err;
       }
       if (attempt < retry.retryCount) {
@@ -214,7 +214,7 @@ class Agent {
   }
 
   async _callOnce(resolved, prompt, options) {
-    const { provider, profile, timeoutMs } = resolved;
+    const { provider, profile, providerKey, profileKey, timeoutMs } = resolved;
     const { finalArgs, env, stdinContent, pendingSchemaWrite } = this._buildInvocation(resolved, prompt, options);
     const cwd = this._paths.root || process.cwd();
 
@@ -265,11 +265,14 @@ class Agent {
           return;
         }
         const parts = [];
+        parts.push(`provider=${providerKey}`);
+        parts.push(`profile=${profileKey}`);
         if (signal) parts.push(signal === "SIGTERM" ? "timeout" : `signal=${signal}`);
         if (code != null && code !== 0) parts.push(`exit=${code}`);
         if (stdinError) parts.push(`stdin=${stdinError.code || stdinError.message}`);
         if (stderr) parts.push(String(stderr).trim());
-        if (!stderr && stdout) parts.push(String(stdout).trim());
+        const stdoutPreview = formatPreview(stdout);
+        if (stdoutPreview) parts.push(`stdoutPreview=${stdoutPreview}`);
         const error = new Error(parts.join(" | ") || "unknown error");
         error.code = code;
         error.signal = signal;

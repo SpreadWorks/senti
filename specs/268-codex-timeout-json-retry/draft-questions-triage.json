@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "All 5 repair targets are valid: q1-q5 include recommended answers or implementation policy in question text and should be rewritten as neutral questions.",
+  "items": [
+    {
+      "title": "1. q1 includes a recommended answer",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "The review target matches the current q1 text, which starts with a recommendation and states the preferred retry behavior.",
+      "evidence": "draft.json qa[0].question begins with '推奨:' and includes retryCount behavior before asking the user."
+    },
+    {
+      "title": "2. q2 includes a recommended scope decision",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "The review target matches the current q2 text, which states a preferred scope exclusion before asking the user.",
+      "evidence": "draft.json qa[1].question begins with '推奨:' and says default timeout changes are out of scope."
+    },
+    {
+      "title": "3. q3 includes a recommended implementation detail",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "The review target matches the current q3 text, which includes a preferred preview length and thrown-error placement.",
+      "evidence": "draft.json qa[2].question begins with '推奨:' and specifies stdout preview length before asking the user."
+    },
+    {
+      "title": "4. q4 includes a recommended internal policy",
+      "target": "q4",
+      "decision": "apply",
+      "rationale": "The review target matches the current q4 text, which states a preferred testing and profile policy before asking the user.",
+      "evidence": "draft.json qa[3].question begins with '推奨:' and says to keep profile specs unchanged."
+    },
+    {
+      "title": "5. q5 includes a recommended validation plan",
+      "target": "q5",
+      "decision": "apply",
+      "rationale": "The review target matches the current q5 text, which states the preferred validation plan before asking the user.",
+      "evidence": "draft.json qa[4].question begins with '推奨:' and excludes long-running real codex CLI reproduction tests."
+    }
+  ]
+}

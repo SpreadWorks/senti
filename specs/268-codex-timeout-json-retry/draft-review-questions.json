@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "phase": "review-draft-questions",
+  "sourceDraft": "draft.json",
+  "generatedAt": "2026-05-29T00:53:56.646Z",
+  "verdict": "ADVISORY",
+  "summary": "0 blocking, 0 advisory, 5 repair target finding(s) recorded.",
+  "blockingFindings": [],
+  "advisoryFindings": [],
+  "repairTargets": [
+    {
+      "title": "1. q1 includes a recommended answer",
+      "target": "q1",
+      "rationale": "timeout した codex provider 呼び出しを retryCount の対象にしますか？",
+      "evidence": "The question includes an answer/rationale instead of only question text.",
+      "classification": "repair_target"
+    },
+    {
+      "title": "2. q2 includes a recommended scope decision",
+      "target": "q2",
+      "rationale": "今回の scope にデフォルト timeout 秒数や timeout 上限の変更を含めますか？",
+      "evidence": "The question includes an answer/instruction instead of only question text.",
+      "classification": "repair_target"
+    },
+    {
+      "title": "3. q3 includes a recommended implementation detail",
+      "target": "q3",
+      "rationale": "JSON parse 失敗時の thrown error に stdout preview を含めますか？",
+      "evidence": "The question includes an answer and specific implementation detail instead of only question text.",
+      "classification": "repair_target"
+    },
+    {
+      "title": "4. q4 includes a recommended internal policy",
+      "target": "q4",
+      "rationale": "codex provider の出力形式の正規化変更を今回含めますか？",
+      "evidence": "The question includes an answer/instruction and internal implementation/testing policy instead of only question text.",
+      "classification": "repair_target"
+    },
+    {
+      "title": "5. q5 includes a recommended validation plan",
+      "target": "q5",
+      "rationale": "実 codex CLI を長時間待つ再現テストを受け入れ条件に含めますか？",
+      "evidence": "The question includes an answer/instruction about test strategy instead of only question text.",
+      "classification": "repair_target"
+    }
+  ]
+}

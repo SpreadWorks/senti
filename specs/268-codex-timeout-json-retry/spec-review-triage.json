@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "spec-review-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "The single blocking finding is valid and should be applied: docs text parse errors must preview the normalized agent response, not raw subprocess stdout.",
+  "items": [
+    {
+      "title": "Docs text preview source conflicts with available data path",
+      "target": "R4 / T-4 / Acceptance Criteria",
+      "decision": "apply",
+      "rationale": "src/docs/commands/text.js receives the normalized agent response returned by agent.call(), so R4/T-4 must name that response as the preview source. Raw subprocess stdout remains an agent-level diagnostic for R3.",
+      "evidence": "spec.json R4, scope.in, acceptance_criteria, and T-4 currently use stdout/response wording inconsistently; verified code path in src/docs/commands/text.js calls parseBatchJsonResponse(result)."
+    }
+  ]
+}

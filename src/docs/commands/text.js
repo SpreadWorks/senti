@@ -36,6 +36,7 @@ import { getChapterFiles, loadFullAnalysis } from "../lib/command-context.js";
 import { iterateAnalysisCategories } from "../lib/analysis-entry.js";
 import { repairJson } from "../../lib/json-parse.js";
 import { EXIT_ERROR } from "../../lib/constants.js";
+import { formatPreview } from "../../lib/error-preview.js";
 
 const logger = createLogger("text");
 
@@ -252,8 +253,9 @@ async function processTemplateFileBatch(text, analysis, fileName, agent, dryRun,
 
   const jsonData = parseBatchJsonResponse(result);
   if (!jsonData) {
-    logger.log(`WARN: JSON parse failed for ${fileName}, response preview: ${result.slice(0, 200)}`);
-    throw new Error(`batch JSON parse failed for ${fileName}`);
+    const preview = formatPreview(result);
+    logger.log(`WARN: JSON parse failed for ${fileName}, response preview: ${preview}`);
+    throw new Error(`batch JSON parse failed for ${fileName}: responsePreview=${preview}`);
   }
 
   const applied = applyBatchJsonToFile(cleanText, textFills, jsonData);

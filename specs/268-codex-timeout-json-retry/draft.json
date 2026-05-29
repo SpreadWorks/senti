@@ -1,0 +1,123 @@
+{
+  "devType": "bugfix",
+  "goal": "codex provider を使う docs text / docs build の {{text}} AI 生成で、timeout 後の即時失敗と partial JSON parse 診断不足を解消する。",
+  "analysis": {
+    "problem": "Issue #346 reports that docs text / docs build can hang during {{text}} generation with codex provider, then terminate at the agent timeout and fail with an unhelpful partial JSON parse path. The observed failure blocks documentation generation for real projects.",
+    "proposedApproach": "Keep the fix inside the existing agent/provider/docs text boundaries: verify codex JSON profile behavior, make timeout failures retryable under the existing retryCount policy, and include a 200-character stdout preview in provider output or batch JSON parse failure errors.",
+    "validation": "The issue identifies src/lib/agent.js, src/lib/provider.js, and src/docs/commands/text.js as the affected surface. Current context confirms codex profiles already declare --json/jsonOutputFlag, agent retry currently throws immediately for killed/signal errors, and docs text batch parsing reports only a generic parse failure after a preview log."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #346 is linked and labeled bug.",
+      "Observed failures occur with provider codex and profile codex/gpt-5.4 during {{text}} generation.",
+      "src/lib/provider.js builtin codex profiles include --json and jsonOutputFlag.",
+      "src/lib/agent.js currently skips retry for killed or signaled subprocess errors.",
+      "src/docs/commands/text.js parses batch JSON after agent.call returns text and throws a generic batch JSON parse error on failure.",
+      ".sdd-forge/config.json sets lang to ja and docs.defaultLanguage to en.",
+      "[must] Timeout-caused codex provider failures should be retried by the existing retryCount policy.",
+      "[must] Default timeout duration changes are out of scope for this bugfix.",
+      "[must] JSON parse failure errors should include a stdout preview capped at 200 characters for diagnosis.",
+      "[must] Provider output normalization changes beyond existing codex JSON parsing are out of scope.",
+      "[must] Acceptance testing should verify timeout retry, profile JSON settings, and parse error preview without waiting for a real 300 second codex CLI timeout.",
+      "[must] docs text should preserve the existing fail-fast behavior for batch parse failure while adding the 200-character preview to the error message."
+    ],
+    "decisionPoints": [],
+    "resolvedByProjectRules": [
+      "[must] Do not add external dependencies; any parsing, logging, and retry changes must use Node.js built-in modules.",
+      "[must] The issue remains one spec; do not split provider, agent retry, and docs text diagnostics into separate specs.",
+      "[must] src/ must not contain project-specific paths or project-specific observed log names.",
+      "[must] Backward compatibility is required for existing CLI commands and options unless a migration plan is included."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "[must] Exact requirement wording and priorities.",
+      "[must] Acceptance criteria for timeout retry, 200-character partial output diagnostics, and codex JSON profile verification.",
+      "[must] Test cases for agent timeout retry and docs text parse failure messages."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] codex provider JSON output configuration verification.",
+      "[must] agent timeout retry behavior for subprocess SIGTERM timeout.",
+      "[must] diagnostics with a 200-character stdout preview for partial stdout or provider parse failure.",
+      "[must] docs text batch JSON parse failure diagnostics with a 200-character stdout preview.",
+      "[must] regression tests covering timeout retry, codex JSON profile settings, and parse error preview."
+    ],
+    "out": [
+      "[must] Exclude adding new external dependencies.",
+      "[must] Exclude changing public docs build or docs text command names.",
+      "[must] Exclude project-specific handling for OOS_spread_commerce paths or logs.",
+      "[must] Exclude broad rewrite of the agent provider architecture.",
+      "[must] Exclude npm publish or release operations."
+    ]
+  },
+  "impactOnExisting": [
+      "[must] docs text / docs build users with codex profiles should see retry behavior on timeout instead of immediate failure.",
+      "[must] Agent failure logs and thrown errors include provider/profile context and a stdout preview capped at 200 characters when stdout exists.",
+      "[should] Claude provider JSON parsing and profile args should remain unchanged; shared retry changes may affect Claude only when its subprocess exits by timeout signal.",
+      "[must] Existing CLI options and profile keys should remain compatible."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "timeout した codex provider 呼び出しを既存 retryCount の対象にしますか？ timeout は subprocess が制限時間で SIGTERM 終了する状態です。",
+      "answer": "はい。timeout した codex provider 呼び出しを既存 retryCount の対象にする。",
+      "evidence": "Existing code pattern: src/lib/agent.js already has bounded retryCount/retryDelayMs handling; the current err.killed/err.signal branch bypasses that retry path, matching Issue #346 Short-Term Fixes item 3.",
+      "why": "The observed failure is a transient external subprocess timeout path, and the existing retry policy already caps retryCount at MAX_RETRY.",
+      "considered": "Keeping timeout as immediate failure was rejected because it preserves the reported no-retry bug.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "今回の scope にデフォルト timeout 秒数や timeout 上限の変更を含めますか？",
+      "answer": "含めない。timeout 上限は現行設定を維持し、retry と 200 文字 stdout preview の診断改善に限定する。",
+      "evidence": "Existing code pattern: src/lib/agent.js resolves timeoutMs from config.agent.timeout or DEFAULT_AGENT_TIMEOUT_MS, while Issue #346 Short-Term Fixes targets retry and diagnostics rather than changing that policy.",
+      "why": "Changing timeout duration alters runtime policy for all agent calls and is not required to fix the immediate no-retry and poor-diagnostics failure.",
+      "considered": "Increasing the default timeout was considered but deferred because it can hide hangs and broadens the bugfix beyond the issue's short-term fixes.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "JSON parse 失敗時の thrown error に stdout preview を含めますか？ stdout preview は、失敗した応答の一部をエラーメッセージに含める診断情報です。",
+      "answer": "含める。stdout preview は先頭 200 文字に制限し、parse failure の診断に使えるようにする。",
+      "evidence": "Existing code pattern: src/docs/commands/text.js already logs a 200-character response preview before throwing a generic batch JSON parse error; Issue #346 asks that the thrown error also include the preview.",
+      "why": "The reported partial JSON parse failure needs enough response context to distinguish malformed JSON, plain text, and truncated provider output.",
+      "considered": "Logging only was considered insufficient because callers and test assertions see the thrown error, not necessarily the log stream.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "codex provider の出力形式そのものの正規化変更を今回含めますか？ 出力形式の正規化は、provider ごとの stdout 形式差を共通の text/usage 形式へ変換する処理です。",
+      "answer": "含めない。今回の scope は codex profile の JSON 設定を固定し、既存 provider parse 契約の範囲で timeout と診断を改善する。",
+      "evidence": "Existing code pattern: src/lib/provider.js CodexProvider already parses codex JSON events into text/usage, and builtin codex profiles include --json/jsonOutputFlag; Issue #346 lists JSON normalization only as related context.",
+      "why": "A broader output normalization redesign is not necessary for the reported timeout retry and partial parse diagnostics bug.",
+      "considered": "Provider-wide normalization redesign was considered but deferred to the related agent_json_output proposal named in the issue.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "実 codex CLI を長時間待つ再現テストを受け入れ条件に含めますか？",
+      "answer": "含めない。受け入れ条件は automated tests で timeout retry、profile JSON 設定、parse error preview の 3 条件を確認する。",
+      "evidence": "Guardrail/project rule basis: project test rules require relevant regression tests, and Issue #346's observed timeout is 300000ms per call; waiting for real codex CLI timeout would make the regression suite impractical.",
+      "why": "The behavior can be verified deterministically with controlled subprocess/test doubles or unit-level seams without a 300 second external CLI dependency.",
+      "considered": "A real codex CLI 300 second reproduction test was rejected because it is slow, environment-dependent, and not suitable for default regression.",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-29T00:57:00.000Z",
+    "notes": "All draft QA entries are answered from Issue #346, project rules, or verified source context; draft coverage review passed with no unresolved user decisions."
+  }
+}
