@@ -761,15 +761,30 @@ async function runImplReview({ root, flow, reviewOutput, touchedFiles, taskSpec 
   });
   const artifact = new ImplReviewArtifact(filtered);
   const specDir = path.dirname(path.resolve(root, flow.spec));
-  const reviewPath = path.join(specDir, "review.md");
-  const reviewJsonPath = path.join(specDir, "impl-review.json");
-  fs.writeFileSync(reviewPath, formatImplReviewMd(artifact));
-  fs.writeFileSync(reviewJsonPath, formatImplReviewJson(artifact));
+  const attemptNumber = reviewHistoryAttemptNumber(specDir, "impl");
+  const reviewMdWrite = writeReviewAttemptHistory({
+    specDir,
+    phase: "impl",
+    latestBasename: "review.md",
+    attemptNumber,
+    content: formatImplReviewMd(artifact),
+    findings: [
+      ...findingsWithSeverity(artifact.blockingFindings.map((finding) => finding.toJSON()), "blocking"),
+      ...findingsWithSeverity(artifact.nonBlockingImprovements.map((finding) => finding.toJSON()), "non-blocking"),
+    ],
+  });
+  const reviewJsonWrite = writeReviewAttemptHistory({
+    specDir,
+    phase: "impl",
+    latestBasename: "impl-review.json",
+    attemptNumber,
+    artifact: artifact.toJSON(),
+  });
   return {
     result: "ok",
     changed: [
-      path.relative(root, reviewPath),
-      path.relative(root, reviewJsonPath),
+      path.relative(root, reviewMdWrite.latestPath),
+      path.relative(root, reviewJsonWrite.latestPath),
     ],
     artifacts: {
       phase: "impl",
@@ -1797,9 +1812,26 @@ function writeTestReviewArtifacts({ root, specDir, reviewArtifact, coverageArtif
   const coveragePath = path.join(reviewDir, TEST_COVERAGE_JSON_FILE);
   const reviewJsonPath = path.join(reviewDir, TEST_REVIEW_JSON_FILE);
   const reviewMdPath = path.join(reviewDir, "test-review.md");
+  const attemptNumber = reviewHistoryAttemptNumber(reviewDir, "test");
   writeJsonArtifact(coveragePath, coverageArtifact);
-  writeJsonArtifact(reviewJsonPath, reviewArtifact);
-  fs.writeFileSync(reviewMdPath, formatTestReviewMd(reviewArtifact));
+  writeReviewAttemptHistory({
+    specDir: reviewDir,
+    phase: "test",
+    latestBasename: "test-review.md",
+    attemptNumber,
+    content: formatTestReviewMd(reviewArtifact),
+    findings: [
+      ...findingsWithSeverity(reviewArtifact.blockingFindings, "blocking"),
+      ...findingsWithSeverity(reviewArtifact.advisoryFindings, "non-blocking"),
+    ],
+  });
+  writeReviewAttemptHistory({
+    specDir: reviewDir,
+    phase: "test",
+    latestBasename: TEST_REVIEW_JSON_FILE,
+    attemptNumber,
+    artifact: reviewArtifact,
+  });
   return {
     coveragePath: path.relative(root, coveragePath).split(path.sep).join("/"),
     reviewJsonPath: path.relative(root, reviewJsonPath).split(path.sep).join("/"),
@@ -2436,8 +2468,26 @@ async function runSpecReview(root, flow, config, dryRun) {
   const proposalCount = blockingCount + improvementCount;
   const verdict = blockingCount > 0 ? "FAIL" : improvementCount > 0 ? "ADVISORY" : "PASS";
 
-  fs.writeFileSync(reviewPath, formatSpecReviewMd({ ...findings, verdict }));
-  fs.writeFileSync(reviewJsonPath, formatSpecReviewJson({ ...findings, verdict }));
+  const specReviewArtifact = { ...findings, verdict };
+  const attemptNumber = reviewHistoryAttemptNumber(reviewDir, "spec");
+  writeReviewAttemptHistory({
+    specDir: reviewDir,
+    phase: "spec",
+    latestBasename: "spec-review.md",
+    attemptNumber,
+    content: formatSpecReviewMd(specReviewArtifact),
+    findings: [
+      ...findingsWithSeverity(findings.blocking, "blocking"),
+      ...findingsWithSeverity(findings.improvements, "non-blocking"),
+    ],
+  });
+  writeReviewAttemptHistory({
+    specDir: reviewDir,
+    phase: "spec",
+    latestBasename: "spec-review.json",
+    attemptNumber,
+    artifact: JSON.parse(formatSpecReviewJson(specReviewArtifact)),
+  });
   console.error(`  [spec-review] Results saved to ${path.relative(root, reviewPath)}`);
   console.error(`  [spec-review] JSON saved to ${path.relative(root, reviewJsonPath)}`);
   console.error(`  [spec-review] blockingCount=${blockingCount} improvementCount=${improvementCount} proposalCount=${proposalCount}`);
@@ -2798,6 +2848,103 @@ function writeJsonArtifact(filePath, artifact) {
   fs.writeFileSync(filePath, JSON.stringify(artifact, null, 2) + "\n");
 }
 
+function reviewHistoryAttemptNumber(specDir, phase) {
+  const historyDir = path.join(specDir, "review-history");
+  if (!fs.existsSync(historyDir)) return 1;
+  let max = 0;
+  const prefix = `${phase}-attempt-`;
+  for (const name of fs.readdirSync(historyDir)) {
+    if (!name.startsWith(prefix)) continue;
+    const match = /^(.+)-attempt-(\d{3})\./.exec(name);
+    if (!match) continue;
+    max = Math.max(max, Number(match[2]));
+  }
+  return max + 1;
+}
+
+function normalizedFindingId(phase, attempt, severity, index) {
+  return `${phase}-${String(attempt).padStart(3, "0")}-${severity}-${String(index).padStart(3, "0")}`;
+}
+
+function normalizeFindingSeverity(value, fallback = "blocking") {
+  const text = String(value || "").trim().toLowerCase();
+  if (text === "blocking") return "blocking";
+  if (text === "non-blocking" || text === "advisory" || text === "improvement") return "non-blocking";
+  return fallback === "non-blocking" ? "non-blocking" : "blocking";
+}
+
+function findingsWithSeverity(findings, severity) {
+  return (findings || []).map((finding) => ({ ...finding, severity }));
+}
+
+function findingText(item) {
+  return String(item.body || item.issue || item.rationale || item.evidence || item.suggestion || item.title || "").trim();
+}
+
+function findingCategory(phase, item) {
+  if (phase === "impl") return String(item.failureMode || "unknown").trim() || "unknown";
+  if (phase.startsWith("draft-")) return String(item.classification || "unknown").trim() || "unknown";
+  return String(item.category || item.failureMode || item.classification || "unknown").trim() || "unknown";
+}
+
+function normalizeReviewFindingRecords({ phase, sourceArtifact, attempt, artifact = {}, findings = [] }) {
+  const records = [];
+  const push = (item, severity) => {
+    const normalizedSeverity = normalizeFindingSeverity(severity);
+    const idx = records.length + 1;
+    records.push({
+      id: item.id || normalizedFindingId(phase, attempt, normalizedSeverity, idx),
+      phase,
+      sourceArtifact,
+      attempt,
+      severity: normalizedSeverity,
+      title: String(item.title || "Untitled finding").trim(),
+      body: findingText(item),
+      category: findingCategory(phase, item),
+    });
+  };
+  for (const item of findings) push(item, item.severity || "blocking");
+  for (const item of artifact.blockingFindings || []) push(item, "blocking");
+  for (const item of artifact.nonBlockingImprovements || []) push(item, "non-blocking");
+  for (const item of artifact.advisoryFindings || []) push(item, "non-blocking");
+  for (const item of artifact.repairTargets || []) push(item, "blocking");
+  return records;
+}
+
+export function writeReviewAttemptHistory({ specDir, phase, latestBasename, artifact = null, content = null, attemptNumber = null, findings = [] }) {
+  const attempt = attemptNumber || reviewHistoryAttemptNumber(specDir, phase);
+  const ext = latestBasename.endsWith(".md") ? "md" : "json";
+  const historyDir = path.join(specDir, "review-history");
+  fs.mkdirSync(historyDir, { recursive: true });
+  const latestPath = path.join(specDir, latestBasename);
+  const historyPath = path.join(historyDir, `${phase}-attempt-${String(attempt).padStart(3, "0")}.${ext}`);
+  const normalizedHistoryPath = path.join(historyDir, `${phase}-attempt-${String(attempt).padStart(3, "0")}.json`);
+  if (ext === "json") {
+    const payload = {
+      ...(artifact || {}),
+      version: artifact?.version || 1,
+      phase,
+      sourceArtifact: latestBasename,
+      attempt,
+      findings: normalizeReviewFindingRecords({ phase, sourceArtifact: latestBasename, attempt, artifact: artifact || {}, findings }),
+    };
+    writeJsonArtifact(latestPath, artifact || payload);
+    writeJsonArtifact(historyPath, payload);
+    return { latestPath, historyPath, historyJsonPath: historyPath, normalizedHistoryPath: historyPath };
+  }
+  const text = content == null ? "" : String(content);
+  fs.writeFileSync(latestPath, text);
+  fs.writeFileSync(historyPath, text);
+  writeJsonArtifact(normalizedHistoryPath, {
+    version: 1,
+    phase,
+    sourceArtifact: latestBasename,
+    attempt,
+    findings: normalizeReviewFindingRecords({ phase, sourceArtifact: latestBasename, attempt, findings }),
+  });
+  return { latestPath, historyPath, historyJsonPath: normalizedHistoryPath, normalizedHistoryPath };
+}
+
 async function runDraftReview(root, flow, config, dryRun) {
   const specDir = path.dirname(flow.spec);
   const specPath = path.resolve(root, specDir);
@@ -2859,7 +3006,12 @@ async function runDraftReview(root, flow, config, dryRun) {
     proposals,
     stage,
   });
-  writeJsonArtifact(reviewPath, reviewArtifact);
+  writeReviewAttemptHistory({
+    specDir: specPath,
+    phase: stage.retryPhase,
+    latestBasename: stage.artifact,
+    artifact: reviewArtifact.toJSON(),
+  });
 
   console.error(`  [${stage.tag}] Results saved to ${path.relative(root, reviewPath)}`);
   console.error(`  [${stage.tag}] verdict=${reviewArtifact.verdict} ${stage.countLabel}=${proposals.length} retryPhase=${stage.retryPhase}`);

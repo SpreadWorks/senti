@@ -1,0 +1,136 @@
+{
+  "devType": "feature",
+  "goal": "フロー成果物を横断集計する観測レポートを追加し、review 指摘傾向と repair 効果を人間が改善判断に使える形で確認できるようにする。",
+  "analysis": {
+    "problem": "guardrail 違反は specs/*/issue-log.json に、review 指摘は review.md や review JSON artifact に蓄積されているが、spec 横断で傾向を集計する手段がない。repair 後に指摘が消えたか、同種の指摘が次 attempt で再出現したかも観測できないため、guardrail・prompt・phase 設計の改善判断が属人的になる。",
+    "proposedApproach": "既存の sdd-forge metrics サブコマンド体系に、specs/* の flow artifacts を読み取るレポートコマンドを追加する。入力は issue-log、review.md、review JSON artifact、必要な git 履歴とし、text/json/csv で guardrail 違反、review finding、repair 効果、検索向けデータを出力する。現在の artifact 保存形式で attempt 履歴や finding 参照が足りない場合は、本タスク内で保存契約を補う。",
+    "validation": "既存コードでは metrics dispatcher が token コマンドだけを登録しており、横断レポートの追加先が明確である。flow review は review.md と impl-review.json / spec-review.json を生成し、finalize report は issue-log.json を要約しているため、要求された入力データは既存 artifact として概ね存在する。一方で review.md は最新上書きの箇所があり、attempt 単位の履歴化は本タスクの前提整備として扱う必要がある。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #344 は自動 guardrail 生成を対象外とし、観測→人間判断→改善の基盤を本タスクの目的としている。",
+      "src/metrics.js は metricsCommands への dispatch を行い、src/lib/command-registry.js は現状 token だけを metrics サブコマンドとして登録している。",
+      "src/metrics/commands/token.js は text/json/csv の3形式を扱う既存 metrics コマンドであり、出力形式と CLI 配置の先例になる。",
+      "src/flow/commands/review.js は impl review で review.md と impl-review.json を保存し、spec review で spec-review.md と spec-review.json を保存している。",
+      "src/flow/commands/report.js は finalize report で issue-log.json を読み、重要な issue-log entry と最近の entry を要約している。",
+      "draft guardrail は、曖昧な要件の具体化、既存機能への影響明示、3件超の要件優先度付け、既存コード確認後の質問生成を要求している。"
+    ],
+    "decisionPoints": [
+      "ユーザー向けコマンド名を sdd-forge metrics review にするか、sdd-forge metrics guardrail にするか。",
+      "初期リリースで必ず出すレポート範囲を guardrail 違反、review finding、repair 効果、検索のどこまでにするか。",
+      "既存 spec に attempt 履歴が残っていない場合の扱いを unknown として表示するか、移行・再構成を試みるか。",
+      "過去の類似指摘検索を単純キーワード中心にするか、カテゴリ正規化や類似度判定まで含めるか。",
+      "repair diff と finding の対応をどの粒度で判定し、対応不能な場合にどう表示するか。"
+    ],
+    "resolvedByProjectRules": [
+      "外部依存は禁止。検索・集計・CSV/JSON/text 出力は Node.js 組み込みモジュールだけで実装する。",
+      "alpha 版ポリシーにより旧フォーマットの後方互換層は追加しない。必要な新保存契約は現行形式として整備する。",
+      "意味のある値は専用クラスで表現する。集計行、finding、repair outcome、レポート出力単位はオブジェクトリテラルだけで済ませない。",
+      "src/ 以下にはこのリポジトリ固有の値を埋め込まない。metrics コマンドは任意プロジェクトの specs/ artifact を対象にする。",
+      "src/skills/ や src/presets/ を変更した場合は sdd-forge upgrade を実行する。"
+    ],
+    "requiresUserJudgment": [
+      "コマンド名とユーザーが日常的に見る report の主語。",
+      "初期版で必須とする分析範囲と、後続改善に回せる範囲。",
+      "履歴不足の既存 spec をどう扱うかの表示方針。",
+      "類似指摘検索の精度と説明可能性のバランス。",
+      "repair diff 対応の判定を参考情報に留めるか、レポートの主要指標に含めるか。"
+    ],
+    "deferredToSpec": [
+      "artifact 読み取りの具体的なクラス構成とファイル走査順。",
+      "text/json/csv の詳細フィールド名とソート順。",
+      "attempt 履歴保存のファイル名、配置、既存最新 artifact との関係。",
+      "git log / diff 参照の実装境界とタイムアウト・欠損時の扱い。",
+      "テストケースの分割と fixture 構成。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] specs/*/issue-log.json を横断集計し、guardrail 違反回数、phase 分布、attempt 上限到達 spec 一覧を出力する。",
+      "[must] review.md と review JSON artifact を横断集計し、blocking / non-blocking 分類や finding カテゴリの傾向を出力する。",
+      "[must] text/json/csv の出力形式を提供する。",
+      "[must] review artifact が attempt 単位で残る保存契約を整備する。既存の review.md、impl-review.json、spec-review.md、spec-review.json は最新 attempt の人間向け参照として維持し、履歴 artifact は別ファイルとして追加する。",
+      "[must] repair step が対応 finding id を参照できる記録形式を整備する。",
+      "[should] finding の attempt 間消失率・再出現率を出力する。",
+      "[should] review 履歴をキーワード検索できる出力またはサブ機能を提供する。",
+      "[should] finding id と repair commit または changed file reference の両方が記録されている場合、repair diff と finding 参照の対応有無を表示する。どちらかが欠ける場合は unknown と表示する。"
+    ],
+    "out": [
+      "頻出パターンから guardrail を自動生成する機能。",
+      "AI による guardrail / prompt 改善案の自動提案。",
+      "低リスク改善の自動適用。",
+      "外部検索エンジン、ベクトル DB、外部 npm パッケージの導入。",
+      "特定プロジェクト専用の spec 名、field 名、ディレクトリ構造に依存したロジック。"
+    ]
+  },
+  "impactOnExisting": [
+    "metrics サブコマンド一覧に新しいコマンドが追加される。",
+    "review / repair 関連 artifact の保存契約が拡張され、specs/<spec>/ 配下に attempt 履歴や finding 参照記録が増える可能性がある。",
+    "既存の review.md / impl-review.json / spec-review.json を読む処理は、最新 artifact と履歴 artifact の役割分担に合わせた確認が必要になる。",
+    "finalize report や gate/review retry 記録には直接の出力変更を入れないが、同じ issue-log / review artifact を読むため回帰確認が必要になる。",
+    "metrics token の既存出力は変更しない。ただし metrics command registry とヘルプ表示には新コマンドが追加される。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "ユーザー向けコマンド名は `sdd-forge metrics review` と `sdd-forge metrics guardrail` のどちらを主コマンドにしますか。",
+      "answer": "`sdd-forge metrics review` を主コマンドにする。",
+      "evidence": "ユーザー回答: q1 で [1] `metrics review` を選択。Issue #344 は review finding、repair 効果、guardrail 違反、類似指摘検索をまとめて扱う。既存コードパターン: src/metrics.js は metricsCommands のサブコマンド名をユーザー向け主語として dispatch する。",
+      "why": "既存コードパターンに基づき、サブコマンド名はレポート全体の主題を表す必要がある。`metrics review` は review finding と repair 効果を含む広い観測対象を表す。`metrics guardrail` は guardrail 違反に範囲が狭く見える。",
+      "considered": "`metrics guardrail` — guardrail 違反集計を前面に出せるが、review finding と repair 効果が副次的に見えるため不採用。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "初期版で必ず満たす分析範囲はどこまでにしますか。",
+      "answer": "初期版は guardrail 違反、review finding 集計、repair 効果の基本指標、キーワード検索を必須にし、repair diff と finding 参照の厳密対応は finding id と repair commit または changed file reference の両方が記録されている場合の補助情報にする。",
+      "evidence": "ユーザー回答: q2 で [1] 基本4点 + diff補助を選択。Issue #344 は review 指摘傾向と repair 効果を同じデータ基盤で見ることを要求している。guardrail 原則: complete-context は検証可能な要件境界を要求する。",
+      "why": "guardrail 原則に基づき、改善判断に必要な guardrail 違反、review finding、repair 効果、検索を必須範囲として明示する。git diff との対応は commit 粒度や artifact 欠損に左右されるため、初期版の必須判定にすると不安定になる。",
+      "considered": "guardrail中心 — 実装範囲は絞れるが、repair 効果や過去類似指摘検索が弱くなり、Issue #344 の主目的に届かないため不採用。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "既存 spec に attempt 単位の review 履歴や finding 参照が残っていない場合、レポートではどう扱いますか。",
+      "answer": "推測補完せず、`unknown` / `not recorded` として表示する。新しい保存契約以後の spec から精度を上げる。",
+      "evidence": "ユーザー回答: q3 で [1] unknown 表示を選択。既存コードパターン: src/flow/commands/review.js は review.md や review JSON artifact を最新 artifact として書く箇所があり、過去 attempt を正確に復元できない。",
+      "why": "既存コードパターンに基づき、保存されていない過去 attempt は推測補完しない。推測で復元すると repair 効果や再出現率の数値に不正確なデータが混じる。欠損を明示するほうがレポートの信頼性を保てる。",
+      "considered": "可能な範囲で復元 — 過去データを多く表示できるが、最新 artifact や issue-log からの推測が混じり、数値の信頼性が落ちるため不採用。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "過去の類似指摘検索は、どの精度を期待しますか。",
+      "answer": "初期版はキーワード検索とカテゴリ一致に限定する。意味類似やあいまい検索は将来の改善段階に回す。",
+      "evidence": "ユーザー回答: q4 で [1] キーワード + カテゴリ一致を選択。guardrail / project rule: 外部依存追加は禁止。既存コードパターン: metrics token は Node.js 組み込みモジュールで集計と text/json/csv 出力を行う。",
+      "why": "guardrail / project rule と既存コードパターンに基づき、初期版は外部依存なしで説明可能な検索に限定する。キーワードとカテゴリ一致は、なぜヒットしたか説明しやすい。意味類似は精度と説明性の検証が難しい。",
+      "considered": "あいまい類似も含める — 候補は増えるが、外部依存なしでは精度と説明性が弱くなるため初期版では不採用。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "repair 効果の合格基準はどの表示を必須にしますか。",
+      "answer": "finding の次 attempt 消失率、同カテゴリ再出現率、attempt 上限到達 spec 一覧を必須表示にする。repair diff と finding 参照の対応は、finding id と repair commit または changed file reference の両方が記録されている場合の補助列にする。",
+      "evidence": "ユーザー回答: q5 で [1] 基本3指標を選択。Issue #344 は repair が効いたか、同じ指摘が次 attempt で再生成されていないかの観測を要求している。既存コードパターン: issue-log と review artifact は spec 配下の永続 artifact として保存される。",
+      "why": "既存コードパターンに基づき、review artifact と issue-log から比較的安定して算出できる基本3指標を必須にする。diff 対応は commit 粒度や履歴欠損に左右されるため、必須表示にすると unknown が増えやすい。",
+      "considered": "diff対応も必須 — repair diff と finding 参照の対応まで必須にできるが、履歴欠損時の unknown が増えやすく初期版の合格基準として不安定なため不採用。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-29T00:18:44.100Z",
+    "notes": "All draft QA entries answered and draft coverage review passed."
+  }
+}

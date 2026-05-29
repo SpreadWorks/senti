@@ -87,6 +87,7 @@ export const checkCommands = {
 
 export const metricsCommands = {
   token: rawEntry("../metrics/commands/token.js"),
+  review: rawEntry("../metrics/commands/review.js"),
 };
 
 // ---------------------------------------------------------------------------

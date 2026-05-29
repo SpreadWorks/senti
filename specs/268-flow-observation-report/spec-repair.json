@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-review-triage.json",
+  "summary": "Applied three blocking spec review repairs: explicit review phase history scope, normalized finding identity/category contract, and flow.json retry state as an attempt-limit input.",
+  "items": [
+    {
+      "title": "Review history scope omits existing review phases",
+      "target": "R3/R4/T-2",
+      "decision": "applied",
+      "rationale": "Expanded the included review phases to impl, spec, test, draft-questions, and draft-coverage, listed latest artifact basenames, and pinned the history filename pattern.",
+      "evidence": "spec.json scope.in[2], scope.in[4], requirements R3/R4, clarification, alternative, and task T-2 now define the included phases and history path.",
+      "changedFields": [
+        "scope.in[2]",
+        "scope.in[4]",
+        "requirements[R3].desc",
+        "requirements[R4].desc",
+        "clarifications[]",
+        "alternatives_considered[]",
+        "tasks[T-2]"
+      ]
+    },
+    {
+      "title": "Finding identity and category contract is missing",
+      "target": "R3/R5/R6/R7",
+      "decision": "applied",
+      "rationale": "Added a normalized finding record requirement with stable id, phase, source artifact, attempt, severity, title/body, category, and explicit unknown fallback.",
+      "evidence": "spec.json requirements[R3/R5/R8], acceptance criteria, implementation targets, and tasks T-3/T-4/T-5 now define normalized finding ids and categories.",
+      "changedFields": [
+        "requirements[R3].desc",
+        "requirements[R5].desc",
+        "requirements[R8]",
+        "acceptance_criteria[]",
+        "tasks[T-3]",
+        "tasks[T-4]",
+        "tasks[T-5]"
+      ]
+    },
+    {
+      "title": "Attempt-limit source misses review retry state",
+      "target": "R2/R6/Data Flow",
+      "decision": "applied",
+      "rationale": "Added flow.json retry metrics as an input for attempt-limit detection so review retry exhaustion is not dependent on manual issue-log entries.",
+      "evidence": "spec.json scope.in[1], overview.data_flow, overview.decisions, requirements[R2], acceptance criteria, and tasks T-4/T-5 now reference flow.json retry state.",
+      "changedFields": [
+        "scope.in[1]",
+        "overview.data_flow[2]",
+        "overview.decisions[]",
+        "requirements[R2].desc",
+        "acceptance_criteria[]",
+        "tasks[T-4]",
+        "tasks[T-5]"
+      ]
+    }
+  ]
+}

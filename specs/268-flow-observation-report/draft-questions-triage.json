@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "All five repair targets are valid. Each pending question currently includes recommendation and rationale text, which must be removed from question fields before draft refinement.",
+  "items": [
+    {
+      "title": "1. q1 includes recommendation and rationale",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "q1 asks the correct user-visible command naming decision, but the pending question field includes the recommended answer and rationale.",
+      "evidence": "draft.json qa[0].question contains '推奨は `metrics review` です' and explanatory rationale."
+    },
+    {
+      "title": "2. q2 includes recommendation and rationale",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "q2 asks the correct analysis scope decision, but the pending question field includes the recommended answer and rationale.",
+      "evidence": "draft.json qa[1].question contains '推奨は guardrail 違反...' and explanatory rationale."
+    },
+    {
+      "title": "3. q3 includes recommendation and rationale",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "q3 asks the correct migration policy decision, but the pending question field includes the recommended answer and rationale.",
+      "evidence": "draft.json qa[2].question contains '推奨は、移行や推測で補完せず...' and explanatory rationale."
+    },
+    {
+      "title": "4. q4 includes recommendation and rationale",
+      "target": "q4",
+      "decision": "apply",
+      "rationale": "q4 asks the correct search precision decision, but the pending question field includes the recommended answer and rationale.",
+      "evidence": "draft.json qa[3].question contains '推奨は、初期版では...' and explanatory rationale."
+    },
+    {
+      "title": "5. q5 includes recommendation and rationale",
+      "target": "q5",
+      "decision": "apply",
+      "rationale": "q5 asks the correct repair effectiveness acceptance decision, but the pending question field includes the recommended answer and rationale.",
+      "evidence": "draft.json qa[4].question contains '推奨は、finding の次 attempt...' and explanatory rationale."
+    }
+  ]
+}

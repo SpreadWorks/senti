@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "Changed R3 spec-local test evidence to assert findings unique to latest review artifacts, addressing the max-attempt blocker.",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "219560b6ca04279af6cbc2dce86ae618593efdb77c33bd67e37fbb1f391b588b",
+        "currentHash": "2a0c7d98aff780b9a916d68584c1a1c1e710e6194e87c232b877def80e55bb69",
+        "changedPaths": [
+          "specs/268-flow-observation-report/tests/.raw/scenario-validity.log",
+          "specs/268-flow-observation-report/tests/metrics-review-cli.test.js",
+          "specs/268-flow-observation-report/tests/review-history-and-domain.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"Changed R3 spec-local test evidence to assert findings unique to latest review artifacts, addressing the max-attempt blocker.\" --yes",
+      "createdAt": "2026-05-29T01:00:11.952Z"
+    },
+    {
+      "id": "recovery-002",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "Changed R5 spec-local test evidence to cover commit-hash repair references after the test review blocker.",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "2a0c7d98aff780b9a916d68584c1a1c1e710e6194e87c232b877def80e55bb69",
+        "currentHash": "cfa947d9a347cfd21e0213afbd1dadc13005bf429dcc84c5e640ae649dd46c71",
+        "changedPaths": [
+          "specs/268-flow-observation-report/tests/.raw/scenario-validity.log",
+          "specs/268-flow-observation-report/tests/metrics-review-cli.test.js",
+          "specs/268-flow-observation-report/tests/review-history-and-domain.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"Changed R5 spec-local test evidence to cover commit-hash repair references after the test review blocker.\" --yes",
+      "createdAt": "2026-05-29T01:02:29.706Z"
+    }
+  ]
+}

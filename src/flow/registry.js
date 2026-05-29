@@ -453,8 +453,8 @@ export const FLOW_COMMANDS = {
     "issue-log": {
       helpKey: "flow.set.issue-log",
       command: () => import("./lib/set-issue-log.js"),
-      args: { options: ["--step", "--reason", "--trigger", "--resolution", "--guardrail-candidate", "--task-id"] },
-      help: "Usage: sdd-forge flow set issue-log --step <id> --reason <text> [--trigger <text>] [--resolution <text>] [--guardrail-candidate <text>] [--task-id <id>]\n\nRecord an issue-log entry in issue-log.json. Infers taskId from active task unless --task-id is given.",
+      args: { options: ["--step", "--reason", "--trigger", "--resolution", "--guardrail-candidate", "--normalized-finding-id", "--repair-ref-commit", "--repair-ref-file", "--task-id"] },
+      help: "Usage: sdd-forge flow set issue-log --step <id> --reason <text> [--trigger <text>] [--resolution <text>] [--guardrail-candidate <text>] [--normalized-finding-id <id>] [--repair-ref-commit <sha>] [--repair-ref-file <path>] [--task-id <id>]\n\nRecord an issue-log entry in issue-log.json. Infers taskId from active task unless --task-id is given.",
       post(ctx) {
         const phase = deriveActivePhase(ctx);
         if (phase) ctx.flowManager.incrementMetric(phase, "issueLog");

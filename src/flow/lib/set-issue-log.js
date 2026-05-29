@@ -8,6 +8,8 @@
  * ctx.trigger            — what triggered the issue (optional)
  * ctx.resolution         — how the issue was resolved (optional)
  * ctx.guardrailCandidate — potential guardrail article to add (optional)
+ * ctx.normalizedFindingId — normalized review finding id addressed by repair (optional)
+ * ctx.repairRef          — commit hash or changed file references (optional object)
  */
 
 import fs from "fs";
@@ -50,6 +52,7 @@ export function saveIssueLog(root, specPath, issueLog) {
 
 const MIN_REASON_LENGTH = 20;
 const MIN_OPTIONAL_FIELD_LENGTH = 10;
+const COMMIT_HASH_RE = /^[0-9a-f]{7,40}$/i;
 
 function validateReason(reason) {
   if ((reason ?? "").trim().length < MIN_REASON_LENGTH) {
@@ -77,6 +80,32 @@ function validateOptionalIssueLogField(name, value) {
   return null;
 }
 
+function normalizeRepairRef(ctx) {
+  if (ctx.repairRef && typeof ctx.repairRef === "object") return ctx.repairRef;
+  if (ctx.repairRefCommit) return { commit: String(ctx.repairRefCommit).trim() };
+  if (ctx.repairRefFile) return { files: [String(ctx.repairRefFile).trim()] };
+  return null;
+}
+
+function validateRepairRef(repairRef) {
+  if (repairRef == null) return null;
+  if (typeof repairRef !== "object") {
+    return Envelope.fail("set", "issue-log", "INVALID_REPAIR_REF", "repairRef must be an object");
+  }
+  if (repairRef.commit != null && !COMMIT_HASH_RE.test(String(repairRef.commit).trim())) {
+    return Envelope.fail("set", "issue-log", "INVALID_REPAIR_REF", "--repair-ref-commit must be a commit hash");
+  }
+  if (repairRef.files != null) {
+    if (!Array.isArray(repairRef.files) || repairRef.files.some((file) => String(file || "").trim() === "")) {
+      return Envelope.fail("set", "issue-log", "INVALID_REPAIR_REF", "--repair-ref-file values must be non-empty paths");
+    }
+  }
+  if (repairRef.commit == null && repairRef.files == null) {
+    return Envelope.fail("set", "issue-log", "INVALID_REPAIR_REF", "repairRef requires commit or files");
+  }
+  return null;
+}
+
 export default class SetIssueLogCommand extends FlowCommand {
   execute(ctx) {
     const { root } = ctx;
@@ -95,6 +124,9 @@ export default class SetIssueLogCommand extends FlowCommand {
       const fail = validateOptionalIssueLogField(name, value);
       if (fail) return fail;
     }
+    const repairRef = normalizeRepairRef(ctx);
+    const repairRefFail = validateRepairRef(repairRef);
+    if (repairRefFail) return repairRefFail;
 
     const state = ctx.flowState;
     const taskId = resolveTaskIdForEntry(state, resolveExplicitTaskOption(ctx));
@@ -105,6 +137,8 @@ export default class SetIssueLogCommand extends FlowCommand {
       ...(ctx.trigger && { trigger: ctx.trigger }),
       ...(ctx.resolution && { resolution: ctx.resolution }),
       ...(ctx.guardrailCandidate && { guardrailCandidate: ctx.guardrailCandidate }),
+      ...(ctx.normalizedFindingId && { normalizedFindingId: String(ctx.normalizedFindingId).trim() }),
+      ...(repairRef && { repairRef }),
       taskId,
       timestamp: new Date().toISOString(),
     };

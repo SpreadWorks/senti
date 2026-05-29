@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Removed recommendation and rationale text from five pending question fields while preserving the user decisions being asked.",
+  "items": [
+    {
+      "title": "1. q1 includes recommendation and rationale",
+      "target": "q1",
+      "rationale": "Reduced q1 to the command naming decision only.",
+      "evidence": "draft.json qa[0].question now asks only which metrics command name should be primary.",
+      "changedFieldPaths": [
+        "qa[0].question"
+      ]
+    },
+    {
+      "title": "2. q2 includes recommendation and rationale",
+      "target": "q2",
+      "rationale": "Reduced q2 to the initial analysis scope decision only.",
+      "evidence": "draft.json qa[1].question now asks only what analysis scope must be satisfied in the initial version.",
+      "changedFieldPaths": [
+        "qa[1].question"
+      ]
+    },
+    {
+      "title": "3. q3 includes recommendation and rationale",
+      "target": "q3",
+      "rationale": "Reduced q3 to the missing-history handling decision only.",
+      "evidence": "draft.json qa[2].question now asks only how to handle specs without attempt-level review history or finding references.",
+      "changedFieldPaths": [
+        "qa[2].question"
+      ]
+    },
+    {
+      "title": "4. q4 includes recommendation and rationale",
+      "target": "q4",
+      "rationale": "Reduced q4 to the similar-finding search precision decision only.",
+      "evidence": "draft.json qa[3].question now asks only what precision is expected for past similar finding search.",
+      "changedFieldPaths": [
+        "qa[3].question"
+      ]
+    },
+    {
+      "title": "5. q5 includes recommendation and rationale",
+      "target": "q5",
+      "rationale": "Reduced q5 to the repair effectiveness acceptance decision only.",
+      "evidence": "draft.json qa[4].question now asks only which repair effectiveness displays are required.",
+      "changedFieldPaths": [
+        "qa[4].question"
+      ]
+    }
+  ]
+}

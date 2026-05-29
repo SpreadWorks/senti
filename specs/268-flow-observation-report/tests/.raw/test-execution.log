@@ -1,0 +1,111 @@
+[sdd-forge] spec-local tests start
+command: node --test specs/268-flow-observation-report/tests/metrics-review-cli.test.js specs/268-flow-observation-report/tests/review-history-and-domain.test.js
+TAP version 13
+# Subtest: R1: metrics review validates arguments and preserves token help
+ok 1 - R1: metrics review validates arguments and preserves token help
+  ---
+  duration_ms: 1007.533096
+  type: 'test'
+  ...
+# Subtest: R1: metrics review succeeds with no specs and fails for required path or JSON read errors
+ok 2 - R1: metrics review succeeds with no specs and fails for required path or JSON read errors
+  ---
+  duration_ms: 365.719577
+  type: 'test'
+  ...
+# Subtest: R2: JSON report aggregates guardrails and attempt-limit evidence from issue-log and flow.json
+ok 3 - R2: JSON report aggregates guardrails and attempt-limit evidence from issue-log and flow.json
+  ---
+  duration_ms: 109.50834
+  type: 'test'
+  ...
+# Subtest: R3: review artifacts normalize findings by phase category and spec
+ok 4 - R3: review artifacts normalize findings by phase category and spec
+  ---
+  duration_ms: 112.468515
+  type: 'test'
+  ...
+# Subtest: R6: repair effectiveness uses adjacent recorded attempts and reports missing history explicitly
+ok 5 - R6: repair effectiveness uses adjacent recorded attempts and reports missing history explicitly
+  ---
+  duration_ms: 108.014612
+  type: 'test'
+  ...
+# Subtest: R7: --search filters by keyword and exact category
+ok 6 - R7: --search filters by keyword and exact category
+  ---
+  duration_ms: 322.85871
+  type: 'test'
+  ...
+# Subtest: R9: text output has required sections sorted count tables and explicit unknown statuses
+ok 7 - R9: text output has required sections sorted count tables and explicit unknown statuses
+  ---
+  duration_ms: 105.89532
+  type: 'test'
+  ...
+# Subtest: R10: JSON output uses null plus status for unknown values
+ok 8 - R10: JSON output uses null plus status for unknown values
+  ---
+  duration_ms: 114.189845
+  type: 'test'
+  ...
+# Subtest: R11: CSV output has stable headers and separates unknown status from numeric columns
+ok 9 - R11: CSV output has stable headers and separates unknown status from numeric columns
+  ---
+  duration_ms: 228.639451
+  type: 'test'
+  ...
+# Subtest: R13: metrics review spec fixtures exercise command dispatch loading search and all output formats
+ok 10 - R13: metrics review spec fixtures exercise command dispatch loading search and all output formats
+  ---
+  duration_ms: 345.46367
+  type: 'test'
+  ...
+# Subtest: R4: review artifact persistence writes latest and per-phase attempt history
+ok 11 - R4: review artifact persistence writes latest and per-phase attempt history
+  ---
+  duration_ms: 18.347257
+  type: 'test'
+  ...
+# Subtest: R5: repair issue-log entries can store normalized finding id and repair references
+ok 12 - R5: repair issue-log entries can store normalized finding id and repair references
+  ---
+  duration_ms: 15.14184
+  type: 'test'
+  ...
+# Subtest: R8: attempt-level history normalizes stable ids categories severity and source fields
+ok 13 - R8: attempt-level history normalizes stable ids categories severity and source fields
+  ---
+  duration_ms: 2.958376
+  type: 'test'
+  ...
+# Subtest: R12: metrics review domain values are represented by dedicated classes
+ok 14 - R12: metrics review domain values are represented by dedicated classes
+  ---
+  duration_ms: 22.239838
+  type: 'test'
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 14
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3057.158391
+exitCode: 0
+[sdd-forge] requirement R1 result pass
+[sdd-forge] requirement R2 result pass
+[sdd-forge] requirement R3 result pass
+[sdd-forge] requirement R4 result pass
+[sdd-forge] requirement R5 result pass
+[sdd-forge] requirement R6 result pass
+[sdd-forge] requirement R7 result pass
+[sdd-forge] requirement R8 result pass
+[sdd-forge] requirement R9 result pass
+[sdd-forge] requirement R10 result pass
+[sdd-forge] requirement R11 result pass
+[sdd-forge] requirement R12 result pass
+[sdd-forge] requirement R13 result pass
+[sdd-forge] spec-local tests end

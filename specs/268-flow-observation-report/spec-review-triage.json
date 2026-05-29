@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "spec-review-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "All three blocking findings are valid and should be repaired in spec.json before gate.",
+  "items": [
+    {
+      "title": "Review history scope omits existing review phases",
+      "target": "R3/R4/T-2",
+      "decision": "apply",
+      "rationale": "The spec claims review phase aggregation and adjacent-attempt repair metrics, but the history persistence requirement only names impl/spec latest artifacts. The repair should define the exact phases and artifact basenames included in attempt history.",
+      "evidence": "spec.json requirements[2], requirements[3], and tasks[1] mention review artifacts and review phases without listing draft/test review artifacts or explicit exclusions."
+    },
+    {
+      "title": "Finding identity and category contract is missing",
+      "target": "R3/R5/R6/R7",
+      "decision": "apply",
+      "rationale": "Repair correspondence and same-category metrics require stable finding ids and a normalized category source. The repair should require normalized attempt-level finding records with id and category fields plus unknown fallbacks.",
+      "evidence": "spec.json requirements[2], requirements[4], requirements[5], and requirements[6] depend on finding id/category behavior without defining the normalized contract."
+    },
+    {
+      "title": "Attempt-limit source misses review retry state",
+      "target": "R2/R6/Data Flow",
+      "decision": "apply",
+      "rationale": "Attempt-limit reporting cannot rely only on issue-log entries because review retry state is also stored in flow metrics. The repair should add flow.json retry state as an input for review/gate attempt-limit detection.",
+      "evidence": "spec.json requirements[1], requirements[5], and overview.data_flow only mention issue-log/review artifacts for attempt-limit reporting."
+    }
+  ]
+}
