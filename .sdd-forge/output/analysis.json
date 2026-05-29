@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-29T01:19:07.373Z",
+  "analyzedAt": "2026-05-29T01:38:49.573Z",
   "package": {
     "entries": [
       {
@@ -220,7 +220,7 @@
         ],
         "id": "7cccb0de",
         "enrich": {
-          "attempts": 9
+          "attempts": 10
         }
       },
       {
@@ -245,7 +245,7 @@
         ],
         "id": "8e7abcbd",
         "enrich": {
-          "attempts": 12
+          "attempts": 13
         }
       },
       {
@@ -268,7 +268,7 @@
         "usedBy": null,
         "id": "05590bea",
         "enrich": {
-          "attempts": 12
+          "attempts": 13
         }
       },
       {
@@ -288,7 +288,7 @@
         "usedBy": null,
         "id": "fdf0f411",
         "enrich": {
-          "attempts": 12
+          "attempts": 13
         }
       },
       {
@@ -309,7 +309,7 @@
         "usedBy": null,
         "id": "b9d76d8b",
         "enrich": {
-          "attempts": 12
+          "attempts": 13
         }
       },
       {
@@ -329,7 +329,7 @@
         "usedBy": null,
         "id": "39b2aa36",
         "enrich": {
-          "attempts": 12
+          "attempts": 13
         }
       },
       {
@@ -351,7 +351,7 @@
         ],
         "id": "e1379661",
         "enrich": {
-          "attempts": 12
+          "attempts": 13
         }
       },
       {
@@ -953,9 +953,9 @@
       },
       {
         "file": "src/docs/commands/text.js",
-        "hash": "09762ed670321bbeaf28026cb65f4b00",
-        "lines": 783,
-        "mtime": "2026-05-16T08:19:57.844Z",
+        "hash": "6478026e2c6d4fa070f876dc7b6d88c4",
+        "lines": 785,
+        "mtime": "2026-05-29T01:36:40.517Z",
         "className": "text",
         "methods": [
           "textFillFromAnalysis",
@@ -991,7 +991,8 @@
           "../lib/command-context.js",
           "../lib/analysis-entry.js",
           "../../lib/json-parse.js",
-          "../../lib/constants.js"
+          "../../lib/constants.js",
+          "../../lib/error-preview.js"
         ],
         "exports": [
           "textFillFromAnalysis",
@@ -1013,23 +1014,9 @@
           "src/docs/commands/readme.js"
         ],
         "id": "7c5e7654",
-        "summary": "`docs text` fills `{{text}}` directives in markdown using AI with per-file or batched strategies and strict output validation. It tracks filled/skipped counts and supports incremental chapter targeting.",
-        "detail": "The module parses directives, builds enriched context from analysis and source snippets, and invokes an agent through structured prompts with language-aware system text. It includes preamble stripping, JSON response repair, and shrinkage safeguards so generated replacements do not unintentionally collapse document content. Batch processors apply id-addressed replacements, validate fill completeness, and can retry on malformed or empty responses. It can detect changed chapters from source hash drift to avoid unnecessary rewrites and returns structured error reports instead of silent failures.",
-        "chapter": "internal_design",
-        "role": "text directive fill command",
         "enrich": {
-          "processedAt": "2026-05-16T10:53:00.843Z",
           "attempts": 1
-        },
-        "keywords": [
-          "text directive",
-          "LLM templating",
-          "batch fill",
-          "prompt context",
-          "response validation",
-          "incremental docs update",
-          "markdown generation"
-        ]
+        }
       },
       {
         "file": "src/docs/commands/translate.js",
@@ -1155,7 +1142,7 @@
         "usedBy": null,
         "id": "f3ac0c38",
         "enrich": {
-          "attempts": 9
+          "attempts": 10
         }
       },
       {
@@ -1399,7 +1386,7 @@
         ],
         "id": "bbb893ea",
         "enrich": {
-          "attempts": 11
+          "attempts": 12
         }
       },
       {
@@ -1901,7 +1888,7 @@
         ],
         "id": "f6126150",
         "enrich": {
-          "attempts": 11
+          "attempts": 12
         }
       },
       {
@@ -1933,7 +1920,7 @@
         "usedBy": null,
         "id": "cb355898",
         "enrich": {
-          "attempts": 12
+          "attempts": 13
         }
       },
       {
@@ -2047,7 +2034,7 @@
         "usedBy": null,
         "id": "cf9f71e2",
         "enrich": {
-          "attempts": 9
+          "attempts": 10
         }
       },
       {
@@ -2260,7 +2247,7 @@
         "usedBy": null,
         "id": "1ab08f2b",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -2306,7 +2293,7 @@
         "usedBy": null,
         "id": "3a0db928",
         "enrich": {
-          "attempts": 6
+          "attempts": 7
         }
       },
       {
@@ -2351,7 +2338,7 @@
         "usedBy": null,
         "id": "5f80ffd2",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -3022,7 +3009,7 @@
         ],
         "id": "e296da98",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -3499,7 +3486,7 @@
         ],
         "id": "f2e5e82b",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -4350,7 +4337,7 @@
         "usedBy": null,
         "id": "40e4daa5",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4555,11 +4542,7 @@
         "file": "src/flow/lib/run-gate.js",
         "hash": "045ae517f6a9c79e68540705a7aca712",
         "lines": 3227,
-<<<<<<< HEAD
         "mtime": "2026-05-29T00:27:13.419Z",
-=======
-        "mtime": "2026-05-29T00:51:16.534Z",
->>>>>>> f05f8d57 (feat: feature/268-codex-timeout-json-retry)
         "className": "run-gate",
         "methods": [
           "executeGateSideEffects",
@@ -4744,7 +4727,6 @@
           "src/flow/lib/gate-recovery-display.js",
           "src/flow/lib/set-retry.js"
         ],
-<<<<<<< HEAD
         "id": "b4aa4dad",
         "summary": "Implements the flow gate engine that validates draft/spec/implementation phases and produces standardized pass/fail envelopes. It combines diff analysis, artifact checks, AI guardrail evaluation, and retry/recovery control in one command pipeline.",
         "detail": "The module maps gate phases to strict levels and rejects invalid level-phase combinations before running checks. It gathers committed, uncommitted, and untracked diffs with size limits, then scopes requirement-level evaluation using file maps and per-file diff slicing. It builds guardrail prompts, parses JSON-only AI responses against explicit schemas, and raises typed schema errors for malformed or unknown fields. It also enforces artifact lifecycle rules (spec review/triage/repair and draft review variants), tracks retry history and recovery baselines, applies repeated-failure and flip-override logic, and writes issue-log/memory artifacts for subsequent gate rounds.",
@@ -4764,9 +4746,6 @@
           "spec lifecycle audit",
           "integration evidence"
         ]
-=======
-        "id": "b4aa4dad"
->>>>>>> f05f8d57 (feat: feature/268-codex-timeout-json-retry)
       },
       {
         "file": "src/flow/lib/run-impl-confirm.js",
@@ -4851,11 +4830,7 @@
         "file": "src/flow/lib/run-prepare-spec.js",
         "hash": "b60abdbfb8a50dfe634844f2a3b9f480",
         "lines": 356,
-<<<<<<< HEAD
         "mtime": "2026-05-29T00:27:13.420Z",
-=======
-        "mtime": "2026-05-29T00:51:16.534Z",
->>>>>>> f05f8d57 (feat: feature/268-codex-timeout-json-retry)
         "className": "run-prepare-spec",
         "methods": [
           "buildDraftTemplate",
@@ -4888,7 +4863,6 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-<<<<<<< HEAD
         "id": "59eeacc6",
         "summary": "Implements the `prepare spec` flow command that creates a new spec workspace and initializes core spec artifacts. It also performs repository hygiene checks and analysis preconditions before state creation.",
         "detail": "The command derives a slugged spec directory name, assigns the next numeric index, and can target either the current repo or an isolated worktree path. It validates base branch availability, blocks dirty worktrees (with scoped exceptions), and resolves branch defaults safely when branch detection fails. It runs a docs scan command and verifies that `analysis.json` exists and is valid JSON before proceeding. It writes initial files such as `spec.json`, `draft.json`, and `issue.md`, then persists flow state metadata and initial step structure for downstream SDD execution.",
@@ -4908,9 +4882,6 @@
           "spec scaffold",
           "slug generation"
         ]
-=======
-        "id": "59eeacc6"
->>>>>>> f05f8d57 (feat: feature/268-codex-timeout-json-retry)
       },
       {
         "file": "src/flow/lib/run-reopen-draft.js",
@@ -6625,9 +6596,9 @@
       },
       {
         "file": "src/lib/agent.js",
-        "hash": "2aa25726ac18a9cfc1ccbf395e52fa09",
-        "lines": 458,
-        "mtime": "2026-05-16T15:13:36.962Z",
+        "hash": "58b21fcef9f4d6284a31b0cb57ebfeb5",
+        "lines": 461,
+        "mtime": "2026-05-29T01:36:40.517Z",
         "className": "agent",
         "methods": [
           "matchProfilePrefix",
@@ -6648,7 +6619,8 @@
           "path",
           "child_process",
           "./log.js",
-          "./provider.js"
+          "./provider.js",
+          "./error-preview.js"
         ],
         "exports": [
           "Agent",
@@ -6659,22 +6631,9 @@
           "src/lib/container.js"
         ],
         "id": "13ddf392",
-        "summary": "Implements agent invocation with provider profiles, retries, logging, and output parsing filters. It standardizes external agent execution under controlled runtime contracts.",
-        "detail": "`Agent` resolves provider/config profiles, builds invocation args (including prompt/schema injection), and can spill large schema payloads to temporary files. It applies retry policies with exponential backoff and delegates per-call execution through child process spawning with timeout handling. Streaming noise is filtered using event-pattern stripping before provider-specific parsing, improving stability across agent outputs. `runWithLogging` records start/end/error telemetry and accumulates request metrics while preserving command-level failure semantics.",
-        "chapter": "internal_design",
-        "role": "Execution runtime for AI/agent subprocess calls and telemetry.",
         "enrich": {
-          "processedAt": "2026-05-18T01:14:25.898Z",
           "attempts": 1
-        },
-        "keywords": [
-          "agent runtime",
-          "provider profile",
-          "retry backoff",
-          "child process",
-          "stream filtering",
-          "request logging"
-        ]
+        }
       },
       {
         "file": "src/lib/agents-md.js",
@@ -7059,11 +7018,7 @@
         "file": "src/lib/dispatcher.js",
         "hash": "d9deb404066823ad2adf908d442e0c56",
         "lines": 456,
-<<<<<<< HEAD
         "mtime": "2026-05-29T00:27:13.426Z",
-=======
-        "mtime": "2026-05-29T00:51:16.540Z",
->>>>>>> f05f8d57 (feat: feature/268-codex-timeout-json-retry)
         "className": "dispatcher",
         "methods": [
           "parseEntryInput",
@@ -7100,7 +7055,6 @@
           "src/metrics.js",
           "src/spec.js"
         ],
-<<<<<<< HEAD
         "id": "18d5f63b",
         "summary": "Provides the central CLI dispatcher that parses entry arguments, executes command lifecycle hooks, and normalizes output/error behavior. It supports envelope-based reporting and runtime log attachment across command modes.",
         "detail": "The dispatcher splits positional and option arguments using per-command flag/option specs and throws deterministic errors for unknown or missing option values. It resolves output mode (`raw` or envelope-oriented), then runs `pre`, command execution, `post`, and `onError` hooks with consistent failure routing. It temporarily intercepts stdout/stderr writes to suppress recursive capture paths and to integrate runtime logging metadata into emitted envelopes. It also formats finalize-cleanup warnings into concise display text with truncation and message limits, ensuring actionable terminal output without unbounded noise.",
@@ -7120,9 +7074,29 @@
           "output modes",
           "cleanup warnings"
         ]
-=======
-        "id": "18d5f63b"
->>>>>>> f05f8d57 (feat: feature/268-codex-timeout-json-retry)
+      },
+      {
+        "file": "src/lib/error-preview.js",
+        "hash": "ea2236142877f91a4be820ed72de2d0f",
+        "lines": 11,
+        "mtime": "2026-05-29T01:36:40.517Z",
+        "className": "error-preview",
+        "methods": [
+          "formatPreview"
+        ],
+        "imports": [],
+        "exports": [
+          "DEFAULT_PREVIEW_CHARS",
+          "formatPreview"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/lib/agent.js"
+        ],
+        "id": "605d1bd2",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/lib/finalize-cleanup-paths.js",
@@ -8250,9 +8224,9 @@
       },
       {
         "file": "src/lib/provider.js",
-        "hash": "442b213300f64c4d88305d593566f86f",
-        "lines": 225,
-        "mtime": "2026-05-10T06:31:17.510Z",
+        "hash": "f93a5640e5bf1cce1acc70bb93cf3a79",
+        "lines": 230,
+        "mtime": "2026-05-29T01:36:40.517Z",
         "className": "provider",
         "methods": [],
         "imports": [],
@@ -8269,24 +8243,9 @@
           "src/lib/container.js"
         ],
         "id": "0e966da6",
-        "summary": "Provider abstraction encapsulating per-CLI argument flags and stdout parsing for claude, codex, and user-defined agents.",
-        "detail": "Base Provider defines a parse() contract that subclasses must implement. ClaudeProvider parses array-envelope JSON looking for the 'result' event and stringifies structured_output, exposing --system-prompt as the system flag. CodexProvider streams line-delimited JSON events and uses -C as the work-dir flag. UserProvider returns raw stdout with no usage and reads system/work-dir flags from a profile object. ProviderRegistry merges built-in and user-defined profiles, returns a {provider, profile, providerKey} triple, and lists available profile names.",
-        "chapter": "internal_design",
-        "role": "Provider plug-ins: per-CLI argument flags and stdout parsers",
         "enrich": {
-          "processedAt": "2026-05-10T06:32:29.323Z",
           "attempts": 1
-        },
-        "keywords": [
-          "provider",
-          "claude",
-          "codex",
-          "user provider",
-          "registry",
-          "parse",
-          "system prompt",
-          "work dir"
-        ]
+        }
       },
       {
         "file": "src/lib/runtime-log.js",
@@ -11814,10 +11773,10 @@
       }
     ],
     "summary": {
-      "total": 314,
-      "totalMethods": 1508
+      "total": 315,
+      "totalMethods": 1509
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-29T01:20:24.032Z"
+  "enrichedAt": "2026-05-29T01:40:07.801Z"
 }
