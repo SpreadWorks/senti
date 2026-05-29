@@ -2,8 +2,12 @@
 
 This project uses Spec-Driven Development powered by sdd-forge.
 
-- **MUST: When the user requests any feature, fix, or code change, confirm with the user whether to use the SDD workflow (`/sdd-forge.flow`). Do NOT modify code without confirmation.**
-- **MUST: The mainline SDD lifecycle (planning, implementation, finalization) is driven by a single `/sdd-forge.flow` skill invocation. Standalone docs-sync runs use `/sdd-forge.flow-sync`.**
+- **MUST: When the user requests any feature, fix, or code change, classify the request and use AskUserQuestion to present a 2-way choice between "direct edit" and "SDD workflow (`/sdd-forge.flow`)". Do NOT modify code without confirmation.**
+  - **Direct-edit leaning** (typos, comments, docs wording, single-file single-line replacements, semantically-neutral renames, config tweaks) → mark "direct edit" as Recommended
+  - **Flow leaning** (behavioral changes, multi-file changes, test/spec impact, new features, new APIs) → mark "flow" as Recommended
+  - **When in doubt, mark flow as Recommended** (keep review / gate / docs-sync safety nets on the default path)
+  - If direct edit is chosen, show the `git diff` and confirm before committing. Docs sync will not run; suggest `sdd-forge docs build` separately if needed
+- **MUST: The mainline SDD lifecycle (planning, implementation, finalization) is driven by a single `/sdd-forge.flow` skill invocation. Standalone docs-sync runs use `/sdd-forge.flow-sync`. If the SDD workflow path is chosen, drive it through to finalize.**
 - If skills are unavailable, run `sdd-forge flow --request "<request>"` instead.
 
 ### Never cross the worktree boundary (MUST)

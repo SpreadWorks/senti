@@ -2,8 +2,12 @@
 
 本プロジェクトは sdd-forge による Spec-Driven Development を採用している。
 
-- **MUST: ユーザーから機能追加・修正のリクエストを受けた場合、SDD フロー (`/sdd-forge.flow`) を使用するかユーザーに確認すること。確認なしにコードを変更してはならない。**
-- **MUST: SDD の主経路（計画・実装・最終化）は `/sdd-forge.flow` 一つで駆動される。docs 同期のみを行う場合は `/sdd-forge.flow-sync` を使用する。**
+- **MUST: ユーザーから機能追加・修正のリクエストを受けた場合、内容を判定して「直接修正」か「SDD フロー (`/sdd-forge.flow`)」のどちらで進めるかを AskUserQuestion で 2 択提示すること。確認なしにコードを変更してはならない。**
+  - **直接修正寄り**（typo・コメント・docs 文言・単一ファイル単一行の置換・意味変化のない rename・設定値調整）→「直接修正」を Recommended にする
+  - **flow 寄り**（振る舞いを変える修正・複数ファイル横断・テスト/仕様影響・新機能・新 API）→「flow」を Recommended にする
+  - **判定が迷う場合は flow を Recommended にする**（review / gate / docs sync の安全弁を default 側に置く）
+  - 直接修正を選んだ場合、commit 前に `git diff` を提示してユーザー確認を取ること。docs sync は走らないため、必要なら `sdd-forge docs build` を別途案内する
+- **MUST: SDD の主経路（計画・実装・最終化）は `/sdd-forge.flow` 一つで駆動される。docs 同期のみを行う場合は `/sdd-forge.flow-sync` を使用する。SDD フロー経路を選んだ場合、実装完了後に finalize まで到達させること。**
 - スキルが利用できない環境では `sdd-forge flow --request "<要望>"` を使用すること
 
 ### Worktree の境界を越えない（MUST）
