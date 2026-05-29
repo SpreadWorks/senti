@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-29T01:38:49.573Z",
+  "analyzedAt": "2026-05-29T02:07:53.877Z",
   "package": {
     "entries": [
       {
@@ -220,7 +220,7 @@
         ],
         "id": "7cccb0de",
         "enrich": {
-          "attempts": 10
+          "attempts": 11
         }
       },
       {
@@ -245,7 +245,7 @@
         ],
         "id": "8e7abcbd",
         "enrich": {
-          "attempts": 13
+          "attempts": 14
         }
       },
       {
@@ -268,7 +268,7 @@
         "usedBy": null,
         "id": "05590bea",
         "enrich": {
-          "attempts": 13
+          "attempts": 14
         }
       },
       {
@@ -288,7 +288,7 @@
         "usedBy": null,
         "id": "fdf0f411",
         "enrich": {
-          "attempts": 13
+          "attempts": 14
         }
       },
       {
@@ -309,7 +309,7 @@
         "usedBy": null,
         "id": "b9d76d8b",
         "enrich": {
-          "attempts": 13
+          "attempts": 14
         }
       },
       {
@@ -329,7 +329,7 @@
         "usedBy": null,
         "id": "39b2aa36",
         "enrich": {
-          "attempts": 13
+          "attempts": 14
         }
       },
       {
@@ -351,7 +351,7 @@
         ],
         "id": "e1379661",
         "enrich": {
-          "attempts": 13
+          "attempts": 14
         }
       },
       {
@@ -1015,7 +1015,7 @@
         ],
         "id": "7c5e7654",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -1142,7 +1142,7 @@
         "usedBy": null,
         "id": "f3ac0c38",
         "enrich": {
-          "attempts": 10
+          "attempts": 11
         }
       },
       {
@@ -1386,7 +1386,7 @@
         ],
         "id": "bbb893ea",
         "enrich": {
-          "attempts": 12
+          "attempts": 13
         }
       },
       {
@@ -1888,7 +1888,7 @@
         ],
         "id": "f6126150",
         "enrich": {
-          "attempts": 12
+          "attempts": 13
         }
       },
       {
@@ -1920,7 +1920,7 @@
         "usedBy": null,
         "id": "cb355898",
         "enrich": {
-          "attempts": 13
+          "attempts": 14
         }
       },
       {
@@ -2034,7 +2034,7 @@
         "usedBy": null,
         "id": "cf9f71e2",
         "enrich": {
-          "attempts": 10
+          "attempts": 11
         }
       },
       {
@@ -2247,7 +2247,7 @@
         "usedBy": null,
         "id": "1ab08f2b",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -2293,7 +2293,7 @@
         "usedBy": null,
         "id": "3a0db928",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -2338,16 +2338,17 @@
         "usedBy": null,
         "id": "5f80ffd2",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "692218b6d84fc381e0e1b46e2717d30c",
-        "lines": 3086,
-        "mtime": "2026-05-21T04:41:15.396Z",
+        "hash": "98bf52db89565143567e5d7b1d3a3ade",
+        "lines": 3238,
+        "mtime": "2026-05-29T02:07:29.353Z",
         "className": "review",
         "methods": [
+          "writeReviewAttemptHistory",
           "loadReqMap",
           "ensureAgent",
           "getReviewMaxAttempts",
@@ -2455,6 +2456,13 @@
           "addDraftReviewFindingToBucket",
           "buildDraftReviewArtifact",
           "writeJsonArtifact",
+          "reviewHistoryAttemptNumber",
+          "normalizedFindingId",
+          "normalizeFindingSeverity",
+          "findingsWithSeverity",
+          "findingText",
+          "findingCategory",
+          "normalizeReviewFindingRecords",
           "runDraftReview",
           "runReview",
           "stripPreamble",
@@ -2483,6 +2491,7 @@
           "../../docs/lib/minify.js"
         ],
         "exports": [
+          "writeReviewAttemptHistory",
           "default",
           "parseProposals",
           "formatReviewMd",
@@ -2533,24 +2542,23 @@
         "extends": "Command",
         "usedBy": null,
         "id": "331cf497",
-        "enrich": {
-          "processedAt": "2026-05-25T03:57:50.884Z",
-          "attempts": 3
-        },
-        "summary": "Implements the `flow review` command with phase-specific review pipelines for draft, spec, implementation, and test artifacts. It orchestrates AI-assisted analysis, scope filtering, retry loops, and artifact persistence.",
-        "detail": "The module routes review execution by phase and resolves context such as merge base, touched files, requirement IDs, and guardrails before invoking the agent. It builds structured prompts with reusable builders, parses JSON-like model output with repair and schema validation, and converts results into typed review artifacts. Multiple review strategies are supported, including per-file loop review, cross-checking, and draft-stage route handling for questions and coverage. It enforces scope boundaries by filtering findings to changed files and known requirements, and blocks unsafe writes (for example in test fix application). Output is written consistently as Markdown and JSON files under the spec directory for downstream flow steps.",
+        "summary": "Implements the `flow review` command as a multi-phase review orchestrator for draft, spec, test, and implementation stages. It drives AI-assisted checks, scope filtering, artifact generation, and retry loops with phase-specific logic.",
+        "detail": "The module combines CLI parsing, flow-state inspection, git-diff collection, and requirement mapping to build review inputs for each phase. It defines strict JSON schemas and parser-repair logic for AI outputs, then normalizes findings into typed artifacts and markdown/json reports. The implementation includes loop-based review strategies for large change sets, chunking, cross-check prompts, and touched-file scoping to reduce noise. It persists review history with attempt numbering, normalized finding IDs, and per-phase memory reuse for iterative improvements. It also includes safeguards such as prompt-size limits, controlled test-fix write boundaries, and structured failure classification to keep automation predictable.",
         "chapter": "cli_commands",
-        "role": "Flow review command orchestrator and multi-phase AI review engine",
+        "role": "Flow review command orchestrator",
+        "enrich": {
+          "processedAt": "2026-05-29T02:08:40.284Z",
+          "attempts": 1
+        },
         "keywords": [
           "flow review",
-          "AI code review",
-          "spec validation",
-          "test coverage analysis",
-          "guardrails",
-          "schema validation",
-          "diff-based filtering",
-          "artifact generation",
-          "retry loop"
+          "multi-phase validation",
+          "ai prompt orchestration",
+          "json schema validation",
+          "git diff scope",
+          "review artifacts",
+          "retry loop",
+          "spec compliance"
         ]
       },
       {
@@ -3009,8 +3017,21 @@
         ],
         "id": "e296da98",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-05-29T02:08:40.284Z",
+          "attempts": 3
+        },
+        "summary": "Resolves authoritative flow context between the current workspace and the main repository. It selects the correct flow manager and state source based on spec identity and state-file presence.",
+        "detail": "The module derives a spec ID from the current flow state and checks whether an authoritative state exists under the main repository path. If a main-repo state is present, it returns that manager/state pair and marks the authority root accordingly. Otherwise, it falls back to the current working flow manager and state. This pattern centralizes context resolution for commands that must behave consistently across worktrees. The exported context object carries both runtime paths and the chosen authority metadata.",
+        "chapter": "internal_design",
+        "role": "Flow context resolver",
+        "keywords": [
+          "worktree context",
+          "authority resolution",
+          "flow state selection",
+          "spec id mapping",
+          "main repository fallback",
+          "state file lookup"
+        ]
       },
       {
         "file": "src/flow/lib/gate-recovery-display.js",
@@ -3486,8 +3507,21 @@
         ],
         "id": "f2e5e82b",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-05-29T02:08:40.284Z",
+          "attempts": 4
+        },
+        "summary": "Defines a CLI command to fetch runtime log blocks with strict argument validation and envelope-style responses. It supports run-id and sequence targeting plus optional JSON output mode.",
+        "detail": "The module parses options manually, validates positive integers, and detects incompatible combinations such as conflicting sequence sources. It uses a standardized `Envelope` contract for success and failure payloads, including machine-readable error codes. The command resolves runtime-log context via spec identity and delegates retrieval to runtime-log helpers. Output is emitted either as raw text with newline normalization or structured JSON depending on `--format`. Error handling is explicit and keeps process exit semantics consistent for automation.",
+        "chapter": "cli_commands",
+        "role": "Runtime log retrieval command",
+        "keywords": [
+          "runtime log",
+          "cli argument parsing",
+          "envelope response",
+          "sequence lookup",
+          "run id parsing",
+          "structured errors"
+        ]
       },
       {
         "file": "src/flow/lib/get-status.js",
@@ -4337,8 +4371,22 @@
         "usedBy": null,
         "id": "40e4daa5",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-05-29T02:08:40.284Z",
+          "attempts": 3
+        },
+        "summary": "Implements finalize cleanup with teardown, rescue, and recovery workflows for flow worktrees. It coordinates git-based recovery, report attachment, and issue-log safety during cleanup.",
+        "detail": "The module defines recovery option sets and attempts auto-rescue paths like cherry-picking orphan commits into the main repository under guarded conditions. It checks dirty-state and lock conditions before risky operations, and classifies failure modes with explicit envelope codes. Cleanup paths include normal teardown and forced teardown, each with audit-log append/rollback handling. Report metadata from finalize outputs is attached to response envelopes to preserve operator context. The implementation emphasizes reversible operations and clear operational diagnostics for post-mortem troubleshooting.",
+        "chapter": "cli_commands",
+        "role": "Finalize cleanup and recovery command",
+        "keywords": [
+          "finalize cleanup",
+          "worktree teardown",
+          "auto rescue",
+          "cherry-pick recovery",
+          "dirty tree detection",
+          "issue log rollback",
+          "flow finalize"
+        ]
       },
       {
         "file": "src/flow/lib/run-finalize-commit.js",
@@ -5665,15 +5713,17 @@
       },
       {
         "file": "src/flow/lib/set-issue-log.js",
-        "hash": "efeb316c2d3f46fd74ccfbe2a26a4f5b",
-        "lines": 119,
-        "mtime": "2026-04-22T14:34:07.553Z",
+        "hash": "31b2f770e01e39ea5ec1bd3f8e358326",
+        "lines": 153,
+        "mtime": "2026-05-29T02:07:29.353Z",
         "className": "set-issue-log",
         "methods": [
           "loadIssueLog",
           "saveIssueLog",
           "validateReason",
-          "validateOptionalIssueLogField"
+          "validateOptionalIssueLogField",
+          "normalizeRepairRef",
+          "validateRepairRef"
         ],
         "imports": [
           "fs",
@@ -5689,34 +5739,34 @@
         ],
         "extends": "FlowCommand",
         "usedBy": [
+          "src/flow/lib/retry-recovery.js",
+          "src/flow/lib/run-final-regression.js",
+          "src/flow/lib/run-finalize-cleanup.js",
           "src/flow/lib/run-finalize.js",
           "src/flow/lib/run-gate.js",
-          "src/flow/lib/run-report.js",
-          "src/lib/agent.js",
-          "src/lib/container.js",
           "src/flow/lib/run-reopen-draft.js",
-          "src/flow/lib/run-finalize-cleanup.js",
+          "src/flow/lib/run-report.js",
+          "src/flow/lib/run-review.js",
           "src/flow/lib/run-test-execute.js",
-          "src/flow/lib/run-final-regression.js",
-          "src/flow/lib/retry-recovery.js",
-          "src/flow/lib/run-review.js"
+          "src/lib/agent.js",
+          "src/lib/container.js"
         ],
         "id": "65ac9e4f",
-        "summary": "Manages `issue-log.json` loading, validation, persistence, and manual entry insertion for flow diagnostics. It enforces minimum quality constraints on reason and optional text fields.",
-        "detail": "The module resolves log paths from spec location and guarantees a stable `{ entries: [] }` shape when no file exists. It validates serialized structure on read to prevent downstream logic from operating on malformed logs. Field-level validators enforce text length thresholds, helping maintain actionable issue records. The command path resolves task association and appends standardized entries before writing formatted JSON. This file also exports reusable read/write helpers consumed by gate and retry systems.",
-        "chapter": "internal_design",
-        "role": "lib",
+        "summary": "Provides issue-log load/save utilities and a command for appending validated issue entries. It enforces minimum content quality and structured repair references.",
+        "detail": "The module stores issue data in `issue-log.json` under the spec directory and guarantees a stable `{ entries: [] }` shape when absent. It validates required reason length plus optional fields to prevent low-signal records. Repair references can include commit hashes and file paths, with strict format checks to avoid malformed provenance data. The command layer emits envelope failures for invalid usage and field violations. Task linkage is resolved through flow-store helpers so entries can be associated with explicit task context.",
+        "chapter": "cli_commands",
+        "role": "Issue log persistence and mutation command",
         "enrich": {
-          "processedAt": "2026-04-22T14:35:12.030Z",
+          "processedAt": "2026-05-29T02:08:40.284Z",
           "attempts": 1
         },
         "keywords": [
           "issue log",
-          "flow diagnostics",
           "json persistence",
-          "entry validation",
-          "task linkage",
-          "audit trail"
+          "input validation",
+          "repair reference",
+          "commit hash check",
+          "flow task linkage"
         ]
       },
       {
@@ -6424,9 +6474,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "8b230dca110cb7e9c2b20f8c7cbfc1a4",
+        "hash": "5504b718dc5ed773bbcd813cf1df2dfa",
         "lines": 1085,
-        "mtime": "2026-05-25T04:34:08.445Z",
+        "mtime": "2026-05-29T02:07:29.353Z",
         "className": "registry",
         "methods": [
           "assertDraftReviewRegistryHookBoundary",
@@ -6460,22 +6510,22 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "summary": "Defines the flow command registry and lifecycle hooks that connect command execution with status updates, retry accounting, and artifact side effects. It acts as orchestration glue between runtime commands and persisted flow state.",
-        "detail": "The registry declares command metadata, help text, and post/onError behaviors for key flow operations, including gate and finalize paths. It enforces responsibility boundaries for draft review ownership between review and gate phases and provides assertion checks for route consistency. Hook utilities safely update step status and issue logs with guarded error handling to avoid cascading failures. It includes logic for resolving runtime log step IDs, detecting active phase context, and resetting downstream finalize steps when needed. Additional validations confirm required regression artifacts and pass conditions before allowing final progression.",
+        "summary": "Acts as the central flow command registry and lifecycle hook coordinator. It maps phases and step transitions to runtime behaviors, review routes, and finalize side effects.",
+        "detail": "The module defines constants for valid review verdicts, retry-help phases, runtime-step mappings, and finalize downstream behavior. It includes utility functions to derive active phase/step, update statuses defensively, and isolate best-effort side effects without collapsing the main flow. Draft-review boundaries are codified with explicit responsibility metadata and assertion checks. Registry entries provide command help text and wire command execution to gate, commit, merge, and regression validation logic. This creates a single integration surface for flow command semantics and operational policy.",
         "chapter": "project_structure",
-        "role": "Central command registration and hook wiring for flow lifecycle events",
+        "role": "Flow command registry and orchestration boundary",
         "enrich": {
-          "processedAt": "2026-05-25T04:34:52.964Z",
+          "processedAt": "2026-05-29T02:08:40.284Z",
           "attempts": 1
         },
         "keywords": [
           "command registry",
-          "lifecycle hooks",
-          "step status",
-          "finalize flow",
-          "draft review routes",
-          "runtime logging",
-          "state mutation"
+          "flow lifecycle",
+          "step status transitions",
+          "review routing",
+          "finalize hooks",
+          "gate side effects",
+          "phase derivation"
         ]
       },
       {
@@ -6632,8 +6682,22 @@
         ],
         "id": "13ddf392",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-05-29T02:08:40.284Z",
+          "attempts": 2
+        },
+        "summary": "Implements the core AI agent runner with provider-based invocation, retries, and logging hooks. It resolves profiles, prepares command arguments, and executes subprocess calls with timeout control.",
+        "detail": "The `Agent` class validates configuration, selects provider profiles by command scope, and supports profile/environment overrides. It can inject JSON schema arguments or temporary schema files depending on provider capabilities and prompt size thresholds. Invocation uses retry policies with exponential backoff and captures stdout/stderr for robust error reporting. `runWithLogging` records start/end events, usage metrics, and preview-safe failure context for flow observability. Utility helpers normalize prompt argument substitution, workdir injection, and streaming-event filtering.",
+        "chapter": "internal_design",
+        "role": "AI agent execution engine",
+        "keywords": [
+          "agent runner",
+          "provider abstraction",
+          "retry backoff",
+          "subprocess invocation",
+          "schema injection",
+          "usage logging",
+          "profile resolution"
+        ]
       },
       {
         "file": "src/lib/agents-md.js",
@@ -6737,9 +6801,9 @@
       },
       {
         "file": "src/lib/command-registry.js",
-        "hash": "b1b9c3b32758120baf9d60e6b65f6529",
-        "lines": 111,
-        "mtime": "2026-04-19T22:26:12.753Z",
+        "hash": "84710899d91d4520500e55a1af7d4941",
+        "lines": 112,
+        "mtime": "2026-05-29T02:07:29.354Z",
         "className": "command-registry",
         "methods": [
           "decorateFlowEntry",
@@ -6765,20 +6829,21 @@
           "src/spec.js"
         ],
         "id": "0d680f4f",
-        "enrich": {
-          "processedAt": "2026-04-20T12:14:53.174Z",
-          "attempts": 5
-        },
-        "summary": "This module composes top-level command maps and decorates flow commands with envelope output mode. It exports grouped registries used by the dispatcher.",
-        "detail": "It wraps entries to enforce standardized output behavior where needed, especially for flow commands. The file aggregates docs, check, metrics, spec, and flow registries into a single command tree. It also provides helper factories for raw module-backed command entries. This is a structural composition layer for CLI command discovery.",
+        "summary": "Builds the top-level command registry by composing flow, docs, check, metrics, and spec command groups. It decorates flow entries with envelope output behavior.",
+        "detail": "The module imports flow command definitions and applies a transformation that sets standardized output mode metadata. It provides lightweight helpers for raw command entries that point to module paths without extra wrapping. Exported registries keep each command family separated while also exposing a merged `allCommands` object. This keeps command discovery and dispatch wiring centralized and predictable. The design favors simple declarative mapping over runtime mutation-heavy registration.",
         "chapter": "project_structure",
-        "role": "route",
+        "role": "Global CLI command map composer",
+        "enrich": {
+          "processedAt": "2026-05-29T02:08:40.284Z",
+          "attempts": 1
+        },
         "keywords": [
           "command map",
-          "output envelope",
-          "dispatcher input",
-          "subcommand registry",
-          "CLI composition"
+          "cli dispatch",
+          "flow command decoration",
+          "output mode",
+          "module routing",
+          "registry composition"
         ]
       },
       {
@@ -7095,8 +7160,20 @@
         ],
         "id": "605d1bd2",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-05-29T02:08:40.284Z",
+          "attempts": 2
+        },
+        "summary": "Provides a minimal utility for truncating error payloads into safe previews. It standardizes default preview length for logging surfaces.",
+        "detail": "The helper converts any value to string, preserving empty-string behavior and avoiding undefined output surprises. It returns the full text when short enough and slices to a configurable maximum otherwise. The default cap is intentionally small to reduce noisy logs and accidental large payload exposure. The exported constant and function give shared behavior across error-reporting call sites. This supports consistent diagnostics without introducing dependency overhead.",
+        "chapter": "internal_design",
+        "role": "Error preview formatter utility",
+        "keywords": [
+          "error preview",
+          "string truncation",
+          "log safety",
+          "diagnostic utility",
+          "output clipping"
+        ]
       },
       {
         "file": "src/lib/finalize-cleanup-paths.js",
@@ -8244,8 +8321,23 @@
         ],
         "id": "0e966da6",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-05-29T02:08:40.284Z",
+          "attempts": 2
+        },
+        "summary": "Defines provider classes and registry logic that adapt agent execution to Claude, Codex, and generic user providers. It encapsulates command argument generation, output parsing, and optional flag conventions.",
+        "detail": "The abstract `Provider` specifies the parse/flag contract, while concrete providers implement model arguments, structured-output handling, and usage extraction. Claude parsing expects JSON envelopes and extracts result text plus token counters, whereas Codex parsing handles event-stream style lines. Providers can expose system-prompt and workdir flags, allowing agent invocation to stay provider-agnostic. `ProviderRegistry` merges profile settings and resolves a provider/profile tuple for a command. This design isolates vendor-specific protocol differences behind stable runtime interfaces.",
+        "chapter": "configuration",
+        "role": "Agent provider adapter layer",
+        "keywords": [
+          "provider registry",
+          "claude adapter",
+          "codex adapter",
+          "output parsing",
+          "model arguments",
+          "system prompt flag",
+          "workdir flag",
+          "llm abstraction"
+        ]
       },
       {
         "file": "src/lib/runtime-log.js",
@@ -8606,6 +8698,94 @@
           "command dispatch",
           "exit code",
           "subcommand routing"
+        ]
+      },
+      {
+        "file": "src/metrics/commands/review.js",
+        "hash": "a4e80ee1518dae6b997fec3975f1593f",
+        "lines": 711,
+        "mtime": "2026-05-29T02:07:29.354Z",
+        "className": "review",
+        "methods": [
+          "ReviewMetricsSpec",
+          "ReviewFinding",
+          "RepairOutcome",
+          "AggregateRow",
+          "loadReviewMetricsArtifacts",
+          "aggregateReviewMetrics",
+          "ReviewMetricsTextFormatter",
+          "ReviewMetricsJsonFormatter",
+          "ReviewMetricsCsvFormatter",
+          "formatUsage",
+          "usageError",
+          "assertText",
+          "rateRow",
+          "rowKey",
+          "increment",
+          "readJson",
+          "maybeReadJson",
+          "listSpecDirs",
+          "repairRefFromEntry",
+          "guardrailIdsFromRecord",
+          "guardrailIdsFromEntry",
+          "entryShowsAttemptLimit",
+          "retryLimitRowsFromFlow",
+          "bodyFromFinding",
+          "categoryForLatest",
+          "latestBuckets",
+          "findingsFromLatest",
+          "findingsFromHistory",
+          "loadReviewHistory",
+          "loadLatestFindings",
+          "aggregateRows",
+          "historyGroups",
+          "computeRepairRates",
+          "sectionLine",
+          "formatRate",
+          "csvValue",
+          "render",
+          "runReviewMetrics"
+        ],
+        "imports": [
+          "node:fs/promises",
+          "node:path",
+          "../../lib/cli.js",
+          "../../lib/command.js",
+          "../../lib/constants.js"
+        ],
+        "exports": [
+          "ReviewMetricsSpec",
+          "ReviewFinding",
+          "RepairOutcome",
+          "AggregateRow",
+          "loadReviewMetricsArtifacts",
+          "aggregateReviewMetrics",
+          "ReviewMetricsTextFormatter",
+          "ReviewMetricsJsonFormatter",
+          "ReviewMetricsCsvFormatter",
+          "default"
+        ],
+        "extends": "Command",
+        "usedBy": null,
+        "id": "c060be7e",
+        "summary": "Implements the `metrics review` CLI command that loads review artifacts, computes aggregated quality metrics, and renders reports in text, JSON, or CSV. It also validates inputs, handles missing files safely, and returns standard success/error exit behavior.",
+        "detail": "The module defines domain classes such as review findings, repair outcomes, aggregate rows, and missing-data entries to keep parsing and reporting logic structured and explicit. It traverses `specs/*` directories, reads latest and historical review artifacts, issue logs, and flow data, then normalizes heterogeneous record shapes into consistent internal objects. Aggregation utilities compute grouped counts, repair rates, guardrail coverage, and retry-limit indicators, with optional search filtering and stable key-based grouping. Formatter classes encapsulate output generation for text, JSON, and CSV so rendering is separated from metric computation. The command runner parses CLI arguments, enforces supported formats, prints usage/help, and maps runtime failures to defined exit codes.",
+        "chapter": "cli_commands",
+        "role": "Provides the review-metrics command pipeline from argument parsing through artifact loading, aggregation, and multi-format report output.",
+        "enrich": {
+          "processedAt": "2026-05-29T02:08:06.883Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "review metrics",
+          "CLI command",
+          "artifact aggregation",
+          "JSON parsing",
+          "CSV export",
+          "quality reporting",
+          "repair rate",
+          "guardrail analysis",
+          "Node.js fs/promises"
         ]
       },
       {
@@ -11773,10 +11953,10 @@
       }
     ],
     "summary": {
-      "total": 315,
-      "totalMethods": 1509
+      "total": 316,
+      "totalMethods": 1557
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-29T01:40:07.801Z"
+  "enrichedAt": "2026-05-29T02:08:56.769Z"
 }
