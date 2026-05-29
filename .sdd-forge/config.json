@@ -89,7 +89,7 @@
     "workDir": ".tmp",
     "timeout": 600,
     "retryCount": 2,
-    "useProfile": "codex-only",
+    "useProfile": "codex-main",
     "providers": {
       "claude/sonnet": {
         "command": "claude",
@@ -100,6 +100,12 @@
       "claude/opus": {
         "command": "claude",
         "args": ["-p", "{{PROMPT}}", "--model", "opus", "--output-format", "json"],
+        "systemPromptFlag": "--system-prompt",
+        "jsonOutputFlag": "--output-format json"
+      },
+      "claude/haiku": {
+        "command": "claude",
+        "args": ["-p", "{{PROMPT}}", "--model", "haiku", "--output-format", "json"],
         "systemPromptFlag": "--system-prompt",
         "jsonOutputFlag": "--output-format json"
       },
@@ -117,17 +123,22 @@
         "command": "codex",
         "args": ["exec", "--json", "--sandbox", "workspace-write", "-m", "gpt-5.3-codex", "-C", ".tmp", "{{PROMPT}}"],
         "jsonOutputFlag": "--json"
+      },
+      "codex/gpt-5.4-mini": {
+        "command": "codex",
+        "args": ["exec", "--json", "--sandbox", "workspace-write", "-m", "gpt-5.4-mini", "-C", ".tmp", "{{PROMPT}}"],
+        "jsonOutputFlag": "--json"
       }
     },
     "profiles": {
-      "default": {
+      "claude-main": {
         "docs.init":              "claude/sonnet",
-        "docs.enrich":            "claude/opus",
-        "docs.text":              "claude/opus",
-        "docs.forge":             "claude/opus",
+        "docs.enrich":            "claude/sonnet",
+        "docs.text":              "claude/sonnet",
+        "docs.forge":             "claude/sonnet",
         "docs.readme":            "claude/sonnet",
-        "docs.agents":            "claude/opus",
-        "docs.translate":         "codex/gpt-5.5",
+        "docs.agents":            "claude/haiku",
+        "docs.translate":         "codex/gpt-5.4",
         "flow.auto-check":        "claude/sonnet",
         "flow.spec.gate":         "claude/sonnet",
         "flow.spec.review.propose":  "codex/gpt-5.5",
@@ -135,20 +146,20 @@
         "flow.draft.review.coverage.propose": "codex/gpt-5.5",
         "flow.impl.review.propose":  "codex/gpt-5.5",
         "flow.impl.review.final": "claude/opus",
-        "flow.test.execute":      "claude/opus",
-        "flow.test.result-review": "claude/opus",
+        "flow.test.execute":      "claude/sonnet",
+        "flow.test.result-review": "claude/haiku",
         "flow.test.review":       "codex/gpt-5.5",
-        "flow.finalize.retro":    "claude/sonnet",
-        "flow.context.search":    "claude/sonnet",
+        "flow.finalize.retro":    "claude/haiku",
+        "flow.context.search":    "claude/haiku",
         "experimental.workflow.publish": "claude/sonnet"
       },
-      "codex": {
+      "codex-main": {
         "docs.init":                 "claude/sonnet",
-        "docs.enrich":               "claude/opus",
-        "docs.text":                 "claude/opus",
-        "docs.forge":                "claude/opus",
+        "docs.enrich":               "claude/sonnet",
+        "docs.text":                 "claude/sonnet",
+        "docs.forge":                "claude/sonnet",
         "docs.readme":               "claude/sonnet",
-        "docs.agents":               "claude/opus",
+        "docs.agents":               "claude/haiku",
         "docs.translate":            "codex/gpt-5.5",
         "flow.auto-check":           "claude/sonnet",
         "flow.spec.gate":            "claude/sonnet",
@@ -157,15 +168,16 @@
         "flow.draft.review.coverage.propose": "claude/opus",
         "flow.impl.review.propose":  "claude/opus",
         "flow.impl.review.final":    "claude/opus",
-        "flow.test.execute":         "claude/opus",
-        "flow.test.result-review":   "claude/opus",
+        "flow.test.execute":         "claude/sonnet",
+        "flow.test.result-review":   "claude/haiku",
         "flow.test.review":          "claude/opus",
-        "flow.finalize.retro":       "claude/sonnet",
-        "flow.context.search":       "claude/sonnet",
+        "flow.finalize.retro":       "claude/haiku",
+        "flow.context.search":       "claude/haiku",
         "experimental.workflow.publish": "claude/sonnet"
       },
       "claude-only": {
         "docs":                      "claude/sonnet",
+        "docs.agents":               "claude/haiku",
         "flow.auto-check":           "claude/sonnet",
         "flow.spec.gate":            "claude/sonnet",
         "flow.spec.review.propose":  "claude/opus",
@@ -173,16 +185,33 @@
         "flow.draft.review.coverage.propose": "claude/opus",
         "flow.impl.review.propose":  "claude/opus",
         "flow.impl.review.final":    "claude/opus",
-        "flow.test.execute":         "claude/opus",
-        "flow.test.result-review":   "claude/opus",
+        "flow.test.execute":         "claude/sonnet",
+        "flow.test.result-review":   "claude/haiku",
         "flow.test.review":          "claude/opus",
-        "flow.finalize.retro":       "claude/sonnet",
-        "flow.context.search":       "claude/sonnet",
+        "flow.finalize.retro":       "claude/haiku",
+        "flow.context.search":       "claude/haiku",
         "experimental.workflow.publish": "claude/sonnet"
       },
       "codex-only": {
-        "docs": "codex/gpt-5.3",
-        "flow": "codex/gpt-5.5"
+        "docs.init":                 "codex/gpt-5.4",
+        "docs.enrich":               "codex/gpt-5.4",
+        "docs.text":                 "codex/gpt-5.4",
+        "docs.forge":                "codex/gpt-5.4",
+        "docs.readme":               "codex/gpt-5.4-mini",
+        "docs.agents":               "codex/gpt-5.4-mini",
+        "docs.translate":            "codex/gpt-5.4",
+        "flow.auto-check":           "codex/gpt-5.4",
+        "flow.spec.gate":            "codex/gpt-5.4-mini",
+        "flow.spec.review.propose":  "codex/gpt-5.5",
+        "flow.draft.review.questions.propose": "codex/gpt-5.5",
+        "flow.draft.review.coverage.propose": "codex/gpt-5.5",
+        "flow.impl.review.propose":  "codex/gpt-5.5",
+        "flow.impl.review.final":    "codex/gpt-5.5",
+        "flow.test.execute":         "codex/gpt-5.4",
+        "flow.test.result-review":   "codex/gpt-5.4-mini",
+        "flow.test.review":          "codex/gpt-5.5",
+        "flow.finalize.retro":       "codex/gpt-5.4-mini",
+        "flow.context.search":       "codex/gpt-5.4-mini"
       }
     }
   }
