@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-29T00:27:13.678Z",
+  "analyzedAt": "2026-05-29T01:19:07.373Z",
   "package": {
     "entries": [
       {
@@ -220,7 +220,7 @@
         ],
         "id": "7cccb0de",
         "enrich": {
-          "attempts": 8
+          "attempts": 9
         }
       },
       {
@@ -245,7 +245,7 @@
         ],
         "id": "8e7abcbd",
         "enrich": {
-          "attempts": 11
+          "attempts": 12
         }
       },
       {
@@ -268,7 +268,7 @@
         "usedBy": null,
         "id": "05590bea",
         "enrich": {
-          "attempts": 11
+          "attempts": 12
         }
       },
       {
@@ -288,7 +288,7 @@
         "usedBy": null,
         "id": "fdf0f411",
         "enrich": {
-          "attempts": 11
+          "attempts": 12
         }
       },
       {
@@ -309,7 +309,7 @@
         "usedBy": null,
         "id": "b9d76d8b",
         "enrich": {
-          "attempts": 11
+          "attempts": 12
         }
       },
       {
@@ -329,7 +329,7 @@
         "usedBy": null,
         "id": "39b2aa36",
         "enrich": {
-          "attempts": 11
+          "attempts": 12
         }
       },
       {
@@ -351,7 +351,7 @@
         ],
         "id": "e1379661",
         "enrich": {
-          "attempts": 11
+          "attempts": 12
         }
       },
       {
@@ -1155,7 +1155,7 @@
         "usedBy": null,
         "id": "f3ac0c38",
         "enrich": {
-          "attempts": 8
+          "attempts": 9
         }
       },
       {
@@ -1399,7 +1399,7 @@
         ],
         "id": "bbb893ea",
         "enrich": {
-          "attempts": 10
+          "attempts": 11
         }
       },
       {
@@ -1901,7 +1901,7 @@
         ],
         "id": "f6126150",
         "enrich": {
-          "attempts": 10
+          "attempts": 11
         }
       },
       {
@@ -1933,7 +1933,7 @@
         "usedBy": null,
         "id": "cb355898",
         "enrich": {
-          "attempts": 11
+          "attempts": 12
         }
       },
       {
@@ -2047,7 +2047,7 @@
         "usedBy": null,
         "id": "cf9f71e2",
         "enrich": {
-          "attempts": 8
+          "attempts": 9
         }
       },
       {
@@ -2260,7 +2260,7 @@
         "usedBy": null,
         "id": "1ab08f2b",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -2306,7 +2306,7 @@
         "usedBy": null,
         "id": "3a0db928",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -2351,7 +2351,7 @@
         "usedBy": null,
         "id": "5f80ffd2",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -2996,9 +2996,9 @@
       },
       {
         "file": "src/flow/lib/flow-context.js",
-        "hash": "394eb4f100d06d4c6dd361c9d1a3c33e",
+        "hash": "52067fb201449b98082919ffe6ef5b43",
         "lines": 62,
-        "mtime": "2026-05-06T23:21:44.541Z",
+        "mtime": "2026-05-29T01:18:50.614Z",
         "className": "flow-context",
         "methods": [
           "resolveFlowContext",
@@ -3021,25 +3021,9 @@
           "src/flow/lib/base-command.js"
         ],
         "id": "e296da98",
-        "summary": "Resolves authoritative flow state by preferring the main repo's specs/<id>/flow.json over the worktree's local copy.",
-        "detail": "resolveAuthorityFlowState locates the main-repo flow.json at specs/<specId>/STATE_FILE and uses it as the authoritative source when available, falling back to the worktree's flow state otherwise. specIdFromPath extracts the spec ID from the current spec path to construct the lookup. resolveFlowContext bundles the resolved flowManager, flowState, and authorityRoot for downstream consumers. This separation handles the worktree-vs-main-repo authority concern central to concurrent flows.",
-        "chapter": "internal_design",
-        "role": "flow-context",
         "enrich": {
-          "processedAt": "2026-05-07T00:18:30.711Z",
           "attempts": 1
-        },
-        "keywords": [
-          "flow context",
-          "authority root",
-          "main repo",
-          "worktree",
-          "flow.json",
-          "specIdFromPath",
-          "STATE_FILE",
-          "concurrent flows",
-          "flow state resolution"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/gate-recovery-display.js",
@@ -3515,7 +3499,7 @@
         ],
         "id": "f2e5e82b",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4327,15 +4311,17 @@
       },
       {
         "file": "src/flow/lib/run-finalize-cleanup.js",
-        "hash": "a748fe872a0eb18cd5f4112b03a1e792",
-        "lines": 669,
-        "mtime": "2026-05-16T08:19:57.845Z",
+        "hash": "cf860b4e73556d9665d3ee9722dab232",
+        "lines": 725,
+        "mtime": "2026-05-29T01:18:50.614Z",
         "className": "run-finalize-cleanup",
         "methods": [
           "RunFinalizeCleanupCommand",
           "buildReportField",
           "attachReport",
           "listMainRepoDirtyFiles",
+          "listOtherDirtyFlowJsonPaths",
+          "attachOtherFlowMetadataWarning",
           "readOrphanCommits",
           "appendIssueLog",
           "restoreIssueLog",
@@ -4364,21 +4350,8 @@
         "usedBy": null,
         "id": "40e4daa5",
         "enrich": {
-          "processedAt": "2026-05-18T13:31:12.050Z",
-          "attempts": 5
-        },
-        "summary": "Performs finalize cleanup for worktrees and main-repo reconciliation with rescue and rollback paths.",
-        "detail": "The module implements cleanup orchestration with report attachment, orphan-commit discovery, and audit-log persistence. It can run an auto-rescue strategy that checks main-repo cleanliness, creates a temporary worktree, and attempts cherry-pick based recovery. Multiple recovery option sets are exposed for locked repos, dirty states, and rescue failures, and forced teardown paths are available when normal cleanup cannot proceed. Snapshot-based issue-log append and restore helpers protect consistency during partial failures.",
-        "chapter": "internal_design",
-        "role": "finalize cleanup and recovery orchestrator",
-        "keywords": [
-          "worktree cleanup",
-          "auto rescue",
-          "cherry-pick recovery",
-          "orphan commits",
-          "audit log",
-          "teardown"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/run-finalize-commit.js",
@@ -4767,7 +4740,25 @@
           "src/flow/lib/gate-recovery-display.js",
           "src/flow/lib/set-retry.js"
         ],
-        "id": "b4aa4dad"
+        "id": "b4aa4dad",
+        "summary": "Implements the flow gate engine that validates draft/spec/implementation phases and produces standardized pass/fail envelopes. It combines diff analysis, artifact checks, AI guardrail evaluation, and retry/recovery control in one command pipeline.",
+        "detail": "The module maps gate phases to strict levels and rejects invalid level-phase combinations before running checks. It gathers committed, uncommitted, and untracked diffs with size limits, then scopes requirement-level evaluation using file maps and per-file diff slicing. It builds guardrail prompts, parses JSON-only AI responses against explicit schemas, and raises typed schema errors for malformed or unknown fields. It also enforces artifact lifecycle rules (spec review/triage/repair and draft review variants), tracks retry history and recovery baselines, applies repeated-failure and flip-override logic, and writes issue-log/memory artifacts for subsequent gate rounds.",
+        "chapter": "internal_design",
+        "role": "Flow gate orchestration, validation, and AI-evaluation control",
+        "enrich": {
+          "processedAt": "2026-05-29T01:19:55.355Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "gate pipeline",
+          "guardrail evaluation",
+          "JSON schema validation",
+          "retry recovery",
+          "diff-based checks",
+          "issue log",
+          "spec lifecycle audit",
+          "integration evidence"
+        ]
       },
       {
         "file": "src/flow/lib/run-impl-confirm.js",
@@ -4885,7 +4876,25 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "59eeacc6"
+        "id": "59eeacc6",
+        "summary": "Implements the `prepare spec` flow command that creates a new spec workspace and initializes core spec artifacts. It also performs repository hygiene checks and analysis preconditions before state creation.",
+        "detail": "The command derives a slugged spec directory name, assigns the next numeric index, and can target either the current repo or an isolated worktree path. It validates base branch availability, blocks dirty worktrees (with scoped exceptions), and resolves branch defaults safely when branch detection fails. It runs a docs scan command and verifies that `analysis.json` exists and is valid JSON before proceeding. It writes initial files such as `spec.json`, `draft.json`, and `issue.md`, then persists flow state metadata and initial step structure for downstream SDD execution.",
+        "chapter": "cli_commands",
+        "role": "Spec preparation and initialization command",
+        "enrich": {
+          "processedAt": "2026-05-29T01:19:55.355Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "prepare spec",
+          "worktree setup",
+          "branch validation",
+          "docs scan",
+          "analysis.json",
+          "flow initialization",
+          "spec scaffold",
+          "slug generation"
+        ]
       },
       {
         "file": "src/flow/lib/run-reopen-draft.js",
@@ -7071,7 +7080,25 @@
           "src/metrics.js",
           "src/spec.js"
         ],
-        "id": "18d5f63b"
+        "id": "18d5f63b",
+        "summary": "Provides the central CLI dispatcher that parses entry arguments, executes command lifecycle hooks, and normalizes output/error behavior. It supports envelope-based reporting and runtime log attachment across command modes.",
+        "detail": "The dispatcher splits positional and option arguments using per-command flag/option specs and throws deterministic errors for unknown or missing option values. It resolves output mode (`raw` or envelope-oriented), then runs `pre`, command execution, `post`, and `onError` hooks with consistent failure routing. It temporarily intercepts stdout/stderr writes to suppress recursive capture paths and to integrate runtime logging metadata into emitted envelopes. It also formats finalize-cleanup warnings into concise display text with truncation and message limits, ensuring actionable terminal output without unbounded noise.",
+        "chapter": "project_structure",
+        "role": "CLI command dispatch and envelope/error runtime handling",
+        "enrich": {
+          "processedAt": "2026-05-29T01:19:55.355Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "command dispatcher",
+          "argument parsing",
+          "lifecycle hooks",
+          "envelope output",
+          "runtime logging",
+          "error emission",
+          "output modes",
+          "cleanup warnings"
+        ]
       },
       {
         "file": "src/lib/finalize-cleanup-paths.js",
@@ -7222,9 +7249,9 @@
       },
       {
         "file": "src/lib/flow-manager.js",
-        "hash": "4e76e811527a3c7bb5f81628688cb923",
-        "lines": 417,
-        "mtime": "2026-05-25T04:34:08.445Z",
+        "hash": "34789f22181da08fcf4e8960abd2077d",
+        "lines": 421,
+        "mtime": "2026-05-29T01:18:50.615Z",
         "className": "flow-manager",
         "methods": [
           "FlowManager"
@@ -7249,22 +7276,23 @@
           "src/lib/container.js"
         ],
         "id": "3d2ed4c0",
-        "summary": "Provides flow state management for loading, selecting, and mutating active SDD flows across main and worktree contexts. It is the persistence-aware coordinator for runtime flow operations.",
-        "detail": "The manager wraps store operations for step updates, metrics, runtime logs, and task progression while supporting bound spec defaults. It scans flow state from main repository specs, linked worktrees, and branch snapshots, with limits and JSON-parse safeguards for robustness. Active flow resolution supports explicit selection, last-finalized pointer lookup, and fallback probing for worktree paths. It returns structured active-flow descriptors containing spec ID, state, and worktree location to downstream commands. By centralizing these behaviors, it decouples command logic from file-layout and Git-discovery details.",
+        "summary": "Defines a high-level flow manager facade over flow storage, active-flow registry, and preparing-flow inputs. It resolves active spec context and coordinates flow discovery across main and worktree locations.",
+        "detail": "The class wraps `FlowStore` mutations and reads while supporting a bound `specId` default so commands can operate with implicit flow context. It scans flow state files from main specs, registered worktrees, and branch snapshots, with truncation guards to cap scan volume. It tracks and resolves the last finalized spec pointer, then validates selected spec IDs against active-flow availability and readable `flow.json` state. It also exposes helper methods for step status, runtime log linkage, metrics accumulation, merge outcome persistence, and current task/step introspection.",
         "chapter": "internal_design",
-        "role": "Stateful flow persistence and active-flow resolution service",
+        "role": "Flow context resolution and lifecycle coordination",
         "enrich": {
-          "processedAt": "2026-05-25T04:34:52.964Z",
+          "processedAt": "2026-05-29T01:19:55.355Z",
           "attempts": 1
         },
         "keywords": [
           "flow manager",
-          "state store",
-          "active flow selection",
+          "active flow registry",
           "worktree discovery",
-          "spec pointer",
-          "metrics tracking",
-          "flow persistence"
+          "spec selection",
+          "state resolution",
+          "flow metrics",
+          "finalized pointer",
+          "SDD lifecycle"
         ]
       },
       {
@@ -7313,9 +7341,9 @@
       },
       {
         "file": "src/lib/flow-store.js",
-        "hash": "58e55c34cba8dd6426c92497ed2c32d8",
+        "hash": "7651a61b45d565c92ec3b9b8d541e429",
         "lines": 998,
-        "mtime": "2026-05-25T04:34:08.446Z",
+        "mtime": "2026-05-29T01:18:50.615Z",
         "className": "flow-store",
         "methods": [
           "resolveTaskIdForEntry",
@@ -7369,23 +7397,23 @@
           "src/lib/flow-manager.js"
         ],
         "id": "5332364e",
-        "summary": "Implements persistent storage and migration logic for flow state files, including strict schema checks and task-scope mutation helpers. It also handles step/artifact rewrites for draft-review workflow evolution and safe rollback of runId migrations.",
-        "detail": "The module centralizes flow-state path resolution, branch-derived spec identification, and guarded JSON loading with bounded file-size reads. It validates core state shape early and throws targeted errors for malformed tasks, steps, requirements, and merge metadata. Migration routines update legacy draft/refine/review step graphs, rewrite related artifact paths, and generate empty placeholder artifacts when needed so downstream commands can continue consistently. It appends migration evidence to issue logs and enforces upper bounds on migrated steps/artifacts to avoid runaway processing. The FlowStore class exposes read/write, read-only fallback, mutation-scope resolution, task insertion, and current-task safety checks as the main state management API.",
+        "summary": "Implements persistent flow state storage with schema checks, bounded reads, and migration logic for evolving workflow structure. It is the core mutation layer for tasks, steps, metrics, and finalization metadata.",
+        "detail": "The store validates structural invariants aggressively and rejects malformed state, oversized files, invalid enums, and inconsistent task/step shapes before writing. It performs targeted migrations for draft review/triage/repair step graphs and artifact naming, and can emit migration evidence into issue logs. It supports safe read-only loading, bounded-size file reads, run-id migration/rollback helpers, and spec-path resolution from branch/worktree context. Mutation APIs handle step transitions, task insertion/completion, metrics accumulation, merge/finalization state, and scope resolution with explicit errors on illegal operations.",
         "chapter": "internal_design",
-        "role": "Flow state persistence, validation, and migration subsystem",
+        "role": "Flow state persistence, migration, and mutation engine",
         "enrich": {
-          "processedAt": "2026-05-25T04:35:01.585Z",
+          "processedAt": "2026-05-29T01:19:55.355Z",
           "attempts": 1
         },
         "keywords": [
-          "flow state",
+          "flow store",
           "state migration",
-          "schema validation",
+          "schema enforcement",
           "task lifecycle",
+          "step transitions",
           "artifact rewrite",
-          "spec workflow",
-          "runId rollback",
-          "state store"
+          "bounded IO",
+          "finalization metadata"
         ]
       },
       {
@@ -11763,9 +11791,9 @@
     ],
     "summary": {
       "total": 314,
-      "totalMethods": 1506
+      "totalMethods": 1508
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-25T04:35:24.831Z"
+  "enrichedAt": "2026-05-29T01:20:24.032Z"
 }
