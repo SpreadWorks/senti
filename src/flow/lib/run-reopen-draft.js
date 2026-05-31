@@ -176,3 +176,5 @@ export class RunReopenDraftCommand extends FlowCommand {
     });
   }
 }
+
+export default RunReopenDraftCommand;
