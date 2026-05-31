@@ -35,8 +35,8 @@ const REVIEW_INPUT_PHASES = Object.freeze([
   "draft",
   "draft-questions",
   "draft-coverage",
-  "review-draft-questions",
-  "review-draft-coverage",
+  "draft-questions-review",
+  "draft-coverage-review",
   "spec",
   "test",
   "impl",
@@ -74,8 +74,8 @@ function normalizeChangedPaths(paths) {
 }
 
 function canonicalReviewPhase(phase) {
-  if (phase === "review-draft-questions") return "draft-questions";
-  if (phase === "review-draft-coverage") return "draft-coverage";
+  if (phase === "draft-questions-review") return "draft-questions";
+  if (phase === "draft-coverage-review") return "draft-coverage";
   return phase;
 }
 

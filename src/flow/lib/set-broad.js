@@ -14,7 +14,7 @@ export default class SetBroadCommand extends FlowCommand {
         "set",
         "broad",
         "INVALID_USAGE",
-        "usage: flow set broad on --step <implement|review|gate-impl> --reason <text>",
+        "usage: flow set broad on --step <implement|impl-review|impl-gate> --reason <text>",
       );
     }
 

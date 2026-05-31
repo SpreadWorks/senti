@@ -77,7 +77,7 @@ describe("spec review advisory verdict", () => {
     );
 
     assert.equal(result.result, "ok");
-    assert.equal(result.next, "gate");
+    assert.equal(result.next, "spec-gate");
     assert.deepEqual(result.changed, ["specs/demo/spec-review.md"]);
     assert.deepEqual(result.artifacts, {
       phase: "spec",
@@ -86,7 +86,7 @@ describe("spec review advisory verdict", () => {
     });
   });
 
-  it("routes FAIL to spec-review-triage instead of a prompt-owned review loop", () => {
+  it("routes FAIL to spec-triage instead of a prompt-owned review loop", () => {
     const result = parseSpecReviewOutput(
       { ok: true },
       "Spec review FAIL. 1 blocking finding(s) found. See spec-review.md.",
@@ -94,7 +94,7 @@ describe("spec review advisory verdict", () => {
     );
 
     assert.equal(result.result, "ok");
-    assert.equal(result.next, "spec-review-triage");
+    assert.equal(result.next, "spec-triage");
     assert.deepEqual(result.artifacts, {
       phase: "spec",
       verdict: "FAIL",
@@ -102,7 +102,7 @@ describe("spec review advisory verdict", () => {
     });
   });
 
-  it("post-hook advances FAIL to spec-review-triage by completing review-spec only", async () => {
+  it("post-hook advances FAIL to spec-triage by completing spec-review only", async () => {
     const updates = [];
     const metrics = [];
     await FLOW_COMMANDS.run.review.post({
@@ -116,7 +116,7 @@ describe("spec review advisory verdict", () => {
       artifacts: { phase: "spec", verdict: "FAIL", proposalCount: 1 },
     });
 
-    assert.deepEqual(updates, [{ stepId: "review-spec", status: "done" }]);
+    assert.deepEqual(updates, [{ stepId: "spec-review", status: "done" }]);
     assert.deepEqual(metrics, [{
       payload: { phase: "spec", counter: "reviewRetry", delta: 1 },
       opts: { taskId: null },
@@ -137,14 +137,14 @@ describe("spec review advisory verdict", () => {
     });
 
     assert.deepEqual(updates, [
-      { stepId: "review-spec", status: "done" },
-      { stepId: "spec-review-triage", status: "done" },
+      { stepId: "spec-review", status: "done" },
+      { stepId: "spec-triage", status: "done" },
       { stepId: "spec-repair", status: "done" },
     ]);
   });
 });
 
-describe("review-test one-shot verdict routing", () => {
+describe("test-review one-shot verdict routing", () => {
   it("parses ADVISORY as non-blocking and routes to implement", () => {
     const result = parseTestReviewOutput(
       { ok: true },
@@ -181,7 +181,7 @@ describe("review-test one-shot verdict routing", () => {
     });
   });
 
-  it("post-hook completes review-test for ADVISORY and does not consume retry for TOOLING_FAILURE", async () => {
+  it("post-hook completes test-review for ADVISORY and does not consume retry for TOOLING_FAILURE", async () => {
     const updates = [];
     const metrics = [];
     await FLOW_COMMANDS.run.review.post({
@@ -195,7 +195,7 @@ describe("review-test one-shot verdict routing", () => {
       artifacts: { phase: "test", verdict: "ADVISORY", blockingCount: 0, advisoryCount: 1 },
     });
 
-    assert.deepEqual(updates, [{ stepId: "review-test", status: "done" }]);
+    assert.deepEqual(updates, [{ stepId: "test-review", status: "done" }]);
     assert.deepEqual(metrics, [{
       payload: { phase: "test", counter: "reviewRetry", delta: 0, reset: true },
       opts: { taskId: null },
@@ -211,7 +211,7 @@ describe("review-test one-shot verdict routing", () => {
         flowState: { spec: "specs/demo/spec.json" },
         flowManager: {
           appendMetric(payload, opts) { toolingMetrics.push({ payload, opts }); },
-          updateStepStatus() { throw new Error("TOOLING_FAILURE must not complete review-test"); },
+          updateStepStatus() { throw new Error("TOOLING_FAILURE must not complete test-review"); },
         },
       }, {
         changed: ["specs/demo/test-review.json"],
@@ -220,7 +220,7 @@ describe("review-test one-shot verdict routing", () => {
       assert.deepEqual(toolingMetrics, []);
       const issueLog = JSON.parse(fs.readFileSync(path.join(tmp, "specs/demo/issue-log.json"), "utf8"));
       assert.equal(issueLog.entries.length, 1);
-      assert.equal(issueLog.entries[0].step, "review-test");
+      assert.equal(issueLog.entries[0].step, "test-review");
       assert.equal(issueLog.entries[0].failureKind, "tooling_failure");
     } finally {
       removeTmpDir(tmp);
@@ -229,7 +229,7 @@ describe("review-test one-shot verdict routing", () => {
 });
 
 describe("impl review structured verdict routing", () => {
-  it("parses ADVISORY as non-blocking and routes to gate-impl", () => {
+  it("parses ADVISORY as non-blocking and routes to impl-gate", () => {
     const result = parseImplReviewOutput(
       { ok: true },
       "Impl review ADVISORY. 1 non-blocking improvement(s) recorded. See review.md.",
@@ -237,7 +237,7 @@ describe("impl review structured verdict routing", () => {
     );
 
     assert.equal(result.result, "ok");
-    assert.equal(result.next, "gate-impl");
+    assert.equal(result.next, "impl-gate");
     assert.deepEqual(result.changed, ["specs/demo/review.md", "specs/demo/impl-review.json"]);
     assert.deepEqual(result.artifacts, {
       phase: "impl",
@@ -274,7 +274,7 @@ describe("impl review structured verdict routing", () => {
     }, {
       artifacts: { phase: "impl", verdict: "PASS", blockingCount: 0, nonBlockingCount: 0 },
     });
-    assert.deepEqual(passUpdates, [{ stepId: "review", status: "done" }]);
+    assert.deepEqual(passUpdates, [{ stepId: "impl-review", status: "done" }]);
 
     const failUpdates = [];
     await FLOW_COMMANDS.run.review.post({
@@ -314,7 +314,7 @@ function metricsForImplVerdict(verdict) {
 }
 
 describe("review subprocess retry", () => {
-  it("does not retry deterministic review-test prompt size failures", async () => {
+  it("does not retry deterministic test-review prompt size failures", async () => {
     let calls = 0;
     const result = await runCmdWithRetry(() => {
       calls++;

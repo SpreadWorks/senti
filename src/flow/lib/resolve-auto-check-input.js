@@ -6,7 +6,7 @@
  *
  * Phase mapping (completion markers read from flow state `steps[]`):
  *   - approval done            → skip AI evaluation (spec-approved)
- *   - gate-draft done + draft  → issue + request + draft body
+ *   - draft-gate done + draft  → issue + request + draft body
  *   - otherwise                → issue + request
  *
  * The two callers (run-auto-check, set-auto) must go through this module so
@@ -35,7 +35,7 @@ export function isSpecApproved(state) {
 }
 
 function isDraftGateDone(state) {
-  const node = resolveNodeFor(FLOW_DEFINITION, "gate-draft");
+  const node = resolveNodeFor(FLOW_DEFINITION, "draft-gate");
   return node ? isStepDone(state, node.id) : false;
 }
 

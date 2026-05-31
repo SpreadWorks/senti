@@ -1,0 +1,38 @@
+# Test Review Results
+
+## Verdict: FAIL
+
+Coverage artifact: `specs/269-unify-flow-step-names/test-coverage.json`
+
+## Blocking Findings
+
+### 1. R7 issue-log migration omits the gate→spec-gate 1:1 case
+**Target:** specs/269-unify-flow-step-names/tests/migration-tool.test.js: issueLogJson(), logSteps expectation, UNAMBIGUOUS_OLD_IDS_REPO
+**Issue:** R7 requires all 7 non-colliding 1:1 step values to be replaced, but the fixture and repository old-id checks omit the old step id "gate". The test covers gate→spec-gate in flow.json, but not in issue-log.json or the repo issue-log migration check, even though issue-log collision handling explicitly keeps only review/gate-impl/impl unchanged.
+**Required change:** Add an issue-log fixture entry with step "gate" and assert it becomes "spec-gate"; include bare "gate" in the repository issue-log/flow migration validation using a context-aware check that avoids matching new ids or prose.
+**Why blocking:** A required 1:1 migration can be left unimplemented for issue-log data while the coverage artifact still reports R7/R8 as covered.
+
+### 2. R8 real repository migration is not verified for report.json, retro.json, or review.md
+**Target:** specs/269-unify-flow-step-names/tests/migration-tool.test.js: test "R8: repository flow.json files are migrated except the active flow 269"
+**Issue:** R8 requires this repository's specs/*/flow.json, report.json, retro.json, and review.md to be migrated and verifiable by applied file contents/diff. The repo-level test only checks flow.json and issue-log.json; report.json, retro.json, and review.md are only exercised in synthetic temp fixtures.
+**Required change:** Extend the repo-level R8 test to inspect specs/*/report.json, specs/*/retro.json, and specs/*/review.md for remaining rename-target old ids in the positions the tool is required to migrate, while preserving allowed prose/collision exceptions.
+**Why blocking:** The implementation could correctly pass fixture tests but fail to apply the required migration to the actual repository report/retro/review files.
+
+### 3. R2 TASK_STEP_TO_PHASE mapping is not directly covered
+**Target:** specs/269-unify-flow-step-names/tests/code-references.test.js: gate-step coverage
+**Issue:** R2 explicitly requires src/flow/lib/gate-step.js TASK_STEP_TO_PHASE to become {"spec-gate":"task-spec","task-gate":"task-impl"}. The tests only exercise resolveGateStepId outputs and fallback, so a stale or incorrect TASK_STEP_TO_PHASE table could remain if resolveGateStepId is changed independently.
+**Required change:** Add a small source or exported-behavior assertion that gate-step.js maps task gate ids using "spec-gate" and "task-gate" and no longer uses the old "gate"/"gate-impl" task gate keys.
+**Why blocking:** This is a named must-level acceptance point for a collision-prone cross-scope mapping, and the current test can pass without exercising it.
+
+
+## Advisory Findings
+
+### 1. R3 instructionsKey exactness is only partially asserted
+**Target:** specs/269-unify-flow-step-names/tests/definition-and-prompts.test.js: test "R3: every leaf instructionsKey resolves to an existing prompt file"
+**Improvement:** Consider asserting exact instructionsKey values for renamed prompt-backed steps, such as impl-review -> impl.impl-review and spec-gate -> plan.spec-gate, not only that each key resolves to some existing prompt file.
+**Why non-blocking:** Old prompt filenames are checked absent and all prompt-backed leaves must resolve, so most practical failures are caught; the remaining risk is cross-wiring a renamed step to another valid new prompt.
+
+### 2. R6 documentation test is mostly keyword-based
+**Target:** specs/269-unify-flow-step-names/tests/docs.test.js: test "R6: src/AGENTS.md documents the <phase>-<concern>-<action> naming convention"
+**Improvement:** Consider checking for at least one concrete example and explicit wording that the phase prefix is mandatory.
+**Why non-blocking:** The test already anchors the required convention token and its three component names, so this is a precision improvement rather than missing executable coverage.

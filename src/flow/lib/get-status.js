@@ -175,7 +175,7 @@ function buildStatusRetryRecoveryView(root, flowState, input) {
 }
 
 function buildStatusGateViews(state, active, root) {
-  if (!active || !active.id.startsWith("gate")) return null;
+  if (!active || !active.id.endsWith("-gate")) return null;
   const resolvedMaxAttempts = resolveActiveStepMaxAttempts(state, active);
   if (resolvedMaxAttempts == null) return null;
   const gateRecoveryDisplay = resolveGateRecoveryDisplayPhase({

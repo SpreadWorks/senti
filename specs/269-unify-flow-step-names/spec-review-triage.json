@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "spec-review-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "1 blocking finding。cross-scope コードに衝突 id が bare リテラルで存在し scope 解決規則が未定義。規約とコード解析で各 site の scope は一意に決まる（新たなユーザー判断不要、collision なし）ため apply。spec-repair で R2 に各 site の scope-specific 新名を明記する。",
+  "items": [
+    {
+      "title": "Conflict-id disambiguation rule is undefined for cross-scope code literals",
+      "target": "R2 / src/flow/lib/task-scope.js (BROAD_STEPS), src/flow/lib/gate-step.js, src/flow/registry.js",
+      "decision": "apply",
+      "rationale": "実在する gap。BROAD_STEPS / TASK_STEP_TO_PHASE / REVIEW_RUNTIME_STEP_BY_PHASE は衝突 id を bare 文字列で持ち、R2 の総括的『全参照更新』では scope-specific 新名が決まらない。各 site の scope は命名規約とコード解析で一意に決定でき（task-scope.js BROAD_STEPS は flow impl branch leaves→impl-review/impl-gate、gate-step.js TASK_STEP_TO_PHASE は task gate map→spec-gate(task-spec)/task-gate(task-impl)、resolveGateStepId fallback gate→spec-gate、registry.js REVIEW_RUNTIME_STEP_BY_PHASE impl→impl-review）、新たなユーザー判断は不要で collision も無い。小規模で直接支持される spec 変更で修正可能なため apply。",
+      "evidence": "src/flow/lib/task-scope.js:9 BROAD_STEPS は broad(flow非task)実装の impl branch leaves。src/flow/lib/gate-step.js:29-32 TASK_STEP_TO_PHASE のキーは distinct な新名へ解決（spec-gate/task-gate で collision なし）、:26 fallback 'gate'→'spec-gate'。src/flow/registry.js:35-38 REVIEW_RUNTIME_STEP_BY_PHASE の impl は flow impl review=impl-review。R2 を拡張し各 site の scope-specific 新名と『src/flow/lib/ 全体の旧 id 文字列 grep 0 件』を明記する。"
+    }
+  ]
+}

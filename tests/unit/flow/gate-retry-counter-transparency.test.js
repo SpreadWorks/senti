@@ -56,7 +56,7 @@ describe("issue-log recording does not increment gateRetry (REQ-4)", () => {
 
     execFileSync(
       "node",
-      [SDD_CMD, "flow", "set", "issue-log", "--step", "gate-impl",
+      [SDD_CMD, "flow", "set", "issue-log", "--step", "impl-gate",
         "--reason", "fix: some issue that was fixed during implementation"],
       { encoding: "utf8", env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp } },
     );
@@ -76,7 +76,7 @@ describe("pre-rejection does not increment gateRetry (REQ-5)", () => {
     const flowState = { metrics: [{ phase: "task-impl", counter: "gateRetry", delta: 1 }] };
     const issueLog = {
       entries: [
-        { step: "gate-impl", phase: "task-impl", reason: "prev fail",
+        { step: "impl-gate", phase: "task-impl", reason: "prev fail",
           headSha: "aaa", worktreeHash: "111" },
       ],
     };
@@ -168,7 +168,7 @@ describe("pre-rejection stderr includes budget-not-consumed hint (REQ-3)", () =>
       const flowState = { metrics: [{ phase: "task-impl", counter: "gateRetry", delta: 1 }] };
       const issueLog = {
         entries: [
-          { step: "gate-impl", phase: "task-impl", reason: "prev fail",
+          { step: "impl-gate", phase: "task-impl", reason: "prev fail",
             headSha: "aaa", worktreeHash: "111" },
         ],
       };

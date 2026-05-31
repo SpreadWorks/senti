@@ -6,7 +6,7 @@
    - Regression failures, test false positives, scope creep, project-rule violations, naming proposals, refactor proposals, DRY proposals, comment proposals, and docs proposals are not impl review blocking findings. Non-blocking improvements are optional and must name a touched file, observable issue, and replacement action when reported.
    - **Test-only spec detection (autoApprove mode):** If the spec's Goal, Scope, and Requirements indicate that only tests are being added (no production code changes), and `autoApprove: true`:
      1. Set `sdd-forge flow set step implement skipped`.
-     2. **Do NOT skip `test-execute`, `test-result-review`, or the flow-level `gate-impl`.** They run regardless because the spec's tests still need execution, artifact review, and regression gate validation.
+     2. **Do NOT skip `test-execute`, `test-result-review`, or the flow-level `impl-gate`.** They run regardless because the spec's tests still need execution, artifact review, and regression gate validation.
      3. The dispatcher promotes `test-execute` next.
      4. Display: "auto: test-only spec detected — implement skipped; test-execute will run"
      - If unsure whether the spec is test-only, proceed with normal implementation (err on the side of caution).
@@ -53,7 +53,7 @@
    - **Do NOT run tests in this step.** Test execution is centralized in the `test-execute` step that runs after `implement` completes. Implement code so it is self-consistent; the dispatcher will invoke `test-execute` next.
    - **Prepare/docs scan hard stop:** if preparation or later execution reports that `.sdd-forge/output/analysis.json` cannot be created, read, or validated, stop through the normal flow error path. Do not mask it with manual `flow set step`.
    - **v2 test artifact contract:** `test-execute` produces `test-execute-result.json` version `"2"` and raw output. Started project regression failures still create a normal artifact and advance to `test-result-review`; prerequisite failures before the command starts are hard stops and must be fixed before rerunning.
-   - **Placeholder artifact permission:** do not write hand-made placeholder test artifacts to satisfy the flow. If real execution is unavailable, use the `placeholder-permission.json` contract documented in the flow skill; without explicit user permission, flow-level `gate-impl` rejects placeholder artifacts with `ARTIFACT_PLACEHOLDER`.
+   - **Placeholder artifact permission:** do not write hand-made placeholder test artifacts to satisfy the flow. If real execution is unavailable, use the `placeholder-permission.json` contract documented in the flow skill; without explicit user permission, flow-level `impl-gate` rejects placeholder artifacts with `ARTIFACT_PLACEHOLDER`.
    - **MUST: If implementation reveals a pre-existing bug outside the current spec's scope**, record it in issue-log (`sdd-forge flow set issue-log --step implement --reason "..."`) before adjusting the spec or applying a workaround.
    - **On complete**:
      - Run guardrail lint check: `sdd-forge flow run lint`. If violations are found, fix them before proceeding. If lint passes with no guardrail articles defined, this is normal — proceed.

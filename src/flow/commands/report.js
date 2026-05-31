@@ -245,8 +245,8 @@ function buildTaskReportRows(state, results) {
     status: capReportField(task.status || "unknown"),
     implementationSummary: task.summary ? "available" : "missing",
     testExecute: taskArtifactResult(results.testExecute, task, "missing"),
-    review: taskArtifactResult(results.review, task, taskStepResult(task, "review")),
-    gateImpl: taskArtifactResult(results.gateImpl || results.gate, task, taskStepResult(task, "gate-impl")),
+    review: taskArtifactResult(results.review, task, taskStepResult(task, "task-review")),
+    gateImpl: taskArtifactResult(results.gateImpl || results.gate, task, taskStepResult(task, "task-gate")),
   }));
 }
 

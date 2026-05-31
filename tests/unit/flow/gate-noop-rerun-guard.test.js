@@ -11,7 +11,7 @@ import {
 } from "../../../src/flow/lib/run-gate.js";
 
 // -----------------------------------------------------------------------------
-// spec 210: gate-impl no-op rerun guard
+// spec 210: impl-gate no-op rerun guard
 // -----------------------------------------------------------------------------
 
 function initGitRepo() {
@@ -84,7 +84,7 @@ describe("findPreviousFailState (REQ-2, REQ-7, REQ-8)", () => {
     const flowState = { metrics: [{ phase, counter: "gateRetry", delta: 1 }] };
     const issueLog = {
       entries: [
-        { step: "gate-impl", phase, reason: "old fail without hash" },
+        { step: "impl-gate", phase, reason: "old fail without hash" },
       ],
     };
     assert.equal(findPreviousFailState({ flowState, issueLog, phase }), null);
@@ -99,8 +99,8 @@ describe("findPreviousFailState (REQ-2, REQ-7, REQ-8)", () => {
     };
     const issueLog = {
       entries: [
-        { step: "gate-impl", phase, reason: "fail 1", headSha: "aaa", worktreeHash: "111" },
-        { step: "gate-impl", phase, reason: "fail 2", headSha: "bbb", worktreeHash: "222" },
+        { step: "impl-gate", phase, reason: "fail 1", headSha: "aaa", worktreeHash: "111" },
+        { step: "impl-gate", phase, reason: "fail 2", headSha: "bbb", worktreeHash: "222" },
       ],
     };
     const res = findPreviousFailState({ flowState, issueLog, phase });
@@ -112,7 +112,7 @@ describe("findPreviousFailState (REQ-2, REQ-7, REQ-8)", () => {
     const issueLog = {
       entries: [
         { step: "gate-integration", phase: "integration", reason: "other", headSha: "xxx", worktreeHash: "yyy" },
-        { step: "gate-impl", phase, reason: "mine", headSha: "aaa", worktreeHash: "111" },
+        { step: "impl-gate", phase, reason: "mine", headSha: "aaa", worktreeHash: "111" },
       ],
     };
     const res = findPreviousFailState({ flowState, issueLog, phase });
@@ -130,7 +130,7 @@ describe("findPreviousFailState (REQ-2, REQ-7, REQ-8)", () => {
     };
     const issueLog = {
       entries: [
-        { step: "gate-impl", phase, reason: "fail before pass", headSha: "aaa", worktreeHash: "111" },
+        { step: "impl-gate", phase, reason: "fail before pass", headSha: "aaa", worktreeHash: "111" },
       ],
     };
     assert.equal(findPreviousFailState({ flowState, issueLog, phase }), null);
@@ -144,7 +144,7 @@ describe("checkNoProgressSinceLastFail (REQ-3, REQ-4, REQ-7)", () => {
     const flowState = { metrics: [{ phase, counter: "gateRetry", delta: 1 }] };
     const issueLog = {
       entries: [
-        { step: "gate-impl", phase, reason: "prev fail reason", headSha: "aaa", worktreeHash: "111" },
+        { step: "impl-gate", phase, reason: "prev fail reason", headSha: "aaa", worktreeHash: "111" },
       ],
     };
     const currentState = { headSha: "aaa", worktreeHash: "111" };
@@ -162,7 +162,7 @@ describe("checkNoProgressSinceLastFail (REQ-3, REQ-4, REQ-7)", () => {
     const flowState = { metrics: [{ phase, counter: "gateRetry", delta: 1 }] };
     const issueLog = {
       entries: [
-        { step: "gate-impl", phase, reason: "prev fail", headSha: "aaa", worktreeHash: "111" },
+        { step: "impl-gate", phase, reason: "prev fail", headSha: "aaa", worktreeHash: "111" },
       ],
     };
     assert.equal(
@@ -189,7 +189,7 @@ describe("checkNoProgressSinceLastFail (REQ-3, REQ-4, REQ-7)", () => {
     const flowState = { metrics: [{ phase, counter: "gateRetry", delta: 1 }] };
     const issueLog = {
       entries: [
-        { step: "gate-impl", phase, reason: "legacy entry without hash" },
+        { step: "impl-gate", phase, reason: "legacy entry without hash" },
       ],
     };
     assert.equal(
@@ -212,7 +212,7 @@ describe("checkNoProgressSinceLastFail (REQ-3, REQ-4, REQ-7)", () => {
     };
     const issueLog = {
       entries: [
-        { step: "gate-impl", phase, reason: "fail before reset", headSha: "aaa", worktreeHash: "111" },
+        { step: "impl-gate", phase, reason: "fail before reset", headSha: "aaa", worktreeHash: "111" },
       ],
     };
     assert.equal(
@@ -227,9 +227,9 @@ describe("checkNoProgressSinceLastFail (REQ-3, REQ-4, REQ-7)", () => {
   });
 });
 
-describe("gate-impl prompt MUST items (REQ-5, REQ-6)", () => {
+describe("impl-gate prompt MUST items (REQ-5, REQ-6)", () => {
   const readGateImplPrompt = () => fs.readFileSync(
-    path.join(process.cwd(), "src/flow/prompts/impl/gate-impl.md"),
+    path.join(process.cwd(), "src/flow/prompts/impl/impl-gate.md"),
     "utf8",
   );
 
@@ -237,7 +237,7 @@ describe("gate-impl prompt MUST items (REQ-5, REQ-6)", () => {
     assert.match(
       readGateImplPrompt(),
       /MUST.*(fix[_\s-]?note|what was fixed|修正した|修正証跡|修正内容)/i,
-      "gate-impl.md must include a MUST about recording what was fixed before re-run",
+      "impl-gate.md must include a MUST about recording what was fixed before re-run",
     );
   });
 
@@ -245,7 +245,7 @@ describe("gate-impl prompt MUST items (REQ-5, REQ-6)", () => {
     assert.match(
       readGateImplPrompt(),
       /MUST.*(no\s+change|unchanged|without.*change|無変化|変化が?無い|変更.*無い)/i,
-      "gate-impl.md must include a MUST forbidding re-run when the tree has not changed",
+      "impl-gate.md must include a MUST forbidding re-run when the tree has not changed",
     );
   });
 });

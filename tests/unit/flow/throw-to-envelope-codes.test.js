@@ -230,7 +230,7 @@ describe("R1b: checkRetryBelowMax returns envelope with ESCALATE_RETRY_EXHAUSTED
   it("returns ok:false envelope with phase/attempts/max data when budget exhausted", async () => {
     const { checkRetryBelowMax } = await import("../../../src/flow/lib/run-gate.js");
     const phase = "task-impl";
-    // gate-impl maxAttempts = 5 (from definition.js); supply 5 deltas to exhaust.
+    // task-gate maxAttempts = 5 (from definition.js); supply 5 deltas to exhaust.
     const ctx = {
       root: process.cwd(),
       config: {},
@@ -272,7 +272,7 @@ describe("R1c: checkNoProgressSinceLastFail returns envelope with NO_PROGRESS_SI
     const flowState = { metrics: [{ phase, counter: "gateRetry", delta: 1 }] };
     const issueLog = {
       entries: [
-        { step: "gate-impl", phase, reason: "prev fail", headSha: "aaa", worktreeHash: "111" },
+        { step: "task-gate", phase, reason: "prev fail", headSha: "aaa", worktreeHash: "111" },
       ],
     };
     const result = checkNoProgressSinceLastFail({

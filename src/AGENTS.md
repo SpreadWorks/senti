@@ -101,6 +101,20 @@ flow get/set/run コマンドは「状態クエリ系」と「操作系」の2�
 
 flow commands automatically append visible stdout/stderr to `.tmp/logs/<flowId>.log`; commands without an active flow use `.tmp/logs/no-flow.log`. Use `sdd-forge flow get runtime-log` for flow command failure diagnosis. Explicit shell redirection is only needed for non-flow commands or special cases outside the flow dispatcher.
 
+### flow step 命名規則
+
+`src/flow/definition.js` の leaf step id は **`<phase>-<concern>-<action>`** 規則に従う。step id 単体から所属 phase が読めるようにするための規約であり、**phase 接頭辞は必須（例外なし）**とする。bare な `review` / `gate` / `gate-impl` のような phase 文脈依存の名前は使わない。
+
+| 要素 | 意味 | 値の例 |
+|---|---|---|
+| `phase` | step が属するフェーズ | `draft`, `spec`, `test`, `impl`, `task` |
+| `concern` | 対象とする関心事（省略可能。phase と action だけで一意なら不要） | `questions`, `coverage` |
+| `action` | step が行う操作 | `review`, `gate`, `triage`, `repair` |
+
+例: `spec-gate`（spec phase の gate）、`impl-review`（impl phase の review）、`test-review`（test phase の review）、`draft-questions-review`（draft phase の questions に対する review）、`draft-coverage-review`、`impl-gate`、`spec-review`。
+
+衝突しうる concern 名（`review` / `gate-impl` / `impl`）は flow scope では `impl-*` / `spec-gate`、task cursor scope では `task-*` に解決する。過去 spec データの旧名は `src/scripts/rename-phase-steps.js` で一括変換する。
+
 ### ドキュメント生成パイプライン
 
 `sdd-forge docs build` は以下のパイプラインを順に実行する:

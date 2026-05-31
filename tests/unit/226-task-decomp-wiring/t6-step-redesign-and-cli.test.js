@@ -28,9 +28,9 @@ const SRC_ROOT = path.resolve(
 describe("T-6: task-scope step redesign and manual control CLI", () => {
   // ── step redesign ──────────────────────────────────────────────────────────
 
-  it("TASK_STEPS_PLAN is [impl, review, gate-impl]", () => {
+  it("TASK_STEPS_PLAN is [task-impl, task-review, task-gate]", () => {
     assert.deepEqual(TASK_STEPS_PLAN, [
-      "impl", "review", "gate-impl",
+      "task-impl", "task-review", "task-gate",
     ]);
   });
 
@@ -54,9 +54,9 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
     assert.ok(!taskIds.includes("update-overview"), "task scope must not contain update-overview");
   });
 
-  it("TASK_DEFINITION has gate-impl entry", () => {
-    const node = resolveNodeFor(TASK_DEFINITION, "gate-impl");
-    assert.ok(node, "task scope must contain gate-impl");
+  it("TASK_DEFINITION has task-gate entry", () => {
+    const node = resolveNodeFor(TASK_DEFINITION, "task-gate");
+    assert.ok(node, "task scope must contain task-gate");
   });
 
   // ── deleted prompts ────────────────────────────────────────────────────────
@@ -78,8 +78,8 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
 
   // ── impl prompt has overview update directive ──────────────────────────────
 
-  it("src/flow/prompts/task/impl.md contains overview update directive", () => {
-    const p = path.join(SRC_ROOT, "flow/prompts/task/impl.md");
+  it("src/flow/prompts/task/task-impl.md contains overview update directive", () => {
+    const p = path.join(SRC_ROOT, "flow/prompts/task/task-impl.md");
     const content = fs.readFileSync(p, "utf8");
     assert.ok(
       content.includes("persistOverviewUpdate") || content.includes("applyOverviewAdditions"),
@@ -246,9 +246,9 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
         added_round: 0,
         status: "in_progress",
         steps: [
-          { id: "impl", status: "done" },
-          { id: "review", status: "done" },
-          { id: "gate-impl", status: "done" },
+          { id: "task-impl", status: "done" },
+          { id: "task-review", status: "done" },
+          { id: "task-gate", status: "done" },
         ],
       };
       setupFlow(tmp, { tasks: [task], currentTaskId: "T-1" });
@@ -286,9 +286,9 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
           added_round: 0,
           status: "in_progress",
           steps: [
-            { id: "impl", status: "done" },
-            { id: "review", status: "done" },
-            { id: "gate-impl", status: "done" },
+            { id: "task-impl", status: "done" },
+            { id: "task-review", status: "done" },
+            { id: "task-gate", status: "done" },
           ],
         },
         {
@@ -300,9 +300,9 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
           added_round: 0,
           status: "in_progress",
           steps: [
-            { id: "impl", status: "done" },
-            { id: "review", status: "done" },
-            { id: "gate-impl", status: "done" },
+            { id: "task-impl", status: "done" },
+            { id: "task-review", status: "done" },
+            { id: "task-gate", status: "done" },
           ],
         },
       ];
@@ -342,9 +342,9 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
           added_round: 0,
           status: "in_progress",
           steps: [
-            { id: "impl", status: "done" },
-            { id: "review", status: "done" },
-            { id: "gate-impl", status: "done" },
+            { id: "task-impl", status: "done" },
+            { id: "task-review", status: "done" },
+            { id: "task-gate", status: "done" },
           ],
         },
         {
@@ -356,9 +356,9 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
           added_round: 0,
           status: "pending",
           steps: [
-            { id: "impl", status: "pending" },
-            { id: "review", status: "pending" },
-            { id: "gate-impl", status: "pending" },
+            { id: "task-impl", status: "pending" },
+            { id: "task-review", status: "pending" },
+            { id: "task-gate", status: "pending" },
           ],
         },
       ];
@@ -399,9 +399,9 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
           added_round: 0,
           status: "in_progress",
           steps: [
-            { id: "impl", status: "pending" },
-            { id: "review", status: "pending" },
-            { id: "gate-impl", status: "pending" },
+            { id: "task-impl", status: "pending" },
+            { id: "task-review", status: "pending" },
+            { id: "task-gate", status: "pending" },
           ],
         },
         {
@@ -413,9 +413,9 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
           added_round: 0,
           status: "done",
           steps: [
-            { id: "impl", status: "done" },
-            { id: "review", status: "done" },
-            { id: "gate-impl", status: "done" },
+            { id: "task-impl", status: "done" },
+            { id: "task-review", status: "done" },
+            { id: "task-gate", status: "done" },
           ],
         },
         {
@@ -427,9 +427,9 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
           added_round: 0,
           status: "in_progress",
           steps: [
-            { id: "impl", status: "done" },
-            { id: "review", status: "done" },
-            { id: "gate-impl", status: "done" },
+            { id: "task-impl", status: "done" },
+            { id: "task-review", status: "done" },
+            { id: "task-gate", status: "done" },
           ],
         },
       ];
@@ -469,9 +469,9 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
         added_round: 0,
         status: "in_progress",
         steps: [
-          { id: "impl", status: "done" },
-          { id: "review", status: "done" },
-          { id: "gate-impl", status: "done" },
+          { id: "task-impl", status: "done" },
+          { id: "task-review", status: "done" },
+          { id: "task-gate", status: "done" },
         ],
       };
       setupFlow(tmp, { tasks: [task], currentTaskId: "T-1" });
@@ -515,7 +515,7 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
     // (which internally uses applyOverviewAdditions). Verify the prompt
     // references this helper, and that run-update-overview.js imports it.
     const implPrompt = fs.readFileSync(
-      path.join(SRC_ROOT, "flow/prompts/task/impl.md"),
+      path.join(SRC_ROOT, "flow/prompts/task/task-impl.md"),
       "utf8",
     );
     assert.ok(
@@ -550,7 +550,7 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
 
     // Confirm the impl.md prompt contains the overview update directive.
     const implPrompt = fs.readFileSync(
-      path.join(SRC_ROOT, "flow/prompts/task/impl.md"),
+      path.join(SRC_ROOT, "flow/prompts/task/task-impl.md"),
       "utf8",
     );
     assert.ok(

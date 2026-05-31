@@ -194,7 +194,7 @@ const TASK_IMPL_GATE_DIFF_MAX_BYTES = 1024 * 1024; // 1 MiB
  * Synthesize a unified diff for every untracked file in `root` and return the
  * concatenated diff text. Untracked-file omission in `git diff` is the root
  * cause of spec 221 — a test-first new test file becomes invisible to
- * gate-impl unless we splice it back in here.
+ * impl-gate unless we splice it back in here.
  *
  * Read-only: uses `git ls-files --others --exclude-standard` for enumeration
  * and `git diff --no-index /dev/null <path>` for synthesis. Neither mutates
@@ -320,7 +320,7 @@ function taskCursorRequiredGateFailure(scopeDecision, phase, state) {
     "run",
     "gate",
     "TASK_CURSOR_REQUIRED",
-    taskScopeViolationMessages(scopeDecision, "gate-impl"),
+    taskScopeViolationMessages(scopeDecision, "impl-gate"),
     { phase, currentTaskId: state.currentTaskId ?? null },
   );
 }
@@ -483,7 +483,7 @@ function readJsonIfExists(filePath) {
 function validateSpecRepairAudit(root, specInput) {
   const specDir = path.dirname(path.resolve(root, specInput));
   const reviewPath = path.join(specDir, "spec-review.json");
-  const triagePath = path.join(specDir, "spec-review-triage.json");
+  const triagePath = path.join(specDir, "spec-triage.json");
   const repairPath = path.join(specDir, "spec-repair.json");
   const issues = [];
 
@@ -497,36 +497,36 @@ function validateSpecRepairAudit(root, specInput) {
 
   const blocking = Array.isArray(review.blockingFindings) ? review.blockingFindings : [];
   if (!fs.existsSync(triagePath)) {
-    return ["spec-review-triage: spec-review.json verdict is FAIL but spec-review-triage.json is missing"];
+    return ["spec-triage: spec-review.json verdict is FAIL but spec-triage.json is missing"];
   }
 
   let triage;
   try {
     triage = readJsonIfExists(triagePath);
   } catch (err) {
-    return [`spec-review-triage: spec-review-triage.json is invalid JSON: ${err.message}`];
+    return [`spec-triage: spec-triage.json is invalid JSON: ${err.message}`];
   }
 
-  if (triage?.version !== 1) issues.push("spec-review-triage: spec-review-triage.json version must be 1");
-  if (triage?.phase !== "spec-review-triage") issues.push('spec-review-triage: spec-review-triage.json phase must be "spec-review-triage"');
-  if (triage?.sourceReview !== "spec-review.json") issues.push('spec-review-triage: spec-review-triage.json sourceReview must be "spec-review.json"');
+  if (triage?.version !== 1) issues.push("spec-triage: spec-triage.json version must be 1");
+  if (triage?.phase !== "spec-triage") issues.push('spec-triage: spec-triage.json phase must be "spec-triage"');
+  if (triage?.sourceReview !== "spec-review.json") issues.push('spec-triage: spec-triage.json sourceReview must be "spec-review.json"');
   if (typeof triage?.summary !== "string" || triage.summary.trim() === "") {
-    issues.push("spec-review-triage: spec-review-triage.json summary must be non-empty");
+    issues.push("spec-triage: spec-triage.json summary must be non-empty");
   }
   if (!Array.isArray(triage?.items)) {
-    issues.push("spec-review-triage: spec-review-triage.json items must be an array");
+    issues.push("spec-triage: spec-triage.json items must be an array");
     return issues;
   }
   if (triage.items.length !== blocking.length) {
     issues.push(
-      `spec-review-triage: spec-review-triage.json items length ${triage.items.length} does not match blockingFindings length ${blocking.length}`,
+      `spec-triage: spec-triage.json items length ${triage.items.length} does not match blockingFindings length ${blocking.length}`,
     );
   }
 
   for (let i = 0; i < triage.items.length; i++) {
     const item = triage.items[i];
     const finding = blocking[i];
-    const prefix = `spec-review-triage: items[${i}]`;
+    const prefix = `spec-triage: items[${i}]`;
     if (!item || typeof item !== "object" || Array.isArray(item)) {
       issues.push(`${prefix} must be an object`);
       continue;
@@ -564,7 +564,7 @@ function validateSpecRepairAudit(root, specInput) {
 
   if (repair?.version !== 1) issues.push("spec-repair: spec-repair.json version must be 1");
   if (repair?.phase !== "spec-repair") issues.push('spec-repair: spec-repair.json phase must be "spec-repair"');
-  if (repair?.sourceReview !== "spec-review-triage.json") issues.push('spec-repair: spec-repair.json sourceReview must be "spec-review-triage.json"');
+  if (repair?.sourceReview !== "spec-triage.json") issues.push('spec-repair: spec-repair.json sourceReview must be "spec-triage.json"');
   if (typeof repair?.summary !== "string" || repair.summary.trim() === "") {
     issues.push("spec-repair: spec-repair.json summary must be non-empty");
   }
@@ -575,7 +575,7 @@ function validateSpecRepairAudit(root, specInput) {
   const applyItems = triage.items.filter((item) => item?.decision === "apply");
   if (repair.items.length !== applyItems.length) {
     issues.push(
-      `spec-repair: spec-repair.json items length ${repair.items.length} does not match spec-review-triage apply item length ${applyItems.length}`,
+      `spec-repair: spec-repair.json items length ${repair.items.length} does not match spec-triage apply item length ${applyItems.length}`,
     );
   }
 
@@ -590,10 +590,10 @@ function validateSpecRepairAudit(root, specInput) {
     if (typeof item.title !== "string" || item.title.trim() === "") issues.push(`${prefix}.title must be non-empty`);
     if (typeof item.target !== "string" || item.target.trim() === "") issues.push(`${prefix}.target must be non-empty`);
     if (triageItem && item.title !== triageItem.title) {
-      issues.push(`${prefix}.title must match spec-review-triage apply item ${i}.title`);
+      issues.push(`${prefix}.title must match spec-triage apply item ${i}.title`);
     }
     if (triageItem && item.target !== triageItem.target) {
-      issues.push(`${prefix}.target must match spec-review-triage apply item ${i}.target`);
+      issues.push(`${prefix}.target must match spec-triage apply item ${i}.target`);
     }
     if (!SPEC_REPAIR_DECISIONS.has(item.decision)) {
       issues.push(`${prefix}.decision must be one of ${Array.from(SPEC_REPAIR_DECISIONS).join(", ")}`);
@@ -1668,12 +1668,10 @@ function persistGateRecoveryBaseline(ctx, phase, trigger, options = {}) {
   });
 }
 
-// Set of step ids that represent gate evaluations. step === "gate" is used by
-// spec / task-spec; "gate-draft" and "gate-impl" are used by draft and
-// task-impl/integration respectively (see gate-step.js resolveGateStepId).
-// A plain `startsWith("gate-")` would silently exclude the bare "gate" value
-// and mix histories across phases — hence the explicit set + phase filter.
-const GATE_STEP_IDS = new Set(["gate", "gate-draft", "gate-impl"]);
+// Set of step ids that represent gate evaluations. After the phase-prefix
+// rename every gate step ends in "-gate" (spec-gate, draft-gate, impl-gate,
+// task-gate). The explicit set keeps retry-history matching scoped to gates.
+const GATE_STEP_IDS = new Set(["spec-gate", "draft-gate", "impl-gate", "task-gate"]);
 const GATE_ESCALATION_TRIGGER = "gate onError hook (auto)";
 
 function isRetryHistoryGateEntry(entry, phase) {
@@ -2049,7 +2047,7 @@ export function checkNoProgressSinceLastFail({ flowState, issueLog, phase, curre
   const prevEntry = findPreviousFailEntry(issueLog, phase);
   const prevReason = prevEntry?.reason || null;
   const messages = [
-    `gate-impl re-run rejected: working tree is unchanged since the previous FAIL (phase "${phase}").`,
+    `impl-gate re-run rejected: working tree is unchanged since the previous FAIL (phase "${phase}").`,
     "Previous FAIL reason:",
     `  ${prevReason || "(no reason recorded)"}`,
     "",
@@ -2194,7 +2192,7 @@ export function assertNoRepeatedFail({ issueLog, phase, currentEvaluations, prio
       }
     }
     if (matched.length === 0) return;
-    const err = new Error(`gate-impl escalation: repeated similar Observation FAIL detected for phase "${phase}".`);
+    const err = new Error(`impl-gate escalation: repeated similar Observation FAIL detected for phase "${phase}".`);
     err.code = "ESCALATE_REPEATED_FAIL";
     err.data = { phase, matched };
     throw err;
@@ -2232,7 +2230,7 @@ export function assertNoRepeatedFail({ issueLog, phase, currentEvaluations, prio
     .map((m) => `  ${m.guardrail_id} (jaccard=${m.similarity.toFixed(2)}): ${m.currentReason} ↔ ${m.priorReason}`)
     .join("\n");
   const msg = [
-    `gate-impl escalation: repeated similar FAIL detected for phase "${phase}".`,
+    `impl-gate escalation: repeated similar FAIL detected for phase "${phase}".`,
     "Matching (guardrail, similar prior reason) pairs:",
     detail,
     "",
@@ -2856,7 +2854,7 @@ export class RunGateCommand extends FlowCommand {
     if (!state?.spec) throw new Error("no active flow found");
     if (!state.baseBranch) throw new Error("baseBranch not set in flow.json");
 
-    const scopeDecision = evaluateTaskScope(state, "gate-impl");
+    const scopeDecision = evaluateTaskScope(state, "impl-gate");
     if (phase === "task-impl") {
       if (scopeDecision.kind === "task") {
         return await this.executeTaskImplGate(ctx, root, level, phase, skipGuardrail);
@@ -2865,7 +2863,7 @@ export class RunGateCommand extends FlowCommand {
         return taskCursorRequiredGateFailure(scopeDecision, phase, state);
       }
       if (scopeDecision.kind === "broad") {
-        assertAuditedBroadMode(scopeDecision, "gate-impl");
+        assertAuditedBroadMode(scopeDecision, "impl-gate");
       }
     }
     if (phase === "integration") {
@@ -2873,7 +2871,7 @@ export class RunGateCommand extends FlowCommand {
         return taskCursorRequiredGateFailure(scopeDecision, phase, state);
       }
       if (scopeDecision.kind === "broad") {
-        assertAuditedBroadMode(scopeDecision, "gate-impl");
+        assertAuditedBroadMode(scopeDecision, "impl-gate");
       }
     }
 
@@ -3172,7 +3170,7 @@ export function appendIssueLogFromGateResult(ctx, result) {
     timestamp: new Date().toISOString(),
   };
   // spec 210 REQ-1: persist the state identifier captured before AI evaluation
-  // so a subsequent gate-impl run can reject unchanged re-execution. Only
+  // so a subsequent impl-gate run can reject unchanged re-execution. Only
   // tracked phases carry gitState; gate it explicitly to document the invariant.
   if (ctx.gitState && RETRY_TRACKED_PHASES.includes(ctx.phase)) {
     entry.headSha = ctx.gitState.headSha;

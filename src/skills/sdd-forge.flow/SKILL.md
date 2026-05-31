@@ -28,7 +28,7 @@ All flow step IDs are defined in the CLI schema. The dispatcher obtains the curr
 - After reading `docs/` files: `sdd-forge flow set metric <current-phase> docsRead`
 - After reading `src/` files: `sdd-forge flow set metric <current-phase> srcRead`
 
-Use the metric phase/key from `sdd-forge flow get status` / `sdd-forge flow get next-action` when recording metrics. Phase examples: `plan`, `draft`, `spec`, `gate`, `impl`, `finalize`. Step-key examples returned by next-action include `test`, `scenario-validity`, `review-test`, `review`, `gate-impl`, and `retro`.
+Use the metric phase/key from `sdd-forge flow get status` / `sdd-forge flow get next-action` when recording metrics. Phase examples: `plan`, `draft`, `spec`, `gate`, `impl`, `finalize`. Step-key examples returned by next-action include `test`, `scenario-validity`, `test-review`, `impl-review`, `impl-gate`, and `retro`.
 
 Note: `sdd-forge flow get context` automatically records these metrics via hooks — manual recording is only needed for direct Read tool usage.
 
@@ -100,11 +100,11 @@ B.4. **Prepare spec (silent)**
 Proceed to **C. Dispatcher loop**.
 
 Note:
-- Plan-phase test flow: next-action selects `test`, `scenario-validity`, and `review-test`. `test` writes spec-local tests, `scenario-validity` persists `scenario-validity-result.json` and `tests/.raw/scenario-validity.log`, and `review-test` performs static test review.
+- Plan-phase test flow: next-action selects `test`, `scenario-validity`, and `test-review`. `test` writes spec-local tests, `scenario-validity` persists `scenario-validity-result.json` and `tests/.raw/scenario-validity.log`, and `test-review` performs static test review.
 - Impl-phase test flow: `test-execute` runs after `implement`, owns spec-local evidence, and persists `test-execute-result.json` version `"2"` plus raw output. It runs targeted project regression only for configured `test.projectPaths` changes unless `test.testExecuteRegression` explicitly overrides that policy. Full project regression is deferred to `final-regression` after `retro`.
-- Subsequent steps (`test-result-review`, `review`, flow-level `gate-impl`, `retro`) read those impl-phase artifacts and do not re-run tests. `final-regression` runs the full project command once after retro and before finalize.
+- Subsequent steps (`test-result-review`, `impl-review`, flow-level `impl-gate`, `retro`) read those impl-phase artifacts and do not re-run tests. `final-regression` runs the full project command once after retro and before finalize.
 - Hard stops: Prepare/docs-scan and `analysis.json` read/validation failures stop the flow. A started targeted project regression failure is valid evidence and advances to `test-result-review`; a prerequisite failure before command start is a hard stop and must not be hidden with manual step completion. `final-regression` failures are classified in `final-regression-result.json`; environment, sandbox, permission, timeout, dependency, and repeated failures stop instead of returning to the normal implementation repair loop.
-- On gate-impl FAIL, show every Observation from `data.artifacts.nextAction.diagnosis.observations` and use those observations as the primary repair input.
+- On impl-gate FAIL, show every Observation from `data.artifacts.nextAction.diagnosis.observations` and use those observations as the primary repair input.
 - When updating base guardrails, apply the guardrail rewrite rubric: named violation, diff-verification condition, and severity-policy.
 
 <!-- include("@skills/partials/placeholder-artifact-permission.md") -->
@@ -145,12 +145,12 @@ C.2. **Execute instructions**
 
           | Review step | Triage step | Repair step |
           |---|---|---|
-          | `review-draft-questions` | `draft-questions-triage` | `draft-questions-repair` |
-          | `review-draft-coverage` | `draft-coverage-triage` | `draft-coverage-repair` |
+          | `draft-questions-review` | `draft-questions-triage` | `draft-questions-repair` |
+          | `draft-coverage-review` | `draft-coverage-triage` | `draft-coverage-repair` |
 
-        - Draft review phases write only detection JSON artifacts. PASS completes the review leaf and registry hook writes empty triage/repair bookkeeping artifacts before advancing to the normal next step. ADVISORY / FAIL enter the route's triage step. Triage records disposition, repair records mutation audit, and gate-draft performs mechanical readiness validation of artifact shape, links, item correspondence, unresolved user decisions, and draft approval.
-        - `review-spec` records detection output via post hook. PASS / ADVISORY complete review, while FAIL completes review and advances to `spec-review-triage`.
-        - `review-test` records one-shot static test review artifacts. PASS and ADVISORY complete `review-test`; FAIL leaves it open for a test-design fix; TOOLING_FAILURE leaves it open and records issue-log evidence instead of consuming review retry as a test-quality failure.
+        - Draft review phases write only detection JSON artifacts. PASS completes the review leaf and registry hook writes empty triage/repair bookkeeping artifacts before advancing to the normal next step. ADVISORY / FAIL enter the route's triage step. Triage records disposition, repair records mutation audit, and draft-gate performs mechanical readiness validation of artifact shape, links, item correspondence, unresolved user decisions, and draft approval.
+        - `spec-review` records detection output via post hook. PASS / ADVISORY complete review, while FAIL completes review and advances to `spec-triage`.
+        - `test-review` records one-shot static test review artifacts. PASS and ADVISORY complete `test-review`; FAIL leaves it open for a test-design fix; TOOLING_FAILURE leaves it open and records issue-log evidence instead of consuming review retry as a test-quality failure.
         - Impl/task review writes detection output only; its post hook advances according to the existing impl/task review route.
       - **`flow run scenario-validity` / `flow run test-execute` / `flow run test-result-review` / `flow run retro` / `flow run final-regression`**: post hooks validate current artifacts and advance their own steps. Do not manually mark them done to bypass prerequisite failures or final-regression failures.
       - Otherwise, manually record completion: `sdd-forge flow set step <current-step> done`.
@@ -200,7 +200,7 @@ When implementation reveals that the spec needs additional tasks:
 - **MUST: Do not add tasks dynamically via any CLI during impl.** The only legitimate path is to return to the draft phase, append new tasks to `spec.json.tasks[]`, and re-approve.
 - Use `sdd-forge flow run reopen-draft [--reason "<text>"]` to rewind the draft step. Preconditions for implementation-phase task additions: at least one done task exists and the flow lifecycle is still `active`.
 - After `reopen-draft` succeeds: edit `spec.json.tasks[]` to append new tasks (new entries must have `added_round = max(existing) + 1`). Existing tasks' `id` / `origin` / `added_round` are invariant — the spec gate rejects any changes to those fields. `title` / `description` of existing tasks may be corrected.
-- Proceed through `gate-draft → spec → gate → approval` again. `spec.json` remains the source of truth; the approval prompt renders `spec.md` only when the user needs the human-readable view. The approval post-hook reflects only the new tasks into `flow.json.tasks[]`; existing tasks keep their status and steps.
+- Proceed through `draft-gate → spec → spec-gate → approval` again. `spec.json` remains the source of truth; the approval prompt renders `spec.md` only when the user needs the human-readable view. The approval post-hook reflects only the new tasks into `flow.json.tasks[]`; existing tasks keep their status and steps.
 
 ### Command execution discipline
 

@@ -18,6 +18,7 @@ import {
 } from "./flow-options.js";
 import { runGit } from "./git-helpers.js";
 import { sddDir } from "./config.js";
+import { renameFlowStateStepIds } from "./step-id-rename.js";
 import {
   STATE_FILE,
   specIdFromPath,
@@ -147,8 +148,8 @@ function migrateDraftReviewSteps(state) {
     ...(legacy.startedAt && { startedAt: legacy.startedAt }),
     ...(legacy.finishedAt && { finishedAt: legacy.finishedAt }),
   };
-  const questionStep = { id: "review-draft-questions", ...base };
-  const coverageStep = { id: "review-draft-coverage", ...base };
+  const questionStep = { id: "draft-questions-review", ...base };
+  const coverageStep = { id: "draft-coverage-review", ...base };
 
   if (legacy.status === "in_progress") {
     coverageStep.status = "pending";
@@ -166,8 +167,8 @@ function migrateDraftRefineStep(state) {
   const steps = flowStepList(state);
   if (steps.some((s) => s?.id === "draft-refine")) return false;
 
-  const questionIndex = steps.findIndex((s) => s?.id === "review-draft-questions");
-  const coverageIndex = steps.findIndex((s) => s?.id === "review-draft-coverage");
+  const questionIndex = steps.findIndex((s) => s?.id === "draft-questions-review");
+  const coverageIndex = steps.findIndex((s) => s?.id === "draft-coverage-review");
   if (questionIndex < 0 || coverageIndex < 0) return false;
 
   const coverage = steps[coverageIndex];
@@ -187,9 +188,9 @@ function migrateSpecReviewTriageAndRepairSteps(state) {
   if (!Array.isArray(state?.steps)) return false;
   const steps = flowStepList(state);
 
-  const reviewIndex = steps.findIndex((s) => s?.id === "review-spec");
+  const reviewIndex = steps.findIndex((s) => s?.id === "spec-review");
   let repairIndex = steps.findIndex((s) => s?.id === "spec-repair");
-  let gateIndex = steps.findIndex((s) => s?.id === "gate");
+  let gateIndex = steps.findIndex((s) => s?.id === "spec-gate");
   if (reviewIndex < 0 || gateIndex < 0) return false;
 
   const review = steps[reviewIndex];
@@ -197,13 +198,13 @@ function migrateSpecReviewTriageAndRepairSteps(state) {
   const repair = repairIndex >= 0 ? steps[repairIndex] : null;
   let changed = false;
 
-  if (!steps.some((s) => s?.id === "spec-review-triage")) {
+  if (!steps.some((s) => s?.id === "spec-triage")) {
     const triageDone = (
       review.status === "skipped"
       || (repair?.status && repair.status !== "pending")
       || (gate.status && gate.status !== "pending")
     );
-    const triageStep = { id: "spec-review-triage", status: triageDone ? "done" : "pending" };
+    const triageStep = { id: "spec-triage", status: triageDone ? "done" : "pending" };
     if (triageDone) {
       const finishedAt = repair?.startedAt || repair?.finishedAt || gate.startedAt || review.finishedAt;
       if (finishedAt) triageStep.finishedAt = finishedAt;
@@ -212,7 +213,7 @@ function migrateSpecReviewTriageAndRepairSteps(state) {
     steps.splice(insertIndex, 0, triageStep);
     changed = true;
     repairIndex = steps.findIndex((s) => s?.id === "spec-repair");
-    gateIndex = steps.findIndex((s) => s?.id === "gate");
+    gateIndex = steps.findIndex((s) => s?.id === "spec-gate");
   }
 
   if (!steps.some((s) => s?.id === "spec-repair")) {
@@ -397,19 +398,34 @@ function createRunIdMigration({ path: filePath, runId, contentBeforeRunId }) {
 }
 
 function migrateFlowState(state, sourcePath, { persist, root }) {
+  // Spec 269: rename pre-rename step ids to the <phase>-<concern>-<action> convention first,
+  // so the downstream shims (which expect the new names) and the active CLI definition can
+  // resolve every leaf. This self-heals any pre-269 flow.json — including the flow that
+  // implements the rename, whose own worktree CLI already runs the new definition.
+  const renamedStepIds = renameFlowStateStepIds(state);
+  const renamedChanged = renamedStepIds.length > 0;
   const reviewChanged = migrateDraftReviewSteps(state);
   const refineChanged = migrateDraftRefineStep(state);
   const draftReviewTriageRepairChanged = migrateDraftReviewTriageAndRepairSteps(state);
   const specRepairChanged = migrateSpecReviewTriageAndRepairSteps(state);
-  const changed = reviewChanged || refineChanged || draftReviewTriageRepairChanged || specRepairChanged;
+  const changed = renamedChanged || reviewChanged || refineChanged || draftReviewTriageRepairChanged || specRepairChanged;
   if (changed && persist) {
     fs.writeFileSync(sourcePath, JSON.stringify(state, null, 2) + "\n", "utf8");
+    if (renamedChanged) {
+      appendFlowMigrationLog(
+        root,
+        state,
+        "step-id-rename",
+        `Renamed ${renamedStepIds.length} legacy step id(s) to the <phase>-<concern>-<action> convention.`,
+        renamedStepIds.map((c) => `${c.from}->${c.to}`).join(", "),
+      );
+    }
     if (reviewChanged) {
       appendFlowMigrationLog(
         root,
         state,
         "review-draft",
-        "Migrated legacy review-draft step into review-draft-questions and review-draft-coverage.",
+        "Migrated legacy review-draft step into draft-questions-review and draft-coverage-review.",
         "Synthesized split draft review steps from legacy review-draft status.",
       );
     }
@@ -426,8 +442,8 @@ function migrateFlowState(state, sourcePath, { persist, root }) {
       appendFlowMigrationLog(
         root,
         state,
-        "spec-review-triage/spec-repair",
-        "Inserted spec-review-triage and spec-repair between spec review and spec gate.",
+        "spec-triage/spec-repair",
+        "Inserted spec-triage and spec-repair between spec review and spec gate.",
         "Synthesized spec review triage and repair status from surrounding spec review, repair, and gate steps.",
       );
     }
@@ -897,7 +913,7 @@ export class FlowStore {
         hops++;
       }
       // NOTE: promoteNextPending is intentionally NOT called here.
-      // Callers (gate-impl post-hook, CLI) must invoke it explicitly.
+      // Callers (impl-gate post-hook, CLI) must invoke it explicitly.
     }, opts);
   }
 

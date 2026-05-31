@@ -1,0 +1,68 @@
+{
+  "spec": "specs/269-unify-flow-step-names/spec.json",
+  "date": "2026-05-29T15:19:01.630Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "src/flow/definition.js の step id を改名マッピング全 12 エントリ通り更新する: review[impl]→impl-review, gate→spec-gate, gate-draft→draft-gate, gate-impl[flow]→impl-gate, review-draft-questions→draft-questions-review, review-draft-coverage→draft-coverage-review, review-spec→spec-review, review-test→test-review, impl[task]→task-impl, review[task]→task-review, gate-impl[task]→task-gate, spec-review-triage→spec-triage。branch id (plan/impl) と維持リスト（draft, spec, test, draft-refine, draft-questions-triage/repair, draft-coverage-triage/repair, spec-repair, test-execute, test-result-review, finalize-*, prepare-spec, branch, approval, scenario-validity, implement, retro, final-regression）は不変。",
+      "status": "done",
+      "note": "R1: FLOW_DEFINITION leaf ids use new phase-prefixed names and drop old bare names"
+    },
+    {
+      "desc": "src/flow/lib/draft-review-routes.js の route 定義と src/flow/registry.js の review post-hook、および src/flow/lib/ 配下で旧 step id を bare 文字列参照する全箇所を新名へ更新する。衝突 id（review/gate-impl/impl）が混在する cross-scope コード箇所は、その site が属する scope で新名を解決する: (a) src/flow/lib/task-scope.js の BROAD_STEPS（flow 非 task の broad 実装パス）→ [\"implement\"(維持), \"impl-review\", \"impl-gate\"]; (b) src/flow/lib/gate-step.js の TASK_STEP_TO_PHASE（task gate map）→ {\"spec-gate\":\"task-spec\", \"task-gate\":\"task-impl\"}、および resolveGateStepId の fallback \"gate\" → \"spec-gate\"; (c) src/flow/registry.js の REVIEW_RUNTIME_STEP_BY_PHASE → {spec:\"spec-review\", test:\"test-review\", impl:\"impl-review\"}。一般規則: flow path の衝突 id は impl-*/spec-gate、task cursor path の衝突 id は task-* に解決する。完了判定として src/flow 配下の旧 step id bare リテラル（rename リスト対象 10 種）の grep が 0 件であること。",
+      "status": "done",
+      "note": "R2: draft review routes resolve to new review step ids"
+    },
+    {
+      "desc": "instructionsKey を新 step id へ更新し、対応する src/flow/prompts/<branch>/<step>.md を新 step id のファイル名へ改名する（<branch> ディレクトリ構造は維持）。get-step-instructions.js が新ファイル名を解決し、instructions-coverage 系テストが全 step で対応プロンプトを見つけられる。 加えて、task-gate は専用ファイルを持たず instructionsKey impl.impl-gate（prompts/impl/impl-gate.md）を共有する（同プロンプトが flow integration gate と task gate の両 phase を明記）。instructionsKey が prompt に解決し instructions-coverage テストが全 step で pass すれば R3 を満たす（各 step が固有ファイル名 prompt を持つことは要求しない）。",
+      "status": "done",
+      "note": "R3: renamed prompt files exist under prompts/<branch>/<new-step>.md"
+    },
+    {
+      "desc": "tests/unit/flow/** の step id assertion を新名へ更新し、npm test の unit スイートが全て pass する。",
+      "status": "done",
+      "note": "R4: tests/unit/flow has no unambiguous old step-id literals"
+    },
+    {
+      "desc": "skill テンプレート（src/skills/ 配下）の旧 step 名を新名へ更新し、sdd-forge upgrade で installed skill copies（.claude/skills, .agents/skills）へ反映する。authored sources（src/ コード/skill/prompts）と installed skill copies に対する旧 step 名の grep が 0 件になる（rename リスト外 legacy 名・issue-log 据え置き衝突名は対象外）。",
+      "status": "done",
+      "note": "R5: authored skill/template sources have no unambiguous old step-id literals"
+    },
+    {
+      "desc": "src/AGENTS.md に `<phase>-<concern>-<action>` 命名規則（phase/concern/action の定義と例、phase 接頭辞必須）を明文化する。",
+      "status": "done",
+      "note": "R6: src/AGENTS.md documents the <phase>-<concern>-<action> naming convention"
+    },
+    {
+      "desc": "src/ 配下（src/scripts/rename-phase-steps.js）に移行ツールを実装する。仕様: 1:1 の 7 種は step 値の完全一致で置換; flow.json の衝突 3 種（review/gate-impl/impl）は steps[]（flow scope）と tasks[].steps[]（task scope）の構造位置で新名を判別; issue-log.json の衝突 3 種は据え置き; report.json/retro.json/review.md はコードブロック・パス文字列内のみ置換; active flow（.active-flow が指す spec）の flow.json を除外。ユーザー向け引数は --apply（boolean, 省略時 dry-run で diff のみ表示）。終了コード規約: 成功（dry-run 含む）は 0、git 作業ツリーが clean でない/不正な引数/書込みエラーは非0。--apply は実行前に git clean を検証する。",
+      "status": "done",
+      "note": "R7: dry-run (default) reports changes and writes nothing, exit 0"
+    },
+    {
+      "desc": "移行ツール（R7）をユーザーが任意に実行できる utility として提供する。本リポジトリ過去データへの一括適用は必須デリバラブルとしない: R10 の on-load 自動移行が旧 flow.json をロード時に自己修復しランタイムの正当性を担保するため。コミット済み静的ファイル（report.json/retro.json/review.md/issue-log.json や再ロードされない flow.json）の grep クリーン化が必要なユーザーは、ツールを任意に --apply 実行できる（active flow 除外・git-clean 前提・dry-run default）。ツールの動作正当性は spec-local fixture テストで決定的に検証する。",
+      "status": "done",
+      "note": "R8: --apply converts flow.json by scope and leaves issue-log collisions and active flow untouched"
+    },
+    {
+      "desc": "CHANGELOG.md に breaking change を記載する: 旧 step 名を alias 無しで廃止したこと、移行ツールの使用方法、『他に active flow が無いこと』という merge 前提、flow.json を含む既存 PR/branch は merge 後にツール再走が必要なこと。",
+      "status": "done",
+      "note": "R9: CHANGELOG.md records the step-rename breaking change with migration details"
+    },
+    {
+      "desc": "src/lib/flow-store.js の migrateFlowState に on-load step-id 移行パスを追加し、旧 step id を持つ flow.json をロード時に新名へ自動移行する（flow scope steps[] → impl-*/spec-gate、task scope tasks[].steps[] → task-*、branch id plan/impl は不変）。これにより rename を実装するフロー自身（active flow 269）を含む既存 flow.json が新定義 CLI で駆動できる。移行ロジックは R7 移行ツールと共有モジュール src/lib/step-id-rename.js に集約し、両者で同一の scope-aware マッピングを使う。on-load 移行（ランタイム駆動の正当性）と R7 ツール（静的ファイルの grep クリーン化）は補完関係。",
+      "status": "done",
+      "note": "R10: renameFlowStateStepIds renames flow-scope and task-scope leaves, preserves branch ids"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 10,
+    "done": 10,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

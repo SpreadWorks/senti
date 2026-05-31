@@ -63,15 +63,15 @@ function setupForestFixture(tmp) {
     featureBranch: `feature/${SPEC_ID}`,
     steps: FLOW_STEPS.map((id) => ({
       id,
-      status: ["branch", "prepare-spec", "draft", "gate-draft", "spec", "gate", "approval", "test"].includes(id) ? "done" : "pending",
+      status: ["branch", "prepare-spec", "draft", "draft-gate", "spec", "spec-gate", "approval", "test"].includes(id) ? "done" : "pending",
     })),
     requirements: [
       { id: "R1", desc: "task 1 passes", priority: "must", status: "pending" },
       { id: "R2", desc: "task 2 passes", priority: "must", status: "pending" },
     ],
     tasks: [
-      { id: "T-1", title: "First task", goal: "Do first thing", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [{ id: "impl", status: "pending" }, { id: "review", status: "pending" }, { id: "gate-impl", status: "pending" }] },
-      { id: "T-2", title: "Second task", goal: "Do second thing", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [{ id: "impl", status: "pending" }, { id: "review", status: "pending" }, { id: "gate-impl", status: "pending" }] },
+      { id: "T-1", title: "First task", goal: "Do first thing", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [{ id: "task-impl", status: "pending" }, { id: "task-review", status: "pending" }, { id: "task-gate", status: "pending" }] },
+      { id: "T-2", title: "Second task", goal: "Do second thing", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [{ id: "task-impl", status: "pending" }, { id: "task-review", status: "pending" }, { id: "task-gate", status: "pending" }] },
     ],
     currentTaskId: null,
     metrics: [],
@@ -156,7 +156,7 @@ describe("REQ-C1: E2E forest lifecycle via CLI", () => {
     const res = run(tmp, ["flow", "get", "next-action"]);
     assert.equal(res.status, 0, `next-action failed: ${res.stderr}`);
     const env = parseEnvelope(res.stdout);
-    assert.ok(["implement", "review", "gate-impl", "finalize-commit", "finalize-merge", "finalize-sync", "finalize-cleanup"].includes(env.data.step),
+    assert.ok(["implement", "impl-review", "impl-gate", "finalize-commit", "finalize-merge", "finalize-sync", "finalize-cleanup"].includes(env.data.step),
       `expected flow-scope step for finalize path, got ${env.data.step}`);
   });
 });

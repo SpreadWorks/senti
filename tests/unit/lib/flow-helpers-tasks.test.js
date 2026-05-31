@@ -34,7 +34,7 @@ describe("flow-helpers task-aware APIs", () => {
     it("TASK_STEPS_PLAN is defined (spec 235: 3-step redesign)", () => {
       assert.ok(Array.isArray(TASK_STEPS_PLAN));
       assert.deepEqual(TASK_STEPS_PLAN, [
-        "impl", "review", "gate-impl",
+        "task-impl", "task-review", "task-gate",
       ]);
       // Removed in spec 226: approval, gate (task-spec), update-overview
       assert.ok(!TASK_STEPS_PLAN.includes("approval"));
@@ -87,11 +87,11 @@ describe("flow-helpers task-aware APIs", () => {
           },
         ],
       });
-      state.tasks[0].steps.find((s) => s.id === "impl").status = "in_progress";
+      state.tasks[0].steps.find((s) => s.id === "task-impl").status = "in_progress";
       assert.equal(derivePhase(state), "task-impl");
     });
 
-    it("returns 'task-impl' when current task has gate-impl in_progress (spec 226: replaces task-plan gate step)", () => {
+    it("returns 'task-impl' when current task has task-gate in_progress (spec 226: replaces task-plan gate step)", () => {
       const state = makeState({
         currentTaskId: "001",
         tasks: [
@@ -107,7 +107,7 @@ describe("flow-helpers task-aware APIs", () => {
           },
         ],
       });
-      state.tasks[0].steps.find((s) => s.id === "gate-impl").status = "in_progress";
+      state.tasks[0].steps.find((s) => s.id === "task-gate").status = "in_progress";
       assert.equal(derivePhase(state), "task-impl");
     });
 

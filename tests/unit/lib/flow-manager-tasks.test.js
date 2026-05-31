@@ -28,11 +28,11 @@ function makeTask(overrides = {}) {
     parent: null,
     status: "pending",
     steps: [
-      { id: "gate", status: "pending" },
+      { id: "spec-gate", status: "pending" },
       { id: "approval", status: "pending" },
-      { id: "impl", status: "pending" },
+      { id: "task-impl", status: "pending" },
       { id: "test", status: "pending" },
-      { id: "review", status: "pending" },
+      { id: "task-review", status: "pending" },
       { id: "update-overview", status: "pending" },
     ],
     requirements: [],
@@ -135,17 +135,17 @@ describe("FlowManager task API", () => {
       tmp = createTmpDir();
       const fm = setupFlow(tmp);
       fm.addTask(makeTask({ id: "001" }));
-      fm.setCurrentTaskStep("impl", "in_progress");
+      fm.setCurrentTaskStep("task-impl", "in_progress");
       const s = fm.getCurrentTaskStep();
       assert.ok(s);
-      assert.equal(s.id, "impl");
+      assert.equal(s.id, "task-impl");
       assert.equal(s.status, "in_progress");
     });
 
     it("setCurrentTaskStep throws when no current task", () => {
       tmp = createTmpDir();
       const fm = setupFlow(tmp);
-      assert.throws(() => fm.setCurrentTaskStep("impl", "in_progress"), /no current task|no task/i);
+      assert.throws(() => fm.setCurrentTaskStep("task-impl", "in_progress"), /no current task|no task/i);
     });
 
     it("setCurrentTaskStep throws on unknown step id", () => {

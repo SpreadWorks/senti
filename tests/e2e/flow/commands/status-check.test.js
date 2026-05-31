@@ -12,11 +12,11 @@ describe("flow get check impl", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  it("PASS when gate and test are both done", () => {
+  it("PASS when spec-gate and test are both done", () => {
     tmp = createTmpDir();
     const state = makeFlowState();
-    setStepDone(state, "gate", "test");
-    findStepById(state.steps, "review-test").status = "skipped";
+    setStepDone(state, "spec-gate", "test");
+    findStepById(state.steps, "test-review").status = "skipped";
     makeFlowManager(tmp).save(state);
     makeFlowManager(tmp).addActiveFlow("001-test", "local");
     const result = execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "check", "impl"], {
@@ -26,12 +26,12 @@ describe("flow get check impl", () => {
     assert.match(result, /pass.*true/is);
   });
 
-  it("PASS when gate is done and test is skipped", () => {
+  it("PASS when spec-gate is done and test is skipped", () => {
     tmp = createTmpDir();
     const state = makeFlowState();
-    setStepDone(state, "gate");
+    setStepDone(state, "spec-gate");
     findStepById(state.steps, "test").status = "skipped";
-    findStepById(state.steps, "review-test").status = "skipped";
+    findStepById(state.steps, "test-review").status = "skipped";
     makeFlowManager(tmp).save(state);
     makeFlowManager(tmp).addActiveFlow("001-test", "local");
     const result = execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "check", "impl"], {
@@ -41,13 +41,13 @@ describe("flow get check impl", () => {
     assert.match(result, /pass.*true/is);
   });
 
-  it("FAIL when review-test (last plan-branch leaf) is not done", () => {
+  it("FAIL when test-review (last plan-branch leaf) is not done", () => {
     // In the definition-based model, the only cross-branch prerequisite for
-    // `implement` is `review-test` (the last leaf of the preceding `plan` branch).
+    // `implement` is `test-review` (the last leaf of the preceding `plan` branch).
     tmp = createTmpDir();
     const state = makeFlowState();
-    // gate and test are done but review-test is NOT done → prereq not met.
-    setStepDone(state, "gate", "test");
+    // spec-gate and test are done but test-review is NOT done → prereq not met.
+    setStepDone(state, "spec-gate", "test");
     makeFlowManager(tmp).save(state);
     makeFlowManager(tmp).addActiveFlow("001-test", "local");
     const result = execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "check", "impl"], {
@@ -55,7 +55,7 @@ describe("flow get check impl", () => {
       env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
     });
     assert.match(result, /pass.*false/is);
-    assert.match(result, /review-test/);
+    assert.match(result, /test-review/);
   });
 
   it("returns ok:true with pass:false when no flow.json exists", () => {

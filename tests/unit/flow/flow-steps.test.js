@@ -11,24 +11,24 @@ import { FLOW_DEFINITION, resolveNodeFor } from "../../../src/flow/definition.js
 describe("FLOW_STEPS ordering (plan rework)", () => {
   it("has draft review triage and repair steps before their consumers", () => {
     assertStepsAppearInOrder(
-      "review-draft-questions",
+      "draft-questions-review",
       "draft-questions-triage",
       "draft-questions-repair",
       "draft-refine",
     );
     assertStepsAppearInOrder(
-      "review-draft-coverage",
+      "draft-coverage-review",
       "draft-coverage-triage",
       "draft-coverage-repair",
-      "gate-draft",
+      "draft-gate",
     );
   });
 
-  it("has plan gate ordering and scenario-validity before review-test", () => {
+  it("has plan gate ordering and scenario-validity before test-review", () => {
     const expectedPrefix = [
-      "branch", "prepare-spec", "draft", "review-draft-questions", "draft-questions-triage", "draft-questions-repair", "draft-refine",
-      "review-draft-coverage", "draft-coverage-triage", "draft-coverage-repair", "gate-draft",
-      "spec", "review-spec", "spec-review-triage", "spec-repair", "gate", "approval", "test", "scenario-validity", "review-test",
+      "branch", "prepare-spec", "draft", "draft-questions-review", "draft-questions-triage", "draft-questions-repair", "draft-refine",
+      "draft-coverage-review", "draft-coverage-triage", "draft-coverage-repair", "draft-gate",
+      "spec", "spec-review", "spec-triage", "spec-repair", "spec-gate", "approval", "test", "scenario-validity", "test-review",
     ];
     assert.deepEqual(FLOW_STEPS.slice(0, expectedPrefix.length), expectedPrefix);
   });
@@ -48,48 +48,48 @@ describe("FLOW_STEPS ordering (plan rework)", () => {
   });
 
   it("keeps draft question review one-shot in manual and auto modes", () => {
-    const node = resolveNodeFor(FLOW_DEFINITION, "review-draft-questions");
+    const node = resolveNodeFor(FLOW_DEFINITION, "draft-questions-review");
 
     assert.equal(node.resolveMaxAttempts({ autoApprove: true }), 1);
     assert.equal(node.resolveMaxAttempts({ autoApprove: false }), 1);
   });
 
   it("keeps draft coverage review one-shot in manual and auto modes", () => {
-    const node = resolveNodeFor(FLOW_DEFINITION, "review-draft-coverage");
+    const node = resolveNodeFor(FLOW_DEFINITION, "draft-coverage-review");
 
     assert.equal(node.resolveMaxAttempts({ autoApprove: true }), 1);
     assert.equal(node.resolveMaxAttempts({ autoApprove: false }), 1);
   });
 
   it("sets spec review retry budget from recent convergence data", () => {
-    const node = resolveNodeFor(FLOW_DEFINITION, "review-spec");
+    const node = resolveNodeFor(FLOW_DEFINITION, "spec-review");
 
     assert.equal(node.resolveMaxAttempts({ autoApprove: true }), 4);
     assert.equal(node.resolveMaxAttempts({ autoApprove: false }), 4);
   });
 
   it("sets test review retry budget from recent convergence data", () => {
-    const node = resolveNodeFor(FLOW_DEFINITION, "review-test");
+    const node = resolveNodeFor(FLOW_DEFINITION, "test-review");
 
     assert.equal(node.resolveMaxAttempts({ autoApprove: true }), 5);
     assert.equal(node.resolveMaxAttempts({ autoApprove: false }), 5);
   });
 
   it("sets implementation review retry budget from recent convergence data", () => {
-    const node = resolveNodeFor(FLOW_DEFINITION, "review");
+    const node = resolveNodeFor(FLOW_DEFINITION, "impl-review");
 
     assert.equal(node.resolveMaxAttempts({ autoApprove: true }), 4);
     assert.equal(node.resolveMaxAttempts({ autoApprove: false }), 4);
   });
 
   it("has gate before approval", () => {
-    const gateIdx = FLOW_STEPS.indexOf("gate");
+    const gateIdx = FLOW_STEPS.indexOf("spec-gate");
     const approvalIdx = FLOW_STEPS.indexOf("approval");
     assert.ok(gateIdx < approvalIdx, "gate should come before approval");
   });
 
   it("runs final-regression after retro and before finalize", () => {
-    assertStepsAppearInOrder("gate-impl", "retro", "final-regression", "finalize-commit");
+    assertStepsAppearInOrder("impl-gate", "retro", "final-regression", "finalize-commit");
   });
 });
 
@@ -120,12 +120,12 @@ describe("PHASE_MAP (plan rework)", () => {
     assert.equal(PHASE_MAP["spec-repair"], "plan");
   });
 
-  it("maps spec-review-triage to plan phase", () => {
-    assert.equal(PHASE_MAP["spec-review-triage"], "plan");
+  it("maps spec-triage to plan phase", () => {
+    assert.equal(PHASE_MAP["spec-triage"], "plan");
   });
 
   it("maps gate to plan phase", () => {
-    assert.equal(PHASE_MAP["gate"], "plan");
+    assert.equal(PHASE_MAP["spec-gate"], "plan");
   });
 
   it("maps approval to plan phase", () => {

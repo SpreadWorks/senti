@@ -2,7 +2,7 @@
  * tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js
  *
  * Spec 226 / T-5: タスク遷移の自動化と auto-promote。
- * auto-promote 関数の単一性、sync 末尾と gate-impl post-hook の 2 箇所のみ
+ * auto-promote 関数の単一性、sync 末尾と impl-gate post-hook の 2 箇所のみ
  * から呼ばれること、completeTask が auto-promote を呼ばないこと、全 task
  * done 時の flow-scope 遷移を検証する。
  *
@@ -60,9 +60,9 @@ function makePendingTask(id, parent = null) {
     added_round: 0,
     status: "pending",
     steps: [
-      { id: "impl", status: "pending" },
-      { id: "review", status: "pending" },
-      { id: "gate-impl", status: "pending" },
+      { id: "task-impl", status: "pending" },
+      { id: "task-review", status: "pending" },
+      { id: "task-gate", status: "pending" },
     ],
     requirements: [],
     summary: null,
@@ -161,7 +161,7 @@ describe("T-5: auto-promote function and callers", () => {
     assert.equal(t1.status, "in_progress");
   });
 
-  it("gate-impl PASS post-hook calls completeTask then promoteNextPending", () => {
+  it("impl-gate PASS post-hook calls completeTask then promoteNextPending", () => {
     tmp = createTmpDir();
     // Set up flow with two tasks: T-1 in_progress, T-2 pending.
     const tasks = [
@@ -175,7 +175,7 @@ describe("T-5: auto-promote function and callers", () => {
     });
     const fm = makeFlowManager(tmp);
 
-    // Simulate what the gate-impl PASS post-hook does (registry.js):
+    // Simulate what the impl-gate PASS post-hook does (registry.js):
     //   1. fm.completeTask(state.currentTaskId)
     //   2. fm.mutate((s) => { promoteNextPending(s); })
     const state = fm.load();
@@ -213,7 +213,7 @@ describe("T-5: auto-promote function and callers", () => {
 
     // There should be exactly 4 invocation lines across 3 logical sites:
     //   Site 1: sync-spec-tasks.js (1 line)
-    //   Site 2: run-gate.js + run-complete-task.js (2 lines, both gate-impl PASS)
+    //   Site 2: run-gate.js + run-complete-task.js (2 lines, both impl-gate PASS)
     //   Site 3: get-next-action.js (1 line, spec 229 safety-net fallback)
     assert.equal(lines.length, 4, `expected 4 invocation lines, got:\n${lines.join("\n")}`);
 
@@ -257,11 +257,11 @@ describe("T-5: auto-promote function and callers", () => {
       makeDoneTask("T-2"),
     ];
     const steps = buildInitialSteps();
-    // Mark flow steps up through gate-impl as done, finalize as in_progress.
+    // Mark flow steps up through impl-gate as done, finalize as in_progress.
     const doneStepIds = [
-      "branch", "prepare-spec", "draft", "gate-draft", "spec",
-      "gate", "approval", "test", "implement", "review",
-      "gate-impl",
+      "branch", "prepare-spec", "draft", "draft-gate", "spec",
+      "spec-gate", "approval", "test", "implement", "impl-review",
+      "impl-gate",
     ];
     for (const s of flattenSteps(steps)) {
       if (doneStepIds.includes(s.id)) s.status = "done";
@@ -290,9 +290,9 @@ describe("T-5: auto-promote function and callers", () => {
       status: "in_progress",
       steps: buildInitialTaskSteps("plan"),
     };
-    // Set impl step to in_progress
+    // Set task-impl step to in_progress
     for (const s of t1.steps) {
-      if (s.id === "impl") s.status = "in_progress";
+      if (s.id === "task-impl") s.status = "in_progress";
     }
     const tasks = [t1, makePendingTask("T-2")];
     const steps = buildInitialSteps();
@@ -313,6 +313,6 @@ describe("T-5: auto-promote function and callers", () => {
     const envelope = JSON.parse(out);
     assert.equal(envelope.ok, true);
     assert.equal(envelope.data.taskId, "T-1", "task-scope target");
-    assert.equal(envelope.data.step, "impl");
+    assert.equal(envelope.data.step, "task-impl");
   });
 });

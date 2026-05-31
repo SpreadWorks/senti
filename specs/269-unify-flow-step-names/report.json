@@ -1,0 +1,924 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".agents/skills/sdd-forge.flow/SKILL.md             |   24 +-\n .claude/skills/sdd-forge.flow/SKILL.md             |   24 +-\n CHANGELOG.md                                       |   23 +\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-questions-repair.json                    |    8 +\n .../draft-questions-triage.json                    |    8 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   11 +\n specs/269-unify-flow-step-names/draft.json         |  139 +\n specs/269-unify-flow-step-names/file-map.json      |   52 +\n .../final-regression-result.json                   |  407 ++\n specs/269-unify-flow-step-names/flow.json          | 1828 +++++++\n specs/269-unify-flow-step-names/impl-review.json   |   34 +\n specs/269-unify-flow-step-names/issue-log.json     |  690 +++\n specs/269-unify-flow-step-names/issue.md           |  266 +\n specs/269-unify-flow-step-names/report.json        |  922 ++++\n specs/269-unify-flow-step-names/retro.json         |   68 +\n .../269-unify-flow-step-names/retry-recovery.json  |   33 +\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |   14 +\n .../review-history/impl-attempt-001.json           |   58 +\n .../review-history/impl-attempt-001.md             |   29 +\n .../review-history/spec-attempt-001.json           |  128 +\n .../review-history/spec-attempt-001.md             |   39 +\n .../review-history/test-attempt-001.json           |   90 +\n .../review-history/test-attempt-001.md             |   31 +\n .../review-history/test-attempt-002.json           |  108 +\n .../review-history/test-attempt-002.md             |   37 +\n .../review-history/test-attempt-003.json           |   22 +\n .../review-history/test-attempt-003.md             |   19 +\n .../review-history/test-attempt-004.json           |   22 +\n .../review-history/test-attempt-004.md             |   19 +\n .../review-history/test-attempt-005.json           |  128 +\n .../review-history/test-attempt-005.md             |   45 +\n .../review-history/test-attempt-006.json           |   92 +\n .../review-history/test-attempt-006.md             |   33 +\n .../review-history/test-attempt-007.json           |  109 +\n .../review-history/test-attempt-007.md             |   38 +\n .../review-history/test-attempt-008.json           |   92 +\n .../review-history/test-attempt-008.md             |   33 +\n specs/269-unify-flow-step-names/review.md          |   29 +\n specs/269-unify-flow-step-names/spec-repair.json   |   16 +\n .../spec-review-triage.json                        |   15 +\n specs/269-unify-flow-step-names/spec-review.json   |   64 +\n specs/269-unify-flow-step-names/spec-review.md     |   39 +\n specs/269-unify-flow-step-names/spec.json          |  317 ++\n specs/269-unify-flow-step-names/spec.md            |  129 +\n specs/269-unify-flow-step-names/tasks/T-1.md       |   20 +\n specs/269-unify-flow-step-names/tasks/T-2.md       |   20 +\n specs/269-unify-flow-step-names/tasks/T-3.md       |   19 +\n specs/269-unify-flow-step-names/tasks/T-4.md       |   20 +\n specs/269-unify-flow-step-names/tasks/T-5.md       |   18 +\n specs/269-unify-flow-step-names/tasks/T-6.md       |   20 +\n specs/269-unify-flow-step-names/tasks/T-7.md       |   20 +\n specs/269-unify-flow-step-names/tasks/T-8.md       |   18 +\n specs/269-unify-flow-step-names/test-coverage.json |  151 +\n .../test-execute-result.json                       |  869 ++++\n .../test-result-review.json                        |   22 +\n .../test-result-review.md                          |   12 +\n specs/269-unify-flow-step-names/test-review.json   |   47 +\n specs/269-unify-flow-step-names/test-review.md     |   33 +\n .../tests/.raw/final-regression-attempt-001.log    | 5182 ++++++++++++++++++++\n .../tests/.raw/test-execution.log                  |  186 +\n .../tests/code-references.test.js                  |  100 +\n .../tests/definition-and-prompts.test.js           |  163 +\n specs/269-unify-flow-step-names/tests/docs.test.js |   71 +\n .../tests/migration-tool.test.js                   |  224 +\n .../tests/on-load-migration.test.js                |  105 +\n .../tests/test-and-skill-refs.test.js              |   79 +\n src/AGENTS.md                                      |   14 +\n src/flow/commands/report.js                        |    4 +-\n src/flow/commands/review.js                        |   28 +-\n src/flow/definition.js                             |   48 +-\n src/flow/lib/draft-review-routes.js                |    6 +-\n src/flow/lib/gate-step.js                          |    8 +-\n src/flow/lib/get-next-action.js                    |    4 +-\n src/flow/lib/get-status.js                         |    2 +-\n src/flow/lib/resolve-auto-check-input.js           |    4 +-\n src/flow/lib/retry-recovery.js                     |    8 +-\n src/flow/lib/review-failure.js                     |   11 +-\n src/flow/lib/run-gate.js                           |   56 +-\n src/flow/lib/run-reopen-draft.js                   |   16 +-\n src/flow/lib/run-review.js                         |   32 +-\n src/flow/lib/run-scenario-validity.js              |    2 +-\n src/flow/lib/run-test-result-review.js             |    4 +-\n src/flow/lib/set-broad.js                          |    2 +-\n src/flow/lib/set-retry.js                          |    8 +-\n src/flow/lib/set-step.js                           |    4 +-\n src/flow/lib/task-scope.js                         |    4 +-\n src/flow/lib/test-artifacts.js                     |    6 +-\n src/flow/prompts/impl/final-regression.md          |    2 +-\n .../prompts/impl/{gate-impl.md => impl-gate.md}    |    4 +-\n .../prompts/impl/{review.md => impl-review.md}     |    0\n src/flow/prompts/impl/implement.md                 |    4 +-\n src/flow/prompts/impl/test-execute.md              |    6 +-\n src/flow/prompts/impl/test-result-review.md        |    2 +-\n src/flow/prompts/plan/draft-coverage-repair.md     |    4 +-\n ...-draft-coverage.md => draft-coverage-review.md} |    6 +-\n src/flow/prompts/plan/draft-coverage-triage.md     |    6 +-\n .../prompts/plan/{gate-draft.md => draft-gate.md}  |    2 +-\n ...raft-questions.md => draft-questions-review.md} |    2 +-\n src/flow/prompts/plan/draft-questions-triage.md    |    4 +-\n src/flow/prompts/plan/draft-refine.md              |    2 +-\n src/flow/prompts/plan/draft.md                     |    6 +-\n src/flow/prompts/plan/scenario-validity.md         |    2 +-\n src/flow/prompts/plan/{gate.md => spec-gate.md}    |    6 +-\n src/flow/prompts/plan/spec-repair.md               |   10 +-\n .../plan/{review-spec.md => spec-review.md}        |    6 +-\n .../plan/{spec-review-triage.md => spec-triage.md} |   18 +-\n src/flow/prompts/plan/spec.md                      |    2 +-\n .../plan/{review-test.md => test-review.md}        |   14 +-\n src/flow/prompts/plan/test.md                      |    4 +-\n src/flow/prompts/task/{impl.md => task-impl.md}    |    0\n .../prompts/task/{review.md => task-review.md}     |    2 +-\n src/flow/registry.js                               |   40 +-\n src/lib/flow-helpers.js                            |    2 +-\n src/lib/flow-store.js                              |   44 +-\n src/lib/step-id-rename.js                          |   62 +\n src/locale/en/messages.json                        |    2 +-\n src/locale/ja/messages.json                        |    2 +-\n src/scripts/rename-phase-steps.js                  |  211 +\n .../partials/placeholder-artifact-permission.md    |    2 +-\n src/skills/rules.json                              |  217 +-\n src/skills/sdd-forge.flow/SKILL.md                 |   20 +-\n tests/e2e/227-forest-e2e.test.js                   |    8 +-\n tests/e2e/231-task-e2e-full-lifecycle.test.js      |    8 +-\n tests/e2e/flow/commands/status-check.test.js       |   22 +-\n tests/e2e/flow/gate-impl-integration.test.js       |    2 +-\n .../t4-forest-wiring.test.js                       |    6 +-\n .../226-task-decomp-wiring/t5-auto-promote.test.js |   28 +-\n .../t6-step-redesign-and-cli.test.js               |   72 +-\n .../t-a3-no-flat-fallback.test.js                  |    8 +-\n tests/unit/flow.test.js                            |    4 +-\n tests/unit/flow/auto-upgrade-next-action.test.js   |    4 +-\n tests/unit/flow/check-draft-json.test.js           |    2 +-\n tests/unit/flow/commands/review.test.js            |   24 +-\n tests/unit/flow/draft-refine-migration.test.js     |   10 +-\n tests/unit/flow/flow-steps.test.js                 |   34 +-\n tests/unit/flow/format-retry-history.test.js       |   26 +-\n tests/unit/flow/gate-deferred-regression.test.js   |    2 +-\n tests/unit/flow/gate-envelope-issue-log.test.js    |   10 +-\n tests/unit/flow/gate-noop-rerun-guard.test.js      |   28 +-\n tests/unit/flow/gate-phase-inference.test.js       |   78 +-\n tests/unit/flow/gate-repeat-escalate.test.js       |   20 +-\n .../flow/gate-retry-counter-transparency.test.js   |    6 +-\n tests/unit/flow/gate-spec-sanity.test.js           |   40 +-\n tests/unit/flow/gate-untracked-diff.test.js        |    2 +-\n tests/unit/flow/get-check.test.js                  |   10 +-\n tests/unit/flow/get-next-action.test.js            |   32 +-\n tests/unit/flow/get-step-instructions.test.js      |   18 +-\n tests/unit/flow/resolve-auto-check-input.test.js   |   22 +-\n tests/unit/flow/run-auto-check-phase.test.js       |   14 +-\n tests/unit/flow/run-review-advisory.test.js        |   32 +-\n tests/unit/flow/set-auto.test.js                   |   10 +-\n tests/unit/flow/spec-repair-migration.test.js      |   20 +-\n tests/unit/flow/throw-to-envelope-codes.test.js    |    4 +-\n tests/unit/lib/flow-helpers-tasks.test.js          |    8 +-\n tests/unit/lib/flow-manager-tasks.test.js          |   12 +-\n 159 files changed, 14806 insertions(+), 579 deletions(-)",
+      "commits": [
+        "Reconcile merge guidance with on-load migration",
+        "chore: add retro and report",
+        "Unify flow step ids under <phase>-<concern>-<action> convention"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 25,
+      "fullLogPath": "specs/269-unify-flow-step-names/issue-log.json",
+      "importantTotal": 14,
+      "importantShown": 10,
+      "importantOmitted": 4,
+      "recentOtherTotal": 11,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 6,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "review-draft-coverage",
+          "reason": "codex provider usage limit exhausted (gpt-5.5), review exited 1 with empty response",
+          "resolution": "switched worktree .sdd-forge/config.json useProfile from codex-only to claude-only (user-approved) to route flow AI steps to claude; codex CLI returned usage-limit error reset at ~5:05 AM"
+        },
+        {
+          "classification": "important",
+          "step": "gate",
+          "reason": "T-1 の test_strategy は「unit: definition の leaf id 集合と instructionsKey→prompt 解決を assertion」と記載するのみで、specs/<specid>/tests/ 以下への spec-local テスト作成も `// spec: R<N>` ヘッダ要件も指定していない。R1・R3 は新規 spec 挙動であり spec-local カバレッジが必須だが、task-impl ゲートが検査する d...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "scenario-validity",
+          "reason": "config.json provider switch (tracked file) and regenerated analysis.json blocked scenario-validity preflight as non-test implementation-target changes",
+          "resolution": "reverted .sdd-forge/config.json to codex-only and restored .sdd-forge/output/analysis.json in worktree; route flow AI steps to claude via SDD_FORGE_PROFILE=claude-only env override (agent.js precedence) instead of editing the tracked con..."
+        },
+        {
+          "classification": "important",
+          "step": "review-test",
+          "reason": "review-test tooling failure: parser_error",
+          "resolution": "Recover the tooling failure or record an explicit evidence-based override before proceeding."
+        },
+        {
+          "classification": "important",
+          "step": "review-test",
+          "reason": "review-test tooling failure: parser_error",
+          "resolution": "Recover the tooling failure or record an explicit evidence-based override before proceeding."
+        },
+        {
+          "classification": "important",
+          "step": "retry-recovery",
+          "reason": "Addressed review advisories and prior unreviewed findings: exact instructionsKey assertions for renamed prompt-backed steps, AGENTS.md concrete-example and mandatory-prefix checks, gate->spec-gate 1:1 issue-log coverage, gate-step TASK_S...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "review-test",
+          "reason": "review-test non-convergent across 6 attempts; user-approved evidence-based override to proceed to implementation",
+          "resolution": "Addressed all legitimate findings (R3 outputSchemaRef guard, exact instructionsKey assertions, registry/gate-step/draft-routes source+behavior checks, gate->spec-gate 1:1, migration dry-run/--apply/git-clean/exit-codes, collision-left in..."
+        },
+        {
+          "classification": "important",
+          "step": "implement",
+          "reason": "R8 repo test (migration-tool.test.js:258) asserts whole-file flow.json text is free of legacy step ids, but 208/354 historical flow.json files carry those ids in free-text fields (notes text, desc, request, reason, recoveryCommand). The ...",
+          "resolution": "User chose to reopen draft to reconcile the spec R8 scope and the repo-level test scenario so the migration tool design, spec principles, and test assertions are coherent"
+        },
+        {
+          "classification": "important",
+          "step": "implement",
+          "reason": "Global sdd-forge bin symlink was repointed mid-session to the concurrent flow worktree feature-269-promote-workflow-cli/src/sdd-forge.js, whose config schema rejects the experimental field present in this worktree config.json, so the glo...",
+          "resolution": "Switched this flow to invoke its own worktree-local CLI via node src/sdd-forge.js; left the global symlink untouched because the concurrent promote-workflow-cli flow may depend on it"
+        },
+        {
+          "classification": "important",
+          "step": "implement",
+          "reason": "reopen-draft is not viable for this flow: (1) src/flow/lib/run-reopen-draft.js lacks an export default so the dispatcher rejects it with 'module has no default export' (pre-existing bug on main, outside 269 scope); (2) even fixed, PLAN_R...",
+          "resolution": "Pending user decision: reconcile R8 in-place during implement instead of via reopen-draft, since reopen-draft cannot rewind a flat-model flow whose only active leaf is implement"
+        },
+        {
+          "classification": "recent-other",
+          "step": "gate",
+          "reason": "T-5 covers R6 but its test_strategy states 'ドキュメント変更のため自動テスト対象外（presence を grep で確認可）' — no spec-local test file under specs/269-unify-flow-step-names/tests/ with a `// spec: R6 ...` header is planned. The guardrail requires MUST coverag...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "step-id-rename",
+          "reason": "Renamed 9 legacy step id(s) to the <phase>-<concern>-<action> convention.",
+          "resolution": "review-draft-questions->draft-questions-review, review-draft-coverage->draft-coverage-review, gate-draft->draft-gate, review-spec->spec-review, spec-review-triage->spec-triage, gate->spec-gate, review-test->test-review, review->impl-revi..."
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "Most flow/task prompt files and instructionsKey values were renamed, but task-gate still uses instructionsKey \"impl.impl-gate\" and has no corresponding prompts/task/task-gate.md, so not every renamed step resolves via its own new step-id...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "Skill template and installed copies still contain old bare step `gate` in the reopen-draft sequence (`draft-gate → spec → gate → approval`), so old step-name grep is not clean.; Migration tool is present and covers most mappings, dry-run...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "Diff updates skill templates and installed .claude/.agents copies, but authored prompt source still contains old step name text: src/flow/prompts/plan/draft-coverage-review.md retains `Gate-draft remains the blocking validation step.`",
+          "resolution": null
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 10
+    },
+    "tokenMetrics": {
+      "input": 1804535,
+      "output": 242324,
+      "cacheRead": 2866005,
+      "cacheCreation": 487182,
+      "cost": 8.922638199999998,
+      "callCount": 45,
+      "durationMs": 4194735,
+      "phaseDurations": [
+        {
+          "phase": "review-draft-questions",
+          "durationMs": 20657
+        },
+        {
+          "phase": "review-draft-coverage",
+          "durationMs": 73273
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 766290
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 299430
+        },
+        {
+          "phase": "gate",
+          "durationMs": 1003690
+        },
+        {
+          "phase": "review-test",
+          "durationMs": 1593203
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 19405
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 418787
+        }
+      ]
+    },
+    "tests": {
+      "total": 10,
+      "passed": 10,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/269-unify-flow-step-names/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "specs/269-unify-flow-step-names/",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/commands/report.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/commands/review.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/definition.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/draft-review-routes.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/gate-step.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/get-next-action.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/get-status.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/resolve-auto-check-input.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/retry-recovery.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/review-failure.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-gate.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-reopen-draft.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-review.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-scenario-validity.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-test-result-review.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/set-broad.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/set-retry.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/set-step.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/task-scope.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/test-artifacts.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/registry.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/flow-helpers.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/flow-store.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/step-id-rename.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/scripts/",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/e2e/227-forest-e2e.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/e2e/231-task-e2e-full-lifecycle.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/e2e/flow/commands/status-check.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/e2e/flow/gate-impl-integration.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/226-task-decomp-wiring/t4-forest-wiring.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/226-task-decomp-wiring/t6-step-redesign-and-cli.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/227-post-226-forest-integration/t-a3-no-flat-fallback.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/auto-upgrade-next-action.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/check-draft-json.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/commands/review.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/draft-refine-migration.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/flow-steps.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/format-retry-history.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/gate-deferred-regression.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/gate-envelope-issue-log.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/gate-noop-rerun-guard.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/gate-phase-inference.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/gate-repeat-escalate.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/gate-retry-counter-transparency.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/gate-spec-sanity.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/gate-untracked-diff.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/get-check.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/get-next-action.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/get-step-instructions.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/resolve-auto-check-input.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/run-auto-check-phase.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/run-review-advisory.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/set-auto.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/spec-repair-migration.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/throw-to-envelope-codes.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/lib/flow-helpers-tasks.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/lib/flow-manager-tasks.test.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/269-unify-flow-step-names/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/report.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/review.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/definition.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/draft-review-routes.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/gate-step.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/get-next-action.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/get-status.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/resolve-auto-check-input.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/retry-recovery.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/review-failure.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-reopen-draft.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-review.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-scenario-validity.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-test-result-review.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-broad.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-retry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-step.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/task-scope.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-artifacts.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-helpers.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-store.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/lib/step-id-rename.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/scripts/"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/227-forest-e2e.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/231-task-e2e-full-lifecycle.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/flow/commands/status-check.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/flow/gate-impl-integration.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/226-task-decomp-wiring/t4-forest-wiring.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/226-task-decomp-wiring/t6-step-redesign-and-cli.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/227-post-226-forest-integration/t-a3-no-flat-fallback.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/auto-upgrade-next-action.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/check-draft-json.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/commands/review.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/draft-refine-migration.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/flow-steps.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/format-retry-history.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-deferred-regression.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-envelope-issue-log.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-noop-rerun-guard.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-phase-inference.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-repeat-escalate.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-retry-counter-transparency.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-spec-sanity.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-untracked-diff.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/get-check.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/get-next-action.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/get-step-instructions.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/resolve-auto-check-input.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/run-auto-check-phase.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/run-review-advisory.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/set-auto.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/spec-repair-migration.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/throw-to-envelope-codes.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/flow-helpers-tasks.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/flow-manager-tasks.test.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/269-unify-flow-step-names/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/report.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/review.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/definition.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/draft-review-routes.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/gate-step.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/get-next-action.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/get-status.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/resolve-auto-check-input.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/retry-recovery.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/review-failure.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-reopen-draft.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-review.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-scenario-validity.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-test-result-review.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-broad.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-retry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-step.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/task-scope.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-artifacts.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-helpers.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-store.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/lib/step-id-rename.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/scripts/"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/227-forest-e2e.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/231-task-e2e-full-lifecycle.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/flow/commands/status-check.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/flow/gate-impl-integration.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/226-task-decomp-wiring/t4-forest-wiring.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/226-task-decomp-wiring/t6-step-redesign-and-cli.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/227-post-226-forest-integration/t-a3-no-flat-fallback.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/auto-upgrade-next-action.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/check-draft-json.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/commands/review.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/draft-refine-migration.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/flow-steps.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/format-retry-history.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-deferred-regression.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-envelope-issue-log.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-noop-rerun-guard.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-phase-inference.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-repeat-escalate.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-retry-counter-transparency.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-spec-sanity.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-untracked-diff.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/get-check.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/get-next-action.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/get-step-instructions.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/resolve-auto-check-input.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/run-auto-check-phase.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/run-review-advisory.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/set-auto.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/spec-repair-migration.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/throw-to-envelope-codes.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/flow-helpers-tasks.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/flow-manager-tasks.test.js"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/269-unify-flow-step-names/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    Reconcile merge guidance with on-load migration\n    chore: add retro and report\n    Unify flow step ids under <phase>-<concern>-<action> convention\n    159 files changed, 14806 insertions(+), 579 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 10\n    agent calls ................. 45\n    input tokens ................ 1,804,535\n    output tokens ............... 242,324\n    cache-read tokens ........... 2,866,005\n    cache-create tokens ......... 487,182\n    cost ........................ $8.9226\n    duration (total) ............ 4194.7s\n      review-draft-questions .... 20.7s\n      review-draft-coverage ..... 73.3s\n      gate-draft ................ 766.3s\n      review-spec ............... 299.4s\n      gate ...................... 1003.7s\n      review-test ............... 1593.2s\n      impl-review ............... 19.4s\n      impl-gate ................. 418.8s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 10  passed 10  failed 0 verdict=pass\n    raw_output: specs/269-unify-flow-step-names/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=pass\n\n  Issue Log Summary (25 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/269-unify-flow-step-names/issue-log.json\n\n    Important (10 of 14)\n    - [review-draft-coverage] codex provider usage limit exhausted (gpt-5.5), review exited 1 with empty response\n    - [gate] T-1 の test_strategy は「unit: definition の leaf id 集合と instructionsKey→prompt 解決を assertion」と記載するのみで、specs/<specid>/tests/ 以下への spec-local テスト作成も `// spec: R<N>` ヘッダ要件も指定していない。R1・R3 は新規 spec 挙動であり spec-local カバレッジが必須だが、task-impl ゲートが検査する d...\n    - [scenario-validity] config.json provider switch (tracked file) and regenerated analysis.json blocked scenario-validity preflight as non-test implementation-target changes\n    - [review-test] review-test tooling failure: parser_error\n    - [review-test] review-test tooling failure: parser_error\n    - [retry-recovery] Addressed review advisories and prior unreviewed findings: exact instructionsKey assertions for renamed prompt-backed steps, AGENTS.md concrete-example and mandatory-prefix checks, gate->spec-gate 1:1 issue-log coverage, gate-step TASK_S...\n    - [review-test] review-test non-convergent across 6 attempts; user-approved evidence-based override to proceed to implementation\n    - [implement] R8 repo test (migration-tool.test.js:258) asserts whole-file flow.json text is free of legacy step ids, but 208/354 historical flow.json files carry those ids in free-text fields (notes text, desc, request, reason, recoveryCommand). The ...\n    - [implement] Global sdd-forge bin symlink was repointed mid-session to the concurrent flow worktree feature-269-promote-workflow-cli/src/sdd-forge.js, whose config schema rejects the experimental field present in this worktree config.json, so the glo...\n    - [implement] reopen-draft is not viable for this flow: (1) src/flow/lib/run-reopen-draft.js lacks an export default so the dispatcher rejects it with 'module has no default export' (pre-existing bug on main, outside 269 scope); (2) even fixed, PLAN_R...\n    ... 4 important issue-log entries omitted\n\n    Recent Other (5 of 11)\n    - [gate] T-5 covers R6 but its test_strategy states 'ドキュメント変更のため自動テスト対象外（presence を grep で確認可）' — no spec-local test file under specs/269-unify-flow-step-names/tests/ with a `// spec: R6 ...` header is planned. The guardrail requires MUST coverag...\n    - [step-id-rename] Renamed 9 legacy step id(s) to the <phase>-<concern>-<action> convention.\n    - [spec-gate] Most flow/task prompt files and instructionsKey values were renamed, but task-gate still uses instructionsKey \"impl.impl-gate\" and has no corresponding prompts/task/task-gate.md, so not every renamed step resolves via its own new step-id...\n    - [spec-gate] Skill template and installed copies still contain old bare step `gate` in the reopen-draft sequence (`draft-gate → spec → gate → approval`), so old step-name grep is not clean.; Migration tool is present and covers most mappings, dry-run...\n    - [spec-gate] Diff updates skill templates and installed .claude/.agents copies, but authored prompt source still contains old step name text: src/flow/prompts/plan/draft-coverage-review.md retains `Gate-draft remains the blocking validation step.`\n    ... 6 other issue-log entries omitted"
+}

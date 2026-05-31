@@ -6,7 +6,7 @@
    - Apply the triaged findings once. Update `draft.json` so each `decision: "apply"` item is resolved in the smallest appropriate field.
    - Keep repair strictly limited to resolving triage `apply` items. Do not add a new requirement, scope item, task, integration path, or design decision unless it is the smallest direct correction required by that triage item and supported by the repair `evidence`.
    - Preserve existing user decisions and request-derived policy. If a blocking fix would reverse a user decision or require a new answer, ask the user via Choice Format before writing it.
-   - If there is no unresolved `requires_user_decision` item after repair, set `draft.json.approval.approved` to true and `draft.json.approval.confirmedAt` to the repair time before `gate-draft`.
+   - If there is no unresolved `requires_user_decision` item after repair, set `draft.json.approval.approved` to true and `draft.json.approval.confirmedAt` to the repair time before `draft-gate`.
    - For every triage item with `decision: "apply"`, add one `draft-coverage-repair.json.items[]` entry with:
      - `title`: copied from the triage item.
      - `target`: copied from the triage item.
@@ -31,5 +31,5 @@
        ]
      }
      ```
-   - Do not run another draft review loop from this step. The downstream `gate-draft` step remains the blocking validation step.
+   - Do not run another draft review loop from this step. The downstream `draft-gate` step remains the blocking validation step.
    - **On complete**: `sdd-forge flow set step draft-coverage-repair done`

@@ -52,7 +52,7 @@ describe("resolve-auto-check-input — phase-aware input construction (spec 220)
   });
 
   // Phase 1 — set init phase: issue + request only
-  it("returns issue+request when no gate-draft, no approval", () => {
+  it("returns issue+request when no draft-gate, no approval", () => {
     const state = {
       issue: 42,
       request: "add logging",
@@ -64,8 +64,8 @@ describe("resolve-auto-check-input — phase-aware input construction (spec 220)
     assert.ok(out.text.includes("42"));
   });
 
-  // Phase 2 — after gate-draft done: issue + request + draft body
-  it("returns issue+request+draft body when gate-draft is done and draft exists", () => {
+  // Phase 2 — after draft-gate done: issue + request + draft body
+  it("returns issue+request+draft body when draft-gate is done and draft exists", () => {
     const specDir = path.join(tmp, "specs/001-test");
     fs.mkdirSync(specDir, { recursive: true });
     fs.writeFileSync(path.join(specDir, "draft.json"), JSON.stringify({
@@ -76,7 +76,7 @@ describe("resolve-auto-check-input — phase-aware input construction (spec 220)
       issue: 10,
       request: "implement X",
       spec: "specs/001-test/spec.json",
-      steps: stepsWith(["gate-draft"]),
+      steps: stepsWith(["draft-gate"]),
     };
     const out = resolveAutoCheckInput(state, { root: tmp, specPath: state.spec });
     assert.equal(out.skip, false);
@@ -84,13 +84,13 @@ describe("resolve-auto-check-input — phase-aware input construction (spec 220)
     assert.ok(out.text.includes("implement X"));
   });
 
-  // Phase 2 edge — gate-draft done but no draft file → fall back to issue+request
-  it("falls back to issue+request when gate-draft done but draft file missing", () => {
+  // Phase 2 edge — draft-gate done but no draft file → fall back to issue+request
+  it("falls back to issue+request when draft-gate done but draft file missing", () => {
     const state = {
       issue: 10,
       request: "implement X",
       spec: "specs/001-test/spec.json",
-      steps: stepsWith(["gate-draft"]),
+      steps: stepsWith(["draft-gate"]),
     };
     const out = resolveAutoCheckInput(state, { root: tmp, specPath: state.spec });
     assert.equal(out.skip, false);
@@ -110,8 +110,8 @@ describe("resolve-auto-check-input — phase-aware input construction (spec 220)
     assert.equal(out.reason, "spec approved");
   });
 
-  // Phase 3 dominates — approval wins even if gate-draft is also done
-  it("approval takes precedence over gate-draft (spec approved wins)", () => {
+  // Phase 3 dominates — approval wins even if draft-gate is also done
+  it("approval takes precedence over draft-gate (spec approved wins)", () => {
     const specDir = path.join(tmp, "specs/001-test");
     fs.mkdirSync(specDir, { recursive: true });
     fs.writeFileSync(path.join(specDir, "draft.json"), JSON.stringify({ goal: "ignored-draft" }));
@@ -120,7 +120,7 @@ describe("resolve-auto-check-input — phase-aware input construction (spec 220)
       issue: 10,
       request: "implement X",
       spec: "specs/001-test/spec.json",
-      steps: stepsWith(["gate-draft", "approval"]),
+      steps: stepsWith(["draft-gate", "approval"]),
     };
     const out = resolveAutoCheckInput(state, { root: tmp, specPath: state.spec });
     assert.equal(out.skip, true);
@@ -131,7 +131,7 @@ describe("resolve-auto-check-input — phase-aware input construction (spec 220)
     const state = {
       issue: 10,
       request: "implement X",
-      steps: stepsWith(["gate-draft"]),
+      steps: stepsWith(["draft-gate"]),
     };
     const out = resolveAutoCheckInput(state, { root: tmp, specPath: null });
     assert.equal(out.skip, false);

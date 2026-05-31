@@ -414,7 +414,7 @@ export default class RunScenarioValidityCommand extends FlowCommand {
         artifact_version: "1",
         result,
       },
-      next: result === "pass" ? "review-test" : null,
+      next: result === "pass" ? "test-review" : null,
     };
       if (result !== "pass") {
         const err = new Error(`scenario-validity blocked: ${summary.map((entry) => `${entry.id}=${entry.classification}`).join(", ")}`);

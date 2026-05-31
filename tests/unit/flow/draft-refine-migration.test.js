@@ -38,21 +38,21 @@ describe("draft-refine flow-state migration", () => {
     const loaded = makeFlowManager(tmp).load(specId);
 
     const refine = findStepById(loaded.steps, "draft-refine");
-    const coverage = findStepById(loaded.steps, "review-draft-coverage");
+    const coverage = findStepById(loaded.steps, "draft-coverage-review");
 
     assert.equal(refine.status, "pending");
     assert.equal(coverage.status, "pending");
     const planIds = loaded.steps.find((s) => s.id === "plan").children.map((s) => s.id);
-    assert.ok(planIds.indexOf("review-draft-questions") < planIds.indexOf("draft-refine"));
-    assert.ok(planIds.indexOf("draft-refine") < planIds.indexOf("review-draft-coverage"));
+    assert.ok(planIds.indexOf("draft-questions-review") < planIds.indexOf("draft-refine"));
+    assert.ok(planIds.indexOf("draft-refine") < planIds.indexOf("draft-coverage-review"));
   });
 
   it("marks draft-refine done when draft coverage already started", () => {
     tmp = createTmpDir();
     const steps = buildInitialSteps();
     findStepById(steps, "draft-refine").status = "pending";
-    findStepById(steps, "review-draft-coverage").status = "in_progress";
-    findStepById(steps, "review-draft-coverage").startedAt = "2026-05-13T00:00:00.000Z";
+    findStepById(steps, "draft-coverage-review").status = "in_progress";
+    findStepById(steps, "draft-coverage-review").startedAt = "2026-05-13T00:00:00.000Z";
     const plan = steps.find((s) => s.id === "plan");
     plan.children = plan.children.filter((s) => s.id !== "draft-refine");
 

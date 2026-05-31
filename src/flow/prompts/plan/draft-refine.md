@@ -6,5 +6,5 @@
      - If the question is no longer necessary, redundant, or should be decided by project rules/spec writing, update that same entry to `status: "dropped"` with a concrete `droppedReason`.
    - Keep the work finite: process the existing question list once. Do not loop looking for more questions.
    - Update `decisionMap` so resolved decisions move to `knownFacts`, `resolvedByProjectRules`, or remain represented by answered `qa[]`; spec-writing details that do not need user judgment should be recorded in `deferredToSpec`.
-   - Do not set `approval.approved = true` in this step. Coverage review and gate-draft remain downstream validation.
+   - Do not set `approval.approved = true` in this step. Coverage review and draft-gate remain downstream validation.
    - When every `qa[]` entry is either `answered` or `dropped`, run `sdd-forge flow set step draft-refine done`.

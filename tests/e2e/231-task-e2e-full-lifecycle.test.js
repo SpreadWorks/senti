@@ -78,7 +78,7 @@ function setupBaseFixture(tmp, specId, specTasks) {
     steps: FLOW_STEPS.map((id) => ({
       id,
       status: [
-        "branch", "prepare-spec", "draft", "gate-draft", "spec", "gate",
+        "branch", "prepare-spec", "draft", "draft-gate", "spec", "spec-gate",
         "approval", "test",
       ].includes(id) ? "done" : id === "implement" ? "in_progress" : "pending",
     })),
@@ -149,7 +149,7 @@ describe("231: E2E full lifecycle — flat tasks", () => {
     // R3: next-action returns task-scope impl for T-1
     let na = getNextAction(tmp);
     assert.equal(na.data.taskId, "T-1");
-    assert.equal(na.data.step, "impl");
+    assert.equal(na.data.step, "task-impl");
 
     // Complete all steps of T-1
     markTaskStepsDone(tmp, SPEC_ID, "T-1");
@@ -182,7 +182,7 @@ describe("231: E2E full lifecycle — flat tasks", () => {
     // R1: flow should be finalize-eligible (flow-scope step)
     na = getNextAction(tmp);
     assert.ok(
-      ["implement", "review", "gate-impl", "finalize-commit", "finalize-merge", "finalize-sync", "finalize-cleanup"].includes(na.data.step),
+      ["implement", "impl-review", "impl-gate", "finalize-commit", "finalize-merge", "finalize-sync", "finalize-cleanup"].includes(na.data.step),
       `expected flow-scope step, got ${na.data.step}`,
     );
     assert.equal(na.data.taskId, null);
@@ -236,7 +236,7 @@ describe("231: E2E full lifecycle — parent-child tasks", () => {
     // R2: finalize-eligible
     na = getNextAction(tmp);
     assert.ok(
-      ["implement", "review", "gate-impl", "finalize-commit", "finalize-merge", "finalize-sync", "finalize-cleanup"].includes(na.data.step),
+      ["implement", "impl-review", "impl-gate", "finalize-commit", "finalize-merge", "finalize-sync", "finalize-cleanup"].includes(na.data.step),
       `expected flow-scope step, got ${na.data.step}`,
     );
   });

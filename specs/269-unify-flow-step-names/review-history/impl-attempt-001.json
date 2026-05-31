@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-05-29T14:51:47.391Z",
+  "verdict": "ADVISORY",
+  "summary": {
+    "blocking": 0,
+    "nonBlocking": 2,
+    "total": 2
+  },
+  "blockingFindings": [],
+  "nonBlockingImprovements": [
+    {
+      "title": "Spec gate prompt still documents old pre-hook step id",
+      "failureMode": "naming_consistency",
+      "file": "src/flow/prompts/plan/spec-gate.md",
+      "issue": "The first instruction still says the pre-hook sets `gate` to in_progress, even though the renamed leaf id is `spec-gate`.",
+      "suggestion": "In `src/flow/prompts/plan/spec-gate.md`, replace the first sentence's `pre sets gate to in_progress` with `pre sets spec-gate to in_progress`.",
+      "rationale": "This is an observable stale instruction in a touched prompt file. It does not block implementation because the CLI definition uses `spec-gate`, but it can confuse agents following the prompt."
+    },
+    {
+      "title": "Spec repair prompt still names downstream gate generically",
+      "failureMode": "naming_consistency",
+      "file": "src/flow/prompts/plan/spec-repair.md",
+      "issue": "The final instruction says the downstream `gate` step remains the blocking validation step, but the renamed step id is `spec-gate`.",
+      "suggestion": "In `src/flow/prompts/plan/spec-repair.md`, replace `The downstream `gate` step` with `The downstream `spec-gate` step`.",
+      "rationale": "The prompt otherwise uses the new `spec-review` and `spec-triage` names, so this remaining old/bare name is inconsistent but not a narrow blocker."
+    }
+  ],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "impl-001-non-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "Spec gate prompt still documents old pre-hook step id",
+      "body": "The first instruction still says the pre-hook sets `gate` to in_progress, even though the renamed leaf id is `spec-gate`.",
+      "category": "naming_consistency"
+    },
+    {
+      "id": "impl-001-non-blocking-002",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "Spec repair prompt still names downstream gate generically",
+      "body": "The final instruction says the downstream `gate` step remains the blocking validation step, but the renamed step id is `spec-gate`.",
+      "category": "naming_consistency"
+    }
+  ]
+}

@@ -1,9 +1,9 @@
-   - Classify the blocking findings from `review-spec` before any spec repair work.
+   - Classify the blocking findings from `spec-review` before any spec repair work.
    - Read `specs/<spec-id>/spec-review.json` first. Treat only `blockingFindings[]` as triage input. `nonBlockingImprovements[]` are advisory memory only.
    - Do not edit `spec.json`, `spec.md`, task files, or tests in this step. This step decides what should be repaired; the next `spec-repair` step performs the edits.
-   - Always write `specs/<spec-id>/spec-review-triage.json` before completing this step.
-   - If `spec-review.json` is missing, invalid, or contains no blocking findings, write `spec-review-triage.json` with an empty `items[]`, a concise `summary`, and run `sdd-forge flow set step spec-review-triage done`.
-   - For every `blockingFindings[]` entry, add one `spec-review-triage.json.items[]` entry with:
+   - Always write `specs/<spec-id>/spec-triage.json` before completing this step.
+   - If `spec-review.json` is missing, invalid, or contains no blocking findings, write `spec-triage.json` with an empty `items[]`, a concise `summary`, and run `sdd-forge flow set step spec-triage done`.
+   - For every `blockingFindings[]` entry, add one `spec-triage.json.items[]` entry with:
      - `title`: copied from the finding.
      - `target`: copied from the finding.
      - `decision`: one of `apply`, `invalid`, `already_resolved`, or `downgraded_to_non_blocking`.
@@ -13,12 +13,12 @@
    - Use `invalid` when the finding belongs to gate-owned mechanical checks, contradicts verified context, asks for broader scope, or is not grounded in the review's blocking criteria.
    - Use `already_resolved` when the current `spec.json` already covers the finding.
    - Use `downgraded_to_non_blocking` when the finding is useful context but does not block implementation, testing, safety, or compatibility.
-   - Do not defer review findings to gate. If the finding is really about schema/required fields, unresolved markers, tasks structure, or guardrail compliance, mark it `invalid` because `review-spec` reported a gate-owned issue outside its responsibility.
-   - `spec-review-triage.json` shape:
+   - Do not defer review findings to gate. If the finding is really about schema/required fields, unresolved markers, tasks structure, or guardrail compliance, mark it `invalid` because `spec-review` reported a gate-owned issue outside its responsibility.
+   - `spec-triage.json` shape:
      ```json
      {
        "version": 1,
-       "phase": "spec-review-triage",
+       "phase": "spec-triage",
        "sourceReview": "spec-review.json",
        "summary": "short summary of triage decisions",
        "items": [
@@ -32,5 +32,5 @@
        ]
      }
      ```
-   - Do not run another `review-spec` loop from this step. The downstream `spec-repair` step applies `decision=apply` items, and `gate` remains the blocking validation step.
-   - **On complete**: `sdd-forge flow set step spec-review-triage done`
+   - Do not run another `spec-review` loop from this step. The downstream `spec-repair` step applies `decision=apply` items, and `spec-gate` remains the blocking validation step.
+   - **On complete**: `sdd-forge flow set step spec-triage done`

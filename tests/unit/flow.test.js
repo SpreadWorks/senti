@@ -198,9 +198,9 @@ describe("flow-state steps and requirements", () => {
   it("updateStepStatus updates the correct step", () => {
     tmp = createTmpDir();
     const specId = setupFlow(tmp);
-    makeFlowManager(tmp).updateStepStatus("gate", "done");
+    makeFlowManager(tmp).updateStepStatus("spec-gate", "done");
     const loaded = makeFlowManager(tmp).load();
-    const gate = findStepById(loaded.steps, "gate");
+    const gate = findStepById(loaded.steps, "spec-gate");
     assert.equal(gate.status, "done");
   });
 

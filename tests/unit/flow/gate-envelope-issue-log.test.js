@@ -36,7 +36,7 @@ describe("checkRetryBelowMax — REQ-1: writes issue-log on Envelope.fail", () =
   it("appends exactly one issue-log entry when budget is exhausted", () => {
     const tmp = createTmpDir();
     try {
-      // gate-impl maxAttempts = 5 (from definition.js); supply 5 deltas to exhaust.
+      // impl-gate maxAttempts = 5 (from definition.js); supply 5 deltas to exhaust.
       const { ctx, specDir } = setupCtx(tmp, {
         phase,
         metrics: Array.from({ length: 5 }, () => ({ phase, counter: "gateRetry", delta: 1 })),
@@ -61,7 +61,7 @@ describe("checkRetryBelowMax — REQ-1: writes issue-log on Envelope.fail", () =
       assert.match(entry.reason, /gate retry limit exhausted/);
       // REQ-4: phase matches, step resolved via resolveGateStepId.
       assert.equal(entry.phase, phase);
-      assert.equal(entry.step, "gate-impl");
+      assert.equal(entry.step, "impl-gate");
 
       // REQ-3: gateRetry counter has not increased (no metric mutation).
       const after = ctx.flowState.metrics.filter(
@@ -112,7 +112,7 @@ describe("checkNoProgressSinceLastFail — REQ-2: writes issue-log on Envelope.f
           {
             entries: [
               {
-                step: "gate-impl",
+                step: "impl-gate",
                 phase,
                 reason: "prev fail",
                 headSha: "aaa",
@@ -155,7 +155,7 @@ describe("checkNoProgressSinceLastFail — REQ-2: writes issue-log on Envelope.f
       assert.match(added.reason, /working tree is unchanged/);
       // REQ-4: phase matches, step resolved via resolveGateStepId.
       assert.equal(added.phase, phase);
-      assert.equal(added.step, "gate-impl");
+      assert.equal(added.step, "impl-gate");
 
       // REQ-3: gateRetry counter has not increased.
       const after = ctx.flowState.metrics.filter(
@@ -180,7 +180,7 @@ describe("checkNoProgressSinceLastFail — REQ-2: writes issue-log on Envelope.f
           {
             entries: [
               {
-                step: "gate-impl",
+                step: "impl-gate",
                 phase,
                 reason: "prev fail",
                 headSha: "aaa",

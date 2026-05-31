@@ -129,13 +129,13 @@ describe("flow get next-action", () => {
           requirements: [],
         }],
       });
-      setTaskStepInProgress(state, "001", "impl");
+      setTaskStepInProgress(state, "001", "task-impl");
       makeFlowManager(tmp).save(state);
 
       const { envelope } = runCli(tmp, ["flow", "get", "next-action"]);
       assert.equal(envelope.ok, true);
       assert.equal(envelope.data.taskId, "001");
-      assert.equal(envelope.data.step, "impl");
+      assert.equal(envelope.data.step, "task-impl");
       assert.equal(envelope.data.action, "run-impl");
     });
   });
@@ -144,13 +144,13 @@ describe("flow get next-action", () => {
     it("returns flow step when currentTaskId is null", () => {
       tmp = createTmpDir();
       const state = setupActiveFlow(tmp);
-      setFlowStepInProgress(state, "gate");
+      setFlowStepInProgress(state, "spec-gate");
       makeFlowManager(tmp).save(state);
 
       const { envelope } = runCli(tmp, ["flow", "get", "next-action"]);
       assert.equal(envelope.ok, true);
       assert.equal(envelope.data.taskId, null);
-      assert.equal(envelope.data.step, "gate");
+      assert.equal(envelope.data.step, "spec-gate");
     });
   });
 
@@ -177,8 +177,8 @@ describe("flow get next-action", () => {
       tmp = createTmpDir();
       const state = setupActiveFlow(tmp);
       const falsyFlowSteps = [
-        "draft", "gate-draft", "spec", "gate", "test",
-        "implement", "test-execute", "test-result-review", "review", "gate-impl", "retro", "final-regression",
+        "draft", "draft-gate", "spec", "spec-gate", "test",
+        "implement", "test-execute", "test-result-review", "impl-review", "impl-gate", "retro", "final-regression",
       ];
       for (const id of falsyFlowSteps) {
         setFlowStepInProgress(state, id);
@@ -231,17 +231,17 @@ describe("flow get next-action", () => {
       assert.equal(envelope.data.output_schema.type, "object");
     });
 
-    it("returns spec-review-triage as a write-spec action with spec context", () => {
+    it("returns spec-triage as a write-spec action with spec context", () => {
       tmp = createTmpDir();
       const state = setupActiveFlow(tmp);
-      setFlowStepInProgress(state, "spec-review-triage");
+      setFlowStepInProgress(state, "spec-triage");
       makeFlowManager(tmp).save(state);
 
       const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
       assert.equal(exitCode, 0);
-      assert.equal(envelope.data.step, "spec-review-triage");
+      assert.equal(envelope.data.step, "spec-triage");
       assert.equal(envelope.data.action, "write-spec");
-      assert.equal(envelope.data.instructions.key, "plan.spec-review-triage");
+      assert.equal(envelope.data.instructions.key, "plan.spec-triage");
       assert.deepEqual(envelope.data.context.paths, { spec: "specs/001-test/spec.md" });
       assert.equal(envelope.data.output_schema.type, "object");
     });
@@ -251,7 +251,7 @@ describe("flow get next-action", () => {
     it("returns inline JSON Schema with a type field", () => {
       tmp = createTmpDir();
       const state = setupActiveFlow(tmp);
-      setFlowStepInProgress(state, "gate");
+      setFlowStepInProgress(state, "spec-gate");
       makeFlowManager(tmp).save(state);
       const { envelope } = runCli(tmp, ["flow", "get", "next-action"]);
       const schema = envelope.data.output_schema;
@@ -262,7 +262,7 @@ describe("flow get next-action", () => {
     it("returned schema is usable by validateSchema stand-alone", () => {
       tmp = createTmpDir();
       const state = setupActiveFlow(tmp);
-      setFlowStepInProgress(state, "gate");
+      setFlowStepInProgress(state, "spec-gate");
       makeFlowManager(tmp).save(state);
       const { envelope } = runCli(tmp, ["flow", "get", "next-action"]);
       const schema = envelope.data.output_schema;
@@ -277,11 +277,11 @@ describe("flow get next-action", () => {
     it("promotes first pending step when no in_progress exists, then returns envelope", () => {
       tmp = createTmpDir();
       const state = setupActiveFlow(tmp);
-      // Simulate a post-gate state: branch/prepare-spec/draft/draft reviews/gate-draft all done,
+      // Simulate a post-gate state: branch/prepare-spec/draft/draft reviews/draft-gate all done,
       // next pending step is `spec`. No step is currently in_progress.
       const steps = flattenSteps(state.steps);
-      const gateDraftIndex = steps.findIndex((step) => step.id === "gate-draft");
-      assert.notEqual(gateDraftIndex, -1, "gate-draft fixture step must exist");
+      const gateDraftIndex = steps.findIndex((step) => step.id === "draft-gate");
+      assert.notEqual(gateDraftIndex, -1, "draft-gate fixture step must exist");
       steps.forEach((step, index) => {
         step.status = index <= gateDraftIndex ? "done" : "pending";
       });
@@ -399,7 +399,7 @@ describe("flow get next-action", () => {
           requirements: [],
         }],
       });
-      setTaskStepInProgress(state, "001", "impl");
+      setTaskStepInProgress(state, "001", "task-impl");
       makeFlowManager(tmp).save(state);
       const { envelope } = runCli(tmp, ["flow", "get", "next-action"]);
       const ins = envelope.data.instructions;

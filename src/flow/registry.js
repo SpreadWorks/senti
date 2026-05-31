@@ -33,9 +33,9 @@ const DRAFT_REVIEW_RECORDED_VERDICTS = new Set(["PASS", "ADVISORY", "FAIL"]);
 const RETRY_HELP_GATE_PHASES = Object.freeze(["task-impl", "integration"]);
 const RETRY_HELP_REVIEW_PHASES = Object.freeze(["draft", "draft-questions", "draft-coverage", "spec", "test", "impl"]);
 const REVIEW_RUNTIME_STEP_BY_PHASE = Object.freeze({
-  spec: "review-spec",
-  test: "review-test",
-  impl: "review",
+  spec: "spec-review",
+  test: "test-review",
+  impl: "impl-review",
 });
 export const DRAFT_REVIEW_REGISTRY_RESPONSIBILITY_BOUNDARY = Object.freeze({
   review: "detection",
@@ -200,6 +200,21 @@ function activeStepId(flowState, stepIds) {
   const steps = Array.isArray(flowState?.steps) ? flattenSteps(flowState.steps) : [];
   const allowed = new Set(stepIds);
   return steps.find((step) => allowed.has(step.id) && step.status === "in_progress")?.id || null;
+}
+
+// Resolve which review step the impl-phase post-hook should complete: flow scope
+// uses impl-review, task scope uses task-review. Defaults to impl-review (flow).
+function activeImplReviewStepId(flowState) {
+  if (activeStepId(flowState, ["impl-review"]) === "impl-review") return "impl-review";
+  const taskId = flowState?.currentTaskId;
+  if (taskId && Array.isArray(flowState?.tasks)) {
+    const task = flowState.tasks.find((t) => t.id === taskId);
+    if (Array.isArray(task?.steps)
+      && task.steps.some((s) => s.id === "task-review" && s.status === "in_progress")) {
+      return "task-review";
+    }
+  }
+  return "impl-review";
 }
 
 function draftReviewRuntimeLogStepId(ctx, result) {
@@ -419,7 +434,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/set-broad.js"),
       args: { positional: ["action"], options: ["--step", "--reason"] },
       help: [
-        "Usage: sdd-forge flow set broad on --step <implement|review|gate-impl> --reason <text>",
+        "Usage: sdd-forge flow set broad on --step <implement|impl-review|impl-gate> --reason <text>",
         "",
         "Record an audited broad-mode exception for task-decomposed implementation.",
         "The reason must be non-empty. The record stores step, reason, timestamp,",
@@ -612,11 +627,11 @@ export const FLOW_COMMANDS = {
         if (ctx.phase === "spec") {
           const verdict = result?.artifacts?.verdict;
           if (verdict === "PASS" || verdict === "ADVISORY") {
-            tryUpdateStepStatus(ctx, "review-spec", "done");
-            tryUpdateStepStatus(ctx, "spec-review-triage", "done");
+            tryUpdateStepStatus(ctx, "spec-review", "done");
+            tryUpdateStepStatus(ctx, "spec-triage", "done");
             tryUpdateStepStatus(ctx, "spec-repair", "done");
           } else if (verdict === "FAIL") {
-            tryUpdateStepStatus(ctx, "review-spec", "done");
+            tryUpdateStepStatus(ctx, "spec-review", "done");
           }
           return;
         }
@@ -624,7 +639,7 @@ export const FLOW_COMMANDS = {
         if (ctx.phase === "test") {
           const verdict = result?.artifacts?.verdict;
           if (verdict === "PASS" || verdict === "ADVISORY") {
-            tryUpdateStepStatus(ctx, "review-test", "done");
+            tryUpdateStepStatus(ctx, "test-review", "done");
           } else if (verdict === "TOOLING_FAILURE") {
             tryAppendIssueLog(() => reviewMod.appendIssueLogFromTestReviewToolingFailure(ctx, result));
           }
@@ -636,13 +651,12 @@ export const FLOW_COMMANDS = {
         if (result?.artifacts?.phase === "impl") {
           const verdict = result.artifacts.verdict;
           if (verdict === "PASS" || verdict === "ADVISORY") {
-            tryUpdateStepStatus(ctx, "review", "done");
+            tryUpdateStepStatus(ctx, activeImplReviewStepId(ctx.flowState), "done");
           }
           return;
         }
         if (!ctx.dryRun && reviewMod.resetImplEvidenceAfterReviewProposals(ctx, result)) return;
-        const stepId = "review";
-        tryUpdateStepStatus(ctx, stepId, "done");
+        tryUpdateStepStatus(ctx, activeImplReviewStepId(ctx.flowState), "done");
       },
     },
     "auto-check": {
@@ -657,7 +671,7 @@ export const FLOW_COMMANDS = {
         "Evaluate whether the current request qualifies for auto mode.",
         "Input is derived statically from flow state based on phase:",
         "  - approval done            → skip AI (unconditionally eligible)",
-        "  - gate-draft done + draft  → issue + request + draft body",
+        "  - draft-gate done + draft  → issue + request + draft body",
         "  - otherwise                → issue + request",
         "",
         "Runs static keyword gates first; if clear, calls the AI once for scoring.",
@@ -912,7 +926,7 @@ export const FLOW_COMMANDS = {
         "",
         "Complete currentTaskId (or --task-id if specified), apply parent",
         "propagation, and auto-promote the next pending task. Useful for",
-        "recovery when gate-impl post-hook did not fire.",
+        "recovery when impl-gate post-hook did not fire.",
       ].join("\n"),
     },
     "update-overview": {

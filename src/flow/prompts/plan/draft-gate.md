@@ -1,4 +1,4 @@
-   - `sdd-forge flow run gate --phase draft` (step status is automatically managed by hooks: pre sets gate-draft to in_progress, post sets done on PASS)
+   - `sdd-forge flow run gate --phase draft` (step status is automatically managed by hooks: pre sets draft-gate to in_progress, post sets done on PASS)
    - Checks draft.json for: devType enum, goal, analysis (problem/proposedApproach/validation), decisionMap shape, qa[] lifecycle shape, approval + guardrail AI compliance.
    - If FAIL (`data.result === "fail"`): show every row in `data.artifacts.reasons` (one per violation on FAIL article entries) and every entry in `data.artifacts.issues`.
    - The draft gate is strict. Do not attempt to acknowledge exceptions in draft.json; fix draft-time guardrail violations directly or escalate at the retry limit. Guardrail exception acknowledgments are valid only after spec.json exists and only in `constraints[]`, `clarifications[].q` / `.a`, or `alternatives_considered[].option` / `.reason`.

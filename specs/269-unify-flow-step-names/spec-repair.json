@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-review-triage.json",
+  "summary": "blocking finding を R2 へ反映。cross-scope コード箇所（task-scope.js BROAD_STEPS / gate-step.js TASK_STEP_TO_PHASE+fallback / registry.js REVIEW_RUNTIME_STEP_BY_PHASE）の scope-specific 新名と一般規則、src/flow 旧 id grep 0 件を明記。draft-review-routes.js のパスも src/flow/lib/ へ訂正。",
+  "items": [
+    {
+      "title": "Conflict-id disambiguation rule is undefined for cross-scope code literals",
+      "target": "R2 / src/flow/lib/task-scope.js (BROAD_STEPS), src/flow/lib/gate-step.js, src/flow/registry.js",
+      "decision": "applied",
+      "rationale": "R2.desc に 3 つの cross-scope site の scope-specific 新名を列挙（BROAD_STEPS→implement/impl-review/impl-gate、TASK_STEP_TO_PHASE→spec-gate(task-spec)/task-gate(task-impl)+fallback spec-gate、REVIEW_RUNTIME_STEP_BY_PHASE→spec-review/test-review/impl-review）し、一般規則（flow path→impl-*/spec-gate、task cursor path→task-*）と src/flow 旧 id bare リテラル grep 0 件の完了判定を追加。draft-review-routes.js のパス誤記も src/flow/lib/ へ訂正。",
+      "evidence": "spec.json requirements[1].desc が各 cross-scope site の新名解決規則を明記するようになった。",
+      "changedFields": ["requirements[1].desc"]
+    }
+  ]
+}

@@ -6,7 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { findNextPendingTask, isTaskTerminalStatus } from "../../lib/flow-helpers.js";
 
-export const BROAD_STEPS = Object.freeze(["implement", "review", "gate-impl"]);
+export const BROAD_STEPS = Object.freeze(["implement", "impl-review", "impl-gate"]);
 
 export class TaskScopeDecision {
   constructor({ kind, task = null, record = null, reason = "" }) {
@@ -156,7 +156,7 @@ export function taskScopeViolationMessages(decision, step) {
 }
 
 export function resolveCurrentTaskSpec({ root, state }) {
-  const decision = evaluateTaskScope(state, "gate-impl");
+  const decision = evaluateTaskScope(state, "task-gate");
   if (decision.kind !== "task") {
     throw new Error(decision.reason || "currentTaskId is required for task-scoped operation");
   }

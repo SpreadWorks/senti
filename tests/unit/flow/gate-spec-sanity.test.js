@@ -96,7 +96,7 @@ describe("validateSpecRepairAudit — spec review repair audit", () => {
   function triageArtifact(items) {
     return {
       version: 1,
-      phase: "spec-review-triage",
+      phase: "spec-triage",
       sourceReview: "spec-review.json",
       summary: "Triaged blocking review findings.",
       items,
@@ -118,7 +118,7 @@ describe("validateSpecRepairAudit — spec review repair audit", () => {
     return {
       version: 1,
       phase: "spec-repair",
-      sourceReview: "spec-review-triage.json",
+      sourceReview: "spec-triage.json",
       summary: "Applied triaged review findings.",
       items,
     };
@@ -141,15 +141,15 @@ describe("validateSpecRepairAudit — spec review repair audit", () => {
     assert.deepEqual(issues, []);
   });
 
-  it("requires spec-review-triage.json when spec-review verdict is FAIL", () => {
+  it("requires spec-triage.json when spec-review verdict is FAIL", () => {
     const issues = withSpecRepairArtifacts({ "spec-review.json": failReview }, validateSpecRepairAudit);
-    assert.ok(issues.some((issue) => /spec-review-triage\.json is missing/.test(issue)), issues);
+    assert.ok(issues.some((issue) => /spec-triage\.json is missing/.test(issue)), issues);
   });
 
   it("accepts triage decisions plus repair entries for apply items", () => {
     const issues = withSpecRepairArtifacts({
       "spec-review.json": failReview,
-      "spec-review-triage.json": triageArtifact([applyTriageItem()]),
+      "spec-triage.json": triageArtifact([applyTriageItem()]),
       "spec-repair.json": repairArtifact([appliedRepairItem()]),
     }, validateSpecRepairAudit);
     assert.deepEqual(issues, []);
@@ -158,7 +158,7 @@ describe("validateSpecRepairAudit — spec review repair audit", () => {
   it("accepts triage-only drops with an empty repair artifact", () => {
     const issues = withSpecRepairArtifacts({
       "spec-review.json": failReview,
-      "spec-review-triage.json": triageArtifact([applyTriageItem({
+      "spec-triage.json": triageArtifact([applyTriageItem({
         decision: "downgraded_to_non_blocking",
         rationale: "The finding is helpful context but does not block implementation.",
         evidence: "The current requirement already has a testable acceptance path.",
@@ -171,7 +171,7 @@ describe("validateSpecRepairAudit — spec review repair audit", () => {
   it("rejects triage entries without evidence", () => {
     const issues = withSpecRepairArtifacts({
       "spec-review.json": failReview,
-      "spec-review-triage.json": triageArtifact([{
+      "spec-triage.json": triageArtifact([{
         title: "Missing implementation target",
         target: "R1",
         decision: "apply",
@@ -180,23 +180,23 @@ describe("validateSpecRepairAudit — spec review repair audit", () => {
       "spec-repair.json": repairArtifact([appliedRepairItem()]),
     }, validateSpecRepairAudit);
 
-    assert.ok(issues.some((issue) => /spec-review-triage: items\[0\]\.evidence must be non-empty/.test(issue)), issues);
+    assert.ok(issues.some((issue) => /spec-triage: items\[0\]\.evidence must be non-empty/.test(issue)), issues);
   });
 
   it("rejects unknown triage decisions", () => {
     const issues = withSpecRepairArtifacts({
       "spec-review.json": failReview,
-      "spec-review-triage.json": triageArtifact([applyTriageItem({ decision: "unsupported" })]),
+      "spec-triage.json": triageArtifact([applyTriageItem({ decision: "unsupported" })]),
       "spec-repair.json": repairArtifact([]),
     }, validateSpecRepairAudit);
 
-    assert.ok(issues.some((issue) => /spec-review-triage: items\[0\]\.decision must be one of/.test(issue)), issues);
+    assert.ok(issues.some((issue) => /spec-triage: items\[0\]\.decision must be one of/.test(issue)), issues);
   });
 
   it("rejects applied entries without changed fields", () => {
     const issues = withSpecRepairArtifacts({
       "spec-review.json": failReview,
-      "spec-review-triage.json": triageArtifact([applyTriageItem()]),
+      "spec-triage.json": triageArtifact([applyTriageItem()]),
       "spec-repair.json": repairArtifact([appliedRepairItem({
         rationale: "Applied.",
         evidence: "spec.json requirements[0].desc was intended to cover this finding.",
@@ -210,7 +210,7 @@ describe("validateSpecRepairAudit — spec review repair audit", () => {
   it("rejects repair entries without evidence", () => {
     const issues = withSpecRepairArtifacts({
       "spec-review.json": failReview,
-      "spec-review-triage.json": triageArtifact([applyTriageItem()]),
+      "spec-triage.json": triageArtifact([applyTriageItem()]),
       "spec-repair.json": repairArtifact([appliedRepairItem({
         rationale: "The helper is now named.",
         evidence: "",
@@ -223,7 +223,7 @@ describe("validateSpecRepairAudit — spec review repair audit", () => {
   it("rejects unknown repair decisions", () => {
     const issues = withSpecRepairArtifacts({
       "spec-review.json": failReview,
-      "spec-review-triage.json": triageArtifact([applyTriageItem()]),
+      "spec-triage.json": triageArtifact([applyTriageItem()]),
       "spec-repair.json": repairArtifact([appliedRepairItem({
         decision: "unsupported",
         rationale: "This is not a supported decision.",
@@ -238,17 +238,17 @@ describe("validateSpecRepairAudit — spec review repair audit", () => {
   it("rejects deferred repair decisions because review findings cannot be delegated to gate", () => {
     const issues = withSpecRepairArtifacts({
       "spec-review.json": failReview,
-      "spec-review-triage.json": triageArtifact([applyTriageItem({ decision: "deferred_to_gate" })]),
+      "spec-triage.json": triageArtifact([applyTriageItem({ decision: "deferred_to_gate" })]),
       "spec-repair.json": repairArtifact([]),
     }, validateSpecRepairAudit);
 
-    assert.ok(issues.some((issue) => /spec-review-triage: items\[0\]\.decision must be one of/.test(issue)), issues);
+    assert.ok(issues.some((issue) => /spec-triage: items\[0\]\.decision must be one of/.test(issue)), issues);
   });
 
   it("rejects triage entries that do not match the source finding", () => {
     const issues = withSpecRepairArtifacts({
       "spec-review.json": failReview,
-      "spec-review-triage.json": triageArtifact([applyTriageItem({
+      "spec-triage.json": triageArtifact([applyTriageItem({
         title: "Different finding",
         decision: "invalid",
       })]),
@@ -268,7 +268,7 @@ describe("validateSpecRepairAudit — spec review repair audit", () => {
     };
     const issues = withSpecRepairArtifacts({
       "spec-review.json": review,
-      "spec-review-triage.json": triageArtifact([applyTriageItem({
+      "spec-triage.json": triageArtifact([applyTriageItem({
         decision: "invalid",
         rationale: "The target is already covered by existing scope.",
         evidence: "spec.json scope.in already covers the implementation target.",
@@ -276,16 +276,16 @@ describe("validateSpecRepairAudit — spec review repair audit", () => {
       "spec-repair.json": repairArtifact([]),
     }, validateSpecRepairAudit);
 
-    assert.ok(issues.some((issue) => /spec-review-triage\.json items length 1 does not match blockingFindings length 2/.test(issue)), issues);
+    assert.ok(issues.some((issue) => /spec-triage\.json items length 1 does not match blockingFindings length 2/.test(issue)), issues);
   });
 
   it("rejects repair logs that do not cover every apply triage item", () => {
     const issues = withSpecRepairArtifacts({
       "spec-review.json": failReview,
-      "spec-review-triage.json": triageArtifact([applyTriageItem()]),
+      "spec-triage.json": triageArtifact([applyTriageItem()]),
       "spec-repair.json": repairArtifact([]),
     }, validateSpecRepairAudit);
 
-    assert.ok(issues.some((issue) => /does not match spec-review-triage apply item length 1/.test(issue)), issues);
+    assert.ok(issues.some((issue) => /does not match spec-triage apply item length 1/.test(issue)), issues);
   });
 });

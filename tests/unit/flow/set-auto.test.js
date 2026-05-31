@@ -244,7 +244,7 @@ describe("flow set auto", () => {
     assert.equal(saved.autoCheck.eligible, true);
   });
 
-  it("appends draft.json to auto-check input when gate-draft done (spec 220)", () => {
+  it("appends draft.json to auto-check input when draft-gate done (spec 220)", () => {
     tmp = fs.mkdtempSync(path.join(os.tmpdir(), "set-auto-draft-"));
     fs.mkdirSync(path.join(tmp, ".sdd-forge"), { recursive: true });
     fs.mkdirSync(path.join(tmp, "specs", "001-test"), { recursive: true });
@@ -275,9 +275,9 @@ describe("flow set auto", () => {
       JSON.stringify({ devType: "feature", goal: DRAFT_MARKER, analysis: { problem: "p", proposedApproach: "a", validation: "v" }, qa: [], approval: { approved: true } }),
     );
 
-    // Mark gate-draft done (phase 2) per spec 220
+    // Mark draft-gate done (phase 2) per spec 220
     const steps = buildInitialSteps();
-    findStepById(steps, "gate-draft").status = "done";
+    findStepById(steps, "draft-gate").status = "done";
     const state = {
       spec: "specs/001-test/spec.md",
       baseBranch: "main",
@@ -307,7 +307,7 @@ describe("flow set auto", () => {
     assert.notEqual(saved.autoCheck.skipped, true, "skipped must NOT be set on draft-input path");
   });
 
-  it("rejects auto mode when gate-draft is done but draft goal is missing", () => {
+  it("rejects auto mode when draft-gate is done but draft goal is missing", () => {
     tmp = createTmpProject(passResponse());
     fs.writeFileSync(
       path.join(tmp, "specs", "001-test", "draft.json"),
@@ -320,7 +320,7 @@ describe("flow set auto", () => {
       }),
     );
     const steps = buildInitialSteps();
-    findStepById(steps, "gate-draft").status = "done";
+    findStepById(steps, "draft-gate").status = "done";
     makeFlowManager(tmp).save({
       spec: "specs/001-test/spec.md",
       baseBranch: "main",

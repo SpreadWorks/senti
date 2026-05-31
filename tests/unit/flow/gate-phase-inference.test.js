@@ -27,13 +27,13 @@ describe("gate-step.js: step <-> phase round-trip (AC6/R5)", () => {
 
   it("resolveGateStepId -> STEP_TO_PHASE round-trips for flow-level gate steps", () => {
     // For each known phase, compute the step id, then look up the phase back.
-    // The forward function maps task-impl / integration both to gate-impl, so we
-    // only assert that the inverse maps back into that same equivalence class.
+    // The forward function maps integration to impl-gate and task-impl to task-gate;
+    // this round-trip only asserts the flow-level gate steps (spec-gate / draft-gate / impl-gate).
     for (const phase of VALID_GATE_PHASES) {
       const stepId = resolveGateStepId(phase);
       const back = STEP_TO_PHASE[stepId];
       // back must be a valid phase and stepId(back) must land on the same step.
-      if (stepId === "gate" || stepId === "gate-draft" || stepId === "gate-impl") {
+      if (stepId === "spec-gate" || stepId === "draft-gate" || stepId === "impl-gate") {
         assert.ok(
           VALID_GATE_PHASES.includes(back),
           `inverse produced non-phase value for ${stepId}: ${back}`,
@@ -53,19 +53,19 @@ describe("gate-step.js: step <-> phase round-trip (AC6/R5)", () => {
 // -----------------------------------------------------------------------------
 
 describe("resolveGatePhaseFromState: single in_progress (AC1/R1)", () => {
-  it("resolves flow-level gate-impl in_progress to integration", () => {
+  it("resolves flow-level impl-gate in_progress to integration", () => {
     const state = {
       steps: [
         { id: "branch", status: "done" },
         { id: "prepare-spec", status: "done" },
         { id: "draft", status: "done" },
-        { id: "gate-draft", status: "done" },
+        { id: "draft-gate", status: "done" },
         { id: "spec", status: "done" },
-        { id: "gate", status: "done" },
+        { id: "spec-gate", status: "done" },
         { id: "approval", status: "done" },
         { id: "test", status: "done" },
         { id: "implement", status: "done" },
-        { id: "gate-impl", status: "in_progress" },
+        { id: "impl-gate", status: "in_progress" },
       ],
       tasks: [],
       currentTaskId: null,
@@ -76,11 +76,11 @@ describe("resolveGatePhaseFromState: single in_progress (AC1/R1)", () => {
     assert.deepEqual(result.staleSteps, []);
   });
 
-  it("resolves gate-draft in_progress to draft", () => {
+  it("resolves draft-gate in_progress to draft", () => {
     const state = {
       steps: [
         { id: "draft", status: "done" },
-        { id: "gate-draft", status: "in_progress" },
+        { id: "draft-gate", status: "in_progress" },
       ],
       tasks: [],
       currentTaskId: null,
@@ -95,7 +95,7 @@ describe("resolveGatePhaseFromState: single in_progress (AC1/R1)", () => {
     const state = {
       steps: [
         { id: "spec", status: "done" },
-        { id: "gate", status: "in_progress" },
+        { id: "spec-gate", status: "in_progress" },
       ],
       tasks: [],
       currentTaskId: null,
@@ -116,9 +116,9 @@ describe("resolveGatePhaseFromState: zero in_progress (AC2/R2)", () => {
     const state = {
       steps: [
         { id: "branch", status: "done" },
-        { id: "gate-draft", status: "done" },
-        { id: "gate", status: "pending" },
-        { id: "gate-impl", status: "pending" },
+        { id: "draft-gate", status: "done" },
+        { id: "spec-gate", status: "pending" },
+        { id: "impl-gate", status: "pending" },
       ],
       tasks: [],
       currentTaskId: null,
@@ -136,11 +136,11 @@ describe("resolveGatePhaseFromState: multiple flow-level in_progress (AC3/R3)", 
   it("prefers the later step in FLOW_STEPS order and marks earlier ones stale", () => {
     const state = {
       steps: [
-        { id: "gate-draft", status: "done" },
+        { id: "draft-gate", status: "done" },
         { id: "spec", status: "done" },
-        { id: "gate", status: "in_progress" },
+        { id: "spec-gate", status: "in_progress" },
         { id: "implement", status: "done" },
-        { id: "gate-impl", status: "in_progress" },
+        { id: "impl-gate", status: "in_progress" },
       ],
       tasks: [],
       currentTaskId: null,
@@ -148,15 +148,15 @@ describe("resolveGatePhaseFromState: multiple flow-level in_progress (AC3/R3)", 
     const result = resolveGatePhaseFromState(state);
     assert.ok(result);
     assert.equal(result.phase, "integration");
-    assert.deepEqual(result.staleSteps, ["gate"]);
+    assert.deepEqual(result.staleSteps, ["spec-gate"]);
   });
 
   it("handles three simultaneously-in_progress gate steps (latest wins, others stale)", () => {
     const state = {
       steps: [
-        { id: "gate-draft", status: "in_progress" },
-        { id: "gate", status: "in_progress" },
-        { id: "gate-impl", status: "in_progress" },
+        { id: "draft-gate", status: "in_progress" },
+        { id: "spec-gate", status: "in_progress" },
+        { id: "impl-gate", status: "in_progress" },
       ],
       tasks: [],
       currentTaskId: null,
@@ -167,7 +167,7 @@ describe("resolveGatePhaseFromState: multiple flow-level in_progress (AC3/R3)", 
     // stale order should reflect the scan order we choose to expose; the set
     // matters. The flow-level spec only requires that staleSteps contains the
     // non-chosen in_progress gate steps.
-    assert.deepEqual(new Set(result.staleSteps), new Set(["gate-draft", "gate"]));
+    assert.deepEqual(new Set(result.staleSteps), new Set(["draft-gate", "spec-gate"]));
   });
 });
 
@@ -176,19 +176,19 @@ describe("resolveGatePhaseFromState: multiple flow-level in_progress (AC3/R3)", 
 // -----------------------------------------------------------------------------
 
 describe("resolveGatePhaseFromState: task-level takes precedence (AC4/R3)", () => {
-  it("picks task-impl when active task's gate-impl step is in_progress", () => {
+  it("picks task-impl when active task's task-gate step is in_progress", () => {
     const state = {
       steps: [
-        { id: "gate-impl", status: "pending" },
+        { id: "impl-gate", status: "pending" },
       ],
       tasks: [
         {
           id: "T1",
           status: "in_progress",
           steps: [
-            { id: "impl", status: "done" },
-            { id: "review", status: "done" },
-            { id: "gate-impl", status: "in_progress" },
+            { id: "task-impl", status: "done" },
+            { id: "task-review", status: "done" },
+            { id: "task-gate", status: "in_progress" },
           ],
         },
       ],
@@ -203,15 +203,15 @@ describe("resolveGatePhaseFromState: task-level takes precedence (AC4/R3)", () =
   it("picks task-spec when active task's gate step is in_progress, even if flow-level gate is too", () => {
     const state = {
       steps: [
-        { id: "gate", status: "in_progress" },
-        { id: "gate-impl", status: "done" },
+        { id: "spec-gate", status: "in_progress" },
+        { id: "impl-gate", status: "done" },
       ],
       tasks: [
         {
           id: "T1",
           status: "in_progress",
           steps: [
-            { id: "gate", status: "in_progress" },
+            { id: "spec-gate", status: "in_progress" },
             { id: "approval", status: "pending" },
           ],
         },
@@ -222,7 +222,7 @@ describe("resolveGatePhaseFromState: task-level takes precedence (AC4/R3)", () =
     assert.ok(result);
     assert.equal(result.phase, "task-spec");
     // The flow-level gate step is considered stale in this situation.
-    assert.ok(result.staleSteps.includes("gate"), `expected staleSteps to include flow-level 'gate', got ${JSON.stringify(result.staleSteps)}`);
+    assert.ok(result.staleSteps.includes("spec-gate"), `expected staleSteps to include flow-level 'gate', got ${JSON.stringify(result.staleSteps)}`);
   });
 });
 
@@ -247,9 +247,9 @@ describe("RunGateCommand.execute (in-process, AC2/AC3)", () => {
       featureBranch: "feature/001-test",
       steps: [
         { id: "branch", status: "done" },
-        { id: "gate-draft", status: "done" },
-        { id: "gate", status: "pending" },
-        { id: "gate-impl", status: "pending" },
+        { id: "draft-gate", status: "done" },
+        { id: "spec-gate", status: "pending" },
+        { id: "impl-gate", status: "pending" },
       ],
       tasks: [],
       currentTaskId: null,
@@ -269,7 +269,7 @@ describe("RunGateCommand.execute (in-process, AC2/AC3)", () => {
     assert.ok(json.errors?.[0]?.code === "NO_GATE_STEP_IN_PROGRESS", `unexpected code: ${errorMsg}`);
   });
 
-  it("AC3: transitions stale flow-level gate step to done and emits stderr warning when resolving integration from gate+gate-impl both in_progress", async () => {
+  it("AC3: transitions stale flow-level gate step to done and emits stderr warning when resolving integration from spec-gate+impl-gate both in_progress", async () => {
     // In-process test: drive RunGateCommand.execute directly with a mock
     // flow state and a stub flowManager. This verifies the stale-step
     // recovery side effect without spawning external processes.
@@ -284,13 +284,13 @@ describe("RunGateCommand.execute (in-process, AC2/AC3)", () => {
         { id: "branch", status: "done" },
         { id: "prepare-spec", status: "done" },
         { id: "draft", status: "done" },
-        { id: "gate-draft", status: "done" },
+        { id: "draft-gate", status: "done" },
         { id: "spec", status: "done" },
-        { id: "gate", status: "in_progress" },
+        { id: "spec-gate", status: "in_progress" },
         { id: "approval", status: "done" },
         { id: "test", status: "done" },
         { id: "implement", status: "done" },
-        { id: "gate-impl", status: "in_progress" },
+        { id: "impl-gate", status: "in_progress" },
       ],
       tasks: [],
       currentTaskId: null,
@@ -350,13 +350,13 @@ describe("RunGateCommand.execute (in-process, AC2/AC3)", () => {
       process.stderr.write = originalWrite;
     }
 
-    const doneTransition = transitions.find((t) => t.stepId === "gate" && t.status === "done");
+    const doneTransition = transitions.find((t) => t.stepId === "spec-gate" && t.status === "done");
     assert.ok(doneTransition, `expected stale 'gate' step to be transitioned to done. transitions=${JSON.stringify(transitions)}`);
 
     const stderrText = errs.join("");
     assert.match(
       stderrText,
-      /gate: stale in_progress step "gate"/,
+      /gate: stale in_progress step "spec-gate"/,
       `expected stderr to warn about stale step, got: ${stderrText}`,
     );
   });

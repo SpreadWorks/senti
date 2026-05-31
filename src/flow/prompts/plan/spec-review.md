@@ -7,7 +7,7 @@
    - The next review run receives spec-review.json as previous review memory and should not repeat acknowledged non-blocking improvements unless they became blocking.
    - The review does NOT modify spec.md or spec.json directly.
    - The CLI post-hook advances this review step after every verdict.
-   - **If verdict=PASS** (no findings or improvements): display "Review found no required fixes." The post-hook marks `review-spec`, `spec-review-triage`, and `spec-repair` done.
-   - **If verdict=ADVISORY** (non-blocking improvements only): record that the improvements are non-blocking and do not rewrite the spec only to satisfy them. The post-hook marks `review-spec`, `spec-review-triage`, and `spec-repair` done.
-   - **If verdict=FAIL** (blocking findings exist): do not edit the spec in this step and do not re-run review. The post-hook marks `review-spec` done and leaves `spec-review-triage` pending; the next step classifies findings before one-pass repair.
+   - **If verdict=PASS** (no findings or improvements): display "Review found no required fixes." The post-hook marks `spec-review`, `spec-triage`, and `spec-repair` done.
+   - **If verdict=ADVISORY** (non-blocking improvements only): record that the improvements are non-blocking and do not rewrite the spec only to satisfy them. The post-hook marks `spec-review`, `spec-triage`, and `spec-repair` done.
+   - **If verdict=FAIL** (blocking findings exist): do not edit the spec in this step and do not re-run review. The post-hook marks `spec-review` done and leaves `spec-triage` pending; the next step classifies findings before one-pass repair.
    - **REVIEW_MAX_ATTEMPTS_EXCEEDED received:** STOP and return control to the user. Do not set step done. To recover after changed evidence, the user can run `sdd-forge flow set retry reset review spec --reason <text> --yes` and then run exactly one re-review attempt. The reason is required; one re-evaluation is granted and unchanged evidence is rejected.

@@ -1,0 +1,690 @@
+{
+  "entries": [
+    {
+      "step": "review-draft-coverage",
+      "reason": "codex provider usage limit exhausted (gpt-5.5), review exited 1 with empty response",
+      "trigger": "sdd-forge flow run review --phase draft under useProfile codex-only",
+      "resolution": "switched worktree .sdd-forge/config.json useProfile from codex-only to claude-only (user-approved) to route flow AI steps to claude; codex CLI returned usage-limit error reset at ~5:05 AM",
+      "guardrailCandidate": "when a provider hits a usage limit mid-flow, surface the actual provider error and offer a provider-profile switch rather than silently retrying",
+      "taskId": null,
+      "timestamp": "2026-05-29T03:40:17.186Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-29T03:41:01.428Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft approval is required: set approval.approved = true",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "scopeVerification.in lists 7 requirement items (definition.js 改名, draft-review-routes.js / registry.js 更新, instructionsKey / プロンプトファイル改名, tests/unit/flow/** 更新, skill テンプレート + installed skills 更新, src/AGENTS.md 命名規則追記, 移行ツール + CHANGELOG 記載) but none are assigned a priority (must / should / nice-to-have). When the number of requirements exceeds three, each must carry a priority label.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-29T03:44:28.385Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in"
+          },
+          "observed": "scopeVerification.in lists 7 requirement items (definition.js 改名, draft-review-routes.js / registry.js 更新, instructionsKey / プロンプトファイル改名, tests/unit/flow/** 更新, skill テンプレート + installed skills 更新, src/AGENTS.md 命名規則追記, 移行ツール + CHANGELOG 記載) but none are assigned a priority (must / should / nice-to-have). When the number of requirements exceeds three, each must carry a priority label.",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "scopeVerification.in lists 7 requirement items (definition.js 改名, draft-review-routes.js / registry.js 更新, instructionsKey / プロンプトファイル改名, tests/unit/flow/** 更新, skill テンプレート + installed skills 更新, src/AGENTS.md 命名規則追記, 移行ツール + CHANGELOG 記載) but none are assigned a priority (must / should / nice-to-have). When the number of requirements exceeds three, each must carry a priority label."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The requirement '[must] definition.js の step id 改名（必須 8 + task 3 + 任意 spec-review-triage→spec-triage の計 12 件）' states a total count of 12 renames but does not enumerate the old→new mapping for the 9 one-to-one renames. The full rename list is deferred exclusively to the external 'Issue #347 改名リスト', which is not reproduced in the spec. Only the 3 collision cases (gate-impl, review, impl) are partially resolved in knownFacts. Two independent reviewers cannot agree on whether an implementation satisfies this requirement without consulting the external Issue.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-29T03:49:46.836Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[0]"
+          },
+          "observed": "The requirement '[must] definition.js の step id 改名（必須 8 + task 3 + 任意 spec-review-triage→spec-triage の計 12 件）' states a total count of 12 renames but does not enumerate the old→new mapping for the 9 one-to-one renames. The full rename list is deferred exclusively to the external 'Issue #347 改名リスト', which is not reproduced in the spec. Only the 3 collision cases (gate-impl, review, impl) are partially resolved in knownFacts. Two independent reviewers cannot agree on whether an implementation satisfies this requirement without consulting the external Issue.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The requirement '[must] definition.js の step id 改名（必須 8 + task 3 + 任意 spec-review-triage→spec-triage の計 12 件）' states a total count of 12 renames but does not enumerate the old→new mapping for the 9 one-to-one renames. The full rename list is deferred exclusively to the external 'Issue #347 改名リスト', which is not reproduced in the spec. Only the 3 collision cases (gate-impl, review, impl) are partially resolved in knownFacts. Two independent reviewers cannot agree on whether an implementation satisfies this requirement without consulting the external Issue."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The draft renames step IDs (e.g., `review`→`impl-review`, `gate`→`spec-gate`, `gate-impl`→`impl-gate`) that are valid argument values for the public CLI command `sdd-forge flow run <action>`, changing the meaning of that command's interface. The associated migration artifacts—migration tool and CHANGELOG breaking change record—are listed at `[should]` priority, making them optional. A [should] item can be dropped without violating the spec's own requirements, so the guardrail's 'shall include a migration plan' is not met. The alpha-period no-backward-compat policy is cited in `resolvedByProjectRules` but does not cite the `backward-compatible-cli-interface` guardrail ID in constraints, clarifications, or alternatives_considered, so the exception mechanism in the guardrail is not satisfied.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-29T03:53:39.295Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "backward-compatible-cli-interface",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[6]"
+          },
+          "observed": "The draft renames step IDs (e.g., `review`→`impl-review`, `gate`→`spec-gate`, `gate-impl`→`impl-gate`) that are valid argument values for the public CLI command `sdd-forge flow run <action>`, changing the meaning of that command's interface. The associated migration artifacts—migration tool and CHANGELOG breaking change record—are listed at `[should]` priority, making them optional. A [should] item can be dropped without violating the spec's own requirements, so the guardrail's 'shall include a migration plan' is not met. The alpha-period no-backward-compat policy is cited in `resolvedByProjectRules` but does not cite the `backward-compatible-cli-interface` guardrail ID in constraints, clarifications, or alternatives_considered, so the exception mechanism in the guardrail is not satisfied.",
+          "severity": "blocking",
+          "refs": [
+            "backward-compatible-cli-interface"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "backward-compatible-cli-interface",
+          "reason": "The draft renames step IDs (e.g., `review`→`impl-review`, `gate`→`spec-gate`, `gate-impl`→`impl-gate`) that are valid argument values for the public CLI command `sdd-forge flow run <action>`, changing the meaning of that command's interface. The associated migration artifacts—migration tool and CHANGELOG breaking change record—are listed at `[should]` priority, making them optional. A [should] item can be dropped without violating the spec's own requirements, so the guardrail's 'shall include a migration plan' is not met. The alpha-period no-backward-compat policy is cited in `resolvedByProjectRules` but does not cite the `backward-compatible-cli-interface` guardrail ID in constraints, clarifications, or alternatives_considered, so the exception mechanism in the guardrail is not satisfied."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "T-1 の test_strategy は「unit: definition の leaf id 集合と instructionsKey→prompt 解決を assertion」と記載するのみで、specs/<specid>/tests/ 以下への spec-local テスト作成も `// spec: R<N>` ヘッダ要件も指定していない。R1・R3 は新規 spec 挙動であり spec-local カバレッジが必須だが、task-impl ゲートが検査する diff + ヘッダカバレッジが担保されない。; T-2 の test_strategy は「unit: registry post-hook の step 遷移テストを新名で検証」と記載するのみで、specs/<specid>/tests/ 以下への spec-local テスト作成も `// spec: R<N>` ヘッダ要件も指定していない。R2 は新規 spec 挙動（registry/lib の step 参照更新）であり spec-local カバレッジが必須だが、task-impl ゲートが検査する diff + ヘッダカバレッジが担保されない。; T-6 の test_strategy は「unit: tmp fixture…で変換結果と終了コードを検証」と記載し acceptance は「spec-local テストで検証」と述べるが、どちらも `// spec: R<N> ...` ヘッダを各ファイルに付与する要件を明示していない。spec-test-coverage ガードレールは spec-local テストファイルごとにこのヘッダを必須とするため、task-impl ゲートのヘッダカバレッジ検査が通らない可能性がある。; R8 に「変換結果を 1 コミットで記録する」という要件が含まれているが、これは diff と test execution summary だけでは検証できない out-of-diff プロセス不変条件（git log を参照しなければコミット数を確認できない）。ガードレールは diff + テスト実行サマリーのみで PASS/FAIL を判定できる形への書き換えを要求している。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-29T04:13:04.804Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.tasks[0].test_strategy"
+          },
+          "observed": "T-1 の test_strategy は「unit: definition の leaf id 集合と instructionsKey→prompt 解決を assertion」と記載するのみで、specs/<specid>/tests/ 以下への spec-local テスト作成も `// spec: R<N>` ヘッダ要件も指定していない。R1・R3 は新規 spec 挙動であり spec-local カバレッジが必須だが、task-impl ゲートが検査する diff + ヘッダカバレッジが担保されない。",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.tasks[1].test_strategy"
+          },
+          "observed": "T-2 の test_strategy は「unit: registry post-hook の step 遷移テストを新名で検証」と記載するのみで、specs/<specid>/tests/ 以下への spec-local テスト作成も `// spec: R<N>` ヘッダ要件も指定していない。R2 は新規 spec 挙動（registry/lib の step 参照更新）であり spec-local カバレッジが必須だが、task-impl ゲートが検査する diff + ヘッダカバレッジが担保されない。",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.tasks[5].test_strategy"
+          },
+          "observed": "T-6 の test_strategy は「unit: tmp fixture…で変換結果と終了コードを検証」と記載し acceptance は「spec-local テストで検証」と述べるが、どちらも `// spec: R<N> ...` ヘッダを各ファイルに付与する要件を明示していない。spec-test-coverage ガードレールは spec-local テストファイルごとにこのヘッダを必須とするため、task-impl ゲートのヘッダカバレッジ検査が通らない可能性がある。",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "req-diff-verifiability",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.requirements[7]"
+          },
+          "observed": "R8 に「変換結果を 1 コミットで記録する」という要件が含まれているが、これは diff と test execution summary だけでは検証できない out-of-diff プロセス不変条件（git log を参照しなければコミット数を確認できない）。ガードレールは diff + テスト実行サマリーのみで PASS/FAIL を判定できる形への書き換えを要求している。",
+          "severity": "blocking",
+          "refs": [
+            "req-diff-verifiability"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "T-1 の test_strategy は「unit: definition の leaf id 集合と instructionsKey→prompt 解決を assertion」と記載するのみで、specs/<specid>/tests/ 以下への spec-local テスト作成も `// spec: R<N>` ヘッダ要件も指定していない。R1・R3 は新規 spec 挙動であり spec-local カバレッジが必須だが、task-impl ゲートが検査する diff + ヘッダカバレッジが担保されない。"
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "T-2 の test_strategy は「unit: registry post-hook の step 遷移テストを新名で検証」と記載するのみで、specs/<specid>/tests/ 以下への spec-local テスト作成も `// spec: R<N>` ヘッダ要件も指定していない。R2 は新規 spec 挙動（registry/lib の step 参照更新）であり spec-local カバレッジが必須だが、task-impl ゲートが検査する diff + ヘッダカバレッジが担保されない。"
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "T-6 の test_strategy は「unit: tmp fixture…で変換結果と終了コードを検証」と記載し acceptance は「spec-local テストで検証」と述べるが、どちらも `// spec: R<N> ...` ヘッダを各ファイルに付与する要件を明示していない。spec-test-coverage ガードレールは spec-local テストファイルごとにこのヘッダを必須とするため、task-impl ゲートのヘッダカバレッジ検査が通らない可能性がある。"
+        },
+        {
+          "guardrail_id": "req-diff-verifiability",
+          "reason": "R8 に「変換結果を 1 コミットで記録する」という要件が含まれているが、これは diff と test execution summary だけでは検証できない out-of-diff プロセス不変条件（git log を参照しなければコミット数を確認できない）。ガードレールは diff + テスト実行サマリーのみで PASS/FAIL を判定できる形への書き換えを要求している。"
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The spec does not contain an explicit listing of impact on existing features (e.g., which CLI commands such as `sdd-forge flow set step <id>`, `sdd-forge flow run <action>`, `sdd-forge flow get` are affected and in what way), nor does it include a statement that no existing features are affected. The backward-compatible-cli-interface acknowledgment in $.constraints[1] mentions one CLI surface, but this does not substitute for an enumerated impact list across all affected existing features.; T-4 (R5, priority must) plans only 'grep ベースの 0 件検証スクリプト/手動 grep' as its test strategy and does not plan the creation of a spec-local test file under specs/269-unify-flow-step-names/tests/ with a `// spec: R5 ...` header. The guardrail requires new spec behavior coverage to be written under specs/<specid>/tests/ per file, and R5 is a must-priority requirement that verifies a new behavioral condition (old step names absent from authored sources and installed skill copies).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-29T04:17:01.832Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "impact-on-existing-features",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.goal / $.scope / $.requirements"
+          },
+          "observed": "The spec does not contain an explicit listing of impact on existing features (e.g., which CLI commands such as `sdd-forge flow set step <id>`, `sdd-forge flow run <action>`, `sdd-forge flow get` are affected and in what way), nor does it include a statement that no existing features are affected. The backward-compatible-cli-interface acknowledgment in $.constraints[1] mentions one CLI surface, but this does not substitute for an enumerated impact list across all affected existing features.",
+          "severity": "blocking",
+          "refs": [
+            "impact-on-existing-features"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.tasks[3].test_strategy"
+          },
+          "observed": "T-4 (R5, priority must) plans only 'grep ベースの 0 件検証スクリプト/手動 grep' as its test strategy and does not plan the creation of a spec-local test file under specs/269-unify-flow-step-names/tests/ with a `// spec: R5 ...` header. The guardrail requires new spec behavior coverage to be written under specs/<specid>/tests/ per file, and R5 is a must-priority requirement that verifies a new behavioral condition (old step names absent from authored sources and installed skill copies).",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "The spec does not contain an explicit listing of impact on existing features (e.g., which CLI commands such as `sdd-forge flow set step <id>`, `sdd-forge flow run <action>`, `sdd-forge flow get` are affected and in what way), nor does it include a statement that no existing features are affected. The backward-compatible-cli-interface acknowledgment in $.constraints[1] mentions one CLI surface, but this does not substitute for an enumerated impact list across all affected existing features."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "T-4 (R5, priority must) plans only 'grep ベースの 0 件検証スクリプト/手動 grep' as its test strategy and does not plan the creation of a spec-local test file under specs/269-unify-flow-step-names/tests/ with a `// spec: R5 ...` header. The guardrail requires new spec behavior coverage to be written under specs/<specid>/tests/ per file, and R5 is a must-priority requirement that verifies a new behavioral condition (old step names absent from authored sources and installed skill copies)."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "T-3's test_strategy states only 'npm test 実行で回帰確認' — it updates existing unit tests under tests/unit/flow/ without creating any spec-local test file under specs/269-unify-flow-step-names/tests/ with a '// spec: R4 ...' header. The guardrail explicitly states that updating existing shared regression tests does not substitute for the required spec-local coverage, so R4 (a must-priority requirement) has no spec-local test coverage.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-29T04:22:45.976Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[2].test_strategy (T-3, R4)"
+          },
+          "observed": "T-3's test_strategy states only 'npm test 実行で回帰確認' — it updates existing unit tests under tests/unit/flow/ without creating any spec-local test file under specs/269-unify-flow-step-names/tests/ with a '// spec: R4 ...' header. The guardrail explicitly states that updating existing shared regression tests does not substitute for the required spec-local coverage, so R4 (a must-priority requirement) has no spec-local test coverage.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "T-3's test_strategy states only 'npm test 実行で回帰確認' — it updates existing unit tests under tests/unit/flow/ without creating any spec-local test file under specs/269-unify-flow-step-names/tests/ with a '// spec: R4 ...' header. The guardrail explicitly states that updating existing shared regression tests does not substitute for the required spec-local coverage, so R4 (a must-priority requirement) has no spec-local test coverage."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "T-5 covers R6 but its test_strategy states 'ドキュメント変更のため自動テスト対象外（presence を grep で確認可）' — no spec-local test file under specs/269-unify-flow-step-names/tests/ with a `// spec: R6 ...` header is planned. The guardrail requires MUST coverage for all new spec behavior.; T-7 covers R8 but its test_strategy is '適用後 grep で旧名（rename リスト対象・active 除外）の残存を確認' — no spec-local test file under specs/269-unify-flow-step-names/tests/ with a `// spec: R8 ...` header is planned. R8 is a behavioral requirement (apply migration tool, verify file contents) and requires spec-local test coverage.; T-8 covers R9 but its test_strategy states 'ドキュメント変更のため presence を grep で確認' — no spec-local test file under specs/269-unify-flow-step-names/tests/ with a `// spec: R9 ...` header is planned. The guardrail requires MUST coverage with a header-tagged file for each requirement.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-29T04:26:14.185Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.tasks[4] (T-5)"
+          },
+          "observed": "T-5 covers R6 but its test_strategy states 'ドキュメント変更のため自動テスト対象外（presence を grep で確認可）' — no spec-local test file under specs/269-unify-flow-step-names/tests/ with a `// spec: R6 ...` header is planned. The guardrail requires MUST coverage for all new spec behavior.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.tasks[6] (T-7)"
+          },
+          "observed": "T-7 covers R8 but its test_strategy is '適用後 grep で旧名（rename リスト対象・active 除外）の残存を確認' — no spec-local test file under specs/269-unify-flow-step-names/tests/ with a `// spec: R8 ...` header is planned. R8 is a behavioral requirement (apply migration tool, verify file contents) and requires spec-local test coverage.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.tasks[7] (T-8)"
+          },
+          "observed": "T-8 covers R9 but its test_strategy states 'ドキュメント変更のため presence を grep で確認' — no spec-local test file under specs/269-unify-flow-step-names/tests/ with a `// spec: R9 ...` header is planned. The guardrail requires MUST coverage with a header-tagged file for each requirement.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "T-5 covers R6 but its test_strategy states 'ドキュメント変更のため自動テスト対象外（presence を grep で確認可）' — no spec-local test file under specs/269-unify-flow-step-names/tests/ with a `// spec: R6 ...` header is planned. The guardrail requires MUST coverage for all new spec behavior."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "T-7 covers R8 but its test_strategy is '適用後 grep で旧名（rename リスト対象・active 除外）の残存を確認' — no spec-local test file under specs/269-unify-flow-step-names/tests/ with a `// spec: R8 ...` header is planned. R8 is a behavioral requirement (apply migration tool, verify file contents) and requires spec-local test coverage."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "T-8 covers R9 but its test_strategy states 'ドキュメント変更のため presence を grep で確認' — no spec-local test file under specs/269-unify-flow-step-names/tests/ with a `// spec: R9 ...` header is planned. The guardrail requires MUST coverage with a header-tagged file for each requirement."
+        }
+      ]
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "config.json provider switch (tracked file) and regenerated analysis.json blocked scenario-validity preflight as non-test implementation-target changes",
+      "trigger": "sdd-forge flow run scenario-validity preflight diff vs base branch",
+      "resolution": "reverted .sdd-forge/config.json to codex-only and restored .sdd-forge/output/analysis.json in worktree; route flow AI steps to claude via SDD_FORGE_PROFILE=claude-only env override (agent.js precedence) instead of editing the tracked config, keeping the deliverable free of the session-local provider switch",
+      "guardrailCandidate": "session-local provider/profile switches must use SDD_FORGE_PROFILE env override, not edits to tracked .sdd-forge/config.json, so plan-phase working tree stays test-only",
+      "taskId": null,
+      "timestamp": "2026-05-29T04:39:38.472Z"
+    },
+    {
+      "step": "review-test",
+      "phase": "test",
+      "failureKind": "tooling_failure",
+      "reason": "review-test tooling failure: parser_error",
+      "trigger": "review-test post hook (auto)",
+      "resolution": "Recover the tooling failure or record an explicit evidence-based override before proceeding.",
+      "artifact": "specs/269-unify-flow-step-names/test-review.md",
+      "timestamp": "2026-05-29T05:02:21.668Z"
+    },
+    {
+      "step": "review-test",
+      "phase": "test",
+      "failureKind": "tooling_failure",
+      "reason": "review-test tooling failure: parser_error",
+      "trigger": "review-test post hook (auto)",
+      "resolution": "Recover the tooling failure or record an explicit evidence-based override before proceeding.",
+      "artifact": "specs/269-unify-flow-step-names/test-review.md",
+      "timestamp": "2026-05-29T05:08:09.218Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "Addressed review advisories and prior unreviewed findings: exact instructionsKey assertions for renamed prompt-backed steps, AGENTS.md concrete-example and mandatory-prefix checks, gate->spec-gate 1:1 issue-log coverage, gate-step TASK_STEP_TO_PHASE source assertion, draft-review-routes/registry source checks, and repo-level report/retro/review code-or-path verification",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "8b563379dd5a82d9cf2cce9760fe496ee91d9468e1cfff39318037b794e183cc",
+        "currentHash": "bd878f245bf627807befb92f36bc60570e9181a71f989380dffb8816b4230e2f",
+        "changedPaths": [
+          "specs/269-unify-flow-step-names/tests/.raw/scenario-validity.log",
+          "specs/269-unify-flow-step-names/tests/code-references.test.js",
+          "specs/269-unify-flow-step-names/tests/definition-and-prompts.test.js",
+          "specs/269-unify-flow-step-names/tests/docs.test.js",
+          "specs/269-unify-flow-step-names/tests/migration-tool.test.js",
+          "specs/269-unify-flow-step-names/tests/test-and-skill-refs.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"Addressed review advisories and prior unreviewed findings: exact instructionsKey assertions for renamed prompt-backed steps, AGENTS.md concrete-example and mandatory-prefix checks, gate->spec-gate 1:1 issue-log coverage, gate-step TASK_STEP_TO_PHASE source assertion, draft-review-routes/registry source checks, and repo-level report/retro/review code-or-path verification\" --yes",
+      "createdAt": "2026-05-29T05:34:50.449Z"
+    },
+    {
+      "step": "review-test",
+      "reason": "review-test non-convergent across 6 attempts; user-approved evidence-based override to proceed to implementation",
+      "trigger": "REVIEW_MAX_ATTEMPTS_EXCEEDED then one granted re-eval also FAIL with a recurring reviewer error",
+      "resolution": "Addressed all legitimate findings (R3 outputSchemaRef guard, exact instructionsKey assertions, registry/gate-step/draft-routes source+behavior checks, gate->spec-gate 1:1, migration dry-run/--apply/git-clean/exit-codes, collision-left in flat files, code-block-vs-prose, repo-level flow.json/issue-log/report/retro/review, issue-log review/impl collision, prompt-content scan, AGENTS.md example+mandatory). Overrode only the recurring blocking finding that task-gate must use task/task-gate.md: this contradicts src/flow/definition.js:448 where the task gate node instructionsKey is impl.gate-impl (shares the impl-branch prompt), so renamed it resolves to impl.impl-gate -> prompts/impl/impl-gate.md and no task/task-gate.md exists. A prior claude reviewer confirmed this; codex flip-flopped. Tests match the verified definition.",
+      "guardrailCandidate": "review-test reviewers can flip-flop on cross-scope shared-prompt facts; record source-verified evidence and override rather than loop when a finding contradicts definition.js",
+      "taskId": null,
+      "timestamp": "2026-05-29T06:13:21.902Z"
+    },
+    {
+      "step": "implement",
+      "reason": "R8 repo test (migration-tool.test.js:258) asserts whole-file flow.json text is free of legacy step ids, but 208/354 historical flow.json files carry those ids in free-text fields (notes text, desc, request, reason, recoveryCommand). The spec mandates structural-only conversion with no scope-guessing for collision ids, so a faithful tool leaves free-text occurrences and the repo test cannot pass.",
+      "trigger": "Resume audit before completing implement: grep of historical flow.json free-text fields against the 7 unambiguous legacy tokens",
+      "resolution": "User chose to reopen draft to reconcile the spec R8 scope and the repo-level test scenario so the migration tool design, spec principles, and test assertions are coherent",
+      "guardrailCandidate": "When a spec-local test asserts a stricter contract than the spec scope supports, treat it as a scenario-validity defect and reconcile via reopen-draft rather than bending the tool to satisfy the test",
+      "taskId": null,
+      "timestamp": "2026-05-29T12:01:47.570Z"
+    },
+    {
+      "step": "implement",
+      "reason": "Global sdd-forge bin symlink was repointed mid-session to the concurrent flow worktree feature-269-promote-workflow-cli/src/sdd-forge.js, whose config schema rejects the experimental field present in this worktree config.json, so the global sdd-forge command fails config validation for this flow.",
+      "trigger": "sdd-forge flow set issue-log raised Config validation failed: experimental unknown field, with a stack trace rooted in the other worktree src/lib/config.js",
+      "resolution": "Switched this flow to invoke its own worktree-local CLI via node src/sdd-forge.js; left the global symlink untouched because the concurrent promote-workflow-cli flow may depend on it",
+      "guardrailCandidate": "Concurrent worktree flows must invoke their own worktree-local src/sdd-forge.js rather than the shared global bin symlink, which is single-resource and can be repointed by another active flow",
+      "taskId": null,
+      "timestamp": "2026-05-29T12:01:55.718Z"
+    },
+    {
+      "step": "implement",
+      "reason": "reopen-draft is not viable for this flow: (1) src/flow/lib/run-reopen-draft.js lacks an export default so the dispatcher rejects it with 'module has no default export' (pre-existing bug on main, outside 269 scope); (2) even fixed, PLAN_REOPEN_ACTIVE_STEPS excludes 'implement' and flow.json.tasks[] is empty, so the impl-phase branch returns NO_DONE_TASK.",
+      "trigger": "Ran node src/sdd-forge.js flow run reopen-draft to reconcile the R8 spec/test contradiction per user choice; it failed at dispatch, and code inspection showed the precondition would also block it",
+      "resolution": "Pending user decision: reconcile R8 in-place during implement instead of via reopen-draft, since reopen-draft cannot rewind a flat-model flow whose only active leaf is implement",
+      "guardrailCandidate": "reopen-draft only supports plan-phase active steps or impl flows with at least one done task; flat-model flows at the implement leaf need an in-place reconciliation path",
+      "taskId": null,
+      "timestamp": "2026-05-29T12:05:06.348Z"
+    },
+    {
+      "step": "implement",
+      "reason": "Prior session's rename left the collision id gate-impl unconverted across ~20 authored files (src/flow code comments/help/error messages, src/flow/prompts prose, tests/unit/flow comments and one fixture literal, src/skills SKILL.md and a partial) and missed src/skills/rules.json entirely (66 phase keys plus 2 rule bodies), so R2/R4/R5 spec-local greps failed and sdd-forge upgrade aborted on an unknown phase.",
+      "trigger": "Resume self-check ran the spec-local suite: code-references (R2), test-and-skill-refs (R4/R5) failed on residual gate-impl; upgrade then failed validating rules.json phase flow.review-draft-questions",
+      "resolution": "Replaced bare gate-impl scope-aware (flow->impl-gate, task->task-gate) leaving gate-impl-memory.json filename intact; fixed set-broad/registry --step enums to impl-review/impl-gate; remapped 66 rules.json phase keys and 2 rule bodies; re-ran upgrade to propagate installed skill copies; all 5 spec-local files and 67 edited unit tests green",
+      "guardrailCandidate": "Rename completion checks must scan .json config (rules.json phase keys/bodies) and code comments/strings, not only .md/.js step-id literals; collision ids need explicit scope-aware sweeps because partial renames pass a naive grep",
+      "taskId": null,
+      "timestamp": "2026-05-29T12:29:45.251Z"
+    },
+    {
+      "step": "implement",
+      "reason": "Prior session's R4 test rename was far more incomplete than the 20/31 progress implied: 11 test files outside tests/unit/flow (tests/unit/226-task-decomp-wiring t4/t5/t6, tests/unit/227 t-a3, tests/unit/flow.test.js, tests/unit/flow/commands/review.test.js, tests/unit/flow/get-step-instructions.test.js, tests/unit/lib/flow-helpers-tasks.test.js, and tests/e2e status-check, gate-impl-integration, 227-forest-e2e, 231-task-e2e) still asserted pre-269 step ids, so the full npm test suite had 14 failures even though spec-local R4 grep (tests/unit/flow only) passed.",
+      "trigger": "Full npm test run after completing R2/R5/R6/R7/R9 showed 2474 pass / 14 fail; acceptance criterion #4 requires the whole unit suite green, not just the tests/unit/flow grep",
+      "resolution": "Updated stale step-id literals to the renamed ids scope-aware (flow->impl-*/spec-gate, task->task-*) across all 11 files via parallel agents; production src/ untouched; full suite now 2488 pass / 0 fail",
+      "guardrailCandidate": "A rename's test-update scope must equal the full test tree (unit + e2e + sibling decomposition dirs), not a single directory; gate R4-style work on npm-suite-green, not a directory-scoped grep, because stale bare review/impl assertions and cross-dir task tests evade a narrow grep",
+      "taskId": null,
+      "timestamp": "2026-05-29T14:29:29.057Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "The self-implementing flow 269 cannot advance: its own flow.json was created pre-rename so it holds old leaf step ids (review, gate-impl, gate, review-spec, review-test, gate-draft, review-draft-questions/coverage, spec-review-triage), but the worktree CLI now runs the renamed definition, so flow get next-action throws NO_RULE_FOR_STEP: flow.review has no entry. The spec decision to exclude active flows from migration assumed the active flow is driven by the OLD definition; that assumption is false for the flow that implements the rename, whose worktree CLI IS the new definition.",
+      "trigger": "After test-result-review advanced to impl-review, flow get next-action failed resolving the in-progress old id review against the new definition",
+      "resolution": "Pending user decision: one-off migrate 269 flow.json leaf ids to new names so it can finalize, vs extend flow-store.js on-load migration to self-heal all old flow.json",
+      "guardrailCandidate": "A step-id rename must account for the implementing flow's own in-flight flow.json: either auto-migrate step ids on load or document a one-off migration of the active flow's state, because excluding active flows from migration breaks the self-implementing flow under the new definition",
+      "taskId": null,
+      "timestamp": "2026-05-29T14:32:59.725Z"
+    },
+    {
+      "step": "step-id-rename",
+      "reason": "Renamed 9 legacy step id(s) to the <phase>-<concern>-<action> convention.",
+      "trigger": "flow-store migration",
+      "resolution": "review-draft-questions->draft-questions-review, review-draft-coverage->draft-coverage-review, gate-draft->draft-gate, review-spec->spec-review, spec-review-triage->spec-triage, gate->spec-gate, review-test->test-review, review->impl-review, gate-impl->impl-gate",
+      "taskId": null,
+      "timestamp": "2026-05-29T14:41:53.405Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "Most flow/task prompt files and instructionsKey values were renamed, but task-gate still uses instructionsKey \"impl.impl-gate\" and has no corresponding prompts/task/task-gate.md, so not every renamed step resolves via its own new step-id prompt path as required.; Old bare step name `review` remains in authored skill/prompt content and installed skill copies, e.g. downstream step lists should use `impl-review`.; Migration tool is present and covers core mappings, structural flow/task renames, issue-log collision preservation, active-flow exclusion, --apply, and git-clean checks, but dry-run only prints planned summary lines rather than an actual diff as required by 'dry-run default + diff only display'.; Diff adds fixture tests and migration tool, but shows no live specs/ historical data conversion diff or dedicated finalize migration commit evidence; fixture note explicitly says live repo application is not asserted.; On-load migration and shared step-id module are added, but the diff does not show src/scripts/rename-phase-steps.js using the shared module, so shared runtime/tool mapping is not fully implemented in the diff.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-29T15:00:56.744Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R3",
+          "where": null,
+          "observed": "Most flow/task prompt files and instructionsKey values were renamed, but task-gate still uses instructionsKey \"impl.impl-gate\" and has no corresponding prompts/task/task-gate.md, so not every renamed step resolves via its own new step-id prompt path as required.",
+          "severity": "blocking",
+          "refs": [
+            "R3"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R5",
+          "where": null,
+          "observed": "Old bare step name `review` remains in authored skill/prompt content and installed skill copies, e.g. downstream step lists should use `impl-review`.",
+          "severity": "blocking",
+          "refs": [
+            "R5"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R7",
+          "where": null,
+          "observed": "Migration tool is present and covers core mappings, structural flow/task renames, issue-log collision preservation, active-flow exclusion, --apply, and git-clean checks, but dry-run only prints planned summary lines rather than an actual diff as required by 'dry-run default + diff only display'.",
+          "severity": "blocking",
+          "refs": [
+            "R7"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R8",
+          "where": null,
+          "observed": "Diff adds fixture tests and migration tool, but shows no live specs/ historical data conversion diff or dedicated finalize migration commit evidence; fixture note explicitly says live repo application is not asserted.",
+          "severity": "blocking",
+          "refs": [
+            "R8"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R10",
+          "where": null,
+          "observed": "On-load migration and shared step-id module are added, but the diff does not show src/scripts/rename-phase-steps.js using the shared module, so shared runtime/tool mapping is not fully implemented in the diff.",
+          "severity": "blocking",
+          "refs": [
+            "R10"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R6",
+        "R9"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R3",
+          "reason": "Most flow/task prompt files and instructionsKey values were renamed, but task-gate still uses instructionsKey \"impl.impl-gate\" and has no corresponding prompts/task/task-gate.md, so not every renamed step resolves via its own new step-id prompt path as required."
+        },
+        {
+          "guardrail_id": "R5",
+          "reason": "Old bare step name `review` remains in authored skill/prompt content and installed skill copies, e.g. downstream step lists should use `impl-review`."
+        },
+        {
+          "guardrail_id": "R7",
+          "reason": "Migration tool is present and covers core mappings, structural flow/task renames, issue-log collision preservation, active-flow exclusion, --apply, and git-clean checks, but dry-run only prints planned summary lines rather than an actual diff as required by 'dry-run default + diff only display'."
+        },
+        {
+          "guardrail_id": "R8",
+          "reason": "Diff adds fixture tests and migration tool, but shows no live specs/ historical data conversion diff or dedicated finalize migration commit evidence; fixture note explicitly says live repo application is not asserted."
+        },
+        {
+          "guardrail_id": "R10",
+          "reason": "On-load migration and shared step-id module are added, but the diff does not show src/scripts/rename-phase-steps.js using the shared module, so shared runtime/tool mapping is not fully implemented in the diff."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "Skill template and installed copies still contain old bare step `gate` in the reopen-draft sequence (`draft-gate → spec → gate → approval`), so old step-name grep is not clean.; Migration tool is present and covers most mappings, dry-run/--apply, git-clean check, and scope-aware flow/task renames, but active-flow handling excludes the entire active spec directory rather than only that spec's flow.json as required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-29T15:12:02.979Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R5",
+          "where": null,
+          "observed": "Skill template and installed copies still contain old bare step `gate` in the reopen-draft sequence (`draft-gate → spec → gate → approval`), so old step-name grep is not clean.",
+          "severity": "blocking",
+          "refs": [
+            "R5"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R7",
+          "where": null,
+          "observed": "Migration tool is present and covers most mappings, dry-run/--apply, git-clean check, and scope-aware flow/task renames, but active-flow handling excludes the entire active spec directory rather than only that spec's flow.json as required.",
+          "severity": "blocking",
+          "refs": [
+            "R7"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R6",
+        "R8",
+        "R9",
+        "R10"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R5",
+          "reason": "Skill template and installed copies still contain old bare step `gate` in the reopen-draft sequence (`draft-gate → spec → gate → approval`), so old step-name grep is not clean."
+        },
+        {
+          "guardrail_id": "R7",
+          "reason": "Migration tool is present and covers most mappings, dry-run/--apply, git-clean check, and scope-aware flow/task renames, but active-flow handling excludes the entire active spec directory rather than only that spec's flow.json as required."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "Diff updates skill templates and installed .claude/.agents copies, but authored prompt source still contains old step name text: src/flow/prompts/plan/draft-coverage-review.md retains `Gate-draft remains the blocking validation step.`",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-29T15:15:31.842Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R5",
+          "where": null,
+          "observed": "Diff updates skill templates and installed .claude/.agents copies, but authored prompt source still contains old step name text: src/flow/prompts/plan/draft-coverage-review.md retains `Gate-draft remains the blocking validation step.`",
+          "severity": "blocking",
+          "refs": [
+            "R5"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R5",
+          "reason": "Diff updates skill templates and installed .claude/.agents copies, but authored prompt source still contains old step name text: src/flow/prompts/plan/draft-coverage-review.md retains `Gate-draft remains the blocking validation step.`"
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Integration gate failed across iterations on artifact preconditions and spec-impl mismatches: file-map.json was missing entirely; test-execute-result predated R10; R3 task-gate prompt sharing read as a mismatch; R5 bare review/gate step-references (incl capitalized Gate-draft variants the case-sensitive sweep missed) in skills/prompts; R7 dry-run printed summary not a diff and excluded the whole active spec dir instead of only its flow.json; R8 live application not in pre-finalize diff; R10 tool's shared-module use was out of R10 file-map scope.",
+      "trigger": "sdd-forge flow run gate (integration) returned fail with per-requirement observations over 4 runs (3/5 AI-FAIL retries used)",
+      "resolution": "Created file-map.json (R1-R10); regenerated test-execute/test-result-review to cover R10; clarified R3 (task-gate intentionally shares impl.impl-gate prompt); fixed bare review/gate step-refs to impl-review/spec-gate (case-insensitive); made dry-run emit a per-file diff; narrowed active-flow exclusion to flow.json only; descoped R8 repo-wide application (R10 supersedes); added the tool to R10 file-map. Gate then PASSED with R4 skip (full-suite evidence deferred to final-regression).",
+      "guardrailCandidate": "Adding a requirement mid-impl obligates regenerating test-execute coverage and file-map; rename sweeps must be case-insensitive and cover bare step-refs in prompts/skills; the integration gate needs file-map.json before it can evaluate",
+      "taskId": null,
+      "timestamp": "2026-05-29T15:18:43.476Z"
+    }
+  ]
+}

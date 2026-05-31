@@ -136,10 +136,10 @@ for (const expectation of DRAFT_REVIEW_ROUTE_EXPECTATIONS) {
   }
 }
 const PLAN_REVIEW_MAX_ATTEMPTS_BY_ID = Object.freeze({
-  "review-draft-questions": Object.freeze({ auto: 1, manual: 1 }),
-  "review-draft-coverage": Object.freeze({ auto: 1, manual: 1 }),
-  "review-spec": Object.freeze({ auto: 4, manual: 4 }),
-  "review-test": Object.freeze({ auto: 5, manual: 5 }),
+  "draft-questions-review": Object.freeze({ auto: 1, manual: 1 }),
+  "draft-coverage-review": Object.freeze({ auto: 1, manual: 1 }),
+  "spec-review": Object.freeze({ auto: 4, manual: 4 }),
+  "test-review": Object.freeze({ auto: 5, manual: 5 }),
 });
 
 function createPlanReviewNode({ id, label, contextKinds }) {
@@ -212,7 +212,7 @@ export const FLOW_DEFINITION = Object.freeze([
         maxAttempts: 1,
       }),
       createPlanReviewNode({
-        id: "review-draft-questions",
+        id: "draft-questions-review",
         label: "Review (draft questions)",
         contextKinds: ["draft", "issue"],
       }),
@@ -227,16 +227,16 @@ export const FLOW_DEFINITION = Object.freeze([
         maxAttempts: 1,
       }),
       createPlanReviewNode({
-        id: "review-draft-coverage",
+        id: "draft-coverage-review",
         label: "Review (draft coverage)",
         contextKinds: ["draft", "issue"],
       }),
       ...createDraftReviewRouteNodes(DRAFT_COVERAGE_ROUTE),
       new FlowNode({
-        id: "gate-draft",
+        id: "draft-gate",
         label: "Gate (draft)",
         action: "run-gate",
-        instructionsKey: "plan.gate-draft",
+        instructionsKey: "plan.draft-gate",
         contextKinds: ["draft", "guardrail"],
         outputSchemaRef: "next-action/gate.schema.json",
         maxAttempts: 5,
@@ -250,12 +250,12 @@ export const FLOW_DEFINITION = Object.freeze([
         contextKinds: ["draft", "guardrail"],
         outputSchemaRef: "next-action/spec.schema.json",
       }),
-      createPlanReviewNode({ id: "review-spec", label: "Review (spec)", contextKinds: ["spec", "guardrail"] }),
+      createPlanReviewNode({ id: "spec-review", label: "Review (spec)", contextKinds: ["spec", "guardrail"] }),
       new FlowNode({
-        id: "spec-review-triage",
+        id: "spec-triage",
         label: "Spec review triage",
         action: "write-spec",
-        instructionsKey: "plan.spec-review-triage",
+        instructionsKey: "plan.spec-triage",
         contextKinds: ["spec", "guardrail"],
         outputSchemaRef: "next-action/spec.schema.json",
         maxAttempts: 1,
@@ -270,10 +270,10 @@ export const FLOW_DEFINITION = Object.freeze([
         maxAttempts: 1,
       }),
       new FlowNode({
-        id: "gate",
+        id: "spec-gate",
         label: "Gate (spec)",
         action: "run-gate",
-        instructionsKey: "plan.gate",
+        instructionsKey: "plan.spec-gate",
         contextKinds: ["spec", "guardrail"],
         outputSchemaRef: "next-action/gate.schema.json",
         maxAttempts: 5,
@@ -306,7 +306,7 @@ export const FLOW_DEFINITION = Object.freeze([
         outputSchemaRef: "next-action/scenario-validity.schema.json",
         maxAttempts: 3,
       }),
-      createPlanReviewNode({ id: "review-test", label: "Review (test)", contextKinds: ["spec", "guardrail"] }),
+      createPlanReviewNode({ id: "test-review", label: "Review (test)", contextKinds: ["spec", "guardrail"] }),
     ],
   }),
 
@@ -342,19 +342,19 @@ export const FLOW_DEFINITION = Object.freeze([
         maxAttempts: 3,
       }),
       new FlowNode({
-        id: "review",
+        id: "impl-review",
         label: "Review",
         action: "run-review",
-        instructionsKey: "impl.review",
+        instructionsKey: "impl.impl-review",
         contextKinds: ["spec", "diff", "testlog"],
         outputSchemaRef: "next-action/review.schema.json",
         maxAttempts: 4,
       }),
       new FlowNode({
-        id: "gate-impl",
+        id: "impl-gate",
         label: "Gate (impl)",
         action: "run-gate",
-        instructionsKey: "impl.gate-impl",
+        instructionsKey: "impl.impl-gate",
         contextKinds: ["spec", "diff", "testlog"],
         outputSchemaRef: "next-action/gate.schema.json",
         maxAttempts: 5,
@@ -426,26 +426,26 @@ export const FLOW_DEFINITION = Object.freeze([
 
 export const TASK_DEFINITION = Object.freeze([
   new FlowNode({
-    id: "impl",
+    id: "task-impl",
     label: "Task impl",
     action: "run-impl",
-    instructionsKey: "task.impl",
+    instructionsKey: "task.task-impl",
     contextKinds: ["task_spec", "related_summary", "overview"],
     outputSchemaRef: "next-action/impl.schema.json",
   }),
   new FlowNode({
-    id: "review",
+    id: "task-review",
     label: "Task review",
     action: "run-review",
-    instructionsKey: "task.review",
+    instructionsKey: "task.task-review",
     contextKinds: ["task_spec", "diff", "testlog"],
     outputSchemaRef: "next-action/review.schema.json",
   }),
   new FlowNode({
-    id: "gate-impl",
+    id: "task-gate",
     label: "Task gate",
     action: "run-gate",
-    instructionsKey: "impl.gate-impl",
+    instructionsKey: "impl.impl-gate",
     contextKinds: ["task_spec", "guardrail"],
     outputSchemaRef: "next-action/gate.schema.json",
     maxAttempts: 5,

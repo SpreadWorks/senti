@@ -36,7 +36,7 @@ function seedIssueLog(specDir, entries) {
 
 /**
  * Build enough gateRetry deltas to exhaust the budget for the given phase.
- * Since spec 236, maxAttempts is sourced from definition.js (gate-impl = 5).
+ * Since spec 236, maxAttempts is sourced from definition.js (impl-gate = 5).
  */
 function exhaustedMetrics(phase) {
   return Array.from({ length: 5 }, () => ({ phase, counter: "gateRetry", delta: 1 }));
@@ -59,13 +59,13 @@ describe("formatRetryHistory (via checkRetryBelowMax) — spec 224", () => {
 
       seedIssueLog(specDir, [
         {
-          step: "gate-draft",
+          step: "draft-gate",
           phase: "draft",
           reason: "draft fail B",
           trigger: "gate post hook (auto)",
         },
         {
-          step: "gate-impl",
+          step: "impl-gate",
           phase: "task-impl",
           reason: "task-impl fail A",
           trigger: "gate post hook (auto)",
@@ -92,13 +92,13 @@ describe("formatRetryHistory (via checkRetryBelowMax) — spec 224", () => {
 
       seedIssueLog(specDir, [
         {
-          step: "gate-impl",
+          step: "impl-gate",
           phase: "task-impl",
           reason: "taskimpl fail",
           trigger: "gate post hook (auto)",
         },
         {
-          step: "gate-impl",
+          step: "impl-gate",
           phase: "integration",
           reason: "integration fail",
           trigger: "gate post hook (auto)",
@@ -124,13 +124,13 @@ describe("formatRetryHistory (via checkRetryBelowMax) — spec 224", () => {
 
       seedIssueLog(specDir, [
         {
-          step: "gate-impl",
+          step: "impl-gate",
           phase: "task-impl",
           reason: "normal fail X",
           trigger: "gate post hook (auto)",
         },
         {
-          step: "gate-impl",
+          step: "impl-gate",
           phase: "task-impl",
           reason: "escalation self-record Y",
           trigger: "gate onError hook (auto)",
@@ -156,13 +156,13 @@ describe("formatRetryHistory (via checkRetryBelowMax) — spec 224", () => {
 
       seedIssueLog(specDir, [
         {
-          step: "gate-impl",
+          step: "impl-gate",
           // phase omitted
           reason: "legacy fail no phase",
           trigger: "gate post hook (auto)",
         },
         {
-          step: "gate-impl",
+          step: "impl-gate",
           phase: "task-impl",
           reason: "current fail",
           trigger: "gate post hook (auto)",
@@ -194,7 +194,7 @@ describe("formatRetryHistory (via checkRetryBelowMax) — spec 224", () => {
           trigger: "some other hook",
         },
         {
-          step: "gate-impl",
+          step: "impl-gate",
           phase: "task-impl",
           reason: "gate fail kept",
           trigger: "gate post hook (auto)",
@@ -223,19 +223,19 @@ describe("formatRetryHistory (via checkRetryBelowMax) — spec 224", () => {
 
       seedIssueLog(specDir, [
         {
-          step: "gate",
+          step: "spec-gate",
           phase: "spec",
           reason: "spec phase fail",
           trigger: "gate post hook (auto)",
         },
         {
-          step: "gate",
+          step: "spec-gate",
           phase: "task-spec",
           reason: "task-spec phase fail",
           trigger: "gate post hook (auto)",
         },
         {
-          step: "gate-impl",
+          step: "impl-gate",
           phase: "task-impl",
           reason: "task-impl real fail",
           trigger: "gate post hook (auto)",

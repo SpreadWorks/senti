@@ -4,6 +4,29 @@
 
 ### Breaking Changes
 
+#### Flow step ids unified under `<phase>-<concern>-<action>`; legacy names removed (spec 269)
+
+Flow definition leaf step ids were renamed to the `<phase>-<concern>-<action>` convention so a step id alone reveals its phase. The bare, context-dependent names are gone:
+
+| Old | New | Old | New |
+|---|---|---|---|
+| `gate` | `spec-gate` | `review` (impl) | `impl-review` |
+| `gate-draft` | `draft-gate` | `gate-impl` (flow) | `impl-gate` |
+| `review-spec` | `spec-review` | `impl` (task) | `task-impl` |
+| `review-test` | `test-review` | `review` (task) | `task-review` |
+| `review-draft-questions` | `draft-questions-review` | `gate-impl` (task) | `task-gate` |
+| `review-draft-coverage` | `draft-coverage-review` | `spec-review-triage` | `spec-triage` |
+
+This is a **breaking** change to the public CLI: `sdd-forge flow set step <id> <status>` and `flow run gate/review --phase <p>` now accept only the new ids. **No backward-compatible aliases are provided** (alpha policy) — the old step names are removed outright.
+
+**Migration of historical spec data:**
+
+- A migration tool ships at `src/scripts/rename-phase-steps.js`. Run `node src/scripts/rename-phase-steps.js` for a dry-run diff, then `node src/scripts/rename-phase-steps.js --apply` to convert `specs/*/flow.json` (structural step-id positions), `issue-log.json` (1:1 `step` ids; collision ids left as-is), and `report.json` / `retro.json` / `review.md` (path and code regions only). Free-text prose is left untouched.
+- `--apply` requires a clean git worktree and excludes any spec listed in `.sdd-forge/.active-flow`.
+- **Concurrent active flows are safe** when this change merges: although the `sdd-forge` CLI is symlinked to the repository source and a merge repoints flows that use it to the new definition, the on-load migration below auto-upgrades any pre-rename `flow.json` the next time it is loaded. A previously-documented hard "no other active flow" merge precondition is therefore **no longer required** — an in-flight flow whose `flow.json` still holds old ids self-heals on its next load instead of failing to resolve its in-progress step.
+- **On-load self-heal:** loading any pre-rename `flow.json` auto-migrates its step ids to the new convention (`src/lib/flow-store.js` `migrateFlowState`, sharing `src/lib/step-id-rename.js` with the tool) and persists the upgrade. So an in-flight flow — including the one that implements this rename — keeps working under the new definition without manual steps. Running the migration tool remains the way to clean up committed historical data (and `report.json` / `retro.json` / `review.md`) that is never reloaded.
+- **Existing PRs/branches that contain a `flow.json` must re-run the migration tool after merging** this change, since their committed flow state still carries the old step ids in source control (再走が必要); the on-load migration upgrades it the next time that flow is loaded.
+
 #### `flow run auto-check` input is now phase-aware; `--input` removed (spec 220)
 
 `sdd-forge flow run auto-check` no longer accepts `--input <text>`. The input is now derived statically from flow state based on progress phase:

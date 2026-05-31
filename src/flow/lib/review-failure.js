@@ -20,11 +20,12 @@ const MARKER_CLASSIFICATIONS = Object.freeze([
 ]);
 
 const REVIEW_PHASE_BY_STEP_ID = Object.freeze({
-  "review-draft-questions": "draft-questions",
-  "review-draft-coverage": "draft-coverage",
-  "review-spec": "spec",
-  "review-test": "test",
-  review: "impl",
+  "draft-questions-review": "draft-questions",
+  "draft-coverage-review": "draft-coverage",
+  "spec-review": "spec",
+  "test-review": "test",
+  "impl-review": "impl",
+  "task-review": "impl",
 });
 
 function requireString(value, name) {

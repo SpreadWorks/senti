@@ -118,7 +118,7 @@ function buildContextDescriptor(kinds, target, state) {
 
 function isFlowImplementationStep(target) {
   return target?.scope === "flow"
-    && ["implement", "review", "gate-impl"].includes(target.stepId);
+    && ["implement", "impl-review", "impl-gate"].includes(target.stepId);
 }
 
 function attachRetryRecovery(result, stopKey, stopView, retryRecovery) {
@@ -291,7 +291,7 @@ export default class GetNextActionCommand extends FlowCommand {
         attachRetryRecovery(result, "reviewStop", reviewStop, retryRecovery);
       }
     }
-    const gateRecoveryDisplay = target.stepId.startsWith("gate")
+    const gateRecoveryDisplay = target.stepId.endsWith("-gate")
       ? resolveGateRecoveryDisplayPhase({
           flowState: state,
           stepId: target.stepId,

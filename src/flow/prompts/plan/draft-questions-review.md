@@ -12,4 +12,4 @@
    - PASS means no review result entries. ADVISORY means advisory findings or repair targets exist but can proceed through triage. FAIL means at least one blocking finding exists.
    - The `draft-review-questions.json` artifact must contain at most 20 total review result entries. Each result entry may contain only the schema-defined fields. Each string field in each entry must be at most 1000 characters. The JSON artifact must stay under 1 MiB. If more defects seem possible, report the highest-impact entries and stop.
    - The CLI marks this step done after the review artifact is written. PASS advances to `draft-refine` after the registry hook writes empty triage/repair bookkeeping artifacts. ADVISORY and FAIL advance to `draft-questions-triage`, which disposes any findings or repair targets.
-   - Do not manually add follow-up questions and do not re-run this stage automatically. Gate-draft remains the blocking validation step.
+   - Do not manually add follow-up questions and do not re-run this stage automatically. Draft-gate remains the blocking validation step.

@@ -3,7 +3,7 @@
  *
  * Gate step / gate phase mapping — derived from definition.js.
  * Project regression validation belongs to the flow-level integration phase;
- * task-level gate-impl remains mapped to task-impl.
+ * task-level task-gate remains mapped to task-impl.
  */
 
 import { FLOW_DEFINITION, TASK_DEFINITION, collectLeafIds, resolveNodeFor, collectGatePhaseEntries } from "../definition.js";
@@ -23,12 +23,12 @@ export const STEP_TO_PHASE = Object.freeze(
 
 export function resolveGateStepId(phase) {
   const step = PHASE_TO_STEP[phase];
-  return step || "gate";
+  return step || "spec-gate";
 }
 
 const TASK_STEP_TO_PHASE = Object.freeze({
-  "gate": "task-spec",
-  "gate-impl": "task-impl",
+  "spec-gate": "task-spec",
+  "task-gate": "task-impl",
 });
 
 const FLOW_GATE_STEP_IDS = Object.freeze(Object.keys(STEP_TO_PHASE));

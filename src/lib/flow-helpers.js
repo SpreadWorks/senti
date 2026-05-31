@@ -201,7 +201,7 @@ export function findNextPendingTask(tasks) {
  * currentTaskId is already set or no pending tasks remain).
  *
  * Spec 226: single caller boundary — call sites are (1) sync-spec-tasks at end
- * of sync, (2) gate-impl PASS post-hook after completeTask. completeTask itself
+ * of sync, (2) impl-gate PASS post-hook after completeTask. completeTask itself
  * must NOT call this (responsibility separation).
  *
  * Mutates `state` in place. Returns the promoted task id or null.

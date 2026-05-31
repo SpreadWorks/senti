@@ -34,8 +34,8 @@ const MAX_FN_BY_KIND = Object.freeze({
 });
 
 function normalizeReviewResetPhase(phase) {
-  if (phase === "review-draft-questions") return "draft-questions";
-  if (phase === "review-draft-coverage") return "draft-coverage";
+  if (phase === "draft-questions-review") return "draft-questions";
+  if (phase === "draft-coverage-review") return "draft-coverage";
   return phase;
 }
 
@@ -44,8 +44,8 @@ function resolveReviewResetPhases(ctx, phase) {
   if (normalized !== "draft") return [normalized];
   const steps = Array.isArray(ctx.flowState?.steps) ? flattenSteps(ctx.flowState.steps) : [];
   const active = steps.find((step) => step.status === "in_progress");
-  if (active?.id === "review-draft-questions") return ["draft-questions"];
-  if (active?.id === "review-draft-coverage") return ["draft-coverage"];
+  if (active?.id === "draft-questions-review") return ["draft-questions"];
+  if (active?.id === "draft-coverage-review") return ["draft-coverage"];
   return ["draft-questions", "draft-coverage"];
 }
 

@@ -1,4 +1,4 @@
-   - Classify findings from `review-draft-questions` before any draft repair work.
+   - Classify findings from `draft-questions-review` before any draft repair work.
    - Read `specs/<spec-id>/draft-review-questions.json` first. Treat only `blockingFindings[]` and `repairTargets[]` as triage input. `advisoryFindings[]` are advisory memory only.
    - Do not edit `draft.json`, spec files, task files, or tests in this step. This step decides what should be repaired; the next `draft-questions-repair` step performs the edits.
    - Always write `specs/<spec-id>/draft-questions-triage.json` before completing this step.
@@ -32,5 +32,5 @@
        ]
      }
      ```
-   - Do not run another draft review loop from this step. The downstream `draft-questions-repair` step applies `decision=apply` items, and gate-draft remains the blocking validation step.
+   - Do not run another draft review loop from this step. The downstream `draft-questions-repair` step applies `decision=apply` items, and draft-gate remains the blocking validation step.
    - **On complete**: `sdd-forge flow set step draft-questions-triage done`

@@ -8,7 +8,7 @@
    - Select pending/unresolved entries first, preserving file order within that group, then answered/dropped entries. Inspect at most 40 QA entries, at most 2000 characters per entry, and at most 40000 characters total.
    - Report at most 3 `blockingFindings[]` entries, 3 `advisoryFindings[]` entries, and 3 `repairTargets[]` entries. If more seem possible in any category, report the highest-impact entries and stop.
    - After the review artifact is written, do not re-run this stage automatically.
-   - Do not use this stage to judge answer ambiguity, wording quality, evidence strength, or rationale quality. Ambiguous answers are handled at the moment the answer is collected; gate-draft handles residual structural validation.
-   - The CLI marks this step done after the review artifact is written. PASS advances to `gate-draft` after the registry hook writes empty triage/repair bookkeeping artifacts. ADVISORY and FAIL advance to `draft-coverage-triage`.
+   - Do not use this stage to judge answer ambiguity, wording quality, evidence strength, or rationale quality. Ambiguous answers are handled at the moment the answer is collected; draft-gate handles residual structural validation.
+   - The CLI marks this step done after the review artifact is written. PASS advances to `draft-gate` after the registry hook writes empty triage/repair bookkeeping artifacts. ADVISORY and FAIL advance to `draft-coverage-triage`.
    - `draft-coverage-repair` is responsible for setting draft approval after required repair bookkeeping is complete.
-   - Gate-draft remains the blocking validation step.
+   - Draft-gate remains the blocking validation step.

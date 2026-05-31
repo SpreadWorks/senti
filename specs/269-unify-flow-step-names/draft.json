@@ -1,0 +1,139 @@
+{
+  "devType": "refactor",
+  "goal": "flow definition の step ID を `<phase>-<concern>-<action>` 規則に統一し、bare 名（review/gate/gate-impl 等）を解消する。命名規則を src/AGENTS.md に明文化し、コード・プロンプト・テスト・skill の全参照を新名へ更新する。過去 spec データ（flow.json/issue-log.json 等）の旧名は src/ 配下に同梱する移行ツールで一括変換し、CHANGELOG に breaking change として記載する。alpha 期間のため後方互換シム・旧名 alias は追加しない。",
+  "analysis": {
+    "problem": "step ID から所属 phase が読めず、bare な review / gate / gate-impl が flow / task / phase のどれを指すか文脈依存になっている。これにより skill / docs / 過去 spec とのテキストマッチングが曖昧になり、将来の phase 別 metrics 集計（4d21）でも判別が必要になる。",
+    "proposedApproach": "Issue の改名リスト（必須 8 + task 3 + 任意 spec-review-triage→spec-triage の計 12 件）に従い definition.js の step id を改名する。集約点である draft-review-routes.js、ハードコード参照を持つ registry.js（plan/test/impl review の post-hook）、instructionsKey とプロンプトファイル（src/flow/prompts/<branch>/<step>.md、step と 1:1。branch ディレクトリ構造は維持）、tests/unit/flow/**、skill テンプレートを新名へ更新する。命名規則を src/AGENTS.md に追記し、過去 spec の旧名は src/ 配下に同梱する移行ツールで一括変換して CHANGELOG に記載する。",
+    "validation": "改名は『step 名から phase が読めない混乱』という root 問題に直結する。改名 12 件のうち 9 件は 1:1 対応で単純文字列置換が可能。衝突する 3 件（gate-impl/review/impl）のみ flow scope と task scope で同一文字列のため文脈判別が必要で、flow.json は構造位置で判別、issue-log.json は scope フィールドが無いため据え置きとする。instructionsKey の phase 二重化（impl.impl-review）は branch ディレクトリ維持方針のもとで許容する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "sdd-forge CLI はグローバルにメインリポジトリ（/home/nakano/workspace/sdd-forge/src）へ symlink されており、worktree での definition.js 編集は merge まで実行中フローに影響しない。merge した瞬間に全フロー（並行 worktree 含む）へ即時反映される。",
+      "step id とプロンプトは src/flow/prompts/<branch>/<step>.md で 1:1 対応。get-step-instructions.js が instructionsKey `<branch>.<step>` からファイルパスを解決する。branch は plan/impl/task で、新命名の概念 phase（draft/spec/test/impl/finalize/task）とは plan branch 配下の step で乖離する（例: plan branch の gate は概念 phase が spec）。",
+      "draft-review-routes.js が draft review 系 step id の集約点。registry.js は plan review（review-spec, spec-review-triage）/ test review（review-test）/ impl review（review）の post-hook で step id をハードコード参照している。",
+      "tests/unit/flow/** に 140+ の step id assertion。flow-steps.test.js が step 順序をリテラル列挙している。",
+      "過去 spec は 421 件、flow.json 354 件（うち 274 件に旧名）、issue-log.json 253 件。issue-log エントリは {step, reason, trigger, resolution, timestamp} のフラット構造で scope/phase フィールドを持たない（specs/136・149・153 で確認）。issue-log には rename リスト外の legacy 名（retry-recovery / merge / review-draft / commit / prelude 等）も混在。",
+      "改名マッピング全 12 件（旧名→新名）。必須改名 8 件: (1) review[impl child]→impl-review、(2) gate[plan child, spec gate]→spec-gate、(3) gate-draft→draft-gate、(4) gate-impl[flow child]→impl-gate、(5) review-draft-questions→draft-questions-review、(6) review-draft-coverage→draft-coverage-review、(7) review-spec→spec-review、(8) review-test→test-review。task scope 3 件: (9) impl[task child]→task-impl、(10) review[task child]→task-review、(11) gate-impl[task child]→task-gate。任意 1 件: (12) spec-review-triage→spec-triage。維持（改名しない）: draft, spec, test, draft-refine, draft-questions-triage, draft-questions-repair, draft-coverage-triage, draft-coverage-repair, spec-repair, test-execute, test-result-review, finalize-commit, finalize-merge, finalize-sync, finalize-cleanup, prepare-spec, branch, approval, scenario-validity, implement, retro, final-regression, および branch id の plan / impl。",
+      "上記 12 改名エントリに現れる distinct な旧名 step 文字列は 10 個。うち 7 個は旧名→新名が 1:1 で単純文字列置換が可能: gate→spec-gate、gate-draft→draft-gate、review-draft-questions→draft-questions-review、review-draft-coverage→draft-coverage-review、review-spec→spec-review、review-test→test-review、spec-review-triage→spec-triage。残る 3 個は scope によって 2 つの新名へ分岐する衝突名: review→{impl-review(flow scope)/task-review(task scope)}、gate-impl→{impl-gate(flow scope)/task-gate(task scope)}、impl→{維持(flow branch id)/task-impl(task child)}。衝突名は flow.json では steps[] vs tasks[].steps[] の構造位置で判別可能（specs/048・050・052 等で task scope の gate-impl を確認）。issue-log.json はフラット構造で scope を持たないため衝突名は据え置く。",
+      "scripts/ は npm files（src/ のみ、src/presets/*/tests 除外）に含まれず配布されない。src/ 配下のファイルは配布される。実行中フロー 269 の flow.json は worktree の specs/269-unify-flow-step-names/flow.json に存在。",
+      "skill 変更後は sdd-forge upgrade で .claude/skills, .agents/skills へ反映される（CLAUDE.md 開発ワークフロー）。"
+    ],
+    "decisionPoints": [],
+    "resolvedByProjectRules": [
+      "alpha 期間ポリシー（CLAUDE.md）: 後方互換シム・旧名 alias を追加しない。",
+      "プロンプトファイル改名と definition 更新は同一コミットで行う（src/CLAUDE.md のガイド同期 MUST に準ずる一貫性原則）。",
+      "skill テンプレート変更後は sdd-forge upgrade で installed skill copies へ反映する。",
+      "テスト assertion の更新は『テストを通すための恣意的修正』ではなく改名の正当な反映として実施する（CLAUDE.md テストルールに非抵触）。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "移行ツールの具体アルゴリズム（markdown はコードブロック/パス文字列のみ置換、dry-run default + --apply、git clean 前提、置換結果を 1 コミットで記録、active flow の flow.json 除外実装）。",
+      "移行ツールの src/ 配下での具体パスと起動方法（src/scripts/ 配下のスクリプトとして node 実行）。",
+      "tests/unit/flow の assertion 更新の機械的反映範囲。",
+      "CHANGELOG の breaking change 文面（merge 前提『他に active flow 無し』、既存 PR/branch 向け再走手順、issue-log 衝突名据え置きの注記）。",
+      "src/AGENTS.md の命名規則セクションの具体文言。",
+      "grep 0 件検証の具体パターンと対象パス集合（authored sources + installed skill copies）。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] definition.js の step id 改名（必須 8 + task 3 + 任意 spec-review-triage→spec-triage の計 12 件）",
+      "[must] draft-review-routes.js / registry.js の step id 参照更新",
+      "[must] instructionsKey とプロンプトファイルの新 step id への改名（prompts/<branch>/ 構造維持）",
+      "[must] tests/unit/flow/** の step id assertion 更新",
+      "[must] skill テンプレートと installed skills（upgrade 反映）の step 名更新",
+      "[should] src/AGENTS.md への命名規則追記",
+      "[must] 破壊的変更の移行計画: src/ 配下に同梱する移行ツール（1:1 の 7 種変換、flow.json 衝突名は構造判別、issue-log 衝突名は据え置き、active flow 除外）＋ CHANGELOG への breaking change 記載（旧名廃止・再走手順・『他に active flow 無し』merge 前提）。step id は flow set step <id> 等の公開 CLI 引数値であり、旧名互換 alias は alpha ポリシーで追加しないが、本移行計画を必須対応として提供する"
+    ],
+    "out": [
+      "rename リスト外の legacy 名（retry-recovery / merge / commit / prelude 等）の変換",
+      "issue-log.json の衝突名 3 件（gate-impl/review/impl）の変換（据え置き）",
+      "gate / review の評価ロジックそのものの変更",
+      "flow の挙動・遷移順序の変更",
+      "新規 step の追加",
+      "生成済み docs/ の手動 0 件検証（build で再生成）"
+    ]
+  },
+  "impactOnExisting": [
+    "definition.js / draft-review-routes.js / registry.js: step id 改名に伴う内部参照更新。",
+    "src/flow/prompts/<branch>/<step>.md: ファイル名改名（branch 構造維持）と instructionsKey 更新。",
+    "tests/unit/flow/**: 140+ assertion の新名反映。",
+    "skill テンプレート + installed skill copies（.claude/skills, .agents/skills）を upgrade で更新。",
+    "過去 spec 最大 274 flow.json + issue-log を移行ツールで書き換え（1 コミット、active flow 除外、issue-log 衝突名据え置き）。",
+    "他に active なフロー（並行 worktree）が存在する場合、merge 時に旧名 flow.json が新 definition と不整合になるため、merge 前提として『他に active flow 無し』を要求。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "改名対象を Issue の改名リスト通り（必須改名 8 件 + task scope 3 件）とし、『維持リスト』の step 名は変更しない方針で確定してよいか。また Issue で『任意だが推奨』とされている spec-review-triage → spec-triage を本 spec に含めるか。",
+      "answer": "必須改名 8 件 + task 3 件に加え、任意の spec-review-triage → spec-triage を含める（計 12 件）。維持リストの step 名は変更しない。",
+      "evidence": "Issue #347 改名リスト。spec-review-triage は『review-triage の二重 action が冗長』として任意改名（Cleanup for consistency）に挙げられている。",
+      "why": "統一の目的（bare 名・冗長名の解消）に沿う。既に全参照箇所を触るため、任意 1 件の追加コストは限界的。",
+      "considered": "必須+task のみに限定して任意分を見送る案。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "step id とプロンプトは src/flow/prompts/<branch>/<step>.md で 1:1、instructionsKey は `<branch>.<step>` 形式である。step id 改名に伴い instructionsKey とプロンプトファイル名をどう扱うか。例えば impl scope の review→impl-review は instructionsKey が impl.impl-review と phase が二重化し、plan branch の gate→spec-gate は instructionsKey が plan.spec-gate と branch(plan)/phase(spec) が不一致になる。(a) instructionsKey とファイル名を新 step id に合わせて改名 (b) prompt キー/ファイル名は現状維持し step id とだけ対応付けを切り離す (c) その他、のいずれにするか。",
+      "answer": "(a) instructionsKey とプロンプトファイルを新 step id に合わせて改名し、prompts/<branch>/<新step>.md の branch ディレクトリ構造は維持する。impl.impl-review の phase 二重化や plan.spec-gate の branch/phase 不一致は許容する。",
+      "evidence": "src/flow/lib/get-step-instructions.js が instructionsKey `<branch>.<step>` から prompts/<branch>/<step>.md を 1:1 で解決（Explore 調査で確認）。",
+      "why": "loader 規約をほぼ変えず step↔prompt の 1:1 と自己説明性を保つ。フラット化(b)は loader 規約変更と dir 再編で diff が拡大、prompt 名据え置き(c)は 1:1 と自己説明性が壊れ将来の混乱源になる。branch ディレクトリは flow の構造的グルーピングであり、概念 phase との表層的不一致は許容範囲。",
+      "considered": "(b) branch を捨てプロンプトをフラット化（key=step id）、(c) プロンプト名を現状維持し step id と切り離す。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "移行ツールの旧名→新名マッピングには scope が衝突する名前が含まれる（gate-impl は flow scope で impl-gate / task scope で task-gate、review は flow の impl-review / task の task-review、impl は task の task-impl だが branch id の impl は維持）。Issue が提案する『string 値が完全一致したフィールドのみ置換』では flow scope と task scope を区別できない。flow.json は steps[] と tasks[].steps[] の構造位置で、issue-log.json は entry.phase で scope を判定する『構造認識型』の変換を要件とするか。それとも別方式か。",
+      "answer": "distinct な旧名 10 種のうち、1:1 対応の 7 種（gate, gate-draft, review-draft-questions, review-draft-coverage, review-spec, review-test, spec-review-triage）は文字列置換で変換する。scope 衝突する 3 種（review, gate-impl, impl）について、flow.json では構造位置（トップ steps[]＝flow scope、tasks[].steps[]＝task scope）で判別して変換する。issue-log.json はエントリに scope 情報が無いため、衝突 3 種は据え置き（旧名のまま）とし、1:1 の 7 種のみ変換する。",
+      "evidence": "definition.js で gate-impl/review が FLOW_DEFINITION と TASK_DEFINITION の両方に存在。flow.json は specs/048・050・052 等で task scope の gate-impl を tasks[].steps[] に確認。issue-log エントリは {step,reason,trigger,resolution,timestamp} のフラット構造で scope/phase フィールドを持たない（specs/136・149・153 で確認）。",
+      "why": "issue-log は audit ログであり、scope 情報を持たない衝突名を推測変換すると誤った属性を歴史データに刻む。据え置きなら誤変換ゼロを保てる。1:1 の 9 件は確実に変換でき、4d21 metrics 側は新名前提（Issue 明記）で issue-log の旧名残存を集計除外できる。flow.json の衝突名は構造で決定的に判別できるため変換する。",
+      "considered": "issue-log 衝突名を flow scope の新名にデフォルト統一する案、trigger 文から scope を推測する案。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "sdd-forge CLI はメインリポジトリへ symlink されているため、本変更を merge した瞬間に旧名が全フロー（並行 worktree 含む）で無効になる。また移行ツールが specs/*/flow.json を対象にすると active flow（269 自身を含む）の flow.json も書き換え対象になり、実行中フローを破壊し得る。移行ツールは active flow の flow.json を除外し、かつ rename の merge 前提として『他に active flow が無いこと』を要求して CHANGELOG に明記する方針でよいか。",
+      "answer": "移行ツールは active flow（.active-flow が指す spec）の flow.json を除外する。rename の merge 前提として『他に active flow が無いこと』を要求し、CHANGELOG に明記する。",
+      "evidence": "sdd-forge CLI は main repo へ symlink（which/readlink -f で /home/nakano/workspace/sdd-forge/src/sdd-forge.js を確認）。active flow 269 の flow.json は worktree の specs/269-.../flow.json に存在し、移行ツールが specs/*/flow.json を対象にすると当該ファイルも書き換える。",
+      "why": "merge 時に旧名が全フローで無効化される。active flow の flow.json を新名へ書き換えると、旧定義で駆動中の CLI が findLatestInProgressLeaf で in_progress step を解決できず実行中フローを破壊する。",
+      "considered": "除外せず全 specs を変換し active flow 破壊リスクを受容する案。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "Issue は移行ツールを scripts/rename-phase-steps.js または src/cli の dev サブコマンドのいずれかで実装するとしている。npm files は src/ のみ（scripts/ は非配布）であり、Issue の影響欄では『スクリプト未走の環境では旧名が混在する』とエンドユーザーの実行を前提にしている。移行ツールは src/ 配下のサブコマンドとして配布する（ユーザーも自身の specs を移行可能）か、scripts/ に置きリポジトリ限定（非配布）にするか。",
+      "answer": "移行ツールは src/ 配下（src/scripts/ 等）に配置し npm パッケージに同梱して配布する。ユーザーも自身の specs を移行できる。",
+      "evidence": "npm files は ['src/','!src/presets/*/tests/']。scripts/ は配布外、src/ 配下は配布される。Issue 影響欄は『スクリプト未走の環境では旧名が混在する』とユーザー実行を前提にしている。",
+      "why": "ユーザー環境にも旧名 flow.json が存在するため、移行手段を配布する必要がある。src/ 配下なら files=src/ で確実に配布される。",
+      "considered": "scripts/ 配置（非配布、リポジトリ限定）。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q6",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "Issue の完了条件『skill / 旧 docs テキストに残る旧名がない（grep で 0 件）』の検証対象範囲を確定したい。(a) src コード + skill テンプレート + プロンプトのみ (b) 加えて生成済み docs/ (c) 加えてプロジェクトの installed skill copies（.claude/skills, .agents/skills、upgrade で反映）。また過去 spec の rename リスト外 legacy 名（retry-recovery / merge / commit 等）は 0 件検証の対象外とする理解でよいか。",
+      "answer": "検証対象は authored sources（src コード/skill テンプレート/プロンプト）＋ sdd-forge upgrade 後の installed skill copies（.claude/skills, .agents/skills）。生成 docs/ は build で再生成するため手動 0 件検証の対象外。過去 spec の rename リスト外 legacy 名（retry-recovery/merge/commit 等）と issue-log 据え置き衝突名も 0 件検証の対象外。",
+      "evidence": "CLAUDE.md 開発ワークフロー: skill 変更後は upgrade で .claude/.agents へ反映。issue-log step 集計で rename リスト外 legacy 名（retry-recovery 等）の混在を確認。",
+      "why": "authored source と配布物（installed skills）の一貫性を保証しつつ、自動生成物（docs/）と歴史 audit データ（過去 spec の legacy 名）を過剰検証しない。",
+      "considered": "authored sources のみに限定する案、生成 docs/ まで含める案。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-29T03:41:00Z",
+    "notes": "全 qa (q1-q6) をユーザー判断で answered。coverage review PASS、未解決のユーザー判断なし。"
+  }
+}

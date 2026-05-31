@@ -73,10 +73,10 @@ import { loadMergedGuardrails, filterByPhase } from "../../lib/guardrail.js";
 import { resolveNodeFor, FLOW_DEFINITION, flattenSteps } from "../definition.js";
 
 const REVIEW_PHASE_NODE_MAP = {
-  "draft-questions": "review-draft-questions",
-  "draft-coverage": "review-draft-coverage",
-  spec: "review-spec",
-  test: "review-test",
+  "draft-questions": "draft-questions-review",
+  "draft-coverage": "draft-coverage-review",
+  spec: "spec-review",
+  test: "test-review",
 };
 const DRAFT_QA_RULES_PARTIAL_PATH = path.join(PKG_DIR, "flow", "prompts", "partials", "draft-qa-rules.md");
 let cachedDraftQaRulesPartial = null;
@@ -93,7 +93,7 @@ function getReviewMaxAttempts(phase, attemptContext) {
 function resolveDraftReviewStage(flow) {
   const steps = Array.isArray(flow?.steps) ? flattenSteps(flow.steps) : [];
   const byId = new Map(steps.map((step) => [step.id, step]));
-  if (byId.get("review-draft-coverage")?.status === "in_progress") {
+  if (byId.get("draft-coverage-review")?.status === "in_progress") {
     return buildDraftReviewStage("coverage", {
       commandId: "flow.draft.review.coverage.propose",
       findingClassification: "blocking",
@@ -793,7 +793,7 @@ async function runImplReview({ root, flow, reviewOutput, touchedFiles, taskSpec 
       nonBlockingCount: artifact.summary.nonBlocking,
       ...(taskSpec ? { taskId: taskSpec.task.id, target: taskSpec.relPath } : {}),
     },
-    next: artifact.verdict === "FAIL" ? null : "gate-impl",
+    next: artifact.verdict === "FAIL" ? null : (taskSpec ? "task-gate" : "impl-gate"),
     output: "",
   };
 }
@@ -1153,8 +1153,8 @@ const TEST_REVIEW_PROMPT_CHAR_LIMIT = 1_000_000;
 
 /**
  * Collect test files from the spec-local tests/ directory only.
- * Project-level tests/ are regression inputs for test-execute/gate-impl, not
- * semantic review-test prompt input.
+ * Project-level tests/ are regression inputs for test-execute/impl-gate, not
+ * semantic test-review prompt input.
  * @param {string} root
  * @param {string} specDir - relative spec directory
  * @returns {{ name: string, content: string, source: string }[]}
@@ -1409,7 +1409,7 @@ class TestFileCoverageEntry {
 class TestCoverageArtifact {
   constructor({ spec, specDir, headerResult, fileHeaders, generatedAt = new Date().toISOString() }) {
     this.version = 1;
-    this.phase = "review-test";
+    this.phase = "test-review";
     this.generatedAt = generatedAt;
     this.validation = Object.freeze({
       ok: headerResult.ok === true,
@@ -1454,7 +1454,7 @@ class TestCoverageFailureArtifact {
   toPromptSummary() {
     return {
       version: 1,
-      phase: "review-test",
+      phase: "test-review",
       validation: {
         ok: false,
         messages: [this.message],
@@ -1472,7 +1472,7 @@ class TestCoverageFailureArtifact {
 class TestReviewToolingFailure {
   constructor({ kind, message, recovery }) {
     this.kind = normalizeTestReviewText(kind, "tooling_error");
-    this.message = normalizeTestReviewText(message, "review-test tooling failed");
+    this.message = normalizeTestReviewText(message, "test-review tooling failed");
     this.recovery = normalizeTestReviewText(recovery, "Recover the tooling failure or record an evidence-based override.");
   }
 
@@ -1540,7 +1540,7 @@ function buildTestReviewPrompt(requirements, coverageArtifact, testFiles) {
       "Do not fail for advisory findings.",
       "Do not ask for a review/fix/re-review loop.",
       "Do not rewrite tests. Report the smallest requiredChange for blocking findings.",
-      "Runtime pass/fail belongs to scenario-validity, test-execute, test-result-review, gate-impl, and final-regression.",
+      "Runtime pass/fail belongs to scenario-validity, test-execute, test-result-review, impl-gate, and final-regression.",
       "",
       "Return JSON only. The response object must contain:",
       "- blockingFindings[] with title, target, issue, requiredChange, whyBlocking",
@@ -1687,7 +1687,7 @@ function assertTestReviewPromptWithinLimit(prompt, label) {
   if (chars <= TEST_REVIEW_PROMPT_CHAR_LIMIT) return;
   throw new Error(
     `${TEST_REVIEW_PROMPT_TOO_LARGE_CODE}: ${label} prompt is ${chars} chars; `
-    + `limit is ${TEST_REVIEW_PROMPT_CHAR_LIMIT}. Narrow review-test inputs before calling the agent.`,
+    + `limit is ${TEST_REVIEW_PROMPT_CHAR_LIMIT}. Narrow test-review inputs before calling the agent.`,
   );
 }
 
@@ -1852,7 +1852,7 @@ function buildToolingFailureReview({ kind, err, coverageRelPath }) {
   const toolingFailure = new TestReviewToolingFailure({
     kind,
     message,
-    recovery: "Fix the review-test tooling failure, then rerun review-test. If the tests are already adequate, record an explicit evidence-based override before proceeding.",
+    recovery: "Fix the test-review tooling failure, then rerun test-review. If the tests are already adequate, record an explicit evidence-based override before proceeding.",
   });
   return new TestReviewArtifact({
     verdict: "TOOLING_FAILURE",

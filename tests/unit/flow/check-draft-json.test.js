@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { checkDraftJson } from "../../../src/flow/lib/run-gate.js";
 
-// spec 229: draft.md → draft.json 移行に伴う gate-draft JSON 検証
+// spec 229: draft.md → draft.json 移行に伴う draft-gate JSON 検証
 // R1: draft.json skeleton, R2: evidence チェック, R3: analysis チェック
 
 const DEV_TYPE_ENUM = ["feature", "bugfix", "refactor", "docs", "chore", "test", "other"];

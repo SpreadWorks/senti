@@ -48,11 +48,11 @@ const IMPL_REVIEW_DOWNSTREAM_STEP_IDS = inclusiveFlowLeafStepIdsBetween("impl", 
 // ---------------------------------------------------------------------------
 
 const REVIEW_NODE_ID_BY_PHASE = Object.freeze({
-  "draft-questions": "review-draft-questions",
-  "draft-coverage": "review-draft-coverage",
-  spec: "review-spec",
-  test: "review-test",
-  impl: "review",
+  "draft-questions": "draft-questions-review",
+  "draft-coverage": "draft-coverage-review",
+  spec: "spec-review",
+  test: "test-review",
+  impl: "impl-review",
 });
 
 const REVIEW_PHASE_KEYS = Object.freeze(Object.keys(REVIEW_NODE_ID_BY_PHASE));
@@ -85,7 +85,7 @@ function taskCursorRequiredReviewFailure(decision, state) {
     "run",
     "review",
     "TASK_CURSOR_REQUIRED",
-    taskScopeViolationMessages(decision, "review"),
+    taskScopeViolationMessages(decision, "impl-review"),
     { currentTaskId: state?.currentTaskId ?? null },
   );
 }
@@ -111,8 +111,8 @@ function mutateReviewRecoveryState(ctx, phase, trigger, afterPersist) {
 function resolveDraftReviewPhaseKey(flowState = {}) {
   const steps = Array.isArray(flowState.steps) ? flattenSteps(flowState.steps) : [];
   const byId = new Map(steps.map((step) => [step.id, step]));
-  if (byId.get("review-draft-coverage")?.status === "in_progress") return "draft-coverage";
-  if (byId.get("review-draft-questions")?.status === "in_progress") return "draft-questions";
+  if (byId.get("draft-coverage-review")?.status === "in_progress") return "draft-coverage";
+  if (byId.get("draft-questions-review")?.status === "in_progress") return "draft-questions";
   return "draft-questions";
 }
 
@@ -253,8 +253,8 @@ export function resetImplEvidenceAfterReviewProposals(ctx, result) {
 
 const PHASE_REVIEW_PARSERS = {
   test:  { countPattern: /blocking=(\d+)/,   countKey: "blockingCount",   countWord: "blocking finding(s)",   label: "Test review",  next: "implement",  commandId: "flow.test.review" },
-  spec:  { countPattern: /proposalCount=(\d+)/, countKey: "proposalCount", countWord: "proposal(s)", label: "Spec review",  next: "gate", failNext: "spec-review-triage", commandId: "flow.spec.review.propose" },
-  draft: { countPattern: /(questions|findings|issues)=(\d+)/, countKey: "issueCount", countWord: "issue(s)", label: "Draft review", next: "gate-draft", commandId: "flow.draft.review" },
+  spec:  { countPattern: /proposalCount=(\d+)/, countKey: "proposalCount", countWord: "proposal(s)", label: "Spec review",  next: "spec-gate", failNext: "spec-triage", commandId: "flow.spec.review.propose" },
+  draft: { countPattern: /(questions|findings|issues)=(\d+)/, countKey: "issueCount", countWord: "issue(s)", label: "Draft review", next: "draft-gate", commandId: "flow.draft.review" },
 };
 
 function resolvePhaseReviewNextStep({ phase, verdict, retryPhase, next, failNext }) {
@@ -394,7 +394,7 @@ function parseImplReviewOutput(res, stdout, stderr, opts = {}) {
     result: "ok",
     changed,
     artifacts,
-    next: verdict === "FAIL" ? null : "gate-impl",
+    next: verdict === "FAIL" ? null : "impl-gate",
     output: stdout,
   };
 }
@@ -407,11 +407,11 @@ export function appendIssueLogFromTestReviewToolingFailure(ctx, result) {
   const issueLog = loadIssueLog(ctx.root, ctx.flowState?.spec);
   const artifactPath = result?.changed?.find((p) => /test-review\.(json|md)$/.test(p));
   issueLog.entries.push({
-    step: "review-test",
+    step: "test-review",
     phase: "test",
     failureKind: "tooling_failure",
-    reason: `review-test tooling failure: ${result.artifacts.toolingFailure || "see test-review artifacts"}`,
-    trigger: "review-test post hook (auto)",
+    reason: `test-review tooling failure: ${result.artifacts.toolingFailure || "see test-review artifacts"}`,
+    trigger: "test-review post hook (auto)",
     resolution: "Recover the tooling failure or record an explicit evidence-based override before proceeding.",
     ...(artifactPath && { artifact: artifactPath }),
     timestamp: new Date().toISOString(),
@@ -500,7 +500,7 @@ export class RunReviewCommand extends FlowCommand {
     let broadMode = null;
 
     if (isImplementationReviewPhase(phase)) {
-      const decision = evaluateTaskScope(ctx.flowState, "review");
+      const decision = evaluateTaskScope(ctx.flowState, "impl-review");
       if (decision.kind === "invalid-current-task" || decision.kind === "blocked" || decision.promotable) {
         return taskCursorRequiredReviewFailure(decision, ctx.flowState);
       }
@@ -508,7 +508,7 @@ export class RunReviewCommand extends FlowCommand {
         const taskSpec = resolveCurrentTaskSpec({ root, state: ctx.flowState });
         taskReviewSpec = taskSpec;
       } else if (decision.kind === "broad") {
-        broadMode = assertAuditedBroadMode(decision, "review");
+        broadMode = assertAuditedBroadMode(decision, "impl-review");
       }
     }
 

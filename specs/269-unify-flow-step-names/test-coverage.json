@@ -1,0 +1,151 @@
+{
+  "version": 1,
+  "phase": "review-test",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "src/flow/definition.js の step id を改名マッピング全 12 エントリ通り更新する: review[impl]→impl-review, gate→spec-gate, gate-draft→draft-gate, gate-impl[flow]→impl-gate, review-draft-questions→draft-questions-review, review-draft-coverage→draft-coverage-review, review-spec→spec-review, review-test→test-review, impl[task]→task-impl, review[task]→task-review, gate-impl[task]→task-gate, spec-review-triage→spec-triage。branch id (plan/impl) と維持リスト（draft, spec, test, draft-refine, draft-questions-triage/repair, draft-coverage-triage/repair, spec-repair, test-execute, test-result-review, finalize-*, prepare-spec, branch, approval, scenario-validity, implement, retro, final-regression）は不変。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/definition-and-prompts.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "src/flow/lib/draft-review-routes.js の route 定義と src/flow/registry.js の review post-hook、および src/flow/lib/ 配下で旧 step id を bare 文字列参照する全箇所を新名へ更新する。衝突 id（review/gate-impl/impl）が混在する cross-scope コード箇所は、その site が属する scope で新名を解決する: (a) src/flow/lib/task-scope.js の BROAD_STEPS（flow 非 task の broad 実装パス）→ [\"implement\"(維持), \"impl-review\", \"impl-gate\"]; (b) src/flow/lib/gate-step.js の TASK_STEP_TO_PHASE（task gate map）→ {\"spec-gate\":\"task-spec\", \"task-gate\":\"task-impl\"}、および resolveGateStepId の fallback \"gate\" → \"spec-gate\"; (c) src/flow/registry.js の REVIEW_RUNTIME_STEP_BY_PHASE → {spec:\"spec-review\", test:\"test-review\", impl:\"impl-review\"}。一般規則: flow path の衝突 id は impl-*/spec-gate、task cursor path の衝突 id は task-* に解決する。完了判定として src/flow 配下の旧 step id bare リテラル（rename リスト対象 10 種）の grep が 0 件であること。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/code-references.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "instructionsKey を新 step id へ更新し、対応する src/flow/prompts/<branch>/<step>.md を新 step id のファイル名へ改名する（<branch> ディレクトリ構造は維持）。get-step-instructions.js が新ファイル名を解決し、instructions-coverage 系テストが全 step で対応プロンプトを見つけられる。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/definition-and-prompts.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "tests/unit/flow/** の step id assertion を新名へ更新し、npm test の unit スイートが全て pass する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/test-and-skill-refs.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "skill テンプレート（src/skills/ 配下）の旧 step 名を新名へ更新し、sdd-forge upgrade で installed skill copies（.claude/skills, .agents/skills）へ反映する。authored sources（src/ コード/skill/prompts）と installed skill copies に対する旧 step 名の grep が 0 件になる（rename リスト外 legacy 名・issue-log 据え置き衝突名は対象外）。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/test-and-skill-refs.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "src/AGENTS.md に `<phase>-<concern>-<action>` 命名規則（phase/concern/action の定義と例、phase 接頭辞必須）を明文化する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/docs.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "src/ 配下（src/scripts/rename-phase-steps.js）に移行ツールを実装する。仕様: 1:1 の 7 種は step 値の完全一致で置換; flow.json の衝突 3 種（review/gate-impl/impl）は steps[]（flow scope）と tasks[].steps[]（task scope）の構造位置で新名を判別; issue-log.json の衝突 3 種は据え置き; report.json/retro.json/review.md はコードブロック・パス文字列内のみ置換; active flow（.active-flow が指す spec）の flow.json を除外。ユーザー向け引数は --apply（boolean, 省略時 dry-run で diff のみ表示）。終了コード規約: 成功（dry-run 含む）は 0、git 作業ツリーが clean でない/不正な引数/書込みエラーは非0。--apply は実行前に git clean を検証する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/migration-tool.test.js"
+      ]
+    },
+    {
+      "id": "R8",
+      "desc": "移行ツールを本リポジトリ specs/ に --apply で実行し、specs/*/flow.json・report.json・retro.json・review.md 内の rename 対象旧名（1:1 の 7 種、および flow.json の衝突名は構造判別による新名）が新名へ変換されていること。active flow 269 の flow.json は変換されず旧名のまま残ること。issue-log.json の衝突名は据え置かれること。変換有無は適用後の各ファイル内容（diff）で検証できる。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/migration-tool.test.js"
+      ]
+    },
+    {
+      "id": "R9",
+      "desc": "CHANGELOG.md に breaking change を記載する: 旧 step 名を alias 無しで廃止したこと、移行ツールの使用方法、『他に active flow が無いこと』という merge 前提、flow.json を含む既存 PR/branch は merge 後にツール再走が必要なこと。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/docs.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/code-references.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R2"
+      ],
+      "testNameIds": [
+        "R2"
+      ]
+    },
+    {
+      "file": "tests/definition-and-prompts.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R3"
+      ],
+      "testNameIds": [
+        "R1",
+        "R3"
+      ]
+    },
+    {
+      "file": "tests/docs.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R6",
+        "R9"
+      ],
+      "testNameIds": [
+        "R6",
+        "R9"
+      ]
+    },
+    {
+      "file": "tests/migration-tool.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R7",
+        "R8"
+      ],
+      "testNameIds": [
+        "R7",
+        "R8"
+      ]
+    },
+    {
+      "file": "tests/test-and-skill-refs.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R4",
+        "R5"
+      ],
+      "testNameIds": [
+        "R4",
+        "R5"
+      ]
+    }
+  ]
+}

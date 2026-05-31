@@ -1,7 +1,7 @@
 /**
  * tests/unit/flow/gate-untracked-diff.test.js
  *
- * spec 221: gate-impl が untracked な新規ファイルを diff 評価で見落とす不具合の修正。
+ * spec 221: impl-gate が untracked な新規ファイルを diff 評価で見落とす不具合の修正。
  *
  * `collectUntrackedDiff(root, options?)` は worktree 内の untracked ファイル
  * (`.gitignore` 除外を除く) を列挙し、各ファイルを `/dev/null` 比較の unified

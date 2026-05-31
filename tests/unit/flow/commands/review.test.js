@@ -57,15 +57,15 @@ function resolveAgent(cfg, commandId) {
 const FLOW_CMD = join(process.cwd(), "src/sdd-forge.js");
 const FLOW_CMD_ARGS_PREFIX = ["flow"];
 
-describe("FLOW_STEPS includes review", () => {
-  it("has review between implement and finalize-commit", () => {
+describe("FLOW_STEPS includes impl-review", () => {
+  it("has impl-review between implement and finalize-commit", () => {
     const implIdx = FLOW_STEPS.indexOf("implement");
-    const reviewIdx = FLOW_STEPS.indexOf("review");
+    const reviewIdx = FLOW_STEPS.indexOf("impl-review");
     const finalIdx = FLOW_STEPS.indexOf("finalize-commit");
-    assert.ok(reviewIdx > 0, "review step exists");
-    assert.ok(reviewIdx > implIdx, "review comes after implement");
+    assert.ok(reviewIdx > 0, "impl-review step exists");
+    assert.ok(reviewIdx > implIdx, "impl-review comes after implement");
     assert.ok(finalIdx > 0, "finalize-commit step exists");
-    assert.ok(reviewIdx < finalIdx, "review comes before finalize-commit");
+    assert.ok(reviewIdx < finalIdx, "impl-review comes before finalize-commit");
   });
 });
 
@@ -122,7 +122,7 @@ describe("flow run review --phase test CLI", () => {
   });
 });
 
-describe("review-test spec-local file scope", () => {
+describe("test-review spec-local file scope", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
@@ -357,7 +357,7 @@ describe("spec review classification helpers", () => {
   it("builds a review summary with acceptance, decisions, tasks, and unresolved items", () => {
     const longTail = "x".repeat(900);
     const summary = buildSpecSummaryMarkdown({
-      goal: "Improve review-spec input.",
+      goal: "Improve spec-review input.",
       background: "Existing review lacks some spec fields.",
       scope: { in: ["`src/flow/commands/review.js`"], out: ["No CLI flag changes"] },
       constraints: ["Keep prompt size bounded."],
@@ -378,7 +378,7 @@ describe("spec review classification helpers", () => {
         testable: false,
         desc: "Review should see acceptance criteria.",
       }],
-      acceptance_criteria: ["review-spec sees acceptance criteria"],
+      acceptance_criteria: ["spec-review sees acceptance criteria"],
       clarifications: [{ q: "Should review see prior answers?", a: "Yes, through bounded fields." }],
       alternatives_considered: [{ option: "Full spec.md input", reason: "Too much token growth." }],
       open_questions: ["Confirm whether live-provider behavior is in scope."],
@@ -393,7 +393,7 @@ describe("spec review classification helpers", () => {
     });
 
     assert.match(summary, /# Acceptance Criteria/);
-    assert.match(summary, /review-spec sees acceptance criteria/);
+    assert.match(summary, /spec-review sees acceptance criteria/);
     assert.match(summary, /# Clarifications/);
     assert.match(summary, /Q: Should review see prior answers\?/);
     assert.match(summary, /# Alternatives Considered/);
@@ -595,7 +595,7 @@ describe("buildDraftReviewPrompt stage-specific QA projection", () => {
     ],
   };
 
-  it("omits answer fields from review-draft-questions input", () => {
+  it("omits answer fields from draft-questions-review input", () => {
     const prompt = buildDraftReviewPrompt(draftJson, "request", [], { key: "questions" });
     const leakedAnswerFieldPatterns = [
       /Do not leak this answer/,
@@ -622,7 +622,7 @@ describe("buildDraftReviewPrompt stage-specific QA projection", () => {
     assert.match(prompt, /answered: 1/);
   });
 
-  it("limits review-draft-coverage input to answered and dropped QA", () => {
+  it("limits draft-coverage-review input to answered and dropped QA", () => {
     const prompt = buildDraftReviewPrompt(draftJson, "request", [], { key: "coverage" });
     const renderedQaFieldPatterns = [
       /\*\*Answer:\*\* Keep this for coverage review/,

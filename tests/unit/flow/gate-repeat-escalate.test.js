@@ -79,12 +79,12 @@ describe("findPreviousFailedEvaluations (spec 253: flatten all prior)", () => {
     const issueLog = {
       entries: [
         {
-          step: "gate-impl",
+          step: "impl-gate",
           phase,
           failedEvaluations: [{ guardrail_id: "old", reason: "old reason" }],
         },
         {
-          step: "gate-impl",
+          step: "impl-gate",
           phase,
           failedEvaluations: [{ guardrail_id: "new", reason: "new reason" }],
         },
@@ -100,7 +100,7 @@ describe("findPreviousFailedEvaluations (spec 253: flatten all prior)", () => {
     const issueLog = {
       entries: [
         {
-          step: "gate-impl",
+          step: "impl-gate",
           phase,
           failedEvaluations: [{ guardrail_id: "match", reason: "r" }],
         },
@@ -119,7 +119,7 @@ describe("findPreviousFailedEvaluations (spec 253: flatten all prior)", () => {
   it("returns [] when there is no prior entry with failedEvaluations for this phase", () => {
     const issueLog = {
       entries: [
-        { step: "gate-impl", phase, reason: "legacy fail without field" },
+        { step: "impl-gate", phase, reason: "legacy fail without field" },
       ],
     };
     assert.deepEqual(findPreviousFailedEvaluations({ issueLog, phase }), []);
@@ -138,7 +138,7 @@ describe("assertNoRepeatedFail (REQ-1, REQ-5, REQ-6)", () => {
     const issueLog = {
       entries: [
         {
-          step: "gate-impl",
+          step: "impl-gate",
           phase,
           failedEvaluations: [{ guardrail_id: "g-same", reason: "Same Reason" }],
         },
@@ -164,7 +164,7 @@ describe("assertNoRepeatedFail (REQ-1, REQ-5, REQ-6)", () => {
     const issueLog = {
       entries: [
         {
-          step: "gate-impl",
+          step: "impl-gate",
           phase,
           failedEvaluations: [{ guardrail_id: "g-a", reason: "reason" }],
         },
@@ -180,7 +180,7 @@ describe("assertNoRepeatedFail (REQ-1, REQ-5, REQ-6)", () => {
     const issueLog = {
       entries: [
         {
-          step: "gate-impl",
+          step: "impl-gate",
           phase,
           failedEvaluations: [{ guardrail_id: "g1", reason: "foo bar" }],
         },
@@ -195,7 +195,7 @@ describe("assertNoRepeatedFail (REQ-1, REQ-5, REQ-6)", () => {
   it("does not throw when the previous same-phase entry lacks failedEvaluations", () => {
     const issueLog = {
       entries: [
-        { step: "gate-impl", phase, reason: "legacy entry" },
+        { step: "impl-gate", phase, reason: "legacy entry" },
       ],
     };
     const currentEvaluations = [
@@ -224,7 +224,7 @@ describe("assertNoRepeatedFail (REQ-1, REQ-5, REQ-6)", () => {
     const issueLog = {
       entries: [
         {
-          step: "gate-impl",
+          step: "impl-gate",
           phase,
           failedEvaluations: [{ guardrail_id: "g", reason: "r" }],
         },
@@ -240,7 +240,7 @@ describe("assertNoRepeatedFail (REQ-1, REQ-5, REQ-6)", () => {
     const issueLog = {
       entries: [
         {
-          step: "gate-impl",
+          step: "impl-gate",
           phase,
           failedEvaluations: [{ guardrail_id: "g-match", reason: "same" }],
         },

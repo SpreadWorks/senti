@@ -62,9 +62,9 @@ function flowTask(id, status = "pending", parent = null, extras = {}) {
     parent,
     status,
     steps: [
-      { id: "impl", status: "pending" },
-      { id: "review", status: "pending" },
-      { id: "gate-impl", status: "pending" },
+      { id: "task-impl", status: "pending" },
+      { id: "task-review", status: "pending" },
+      { id: "task-gate", status: "pending" },
     ],
     requirements: [],
     summary: null,

@@ -114,11 +114,11 @@ describe("flow run auto-check — phase-aware input selection (spec 220)", () =>
     assert.equal(state.autoCheck?.skipped, true);
   });
 
-  // A2 (R2) — draft body is included after gate-draft done
-  it("includes draft.json body in AI prompt when gate-draft is done", () => {
+  // A2 (R2) — draft body is included after draft-gate done
+  it("includes draft.json body in AI prompt when draft-gate is done", () => {
     const capturePath = path.join(tmp, ".stub-agent-prompt");
     setupProject(tmp, { capturePath });
-    const steps = withStepDone(buildInitialSteps(), "gate-draft");
+    const steps = withStepDone(buildInitialSteps(), "draft-gate");
     const draftBody = JSON.stringify({ goal: "DRAFT_MARKER_XYZ123 add a progress bar" });
     seedActiveFlow(tmp, { steps, draftBody });
 
@@ -134,11 +134,11 @@ describe("flow run auto-check — phase-aware input selection (spec 220)", () =>
     assert.ok(prompt.includes("add a progress bar") || prompt.includes("Issue #100"));
   });
 
-  // A2 (R2) complement — when gate-draft NOT done, draft body is excluded
-  it("excludes draft body when gate-draft is not done", () => {
+  // A2 (R2) complement — when draft-gate NOT done, draft body is excluded
+  it("excludes draft body when draft-gate is not done", () => {
     const capturePath = path.join(tmp, ".stub-agent-prompt");
     setupProject(tmp, { capturePath });
-    const draftBody = "PROVISIONAL_DRAFT_MARKER should not leak while gate-draft is still pending";
+    const draftBody = "PROVISIONAL_DRAFT_MARKER should not leak while draft-gate is still pending";
     seedActiveFlow(tmp, { draftBody });
 
     const res = runCli(tmp, ["flow", "run", "auto-check"]);
@@ -146,7 +146,7 @@ describe("flow run auto-check — phase-aware input selection (spec 220)", () =>
     const prompt = fs.readFileSync(capturePath, "utf8");
     assert.ok(
       !prompt.includes("PROVISIONAL_DRAFT_MARKER"),
-      "draft body must NOT be included before gate-draft passes",
+      "draft body must NOT be included before draft-gate passes",
     );
   });
 

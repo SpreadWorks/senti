@@ -78,7 +78,7 @@ function validatePostHookManagedStep(ctx, id) {
     } else if (id === "test-result-review") {
       const review = validateTestResultReview(readJsonStrict(path.join(specDir, "test-result-review.json")));
       if (review.verdict !== "pass") throw new Error("test-result-review verdict is not pass");
-    } else if (id === "gate-impl") {
+    } else if (id === "impl-gate") {
       assertIntegrationRegressionEvidence({
         root: ctx.root,
         state,
@@ -127,7 +127,7 @@ export default class SetStepCommand extends FlowCommand {
       const fail = preValidateTestStep(ctx);
       if (fail) return fail;
     }
-    if (status === "done" && ["test-execute", "test-result-review", "gate-impl", "retro"].includes(id)) {
+    if (status === "done" && ["test-execute", "test-result-review", "impl-gate", "retro"].includes(id)) {
       const fail = validatePostHookManagedStep(ctx, id);
       if (fail) return fail;
     }

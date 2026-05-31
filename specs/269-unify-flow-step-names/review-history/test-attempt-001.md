@@ -1,0 +1,31 @@
+# Test Review Results
+
+## Verdict: FAIL
+
+Coverage artifact: `specs/269-unify-flow-step-names/test-coverage.json`
+
+## Blocking Findings
+
+### 1. R3 prompt-existence test demands task/task-gate.md, which the spec never produces
+**Target:** specs/269-unify-flow-step-names/tests/definition-and-prompts.test.js — test "R3: renamed prompt files exist under prompts/<branch>/<new-step>.md", expectExist entry "task/task-gate.md"
+**Issue:** The TASK_DEFINITION gate node uses instructionsKey "impl.gate-impl" (src/flow/definition.js:448), i.e. it shares the impl-branch gate prompt; there is no task-scoped gate prompt today (only task/impl.md and task/review.md exist under prompts/task/). R3 requires renaming within the existing branch ("<branch> ディレクトリ構造は維持"), so this prompt renames to impl/impl-gate.md — already asserted in the same expectExist list — and the gate node's instructionsKey becomes "impl.impl-gate", which the sibling "every leaf instructionsKey resolves" test maps to impl/impl-gate.md. No rename yields task/task-gate.md. A spec-correct implementation therefore never creates task/task-gate.md and this assertion fails; the only way to satisfy it is to add an orphan duplicate prompt that nothing references, contradicting R3's rename-only intent and the alpha no-duplication policy.
+**Required change:** Remove "task/task-gate.md" from the expectExist array. The task gate's prompt coverage is impl/impl-gate.md (already listed), since its instructionsKey resolves to the impl branch.
+**Why blocking:** The assertion contradicts the target definition and R3's branch-preservation rule: it fails against a correct implementation, or forces creation of a spurious unreferenced prompt file.
+
+
+## Advisory Findings
+
+### 1. Collision-token resolution sites in gate-step.js and registry have no direct spec-local assertion
+**Target:** specs/269-unify-flow-step-names/tests/code-references.test.js
+**Improvement:** Only BROAD_STEPS is asserted directly. The grep deliberately excludes collision tokens (review/gate/impl), so it cannot verify the R2-enumerated resolutions: gate-step.js TASK_STEP_TO_PHASE keys ({"spec-gate":"task-spec","task-gate":"task-impl"}) and resolveGateStepId fallback ("spec-gate"), and registry REVIEW_RUNTIME_STEP_BY_PHASE.impl ("impl-review"). Add explicit assertions on these exact mappings.
+**Why non-blocking:** These mappings are behaviorally exercised by the existing tests/unit/flow suite (e.g. gate-phase-inference.test.js, format-retry-history.test.js, run-review tests) that R4 requires updated and passing, so regression coverage already exists; adding assertions only makes R2's intent explicit in the spec-local file.
+
+### 2. R9 CHANGELOG test omits the merge-then-rerun and alias-less-removal clauses
+**Target:** specs/269-unify-flow-step-names/tests/docs.test.js — test "R9: CHANGELOG.md records the step-rename breaking change"
+**Improvement:** R9 requires the CHANGELOG to also state that old names are dropped without aliases and that existing PRs/branches containing flow.json must re-run the tool after merge. The test only checks for "breaking", "rename-phase-steps", and "active flow". Add substring checks for the re-run-after-merge precondition.
+**Why non-blocking:** The core breaking-change, migration-tool, and no-other-active-flow facts are asserted; the missing clauses are documentation completeness that does not affect executable behavior.
+
+### 3. R5 skill-ref test scans a non-existent path and can pass vacuously for installed copies
+**Target:** specs/269-unify-flow-step-names/tests/test-and-skill-refs.test.js
+**Improvement:** The authored-sources test walks src/templates/skills, which does not exist (skill sources live in src/skills/); it is harmless dead input. The installed-copies test filters to existing dirs with no files.length>0 guard, so it would pass vacuously if neither .claude/skills nor .agents/skills existed. Drop the dead path and/or assert at least one installed skill dir is present.
+**Why non-blocking:** In this repo src/skills and both installed skill dirs exist, so the scans actually run and exercise R5; the issues are only robustness and clarity.

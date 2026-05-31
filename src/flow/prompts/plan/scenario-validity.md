@@ -1,5 +1,5 @@
    - Run `sdd-forge flow run scenario-validity`.
-   - Phase split: `plan/test` writes tests only, this `plan/scenario-validity` step performs pre-implementation runtime validity, `plan/review-test` performs static anti-pattern review, `impl/test-execute` performs post-implementation spec-local and targeted verification, and `impl/final-regression` performs default full project regression.
+   - Phase split: `plan/test` writes tests only, this `plan/scenario-validity` step performs pre-implementation runtime validity, `plan/test-review` performs static anti-pattern review, `impl/test-execute` performs post-implementation spec-local and targeted verification, and `impl/final-regression` performs default full project regression.
    - This step runs only `specs/<spec>/tests/` files whose basenames match `*.test.js`, `*.spec.js`, `*.test.ts`, `*.spec.ts`, `*.test.mjs`, or `*.spec.mjs`.
    - It must not run the project-wide regression suite. Default full project regression remains in `impl/final-regression` after implementation.
    - Before executing tests, the command checks implementation-target changes with `git diff --name-only <baseBranch> -- src/ tests/ package.json .sdd-forge/config.json`. Any returned disallowed path blocks as `invalid_test`.

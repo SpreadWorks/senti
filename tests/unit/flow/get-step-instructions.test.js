@@ -33,7 +33,7 @@ describe("getStepInstructions (loader contract)", () => {
       const flowContent = getStepInstructions("plan.spec");
       assert.ok(flowContent.length > 0, "flow-scope key resolves");
 
-      const taskContent = getStepInstructions("task.impl");
+      const taskContent = getStepInstructions("task.task-impl");
       assert.ok(taskContent.length > 0, "task-scope key resolves");
     });
 
@@ -46,23 +46,23 @@ describe("getStepInstructions (loader contract)", () => {
       assert.doesNotMatch(expandedPrompt, INCLUDE_DIRECTIVE_PATTERN);
     });
 
-    it("spec-review-triage records apply/drop decisions and evidence for every blocking finding", () => {
-      const content = getStepInstructions("plan.spec-review-triage");
+    it("spec-triage records apply/drop decisions and evidence for every blocking finding", () => {
+      const content = getStepInstructions("plan.spec-triage");
 
-      assert.match(content, /Always write `specs\/<spec-id>\/spec-review-triage\.json`/);
+      assert.match(content, /Always write `specs\/<spec-id>\/spec-triage\.json`/);
       assert.match(content, /Do not edit `spec\.json`/);
       assert.match(content, /For every `blockingFindings\[\]` entry/);
       assert.match(content, /`decision`: one of `apply`, `invalid`, `already_resolved`, or `downgraded_to_non_blocking`/);
       assert.match(content, /Use `apply` only when the finding is still blocking/);
       assert.match(content, /Do not defer review findings to gate/);
-      assert.match(content, /"phase": "spec-review-triage"/);
+      assert.match(content, /"phase": "spec-triage"/);
     });
 
     it("spec-repair applies only triaged apply items", () => {
       const content = getStepInstructions("plan.spec-repair");
 
       assert.match(content, /Always write `specs\/<spec-id>\/spec-repair\.json`/);
-      assert.match(content, /Read `specs\/<spec-id>\/spec-review-triage\.json` first/);
+      assert.match(content, /Read `specs\/<spec-id>\/spec-triage\.json` first/);
       assert.match(content, /Treat only `items\[\]` entries with `decision: "apply"` as the repair input/);
       assert.match(content, /Do not re-triage review findings in this step/);
       assert.match(content, /For every triage item with `decision: "apply"`/);
@@ -72,12 +72,12 @@ describe("getStepInstructions (loader contract)", () => {
     });
 
     it("spec gate instructions keep gate fixes separate from design review", () => {
-      const content = getStepInstructions("plan.gate");
+      const content = getStepInstructions("plan.spec-gate");
 
       assert.match(content, /readiness gate, not a design review/);
-      assert.match(content, /Fix only schema\/static issues, spec-review-triage \/ spec-repair audit issues, and explicit guardrail article violations/);
+      assert.match(content, /Fix only schema\/static issues, spec-triage \/ spec-repair audit issues, and explicit guardrail article violations/);
       assert.match(content, /Do not use gate FAIL as a reason to search for new design gaps/);
-      assert.match(content, /Codebase-context design gaps belong to `review-spec` \/ `spec-review-triage` \/ `spec-repair`/);
+      assert.match(content, /Codebase-context design gaps belong to `spec-review` \/ `spec-triage` \/ `spec-repair`/);
     });
 
     it("flow skill source documents runtime log options instead of env prefixes", () => {

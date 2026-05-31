@@ -13,7 +13,7 @@ describe("integration gate deferred regression evidence", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  it("accepts deferred full-regression evidence without blocking gate-impl", () => {
+  it("accepts deferred full-regression evidence without blocking impl-gate", () => {
     tmp = createTmpDir("gate-deferred-regression-");
     const specDir = path.join(tmp, "specs/001-test");
     fs.mkdirSync(path.join(specDir, "tests/.raw"), { recursive: true });

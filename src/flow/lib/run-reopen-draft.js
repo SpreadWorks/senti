@@ -47,13 +47,13 @@ const PLAN_REOPEN_DRAFT_REVIEW_RESET_STEPS = Object.freeze(
 );
 const PLAN_REOPEN_ACTIVE_STEPS = Object.freeze([
   "spec",
-  "review-spec",
-  "spec-review-triage",
+  "spec-review",
+  "spec-triage",
   "spec-repair",
-  "gate",
+  "spec-gate",
   "approval",
   "test",
-  "review-test",
+  "test-review",
 ]);
 const PLAN_REOPEN_RESET_STEPS = Object.freeze([
   ...PLAN_REOPEN_DRAFT_REVIEW_RESET_STEPS,
@@ -62,7 +62,7 @@ const PLAN_REOPEN_RESET_STEPS = Object.freeze([
 const STALE_ARTIFACTS = Object.freeze([
   "spec.json",
   "spec.md",
-  "spec-review-triage.json",
+  "spec-triage.json",
   "spec-repair.json",
   "draft.json",
   ...STALE_DRAFT_REVIEW_ARTIFACTS,
@@ -157,15 +157,15 @@ export class RunReopenDraftCommand extends FlowCommand {
 
     fm._store.mutate((s) => {
       setStepStatusAndClearTimestamps(s.steps, "draft", "in_progress");
-      // Reset gate-draft so the new round re-runs the gate.
-      setStepStatusAndClearTimestamps(s.steps, "gate-draft", "pending");
+      // Reset draft-gate so the new round re-runs the gate.
+      setStepStatusAndClearTimestamps(s.steps, "draft-gate", "pending");
     });
 
     appendIssueLog(root, state, {
       step: "draft",
       reason: `reopen-draft triggered: draft step rewound to add new tasks mid-implementation${reason ? ` — ${reason}` : ""}`,
       trigger: "user invoked sdd-forge flow reopen-draft",
-      resolution: "flow.draft step set to in_progress; gate-draft reset to pending",
+      resolution: "flow.draft step set to in_progress; draft-gate reset to pending",
     });
 
     return Envelope.ok("run", "reopen-draft", {

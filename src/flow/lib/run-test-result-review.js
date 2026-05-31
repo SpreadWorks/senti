@@ -55,7 +55,7 @@ function validateProjectRegression(result, { root, rawOutputText, rawLines, requ
   } catch (err) {
     return fail("project_regression_verification", err.message);
   }
-  return pass("project_regression_verification", "project regression evidence is valid; gate-impl owns blocking on regression.result fail");
+  return pass("project_regression_verification", "project regression evidence is valid; impl-gate owns blocking on regression.result fail");
 }
 
 function readRawOutputText(rawOutputPath) {
@@ -122,7 +122,7 @@ export default class RunTestResultReviewCommand extends FlowCommand {
         verdict: review.verdict,
         review_path: path.relative(root, reviewPath),
       },
-      next: review.verdict === "pass" ? "review" : null,
+      next: review.verdict === "pass" ? "impl-review" : null,
     };
   }
 }

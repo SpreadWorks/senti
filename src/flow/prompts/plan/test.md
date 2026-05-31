@@ -7,7 +7,7 @@
      - **`specs/<spec>/tests/` (spec verification tests, NOT run by `npm test`):** Tests that only verify this spec's requirements are met, bug fix reproduction tests, temporary setup/integration verification. These are kept as history, not maintained long-term.
      - **Decision rule:** Ask "If a future change breaks this test, is that always a bug?" — YES → `tests/`, NO → `specs/<spec>/tests/`.
    - Write test code under `specs/<spec>/tests/`. Tests should fail initially (before implementation).
-   - **Do NOT run tests here.** The plan-phase `test` step writes test code only. `plan/scenario-validity` verifies expected pre-implementation failures, `plan/review-test` performs static anti-pattern review, post-implementation spec-local verification stays in `impl/test-execute`, and full project regression stays in `impl/final-regression`.
+   - **Do NOT run tests here.** The plan-phase `test` step writes test code only. `plan/scenario-validity` verifies expected pre-implementation failures, `plan/test-review` performs static anti-pattern review, post-implementation spec-local verification stays in `impl/test-execute`, and full project regression stays in `impl/final-regression`.
    - **MUST: If a test reveals a production code bug that is outside the current spec's scope**, record it in issue-log (`sdd-forge flow set issue-log --step test --reason "..."`) before adjusting the test to match current behavior. Do not silently fix or skip the test.
    - **MUST: Write a spec coverage header at the top of every spec verification test file.** This header replaces the legacy file-based mapping artifact (spec 249).
      - JS / TS / MJS files: `// spec: R1 R2 ...`
@@ -34,4 +34,4 @@
    - **On complete**:
      - `sdd-forge flow set step test done`
    - **After test step is done**:
-     - Continue to `plan/scenario-validity`. Do not run `plan/review-test` or implementation until scenario-validity has passed.
+     - Continue to `plan/scenario-validity`. Do not run `plan/test-review` or implementation until scenario-validity has passed.

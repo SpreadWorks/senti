@@ -38,7 +38,7 @@ const MAX_ARTIFACT_PATTERN_COUNT = 500;
 const MAX_COLLECTED_ARTIFACTS = 10_000;
 const MAX_ARTIFACT_GLOB_ENTRIES = 10_000;
 const MAX_PLACEHOLDER_PERMISSION_PATHS = 50;
-// Spec R2 intentionally maps every gate-impl artifact trust failure to the
+// Spec R2 intentionally maps every impl-gate artifact trust failure to the
 // public ARTIFACT_PLACEHOLDER code, including malformed or missing inputs.
 const GATE_ARTIFACT_TRUST_FAILURE_CODE = ARTIFACT_PLACEHOLDER;
 const DEFAULT_PLACEHOLDER_SENTINELS = Object.freeze(["placeholder", "todo", "tbd"]);
@@ -207,7 +207,7 @@ export class GateArtifactTrustFailure {
 }
 
 export function buildGateArtifactTrustContract({ step, phase } = {}) {
-  const requiredTrustInputs = step === "gate-impl" && phase === "integration"
+  const requiredTrustInputs = step === "impl-gate" && phase === "integration"
     ? INTEGRATION_TRUST_INPUTS
     : [];
   return new GateArtifactTrustContract({ step, phase, requiredTrustInputs });
@@ -892,7 +892,7 @@ function validateRequiredTrustInputs(specDir, requiredTrustInputs) {
 }
 
 export function validateIntegrationArtifactTrust({ root, specDir, phase = "integration", specPath = null, state = {}, config = {} }) {
-  const contract = buildGateArtifactTrustContract({ step: "gate-impl", phase });
+  const contract = buildGateArtifactTrustContract({ step: "impl-gate", phase });
   if (contract.requiredTrustInputs.length === 0) return new GateArtifactTrustSuccess({ contract });
 
   try {

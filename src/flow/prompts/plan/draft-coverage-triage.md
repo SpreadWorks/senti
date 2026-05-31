@@ -1,4 +1,4 @@
-   - Classify findings from `review-draft-coverage` before any draft coverage repair work.
+   - Classify findings from `draft-coverage-review` before any draft coverage repair work.
    - Read `specs/<spec-id>/draft-review-coverage.json` first. Treat only `blockingFindings[]` and `repairTargets[]` as triage input. `advisoryFindings[]` are advisory memory only.
    - Do not edit `draft.json`, spec files, task files, or tests in this step. This step decides what should be repaired; the next `draft-coverage-repair` step performs the edits.
    - Always write `specs/<spec-id>/draft-coverage-triage.json` before completing this step.
@@ -13,7 +13,7 @@
    - Use `invalid` when the item belongs to gate-owned mechanical checks, contradicts verified context, asks for broader scope, or is not grounded in the draft coverage review criteria.
    - Use `already_resolved` when the current `draft.json` already covers the item.
    - Use `downgraded_to_non_blocking` when the item is useful context but does not block spec writing.
-   - Use `requires_user_decision` only when resolving the item would require new user input. This decision blocks gate-draft until draft QA is reopened or answered.
+   - Use `requires_user_decision` only when resolving the item would require new user input. This decision blocks draft-gate until draft QA is reopened or answered.
    - `draft-coverage-triage.json` shape:
      ```json
      {
@@ -32,5 +32,5 @@
        ]
      }
      ```
-   - Do not run another draft review loop from this step. The downstream `draft-coverage-repair` step applies `decision=apply` items, and gate-draft remains the blocking validation step.
+   - Do not run another draft review loop from this step. The downstream `draft-coverage-repair` step applies `decision=apply` items, and draft-gate remains the blocking validation step.
    - **On complete**: `sdd-forge flow set step draft-coverage-triage done`

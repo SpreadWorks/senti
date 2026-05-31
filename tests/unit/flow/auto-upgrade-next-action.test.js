@@ -42,7 +42,7 @@ describe("spec 232: autoUpgrade in next-action envelope (R3, T-4)", () => {
     const state = setupFlow(tmp, {
       autoUpgrade: { available: true, reason: "re-eval eligible" },
     });
-    setStepDone(state, "branch", "prepare-spec", "draft", "gate-draft", "spec", "gate", "approval");
+    setStepDone(state, "branch", "prepare-spec", "draft", "draft-gate", "spec", "spec-gate", "approval");
     const testStep = findStepById(state.steps, "test");
     testStep.status = "in_progress";
     makeFlowManager(tmp).save(state);
@@ -58,7 +58,7 @@ describe("spec 232: autoUpgrade in next-action envelope (R3, T-4)", () => {
   it("omits autoUpgrade from envelope when not set", () => {
     tmp = createTmp();
     const state = setupFlow(tmp);
-    setStepDone(state, "branch", "prepare-spec", "draft", "gate-draft", "spec", "gate", "approval");
+    setStepDone(state, "branch", "prepare-spec", "draft", "draft-gate", "spec", "spec-gate", "approval");
     const testStep = findStepById(state.steps, "test");
     testStep.status = "in_progress";
     makeFlowManager(tmp).save(state);

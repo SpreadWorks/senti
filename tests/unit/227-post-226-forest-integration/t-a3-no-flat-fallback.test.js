@@ -16,12 +16,12 @@ describe("REQ-A3: get-next-action assumes non-empty tasks", () => {
     const cmd = new GetNextActionCommand();
 
     tmp = createTmpDir();
-    const task = { id: "T-1", title: "x", goal: "x", status: "in_progress", parent: null, origin: "plan", added_round: 0, steps: [{ id: "impl", status: "in_progress" }] };
+    const task = { id: "T-1", title: "x", goal: "x", status: "in_progress", parent: null, origin: "plan", added_round: 0, steps: [{ id: "task-impl", status: "in_progress" }] };
     const state = setupFlow(tmp, {
       tasks: [task],
       currentTaskId: "T-1",
     });
-    setStepDone(state, "branch", "prepare-spec", "draft", "gate-draft", "spec", "gate", "approval", "test");
+    setStepDone(state, "branch", "prepare-spec", "draft", "draft-gate", "spec", "spec-gate", "approval", "test");
     const fm = makeFlowManager(tmp);
     fm.save(state);
 
@@ -36,12 +36,12 @@ describe("REQ-A3: get-next-action assumes non-empty tasks", () => {
     const GetNextActionCommand = mod.default;
 
     tmp = createTmpDir();
-    const task = { id: "T-1", title: "x", goal: "x", status: "done", parent: null, origin: "plan", added_round: 0, steps: [{ id: "impl", status: "done" }, { id: "review", status: "done" }, { id: "gate-impl", status: "done" }] };
+    const task = { id: "T-1", title: "x", goal: "x", status: "done", parent: null, origin: "plan", added_round: 0, steps: [{ id: "task-impl", status: "done" }, { id: "task-review", status: "done" }, { id: "task-gate", status: "done" }] };
     const state = setupFlow(tmp, {
       tasks: [task],
       currentTaskId: "T-1",
     });
-    setStepDone(state, "branch", "prepare-spec", "draft", "gate-draft", "spec", "gate", "approval", "test", "implement", "review", "gate-impl");
+    setStepDone(state, "branch", "prepare-spec", "draft", "draft-gate", "spec", "spec-gate", "approval", "test", "implement", "impl-review", "impl-gate");
     const step = findStepById(state.steps, "finalize-commit");
     if (step) step.status = "in_progress";
     const fm = makeFlowManager(tmp);

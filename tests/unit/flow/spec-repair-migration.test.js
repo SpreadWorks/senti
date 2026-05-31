@@ -13,7 +13,7 @@ function writeFlowWithoutSpecRepair(tmp, mutate = () => {}) {
   fs.mkdirSync(specDir, { recursive: true });
   const steps = buildInitialSteps();
   const plan = steps.find((s) => s.id === "plan");
-  plan.children = plan.children.filter((s) => s.id !== "spec-review-triage");
+  plan.children = plan.children.filter((s) => s.id !== "spec-triage");
   plan.children = plan.children.filter((s) => s.id !== "spec-repair");
   mutate(steps);
   fs.writeFileSync(path.join(specDir, "flow.json"), JSON.stringify({
@@ -32,33 +32,33 @@ describe("spec-repair flow-state migration", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  it("inserts spec-review-triage and spec-repair before pending spec gate", () => {
+  it("inserts spec-triage and spec-repair before pending spec gate", () => {
     tmp = createTmpDir();
     const specId = writeFlowWithoutSpecRepair(tmp);
     const loaded = makeFlowManager(tmp).load(specId);
 
-    const triage = findStepById(loaded.steps, "spec-review-triage");
+    const triage = findStepById(loaded.steps, "spec-triage");
     const repair = findStepById(loaded.steps, "spec-repair");
-    const gate = findStepById(loaded.steps, "gate");
+    const gate = findStepById(loaded.steps, "spec-gate");
 
     assert.equal(triage.status, "pending");
     assert.equal(repair.status, "pending");
     assert.equal(gate.status, "pending");
     const planIds = loaded.steps.find((s) => s.id === "plan").children.map((s) => s.id);
-    assert.ok(planIds.indexOf("review-spec") < planIds.indexOf("spec-review-triage"));
-    assert.ok(planIds.indexOf("spec-review-triage") < planIds.indexOf("spec-repair"));
-    assert.ok(planIds.indexOf("spec-repair") < planIds.indexOf("gate"));
+    assert.ok(planIds.indexOf("spec-review") < planIds.indexOf("spec-triage"));
+    assert.ok(planIds.indexOf("spec-triage") < planIds.indexOf("spec-repair"));
+    assert.ok(planIds.indexOf("spec-repair") < planIds.indexOf("spec-gate"));
   });
 
-  it("marks spec-review-triage and spec-repair done when spec gate already started", () => {
+  it("marks spec-triage and spec-repair done when spec gate already started", () => {
     tmp = createTmpDir();
     const specId = writeFlowWithoutSpecRepair(tmp, (steps) => {
-      const gate = findStepById(steps, "gate");
+      const gate = findStepById(steps, "spec-gate");
       gate.status = "in_progress";
       gate.startedAt = "2026-05-13T00:00:00.000Z";
     });
     const loaded = makeFlowManager(tmp).load(specId);
-    const triage = findStepById(loaded.steps, "spec-review-triage");
+    const triage = findStepById(loaded.steps, "spec-triage");
     const repair = findStepById(loaded.steps, "spec-repair");
 
     assert.equal(triage.status, "done");

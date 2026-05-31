@@ -32,7 +32,7 @@
      ```
    - **Verdict semantics:**
      - `verdict: "pass"` — all 5 checked items pass.
-     - `verdict: "fail"` — any check item fails. Set `invalid_reason` with a concise explanation. Downstream `gate-impl` and `retro` will treat this as test failure (the result file is untrusted).
+     - `verdict: "fail"` — any check item fails. Set `invalid_reason` with a concise explanation. Downstream `impl-gate` and `retro` will treat this as test failure (the result file is untrusted).
    - **Separation from executor:** this step is invoked in a separate agent session. The reviewer must not see the executor's intermediate state — only the persisted artifacts. Configure `agent.providers` for model differentiation if desired (executor=Claude / reviewer=Codex etc.) — recommended but not required.
    - **Verdict values are lowercase:** `"pass"` / `"fail"`.
    - **On complete:** the registry post-hook marks this step done automatically.
