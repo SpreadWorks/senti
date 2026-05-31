@@ -1,10 +1,10 @@
 ---
-name: sdd-forge.exp.workflow
+name: sdd-forge.workflow
 description: |
   Manage GitHub Projects board drafts and publish them as issues via the sdd-forge workflow command.
   TRIGGER when the user says any of: "ボードに追加", "タスク化", "メモしておいて", "issue にして",
   "issueにして", "ドラフトを作って", "board に追加", "アイデアをメモ".
-  Also TRIGGER when the user explicitly invokes /sdd-forge.exp.workflow.
+  Also TRIGGER when the user explicitly invokes /sdd-forge.workflow.
 ---
 
 # SDD Experimental: Workflow
