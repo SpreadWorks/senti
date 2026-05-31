@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-29T12:02:53.108Z",
+  "analyzedAt": "2026-05-31T08:09:11.338Z",
   "package": {
     "entries": [
       {
@@ -220,7 +220,7 @@
         ],
         "id": "7cccb0de",
         "enrich": {
-          "attempts": 12
+          "attempts": 13
         }
       },
       {
@@ -245,7 +245,7 @@
         ],
         "id": "8e7abcbd",
         "enrich": {
-          "attempts": 15
+          "attempts": 16
         }
       },
       {
@@ -268,7 +268,7 @@
         "usedBy": null,
         "id": "05590bea",
         "enrich": {
-          "attempts": 15
+          "attempts": 16
         }
       },
       {
@@ -288,7 +288,7 @@
         "usedBy": null,
         "id": "fdf0f411",
         "enrich": {
-          "attempts": 15
+          "attempts": 16
         }
       },
       {
@@ -309,7 +309,7 @@
         "usedBy": null,
         "id": "b9d76d8b",
         "enrich": {
-          "attempts": 15
+          "attempts": 16
         }
       },
       {
@@ -329,7 +329,7 @@
         "usedBy": null,
         "id": "39b2aa36",
         "enrich": {
-          "attempts": 15
+          "attempts": 16
         }
       },
       {
@@ -351,7 +351,7 @@
         ],
         "id": "e1379661",
         "enrich": {
-          "attempts": 15
+          "attempts": 16
         }
       },
       {
@@ -1015,7 +1015,7 @@
         ],
         "id": "7c5e7654",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -1142,7 +1142,7 @@
         "usedBy": null,
         "id": "f3ac0c38",
         "enrich": {
-          "attempts": 12
+          "attempts": 13
         }
       },
       {
@@ -1386,7 +1386,7 @@
         ],
         "id": "bbb893ea",
         "enrich": {
-          "attempts": 14
+          "attempts": 15
         }
       },
       {
@@ -1888,7 +1888,7 @@
         ],
         "id": "f6126150",
         "enrich": {
-          "attempts": 14
+          "attempts": 15
         }
       },
       {
@@ -1920,7 +1920,7 @@
         "usedBy": null,
         "id": "cb355898",
         "enrich": {
-          "attempts": 15
+          "attempts": 16
         }
       },
       {
@@ -2034,7 +2034,7 @@
         "usedBy": null,
         "id": "cf9f71e2",
         "enrich": {
-          "attempts": 12
+          "attempts": 13
         }
       },
       {
@@ -2247,7 +2247,7 @@
         "usedBy": null,
         "id": "1ab08f2b",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -2293,14 +2293,14 @@
         "usedBy": null,
         "id": "3a0db928",
         "enrich": {
-          "attempts": 9
+          "attempts": 10
         }
       },
       {
         "file": "src/flow/commands/report.js",
-        "hash": "d7bcc1c133b54bea296530c65465fb81",
+        "hash": "5aac3e50bea568482501625a93a4143b",
         "lines": 511,
-        "mtime": "2026-05-25T03:57:06.875Z",
+        "mtime": "2026-05-31T08:08:58.960Z",
         "className": "report",
         "methods": [
           "generateReport",
@@ -2338,14 +2338,14 @@
         "usedBy": null,
         "id": "5f80ffd2",
         "enrich": {
-          "attempts": 6
+          "attempts": 1
         }
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "98bf52db89565143567e5d7b1d3a3ade",
+        "hash": "9623354cff0e5b8bacaa12c4d1a4ffd6",
         "lines": 3238,
-        "mtime": "2026-05-29T02:07:29.353Z",
+        "mtime": "2026-05-31T08:08:58.962Z",
         "className": "review",
         "methods": [
           "writeReviewAttemptHistory",
@@ -2542,30 +2542,15 @@
         "extends": "Command",
         "usedBy": null,
         "id": "331cf497",
-        "summary": "Implements the `flow review` command as a multi-phase review orchestrator for draft, spec, test, and implementation stages. It drives AI-assisted checks, scope filtering, artifact generation, and retry loops with phase-specific logic.",
-        "detail": "The module combines CLI parsing, flow-state inspection, git-diff collection, and requirement mapping to build review inputs for each phase. It defines strict JSON schemas and parser-repair logic for AI outputs, then normalizes findings into typed artifacts and markdown/json reports. The implementation includes loop-based review strategies for large change sets, chunking, cross-check prompts, and touched-file scoping to reduce noise. It persists review history with attempt numbering, normalized finding IDs, and per-phase memory reuse for iterative improvements. It also includes safeguards such as prompt-size limits, controlled test-fix write boundaries, and structured failure classification to keep automation predictable.",
-        "chapter": "cli_commands",
-        "role": "Flow review command orchestrator",
         "enrich": {
-          "processedAt": "2026-05-29T02:08:40.284Z",
           "attempts": 1
-        },
-        "keywords": [
-          "flow review",
-          "multi-phase validation",
-          "ai prompt orchestration",
-          "json schema validation",
-          "git diff scope",
-          "review artifacts",
-          "retry loop",
-          "spec compliance"
-        ]
+        }
       },
       {
         "file": "src/flow/definition.js",
-        "hash": "1be3a13fff86897d3e1af48dd391e3a7",
+        "hash": "595afa5f1fccd1b4987c0e38e093a86b",
         "lines": 793,
-        "mtime": "2026-05-25T00:05:00.904Z",
+        "mtime": "2026-05-31T08:08:58.962Z",
         "className": "definition",
         "methods": [
           "collectGatePhaseEntries",
@@ -2626,24 +2611,8 @@
         ],
         "id": "2cb27b93",
         "enrich": {
-          "processedAt": "2026-05-25T03:57:50.884Z",
-          "attempts": 2
-        },
-        "summary": "Defines the flow graph model and utilities used to drive SDD step progression. It centralizes node metadata, max-attempt policies, traversal, and next-action derivation.",
-        "detail": "The file models workflow steps with `FlowNode` and max-attempt strategies (`ScalarMaxAttempts` and `ModeMaxAttempts`) that depend on execution context such as auto-approval mode. It declares immutable flow and task definitions, including draft review route integration and gate side-effect metadata. Helper functions traverse nested trees to collect leaves, derive phase maps, find active or in-progress nodes, and flatten step structures. Additional utilities compute prerequisites, branch membership, and promotion of the next pending leaf. Depth and scan limits are enforced to prevent malformed definitions and unbounded state scanning.",
-        "chapter": "internal_design",
-        "role": "Workflow definition model and step-resolution utility layer",
-        "keywords": [
-          "flow graph",
-          "workflow state machine",
-          "FlowNode",
-          "max attempts",
-          "step traversal",
-          "active step detection",
-          "phase mapping",
-          "task progression",
-          "SDD pipeline"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/acknowledged-rationale.js",
@@ -2907,9 +2876,9 @@
       },
       {
         "file": "src/flow/lib/draft-review-routes.js",
-        "hash": "e8a3e0afb98b6a78f3e24f72bad2a93c",
+        "hash": "0d8fb54e3b60deaf7bd9cb9d412414a9",
         "lines": 83,
-        "mtime": "2026-05-18T01:53:12.524Z",
+        "mtime": "2026-05-31T08:08:58.962Z",
         "className": "draft-review-routes",
         "methods": [
           "DraftReviewRoute",
@@ -2936,21 +2905,8 @@
         ],
         "id": "41c7d805",
         "enrich": {
-          "processedAt": "2026-05-20T01:10:31.634Z",
-          "attempts": 6
-        },
-        "summary": "Draft review route registry mapping retry phases and keys to route metadata.",
-        "detail": "Defines `DraftReviewRoute` with non-empty string validation and exports a frozen `DRAFT_REVIEW_ROUTES` array containing the configured review routes. Builds two lookup maps keyed by retryPhase and key, exposing `draftReviewRouteForRetryPhase()` and `draftReviewRouteForKey()` accessors that return null when missing. Also publishes artifact size limits (`DRAFT_REVIEW_ARTIFACT_LIMIT=20`, `DRAFT_TRIAGE_REPAIR_ARTIFACT_LIMIT=40`). Keeps route configuration centralized so flow definitions, review commands, and recovery logic share a single source of truth.",
-        "chapter": "internal_design",
-        "role": "draft-review-routes",
-        "keywords": [
-          "draft review",
-          "route",
-          "retry phase",
-          "registry",
-          "lookup",
-          "artifact limit"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/fetch-issue.js",
@@ -3078,9 +3034,9 @@
       },
       {
         "file": "src/flow/lib/gate-step.js",
-        "hash": "1a0a1d97a3018f071c026bc89303a0e4",
+        "hash": "41af444af95a5780fdc9fc032debbb00",
         "lines": 95,
-        "mtime": "2026-05-16T08:19:57.845Z",
+        "mtime": "2026-05-31T08:08:58.962Z",
         "className": "gate-step",
         "methods": [
           "resolveGateStepId",
@@ -3099,27 +3055,14 @@
         ],
         "extends": null,
         "usedBy": [
+          "src/flow/lib/gate-recovery-display.js",
           "src/flow/lib/run-gate.js",
-          "src/flow/registry.js",
-          "src/flow/lib/gate-recovery-display.js"
+          "src/flow/registry.js"
         ],
         "id": "9bbc3f1d",
         "enrich": {
-          "processedAt": "2026-05-20T01:10:31.634Z",
-          "attempts": 8
-        },
-        "summary": "Resolves which flow step corresponds to a gate phase and identifies the active gate in state.",
-        "detail": "Builds frozen phase-to-step and step-to-phase mappings from `collectGatePhaseEntries()` plus a `TASK_STEP_TO_PHASE` constant for task-scope gates. `resolveGateStepId()` returns the step id for a phase (defaulting to `gate`). `resolveGatePhaseFromState()` inspects the active task or flow in-progress steps via `pickLatestFlowGateStep` and `flattenForGate`, returning the gate phase along with any stale steps found ahead of it. `resolveActiveTask()` locates the current task by id.",
-        "chapter": "internal_design",
-        "role": "gate-step-resolver",
-        "keywords": [
-          "gate",
-          "phase mapping",
-          "step id",
-          "active gate",
-          "stale steps",
-          "task scope"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/get-check.js",
@@ -3309,9 +3252,9 @@
       },
       {
         "file": "src/flow/lib/get-next-action.js",
-        "hash": "7adf6ec3d0c8dcab21a5f4cbf4260e5a",
+        "hash": "5a58e4240decbebf433e6b35f2c611ec",
         "lines": 315,
-        "mtime": "2026-05-20T01:09:12.553Z",
+        "mtime": "2026-05-31T08:08:58.962Z",
         "className": "get-next-action",
         "methods": [
           "resolveSchemaDir",
@@ -3352,24 +3295,9 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "c68afd69",
-        "summary": "Computes the next-action envelope for a flow run, including persistent rules and retry recovery views.",
-        "detail": "`GetNextActionCommand` walks the flow state to locate the unresolved in-progress target, asserting graph integrity (`NO_RULE_FOR_STEP` on missing definitions). Loads cached skill rules, filters them per target, and prepends a rendered rule block before step instructions sourced from `getStepInstructions`. Constructs context descriptors with required kinds/paths, attaches review or gate recovery views (`buildReviewStopView`, `resolveGateRecoveryDisplayPhase`) plus retry recovery state, and promotes pending tasks/steps when the current target is exhausted. Returns either a structured action or an `Envelope.fail` for failure modes.",
-        "chapter": "internal_design",
-        "role": "next-action-resolver",
         "enrich": {
-          "processedAt": "2026-05-20T01:10:31.634Z",
           "attempts": 1
-        },
-        "keywords": [
-          "next action",
-          "envelope",
-          "retry recovery",
-          "step instructions",
-          "skill rules",
-          "context descriptor",
-          "gate recovery",
-          "review stop"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/get-prompt.js",
@@ -3525,9 +3453,9 @@
       },
       {
         "file": "src/flow/lib/get-status.js",
-        "hash": "3d23106e92a005e4503d298a3153b8a6",
+        "hash": "4100a3a699d14aa086c48d4f87772dfd",
         "lines": 271,
-        "mtime": "2026-05-19T04:48:08.662Z",
+        "mtime": "2026-05-31T08:08:58.962Z",
         "className": "get-status",
         "methods": [
           "buildMetricsSummary",
@@ -3568,23 +3496,8 @@
         ],
         "id": "9aca938f",
         "enrich": {
-          "processedAt": "2026-05-20T01:10:31.634Z",
-          "attempts": 3
-        },
-        "summary": "Aggregates flow status output: metrics summary, active step, gate/review stop views, and totals.",
-        "detail": "`GetStatusCommand` returns the active flow context's status via `buildStatusOutput`, combining metrics rolled up by phase/provider (`buildMetricsSummary`), report totals (`buildReportTotals`), and view objects for review stops and gate recovery. Iterates token keys (`input`, `output`, `cacheRead`, `cacheCreation`) and activity counters (`docsRead`, `srcRead`, `question`, `issueLog`) into normalized buckets via `applyEntry`/`applyProviderEntry`. Resolves the active leaf step with `findLatestInProgressLeaf` and exposes its max attempts. Bounds broad-mode history with `BROAD_MODE_HISTORY_MAX_ENTRIES`.",
-        "chapter": "internal_design",
-        "role": "flow-status-builder",
-        "keywords": [
-          "status",
-          "metrics",
-          "tokens",
-          "activity counters",
-          "review stop",
-          "gate recovery",
-          "broad mode history",
-          "report totals"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/get-step-instructions.js",
@@ -3865,9 +3778,9 @@
       },
       {
         "file": "src/flow/lib/resolve-auto-check-input.js",
-        "hash": "3ce0f1fa62424bd16b79e17b92e76ebf",
+        "hash": "67407a2977b1f1b2dd14f28ac53a3e5b",
         "lines": 154,
-        "mtime": "2026-05-12T01:17:35.554Z",
+        "mtime": "2026-05-31T08:08:58.963Z",
         "className": "resolve-auto-check-input",
         "methods": [
           "isSpecApproved",
@@ -3901,23 +3814,8 @@
         ],
         "id": "30a7075c",
         "enrich": {
-          "processedAt": "2026-05-20T01:10:08.721Z",
-          "attempts": 10
-        },
-        "summary": "Resolves auto-check input for the SDD flow's draft gate by reading spec sibling files and inspecting step states.",
-        "detail": "Defines helpers to determine whether spec approval and draft gate steps are done via `findStepById`/`flattenSteps`. Loads sibling text files (e.g., draft JSON) next to the spec path, safely returning null on missing/error. Parses draft goal JSON to validate presence, building goal-missing verdict envelopes when absent. The exported `resolveAutoCheckInput` returns one of three shapes: skip (already approved), fail (goal missing), or proceed with concatenated context text plus goalGate metadata. Also exports `buildSkipVerdict` and `resolvePersistedAutoCheckTrust` for sharing envelope shape with set-auto.js.",
-        "chapter": "internal_design",
-        "role": "Flow auto-check input resolver determining skip/fail/proceed verdicts based on spec approval and draft goal presence",
-        "keywords": [
-          "auto-check",
-          "draft gate",
-          "spec approval",
-          "goal verdict",
-          "flow state",
-          "envelope",
-          "isStepDone",
-          "resolveAutoCheckInput"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/resolve-context-envelope.js",
@@ -4005,9 +3903,9 @@
       },
       {
         "file": "src/flow/lib/retry-recovery.js",
-        "hash": "2a891366f0e295c930fbd6a40b526101",
+        "hash": "ccaa1506d6a95645d2cde6f95af6a610",
         "lines": 774,
-        "mtime": "2026-05-19T04:48:08.663Z",
+        "mtime": "2026-05-31T08:08:58.963Z",
         "className": "retry-recovery",
         "methods": [
           "resolveRecoveryMaxAttempts",
@@ -4097,29 +3995,15 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "3de0db3f",
-        "summary": "Implements evidence-based retry recovery for gate and review phases after retry budgets are exhausted. It persists baselines, recovery grants, and counter mutations in flow artifacts and issue logs.",
-        "detail": "The module defines strict invariants for actions, phases, reasons, and counter values through constructor-validated classes such as RetryRecoveryInput, EvidenceFingerprint, and RetryRecoveryEntry. It canonicalizes review phase aliases and maps each phase to a bounded evidence source, then computes SHA-256 fingerprints from changed files with filesystem fallback logic and truncation limits. Eligibility is decided by either remaining retry budget or evidence changes against the latest stored baseline, producing a structured changed-evidence summary. When a grant is applied, it writes retry-recovery.json, appends issue-log entries, updates flow metrics to allow one reevaluation attempt, and persists the updated flow.json state.",
-        "chapter": "internal_design",
-        "role": "retry recovery policy and persistence engine",
         "enrich": {
-          "processedAt": "2026-05-19T04:50:35.464Z",
           "attempts": 1
-        },
-        "keywords": [
-          "retry recovery",
-          "evidence fingerprint",
-          "baseline comparison",
-          "retry budget",
-          "flow metrics",
-          "issue log",
-          "phase canonicalization"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/review-failure.js",
-        "hash": "73e10e5a2ad5a77c5409e6ee1e497d74",
-        "lines": 336,
-        "mtime": "2026-05-19T04:48:08.663Z",
+        "hash": "b68d3470bbf906e0b8a6d8e473c591f7",
+        "lines": 337,
+        "mtime": "2026-05-31T08:08:58.963Z",
         "className": "review-failure",
         "methods": [
           "reviewPhaseForStepId",
@@ -4153,23 +4037,9 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "fcf92359",
-        "summary": "Defines a typed failure taxonomy for review execution and translates failures into recoverable stop-state metadata. It standardizes classification, envelope payloads, and user-facing recovery commands.",
-        "detail": "The file classifies failures into review verdict, subprocess, provider, input-size, and max-attempts categories with constructor-level validation. It can parse structured failure markers from stderr, infer provider or context-length failures via regex patterns, and fall back to subprocess-failure classification. The ReviewFailure class exposes policy methods such as subprocess retry eligibility, stop-state persistence conditions, and marker emission constraints. Helper functions write, clear, and render review stop state, including fallback max-attempts views computed from retry metrics.",
-        "chapter": "internal_design",
-        "role": "review failure classifier and stop-state formatter",
         "enrich": {
-          "processedAt": "2026-05-19T04:50:35.464Z",
           "attempts": 1
-        },
-        "keywords": [
-          "failure taxonomy",
-          "review stop state",
-          "provider error",
-          "context length",
-          "retry reset",
-          "stderr marker",
-          "envelope mapping"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/run-auto-check.js",
@@ -4588,9 +4458,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "045ae517f6a9c79e68540705a7aca712",
-        "lines": 3227,
-        "mtime": "2026-05-29T00:27:13.419Z",
+        "hash": "0ee64a3b7b0cff505f33415c3c2e1f23",
+        "lines": 3225,
+        "mtime": "2026-05-31T08:08:58.963Z",
         "className": "run-gate",
         "methods": [
           "executeGateSideEffects",
@@ -4776,24 +4646,9 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "Implements the flow gate engine that validates draft/spec/implementation phases and produces standardized pass/fail envelopes. It combines diff analysis, artifact checks, AI guardrail evaluation, and retry/recovery control in one command pipeline.",
-        "detail": "The module maps gate phases to strict levels and rejects invalid level-phase combinations before running checks. It gathers committed, uncommitted, and untracked diffs with size limits, then scopes requirement-level evaluation using file maps and per-file diff slicing. It builds guardrail prompts, parses JSON-only AI responses against explicit schemas, and raises typed schema errors for malformed or unknown fields. It also enforces artifact lifecycle rules (spec review/triage/repair and draft review variants), tracks retry history and recovery baselines, applies repeated-failure and flip-override logic, and writes issue-log/memory artifacts for subsequent gate rounds.",
-        "chapter": "internal_design",
-        "role": "Flow gate orchestration, validation, and AI-evaluation control",
         "enrich": {
-          "processedAt": "2026-05-29T01:19:55.355Z",
           "attempts": 1
-        },
-        "keywords": [
-          "gate pipeline",
-          "guardrail evaluation",
-          "JSON schema validation",
-          "retry recovery",
-          "diff-based checks",
-          "issue log",
-          "spec lifecycle audit",
-          "integration evidence"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/run-impl-confirm.js",
@@ -4933,9 +4788,9 @@
       },
       {
         "file": "src/flow/lib/run-reopen-draft.js",
-        "hash": "5d58417d3f23491b514d312d1ef471f0",
+        "hash": "a114bedd3e2de718de54d6f4ff79689d",
         "lines": 179,
-        "mtime": "2026-05-18T01:53:12.524Z",
+        "mtime": "2026-05-31T08:08:58.964Z",
         "className": "run-reopen-draft",
         "methods": [
           "RunReopenDraftCommand",
@@ -4960,20 +4815,8 @@
         "usedBy": null,
         "id": "82a89eee",
         "enrich": {
-          "processedAt": "2026-05-18T13:31:12.050Z",
-          "attempts": 3
-        },
-        "summary": "Reopens draft work by resetting flow steps and clearing stale draft-review artifacts with a validated reason.",
-        "detail": "The module derives reset targets from configured draft review routes and defines artifact sets to clean. It validates the reopen reason with type, length, and null-byte constraints before mutating flow state. Results are returned as structured envelopes and include issue-log updates for traceability.",
-        "chapter": "cli_commands",
-        "role": "draft reopen/reset command",
-        "keywords": [
-          "draft reopen",
-          "artifact reset",
-          "step rollback",
-          "reason validation",
-          "issue logging"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/run-report-show.js",
@@ -5143,9 +4986,9 @@
       },
       {
         "file": "src/flow/lib/run-review.js",
-        "hash": "93bd8d6feed96e69ca1ea8d66095275e",
+        "hash": "eaabf0295ba9f60c4e4cbbb177b2487b",
         "lines": 579,
-        "mtime": "2026-05-21T04:41:15.396Z",
+        "mtime": "2026-05-31T08:08:58.964Z",
         "className": "run-review",
         "methods": [
           "countReviewRetry",
@@ -5217,28 +5060,14 @@
         ],
         "id": "d4e97204",
         "enrich": {
-          "processedAt": "2026-05-25T04:34:52.964Z",
-          "attempts": 4
-        },
-        "summary": "Implements the review execution command across draft, spec, test, and implementation phases with phase-specific parsing and retry behavior. It converts review subprocess results into structured flow outcomes and next-step routing.",
-        "detail": "The module defines review verdict semantics, phase mappings, retry budgets, and downstream reset behavior for implementation-related evidence. It executes review scripts via subprocess calls with bounded retry and delay controls to tolerate transient tool failures. Output parsers extract standardized signals (verdicts, counts, artifact paths, next steps) and normalize them per phase. It integrates with flow recovery state, issue logging, and retry counters so repeated failures are tracked consistently. The command returns envelope-friendly failures for unknown phases, task-cursor violations, and parse/tooling errors, preserving deterministic flow transitions.",
-        "chapter": "internal_design",
-        "role": "Phase-aware review runner and verdict interpreter in the flow pipeline",
-        "keywords": [
-          "review command",
-          "phase parser",
-          "verdict routing",
-          "subprocess retry",
-          "flow recovery",
-          "implementation review",
-          "issue tracking"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/run-scenario-validity.js",
-        "hash": "a672a1b809e27cdb2ad98eb8d8c1d74a",
+        "hash": "08fea359eb8dca372a2d54d342d19135",
         "lines": 437,
-        "mtime": "2026-05-18T02:25:43.709Z",
+        "mtime": "2026-05-31T08:08:58.966Z",
         "className": "run-scenario-validity",
         "methods": [
           "discoverScenarioValidityTestFiles",
@@ -5284,22 +5113,8 @@
         "usedBy": null,
         "id": "c99f2f87",
         "enrich": {
-          "processedAt": "2026-05-19T04:50:35.464Z",
-          "attempts": 3
-        },
-        "summary": "Runs scenario-validity checks by executing spec-local test files and generating normalized result artifacts. It blocks progression unless every testable requirement is observed as expected failure.",
-        "detail": "The command discovers candidate test files under the active spec, performs a preflight changed-path policy check, and blocks when implementation-target files are modified outside the allowed scenario-validity scope. It runs each test file as an isolated Node process, captures stdout/stderr and process metadata, and records raw output line ranges for traceable evidence references. Requirement summaries are built by matching requirement IDs against test entry markers and classifying each as not_run, skipped, invalid_test, unexpected_pass, or expected_fail. It writes both raw and structured artifacts, validates artifact schema, sets next step only on pass, and emits deterministic fallback artifacts when execution errors occur.",
-        "chapter": "cli_commands",
-        "role": "scenario validity test gate command",
-        "keywords": [
-          "scenario validity",
-          "preflight path validation",
-          "requirement-to-test mapping",
-          "expected fail",
-          "artifact generation",
-          "raw output trace",
-          "flow blocking"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/run-start-task.js",
@@ -5436,9 +5251,9 @@
       },
       {
         "file": "src/flow/lib/run-test-result-review.js",
-        "hash": "7a5f885dbc5f3c5ddc9574d80dc392a2",
+        "hash": "d5f84583a1059b0626b56e95f655376d",
         "lines": 129,
-        "mtime": "2026-05-18T13:29:13.534Z",
+        "mtime": "2026-05-31T08:08:58.966Z",
         "className": "run-test-result-review",
         "methods": [
           "pass",
@@ -5463,22 +5278,8 @@
         "usedBy": null,
         "id": "c1fba537",
         "enrich": {
-          "processedAt": "2026-05-19T16:47:37.879Z",
-          "attempts": 3
-        },
-        "summary": "Validates test execution artifacts and emits a deterministic review verdict. It writes both JSON and Markdown review outputs for downstream gates.",
-        "detail": "The command requires both `test-execute-result.json` and the raw test log, and refuses to run when either artifact is missing. It validates the result schema, enforces raw-output size limits, and checks summary evidence membership, file references, test names, and line ranges. Regression evidence is verified separately, including range bounds and contract consistency checks. It records all checks as pass/fail items, derives a final verdict, and includes a joined invalid reason when failures exist. Output is persisted to `test-result-review.json` and `test-result-review.md`, and the next phase advances only when verdict is pass.",
-        "chapter": "cli_commands",
-        "role": "Test evidence review command",
-        "keywords": [
-          "test-result-review",
-          "artifact verification",
-          "evidence validation",
-          "verdict generation",
-          "raw log bounds",
-          "review markdown",
-          "gate readiness"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/run-update-overview.js",
@@ -5607,9 +5408,9 @@
       },
       {
         "file": "src/flow/lib/set-broad.js",
-        "hash": "0b55e8233838863557599d9ef1f98aab",
+        "hash": "8b9f22a45b3de6a54f4384d93cbe4fd6",
         "lines": 36,
-        "mtime": "2026-05-18T01:10:37.247Z",
+        "mtime": "2026-05-31T08:08:58.966Z",
         "className": "set-broad",
         "methods": [],
         "imports": [
@@ -5623,22 +5424,9 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "b77c2c3d",
-        "summary": "Sets broad mode for eligible flow steps by generating and storing an audited broad-scope record. It rejects invalid mode input with explicit command errors.",
-        "detail": "`SetBroadCommand` is a thin command wrapper around task-scope broad-mode logic. It delegates record creation to `createBroadModeRecord`, which centralizes step/reason validation and history shape. On invalid requests, it emits `INVALID_BROAD_MODE` failures with direct error messages. Successful execution returns a canonical `broadMode` object that downstream flow logic can audit.",
-        "chapter": "cli_commands",
-        "role": "Flow command to declare broad-scope execution intent for task-scoped steps.",
         "enrich": {
-          "processedAt": "2026-05-18T01:14:25.898Z",
           "attempts": 1
-        },
-        "keywords": [
-          "broad mode",
-          "task scope",
-          "audit record",
-          "flow command",
-          "scope override",
-          "input validation"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/set-files.js",
@@ -5950,9 +5738,9 @@
       },
       {
         "file": "src/flow/lib/set-retry.js",
-        "hash": "3a53a6a395e423c9c53281257920390b",
+        "hash": "63887c9937e1fb4ebdab6114f0ec273d",
         "lines": 169,
-        "mtime": "2026-05-19T04:48:08.664Z",
+        "mtime": "2026-05-31T08:08:58.967Z",
         "className": "set-retry",
         "methods": [
           "normalizeReviewResetPhase",
@@ -5975,28 +5763,14 @@
         "usedBy": null,
         "id": "ee559b7a",
         "enrich": {
-          "processedAt": "2026-05-19T16:47:37.879Z",
-          "attempts": 2
-        },
-        "summary": "Implements audited retry-counter reset for gate and review phases. It handles both standard resets and exhausted-counter recovery grants.",
-        "detail": "Input is normalized through `RetryRecoveryInput`, and invalid payloads return structured failure envelopes instead of mutating state. Review-phase aliases are normalized and can expand `draft` into concrete subphases based on the active step. For each target phase, the command computes attempts and effective max attempts, then checks recovery eligibility when limits are exhausted. Eligible exhausted cases receive a one-time grant via `applyRetryRecoveryGrant`, while non-exhausted cases append a metric reset event. Review resets additionally clear stop-state flags, and the response returns reset phases, counter type, and any granted recovery records.",
-        "chapter": "cli_commands",
-        "role": "Retry reset controller",
-        "keywords": [
-          "retry reset",
-          "recovery grant",
-          "gate retry",
-          "review retry",
-          "attempt limits",
-          "audited recovery",
-          "phase normalization"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/set-step.js",
-        "hash": "06d8672d11dfb77d683e4d3b5da9c7da",
+        "hash": "f13ac3f37f7169b4e6aed51840ce0d99",
         "lines": 200,
-        "mtime": "2026-05-16T08:19:57.846Z",
+        "mtime": "2026-05-31T08:08:58.967Z",
         "className": "set-step",
         "methods": [
           "collectSideEffects",
@@ -6024,21 +5798,8 @@
         "usedBy": null,
         "id": "d4cb8d93",
         "enrich": {
-          "processedAt": "2026-05-18T01:14:25.898Z",
-          "attempts": 2
-        },
-        "summary": "Updates individual step status in the flow and enforces pre/post validation hooks for test-managed stages. It also triggers side effects and optional auto-check integrations.",
-        "detail": "`SetStepCommand` validates usage and allowed statuses, then coordinates step updates against flow definitions and helper resolvers. It performs specialized checks for test-related phases, including artifact schema validation and review consistency files in spec directories. Pre/post hook logic blocks transitions when managed artifacts are missing or malformed, returning explicit envelope failures. The module also synchronizes spec tasks, computes skip verdicts, and returns enriched response payloads with side-effect metadata when applicable.",
-        "chapter": "cli_commands",
-        "role": "Primary command for transitioning flow step states with guardrails.",
-        "keywords": [
-          "step status",
-          "flow transition",
-          "test artifact validation",
-          "post hook checks",
-          "auto check input",
-          "side effects"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/set-summary.js",
@@ -6119,9 +5880,9 @@
       },
       {
         "file": "src/flow/lib/task-scope.js",
-        "hash": "726b6641cca33aa39254027504e2abbf",
+        "hash": "2f24e35eff579d1e6c3da539bfc5e0d2",
         "lines": 178,
-        "mtime": "2026-05-18T01:10:37.247Z",
+        "mtime": "2026-05-31T08:08:58.967Z",
         "className": "task-scope",
         "methods": [
           "TaskScopeDecision",
@@ -6164,28 +5925,15 @@
           "src/flow/lib/set-broad.js"
         ],
         "id": "5fd87c16",
-        "summary": "Implements task-scope decision logic, broad-mode auditing, and current-task resolution for flow operations. It is the core policy engine deciding whether actions run at flow, task, or promoted scope.",
-        "detail": "The module defines `TaskScopeDecision` with helper predicates for valid, blocked, and promotable outcomes. It inspects task arrays to detect actionable work, in-progress states, and pending candidates, then evaluates scope decisions per step and broad-mode rules. Broad execution is guarded by auditable records with bounded history and strict step/reason checks, preventing silent scope escalation. It also resolves current task specs safely from disk, validating existence and returning both text content and path metadata.",
-        "chapter": "internal_design",
-        "role": "Scope policy layer for task-oriented flow execution.",
         "enrich": {
-          "processedAt": "2026-05-18T01:14:25.898Z",
           "attempts": 1
-        },
-        "keywords": [
-          "task scope",
-          "decision engine",
-          "broad mode audit",
-          "flow policy",
-          "task promotion",
-          "spec resolution"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/test-artifacts.js",
-        "hash": "01fa4da22f0d4a4e45e895d30a7ebad8",
+        "hash": "f9341c8a4208f0770be69c60a1eb25ca",
         "lines": 936,
-        "mtime": "2026-05-20T06:47:16.448Z",
+        "mtime": "2026-05-31T08:08:58.967Z",
         "className": "test-artifacts",
         "methods": [
           "durableTestArtifactPathspecs",
@@ -6307,24 +6055,9 @@
           "src/flow/lib/set-step.js"
         ],
         "id": "0b1b96b3",
-        "summary": "Implements robust handling and validation for test artifacts generated during flow execution. It enforces trust checks, placeholder detection, size limits, and consistency between artifact snapshots and current repository state.",
-        "detail": "This module centralizes constants, artifact path patterns, and bounded I/O guards for JSON and raw log files used in requirement tests and regression checks. It validates multiple artifact schemas, including test execution results, review outcomes, scenario-validity reports, and final regression status, with strict structural and semantic assertions. It enforces repository-safe path resolution, line-range bounds, and evidence linkage by checking that requirement IDs and test names actually appear in raw outputs and test sources. It adds trust gating with placeholder sentinel scanning, known placeholder hash detection, and optional user-approved placeholder permissions. It also verifies integration relevance by comparing stored changed-file snapshots against current analysis output to reject stale regression evidence.",
-        "chapter": "internal_design",
-        "role": "Test artifact validation and trust-gate core for the flow pipeline.",
         "enrich": {
-          "processedAt": "2026-05-20T06:48:20.404Z",
           "attempts": 1
-        },
-        "keywords": [
-          "test artifacts",
-          "regression validation",
-          "evidence integrity",
-          "placeholder detection",
-          "trust contract",
-          "bounded file read",
-          "schema enforcement",
-          "path traversal prevention"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/test-headers.js",
@@ -6474,9 +6207,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "5504b718dc5ed773bbcd813cf1df2dfa",
-        "lines": 1085,
-        "mtime": "2026-05-29T02:07:29.353Z",
+        "hash": "d1607ea268699604c1433d6a39a75898",
+        "lines": 1099,
+        "mtime": "2026-05-31T08:08:58.969Z",
         "className": "registry",
         "methods": [
           "assertDraftReviewRegistryHookBoundary",
@@ -6490,6 +6223,7 @@
           "tryAppendIssueLog",
           "gateRuntimeLogStepId",
           "activeStepId",
+          "activeImplReviewStepId",
           "draftReviewRuntimeLogStepId",
           "reviewRuntimeLogStepId"
         ],
@@ -6512,23 +6246,9 @@
           "src/workflow/index.js"
         ],
         "id": "d64f4095",
-        "summary": "Acts as the central flow command registry and lifecycle hook coordinator. It maps phases and step transitions to runtime behaviors, review routes, and finalize side effects.",
-        "detail": "The module defines constants for valid review verdicts, retry-help phases, runtime-step mappings, and finalize downstream behavior. It includes utility functions to derive active phase/step, update statuses defensively, and isolate best-effort side effects without collapsing the main flow. Draft-review boundaries are codified with explicit responsibility metadata and assertion checks. Registry entries provide command help text and wire command execution to gate, commit, merge, and regression validation logic. This creates a single integration surface for flow command semantics and operational policy.",
-        "chapter": "project_structure",
-        "role": "Flow command registry and orchestration boundary",
         "enrich": {
-          "processedAt": "2026-05-29T02:08:40.284Z",
           "attempts": 1
-        },
-        "keywords": [
-          "command registry",
-          "flow lifecycle",
-          "step status transitions",
-          "review routing",
-          "finalize hooks",
-          "gate side effects",
-          "phase derivation"
-        ]
+        }
       },
       {
         "file": "src/help.js",
@@ -6551,7 +6271,7 @@
         "usedBy": null,
         "id": "4ac07fa0",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -6931,7 +6651,7 @@
         ],
         "id": "dff6e5b4",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -7232,9 +6952,9 @@
       },
       {
         "file": "src/lib/flow-helpers.js",
-        "hash": "8dd5413a7de69651b53a68223a0182d8",
+        "hash": "c6fa7691356e3eedc0337d2cb69a3ea6",
         "lines": 237,
-        "mtime": "2026-05-15T01:50:37.302Z",
+        "mtime": "2026-05-31T08:08:58.971Z",
         "className": "flow-helpers",
         "methods": [
           "getSpecName",
@@ -7285,21 +7005,8 @@
         ],
         "id": "09ff0ab4",
         "enrich": {
-          "processedAt": "2026-05-18T01:14:25.898Z",
-          "attempts": 2
-        },
-        "summary": "Defines shared flow-state helpers, constants, and task utilities for phase derivation and step/task initialization. It underpins state transitions across the flow subsystem.",
-        "detail": "The module exports filenames, scan limits, TTL values, and derived maps such as `FLOW_STEPS`, `PHASE_MAP`, and task-phase mappings. Utility functions resolve spec names/directories, derive current phase from completed steps, and build initial nested step/task state structures. It provides terminal-status and pending-task search helpers used for promotion and scoped progression logic. Additional helpers like `specIdFromPath` normalize identifiers from spec paths for cross-module consistency.",
-        "chapter": "internal_design",
-        "role": "Shared flow-state utility layer for lifecycle and task progression.",
-        "keywords": [
-          "flow helpers",
-          "phase derivation",
-          "state initialization",
-          "task promotion",
-          "spec directory",
-          "step mapping"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/lib/flow-manager.js",
@@ -7395,9 +7102,9 @@
       },
       {
         "file": "src/lib/flow-store.js",
-        "hash": "7651a61b45d565c92ec3b9b8d541e429",
-        "lines": 998,
-        "mtime": "2026-05-29T01:18:50.615Z",
+        "hash": "3356646efa463ee7f6a360d7a66c94f5",
+        "lines": 1014,
+        "mtime": "2026-05-31T08:08:58.971Z",
         "className": "flow-store",
         "methods": [
           "resolveTaskIdForEntry",
@@ -7436,6 +7143,7 @@
           "./flow-options.js",
           "./git-helpers.js",
           "./config.js",
+          "./step-id-rename.js",
           "./flow-helpers.js",
           "../flow/definition.js",
           "../flow/lib/draft-review-routes.js"
@@ -7451,24 +7159,9 @@
           "src/lib/flow-manager.js"
         ],
         "id": "5332364e",
-        "summary": "Implements persistent flow state storage with schema checks, bounded reads, and migration logic for evolving workflow structure. It is the core mutation layer for tasks, steps, metrics, and finalization metadata.",
-        "detail": "The store validates structural invariants aggressively and rejects malformed state, oversized files, invalid enums, and inconsistent task/step shapes before writing. It performs targeted migrations for draft review/triage/repair step graphs and artifact naming, and can emit migration evidence into issue logs. It supports safe read-only loading, bounded-size file reads, run-id migration/rollback helpers, and spec-path resolution from branch/worktree context. Mutation APIs handle step transitions, task insertion/completion, metrics accumulation, merge/finalization state, and scope resolution with explicit errors on illegal operations.",
-        "chapter": "internal_design",
-        "role": "Flow state persistence, migration, and mutation engine",
         "enrich": {
-          "processedAt": "2026-05-29T01:19:55.355Z",
           "attempts": 1
-        },
-        "keywords": [
-          "flow store",
-          "state migration",
-          "schema enforcement",
-          "task lifecycle",
-          "step transitions",
-          "artifact rewrite",
-          "bounded IO",
-          "finalization metadata"
-        ]
+        }
       },
       {
         "file": "src/lib/formatter.js",
@@ -8500,7 +8193,7 @@
         ],
         "id": "a1344e4a",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -8566,6 +8259,33 @@
         ]
       },
       {
+        "file": "src/lib/step-id-rename.js",
+        "hash": "514696d24e30d20cc16508462eb1fea3",
+        "lines": 63,
+        "mtime": "2026-05-31T08:08:58.971Z",
+        "className": "step-id-rename",
+        "methods": [
+          "renameStepTreeIds",
+          "renameFlowStateStepIds"
+        ],
+        "imports": [],
+        "exports": [
+          "renameStepTreeIds",
+          "renameFlowStateStepIds",
+          "ONE_TO_ONE_STEP_RENAMES",
+          "FLOW_STEP_RENAMES",
+          "TASK_STEP_RENAMES"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/lib/flow-store.js"
+        ],
+        "id": "deaeeb23",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
         "file": "src/lib/test-command-sources.js",
         "hash": "552ad74efed9abaaee927c1a61437c99",
         "lines": 71,
@@ -8615,7 +8335,7 @@
         "usedBy": null,
         "id": "69d5afb4",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -11672,6 +11392,38 @@
         "id": "f443fa1f"
       },
       {
+        "file": "src/scripts/rename-phase-steps.js",
+        "hash": "9b1dec6d57a536e8dd08286c38179670",
+        "lines": 212,
+        "mtime": "2026-05-31T08:08:58.972Z",
+        "className": "rename-phase-steps",
+        "methods": [
+          "replaceOneToOneTokens",
+          "transformPathStrings",
+          "transformMarkdownCode",
+          "readActiveFlowSpecs",
+          "handleFlowJson",
+          "handleIssueLog",
+          "handleReportRetro",
+          "handleReviewMd",
+          "assertCleanGitTree",
+          "main"
+        ],
+        "imports": [
+          "node:fs",
+          "node:path",
+          "node:child_process",
+          "../lib/step-id-rename.js"
+        ],
+        "exports": [],
+        "extends": null,
+        "usedBy": null,
+        "id": "acdc1ca9",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
         "file": "src/sdd-forge.js",
         "hash": "aa831ef2357c503bbaf12fa878a45145",
         "lines": 104,
@@ -11690,7 +11442,7 @@
         "usedBy": null,
         "id": "a8608997",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -11870,7 +11622,7 @@
         "usedBy": null,
         "id": "a631f658",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -11899,7 +11651,7 @@
         "usedBy": null,
         "id": "cc286b88",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -11966,7 +11718,7 @@
         ],
         "id": "c9908fa4",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -11995,7 +11747,7 @@
         "usedBy": null,
         "id": "4e4593ba",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -12016,7 +11768,7 @@
         "usedBy": null,
         "id": "11e11b10",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -12042,7 +11794,7 @@
         "usedBy": null,
         "id": "9219bc6c",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -12064,7 +11816,7 @@
         "usedBy": null,
         "id": "8dd05cbb",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -12089,7 +11841,7 @@
         "usedBy": null,
         "id": "c1034289",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -12111,7 +11863,7 @@
         "usedBy": null,
         "id": "b70ba15e",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -12133,7 +11885,7 @@
         "usedBy": null,
         "id": "7752e8c4",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -12156,7 +11908,7 @@
         "usedBy": null,
         "id": "e75cf809",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -12194,7 +11946,7 @@
         ],
         "id": "60bcd438",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -12233,7 +11985,7 @@
         ],
         "id": "731ada65",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -12262,7 +12014,7 @@
         ],
         "id": "d5313dab",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -12290,7 +12042,7 @@
         "usedBy": null,
         "id": "e88a4b0e",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -12310,15 +12062,15 @@
         ],
         "id": "780bd655",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       }
     ],
     "summary": {
-      "total": 331,
-      "totalMethods": 1584
+      "total": 333,
+      "totalMethods": 1597
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-29T12:07:41.233Z"
+  "enrichedAt": "2026-05-31T08:13:33.463Z"
 }
