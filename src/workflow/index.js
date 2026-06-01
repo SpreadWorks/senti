@@ -121,15 +121,27 @@ async function dispatch() {
     root,
     config,
     boardConfig: null,
+    boardConfigError: null,
     args: rest,
   };
 
-  // Load boardConfig (calls gh CLI)
-  try {
-    ctx.boardConfig = loadBoardConfig();
-  } catch (err) {
-    Envelope.fail("workflow", subcommand, "NO_BOARD", err.message).output();
-    process.exit(EXIT_ERROR);
+  // Load boardConfig (calls gh CLI). Commands declare their board needs:
+  //   - requiresBoard === false: skip the load entirely (board-less commands).
+  //   - boardOptional === true: a load failure is non-fatal; the command
+  //     receives ctx.boardConfig = null and decides how to degrade.
+  //   - default (neither set): a load failure is fatal (NO_BOARD), preserving
+  //     existing subcommand behavior.
+  if (entry.requiresBoard !== false) {
+    try {
+      ctx.boardConfig = loadBoardConfig();
+    } catch (err) {
+      if (entry.boardOptional) {
+        ctx.boardConfigError = err;
+      } else {
+        Envelope.fail("workflow", subcommand, "NO_BOARD", err.message).output();
+        process.exit(EXIT_ERROR);
+      }
+    }
   }
 
   parseEntryArgs(entry, rest, ctx);

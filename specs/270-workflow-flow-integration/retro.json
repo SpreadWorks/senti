@@ -1,0 +1,53 @@
+{
+  "spec": "specs/270-workflow-flow-integration/spec.json",
+  "date": "2026-06-01T11:57:32.289Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "src/lib/config.js の CONFIG_SCHEMA.workflow に flowIntegration（type string, enum [enable, disable]）を追加し、現在値が enable か否かを判定するヘルパーを提供する。フラグ未設定は disable 相当として扱う。",
+      "status": "done",
+      "note": "R1: isFlowIntegrationEnabled is true only when workflow.flowIntegration === "
+    },
+    {
+      "desc": "workflow に issue-start <issueNumber> サブコマンドを追加する。該当 issue 番号のボード項目を検索し、見つかれば In Progress へ移動する（ensureStatusOption で option 自動追加 + setItemStatus）。見つからなければ ok=true かつ data.matched=false を返しエラーにしない。既に In Progress なら no-op とする。<issueNumber> は正の整数として検証し、不正なら envelope エラーを返し非ゼロ終了する。ボード/gh が利用不可（loadBoardConfig 失敗等）の場合は原因エラーを warning ログに記録した上で ok=true の非致命的 skipped 結果を返し flow を止めない。終了コードは envelope ok=true で0、失敗で非ゼロとする。",
+      "status": "done",
+      "note": "R2: validateIssueNumber accepts positive integers (string or number)"
+    },
+    {
+      "desc": "workflow に issue-log-import --spec <path> サブコマンドを追加する。指定 spec の issue-log.json を読み、全エントリを追加候補として JSON envelope で出力する（候補生成のみ。ボードへの書き込みは行わない）。本コマンドは非対話・単発であり、ユーザー承認とボード draft 作成はコマンド外（finalize-cleanup.md skill）が担う。AI 分類・類似判定は候補生成・並び順付けの補助に用いてよいが判定精度は受け入れ条件に含めない。--spec は存在し読取可能な spec パス（issue-log.json を含む）として検証し、不正なら envelope エラーを返し非ゼロ終了する。候補は最大200件までとし、超過時は先頭200件のみを出力し省略件数をログに記録する。ボード/gh が利用不可、または対象エントリが無い場合は原因エラーを warning ログに記録した上で ok=true の空/skipped 結果を返し flow を止めない。終了コードは envelope ok=true で0、失敗で非ゼロとする。",
+      "status": "done",
+      "note": "R3: buildCandidates yields one candidate per entry when under the 200 cap (no board writes)"
+    },
+    {
+      "desc": "src/flow/prompts/plan/draft.md に条件ブロックを追加する。テンプレートは .sdd-forge/config.json の workflow.flowIntegration を（既存の config.lang 参照と同じ要領で）読み、enable かつ flow に issue 番号がリンクされている場合のみ issue-start を呼ぶ。issue-start は冪等であり reopen-draft 再入時も安全であることを前提とする。",
+      "status": "done",
+      "note": "R4: draft.md gates an issue-start call on flowIntegration and a linked issue"
+    },
+    {
+      "desc": "src/flow/prompts/impl/finalize-cleanup.md に条件ブロックを追加する。テンプレートは .sdd-forge/config.json の workflow.flowIntegration を（config.lang と同じ要領で）読み、enable の場合のみ cleanup コマンド実行前に issue-log-import --spec <currentSpecPath> で候補一覧を取得し、Choice Format でユーザーに提示する。ユーザーが承認した候補のみ、候補ごとに既存の workflow add を呼んでボード draft 化する。承認なし・確認スキップ時は workflow add を一切呼ばない（0件作成）。",
+      "status": "done",
+      "note": "R5: finalize-cleanup.md gates issue-log-import on flowIntegration and creates approved drafts via workflow add"
+    },
+    {
+      "desc": "workflow.flowIntegration が enable でない、または未設定の環境では、issue-start・issue-log-import がいずれも呼ばれず、既存 flow の挙動・出力が不変であること。",
+      "status": "done",
+      "note": "R6: integration is off (helper false) when flowIntegration is unset or workflow/config is missing"
+    },
+    {
+      "desc": "issue-log-import 内の AI 呼び出しは commandId workflow.issue-log-import.classify / similarity / compose を用い、既存の matchProfilePrefix による provider 切替に乗る。provider 切替のための追加 config スキーマは設けない。",
+      "status": "done",
+      "note": "R7: issue-log-import declares the three workflow.issue-log-import.* commandIds"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 7,
+    "done": 7,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

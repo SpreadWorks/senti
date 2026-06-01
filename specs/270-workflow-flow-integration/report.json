@@ -1,0 +1,258 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".../draft-coverage-repair.json                     |   8 +\n .../draft-coverage-triage.json                     |   8 +\n .../draft-questions-repair.json                    |   8 +\n .../draft-questions-triage.json                    |   8 +\n .../draft-review-coverage.json                     |  11 +\n .../draft-review-questions.json                    |  11 +\n specs/270-workflow-flow-integration/draft.json     |  97 ++\n specs/270-workflow-flow-integration/file-map.json  |  29 +\n specs/270-workflow-flow-integration/flow.json      | 972 +++++++++++++++++++++\n .../270-workflow-flow-integration/impl-review.json |  34 +\n specs/270-workflow-flow-integration/issue-log.json | 678 ++++++++++++++\n specs/270-workflow-flow-integration/issue.md       | 112 +++\n .../review-history/draft-coverage-attempt-001.json |  14 +\n .../draft-questions-attempt-001.json               |  14 +\n .../review-history/impl-attempt-001.json           |  58 ++\n .../review-history/impl-attempt-001.md             |  29 +\n .../review-history/spec-attempt-001.json           |  74 ++\n .../review-history/spec-attempt-001.md             |  24 +\n .../review-history/test-attempt-001.json           |  71 ++\n .../review-history/test-attempt-001.md             |  26 +\n specs/270-workflow-flow-integration/review.md      |  29 +\n .../270-workflow-flow-integration/spec-repair.json |  24 +\n .../270-workflow-flow-integration/spec-review.json |  40 +\n specs/270-workflow-flow-integration/spec-review.md |  24 +\n .../270-workflow-flow-integration/spec-triage.json |  15 +\n specs/270-workflow-flow-integration/spec.json      | 286 ++++++\n specs/270-workflow-flow-integration/spec.md        | 122 +++\n specs/270-workflow-flow-integration/tasks/T-1.md   |  19 +\n specs/270-workflow-flow-integration/tasks/T-2.md   |  22 +\n specs/270-workflow-flow-integration/tasks/T-3.md   |  22 +\n specs/270-workflow-flow-integration/tasks/T-4.md   |  20 +\n specs/270-workflow-flow-integration/tasks/T-5.md   |  21 +\n .../test-coverage.json                             | 121 +++\n .../270-workflow-flow-integration/test-review.json |  36 +\n specs/270-workflow-flow-integration/test-review.md |  26 +\n .../tests/config-flow-integration.test.js          |  20 +\n .../tests/issue-log-import.test.js                 |  54 ++\n .../tests/issue-start.test.js                      |  32 +\n .../tests/templates.test.js                        |  21 +\n src/flow/prompts/impl/finalize-cleanup.md          |  13 +\n src/flow/prompts/plan/draft.md                     |   5 +\n src/lib/config.js                                  |  12 +\n src/workflow/index.js                              |  24 +-\n src/workflow/lib/commands/issue-log-import.js      | 144 +++\n src/workflow/lib/commands/issue-start.js           |  69 ++\n src/workflow/registry.js                           |  24 +\n 46 files changed, 3525 insertions(+), 6 deletions(-)",
+      "commits": [
+        "feat: integrate workflow board ops into flow lifecycle"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 17,
+      "fullLogPath": "specs/270-workflow-flow-integration/issue-log.json",
+      "importantTotal": 9,
+      "importantShown": 9,
+      "importantOmitted": 0,
+      "recentOtherTotal": 8,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 3,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "flow 実行中に main が spec 269（flow step ID 全面リネーム, 旧名 alias なし）まで進み、sdd-forge バイナリ（main の live working tree を npm link 実行）が新 step 名へ切り替わった。flow state は step-id-rename 移行で新名化されたが、既に書かれた review 成果物の phase フィールドは旧名 review-draft-questions のまま残り、...",
+          "resolution": "未解決。worktree ベースが pre-269 で stale なため、ユーザーに rebase/再実行/restart の選択を提示する"
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "gate retry limit exhausted: 5/5 FAIL attempts recorded for phase \"draft\".\nCounter breakdown: AI-FAIL=5\nPrevious FAIL reasons:\n  attempt 1: draft-review-questions.json: phase must be draft-questions-review; draft-review-coverage.json: pha...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "draft-gate が retry 5/5 を使い切り ESCALATE_RETRY_EXHAUSTED で停止。複数回の再表現でも complete-context ガードレールが『issue-log エントリの候補絞り込みが AI 分類に依存し、その判定基準が deferredToSpec のため draft 段階で2名のレビュアーが合否判定できない』と FAIL を出し続けた",
+          "resolution": "未解決。設計を見直し AI 分類を契約から外す（全エントリ提示+ユーザー選択）か、retry reset で再評価するかをユーザーに諮る"
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "gate retry limit exhausted: 5/5 FAIL attempts recorded for phase \"draft\".\nCounter breakdown: AI-FAIL=5\nPrevious FAIL reasons:\n  attempt 1: draft-review-questions.json: phase must be draft-questions-review; draft-review-coverage.json: pha...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "Explicitly mandates 'throw せず ok=true の非致命的結果を返し' when board/gh is unavailable, without requiring the caught error to be logged. This removes both the re-throw path and any logging obligation, specifying silent error swallowing as the re...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "R3 states the candidate limit as '既定上限（例 200 件）' — the word '例' (for example) means 200 is an illustrative example, not an explicit required ceiling. The actual upper bound is unspecified, so the design allows any bound and violates the ...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "implement",
+          "reason": "workflow dispatcher (src/workflow/index.js) が全サブコマンド共通でコマンド実行前に loadBoardConfig()(gh) を fatal に呼ぶため、ボード不要な issue-log-import が gh 無しで NO_BOARD 落ちし、issue-start の AC5『ボード不可は非致命的 skip』もコマンドに到達せず成立しない",
+          "resolution": "dispatcher を後方互換に拡張: registry に requiresBoard(既定true)/boardOptional を追加。requiresBoard:false は board 未ロード、boardOptional:true は load 失敗を ctx.boardConfigError に格納して非 fatal 化。既定は現行どおり NO_BOARD fatal で既存サブコマンド挙動不変"
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "invalid phase: impl (valid: draft, spec, task-spec, task-impl, integration). legacy names pre/post/impl have been retired — use spec / task-spec / task-impl / integration.",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "provider=claude | profile=claude/sonnet | exit=1 | stdoutPreview={\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":555,\"duration_api_ms\":0,\"num_turns\":1,\"result\":\"You've hit your session limit · re...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "draft-review-questions.json: phase must be draft-questions-review; draft-review-coverage.json: phase must be draft-coverage-review",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "src/flow/lib/run-reopen-draft.js に export default が欠落しており、flow run reopen-draft が 'dispatcher: module has no default export (Command class)' で失敗する。run-finalize-cleanup.js 等は export class + export default の両方を持つが reopen-draft は named expo...",
+          "resolution": "spec 270 スコープ外のため本フローでは修正せず。review 成果物の phase 移行は手動で実施。別 issue 化を検討"
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "The [must] requirement 'workflow に issue-log-import サブコマンドを追加（...指定 spec の issue-log.json を分類・候補提示し承認分を draft 化）' uses '分類' (classification) without measurable criteria. The classification criteria are explicitly deferred in decisionMap....",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "The requirement states '候補対象と判定されたエントリのみを追加候補として提示し' as a verifiable condition, yet immediately defers the criteria that define '候補対象' to a later stage: '分類の判定基準・prompt 設計は AI 内部判定として spec で定義する'. Without the classification criteria, two...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "alternatives_considered[2].reason: unresolved marker \"Todo\" in value (implement.md は計画フェーズ中ボードが Todo のまま。SKILL.md prelude は共有 dispatcher を workflow に依存させる。Issue の『prepare 時』に最も近く局所的な draft.md を採用。)",
+          "resolution": null
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 4
+    },
+    "tokenMetrics": {
+      "input": 44563,
+      "output": 166620,
+      "cacheRead": 756009,
+      "cacheCreation": 577398,
+      "cost": 6.38735115,
+      "callCount": 24,
+      "durationMs": 3057112,
+      "phaseDurations": [
+        {
+          "phase": "review-draft-questions",
+          "durationMs": 18571
+        },
+        {
+          "phase": "review-draft-coverage",
+          "durationMs": 66876
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 398289
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 734714
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 149830
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 924308
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 124928
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 104843
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 534753
+        }
+      ]
+    },
+    "tests": {
+      "total": 7,
+      "passed": 7,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/270-workflow-flow-integration/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 82,
+          "end_line": 5258
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/270-workflow-flow-integration/"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/config.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/workflow/index.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/workflow/lib/commands/issue-log-import.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/workflow/lib/commands/issue-start.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/workflow/registry.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/270-workflow-flow-integration/"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/config.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/workflow/index.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/workflow/lib/commands/issue-log-import.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/workflow/lib/commands/issue-start.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/workflow/registry.js"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/270-workflow-flow-integration/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: integrate workflow board ops into flow lifecycle\n    46 files changed, 3525 insertions(+), 6 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 4\n    agent calls ................. 24\n    input tokens ................ 44,563\n    output tokens ............... 166,620\n    cache-read tokens ........... 756,009\n    cache-create tokens ......... 577,398\n    cost ........................ $6.3874\n    duration (total) ............ 3057.1s\n      review-draft-questions .... 18.6s\n      review-draft-coverage ..... 66.9s\n      gate-draft ................ 398.3s\n      draft-gate ................ 734.7s\n      spec-review ............... 149.8s\n      spec-gate ................. 924.3s\n      test-review ............... 124.9s\n      impl-review ............... 104.8s\n      impl-gate ................. 534.8s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 7  passed 7  failed 0 verdict=pass\n    raw_output: specs/270-workflow-flow-integration/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (17 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/270-workflow-flow-integration/issue-log.json\n\n    Important (9)\n    - [draft-gate] flow 実行中に main が spec 269（flow step ID 全面リネーム, 旧名 alias なし）まで進み、sdd-forge バイナリ（main の live working tree を npm link 実行）が新 step 名へ切り替わった。flow state は step-id-rename 移行で新名化されたが、既に書かれた review 成果物の phase フィールドは旧名 review-draft-questions のまま残り、...\n    - [draft-gate] gate retry limit exhausted: 5/5 FAIL attempts recorded for phase \"draft\".\nCounter breakdown: AI-FAIL=5\nPrevious FAIL reasons:\n  attempt 1: draft-review-questions.json: phase must be draft-questions-review; draft-review-coverage.json: pha...\n    - [draft-gate] draft-gate が retry 5/5 を使い切り ESCALATE_RETRY_EXHAUSTED で停止。複数回の再表現でも complete-context ガードレールが『issue-log エントリの候補絞り込みが AI 分類に依存し、その判定基準が deferredToSpec のため draft 段階で2名のレビュアーが合否判定できない』と FAIL を出し続けた\n    - [draft-gate] gate retry limit exhausted: 5/5 FAIL attempts recorded for phase \"draft\".\nCounter breakdown: AI-FAIL=5\nPrevious FAIL reasons:\n  attempt 1: draft-review-questions.json: phase must be draft-questions-review; draft-review-coverage.json: pha...\n    - [spec-gate] Explicitly mandates 'throw せず ok=true の非致命的結果を返し' when board/gh is unavailable, without requiring the caught error to be logged. This removes both the re-throw path and any logging obligation, specifying silent error swallowing as the re...\n    - [spec-gate] R3 states the candidate limit as '既定上限（例 200 件）' — the word '例' (for example) means 200 is an illustrative example, not an explicit required ceiling. The actual upper bound is unspecified, so the design allows any bound and violates the ...\n    - [implement] workflow dispatcher (src/workflow/index.js) が全サブコマンド共通でコマンド実行前に loadBoardConfig()(gh) を fatal に呼ぶため、ボード不要な issue-log-import が gh 無しで NO_BOARD 落ちし、issue-start の AC5『ボード不可は非致命的 skip』もコマンドに到達せず成立しない\n    - [spec-gate] invalid phase: impl (valid: draft, spec, task-spec, task-impl, integration). legacy names pre/post/impl have been retired — use spec / task-spec / task-impl / integration.\n    - [spec-gate] provider=claude | profile=claude/sonnet | exit=1 | stdoutPreview={\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":555,\"duration_api_ms\":0,\"num_turns\":1,\"result\":\"You've hit your session limit · re...\n\n    Recent Other (5 of 8)\n    - [draft-gate] draft-review-questions.json: phase must be draft-questions-review; draft-review-coverage.json: phase must be draft-coverage-review\n    - [draft-gate] src/flow/lib/run-reopen-draft.js に export default が欠落しており、flow run reopen-draft が 'dispatcher: module has no default export (Command class)' で失敗する。run-finalize-cleanup.js 等は export class + export default の両方を持つが reopen-draft は named expo...\n    - [draft-gate] The [must] requirement 'workflow に issue-log-import サブコマンドを追加（...指定 spec の issue-log.json を分類・候補提示し承認分を draft 化）' uses '分類' (classification) without measurable criteria. The classification criteria are explicitly deferred in decisionMap....\n    - [draft-gate] The requirement states '候補対象と判定されたエントリのみを追加候補として提示し' as a verifiable condition, yet immediately defers the criteria that define '候補対象' to a later stage: '分類の判定基準・prompt 設計は AI 内部判定として spec で定義する'. Without the classification criteria, two...\n    - [spec-gate] alternatives_considered[2].reason: unresolved marker \"Todo\" in value (implement.md は計画フェーズ中ボードが Todo のまま。SKILL.md prelude は共有 dispatcher を workflow に依存させる。Issue の『prepare 時』に最も近く局所的な draft.md を採用。)\n    ... 3 other issue-log entries omitted"
+}

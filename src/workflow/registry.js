@@ -66,4 +66,28 @@ differ, the body is translated and original is kept in a collapsed section.`,
       options: ["--label"],
     },
   },
+  "issue-start": {
+    command: () => import("./lib/commands/issue-start.js"),
+    help: `Usage: sdd-forge workflow issue-start <issueNumber>
+
+Move the board item linked to a GitHub issue number into "In Progress".
+No-op if already In Progress; matched=false if no board item is found.
+Non-fatal skip when the board / gh CLI is unavailable.`,
+    args: {
+      positional: ["issueNumber"],
+    },
+    boardOptional: true,
+  },
+  "issue-log-import": {
+    command: () => import("./lib/commands/issue-log-import.js"),
+    help: `Usage: sdd-forge workflow issue-log-import --spec <path>
+
+Read a spec's issue-log.json and emit its entries as board-draft candidates
+(JSON only, no board writes). Approval and draft creation are orchestrated by
+the finalize-cleanup skill.`,
+    args: {
+      options: ["--spec"],
+    },
+    requiresBoard: false,
+  },
 };

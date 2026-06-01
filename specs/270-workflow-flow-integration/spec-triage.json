@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "blocking 1件を apply。issue-log-import は非対話の単発コマンドのため、承認は skill(finalize-cleanup.md) 側が Choice Format で行い、issue-log-import は候補を出力するだけ、作成は既存 workflow add で行う、と承認境界を明確化する。non-blocking 2件（テンプレートの flowIntegration 読取方法、enable だがボード/gh 無しの扱い）も spec-repair で併せて反映する。",
+  "items": [
+    {
+      "title": "issue-log-import approval-to-draft path has no integration point in the non-interactive command model",
+      "target": "R3 / src/workflow/lib/commands/issue-log-import.js",
+      "decision": "apply",
+      "rationale": "指摘は正しい。workflow サブコマンドは単発・非対話（index.js が boardConfig 読込→execute 1回→JSON 出力→終了。publish.js/add.js も同型）で stdin 承認往復が無い。R3/T-3 が1コマンド内で候補提示・承認・作成を行う前提は実現不能。承認は対話を担う skill(finalize-cleanup.md) 側へ移し、issue-log-import は候補出力のみ・ボード書込なし、作成は既存 workflow add を承認分だけ呼ぶ、と境界を再定義する（q3 のユーザー承認意図は保持。source 検証済みの設計修正）。",
+      "evidence": "src/workflow/index.js（単発実行モデル）, src/workflow/lib/commands/publish.js / add.js（非対話 envelope 出力）。spec.json R3 / acceptance_criteria AC2 / overview.data_flow[1] / tasks T-3 が承認と作成を issue-log-import 単体に畳み込んでいる。"
+    }
+  ]
+}

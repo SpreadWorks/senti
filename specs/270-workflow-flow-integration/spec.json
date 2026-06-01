@@ -1,0 +1,286 @@
+{
+  "goal": "workflow コマンド（GitHub Projects ボード運用）を flow ライフサイクルに統合する。config の workflow.flowIntegration が enable のとき、draft 着手時に対応ボード項目を In Progress へ移動し（issue-start）、finalize 時に spec の issue-log を候補提示→ユーザー承認でボード draft 化する（issue-log-import）。flow ロジック層 src/flow/lib/*.js は変更せず、skill 指示テンプレートの条件分岐と workflow 側の新コマンドで実現する。",
+  "scope": {
+    "in": [
+      "[must] workflow.flowIntegration フラグ（enable/disable の文字列 enum）を src/lib/config.js の CONFIG_SCHEMA.workflow に追加し、enable 判定ヘルパーを提供する。未設定は disable 相当とする。",
+      "[must] workflow に issue-start <issueNumber> サブコマンドを追加する（registry 登録 + lib/commands/issue-start.js 実装）。",
+      "[must] workflow に issue-log-import --spec <path> サブコマンドを追加する（registry 登録 + lib/commands/issue-log-import.js 実装）。",
+      "[must] src/flow/prompts/plan/draft.md に条件ブロックを追加し、flowIntegration=enable かつ issue リンクありのとき issue-start を呼ぶ。",
+      "[must] src/flow/prompts/impl/finalize-cleanup.md に条件ブロックを追加し、flowIntegration=enable のとき cleanup コマンド実行前に issue-log-import を呼ぶ。"
+    ],
+    "out": [
+      "src/flow/lib/*.js（flow ロジック層）の変更。workflow への依存を持たせない。",
+      "issue-log.json のスキーマ変更。",
+      "既存 workflow サブコマンド（add/update/show/search/list/publish）の挙動変更。",
+      "ボード座標の config 保存（従来どおり gh による動的取得を維持する）。"
+    ]
+  },
+  "constraints": [
+    "flow ロジック層 src/flow/lib/*.js を変更せず、flow から workflow への依存を持たせない（統合点は skill 指示テンプレートの条件分岐のみ）。",
+    "issue-log.json のスキーマは変更しない（既存エントリ構造を保持）。",
+    "外部依存を追加しない（Node.js 組み込みモジュールのみ）。",
+    "ボード draft の言語は config.workflow.languages.source（既定は config.lang）に従う（既存 publish のパターンに準拠）。",
+    "AI 呼び出しは既存の commandId プレフィックス最長一致機構（matchProfilePrefix）を用い、provider 切替のための追加 config スキーマは設けない。",
+    "ユーザー承認（対話）は非対話の workflow サブコマンド内では行わず、skill テンプレート（finalize-cleanup.md）が Choice Format で担う。issue-log-import は候補出力のみ、ボード draft 作成は既存 workflow add で行う。",
+    "skill テンプレートは workflow.flowIntegration を .sdd-forge/config.json から直接読む（既存の config.lang 参照と同じ要領）。R1 のヘルパーはコマンド内部判定用。",
+    "外部副作用を伴う統合コマンドは、ボード/gh 利用不可時に致命的エラーで flow を止めない。捕捉した原因エラーは warning として stderr/ログに記録した上で ok=true の非致命的 skipped 結果を返す（無言で握り潰さない）。",
+    "新規 workflow サブコマンド（issue-start / issue-log-import）は既存サブコマンドの CLI 契約に従う: envelope ok=true 時は終了コード0、ユーザー起因の前提違反や内部失敗時は非ゼロで終了する。",
+    "新規サブコマンドは入力をエントリポイントで検証する: issue-start の <issueNumber> は正の整数、issue-log-import の --spec は存在し読取可能な spec パス（issue-log.json を含む）であること。不正時は envelope のエラーを返し非ゼロ終了する。",
+    "issue-log-import は issue-log.json の読込・候補化に上限を設ける: 候補は最大200件までとし、超過時は先頭200件のみを出力し省略件数をログに記録する。issue-log は単一 spec のログで通常小規模である。",
+    "backward-compatible-cli-interface: workflow.flowIntegration は新規追加フラグであり既存コマンドの意味を変えない。未設定/disable では統合が一切発火せず既存挙動が不変なため、移行措置は不要。"
+  ],
+  "design_principles": [
+    "発動条件は①(issue-start)②(issue-log-import)で同一（workflow.flowIntegration=enable）とし、判定ロジックを1本に集約する。",
+    "外部副作用（ボード項目移動・draft 作成）はローカル config 判定でのみ発火させ、未設定環境では gh CLI を呼ばない。",
+    "AI 分類・類似判定は候補生成の補助ヒューリスティックに留め、受け入れ条件には含めない。最終的な採否はユーザー承認で決まる。"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/lib/config.js — CONFIG_SCHEMA.workflow に flowIntegration を追加。enable 判定ヘルパーの置き場所はここまたは workflow 側ヘルパー。"
+      },
+      {
+        "text": "src/workflow/registry.js — issue-start / issue-log-import の lazy import エントリ登録。"
+      },
+      {
+        "text": "src/workflow/lib/commands/issue-start.js / issue-log-import.js — 新規コマンド実装。"
+      },
+      {
+        "text": "src/workflow/lib/graphql.js / board-helpers.js / config.js — 既存ヘルパー（searchItems/setItemStatus/ensureStatusOption/loadBoardConfig）を再利用。"
+      },
+      {
+        "text": "src/flow/prompts/plan/draft.md / src/flow/prompts/impl/finalize-cleanup.md — 条件ブロック追加。"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "draft 着手: draft.md が flowIntegration=enable かつ issue 番号ありを確認 → sdd-forge workflow issue-start <issueNumber> → searchItems で項目検索 → ensureStatusOption + setItemStatus で In Progress へ。"
+      },
+      {
+        "text": "finalize: finalize-cleanup.md が .sdd-forge/config.json の flowIntegration=enable を確認 → issue-log-import --spec <currentSpecPath> で候補一覧を取得（ボード書込なし）→ skill が Choice Format で提示・承認取得 → 承認分のみ skill が workflow add を呼びボード draft 化。"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] ボード操作ヘルパーは既存。issue-start は searchItems + ensureStatusOption + setItemStatus を再利用し、新規 GraphQL は最小化する。結果=match。",
+        "evidence": "src/workflow/lib/graphql.js（searchItems:27, setItemStatus:188）, src/workflow/lib/board-helpers.js（ensureStatusOption:12）, src/workflow/lib/config.js（loadBoardConfig:7）を current main で確認。"
+      },
+      {
+        "text": "[VERIFY] config の workflow スキーマは languages のみを持つ。flowIntegration は languages の兄弟プロパティとして追加する。結果=match。",
+        "evidence": "src/lib/config.js:270-281 CONFIG_SCHEMA.workflow.properties = { languages }。"
+      },
+      {
+        "text": "[VERIFY] AI 呼び出しは commandId プレフィックス最長一致で provider を解決する。issue-log-import.* の commandId は追加 config なしで切替可能。結果=match。",
+        "evidence": "src/lib/agent.js matchProfilePrefix。既存 workflow.publish が agent.call(commandId='workflow.publish') を使用（src/workflow/lib/commands/publish.js:14,59）。"
+      },
+      {
+        "text": "[VERIFY] issue-log は specs/<spec>/issue-log.json の entries[]。エントリに BUG/ENHANCE 型フィールドは無く、分類は AI 由来。よって分類は契約外の補助とする。結果=match。",
+        "evidence": "src/flow/lib/set-issue-log.js（loadIssueLog/saveIssueLog, entry: step/reason/trigger/resolution/guardrailCandidate/taskId/timestamp）。"
+      },
+      {
+        "text": "[VERIFY] flow の統合点は step 指示テンプレート。prepare は無音 prelude で prepare-spec テンプレートは無いため、issue-start は最初の step テンプレート draft.md に置く。finalize 側は finalize-cleanup.md。結果=match。",
+        "evidence": "src/flow/prompts/plan/draft.md, src/flow/prompts/impl/finalize-cleanup.md を current main で確認。"
+      },
+      {
+        "text": "発動条件を①②同一の workflow.flowIntegration=enable に集約。ボード設定自動判定や commands.gh 相乗りを退け、EXPERIMENTAL 機能の暗黙有効化と非ボードユーザーの gh 毎回呼び出しを回避する。",
+        "evidence": "draft.json q1。loadBoardConfig は gh CLI 依存（src/workflow/lib/config.js:7）。"
+      },
+      {
+        "text": "② issue-log-import は issue-log の全エントリを候補提示し、ユーザー承認分のみ draft 化する。AI 分類・類似判定で絞り込む契約は complete-context ガードレール（分類基準が検証不能）に抵触するため採らず、AI 判定は提示順・事前チェック等の補助に留める。",
+        "evidence": "draft.json q3 および draft-gate complete-context 指摘の解消方針。"
+      }
+    ]
+  },
+  "background": "workflow（GitHub Projects ボード運用）と flow（Spec-Driven Development ライフサイクル）は現状互いを知らず分離している。そのため (1) 着手時にボード項目を In Progress へ動かす操作、(2) flow 中に記録した issue-log（バグ・改善の気づき）をボードへ反映する操作が、いずれも手作業になっている。flow を回すたびにボード状態が古くなり、issue-log の知見がボード（今後やることリスト）に集約されない。本 spec はこの2点を、flow ロジック層に手を入れず skill テンプレートの条件分岐と workflow 側の新コマンドで自動化する。発動は config の opt-in フラグに限定する。",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "src/lib/config.js の CONFIG_SCHEMA.workflow に flowIntegration（type string, enum [enable, disable]）を追加し、現在値が enable か否かを判定するヘルパーを提供する。フラグ未設定は disable 相当として扱う。",
+      "priority": "must",
+      "testable": true,
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "workflow に issue-start <issueNumber> サブコマンドを追加する。該当 issue 番号のボード項目を検索し、見つかれば In Progress へ移動する（ensureStatusOption で option 自動追加 + setItemStatus）。見つからなければ ok=true かつ data.matched=false を返しエラーにしない。既に In Progress なら no-op とする。<issueNumber> は正の整数として検証し、不正なら envelope エラーを返し非ゼロ終了する。ボード/gh が利用不可（loadBoardConfig 失敗等）の場合は原因エラーを warning ログに記録した上で ok=true の非致命的 skipped 結果を返し flow を止めない。終了コードは envelope ok=true で0、失敗で非ゼロとする。",
+      "priority": "must",
+      "testable": true,
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "workflow に issue-log-import --spec <path> サブコマンドを追加する。指定 spec の issue-log.json を読み、全エントリを追加候補として JSON envelope で出力する（候補生成のみ。ボードへの書き込みは行わない）。本コマンドは非対話・単発であり、ユーザー承認とボード draft 作成はコマンド外（finalize-cleanup.md skill）が担う。AI 分類・類似判定は候補生成・並び順付けの補助に用いてよいが判定精度は受け入れ条件に含めない。--spec は存在し読取可能な spec パス（issue-log.json を含む）として検証し、不正なら envelope エラーを返し非ゼロ終了する。候補は最大200件までとし、超過時は先頭200件のみを出力し省略件数をログに記録する。ボード/gh が利用不可、または対象エントリが無い場合は原因エラーを warning ログに記録した上で ok=true の空/skipped 結果を返し flow を止めない。終了コードは envelope ok=true で0、失敗で非ゼロとする。",
+      "priority": "must",
+      "testable": true,
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "src/flow/prompts/plan/draft.md に条件ブロックを追加する。テンプレートは .sdd-forge/config.json の workflow.flowIntegration を（既存の config.lang 参照と同じ要領で）読み、enable かつ flow に issue 番号がリンクされている場合のみ issue-start を呼ぶ。issue-start は冪等であり reopen-draft 再入時も安全であることを前提とする。",
+      "priority": "must",
+      "testable": true,
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "src/flow/prompts/impl/finalize-cleanup.md に条件ブロックを追加する。テンプレートは .sdd-forge/config.json の workflow.flowIntegration を（config.lang と同じ要領で）読み、enable の場合のみ cleanup コマンド実行前に issue-log-import --spec <currentSpecPath> で候補一覧を取得し、Choice Format でユーザーに提示する。ユーザーが承認した候補のみ、候補ごとに既存の workflow add を呼んでボード draft 化する。承認なし・確認スキップ時は workflow add を一切呼ばない（0件作成）。",
+      "priority": "must",
+      "testable": true,
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "workflow.flowIntegration が enable でない、または未設定の環境では、issue-start・issue-log-import がいずれも呼ばれず、既存 flow の挙動・出力が不変であること。",
+      "priority": "must",
+      "testable": true,
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "desc": "issue-log-import 内の AI 呼び出しは commandId workflow.issue-log-import.classify / similarity / compose を用い、既存の matchProfilePrefix による provider 切替に乗る。provider 切替のための追加 config スキーマは設けない。",
+      "priority": "should",
+      "testable": true,
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "AC1 (R2,R4): workflow.flowIntegration=enable かつ issue リンクありで draft step を開始すると、ボード上の該当 issue 項目のステータスが In Progress になる。該当項目が無い場合はステータス変更が発生しない。",
+    "AC2 (R3,R5): finalize-cleanup 段階で issue-log-import が出力した全候補が Choice Format で提示され、ユーザーが承認した候補のみを skill が workflow add でボード draft 化する。承認しない・確認をスキップした場合は workflow add が呼ばれず1件も作成されない。",
+    "AC3 (R6): workflow.flowIntegration が enable でない、または未設定の環境では issue-start・issue-log-import が呼ばれず、既存 flow の挙動・出力が不変である。",
+    "AC4 (R1): config に workflow.flowIntegration を設定でき、enable/disable 以外の値はバリデーションで拒否される。",
+    "AC5 (R2,R3): workflow.flowIntegration=enable だがボード/gh が利用不可の場合、issue-start・issue-log-import は原因エラーを warning ログに記録した上で非致命的な結果を返し flow を止めず、ボードへの書き込みは0件である。",
+    "AC6 (R2,R3): 不正な入力（issue-start の非整数 <issueNumber>、issue-log-import の不存在 --spec パス）は envelope エラーを返し非ゼロ終了する。"
+  ],
+  "clarifications": [],
+  "alternatives_considered": [
+    {
+      "option": "発動条件をボード設定の有無で自動判定する（loadBoardConfig 成功で発火）",
+      "reason": "全 flow で gh CLI 呼び出しが走り、EXPERIMENTAL 機能を暗黙有効化する。非ボードユーザーに無益なレイテンシが生じるため不採用。"
+    },
+    {
+      "option": "発動条件を config.commands.gh === 'enable' に相乗りさせる",
+      "reason": "gh 利用可否フラグと『flow↔board 連携の意思』を混同する。gh を別目的で有効化したユーザーにも発火するため不採用。"
+    },
+    {
+      "option": "issue-start を implement.md 冒頭または SKILL.md prelude に置く",
+      "reason": "implement.md は計画フェーズ中ボードが着手前ステータスのまま動かない。SKILL.md prelude は共有 dispatcher を workflow に依存させる。Issue の『prepare 時』に最も近く局所的な draft.md を採用。"
+    },
+    {
+      "option": "② issue-log-import を finalize で自動作成（確認なし）",
+      "reason": "AI 誤判定による重複 draft がボードに蓄積し手作業掃除が発生する。候補提示→ユーザー確認→作成を採用。"
+    },
+    {
+      "option": "② で AI 分類により BUG/ENHANCE のみへ絞り込むことを要件の検証可能条件にする",
+      "reason": "complete-context ガードレールに抵触（分類基準が draft/spec で未定義のためレビュアーが合否判定不能）。全エントリ提示＋ユーザー選択とし、AI 分類は契約外の補助に格下げ。"
+    }
+  ],
+  "keywords": [
+    "workflow",
+    "flowIntegration",
+    "issue-start",
+    "issue-log-import",
+    "issue-log",
+    "GitHub Projects board",
+    "setItemStatus",
+    "ensureStatusOption",
+    "loadBoardConfig",
+    "finalize-cleanup",
+    "draft",
+    "In Progress",
+    "matchProfilePrefix",
+    "commandId",
+    "registry"
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Add workflow.flowIntegration config flag and enable helper",
+      "goal": "CONFIG_SCHEMA.workflow に flowIntegration（enable/disable enum）を追加し、enable 判定ヘルパーを提供する。未設定は disable 相当。",
+      "acceptance": [
+        "config に workflow.flowIntegration=enable/disable を設定でき、他の値はバリデーションで拒否される。",
+        "enable 判定ヘルパーが未設定時に false（disable 相当）を返す。"
+      ],
+      "implementation_notes": "src/lib/config.js:270 CONFIG_SCHEMA.workflow.properties に languages の兄弟として flowIntegration を追加。ヘルパーは config を受けて enable 判定する純関数。R1, R6 の基盤。",
+      "test_strategy": "unit: スキーマバリデーション（不正値拒否）とヘルパーの enable/disable/未設定の判定。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Implement workflow issue-start subcommand",
+      "goal": "issue 番号でボード項目を検索し In Progress へ移動する issue-start サブコマンドを追加する。",
+      "acceptance": [
+        "<issueNumber> を正の整数として検証し、不正なら envelope エラー＋非ゼロ終了する。",
+        "該当項目を In Progress へ移動する（option 不在時は ensureStatusOption で追加）。",
+        "該当項目が無ければ ok=true, data.matched=false を返す。",
+        "既に In Progress なら no-op。",
+        "ボード/gh 利用不可時は原因を warning ログに記録した上で ok=true の skipped を返し flow を止めない。"
+      ],
+      "implementation_notes": "src/workflow/registry.js に lazy import 登録、src/workflow/lib/commands/issue-start.js を実装。searchItems/ensureStatusOption/setItemStatus を再利用。base-command の envelope 形式（ok=true→終了コード0、失敗→非ゼロ）に従う。R2。",
+      "test_strategy": "unit: ボードヘルパーをスタブし、入力検証 / matched=false / 移動 / no-op / ボード不可時 skipped の各分岐を検証。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-3",
+      "title": "Implement workflow issue-log-import subcommand (candidate emitter)",
+      "goal": "指定 spec の issue-log.json の全エントリを追加候補として出力する issue-log-import サブコマンドを追加する（候補生成のみ。ボード書込・承認は行わない）。",
+      "acceptance": [
+        "issue-log.json のエントリ（最大200件、超過時は先頭200件のみ・省略件数をログ記録）が候補として JSON envelope で出力される。",
+        "コマンドはボードへの書き込みを一切行わない（承認・作成は skill 側）。",
+        "--spec を存在・読取可能なパスとして検証し、不正なら envelope エラー＋非ゼロ終了する。",
+        "ボード/gh 利用不可または対象0件で、原因を warning ログに記録した上で ok=true の空/skipped を返し flow を止めない。",
+        "AI 呼び出しは commandId workflow.issue-log-import.{classify,similarity,compose} を候補生成・並び順の補助に用いる。"
+      ],
+      "implementation_notes": "src/workflow/registry.js に登録、src/workflow/lib/commands/issue-log-import.js を実装。loadIssueLog で読込。AI は agent.call(commandId)（matchProfilePrefix 経由）で補助的に使用。ボード書込は行わない（作成は T-5 の skill が workflow add で実施）。R3, R7。",
+      "test_strategy": "unit: AI をスタブし、全エントリが候補出力される／ボード書込が発生しない／空・不可時の skipped を検証。AI 分類精度は検証対象外。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-4",
+      "title": "Wire issue-start into draft.md template",
+      "goal": "draft.md に、.sdd-forge/config.json の flowIntegration を読み enable かつ issue リンクありのとき issue-start を呼ぶ条件ブロックを追加する。",
+      "acceptance": [
+        "draft.md が .sdd-forge/config.json の workflow.flowIntegration を（config.lang と同じ要領で）読む記述を含む。",
+        "flowIntegration=enable かつ issue 番号ありを条件として issue-start を呼ぶ指示が含まれる。",
+        "条件不成立時は従来の draft 手順が不変。"
+      ],
+      "implementation_notes": "src/flow/prompts/plan/draft.md に条件ブロックを追記。テンプレートは config.json から flag を読む（既存 config.lang 参照に倣う）。flow ロジック層は変更しない。issue-start は冪等前提。R4。",
+      "test_strategy": "unit: テンプレート文字列に条件ブロックと issue-start 呼び出しが存在することを検証（spec 269 の prompt 参照テストに倣う）。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-5",
+      "title": "Wire candidate approval flow into finalize-cleanup.md template",
+      "goal": "finalize-cleanup.md に、flowIntegration=enable のとき候補取得→Choice Format 承認→承認分を workflow add で作成する条件ブロックを追加する。",
+      "acceptance": [
+        "finalize-cleanup.md が .sdd-forge/config.json の flowIntegration を読み enable のときのみ発火する記述を含む。",
+        "cleanup 前に issue-log-import --spec <currentSpecPath> で候補取得し Choice Format で提示、承認分のみ候補ごとに workflow add を呼ぶ指示が含まれる。",
+        "承認なし・確認スキップ時は workflow add を呼ばない記述が含まれる。",
+        "条件不成立時は従来の finalize-cleanup 手順が不変。"
+      ],
+      "implementation_notes": "src/flow/prompts/impl/finalize-cleanup.md に条件ブロックを追記。承認 UI は skill の Choice Format、作成は既存 workflow add。flow ロジック層は変更しない。R5。",
+      "test_strategy": "unit: テンプレート文字列に flowIntegration 読取・issue-log-import 呼出・Choice Format 承認・workflow add 呼出の各記述が存在することを検証。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-06-01T03:54:08.794Z",
+    "notes": "ユーザーが spec 270 要約を確認し承認（実装へ進む）"
+  }
+}

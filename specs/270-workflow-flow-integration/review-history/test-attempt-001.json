@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-01T06:59:54.532Z",
+  "verdict": "ADVISORY",
+  "coverageArtifact": "specs/270-workflow-flow-integration/test-coverage.json",
+  "blockingFindings": [],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R2 spec-local coverage is limited to input validation",
+      "target": "specs/270-workflow-flow-integration/tests/issue-start.test.js",
+      "improvement": "issue-start.test.js only exercises validateIssueNumber. R2's distinctive contracts — not-found returns ok=true/data.matched=false, already-In-Progress no-op, and board/gh-unavailable returns a non-fatal skipped ok=true result — have no spec-local test. Consider structuring issue-start.js so a board-loader/status mover can be injected, then add unit tests asserting the matched=false envelope and the skipped envelope without a real board.",
+      "whyNonBlocking": "These behaviors require board/gh execution and runtime pass/fail is explicitly owned by scenario-validity, test-execute, test-result-review, and final-regression. The pure-logic clause (positive-integer validation) is covered statically, so implementation is not blocked."
+    },
+    {
+      "kind": "advisory",
+      "title": "R4/R5 template tests assert string presence, not the gating relationship",
+      "target": "specs/270-workflow-flow-integration/tests/templates.test.js",
+      "improvement": "The tests only check that 'flowIntegration', 'issue-start', 'issue-log-import', and 'workflow add' each appear somewhere in the markdown. They would pass even if the directives are mentioned outside the required conditional gate. Consider asserting that the template reads config.json workflow.flowIntegration the same way as the existing config.lang reference, and that the issue-start / issue-log-import calls appear inside the flowIntegration-enable conditional block.",
+      "whyNonBlocking": "The deliverable for R4/R5 is prose AI-instruction markdown with no machine-checkable conditional syntax; a presence check still verifies the template was edited to include the gate, and the precise gating behavior is validated downstream rather than statically."
+    },
+    {
+      "kind": "advisory",
+      "title": "R7 test verifies commandId declaration only",
+      "target": "specs/270-workflow-flow-integration/tests/issue-log-import.test.js",
+      "improvement": "The R7 test checks ISSUE_LOG_IMPORT_COMMAND_IDS equals the three classify/similarity/compose ids but does not assert that the AI calls route through matchProfilePrefix-based provider switching nor that no extra provider config schema was added. A lightweight assertion that these ids are passed to the existing commandId-based agent invocation path would strengthen coverage.",
+      "whyNonBlocking": "R7 is a should-level requirement and the declared-commandId check is a reasonable proxy; the matchProfilePrefix wiring and no-extra-schema invariant are better confirmed at runtime/config-validation time."
+    }
+  ],
+  "toolingFailure": null,
+  "counts": {
+    "blocking": 0,
+    "advisory": 3,
+    "total": 3
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "test-001-non-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "R2 spec-local coverage is limited to input validation",
+      "body": "R2 spec-local coverage is limited to input validation",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-non-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "R4/R5 template tests assert string presence, not the gating relationship",
+      "body": "R4/R5 template tests assert string presence, not the gating relationship",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-non-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "R7 test verifies commandId declaration only",
+      "body": "R7 test verifies commandId declaration only",
+      "category": "unknown"
+    }
+  ]
+}

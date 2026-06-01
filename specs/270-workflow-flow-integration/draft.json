@@ -1,0 +1,97 @@
+{
+  "devType": "feature",
+  "goal": "workflow コマンド（GitHub Projects ボード運用）を flow ライフサイクルに統合し、prepare 時に対応ボード項目を In Progress へ移動し、finalize 時に spec の issue-log.json をボードへ取り込む。flow ロジック層は変更せず、skill テンプレートの条件分岐と workflow 側の新コマンドで実現する。",
+  "analysis": {
+    "problem": "workflow（ボード運用）と flow（SDD ライフサイクル）が分離しており、(1) 着手時にボード項目を In Progress へ動かす操作、(2) flow 中に記録された issue-log（バグ・改善の気づき）をボードへ反映する操作が、いずれも手作業になっている。flow を回すたびにボードの状態が古くなり、issue-log の知見がボードに集約されない。",
+    "proposedApproach": "workflow に issue-start（issue 番号でボード項目を検索し In Progress へ移動）と issue-log-import（指定 spec の issue-log.json のエントリから追加候補を生成しユーザー承認分のみボード draft 化。AI 分類・類似判定は候補生成の補助に用いる）の2コマンドを追加する。flow 側は src/flow/lib/*.js（ロジック層）を変更せず、src/flow/prompts 配下の skill 指示テンプレートに『Task 1 で定める発動条件を満たす場合のみ workflow コマンドを呼ぶ』条件ブロックを挿入する。",
+    "validation": "(1) workflow.flowIntegration=enable かつ issue リンクありの環境で draft step を開始すると、ボード上の該当 issue 項目のステータスが In Progress になること（該当項目が無ければステータス変更が発生しないこと）。(2) finalize-cleanup 段階で issue-log の全エントリが追加候補としてユーザーに提示され、ユーザーが明示的に承認した候補のみがボード draft として作成されること。検証可能条件: 全 issue-log エントリが候補として提示される／ユーザー承認なしに draft は1件も作成されない／確認をスキップした場合も作成されない。(3) workflow.flowIntegration が enable でない、または未設定の環境では issue-start・issue-log-import がいずれも呼ばれず、既存 flow の挙動・出力が不変であること。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "workflow は src/workflow/ 配下で `sdd-forge workflow <subcommand>` として常時利用可能（src/workflow/index.js:96-146 のディスパッチ）。",
+      "ボード操作ヘルパーは既存: searchItems (graphql.js:27)、setItemStatus (graphql.js:188)、listItems (graphql.js:43)、ensureStatusOption (board-helpers.js:12)、findItem (board-helpers.js:38)、loadBoardConfig (config.js:7)。",
+      "issue-log は specs/<spec>/issue-log.json に entries[] として保存。エントリは step/reason/trigger?/resolution?/guardrailCandidate?/taskId/timestamp（src/flow/lib/set-issue-log.js:134）。loadIssueLog/saveIssueLog が読み書き（set-issue-log.js:27-51）。",
+      "AI 呼び出しは commandId のプレフィックス最長一致で provider 切替（src/lib/agent.js:296 matchProfilePrefix）。workflow は既に publish で agent.call(commandId='workflow.publish') を使用（src/workflow/lib/commands/publish.js:14-66）。",
+      "flow の step 指示テンプレートは src/flow/prompts/{plan,impl,task}/*.md。plan に 'prepare-spec' テンプレートは存在せず、prepare は無音の prelude コマンド（run-prepare-spec.js）。dispatcher が読む最初の step テンプレートは plan/draft.md。finalize は impl/finalize-{commit,merge,sync,cleanup}.md の4 leaf。",
+      "config スキーマに commands.gh（enum: enable/disable）と workflow.languages.* が定義済み（src/lib/config.js）。commands.gh を判定する既存ヘルパー関数は存在しない。"
+    ],
+    "decisionPoints": [],
+    "resolvedByProjectRules": [
+      "ボード draft の言語は workflow.languages.source（既存 workflow ルール・publish.js:33 のパターンに準拠）。",
+      "issue-log スキーマは変更しない（Issue 明記 + alpha 版ポリシーは新規追加であり後方互換コードは書かないが、既存スキーマの破壊もしない）。",
+      "issue-start でボード項目が見つからない場合は ok=true, data.matched=false を返しエラーにしない（Issue 明記）。既に In Progress なら no-op。",
+      "flow ロジック層 src/flow/lib/*.js は変更せず workflow への依存を持たせない（Issue 明記 + モジュール境界）。",
+      "発動条件は新規フラグ workflow.flowIntegration（'enable'|'disable' の文字列 enum、既存 commands.gh に倣う）の enable で、①②とも同一条件（q1 で確定）。条件未設定なら両方とも呼ばれず gh も叩かない。",
+      "① issue-start は plan/draft.md 冒頭で flowIntegration=enable かつ issue リンクありの場合のみ呼ぶ。冪等のため reopen-draft 再入でも安全（q2 で確定）。",
+      "② issue-log-import は finalize-cleanup テンプレートで cleanup コマンド実行前に呼び、候補提示→ユーザー確認→作成の手順で外部副作用を確認する（q3 で確定）。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "issue-start / issue-log-import の引数仕様と出力 envelope の詳細。",
+      "AI commandId（workflow.issue-log-import.classify / similarity / compose）の prompt 設計と分類・類似判定の基準。",
+      "ensureStatusOption + setItemStatus の呼び出し手順詳細。",
+      "②の候補提示→確認 UI の具体形（提示フォーマット、ユーザー応答の受け取り方）。",
+      "workflow.flowIntegration の config スキーマ追加位置（src/lib/config.js の CONFIG_SCHEMA.workflow）と判定ヘルパーの置き場所。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] workflow に issue-start サブコマンドを追加（registry.js 登録 + lib/commands/issue-start.js 実装。issue 番号でボード項目を検索し In Progress へ移動）。",
+      "[must] workflow に issue-log-import サブコマンドを追加（registry.js 登録 + lib/commands/issue-log-import.js 実装）。指定 spec の issue-log.json を読み、その全エントリを追加候補としてユーザーに提示し、ユーザーが承認した候補のみを draft 化する。検証可能条件: (a) 全 issue-log エントリが候補として提示される、(b) ユーザーが承認した候補のみが作成され、承認しない・確認スキップ時は1件も作成されない。",
+      "[must] workflow.flowIntegration フラグ（enable/disable の文字列 enum）を src/lib/config.js の CONFIG_SCHEMA.workflow に追加し、enable 判定を行うヘルパーを追加。",
+      "[must] src/flow/prompts/plan/draft.md に条件ブロックを追加（flowIntegration=enable かつ issue リンクありで issue-start を呼ぶ）。",
+      "[must] src/flow/prompts/impl/finalize-cleanup.md に条件ブロックを追加（flowIntegration=enable で cleanup コマンド実行前に issue-log-import を呼ぶ）。"
+    ],
+    "out": [
+      "src/flow/lib/*.js（flow ロジック層）の変更。",
+      "issue-log.json のスキーマ変更。",
+      "既存 workflow サブコマンド（add/update/show/search/list/publish）の挙動変更。"
+    ]
+  },
+  "impactOnExisting": [
+    "src/flow/prompts/plan/draft.md と src/flow/prompts/impl/finalize-cleanup.md に条件ブロックを追加（flowIntegration=disable の従来環境では一切作用せず、既存手順は不変）。",
+    "src/lib/config.js の CONFIG_SCHEMA.workflow に flowIntegration フラグ（enable/disable enum）を追加。既存 config（未設定）は disable 相当として従来どおり動作。",
+    "workflow に issue-start / issue-log-import の2サブコマンドを追加（registry 登録 + lib/commands 実装）。既存サブコマンドおよび flow ロジック層 src/flow/lib/*.js は不変。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "Task 1: workflow↔flow 連携を発動させる条件をどの方式にするか。ここで連携とは『prepare 時のボード項目 In Progress 移動』と『finalize 時の issue-log ボード取り込み』を指す。候補: (A) ボード設定の有無で自動判定（loadBoardConfig が成功する＝GitHub Projects がセットアップ済みなら有効）、(B) config.commands.gh === 'enable' を条件にする（gh CLI 利用可否フラグに相乗り）、(C) 新規 config フラグ（例: workflow.flowIntegration）を追加し明示的 opt-in にする。workflow は [EXPERIMENTAL] 扱いであり、未設定ユーザーへの予期せぬ副作用を避ける必要がある点を考慮する。",
+      "answer": "発動条件は config 上の『ボード登録（workflow 配下の新規 config）』の有無とする。①(issue-start) と ②(issue-log-import) は同一条件で発動し、条件未設定の環境では両方とも一切呼ばれず gh CLI も実行しない。ローカル config の存在判定のみで発火可否を決め、gh を叩いて判定しない。config の形は真偽フラグ1つ（既存 commands.gh に合わせ workflow.flowIntegration: 'enable'|'disable' の文字列 enum）とし、ゲート判定専用とする。ボード座標は従来どおり gh による動的取得を維持し、既存コマンド（add/update/show/search/list/publish）には手を入れない。",
+      "evidence": "loadBoardConfig は gh CLI（gh project list）に依存する（src/workflow/lib/config.js:7）。発動条件をローカル config 判定にすれば、ボード未使用ユーザーで flow を回すたびに発生する gh 呼び出しを回避できる。①を常時自動にしても、ボードが無い環境では issue-start は no-op であり益がない一方で gh 往復コストのみ発生する。",
+      "why": "workflow は [EXPERIMENTAL] であり、ボード項目移動・draft 新規作成という外部副作用を伴う。明示的 opt-in（config 登録）に揃えることで暗黙有効化を避ける。①②の条件を1本に集約することで、同じ発動条件の導出が2箇所へ分散するのを防ぐ（モジュール境界・DRY）。",
+      "considered": "(A) loadBoardConfig 成功で自動判定: 全 flow で gh 呼び出しが走り EXPERIMENTAL を暗黙有効化する。(B) commands.gh === 'enable' に相乗り: gh 利用可否フラグと連携意思を混同する。『①は常に自動 / ②のみ条件付き』案: ①でボード未使用者にも毎回 gh 呼び出しが発生し、発動条件が2系統に分散する。リスク非対称性は『発動するか否か』ではなく②発動後の振る舞いで吸収する方針とした。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "Task 3（prepare 側）: ボード項目を In Progress へ移動する issue-start を、flow ライフサイクルのどの時点・どのテンプレートから呼ぶか。現状 prepare は無音の prelude コマンドで、src/flow/prompts/plan/ に 'prepare-spec' の step 指示テンプレートは存在しない（dispatcher が読む最初の step テンプレートは draft.md）。一方 In Progress は意味的には『実装着手』を表す。候補: (A) draft step テンプレート(plan/draft.md)の冒頭で呼ぶ、(B) implement step テンプレート(impl/implement.md)の冒頭で呼ぶ、(C) その他の配置。issue 番号は flow.json に保持されている。",
+      "answer": "① issue-start は draft step テンプレート(src/flow/prompts/plan/draft.md)の冒頭で呼ぶ。発火条件は『workflow.flowIntegration が enable』かつ『flow に issue 番号がリンクされている』の AND。条件を満たさない場合は呼ばない。issue-start 自体は冪等（既に In Progress なら no-op、ボードに該当項目が無ければ matched=false で何もしない）なので、reopen-draft で draft step に再入しても安全。",
+      "evidence": "dispatcher が最初に読む step テンプレートは plan/draft.md（plan に prepare-spec テンプレートは無く、prepare は無音 prelude である run-prepare-spec.js）。issue 番号は flow.json に保持され --issue 経由で渡る（src/flow/registry.js:239-265）。issue-start の no-op/matched=false 仕様は Issue 本文に明記。",
+      "why": "Issue の意図する『prepare 時』に最も近く、かつ step テンプレートとして局所的に表現できる地点が draft.md である。SKILL.md prelude に置くと共有 dispatcher 本体を workflow 依存にするため避ける。",
+      "considered": "(B) implement.md 冒頭: spec 承認後の確約地点で flow 破棄時のボード残留リスクが小さいが、計画フェーズ中はボードが Todo のままになる。SKILL.md prelude 直後: 最も字義的な prepare 時だが、共有 dispatcher を workflow 依存化する。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "Task 3（finalize 側）: issue-log-import（spec の issue-log.json を AI で分類・類似判定し、新規分のみボード draft を作成）を finalize のどの leaf テンプレートで実行するか、また外部副作用（GitHub ボードへの draft 新規作成）をユーザー確認なしに自動実行してよいか。finalize は finalize-commit→merge→sync→cleanup の4 leaf。プロジェクトルールは『外部への書き込み・設定変更はユーザー確認なしに行わない』方針。候補: (A) finalize-sync または finalize-cleanup テンプレートで自動実行する、(B) 自動実行せず finalize 完了後にユーザーへ実行を促す（手動 opt-in）、(C) その他。",
+      "answer": "②は自動作成せず、候補提示→ユーザー確認→作成の手順にする。issue-log-import が issue-log の全エントリを追加候補として提示し、ユーザーが明示的に承認した候補だけをボード draft 化する（AI 分類・類似判定は提示順や事前チェック等の補助に用い、精度は受け入れ条件に含めない）。検証可能な受け入れ条件: ユーザーが承認した候補のみ作成され、承認しない・確認をスキップした候補は1件も作成されない。実行位置は finalize-cleanup テンプレートで、cleanup コマンド（worktree 削除・最終レポート）を走らせる前に、flowIntegration が enable の場合のみ呼ぶ。issue-log.json が読める状態（worktree 健在）で実行する。なお候補の提示フォーマットとユーザー応答の受け取り方の具体形は spec 段階で確定する（deferredToSpec）。",
+      "evidence": "分類・類似判定は AI 呼び出し（workflow.issue-log-import.classify / similarity）で誤検知しうる。workflow は [EXPERIMENTAL] で判定精度が未実証。ボード項目は作成後の削除が手作業。finalize は対話的に進むため確認1ステップの追加コストは小さい。finalize-cleanup の cleanup コマンドは worktree を削除する（SKILL.md finalize-cleanup 記述）ため、import はその前に実行する必要がある。",
+      "why": "連携全体は opt-in 済みだが、AI 誤判定による重複 draft がボードに蓄積すると手作業掃除が発生する。一度の確認でそれを弾く方が総コストが低い。リスク非対称性（②は新規項目を作る）を『発動するか否か』ではなく『発動後に確認を挟む』で吸収する方針（q1 で合意）に沿う。",
+      "considered": "(A) 自動作成＋結果レポート: 摩擦ゼロだが AI 誤判定の重複が Ideas に蓄積し後で手作業掃除が要る。finalize-sync 配置: sync は docs 同期が主目的でボード取り込みと意味的に混ざる。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-31",
+    "notes": "q1/q2/q3 をユーザーが選択肢で確定（q1=workflow.flowIntegration ゲート・①②同一条件、q2=① は plan/draft.md 冒頭、q3=② は finalize-cleanup で候補提示→確認→作成）。未解決のユーザー判断なし。"
+  }
+}

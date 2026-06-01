@@ -1,0 +1,168 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/270-workflow-flow-integration/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/270-workflow-flow-integration/tests/config-flow-integration.test.js",
+        "test_name": "R1: isFlowIntegrationEnabled is true only when workflow.flowIntegration === ",
+        "command": "node --test specs/270-workflow-flow-integration/tests/config-flow-integration.test.js specs/270-workflow-flow-integration/tests/issue-log-import.test.js specs/270-workflow-flow-integration/tests/issue-start.test.js specs/270-workflow-flow-integration/tests/templates.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 81
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/270-workflow-flow-integration/tests/issue-start.test.js",
+        "test_name": "R2: validateIssueNumber accepts positive integers (string or number)",
+        "command": "node --test specs/270-workflow-flow-integration/tests/config-flow-integration.test.js specs/270-workflow-flow-integration/tests/issue-log-import.test.js specs/270-workflow-flow-integration/tests/issue-start.test.js specs/270-workflow-flow-integration/tests/templates.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 81
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/270-workflow-flow-integration/tests/issue-log-import.test.js",
+        "test_name": "R3: buildCandidates yields one candidate per entry when under the 200 cap (no board writes)",
+        "command": "node --test specs/270-workflow-flow-integration/tests/config-flow-integration.test.js specs/270-workflow-flow-integration/tests/issue-log-import.test.js specs/270-workflow-flow-integration/tests/issue-start.test.js specs/270-workflow-flow-integration/tests/templates.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 81
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/270-workflow-flow-integration/tests/templates.test.js",
+        "test_name": "R4: draft.md gates an issue-start call on flowIntegration and a linked issue",
+        "command": "node --test specs/270-workflow-flow-integration/tests/config-flow-integration.test.js specs/270-workflow-flow-integration/tests/issue-log-import.test.js specs/270-workflow-flow-integration/tests/issue-start.test.js specs/270-workflow-flow-integration/tests/templates.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 81
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/270-workflow-flow-integration/tests/templates.test.js",
+        "test_name": "R5: finalize-cleanup.md gates issue-log-import on flowIntegration and creates approved drafts via workflow add",
+        "command": "node --test specs/270-workflow-flow-integration/tests/config-flow-integration.test.js specs/270-workflow-flow-integration/tests/issue-log-import.test.js specs/270-workflow-flow-integration/tests/issue-start.test.js specs/270-workflow-flow-integration/tests/templates.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 81
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/270-workflow-flow-integration/tests/config-flow-integration.test.js",
+        "test_name": "R6: integration is off (helper false) when flowIntegration is unset or workflow/config is missing",
+        "command": "node --test specs/270-workflow-flow-integration/tests/config-flow-integration.test.js specs/270-workflow-flow-integration/tests/issue-log-import.test.js specs/270-workflow-flow-integration/tests/issue-start.test.js specs/270-workflow-flow-integration/tests/templates.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 81
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/270-workflow-flow-integration/tests/issue-log-import.test.js",
+        "test_name": "R7: issue-log-import declares the three workflow.issue-log-import.* commandIds",
+        "command": "node --test specs/270-workflow-flow-integration/tests/config-flow-integration.test.js specs/270-workflow-flow-integration/tests/issue-log-import.test.js specs/270-workflow-flow-integration/tests/issue-start.test.js specs/270-workflow-flow-integration/tests/templates.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 81
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": true,
+    "mode": "full",
+    "root_test_command": "node tests/run.js",
+    "root_test_command_source": "test.command",
+    "command": "node tests/run.js",
+    "result": "pass",
+    "raw_output_lines": {
+      "start_line": 82,
+      "end_line": 5258
+    },
+    "trigger_relevant_changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/270-workflow-flow-integration/"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/config.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/workflow/index.js"
+      },
+      {
+        "status": "untracked",
+        "path": "src/workflow/lib/commands/issue-log-import.js"
+      },
+      {
+        "status": "untracked",
+        "path": "src/workflow/lib/commands/issue-start.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/workflow/registry.js"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/270-workflow-flow-integration/"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/config.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/workflow/index.js"
+      },
+      {
+        "status": "untracked",
+        "path": "src/workflow/lib/commands/issue-log-import.js"
+      },
+      {
+        "status": "untracked",
+        "path": "src/workflow/lib/commands/issue-start.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/workflow/registry.js"
+      }
+    ],
+    "process": {
+      "started": true,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "spawnError": null
+    }
+  }
+}

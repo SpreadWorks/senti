@@ -1,5 +1,10 @@
    <!-- include("/flow/prompts/partials/draft-qa-rules.md") -->
 
+   **Workflow board integration (experimental — opt-in):**
+   - At the start of the draft step, read `workflow.flowIntegration` from `.sdd-forge/config.json` (the same way `config.lang` is read). Only when it equals `"enable"` AND the flow has a linked GitHub issue (an issue number in flow.json), run `sdd-forge workflow issue-start <issueNumber>` once to move the linked board item into "In Progress".
+   - `issue-start` is idempotent (no-op if already In Progress; `matched=false` when no board item matches) and returns a non-fatal `skipped` result when the board / gh CLI is unavailable. Treat any result as informational and continue the draft step regardless.
+   - If `workflow.flowIntegration` is unset or not `"enable"`, or no issue is linked, skip this entirely — do not call the command.
+
    **Note on subsequent task decomposition:** The spec step decomposes requirements by concern. Keep draft discussion at the requirement level and keep scope within the Issue or request boundary. Task decomposition granularity is evaluated later by the `task-single-responsibility` guardrail (phase=[spec, task-spec]).
 
    **Draft artifact format: draft.json**

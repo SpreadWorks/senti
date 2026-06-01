@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "blocking apply 1件を反映: issue-log-import を候補出力のみのコマンドに再定義し、ユーザー承認とボード draft 作成を finalize-cleanup.md skill（Choice Format → 既存 workflow add）へ移して承認境界を明確化した。あわせて非ブロッキング改善2件（テンプレートが .sdd-forge/config.json から flowIntegration を読む方法の明示、enable だがボード/gh 不可時の非致命的扱い）を小さな補強として反映した。",
+  "items": [
+    {
+      "title": "issue-log-import approval-to-draft path has no integration point in the non-interactive command model",
+      "target": "R3 / src/workflow/lib/commands/issue-log-import.js",
+      "decision": "applied",
+      "rationale": "issue-log-import を『候補を JSON で出力するのみ・ボード書込なし』に再定義し、承認は非対話コマンド外の finalize-cleanup.md skill が Choice Format で取得、作成は承認候補ごとに既存 workflow add を呼ぶ、と承認境界とコンポーネント分担を明記した。AC2・data_flow・T-3・T-5 を同方針に整合させ、承認 UI を skill が担う旨を constraints に追加した。",
+      "evidence": "requirements R3（候補出力のみ・ボード書込なし）, requirements R5（skill が config 読取→候補取得→Choice Format 承認→workflow add）, acceptance_criteria AC2, overview.data_flow[1], tasks T-3（candidate emitter）, tasks T-5（承認統括＋workflow add）, constraints（承認は skill / 作成は workflow add）。",
+      "changedFields": [
+        "requirements[2].desc",
+        "requirements[4].desc",
+        "acceptance_criteria[1]",
+        "overview.data_flow[1].text",
+        "tasks[2]",
+        "tasks[4]",
+        "constraints[6]"
+      ]
+    }
+  ]
+}

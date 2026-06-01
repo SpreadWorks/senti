@@ -113,6 +113,17 @@ export function loadLang(root) {
   }
 }
 
+/**
+ * Whether the experimental workflow↔flow integration is enabled.
+ * True only when config.workflow.flowIntegration === "enable". An unset flag,
+ * a missing workflow section, or a null/undefined config all mean disabled.
+ * @param {object} [config]
+ * @returns {boolean}
+ */
+export function isFlowIntegrationEnabled(config) {
+  return config?.workflow?.flowIntegration === "enable";
+}
+
 // ---------------------------------------------------------------------------
 // Config schema (JSON Schema subset — private, not exported)
 // ---------------------------------------------------------------------------
@@ -277,6 +288,7 @@ const CONFIG_SCHEMA = {
             publish: { type: "string" },
           },
         },
+        flowIntegration: { type: "string", enum: ["enable", "disable"] },
       },
     },
 

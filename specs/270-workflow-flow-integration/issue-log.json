@@ -1,0 +1,678 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-31T08:07:59.399Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft approval is required: set approval.approved = true",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "「既存ボード項目と類似しない分だけ」の「類似しない」は検証可能な条件を示しておらず、類似度の閾値・判定基準が規定されていない。; 「発動条件の判定に必要な最小限の config キーまたはヘルパー追加」の「最小限」は曖昧な形容詞であり、何をもって最小限とするかを検証可能な条件として示していない。; 「既存ボード項目と類似しない分だけボード draft として追加されること」は類似度の閾値・比較対象フィールド・判定アルゴリズムが未定義のため、独立した2名のレビュアーが実装の合否を判定できない。分類・類似判定の基準は deferredToSpec に先送りされており draft 段階では検証不能。; 「候補提示→ユーザー確認→作成の手順にする」は候補の提示フォーマットとユーザー確認の受け取り方が deferredToSpec に先送りされており、独立した2名のレビュアーがこの要件を満たすかどうか判定できない。; 実装対象の要件を個別に数えると issue-start コマンド追加・issue-log-import コマンド追加・plan/draft.md 条件ブロック追加・finalize-cleanup.md 条件ブロック追加・workflow.flowIntegration config キー追加の5件となり3件を超えるが、いずれにも must/should/nice-to-have の優先度が付与されていない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-31T08:14:56.466Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "analysis.validation"
+          },
+          "observed": "「既存ボード項目と類似しない分だけ」の「類似しない」は検証可能な条件を示しておらず、類似度の閾値・判定基準が規定されていない。",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[2]"
+          },
+          "observed": "「発動条件の判定に必要な最小限の config キーまたはヘルパー追加」の「最小限」は曖昧な形容詞であり、何をもって最小限とするかを検証可能な条件として示していない。",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "analysis.validation"
+          },
+          "observed": "「既存ボード項目と類似しない分だけボード draft として追加されること」は類似度の閾値・比較対象フィールド・判定アルゴリズムが未定義のため、独立した2名のレビュアーが実装の合否を判定できない。分類・類似判定の基準は deferredToSpec に先送りされており draft 段階では検証不能。",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "qa[2].answer"
+          },
+          "observed": "「候補提示→ユーザー確認→作成の手順にする」は候補の提示フォーマットとユーザー確認の受け取り方が deferredToSpec に先送りされており、独立した2名のレビュアーがこの要件を満たすかどうか判定できない。",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in"
+          },
+          "observed": "実装対象の要件を個別に数えると issue-start コマンド追加・issue-log-import コマンド追加・plan/draft.md 条件ブロック追加・finalize-cleanup.md 条件ブロック追加・workflow.flowIntegration config キー追加の5件となり3件を超えるが、いずれにも must/should/nice-to-have の優先度が付与されていない。",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "「既存ボード項目と類似しない分だけ」の「類似しない」は検証可能な条件を示しておらず、類似度の閾値・判定基準が規定されていない。"
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "「発動条件の判定に必要な最小限の config キーまたはヘルパー追加」の「最小限」は曖昧な形容詞であり、何をもって最小限とするかを検証可能な条件として示していない。"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "「既存ボード項目と類似しない分だけボード draft として追加されること」は類似度の閾値・比較対象フィールド・判定アルゴリズムが未定義のため、独立した2名のレビュアーが実装の合否を判定できない。分類・類似判定の基準は deferredToSpec に先送りされており draft 段階では検証不能。"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "「候補提示→ユーザー確認→作成の手順にする」は候補の提示フォーマットとユーザー確認の受け取り方が deferredToSpec に先送りされており、独立した2名のレビュアーがこの要件を満たすかどうか判定できない。"
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "実装対象の要件を個別に数えると issue-start コマンド追加・issue-log-import コマンド追加・plan/draft.md 条件ブロック追加・finalize-cleanup.md 条件ブロック追加・workflow.flowIntegration config キー追加の5件となり3件を超えるが、いずれにも must/should/nice-to-have の優先度が付与されていない。"
+        }
+      ]
+    },
+    {
+      "step": "step-id-rename",
+      "reason": "Renamed 9 legacy step id(s) to the <phase>-<concern>-<action> convention.",
+      "trigger": "flow-store migration",
+      "resolution": "review-draft-questions->draft-questions-review, review-draft-coverage->draft-coverage-review, gate-draft->draft-gate, review-spec->spec-review, spec-review-triage->spec-triage, gate->spec-gate, review-test->test-review, review->impl-review, gate-impl->impl-gate",
+      "taskId": null,
+      "timestamp": "2026-05-31T08:16:23.172Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "draft-review-questions.json: phase must be draft-questions-review; draft-review-coverage.json: phase must be draft-coverage-review",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-31T08:16:23.311Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft-review-questions.json: phase must be draft-questions-review",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft-review-coverage.json: phase must be draft-coverage-review",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "draft-gate",
+      "reason": "flow 実行中に main が spec 269（flow step ID 全面リネーム, 旧名 alias なし）まで進み、sdd-forge バイナリ（main の live working tree を npm link 実行）が新 step 名へ切り替わった。flow state は step-id-rename 移行で新名化されたが、既に書かれた review 成果物の phase フィールドは旧名 review-draft-questions のまま残り、新 gate が draft-questions-review を要求して FAIL した",
+      "trigger": "draft-gate の再実行（approval 設定後）。retry 0/1 は旧コードで phase 指摘なし、retry 2 で新コードに切り替わり phase 不一致が顕在化",
+      "resolution": "未解決。worktree ベースが pre-269 で stale なため、ユーザーに rebase/再実行/restart の選択を提示する",
+      "guardrailCandidate": "sdd-forge 自身を対象に flow を回す場合、npm link されたバイナリが main の live working tree を実行するため、flow 中に main が進むとツールの step schema が変わりうる。flow prepare 時のベースと実行バイナリの版ずれを検出する仕組みが要る",
+      "taskId": null,
+      "timestamp": "2026-05-31T08:20:25.597Z"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "src/flow/lib/run-reopen-draft.js に export default が欠落しており、flow run reopen-draft が 'dispatcher: module has no default export (Command class)' で失敗する。run-finalize-cleanup.js 等は export class + export default の両方を持つが reopen-draft は named export のみ",
+      "trigger": "base を spec269 マージ後の main へ更新後、reopen-draft で draft 再生成を試行",
+      "resolution": "spec 270 スコープ外のため本フローでは修正せず。review 成果物の phase 移行は手動で実施。別 issue 化を検討",
+      "guardrailCandidate": "FlowCommand サブクラスは export class と export default の両方を必ず持つ。dispatcher は default export を要求するため、named のみだと registry 経由ロードで失敗する。lint/テストで default export の有無を検査する",
+      "taskId": null,
+      "timestamp": "2026-05-31T14:16:29.534Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The [must] requirement 'workflow に issue-log-import サブコマンドを追加（...指定 spec の issue-log.json を分類・候補提示し承認分を draft 化）' uses '分類' (classification) without measurable criteria. The classification criteria are explicitly deferred in decisionMap.deferredToSpec ('AI commandId（workflow.issue-log-import.classify / similarity / compose）の prompt 設計と分類・類似判定の基準'). Two independent reviewers cannot agree on whether a given implementation of the classification step satisfies this requirement.; The acceptance criterion 'issue-log の BUG/ENHANCE エントリが追加候補として提示され' references entry types 'BUG' and 'ENHANCE' without defining the criteria by which a log entry is classified as either type. The existing issue-log entry schema (step/reason/trigger/resolution/guardrailCandidate/taskId/timestamp per decisionMap.knownFacts) contains no BUG/ENHANCE type field; these labels are outputs of the deferred 分類 step. Classification criteria remain unspecified at draft stage, so two reviewers cannot agree on which entries qualify as candidates.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-31T14:22:51.050Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[1]"
+          },
+          "observed": "The [must] requirement 'workflow に issue-log-import サブコマンドを追加（...指定 spec の issue-log.json を分類・候補提示し承認分を draft 化）' uses '分類' (classification) without measurable criteria. The classification criteria are explicitly deferred in decisionMap.deferredToSpec ('AI commandId（workflow.issue-log-import.classify / similarity / compose）の prompt 設計と分類・類似判定の基準'). Two independent reviewers cannot agree on whether a given implementation of the classification step satisfies this requirement.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "analysis.validation[1]"
+          },
+          "observed": "The acceptance criterion 'issue-log の BUG/ENHANCE エントリが追加候補として提示され' references entry types 'BUG' and 'ENHANCE' without defining the criteria by which a log entry is classified as either type. The existing issue-log entry schema (step/reason/trigger/resolution/guardrailCandidate/taskId/timestamp per decisionMap.knownFacts) contains no BUG/ENHANCE type field; these labels are outputs of the deferred 分類 step. Classification criteria remain unspecified at draft stage, so two reviewers cannot agree on which entries qualify as candidates.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The [must] requirement 'workflow に issue-log-import サブコマンドを追加（...指定 spec の issue-log.json を分類・候補提示し承認分を draft 化）' uses '分類' (classification) without measurable criteria. The classification criteria are explicitly deferred in decisionMap.deferredToSpec ('AI commandId（workflow.issue-log-import.classify / similarity / compose）の prompt 設計と分類・類似判定の基準'). Two independent reviewers cannot agree on whether a given implementation of the classification step satisfies this requirement."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The acceptance criterion 'issue-log の BUG/ENHANCE エントリが追加候補として提示され' references entry types 'BUG' and 'ENHANCE' without defining the criteria by which a log entry is classified as either type. The existing issue-log entry schema (step/reason/trigger/resolution/guardrailCandidate/taskId/timestamp per decisionMap.knownFacts) contains no BUG/ENHANCE type field; these labels are outputs of the deferred 分類 step. Classification criteria remain unspecified at draft stage, so two reviewers cannot agree on which entries qualify as candidates."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The requirement states '候補対象と判定されたエントリのみを追加候補として提示し' as a verifiable condition, yet immediately defers the criteria that define '候補対象' to a later stage: '分類の判定基準・prompt 設計は AI 内部判定として spec で定義する'. Without the classification criteria, two independent reviewers cannot agree on whether a given implementation correctly filters entries, because there is no defined standard against which to evaluate the AI classification step.; The stated verification condition '候補対象外と判定されたエントリは提示されない' is presented as independently checkable, but the same sentence defers the classification basis: '分類の判定基準は AI 内部判定として spec で定義する'. Because the criteria used to determine '候補対象外' are not defined in this draft, the verification condition cannot actually be evaluated by two independent reviewers.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-31T14:27:37.263Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[1] (issue-log-import requirement)"
+          },
+          "observed": "The requirement states '候補対象と判定されたエントリのみを追加候補として提示し' as a verifiable condition, yet immediately defers the criteria that define '候補対象' to a later stage: '分類の判定基準・prompt 設計は AI 内部判定として spec で定義する'. Without the classification criteria, two independent reviewers cannot agree on whether a given implementation correctly filters entries, because there is no defined standard against which to evaluate the AI classification step.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "analysis.validation item (2) — 検証可能条件"
+          },
+          "observed": "The stated verification condition '候補対象外と判定されたエントリは提示されない' is presented as independently checkable, but the same sentence defers the classification basis: '分類の判定基準は AI 内部判定として spec で定義する'. Because the criteria used to determine '候補対象外' are not defined in this draft, the verification condition cannot actually be evaluated by two independent reviewers.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The requirement states '候補対象と判定されたエントリのみを追加候補として提示し' as a verifiable condition, yet immediately defers the criteria that define '候補対象' to a later stage: '分類の判定基準・prompt 設計は AI 内部判定として spec で定義する'. Without the classification criteria, two independent reviewers cannot agree on whether a given implementation correctly filters entries, because there is no defined standard against which to evaluate the AI classification step."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The stated verification condition '候補対象外と判定されたエントリは提示されない' is presented as independently checkable, but the same sentence defers the classification basis: '分類の判定基準は AI 内部判定として spec で定義する'. Because the criteria used to determine '候補対象外' are not defined in this draft, the verification condition cannot actually be evaluated by two independent reviewers."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "phase": "draft",
+      "reason": "gate retry limit exhausted: 5/5 FAIL attempts recorded for phase \"draft\".\nCounter breakdown: AI-FAIL=5\nPrevious FAIL reasons:\n  attempt 1: draft-review-questions.json: phase must be draft-questions-review; draft-review-coverage.json: phase must be draft-coverage-review\n  attempt 2: The [must] requirement 'workflow に issue-log-import サブコマンドを追加（...指定 spec の issue-log.json を分類・候補提示し承認分を draft 化）' uses '分類' (classification) without measurable criteria. The classification criteria are explicitly deferred in decisionMap.deferredToSpec ('AI commandId（workflow.issue-log-import.classify / similarity / compose）の prompt 設計と分類・類似判定の基準'). Two independent reviewers cannot agree on whether a given implementation of the classification step satisfies this requirement.; The acceptance criterion 'issue-log の BUG/ENHANCE エントリが追加候補として提示され' references entry types 'BUG' and 'ENHANCE' without defining the criteria by which a log entry is classified as either type. The existing issue-log entry schema (step/reason/trigger/resolution/guardrailCandidate/taskId/timestamp per decisionMap.knownFacts) contains no BUG/ENHANCE type field; these labels are outputs of the deferred 分類 step. Classification criteria remain unspecified at draft stage, so two reviewers cannot agree on which entries qualify as candidates.\n  attempt 3: The requirement states '候補対象と判定されたエントリのみを追加候補として提示し' as a verifiable condition, yet immediately defers the criteria that define '候補対象' to a later stage: '分類の判定基準・prompt 設計は AI 内部判定として spec で定義する'. Without the classification criteria, two independent reviewers cannot agree on whether a given implementation correctly filters entries, because there is no defined standard against which to evaluate the AI classification step.; The stated verification condition '候補対象外と判定されたエントリは提示されない' is presented as independently checkable, but the same sentence defers the classification basis: '分類の判定基準は AI 内部判定として spec で定義する'. Because the criteria used to determine '候補対象外' are not defined in this draft, the verification condition cannot actually be evaluated by two independent reviewers.\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-05-31T14:29:33.531Z"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft-gate が retry 5/5 を使い切り ESCALATE_RETRY_EXHAUSTED で停止。複数回の再表現でも complete-context ガードレールが『issue-log エントリの候補絞り込みが AI 分類に依存し、その判定基準が deferredToSpec のため draft 段階で2名のレビュアーが合否判定できない』と FAIL を出し続けた",
+      "trigger": "issue-log-import 要件と analysis.validation を AI 分類ベースの絞り込みとして記述。分類を補助ヒューリスティックに格下げしても gate が通らず",
+      "resolution": "未解決。設計を見直し AI 分類を契約から外す（全エントリ提示+ユーザー選択）か、retry reset で再評価するかをユーザーに諮る",
+      "guardrailCandidate": "AI 判定に依存する絞り込みを draft 要件の検証可能条件に書くと complete-context で恒常的に FAIL する。AI ステップは『補助』ではなく契約の外に置き、検証可能条件はユーザー操作ゲート等の機械的に確認できる事実に限定する",
+      "taskId": null,
+      "timestamp": "2026-05-31T14:30:36.410Z"
+    },
+    {
+      "step": "draft-gate",
+      "phase": "draft",
+      "reason": "gate retry limit exhausted: 5/5 FAIL attempts recorded for phase \"draft\".\nCounter breakdown: AI-FAIL=5\nPrevious FAIL reasons:\n  attempt 1: draft-review-questions.json: phase must be draft-questions-review; draft-review-coverage.json: phase must be draft-coverage-review\n  attempt 2: The [must] requirement 'workflow に issue-log-import サブコマンドを追加（...指定 spec の issue-log.json を分類・候補提示し承認分を draft 化）' uses '分類' (classification) without measurable criteria. The classification criteria are explicitly deferred in decisionMap.deferredToSpec ('AI commandId（workflow.issue-log-import.classify / similarity / compose）の prompt 設計と分類・類似判定の基準'). Two independent reviewers cannot agree on whether a given implementation of the classification step satisfies this requirement.; The acceptance criterion 'issue-log の BUG/ENHANCE エントリが追加候補として提示され' references entry types 'BUG' and 'ENHANCE' without defining the criteria by which a log entry is classified as either type. The existing issue-log entry schema (step/reason/trigger/resolution/guardrailCandidate/taskId/timestamp per decisionMap.knownFacts) contains no BUG/ENHANCE type field; these labels are outputs of the deferred 分類 step. Classification criteria remain unspecified at draft stage, so two reviewers cannot agree on which entries qualify as candidates.\n  attempt 3: The requirement states '候補対象と判定されたエントリのみを追加候補として提示し' as a verifiable condition, yet immediately defers the criteria that define '候補対象' to a later stage: '分類の判定基準・prompt 設計は AI 内部判定として spec で定義する'. Without the classification criteria, two independent reviewers cannot agree on whether a given implementation correctly filters entries, because there is no defined standard against which to evaluate the AI classification step.; The stated verification condition '候補対象外と判定されたエントリは提示されない' is presented as independently checkable, but the same sentence defers the classification basis: '分類の判定基準は AI 内部判定として spec で定義する'. Because the criteria used to determine '候補対象外' are not defined in this draft, the verification condition cannot actually be evaluated by two independent reviewers.\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-05-31T14:36:50.673Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "alternatives_considered[2].reason: unresolved marker \"Todo\" in value (implement.md は計画フェーズ中ボードが Todo のまま。SKILL.md prelude は共有 dispatcher を workflow に依存させる。Issue の『prepare 時』に最も近く局所的な draft.md を採用。)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-01T02:16:11.089Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "alternatives_considered[2].reason: unresolved marker \"Todo\" in value (implement.md は計画フェーズ中ボードが Todo のまま。SKILL.md prelude は共有 dispatcher を workflow に依存させる。Issue の『prepare 時』に最も近く局所的な draft.md を採用。)",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Explicitly mandates 'throw せず ok=true の非致命的結果を返し' when board/gh is unavailable, without requiring the caught error to be logged. This removes both the re-throw path and any logging obligation, specifying silent error swallowing as the required behavior.; R2 requires 'ボード/gh が利用不可（loadBoardConfig 失敗等）の場合は ok=true の非致命的な skipped 結果を返し flow を止めない' with no requirement to log the caught loadBoardConfig failure — the error is discarded without being logged or re-thrown.; R3 requires 'ボード/gh 利用不可、または対象エントリが無い場合は ok=true の空/skipped 結果を返し flow を止めない' with no logging requirement for the caught error, specifying silent discard of the underlying failure.; AC5 states 'issue-start・issue-log-import は非致命的な結果を返して flow を止めず' on board/gh unavailability without requiring the underlying error to be logged or re-thrown, echoing the silent-swallow behavior as an acceptance criterion.; T-3 acceptance item 'ボード/gh 利用不可または対象0件で ok=true の空/skipped を返し flow を止めない' requires catching board/gh errors and returning ok=true with no logging requirement, specifying silent error discarding.; R3 requires loading '全エントリを追加候補として JSON envelope で出力する' from issue-log.json with no stated upper bound on entry count or file size. No bounded-resource-usage acknowledgment is present in the spec's constraints, clarifications, or alternatives_considered.; T-3 acceptance item 'issue-log.json の全エントリが候補として JSON envelope で出力される' requires unbounded full-file loading with no maximum entry count or size limit stated.; R2 adds the issue-start CLI subcommand but does not state what exit code constitutes success or failure. All described outcomes specify ok=true return values but the spec never defines the CLI exit code contract for this command. No exit-code-contract acknowledgment exists in the spec.; R3 adds the issue-log-import CLI subcommand but does not state what exit code constitutes success or failure for the command. The spec defines ok=true returns for all cases but specifies no exit code behavior.; R2 introduces the issue-start <issueNumber> subcommand but does not list validation requirements for the issueNumber argument — no type (integer vs string), format (e.g., positive integer), or range is specified.; R3 introduces the issue-log-import --spec <path> subcommand but does not list validation requirements for the --spec path argument — no type (file path), format constraints (e.g., must be an existing readable path ending in issue-log.json), or range is specified.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-01T02:22:33.249Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-silent-error-swallowing",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.constraints[7]"
+          },
+          "observed": "Explicitly mandates 'throw せず ok=true の非致命的結果を返し' when board/gh is unavailable, without requiring the caught error to be logged. This removes both the re-throw path and any logging obligation, specifying silent error swallowing as the required behavior.",
+          "severity": "blocking",
+          "refs": [
+            "no-silent-error-swallowing"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-silent-error-swallowing",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.requirements[1].desc"
+          },
+          "observed": "R2 requires 'ボード/gh が利用不可（loadBoardConfig 失敗等）の場合は ok=true の非致命的な skipped 結果を返し flow を止めない' with no requirement to log the caught loadBoardConfig failure — the error is discarded without being logged or re-thrown.",
+          "severity": "blocking",
+          "refs": [
+            "no-silent-error-swallowing"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-silent-error-swallowing",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.requirements[2].desc"
+          },
+          "observed": "R3 requires 'ボード/gh 利用不可、または対象エントリが無い場合は ok=true の空/skipped 結果を返し flow を止めない' with no logging requirement for the caught error, specifying silent discard of the underlying failure.",
+          "severity": "blocking",
+          "refs": [
+            "no-silent-error-swallowing"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-silent-error-swallowing",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.acceptance_criteria[4]"
+          },
+          "observed": "AC5 states 'issue-start・issue-log-import は非致命的な結果を返して flow を止めず' on board/gh unavailability without requiring the underlying error to be logged or re-thrown, echoing the silent-swallow behavior as an acceptance criterion.",
+          "severity": "blocking",
+          "refs": [
+            "no-silent-error-swallowing"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-silent-error-swallowing",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.tasks[2].acceptance[2]"
+          },
+          "observed": "T-3 acceptance item 'ボード/gh 利用不可または対象0件で ok=true の空/skipped を返し flow を止めない' requires catching board/gh errors and returning ok=true with no logging requirement, specifying silent error discarding.",
+          "severity": "blocking",
+          "refs": [
+            "no-silent-error-swallowing"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.requirements[2].desc"
+          },
+          "observed": "R3 requires loading '全エントリを追加候補として JSON envelope で出力する' from issue-log.json with no stated upper bound on entry count or file size. No bounded-resource-usage acknowledgment is present in the spec's constraints, clarifications, or alternatives_considered.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.tasks[2].acceptance[0]"
+          },
+          "observed": "T-3 acceptance item 'issue-log.json の全エントリが候補として JSON envelope で出力される' requires unbounded full-file loading with no maximum entry count or size limit stated.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "exit-code-contract",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.requirements[1].desc"
+          },
+          "observed": "R2 adds the issue-start CLI subcommand but does not state what exit code constitutes success or failure. All described outcomes specify ok=true return values but the spec never defines the CLI exit code contract for this command. No exit-code-contract acknowledgment exists in the spec.",
+          "severity": "blocking",
+          "refs": [
+            "exit-code-contract"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "exit-code-contract",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.requirements[2].desc"
+          },
+          "observed": "R3 adds the issue-log-import CLI subcommand but does not state what exit code constitutes success or failure for the command. The spec defines ok=true returns for all cases but specifies no exit code behavior.",
+          "severity": "blocking",
+          "refs": [
+            "exit-code-contract"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "validate-user-input-at-entry-point",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.requirements[1].desc"
+          },
+          "observed": "R2 introduces the issue-start <issueNumber> subcommand but does not list validation requirements for the issueNumber argument — no type (integer vs string), format (e.g., positive integer), or range is specified.",
+          "severity": "blocking",
+          "refs": [
+            "validate-user-input-at-entry-point"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "validate-user-input-at-entry-point",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.requirements[2].desc"
+          },
+          "observed": "R3 introduces the issue-log-import --spec <path> subcommand but does not list validation requirements for the --spec path argument — no type (file path), format constraints (e.g., must be an existing readable path ending in issue-log.json), or range is specified.",
+          "severity": "blocking",
+          "refs": [
+            "validate-user-input-at-entry-point"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-silent-error-swallowing",
+          "reason": "Explicitly mandates 'throw せず ok=true の非致命的結果を返し' when board/gh is unavailable, without requiring the caught error to be logged. This removes both the re-throw path and any logging obligation, specifying silent error swallowing as the required behavior."
+        },
+        {
+          "guardrail_id": "no-silent-error-swallowing",
+          "reason": "R2 requires 'ボード/gh が利用不可（loadBoardConfig 失敗等）の場合は ok=true の非致命的な skipped 結果を返し flow を止めない' with no requirement to log the caught loadBoardConfig failure — the error is discarded without being logged or re-thrown."
+        },
+        {
+          "guardrail_id": "no-silent-error-swallowing",
+          "reason": "R3 requires 'ボード/gh 利用不可、または対象エントリが無い場合は ok=true の空/skipped 結果を返し flow を止めない' with no logging requirement for the caught error, specifying silent discard of the underlying failure."
+        },
+        {
+          "guardrail_id": "no-silent-error-swallowing",
+          "reason": "AC5 states 'issue-start・issue-log-import は非致命的な結果を返して flow を止めず' on board/gh unavailability without requiring the underlying error to be logged or re-thrown, echoing the silent-swallow behavior as an acceptance criterion."
+        },
+        {
+          "guardrail_id": "no-silent-error-swallowing",
+          "reason": "T-3 acceptance item 'ボード/gh 利用不可または対象0件で ok=true の空/skipped を返し flow を止めない' requires catching board/gh errors and returning ok=true with no logging requirement, specifying silent error discarding."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "R3 requires loading '全エントリを追加候補として JSON envelope で出力する' from issue-log.json with no stated upper bound on entry count or file size. No bounded-resource-usage acknowledgment is present in the spec's constraints, clarifications, or alternatives_considered."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "T-3 acceptance item 'issue-log.json の全エントリが候補として JSON envelope で出力される' requires unbounded full-file loading with no maximum entry count or size limit stated."
+        },
+        {
+          "guardrail_id": "exit-code-contract",
+          "reason": "R2 adds the issue-start CLI subcommand but does not state what exit code constitutes success or failure. All described outcomes specify ok=true return values but the spec never defines the CLI exit code contract for this command. No exit-code-contract acknowledgment exists in the spec."
+        },
+        {
+          "guardrail_id": "exit-code-contract",
+          "reason": "R3 adds the issue-log-import CLI subcommand but does not state what exit code constitutes success or failure for the command. The spec defines ok=true returns for all cases but specifies no exit code behavior."
+        },
+        {
+          "guardrail_id": "validate-user-input-at-entry-point",
+          "reason": "R2 introduces the issue-start <issueNumber> subcommand but does not list validation requirements for the issueNumber argument — no type (integer vs string), format (e.g., positive integer), or range is specified."
+        },
+        {
+          "guardrail_id": "validate-user-input-at-entry-point",
+          "reason": "R3 introduces the issue-log-import --spec <path> subcommand but does not list validation requirements for the --spec path argument — no type (file path), format constraints (e.g., must be an existing readable path ending in issue-log.json), or range is specified."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "R3 states the candidate limit as '既定上限（例 200 件）' — the word '例' (for example) means 200 is an illustrative example, not an explicit required ceiling. The actual upper bound is unspecified, so the design allows any bound and violates the requirement for an explicit upper bound.; Constraint for issue-log-import states '候補は既定上限（例 200 件）までとし' — '例 200 件' is an example value, not an explicit bound. The constraint says 'set an upper limit' but leaves the actual limit open, which is an unbounded design disguised as bounded.; R3 uses '既定上限（例 200 件）' as a verifiable condition. '例' (for example/e.g.) makes the value a non-binding illustration rather than a stated verifiable condition; an implementor could choose any number without violating the requirement.; Constraint [10] repeats '既定上限（例 200 件）' — the parenthetical example does not state a verifiable condition. The constraint cannot be tested against a concrete threshold because no concrete threshold is given.; R3's '候補は既定上限（例 200 件）までとし' leaves the actual limit ambiguous. Two independent reviewers examining an implementation with a 100-item limit and one with a 300-item limit would reach different PASS/FAIL conclusions, because '例 200 件' provides no agreed-upon threshold.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-01T02:31:01.496Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.requirements[2]"
+          },
+          "observed": "R3 states the candidate limit as '既定上限（例 200 件）' — the word '例' (for example) means 200 is an illustrative example, not an explicit required ceiling. The actual upper bound is unspecified, so the design allows any bound and violates the requirement for an explicit upper bound.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.constraints[10]"
+          },
+          "observed": "Constraint for issue-log-import states '候補は既定上限（例 200 件）までとし' — '例 200 件' is an example value, not an explicit bound. The constraint says 'set an upper limit' but leaves the actual limit open, which is an unbounded design disguised as bounded.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.requirements[2]"
+          },
+          "observed": "R3 uses '既定上限（例 200 件）' as a verifiable condition. '例' (for example/e.g.) makes the value a non-binding illustration rather than a stated verifiable condition; an implementor could choose any number without violating the requirement.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.constraints[10]"
+          },
+          "observed": "Constraint [10] repeats '既定上限（例 200 件）' — the parenthetical example does not state a verifiable condition. The constraint cannot be tested against a concrete threshold because no concrete threshold is given.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.requirements[2]"
+          },
+          "observed": "R3's '候補は既定上限（例 200 件）までとし' leaves the actual limit ambiguous. Two independent reviewers examining an implementation with a 100-item limit and one with a 300-item limit would reach different PASS/FAIL conclusions, because '例 200 件' provides no agreed-upon threshold.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "R3 states the candidate limit as '既定上限（例 200 件）' — the word '例' (for example) means 200 is an illustrative example, not an explicit required ceiling. The actual upper bound is unspecified, so the design allows any bound and violates the requirement for an explicit upper bound."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "Constraint for issue-log-import states '候補は既定上限（例 200 件）までとし' — '例 200 件' is an example value, not an explicit bound. The constraint says 'set an upper limit' but leaves the actual limit open, which is an unbounded design disguised as bounded."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "R3 uses '既定上限（例 200 件）' as a verifiable condition. '例' (for example/e.g.) makes the value a non-binding illustration rather than a stated verifiable condition; an implementor could choose any number without violating the requirement."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Constraint [10] repeats '既定上限（例 200 件）' — the parenthetical example does not state a verifiable condition. The constraint cannot be tested against a concrete threshold because no concrete threshold is given."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "R3's '候補は既定上限（例 200 件）までとし' leaves the actual limit ambiguous. Two independent reviewers examining an implementation with a 100-item limit and one with a 300-item limit would reach different PASS/FAIL conclusions, because '例 200 件' provides no agreed-upon threshold."
+        }
+      ]
+    },
+    {
+      "step": "implement",
+      "reason": "workflow dispatcher (src/workflow/index.js) が全サブコマンド共通でコマンド実行前に loadBoardConfig()(gh) を fatal に呼ぶため、ボード不要な issue-log-import が gh 無しで NO_BOARD 落ちし、issue-start の AC5『ボード不可は非致命的 skip』もコマンドに到達せず成立しない",
+      "trigger": "issue-start/issue-log-import 実装時に index.js の board 事前ロードを確認",
+      "resolution": "dispatcher を後方互換に拡張: registry に requiresBoard(既定true)/boardOptional を追加。requiresBoard:false は board 未ロード、boardOptional:true は load 失敗を ctx.boardConfigError に格納して非 fatal 化。既定は現行どおり NO_BOARD fatal で既存サブコマンド挙動不変",
+      "guardrailCandidate": "共有ディスパッチャが全コマンド共通で外部リソースを事前ロードする設計は、リソース不要・耐性を要する新コマンド追加時に破綻する。コマンドごとの要件宣言（requiresX）で制御する",
+      "taskId": null,
+      "timestamp": "2026-06-01T07:15:21.740Z"
+    },
+    {
+      "step": "spec-gate",
+      "phase": "impl",
+      "reason": "invalid phase: impl (valid: draft, spec, task-spec, task-impl, integration). legacy names pre/post/impl have been retired — use spec / task-spec / task-impl / integration.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-01T07:25:59.210Z"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "provider=claude | profile=claude/sonnet | exit=1 | stdoutPreview={\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":555,\"duration_api_ms\":0,\"num_turns\":1,\"result\":\"You've hit your session limit · resets 11:50am (UTC)\",\"stop_re",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-01T07:30:25.500Z"
+    }
+  ]
+}
