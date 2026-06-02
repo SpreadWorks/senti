@@ -384,16 +384,30 @@
             },
             {
               "id": "finalize-merge",
-              "status": "in_progress",
-              "startedAt": "2026-06-02T11:44:51.117Z"
+              "status": "done",
+              "startedAt": "2026-06-02T11:44:51.117Z",
+              "finishedAt": "2026-06-02T11:45:07.677Z"
             },
             {
               "id": "finalize-sync",
-              "status": "pending"
+              "status": "done",
+              "startedAt": "2026-06-02T11:45:07.677Z",
+              "finishedAt": "2026-06-02T11:46:11.842Z",
+              "runtimeLog": {
+                "runId": "2f8328a1-975a-4900-b244-ff1715ce5635",
+                "sequence": 134,
+                "attempt": 1,
+                "command": "flow run finalize-sync",
+                "startedAt": "2026-06-02T11:45:38.614Z",
+                "endedAt": "2026-06-02T11:46:11.845Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-cleanup",
-              "status": "pending"
+              "status": "done",
+              "startedAt": "2026-06-02T11:46:11.842Z",
+              "finishedAt": "2026-06-02T12:04:23.991Z"
             }
           ]
         }
@@ -436,6 +450,11 @@
       "text": "finalize-commit: user selected [1] run finalize-commit",
       "taskId": null,
       "ts": "2026-06-02T11:44:43.309Z"
+    },
+    {
+      "text": "finalize-cleanup.issue-log-import: user selected [0] add no board drafts",
+      "taskId": null,
+      "ts": "2026-06-02T12:04:19.420Z"
     }
   ],
   "metrics": [
@@ -1197,6 +1216,61 @@
       "reset": true,
       "taskId": null,
       "ts": "2026-06-02T10:02:24.184Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "claude",
+      "profileKey": "claude/sonnet",
+      "callCount": 1,
+      "responseChars": 0,
+      "durationMs": 17196,
+      "taskId": null,
+      "ts": "2026-06-02T11:45:56.295Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "claude",
+      "profileKey": "claude/sonnet",
+      "callCount": 1,
+      "responseChars": 0,
+      "durationMs": 18910,
+      "taskId": null,
+      "ts": "2026-06-02T11:45:58.007Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "claude",
+      "profileKey": "claude/sonnet",
+      "callCount": 1,
+      "responseChars": 0,
+      "durationMs": 19064,
+      "taskId": null,
+      "ts": "2026-06-02T11:45:58.157Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "claude",
+      "profileKey": "claude/sonnet",
+      "callCount": 1,
+      "responseChars": 0,
+      "durationMs": 19195,
+      "taskId": null,
+      "ts": "2026-06-02T11:45:58.291Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "claude",
+      "profileKey": "claude/sonnet",
+      "callCount": 1,
+      "responseChars": 0,
+      "durationMs": 15222,
+      "taskId": null,
+      "ts": "2026-06-02T11:46:11.528Z"
     }
   ],
   "autoDesired": false,
@@ -1268,6 +1342,8 @@
     }
   ],
   "state": {
-    "finalizedAt": "2026-06-02T11:44:50.980Z"
+    "finalizedAt": "2026-06-02T11:44:50.980Z",
+    "mergeStrategy": "squash",
+    "featureBranchSquashedSha": "0f27c8bf427fc432ca3963f8a3f6adb757fc7995"
   }
 }
