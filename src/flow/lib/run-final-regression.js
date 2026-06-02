@@ -17,6 +17,7 @@ import {
   TESTS_RAW_DIR_RELATIVE,
   validateFinalRegressionResult,
 } from "./test-artifacts.js";
+import { contractFromFinalRegressionArtifact } from "./flow-judgment-contract.js";
 import {
   classifyRegression,
   DEFAULT_PROCESS_HEARTBEAT_MS,
@@ -464,6 +465,9 @@ export default class RunFinalRegressionCommand extends FlowCommand {
       decision,
     });
     const json = artifact.toJSON();
+    json.contractSummary = contractFromFinalRegressionArtifact(json, {
+      artifactPath: resultPathRelative,
+    }).summary.toJSON();
     validateFinalRegressionResult(json);
     fs.writeFileSync(resultPath, JSON.stringify(json, null, 2) + "\n");
 

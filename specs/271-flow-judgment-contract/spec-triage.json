@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "2 blocking findings are valid and should be repaired in spec.json. Both findings point to missing implementation sources for required contract evidence.",
+  "items": [
+    {
+      "title": "Override evidence has no capture/persistence path and the no-new-CLI constraint forbids adding one",
+      "target": "R3, R4, R5 / Constraints (exit-code-contract)",
+      "decision": "apply",
+      "rationale": "The spec requires override completion in real flow paths but does not name where OverrideCompletionEvidence is stored or read. The no-new-CLI constraint means the repair must specify an artifact path or existing state field instead of adding a command option.",
+      "evidence": "spec.json requirements R3-R5 mention OverrideCompletionEvidence and `flow set step <id> done`; constraints forbid new user-facing CLI options; no spec field names the override evidence artifact path."
+    },
+    {
+      "title": "impl-gate is a mandatory contract target but has no persisted verdict artifact and run-gate.js is not a listed converter",
+      "target": "R2, R6 / Overview > Modules (converter list)",
+      "decision": "apply",
+      "rationale": "The spec includes impl-gate in the contract target set but does not identify a durable impl-gate verdict artifact. The repair must add run-gate.js to scope and define the persisted gate judgment artifact path read by validators.",
+      "evidence": "spec.json R2 and R6 include impl-gate; overview module list omits `src/flow/lib/run-gate.js`; current review states gate verdict is only in the command envelope without a named artifactPath."
+    }
+  ]
+}

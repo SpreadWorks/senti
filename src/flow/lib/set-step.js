@@ -17,11 +17,11 @@ import { resolveAutoCheckInput, buildSkipVerdict } from "./resolve-auto-check-in
 import { resolveNodeFor, FLOW_DEFINITION } from "../definition.js";
 import { validateTestHeaders, formatValidationMessages } from "./test-headers.js";
 import { loadSpecJson, resolveSpecDir } from "../../lib/spec-json.js";
+import { validateStepCompletionTransition } from "./flow-judgment-contract.js";
 import {
   assertIntegrationRegressionEvidence,
   readJsonStrict,
   validateTestExecuteResultV2,
-  validateTestResultReview,
 } from "./test-artifacts.js";
 
 function collectSideEffects(stepId) {
@@ -75,16 +75,6 @@ function validatePostHookManagedStep(ctx, id) {
   try {
     if (id === "test-execute") {
       validateTestExecuteResultV2(readJsonStrict(path.join(specDir, "test-execute-result.json")));
-    } else if (id === "test-result-review") {
-      const review = validateTestResultReview(readJsonStrict(path.join(specDir, "test-result-review.json")));
-      if (review.verdict !== "pass") throw new Error("test-result-review verdict is not pass");
-    } else if (id === "impl-gate") {
-      assertIntegrationRegressionEvidence({
-        root: ctx.root,
-        state,
-        specDir,
-        config: container.has("config") ? (container.get("config") || {}) : {},
-      });
     } else if (id === "retro") {
       assertIntegrationRegressionEvidence({
         root: ctx.root,
@@ -127,7 +117,12 @@ export default class SetStepCommand extends FlowCommand {
       const fail = preValidateTestStep(ctx);
       if (fail) return fail;
     }
-    if (status === "done" && ["test-execute", "test-result-review", "impl-gate", "retro"].includes(id)) {
+    if (status === "done") {
+      const state = ctx.flowManager.load();
+      const fail = validateStepCompletionTransition({ root: ctx.root, state, stepId: id, requestedStatus: status });
+      if (fail) return fail;
+    }
+    if (status === "done" && ["test-execute", "retro"].includes(id)) {
       const fail = validatePostHookManagedStep(ctx, id);
       if (fail) return fail;
     }

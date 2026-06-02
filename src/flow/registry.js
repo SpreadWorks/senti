@@ -21,6 +21,7 @@ import {
 import { resolveGateStepId, resolveGatePhaseFromState } from "./lib/gate-step.js";
 import { flattenSteps } from "./definition.js";
 import { DRAFT_REVIEW_ROUTES, draftReviewRouteForRetryPhase } from "./lib/draft-review-routes.js";
+import { assertStepCompletionTransitionAllowed } from "./lib/flow-judgment-contract.js";
 
 /**
  * Successful command-result statuses that map to a flow step status of 'done'.
@@ -160,6 +161,10 @@ function tryUpdateStepStatus(target, stepId, status, opts) {
     ? target.flowManager
     : target;
   try {
+    const skipTaskImplGateContract = stepId === "impl-gate" && target?.phase === "task-impl";
+    if (status === "done" && target?.root && !skipTaskImplGateContract) {
+      assertStepCompletionTransitionAllowed(target, stepId);
+    }
     fm.updateStepStatus(stepId, status, opts);
   } catch (err) {
     if (err?.code === "ERR_MISSING_FILE") {
@@ -554,7 +559,7 @@ export const FLOW_COMMANDS = {
       async post(ctx, result) {
         const status = result?.result === "pass" ? "done" : "in_progress";
         const phase = result?.artifacts?.phase || ctx.phase;
-        tryUpdateStepStatus(ctx, resolveGateStepId(phase), status);
+        tryUpdateStepStatus({ ...ctx, phase }, resolveGateStepId(phase), status);
 
         const gateMod = await import("./lib/run-gate.js");
         try {

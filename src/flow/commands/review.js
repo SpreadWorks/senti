@@ -41,6 +41,10 @@ import { buildAcknowledgedRationaleSection } from "../lib/acknowledged-rationale
 import { validateSchema } from "../../lib/schema-validate.js";
 import { ReviewFailure } from "../lib/review-failure.js";
 import { draftReviewRouteForKey } from "../lib/draft-review-routes.js";
+import {
+  contractFromImplReviewArtifact,
+  contractFromTestReviewArtifact,
+} from "../lib/flow-judgment-contract.js";
 
 /**
  * Local helper for review-phase agent invocations. The Agent service handles
@@ -761,6 +765,11 @@ async function runImplReview({ root, flow, reviewOutput, touchedFiles, taskSpec 
   });
   const artifact = new ImplReviewArtifact(filtered);
   const specDir = path.dirname(path.resolve(root, flow.spec));
+  const reviewJsonPath = path.join(specDir, "impl-review.json");
+  const artifactJson = artifact.toJSON();
+  artifactJson.contractSummary = contractFromImplReviewArtifact(artifactJson, {
+    artifactPath: path.relative(root, reviewJsonPath).split(path.sep).join("/"),
+  }).summary.toJSON();
   const attemptNumber = reviewHistoryAttemptNumber(specDir, "impl");
   const reviewMdWrite = writeReviewAttemptHistory({
     specDir,
@@ -778,7 +787,7 @@ async function runImplReview({ root, flow, reviewOutput, touchedFiles, taskSpec 
     phase: "impl",
     latestBasename: "impl-review.json",
     attemptNumber,
-    artifact: artifact.toJSON(),
+    artifact: artifactJson,
   });
   return {
     result: "ok",
@@ -1812,6 +1821,10 @@ function writeTestReviewArtifacts({ root, specDir, reviewArtifact, coverageArtif
   const coveragePath = path.join(reviewDir, TEST_COVERAGE_JSON_FILE);
   const reviewJsonPath = path.join(reviewDir, TEST_REVIEW_JSON_FILE);
   const reviewMdPath = path.join(reviewDir, "test-review.md");
+  const reviewJson = reviewArtifact.toJSON();
+  reviewJson.contractSummary = contractFromTestReviewArtifact(reviewJson, {
+    artifactPath: path.relative(root, reviewJsonPath).split(path.sep).join("/"),
+  }).summary.toJSON();
   const attemptNumber = reviewHistoryAttemptNumber(reviewDir, "test");
   writeJsonArtifact(coveragePath, coverageArtifact);
   writeReviewAttemptHistory({
@@ -1830,7 +1843,7 @@ function writeTestReviewArtifacts({ root, specDir, reviewArtifact, coverageArtif
     phase: "test",
     latestBasename: TEST_REVIEW_JSON_FILE,
     attemptNumber,
-    artifact: reviewArtifact,
+    artifact: reviewJson,
   });
   return {
     coveragePath: path.relative(root, coveragePath).split(path.sep).join("/"),

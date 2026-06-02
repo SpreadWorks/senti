@@ -1,0 +1,605 @@
+{
+  "entries": [
+    {
+      "step": "draft",
+      "reason": "request recording command used double quotes and shell-expanded the dollar-prefixed skill name",
+      "trigger": "flow set request with user input containing -forge.flow",
+      "resolution": "reran flow set request with single quotes so the literal request was stored",
+      "guardrailCandidate": "quote dollar-prefixed user requests with single quotes when passing them to shell commands",
+      "taskId": null,
+      "timestamp": "2026-06-02T03:06:11.219Z"
+    },
+    {
+      "step": "draft",
+      "reason": "manual patch first targeted the main repository path because apply_patch defaulted to the turn cwd",
+      "trigger": "apply_patch could not find the spec draft file outside the active worktree",
+      "resolution": "reapplied the patch with an absolute path under the active worktree",
+      "guardrailCandidate": "during active worktree flows always pass edit paths under the resolved worktree path",
+      "taskId": null,
+      "timestamp": "2026-06-02T03:09:25.266Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "qa[3]: invalid category \"consumer-contracts\"; qa[6]: invalid category \"future-extensibility\"; draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-02T03:20:36.612Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[3]: invalid category \"consumer-contracts\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[6]: invalid category \"future-extensibility\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft approval is required: set approval.approved = true",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft-gate failed because two QA categories were outside the allowed enum and draft approval was still false",
+      "trigger": "draft-gate structural validation reported invalid categories and missing approval",
+      "resolution": "changed q4 and q7 to allowed categories and recorded draft approval after all QA answers and coverage PASS",
+      "guardrailCandidate": "validate draft QA categories against the allowed enum before running draft-gate",
+      "taskId": null,
+      "timestamp": "2026-06-02T03:21:02.253Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "scopeVerification.in lists 5 requirement items (more than three) but none are assigned a priority of must, should, or nice-to-have.; '後続処理が同じ形で扱うための要求定義' uses the vague phrase '同じ形' (same form). No verifiable condition is stated for what shared field structure, schema contract, or class interface would constitute 'same form'.; 'resume や再実行判断に利用できる進捗判定情報の要求整理' uses the vague adjective '利用できる' (usable). No verifiable condition is stated for which artifact fields or contract properties are sufficient to make progress information usable for resume judgment.; '後続処理が同じ形で扱う' uses the subjective term '同じ形' without measurable criteria. Two independent reviewers could not agree on whether an implementation satisfies this requirement without a concrete definition (e.g., shared schema fields, shared verdict enum, shared class contract).; 'resume や再実行判断に利用できる進捗判定情報' uses '利用できる' without measurable criteria. Two independent reviewers could not agree on which specific artifact fields or conditions are necessary and sufficient to satisfy this requirement.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-02T03:23:31.523Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in"
+          },
+          "observed": "scopeVerification.in lists 5 requirement items (more than three) but none are assigned a priority of must, should, or nice-to-have.",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[0]"
+          },
+          "observed": "'後続処理が同じ形で扱うための要求定義' uses the vague phrase '同じ形' (same form). No verifiable condition is stated for what shared field structure, schema contract, or class interface would constitute 'same form'.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[4]"
+          },
+          "observed": "'resume や再実行判断に利用できる進捗判定情報の要求整理' uses the vague adjective '利用できる' (usable). No verifiable condition is stated for which artifact fields or contract properties are sufficient to make progress information usable for resume judgment.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[0]"
+          },
+          "observed": "'後続処理が同じ形で扱う' uses the subjective term '同じ形' without measurable criteria. Two independent reviewers could not agree on whether an implementation satisfies this requirement without a concrete definition (e.g., shared schema fields, shared verdict enum, shared class contract).",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[4]"
+          },
+          "observed": "'resume や再実行判断に利用できる進捗判定情報' uses '利用できる' without measurable criteria. Two independent reviewers could not agree on which specific artifact fields or conditions are necessary and sufficient to satisfy this requirement.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "scopeVerification.in lists 5 requirement items (more than three) but none are assigned a priority of must, should, or nice-to-have."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "'後続処理が同じ形で扱うための要求定義' uses the vague phrase '同じ形' (same form). No verifiable condition is stated for what shared field structure, schema contract, or class interface would constitute 'same form'."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "'resume や再実行判断に利用できる進捗判定情報の要求整理' uses the vague adjective '利用できる' (usable). No verifiable condition is stated for which artifact fields or contract properties are sufficient to make progress information usable for resume judgment."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "'後続処理が同じ形で扱う' uses the subjective term '同じ形' without measurable criteria. Two independent reviewers could not agree on whether an implementation satisfies this requirement without a concrete definition (e.g., shared schema fields, shared verdict enum, shared class contract)."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "'resume や再実行判断に利用できる進捗判定情報' uses '利用できる' without measurable criteria. Two independent reviewers could not agree on which specific artifact fields or conditions are necessary and sufficient to satisfy this requirement."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft-gate failed because scope requirements lacked priorities and two scope phrases were not verifiable",
+      "trigger": "draft-gate guardrail evaluation reported prioritize-requirements and unambiguous-requirements failures",
+      "resolution": "added must should priorities to scopeVerification.in and replaced vague same-form usable wording with concrete judgment inputs and fingerprint signals",
+      "guardrailCandidate": "before draft-gate ensure every requirement list longer than three has priorities and no vague same-form wording remains",
+      "taskId": null,
+      "timestamp": "2026-06-02T03:24:13.625Z"
+    },
+    {
+      "step": "spec-triage",
+      "reason": "spec-review found two blocking specification gaps that required one-pass repair",
+      "trigger": "spec-review FAIL reported missing override evidence source and missing impl-gate persisted artifact source",
+      "resolution": "classified both blocking findings as apply in spec-triage.json for spec-repair",
+      "guardrailCandidate": "when a spec requires persisted evidence, name the storage path and producer before review",
+      "taskId": null,
+      "timestamp": "2026-06-02T03:34:11.035Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "R5 の末尾条件 'failure reason を envelope data または runtime log で参照できるようにする' は、'envelope data' の具体的なフィールド名・形式、および 'runtime log' の出力先（stderr、console.log、構造化ログファイル等）を特定していない。2人の独立したレビュアーが同一実装に対して合否を一致させる根拠がなく、測定可能な基準を欠いている。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-02T03:39:13.789Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.requirements[4] (R5)"
+          },
+          "observed": "R5 の末尾条件 'failure reason を envelope data または runtime log で参照できるようにする' は、'envelope data' の具体的なフィールド名・形式、および 'runtime log' の出力先（stderr、console.log、構造化ログファイル等）を特定していない。2人の独立したレビュアーが同一実装に対して合否を一致させる根拠がなく、測定可能な基準を欠いている。",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "R5 の末尾条件 'failure reason を envelope data または runtime log で参照できるようにする' は、'envelope data' の具体的なフィールド名・形式、および 'runtime log' の出力先（stderr、console.log、構造化ログファイル等）を特定していない。2人の独立したレビュアーが同一実装に対して合否を一致させる根拠がなく、測定可能な基準を欠いている。"
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec-gate failed because R5 did not name the concrete envelope data fields for validator failure reporting",
+      "trigger": "spec-gate complete-context guardrail reported ambiguous envelope data or runtime log wording",
+      "resolution": "updated R5 to require Envelope.fail data.completionValidation with stepId result reason artifactPath and overridePath",
+      "guardrailCandidate": "spec requirements that mention envelope data must name the exact data field path and required keys",
+      "taskId": null,
+      "timestamp": "2026-06-02T03:39:33.483Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The spec touches src/flow/lib/set-step.js, src/flow/registry.js, run-gate.js, run-review.js, and multiple artifact schemas, which all affect existing runtime behavior. Neither a dedicated enumeration of which existing features are impacted nor an explicit statement that no existing features are affected appears anywhere in the spec. References to existing readers are scattered across constraints, decisions, and acceptance_criteria but never compiled into the required impact list.; R8 and each task's test_strategy field specify what to test (normal completion, inconsistent detection, override acceptance, etc.) and name the target directory specs/271-flow-judgment-contract/tests/, but neither R8 nor any test_strategy entry requires the mandatory '// spec: R<N> ...' header per test file. The guardrail states this header is required for every file written under specs/<specid>/tests/.; R6 states artifacts shall be updated '既存必須 field を維持しながら' (while maintaining existing required fields) without enumerating which fields constitute 'existing required fields' for each artifact type (test-review, impl-review, impl-gate, test-result-review, final-regression). Two independent reviewers cannot decide whether an implementation satisfies this requirement without consulting the current schema files outside the spec.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-02T03:42:29.335Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "impact-on-existing-features",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.scope / $.decisions / $.acceptance_criteria"
+          },
+          "observed": "The spec touches src/flow/lib/set-step.js, src/flow/registry.js, run-gate.js, run-review.js, and multiple artifact schemas, which all affect existing runtime behavior. Neither a dedicated enumeration of which existing features are impacted nor an explicit statement that no existing features are affected appears anywhere in the spec. References to existing readers are scattered across constraints, decisions, and acceptance_criteria but never compiled into the required impact list.",
+          "severity": "blocking",
+          "refs": [
+            "impact-on-existing-features"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.requirements[7] (R8) / $.tasks[*].test_strategy"
+          },
+          "observed": "R8 and each task's test_strategy field specify what to test (normal completion, inconsistent detection, override acceptance, etc.) and name the target directory specs/271-flow-judgment-contract/tests/, but neither R8 nor any test_strategy entry requires the mandatory '// spec: R<N> ...' header per test file. The guardrail states this header is required for every file written under specs/<specid>/tests/.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.requirements[5].desc (R6)"
+          },
+          "observed": "R6 states artifacts shall be updated '既存必須 field を維持しながら' (while maintaining existing required fields) without enumerating which fields constitute 'existing required fields' for each artifact type (test-review, impl-review, impl-gate, test-result-review, final-regression). Two independent reviewers cannot decide whether an implementation satisfies this requirement without consulting the current schema files outside the spec.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "The spec touches src/flow/lib/set-step.js, src/flow/registry.js, run-gate.js, run-review.js, and multiple artifact schemas, which all affect existing runtime behavior. Neither a dedicated enumeration of which existing features are impacted nor an explicit statement that no existing features are affected appears anywhere in the spec. References to existing readers are scattered across constraints, decisions, and acceptance_criteria but never compiled into the required impact list."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "R8 and each task's test_strategy field specify what to test (normal completion, inconsistent detection, override acceptance, etc.) and name the target directory specs/271-flow-judgment-contract/tests/, but neither R8 nor any test_strategy entry requires the mandatory '// spec: R<N> ...' header per test file. The guardrail states this header is required for every file written under specs/<specid>/tests/."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "R6 states artifacts shall be updated '既存必須 field を維持しながら' (while maintaining existing required fields) without enumerating which fields constitute 'existing required fields' for each artifact type (test-review, impl-review, impl-gate, test-result-review, final-regression). Two independent reviewers cannot decide whether an implementation satisfies this requirement without consulting the current schema files outside the spec."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec-gate failed because impact list, spec-local header requirement, and R6 required artifact fields were incomplete",
+      "trigger": "spec-gate reported impact-on-existing-features, spec-test-coverage, and complete-context violations",
+      "resolution": "added explicit impact decision, required spec test header wording, and enumerated preserved fields for target artifacts",
+      "guardrailCandidate": "specs that touch runtime artifact schemas must enumerate impacted features and required fields before gate",
+      "taskId": null,
+      "timestamp": "2026-06-02T03:43:06.870Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "R5 modifies the CLI command `flow set step <id> done` by routing it through the completion validator, but the spec does not list the `<id>` argument's type, format, or range validation requirements as required when adding or modifying CLI commands.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-02T03:45:52.809Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "validate-user-input-at-entry-point",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.requirements[4] (R5)"
+          },
+          "observed": "R5 modifies the CLI command `flow set step <id> done` by routing it through the completion validator, but the spec does not list the `<id>` argument's type, format, or range validation requirements as required when adding or modifying CLI commands.",
+          "severity": "blocking",
+          "refs": [
+            "validate-user-input-at-entry-point"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "validate-user-input-at-entry-point",
+          "reason": "R5 modifies the CLI command `flow set step <id> done` by routing it through the completion validator, but the spec does not list the `<id>` argument's type, format, or range validation requirements as required when adding or modifying CLI commands."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec-gate failed because modified flow set step input validation requirements were not listed",
+      "trigger": "validate-user-input-at-entry-point guardrail reported missing id argument validation details",
+      "resolution": "added clarification for flow set step id and status validation, target-step validator scope, and non-zero failure behavior",
+      "guardrailCandidate": "when a spec modifies an existing CLI command, list every user-facing argument validation rule explicitly",
+      "taskId": null,
+      "timestamp": "2026-06-02T03:46:11.611Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The logical connective between the three conditions 'result=pass / failureKind=null / nextAction=finalize-commit' is ambiguous. The '/' separator is used here without an explicit AND/OR operator, unlike the test-review/impl-review clause which uses 'かつ' to make AND explicit. A reviewer cannot determine from this phrasing whether all three conditions must hold simultaneously or whether satisfying any one is sufficient for normal completion.; 'FAIL artifact' is used in R4 ('FAIL artifact + done step で valid override evidence がない場合は inconsistent を返す') without definition. Two independent reviewers could disagree on whether this means an artifact whose verdict/result field literally equals 'FAIL'/'fail', or any artifact that fails to satisfy the step-specific normal completion conditions from R2 (e.g., impl-review with verdict=ADVISORY and blockingFindings>0 does not meet normal completion but its verdict is not 'FAIL'). The same undefined term recurs in the acceptance_criteria section.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-02T03:49:24.458Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.requirements[1].desc (R2, final-regression clause)"
+          },
+          "observed": "The logical connective between the three conditions 'result=pass / failureKind=null / nextAction=finalize-commit' is ambiguous. The '/' separator is used here without an explicit AND/OR operator, unlike the test-review/impl-review clause which uses 'かつ' to make AND explicit. A reviewer cannot determine from this phrasing whether all three conditions must hold simultaneously or whether satisfying any one is sufficient for normal completion.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.requirements[3].desc (R4)"
+          },
+          "observed": "'FAIL artifact' is used in R4 ('FAIL artifact + done step で valid override evidence がない場合は inconsistent を返す') without definition. Two independent reviewers could disagree on whether this means an artifact whose verdict/result field literally equals 'FAIL'/'fail', or any artifact that fails to satisfy the step-specific normal completion conditions from R2 (e.g., impl-review with verdict=ADVISORY and blockingFindings>0 does not meet normal completion but its verdict is not 'FAIL'). The same undefined term recurs in the acceptance_criteria section.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The logical connective between the three conditions 'result=pass / failureKind=null / nextAction=finalize-commit' is ambiguous. The '/' separator is used here without an explicit AND/OR operator, unlike the test-review/impl-review clause which uses 'かつ' to make AND explicit. A reviewer cannot determine from this phrasing whether all three conditions must hold simultaneously or whether satisfying any one is sufficient for normal completion."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "'FAIL artifact' is used in R4 ('FAIL artifact + done step で valid override evidence がない場合は inconsistent を返す') without definition. Two independent reviewers could disagree on whether this means an artifact whose verdict/result field literally equals 'FAIL'/'fail', or any artifact that fails to satisfy the step-specific normal completion conditions from R2 (e.g., impl-review with verdict=ADVISORY and blockingFindings>0 does not meet normal completion but its verdict is not 'FAIL'). The same undefined term recurs in the acceptance_criteria section."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec-gate failed because R2 used slash-separated final-regression conditions and R4 used undefined FAIL artifact wording",
+      "trigger": "spec-gate reported unambiguous-requirements and complete-context violations",
+      "resolution": "changed R2 to explicit AND conditions and replaced FAIL artifact with non-normal artifact defined by R2 policy",
+      "guardrailCandidate": "avoid slash-separated logical conditions and define artifact status terms inside requirements",
+      "taskId": null,
+      "timestamp": "2026-06-02T03:50:51.106Z"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "scenario-validity classified every requirement as invalid_test because the spec-local tests imported a missing module directly",
+      "trigger": "scenario-validity result showed ERR_MODULE_NOT_FOUND for flow-judgment-contract.js",
+      "resolution": "changed the test loader to assert the module path exists before importing so pre-implementation absence is an expected assertion failure",
+      "guardrailCandidate": "spec-local tests for new modules should assert missing files explicitly instead of surfacing module resolution errors",
+      "taskId": null,
+      "timestamp": "2026-06-02T06:49:32.921Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: added file-map.json requirement-to-file mapping",
+      "resolution": "impl-gate failed because file-map.json was missing; flow set files now records entries for R1-R8 so artifact trust validation can read the required map",
+      "taskId": null,
+      "timestamp": "2026-06-02T09:12:31.527Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: updated durable artifact unit expectation for impl-gate-result.json",
+      "resolution": "project regression failed because durableTestArtifactPathspecs gained impl-gate-result.json; the unit expectation now matches the new R6 durable artifact contract",
+      "taskId": null,
+      "timestamp": "2026-06-02T09:15:36.058Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: scoped completion validation to integration impl-gate",
+      "resolution": "e2e regression showed task-impl fixtures were forced through flow-level impl-gate artifact validation; registry now skips that contract validation when phase is task-impl",
+      "taskId": null,
+      "timestamp": "2026-06-02T09:24:14.691Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "A private `repoRelative(root, absolutePath)` function with the identical body (`path.relative(root, absolutePath).split(path.sep).join(\"/\")`) is added in this file by the diff, while the same function is also added in the new `src/flow/lib/flow-judgment-contract.js`. Two changed production locations define the same transformation. `run-gate.js` could import the version from `flow-judgment-contract.js` to eliminate the duplication.; The diff adds `json.contractSummary = contractFromFinalRegressionArtifact(json, { artifactPath: FINAL_REGRESSION_RESULT_FILE }).summary.toJSON()` inside `FinalRegressionArtifact.toJSON()`, and then adds the identical statement `json.contractSummary = contractFromFinalRegressionArtifact(json, { artifactPath: resultPathRelative }).summary.toJSON()` immediately after `artifact.toJSON()` is called in the execute method. The first computation is always discarded when called from the execute path. The same code shape performing the same transformation appears in two changed locations within the same file; the `toJSON()` variant is redundant.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-02T09:31:33.922Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-gate.js",
+            "locator": "function repoRelative (added ~line 2488)"
+          },
+          "observed": "A private `repoRelative(root, absolutePath)` function with the identical body (`path.relative(root, absolutePath).split(path.sep).join(\"/\")`) is added in this file by the diff, while the same function is also added in the new `src/flow/lib/flow-judgment-contract.js`. Two changed production locations define the same transformation. `run-gate.js` could import the version from `flow-judgment-contract.js` to eliminate the duplication.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-final-regression.js",
+            "locator": "FinalRegressionArtifact.toJSON() and RunFinalRegressionCommand execute block"
+          },
+          "observed": "The diff adds `json.contractSummary = contractFromFinalRegressionArtifact(json, { artifactPath: FINAL_REGRESSION_RESULT_FILE }).summary.toJSON()` inside `FinalRegressionArtifact.toJSON()`, and then adds the identical statement `json.contractSummary = contractFromFinalRegressionArtifact(json, { artifactPath: resultPathRelative }).summary.toJSON()` immediately after `artifact.toJSON()` is called in the execute method. The first computation is always discarded when called from the execute path. The same code shape performing the same transformation appears in two changed locations within the same file; the `toJSON()` variant is redundant.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "A private `repoRelative(root, absolutePath)` function with the identical body (`path.relative(root, absolutePath).split(path.sep).join(\"/\")`) is added in this file by the diff, while the same function is also added in the new `src/flow/lib/flow-judgment-contract.js`. Two changed production locations define the same transformation. `run-gate.js` could import the version from `flow-judgment-contract.js` to eliminate the duplication."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds `json.contractSummary = contractFromFinalRegressionArtifact(json, { artifactPath: FINAL_REGRESSION_RESULT_FILE }).summary.toJSON()` inside `FinalRegressionArtifact.toJSON()`, and then adds the identical statement `json.contractSummary = contractFromFinalRegressionArtifact(json, { artifactPath: resultPathRelative }).summary.toJSON()` immediately after `artifact.toJSON()` is called in the execute method. The first computation is always discarded when called from the execute path. The same code shape performing the same transformation appears in two changed locations within the same file; the `toJSON()` variant is redundant."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: removed duplicate repoRelative and redundant final-regression contract summary computation",
+      "resolution": "Exported repoRelative from flow-judgment-contract for run-gate reuse and kept final-regression contractSummary generation only at artifact write time.",
+      "taskId": null,
+      "timestamp": "2026-06-02T09:32:32.959Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "IMPL_GATE_RESULT_FILE is defined in both flow-judgment-contract.js (new file, + line) and test-artifacts.js (also a + line in the diff) with the identical value \"impl-gate-result.json\". Both are introduced by this diff. A local helper import (e.g. importing the constant from test-artifacts.js where artifact file names already live) would remove the repetition without changing ownership. This is duplicate code shape introduced across two changed locations.; IMPL_GATE_RESULT_FILE is also newly exported from test-artifacts.js (+ line) with the same value as the definition introduced in flow-judgment-contract.js. The constant is thus defined independently in two files added or modified by this diff. One module should import from the other.; readJsonStrict is added as a new export in flow-judgment-contract.js with the same statement shape and transformation as the pre-existing readJsonStrict in test-artifacts.js (confirmed by the set-step.js diff which previously imported readJsonStrict from test-artifacts.js). Introducing a second copy of this function in production code is a duplicate code shape. The new module should import the function from test-artifacts.js instead.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-02T09:41:33.072Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/flow-judgment-contract.js",
+            "locator": "export const IMPL_GATE_RESULT_FILE = \"impl-gate-result.json\";"
+          },
+          "observed": "IMPL_GATE_RESULT_FILE is defined in both flow-judgment-contract.js (new file, + line) and test-artifacts.js (also a + line in the diff) with the identical value \"impl-gate-result.json\". Both are introduced by this diff. A local helper import (e.g. importing the constant from test-artifacts.js where artifact file names already live) would remove the repetition without changing ownership. This is duplicate code shape introduced across two changed locations.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/test-artifacts.js",
+            "locator": "+export const IMPL_GATE_RESULT_FILE = \"impl-gate-result.json\";"
+          },
+          "observed": "IMPL_GATE_RESULT_FILE is also newly exported from test-artifacts.js (+ line) with the same value as the definition introduced in flow-judgment-contract.js. The constant is thus defined independently in two files added or modified by this diff. One module should import from the other.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/flow-judgment-contract.js",
+            "locator": "export function readJsonStrict(filePath) { return JSON.parse(fs.readFileSync(filePath, \"utf8\")); }"
+          },
+          "observed": "readJsonStrict is added as a new export in flow-judgment-contract.js with the same statement shape and transformation as the pre-existing readJsonStrict in test-artifacts.js (confirmed by the set-step.js diff which previously imported readJsonStrict from test-artifacts.js). Introducing a second copy of this function in production code is a duplicate code shape. The new module should import the function from test-artifacts.js instead.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "IMPL_GATE_RESULT_FILE is defined in both flow-judgment-contract.js (new file, + line) and test-artifacts.js (also a + line in the diff) with the identical value \"impl-gate-result.json\". Both are introduced by this diff. A local helper import (e.g. importing the constant from test-artifacts.js where artifact file names already live) would remove the repetition without changing ownership. This is duplicate code shape introduced across two changed locations."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "IMPL_GATE_RESULT_FILE is also newly exported from test-artifacts.js (+ line) with the same value as the definition introduced in flow-judgment-contract.js. The constant is thus defined independently in two files added or modified by this diff. One module should import from the other."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "readJsonStrict is added as a new export in flow-judgment-contract.js with the same statement shape and transformation as the pre-existing readJsonStrict in test-artifacts.js (confirmed by the set-step.js diff which previously imported readJsonStrict from test-artifacts.js). Introducing a second copy of this function in production code is a duplicate code shape. The new module should import the function from test-artifacts.js instead."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: removed duplicate impl-gate artifact constant and readJsonStrict helper",
+      "resolution": "flow-judgment-contract now imports IMPL_GATE_RESULT_FILE and readJsonStrict from test-artifacts; run-gate imports the artifact constant from test-artifacts.",
+      "taskId": null,
+      "timestamp": "2026-06-02T09:42:30.242Z"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "provider=claude | profile=claude/sonnet | exit=1 | stdoutPreview={\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":402,\"duration_api_ms\":0,\"num_turns\":1,\"result\":\"You've hit your session limit · resets 11:50am (UTC)\",\"stop_re",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-02T10:00:20.194Z"
+    }
+  ]
+}

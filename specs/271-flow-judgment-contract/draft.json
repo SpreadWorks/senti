@@ -1,0 +1,146 @@
+{
+  "devType": "feature",
+  "goal": "flow の review / gate / test-result / final-regression が返す判定情報と、step を done にしてよい条件を共通契約として扱えるようにする。",
+  "analysis": {
+    "problem": "Issue #350 は、各 flow step が verdict、失敗分類、再開条件、artifact 形式、step status 更新条件を個別に扱っているため、同じ種類の失敗が再開後に繰り返され、FAIL artifact と done step の意味も機械的に区別しにくい問題を扱う。",
+    "proposedApproach": "各 step の責務分離は維持しつつ、判定 artifact と completion 判定に共通の要求を定義する。通常完了、override completion、blocking finding の disposition、後続 step への責任移管、resume 判定に必要な情報を要求として整理する。",
+    "validation": "既存コードでは `src/flow/registry.js` の post hook、`src/flow/lib/set-step.js` の done 事前検証、`src/flow/schemas/next-action/*.schema.json`、`src/flow/schemas/test-result-review.schema.json`、`src/flow/lib/test-artifacts.js` が step ごとに verdict と artifact trust を扱っている。共通契約化は表面上の retry 回数調整ではなく、対象 step、artifact path、verdict、blocking finding、failure classification、next action、completion reason を共通の判定入力として扱うという根本問題に対応する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #350 は review、gate、test-result、final-regression などの判定結果と step completion 条件を対象にしている。",
+      "`src/flow/registry.js` は review phase ごとに PASS / ADVISORY / FAIL / TOOLING_FAILURE の扱いを分け、step status を更新している。",
+      "`src/flow/lib/set-step.js` は test-execute、test-result-review、impl-gate、retro を done にする前に artifact 検証を行う。",
+      "`src/flow/schemas/next-action/gate.schema.json` は gate の nextAction diagnosis observations を持つ一方、review と test-result-review の next-action schema は verdict 中心で情報量が少ない。",
+      "`src/flow/schemas/next-action/final-regression.schema.json` は failureKind、retryable、nextAction を持ち、失敗分類と次アクションが既に明示されている。",
+      "`src/flow/prompts/impl/final-regression.md` は failureKind と nextAction を独立した信号として扱うよう指示している。",
+      "artifact schema は既存読み手が必要とする verdict / path / failureKind などの意味を維持しながら、共通契約を追加する方針で進める。"
+    ],
+    "decisionPoints": [
+      "共通契約の対象 step を plan/impl のどこまで含めるか。",
+      "override completion を許可する step と、許可しない step の境界。",
+      "blocking finding disposition の必須分類と、分類ごとの後続責任移管ルール。",
+      "既存 artifact schema を置き換えるのか、既存 schema を保ちながら共通フィールドを追加するのか。",
+      "resume 判定をどの入力変化または artifact 変化に基づかせるか。"
+    ],
+    "resolvedByProjectRules": [
+      "Issue を勝手に複数 spec に分割しない。single-responsibility guardrail は Issue #350 を 1 つの concern として扱う。",
+      "要求は検証可能に書く。どの artifact / step status / finding がどう判定できるかを spec で定義する。",
+      "外部依存は追加しない。実装は Node.js 組み込みモジュールと既存 flow 構造で行う。",
+      "値の構造的制約は、意味のある値を専用クラスで表現する方針に従う。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "共通契約の具体的な artifact field 名、クラス名、保存先。",
+      "既存 schema との移行方法と validation 実装の配置。",
+      "各 step の normal completion / override completion 一覧。",
+      "spec-local tests と回帰テストの対象ファイル。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] review / gate / test-result-review / final-regression の判定情報に、対象 step、artifact path、verdict、blocking finding、failure classification、next action、completion reason の共通判定入力を持たせる要求定義。",
+      "[must] 通常完了に必要な artifact 存在、許可 verdict、blocking finding 不在の条件定義。",
+      "[must] override completion に必要な user approval、理由、disposition、責任移管、受け入れリスクの条件定義。",
+      "[must] FAIL artifact と done step が状態不整合か承認済み override かを機械的に区別する条件。",
+      "[should] resume や再実行判断のために、対象 step、対象 artifact path、verdict、blocking finding count、入力 fingerprint、artifact fingerprint、nextAction を記録する要求整理。"
+    ],
+    "out": [
+      "Issue #350 と無関係な flow step の再設計。",
+      "GitHub Projects workflow の運用方法変更。",
+      "AI provider、モデル、agent 実行方式の変更。",
+      "既存 CLI コマンドの削除や外部依存の追加。"
+    ]
+  },
+  "impactOnExisting": [
+    "flow step status 更新の意味に影響する。特に review、gate、test-result-review、final-regression の post hook と done 検証が対象になる。",
+    "next-action artifact、review artifact、test-result-review artifact、final-regression artifact の読み手に影響する。",
+    "resume 処理、retry recovery、impl-gate の次アクション表示が共通契約を参照する可能性がある。",
+    "spec-local tests と既存 unit tests で、FAIL artifact + done step、override completion、通常完了条件の境界を検証する必要がある。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "この spec の主目的は、判定 artifact と flow step status の意味を揃え、FAIL artifact + done step が承認済み override か状態不整合かを機械的に区別できるようにする、でよいですか？\n\n判定 artifact とは、review / gate / test-result-review / final-regression が出力する JSON や markdown の証跡です。flow step status とは、flow.json の各 step が pending / in_progress / done / skipped のどれかで記録される状態です。",
+      "answer": "はい。この spec の主目的は、判定 artifact と flow step status の意味を揃え、FAIL artifact + done step が承認済み override か状態不整合かを機械的に区別できるようにすることです。",
+      "evidence": "Issue #350 states that normal completion requires artifact existence, permitted verdict, and no blocking findings, and that FAIL artifact + done step must be distinguished by override completion. `src/flow/lib/set-step.js` already validates selected done transitions against artifacts.",
+      "why": "Issue の根本問題は retry 回数ではなく、失敗情報と step completion の意味が step ごとにばらついていることです。artifact と status の意味を揃えると、後続 step と resume 処理が同じ条件で判断できます。",
+      "considered": "retry limit や review prompt だけを調整する案は、FAIL artifact + done step の意味を機械判定できないため不十分です。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "共通契約の対象 step は、Issue 本文に明記された test-review、impl-review、impl-gate、test-result-review、final-regression を必須範囲にし、draft-review / spec-review / spec-gate は既存構造との整合確認までに留めますか？\n\n共通契約とは、verdict、blocking finding、失敗分類、次アクション、step completion 条件を同じ語彙と形で扱うためのルールです。",
+      "answer": "はい。必須範囲は test-review、impl-review、impl-gate、test-result-review、final-regression です。draft-review、spec-review、spec-gate は既存構造との整合確認に留めます。",
+      "evidence": "Issue #350 explicitly calls out test-review, impl-review, impl-gate, test-result-review, and final-regression. `src/flow/registry.js` and `src/flow/schemas/next-action/*.schema.json` show that these steps currently differ in verdict and next-action handling.",
+      "why": "Issue が求める convergence 改善は実装・検証後半の stop / resume / override に集中しています。draft/spec 側は既存 route を壊さず、共通語彙と矛盾しないことを確認する範囲が Issue の対象に合います。",
+      "considered": "draft-review と spec-gate まで同じ粒度で再設計する案は範囲が広がり、Issue #350 の主 concern から外れます。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "override completion は、FAIL artifact を残したまま step を done 相当に進める例外として扱い、通常の `flow set step <id> done` と同じ意味にはしない、という制約でよいですか？\n\noverride completion とは、人間の承認、理由、finding ごとの disposition、責任移管先、受け入れリスクを記録したうえで、失敗証跡を残したまま後続 step へ進む例外処理です。",
+      "answer": "はい。override completion は通常の done と同じ意味にはしません。FAIL artifact を残して進む場合は、明示的な例外 completion として別の証跡を要求します。",
+      "evidence": "Issue #350 states that proceeding while leaving a failed artifact must be treated as override completion rather than plain done, with approval, reason, disposition, successor responsibility, and accepted risks.",
+      "why": "通常 done と override を同じ status だけで表すと、後続処理は妥当な人間判断と状態不整合を区別できません。例外 completion の証跡を要求することで、状態の意味を機械判定できます。",
+      "considered": "`flow set step <id> done` のまま理由だけ issue-log に残す案は、artifact と status の近接した契約にならず、読み手が override 有無を安定して判定しにくいため採用しません。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "blocking finding の disposition は、少なくとも `out_of_scope`、`transferred_to_successor`、`accepted_risk`、`false_positive` を区別し、各 disposition に責任移管先または根拠を必須にしますか？\n\ndisposition とは、blocking finding を修正する、範囲外にする、後続 step に移す、リスクとして受け入れる、誤検知と判断する、などの扱いを記録する分類です。",
+      "answer": "はい。blocking finding の disposition は少なくとも `out_of_scope`、`transferred_to_successor`、`accepted_risk`、`false_positive` を区別します。各 disposition には責任移管先または根拠を必須にします。",
+      "evidence": "Issue #350 lists out_of_scope, transferred_to_impl_gate, accepted_risk, and false_positive as example dispositions, and requires accountability transfer to successor steps.",
+      "why": "blocking finding を単に解消済み扱いにすると、範囲外、移管、リスク受容、誤検知の意味が失われます。disposition と根拠を必須にすると、後続 step が停止理由と責任所在を判断できます。",
+      "considered": "単一の ignored / waived 分類にまとめる案は、責任移管先や受け入れリスクを区別できないため採用しません。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "この spec では、既存 artifact schema を即時破壊的に置き換えるのではなく、既存の読み手が必要とする verdict / path / failureKind を保ちながら共通契約を追加する方針にしますか？\n\nartifact schema とは、JSON artifact が持つ必須フィールドや許可値の定義です。既存読み手には registry post hook、next-action、report、retro、gate などが含まれます。",
+      "answer": "はい。既存読み手が必要とする verdict / path / failureKind などの意味は保ちながら、共通契約を追加します。alpha 版方針に従い、旧フォーマット互換のためだけの分岐は作りません。",
+      "evidence": "User selected option [1] in draft-refine.q5. Existing readers are visible in `src/flow/registry.js`, `src/flow/lib/set-step.js`, `src/flow/lib/run-retro.js`, `src/flow/commands/report.js`, and `src/flow/lib/test-artifacts.js`.",
+      "why": "同一リポジトリ内の現行読み手を壊すと flow 自体が進まなくなります。一方で alpha 版ポリシーでは後方互換コードを残さないため、現行契約の意味を共通契約へ移し、読み手を同時更新します。",
+      "considered": "全面置換は実装範囲が大きく、現行 flow の registry / report / retro / gate 読み手を同時に不安定化させるため採用しません。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q6",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "受け入れ条件は、各対象 step の normal completion 条件と override completion 条件が一覧化され、FAIL artifact + done step を検出したときに override 証跡の有無で判定できること、までを必須にしますか？\n\nnormal completion とは、artifact が存在し、verdict が許可値で、blocking finding がないため通常通り step を完了できる状態です。",
+      "answer": "はい。対象 step ごとの normal completion 条件と override completion 条件の一覧化、および FAIL artifact + done step を override 証跡の有無で判定できることを必須にします。",
+      "evidence": "Issue #350 explicitly requires listing normal completion and override completion conditions for test-review, impl-review, impl-gate, test-result-review, and final-regression. `src/flow/lib/set-step.js` already has done-transition artifact validation for selected steps.",
+      "why": "受け入れ条件が一覧化されていないと、step ごとの例外判断が再び分散します。override 証跡を判定条件に含めることで、FAIL artifact + done step の意味を検証可能にできます。",
+      "considered": "共通契約の概念だけを導入し、step 別一覧を後回しにする案は、spec reviewers が実装完了を判定できないため採用しません。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q7",
+      "status": "answered",
+      "category": "follow-up-coverage",
+      "question": "resume 判定は、この spec で『入力や artifact が前回失敗時から変わったかを共通契約に記録する』要求まで含め、実際の retry policy 全体の再設計は含めない、という範囲でよいですか？\n\nresume 判定とは、停止後に再開したとき、同じ失敗を再実行するだけなのか、入力や成果物の変化により再評価できるのかを判断することです。",
+      "answer": "はい。この spec では、入力や artifact が前回失敗時から変わったかを共通契約に記録する要求まで含めます。retry policy 全体の再設計は含めません。",
+      "evidence": "Issue #350 says resume conditions should be determined based on changes to inputs and artifacts, not only attempt count. Existing retry-related code is separate from artifact schemas, for example `src/flow/lib/retry-recovery.js`.",
+      "why": "resume 判定に必要な情報を artifact 側へ残すことは共通契約の範囲です。一方、retry policy 全体の再設計まで含めると Issue #350 の completion contract から範囲が広がりすぎます。",
+      "considered": "retry policy の全面再設計を同時に行う案は、判定契約の整備より大きい変更になり、今回の spec の検証可能性を下げるため採用しません。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-02T03:15:00.000Z",
+    "notes": "draft-refine completed with all QA entries answered. User selected q5 option [1] for artifact schema handling. draft question review and draft coverage review both passed before draft-gate remediation."
+  }
+}

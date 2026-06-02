@@ -10,6 +10,7 @@ export const TEST_EXECUTE_RESULT_FILE = "test-execute-result.json";
 export const TEST_RESULT_REVIEW_FILE = "test-result-review.json";
 export const TEST_RESULT_REVIEW_MD_FILE = "test-result-review.md";
 export const FINAL_REGRESSION_RESULT_FILE = "final-regression-result.json";
+export const IMPL_GATE_RESULT_FILE = "impl-gate-result.json";
 export const TESTS_RAW_DIR_RELATIVE = "tests/.raw";
 export const RAW_OUTPUT_RELATIVE = `${TESTS_RAW_DIR_RELATIVE}/test-execution.log`;
 // Public durable path pattern: tests/.raw/final-regression-attempt-*.log
@@ -59,6 +60,7 @@ const DURABLE_TEST_ARTIFACT_RELATIVE_PATTERNS = Object.freeze([
   TEST_EXECUTE_RESULT_FILE,
   TEST_RESULT_REVIEW_FILE,
   TEST_RESULT_REVIEW_MD_FILE,
+  IMPL_GATE_RESULT_FILE,
   FINAL_REGRESSION_RESULT_FILE,
   "retro.json",
   "report.json",

@@ -46,9 +46,13 @@ import { FlowCommand } from "./base-command.js";
 import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
 import { resolveGateStepId, resolveGatePhaseFromState } from "./gate-step.js";
 import { Envelope } from "../../lib/flow-envelope.js";
+import { contractFromGateArtifact, repoRelative } from "./flow-judgment-contract.js";
 import { validateDraftLifecycle } from "./draft-lifecycle.js";
-import { validateIntegrationArtifactTrust } from "./test-artifacts.js";
-import { assertIntegrationRegressionEvidence } from "./test-artifacts.js";
+import {
+  IMPL_GATE_RESULT_FILE,
+  assertIntegrationRegressionEvidence,
+  validateIntegrationArtifactTrust,
+} from "./test-artifacts.js";
 import {
   Observation,
   Diagnosis,
@@ -2486,6 +2490,37 @@ function gateFail(level, phase, targetPath, evaluations, issues) {
   };
 }
 
+function persistIntegrationGateResult({ root, state, result }) {
+  if (!result || typeof result !== "object" || result.ok === false) return result;
+  if (!state?.spec) return result;
+  const specDir = resolveSpecDir(path.resolve(root, state.spec));
+  const artifactPath = path.join(specDir, IMPL_GATE_RESULT_FILE);
+  const artifactPathRelative = repoRelative(root, artifactPath);
+  const sourceArtifacts = result.artifacts || {};
+  const artifact = {
+    verdict: result.result === "pass" ? "pass" : "fail",
+    issues: Array.isArray(sourceArtifacts.issues) ? sourceArtifacts.issues : [],
+    nextAction: sourceArtifacts.nextAction ?? result.next ?? null,
+    level: sourceArtifacts.level || "integration",
+    phase: "integration",
+    evaluations: Array.isArray(sourceArtifacts.evaluations) ? sourceArtifacts.evaluations : [],
+    reasons: Array.isArray(sourceArtifacts.reasons) ? sourceArtifacts.reasons : [],
+  };
+  artifact.contractSummary = contractFromGateArtifact(artifact, {
+    phase: "integration",
+    artifactPath: artifactPathRelative,
+  }).summary.toJSON();
+  fs.writeFileSync(artifactPath, JSON.stringify(artifact, null, 2) + "\n");
+  result.changed = Array.from(new Set([...(Array.isArray(result.changed) ? result.changed : []), artifactPathRelative]));
+  result.artifacts = {
+    ...sourceArtifacts,
+    verdict: artifact.verdict,
+    artifactPath: artifactPathRelative,
+    contractSummary: artifact.contractSummary,
+  };
+  return result;
+}
+
 // ---------------------------------------------------------------------------
 // Common gate flow
 // ---------------------------------------------------------------------------
@@ -2853,14 +2888,17 @@ export class RunGateCommand extends FlowCommand {
     const state = ctx.flowState;
     if (!state?.spec) throw new Error("no active flow found");
     if (!state.baseBranch) throw new Error("baseBranch not set in flow.json");
+    const finish = (result) => phase === "integration"
+      ? persistIntegrationGateResult({ root, state, result })
+      : result;
 
     const scopeDecision = evaluateTaskScope(state, "impl-gate");
     if (phase === "task-impl") {
       if (scopeDecision.kind === "task") {
-        return await this.executeTaskImplGate(ctx, root, level, phase, skipGuardrail);
+        return finish(await this.executeTaskImplGate(ctx, root, level, phase, skipGuardrail));
       }
       if (scopeDecision.kind === "invalid-current-task" || scopeDecision.kind === "blocked" || scopeDecision.promotable) {
-        return taskCursorRequiredGateFailure(scopeDecision, phase, state);
+        return finish(taskCursorRequiredGateFailure(scopeDecision, phase, state));
       }
       if (scopeDecision.kind === "broad") {
         assertAuditedBroadMode(scopeDecision, "impl-gate");
@@ -2868,7 +2906,7 @@ export class RunGateCommand extends FlowCommand {
     }
     if (phase === "integration") {
       if (scopeDecision.kind === "invalid-current-task" || scopeDecision.kind === "blocked" || scopeDecision.promotable) {
-        return taskCursorRequiredGateFailure(scopeDecision, phase, state);
+        return finish(taskCursorRequiredGateFailure(scopeDecision, phase, state));
       }
       if (scopeDecision.kind === "broad") {
         assertAuditedBroadMode(scopeDecision, "impl-gate");
@@ -2881,14 +2919,14 @@ export class RunGateCommand extends FlowCommand {
     // retry budget consumption, since the failure is structural.
     if (phase === "integration") {
       const integrationCheck = checkIntegrationTestArtifacts(root, state, level, phase, ctx.config || {});
-      if (integrationCheck) return integrationCheck;
+      if (integrationCheck) return finish(integrationCheck);
     }
 
     // spec 209 REQ-6: surface remaining retry budget before running the gate.
     warnGateRetryBudget(ctx, phase);
     // spec 201 P2-R2/R3: refuse to run further retries once the limit is reached.
     const retryFail = checkRetryBelowMax(ctx, phase);
-    if (retryFail) return retryFail;
+    if (retryFail) return finish(retryFail);
 
     // spec 210 REQ-2/REQ-3: reject re-run when the working tree is unchanged
     // since the previous FAIL. Returns ok:false envelope before AI invocation,
@@ -2902,7 +2940,7 @@ export class RunGateCommand extends FlowCommand {
       currentState: gitState,
       ctx,
     });
-    if (noProgressFail) return noProgressFail;
+    if (noProgressFail) return finish(noProgressFail);
     // spec 210 REQ-1: stash current state on ctx so appendIssueLogFromGateResult
     // can attach it to FAIL entries without re-running git.
     ctx.gitState = gitState;
@@ -2918,14 +2956,14 @@ export class RunGateCommand extends FlowCommand {
     try {
       parentSpecForRationale = loadSpecJson(specJsonPath);
     } catch (err) {
-      return gateFail(level, phase, specPath, [], [`spec.json load failed: ${err.message}`]);
+      return finish(gateFail(level, phase, specPath, [], [`spec.json load failed: ${err.message}`]));
     }
     const specText = specJsonToPromptText(parentSpecForRationale, {
       title: getSpecName(state),
     });
     const reqIds = enumerateUsableRequirementIds(parentSpecForRationale);
     if (reqIds.length === 0) {
-      return gateFail(level, phase, specPath, [], ["spec.json has no requirements with usable ids"]);
+      return finish(gateFail(level, phase, specPath, [], ["spec.json has no requirements with usable ids"]));
     }
 
     const committed = runGitDiff([`${state.baseBranch}...HEAD`], "failed to get git diff", root);
@@ -2936,9 +2974,9 @@ export class RunGateCommand extends FlowCommand {
     const diff = committed + uncommitted + untracked;
 
     if (!diff.trim()) {
-      return gateFail(level, phase, specPath, [], [
+      return finish(gateFail(level, phase, specPath, [], [
         "no changes found (committed or uncommitted) against base branch",
-      ]);
+      ]));
     }
 
 
@@ -3037,14 +3075,14 @@ export class RunGateCommand extends FlowCommand {
         priorObservations: priorGateImplObservations({ root, flowState: state, phase }),
         currentObservations: observationsFromGateEvaluations(reqEvaluations),
       });
-      return gateFail(level, phase, specPath, reqEvaluations, []);
+      return finish(gateFail(level, phase, specPath, reqEvaluations, []));
     }
 
     // spec 241 R5: file-map reconciliation warnings
     const fileMapWarnings = this.reconcileFileMapWarnings(root, state);
 
     if (skipGuardrail) {
-      return gatePass(level, phase, specPath, reqEvaluations, fileMapWarnings);
+      return finish(gatePass(level, phase, specPath, reqEvaluations, fileMapWarnings));
     }
 
     const diffGuardrails = filterByPhase(loadMergedGuardrails(root), phase);
@@ -3062,7 +3100,7 @@ export class RunGateCommand extends FlowCommand {
       { acknowledgedRationale, retryContext: ctx },
     );
     if (!grResult) {
-      return gatePass(level, phase, specPath, reqEvaluations, fileMapWarnings);
+      return finish(gatePass(level, phase, specPath, reqEvaluations, fileMapWarnings));
     }
     const combined = [...reqEvaluations, ...grResult.evaluations];
     if (!grResult.passed) {
@@ -3074,9 +3112,9 @@ export class RunGateCommand extends FlowCommand {
         priorObservations: priorGateImplObservations({ root, flowState: state, phase }),
         currentObservations: observationsFromGateEvaluations(combined),
       });
-      return gateFail(level, phase, specPath, combined, []);
+      return finish(gateFail(level, phase, specPath, combined, []));
     }
-    return gatePass(level, phase, specPath, combined, fileMapWarnings);
+    return finish(gatePass(level, phase, specPath, combined, fileMapWarnings));
   }
 
   async executeTaskImplGate(ctx, root, level, phase, skipGuardrail) {

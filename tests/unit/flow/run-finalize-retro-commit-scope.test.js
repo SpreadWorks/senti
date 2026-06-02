@@ -62,6 +62,7 @@ describe("test-artifacts", () => {
       "specs/001/test-execute-result.json",
       "specs/001/test-result-review.json",
       "specs/001/test-result-review.md",
+      "specs/001/impl-gate-result.json",
       "specs/001/final-regression-result.json",
       "specs/001/retro.json",
       "specs/001/report.json",

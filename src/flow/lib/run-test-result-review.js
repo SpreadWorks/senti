@@ -20,6 +20,7 @@ import {
   validateTestExecuteResultEvidence,
   validateTestExecuteResultV2,
 } from "./test-artifacts.js";
+import { contractFromTestResultReviewArtifact } from "./flow-judgment-contract.js";
 
 function pass(check, detail) {
   return { check, result: "pass", detail };
@@ -109,6 +110,9 @@ export default class RunTestResultReviewCommand extends FlowCommand {
     };
 
     const reviewPath = path.join(specDir, TEST_RESULT_REVIEW_FILE);
+    review.contractSummary = contractFromTestResultReviewArtifact(review, {
+      artifactPath: path.relative(root, reviewPath).split(path.sep).join("/"),
+    }).summary.toJSON();
     fs.writeFileSync(reviewPath, JSON.stringify(review, null, 2) + "\n");
     writeMarkdown(specDir, review);
 
