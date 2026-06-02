@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-02T03:05:38.989Z",
+  "analyzedAt": "2026-06-02T11:45:38.967Z",
   "package": {
     "entries": [
       {
@@ -2343,9 +2343,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "9623354cff0e5b8bacaa12c4d1a4ffd6",
-        "lines": 3238,
-        "mtime": "2026-05-31T08:08:58.962Z",
+        "hash": "0626c069b2de0b89ae87da5b8978e491",
+        "lines": 3251,
+        "mtime": "2026-06-02T11:45:07.596Z",
         "className": "review",
         "methods": [
           "writeReviewAttemptHistory",
@@ -2483,6 +2483,7 @@
           "../../lib/schema-validate.js",
           "../lib/review-failure.js",
           "../lib/draft-review-routes.js",
+          "../lib/flow-judgment-contract.js",
           "../../lib/git-helpers.js",
           "../../lib/constants.js",
           "../../lib/constants.js",
@@ -2541,10 +2542,7 @@
         ],
         "extends": "Command",
         "usedBy": null,
-        "id": "331cf497",
-        "enrich": {
-          "attempts": 2
-        }
+        "id": "331cf497"
       },
       {
         "file": "src/flow/definition.js",
@@ -2988,6 +2986,86 @@
           "main repository fallback",
           "state file lookup"
         ]
+      },
+      {
+        "file": "src/flow/lib/flow-judgment-contract.js",
+        "hash": "f8ec344b7414ada2516ef6ed48bbdc68",
+        "lines": 556,
+        "mtime": "2026-06-02T11:45:07.596Z",
+        "className": "flow-judgment-contract",
+        "methods": [
+          "repoRelative",
+          "FlowJudgmentContract",
+          "JudgmentContractSummary",
+          "StepCompletionPolicy",
+          "FindingDisposition",
+          "OverrideCompletionEvidence",
+          "CompletionValidationResult",
+          "CompletionValidator",
+          "progressSignature",
+          "buildCompletionValidationEnvelope",
+          "contractFromTestReviewArtifact",
+          "contractFromImplReviewArtifact",
+          "contractFromTestResultReviewArtifact",
+          "contractFromFinalRegressionArtifact",
+          "contractFromGateArtifact",
+          "withContractSummary",
+          "completionOverridePath",
+          "loadCompletionOverrideEvidence",
+          "saveCompletionOverrideEvidence",
+          "contractForStepFromSpecDir",
+          "validateStepCompletionTransition",
+          "assertStepCompletionTransitionAllowed",
+          "requireOwn",
+          "requireNonEmptyString",
+          "stableStringify",
+          "fingerprint",
+          "normalizeFindings",
+          "normalizeNextAction",
+          "contractInput"
+        ],
+        "imports": [
+          "node:crypto",
+          "node:fs",
+          "node:path",
+          "../../lib/flow-envelope.js",
+          "../../lib/spec-json.js",
+          "./test-artifacts.js"
+        ],
+        "exports": [
+          "repoRelative",
+          "FlowJudgmentContract",
+          "JudgmentContractSummary",
+          "StepCompletionPolicy",
+          "FindingDisposition",
+          "OverrideCompletionEvidence",
+          "CompletionValidationResult",
+          "CompletionValidator",
+          "progressSignature",
+          "buildCompletionValidationEnvelope",
+          "contractFromTestReviewArtifact",
+          "contractFromImplReviewArtifact",
+          "contractFromTestResultReviewArtifact",
+          "contractFromFinalRegressionArtifact",
+          "contractFromGateArtifact",
+          "withContractSummary",
+          "completionOverridePath",
+          "loadCompletionOverrideEvidence",
+          "saveCompletionOverrideEvidence",
+          "contractForStepFromSpecDir",
+          "validateStepCompletionTransition",
+          "assertStepCompletionTransitionAllowed",
+          "COMPLETION_OVERRIDE_FILE"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/run-final-regression.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-test-result-review.js",
+          "src/flow/lib/set-step.js",
+          "src/flow/registry.js"
+        ],
+        "id": "f336678e"
       },
       {
         "file": "src/flow/lib/gate-recovery-display.js",
@@ -4138,9 +4216,9 @@
       },
       {
         "file": "src/flow/lib/run-final-regression.js",
-        "hash": "3a94a8edde49fdaef35bec618bf39ccc",
-        "lines": 495,
-        "mtime": "2026-05-20T14:21:28.646Z",
+        "hash": "1740fa01290f8e29c505f6a2064895ca",
+        "lines": 499,
+        "mtime": "2026-06-02T11:45:07.596Z",
         "className": "run-final-regression",
         "methods": [
           "repoRelative",
@@ -4170,6 +4248,7 @@
           "../../lib/config.js",
           "../../lib/spec-json.js",
           "./test-artifacts.js",
+          "./flow-judgment-contract.js",
           "./test-regression.js",
           "./set-issue-log.js"
         ],
@@ -4179,26 +4258,7 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "49364661",
-        "enrich": {
-          "processedAt": "2026-05-25T03:57:50.884Z",
-          "attempts": 5
-        },
-        "summary": "Runs final regression checks and classifies failures to decide whether they are caused by current changes or pre-existing conditions. It records attempt logs, bounded evidence, and decision artifacts for the finalize stage.",
-        "detail": "The command executes regression processes through a structured result factory and emits heartbeat/progress lines for long-running operations. Failure classification combines text heuristics, changed-file matching, and change-scope analysis to distinguish infra, permission, dependency, sandbox, and attribution categories. Evidence text is size-bounded and normalized to control artifact growth while preserving diagnostic signal. Attempt indexing is managed with guard limits to avoid unbounded raw log scanning and runaway retry state. The module persists machine-readable result JSON and integrates failures into the issue log for flow continuity.",
-        "chapter": "internal_design",
-        "role": "Final regression executor and failure attribution engine",
-        "keywords": [
-          "final regression",
-          "failure classification",
-          "change attribution",
-          "issue log",
-          "process heartbeat",
-          "bounded evidence",
-          "attempt log",
-          "sandbox error",
-          "CI-style diagnostics"
-        ]
+        "id": "49364661"
       },
       {
         "file": "src/flow/lib/run-finalize-cleanup.js",
@@ -4458,9 +4518,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "0ee64a3b7b0cff505f33415c3c2e1f23",
-        "lines": 3225,
-        "mtime": "2026-05-31T08:08:58.963Z",
+        "hash": "02b36f34ab4b33fd96ab80d47531c6bd",
+        "lines": 3263,
+        "mtime": "2026-06-02T11:45:07.597Z",
         "className": "run-gate",
         "methods": [
           "executeGateSideEffects",
@@ -4553,6 +4613,7 @@
           "nextActionFromGateEvaluations",
           "gatePass",
           "gateFail",
+          "persistIntegrationGateResult",
           "runGateFlow",
           "updateStepStatusDuringInference"
         ],
@@ -4577,8 +4638,8 @@
           "./set-issue-log.js",
           "./gate-step.js",
           "../../lib/flow-envelope.js",
+          "./flow-judgment-contract.js",
           "./draft-lifecycle.js",
-          "./test-artifacts.js",
           "./test-artifacts.js",
           "./observation.js",
           "./task-scope.js",
@@ -4645,10 +4706,7 @@
           "src/flow/lib/gate-recovery-display.js",
           "src/flow/lib/set-retry.js"
         ],
-        "id": "b4aa4dad",
-        "enrich": {
-          "attempts": 2
-        }
+        "id": "b4aa4dad"
       },
       {
         "file": "src/flow/lib/run-impl-confirm.js",
@@ -5252,9 +5310,9 @@
       },
       {
         "file": "src/flow/lib/run-test-result-review.js",
-        "hash": "d5f84583a1059b0626b56e95f655376d",
-        "lines": 129,
-        "mtime": "2026-05-31T08:08:58.966Z",
+        "hash": "27e56c2fad61d33f1fe3ebcee323b577",
+        "lines": 133,
+        "mtime": "2026-06-02T11:45:07.597Z",
         "className": "run-test-result-review",
         "methods": [
           "pass",
@@ -5270,17 +5328,15 @@
           "path",
           "../../lib/spec-json.js",
           "./base-command.js",
-          "./test-artifacts.js"
+          "./test-artifacts.js",
+          "./flow-judgment-contract.js"
         ],
         "exports": [
           "default"
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "c1fba537",
-        "enrich": {
-          "attempts": 2
-        }
+        "id": "c1fba537"
       },
       {
         "file": "src/flow/lib/run-update-overview.js",
@@ -5769,9 +5825,9 @@
       },
       {
         "file": "src/flow/lib/set-step.js",
-        "hash": "f13ac3f37f7169b4e6aed51840ce0d99",
-        "lines": 200,
-        "mtime": "2026-05-31T08:08:58.967Z",
+        "hash": "62dffed197cf76b0863c64814116807a",
+        "lines": 195,
+        "mtime": "2026-06-02T11:45:07.597Z",
         "className": "set-step",
         "methods": [
           "collectSideEffects",
@@ -5790,6 +5846,7 @@
           "../definition.js",
           "./test-headers.js",
           "../../lib/spec-json.js",
+          "./flow-judgment-contract.js",
           "./test-artifacts.js"
         ],
         "exports": [
@@ -5797,10 +5854,7 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "d4cb8d93",
-        "enrich": {
-          "attempts": 2
-        }
+        "id": "d4cb8d93"
       },
       {
         "file": "src/flow/lib/set-summary.js",
@@ -5932,9 +5986,9 @@
       },
       {
         "file": "src/flow/lib/test-artifacts.js",
-        "hash": "f9341c8a4208f0770be69c60a1eb25ca",
-        "lines": 936,
-        "mtime": "2026-05-31T08:08:58.967Z",
+        "hash": "f16b8bf70d8244c6aef5d3e2f91076b0",
+        "lines": 938,
+        "mtime": "2026-06-02T11:45:07.597Z",
         "className": "test-artifacts",
         "methods": [
           "durableTestArtifactPathspecs",
@@ -6029,6 +6083,7 @@
           "TEST_RESULT_REVIEW_FILE",
           "TEST_RESULT_REVIEW_MD_FILE",
           "FINAL_REGRESSION_RESULT_FILE",
+          "IMPL_GATE_RESULT_FILE",
           "TESTS_RAW_DIR_RELATIVE",
           "RAW_OUTPUT_RELATIVE",
           "FINAL_REGRESSION_RAW_OUTPUT_PATTERN",
@@ -6042,6 +6097,7 @@
         ],
         "extends": null,
         "usedBy": [
+          "src/flow/lib/flow-judgment-contract.js",
           "src/flow/lib/run-final-regression.js",
           "src/flow/lib/run-finalize-commit.js",
           "src/flow/lib/run-finalize.js",
@@ -6055,10 +6111,7 @@
           "src/flow/lib/run-test-result-review.js",
           "src/flow/lib/set-step.js"
         ],
-        "id": "0b1b96b3",
-        "enrich": {
-          "attempts": 2
-        }
+        "id": "0b1b96b3"
       },
       {
         "file": "src/flow/lib/test-headers.js",
@@ -6208,9 +6261,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "d1607ea268699604c1433d6a39a75898",
-        "lines": 1099,
-        "mtime": "2026-05-31T08:08:58.969Z",
+        "hash": "88ec4cd0bde52ef0c4174738ac9f44c3",
+        "lines": 1104,
+        "mtime": "2026-06-02T11:45:07.598Z",
         "className": "registry",
         "methods": [
           "assertDraftReviewRegistryHookBoundary",
@@ -6235,7 +6288,8 @@
           "../lib/constants.js",
           "./lib/gate-step.js",
           "./definition.js",
-          "./lib/draft-review-routes.js"
+          "./lib/draft-review-routes.js",
+          "./lib/flow-judgment-contract.js"
         ],
         "exports": [
           "assertDraftReviewRegistryHookBoundary",
@@ -6246,10 +6300,7 @@
         "usedBy": [
           "src/workflow/index.js"
         ],
-        "id": "d64f4095",
-        "enrich": {
-          "attempts": 2
-        }
+        "id": "d64f4095"
       },
       {
         "file": "src/help.js",
@@ -6319,6 +6370,32 @@
           "branch existence",
           "registry persistence"
         ]
+      },
+      {
+        "file": "src/lib/agent-defaults.js",
+        "hash": "fe552fb0738807824f1a3efbc20fda0f",
+        "lines": 225,
+        "mtime": "2026-06-01T23:22:12.741Z",
+        "className": "agent-defaults",
+        "methods": [
+          "defaultAgentProfiles",
+          "defaultAgentProviders",
+          "mergeAgentDefaults",
+          "clone",
+          "referencedProviderKeys"
+        ],
+        "imports": [],
+        "exports": [
+          "defaultAgentProfiles",
+          "defaultAgentProviders",
+          "mergeAgentDefaults"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/setup.js",
+          "src/upgrade.js"
+        ],
+        "id": "1af31edd"
       },
       {
         "file": "src/lib/agent-metrics.js",
@@ -11450,9 +11527,9 @@
       },
       {
         "file": "src/setup.js",
-        "hash": "1cf4c9243ea0cfaf125680eb86579dc1",
-        "lines": 569,
-        "mtime": "2026-05-20T05:29:29.616Z",
+        "hash": "061898e6d7b800167900cdcf7fbba25f",
+        "lines": 575,
+        "mtime": "2026-06-01T13:26:18.995Z",
         "className": "setup",
         "methods": [
           "ask",
@@ -11484,6 +11561,7 @@
           "./lib/multi-select.js",
           "./lib/agents-md.js",
           "./lib/config.js",
+          "./lib/agent-defaults.js",
           "./lib/skills.js"
         ],
         "exports": [
@@ -11491,24 +11569,7 @@
         ],
         "extends": null,
         "usedBy": null,
-        "id": "9820c9db",
-        "enrich": {
-          "processedAt": "2026-05-20T06:48:20.404Z",
-          "attempts": 4
-        },
-        "summary": "Implements the interactive/non-interactive setup command that bootstraps sdd-forge project configuration and directories. It initializes config, agent guidance files, ignore rules, and skill deployment.",
-        "detail": "The setup flow parses CLI options, reads existing defaults, and can run an interactive wizard for project metadata and preset selection. It creates required directories under .sdd-forge, docs, and specs, and ensures repository hygiene via .gitignore and .gitattributes updates. Configuration is validated and written to .sdd-forge/config.json, including agent provider defaults and resolved work directory handling. It manages AGENTS.md or CLAUDE.md insertion/update of the SDD directive block and can repair symlinked CLAUDE.md files. Finally, it deploys bundled skills into target agent directories so the environment is ready for flow operations.",
-        "chapter": "cli_commands",
-        "role": "Project bootstrap command for configuration, scaffolding, and environment initialization.",
-        "keywords": [
-          "setup command",
-          "project bootstrap",
-          "config initialization",
-          "interactive wizard",
-          "agent file generation",
-          "skill deployment",
-          "gitignore management"
-        ]
+        "id": "9820c9db"
       },
       {
         "file": "src/spec.js",
@@ -11600,9 +11661,9 @@
       },
       {
         "file": "src/upgrade.js",
-        "hash": "e47b90fd42af8eeb2dc02d8e83bfed50",
-        "lines": 146,
-        "mtime": "2026-05-29T12:02:35.117Z",
+        "hash": "eff1800134379ad2df2ed666cb3db31e",
+        "lines": 169,
+        "mtime": "2026-06-01T23:21:22.417Z",
         "className": "upgrade",
         "methods": [
           "parseUpgradeArgs",
@@ -11613,6 +11674,7 @@
           "./lib/cli.js",
           "./lib/constants.js",
           "./lib/config.js",
+          "./lib/agent-defaults.js",
           "./lib/i18n.js",
           "./lib/presets.js",
           "./lib/skills.js",
@@ -11623,10 +11685,7 @@
         ],
         "extends": null,
         "usedBy": null,
-        "id": "a631f658",
-        "enrich": {
-          "attempts": 3
-        }
+        "id": "a631f658"
       },
       {
         "file": "src/workflow/index.js",
@@ -12129,8 +12188,8 @@
       }
     ],
     "summary": {
-      "total": 335,
-      "totalMethods": 1603
+      "total": 337,
+      "totalMethods": 1638
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
