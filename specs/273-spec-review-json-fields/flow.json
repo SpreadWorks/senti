@@ -384,16 +384,30 @@
             },
             {
               "id": "finalize-merge",
-              "status": "in_progress",
-              "startedAt": "2026-06-03T11:47:34.481Z"
+              "status": "done",
+              "startedAt": "2026-06-03T11:47:34.481Z",
+              "finishedAt": "2026-06-03T11:47:48.774Z"
             },
             {
               "id": "finalize-sync",
-              "status": "pending"
+              "status": "done",
+              "startedAt": "2026-06-03T11:47:48.774Z",
+              "finishedAt": "2026-06-03T11:53:18.397Z",
+              "runtimeLog": {
+                "runId": "49c81bb4-8137-4420-ad00-30a0b0a9391b",
+                "sequence": 85,
+                "attempt": 1,
+                "command": "flow run finalize-sync",
+                "startedAt": "2026-06-03T11:48:37.927Z",
+                "endedAt": "2026-06-03T11:53:18.400Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-cleanup",
-              "status": "pending"
+              "status": "done",
+              "startedAt": "2026-06-03T11:53:18.397Z",
+              "finishedAt": "2026-06-03T12:08:09.085Z"
             }
           ]
         }
@@ -835,6 +849,78 @@
       "reset": true,
       "taskId": null,
       "ts": "2026-06-03T11:44:40.141Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "claude",
+      "profileKey": "claude/sonnet",
+      "callCount": 1,
+      "responseChars": 8384,
+      "durationMs": 75695,
+      "tokens": {
+        "input": 3,
+        "output": 3974,
+        "cacheRead": 0,
+        "cacheCreation": 37935
+      },
+      "cost": 0.21571725,
+      "taskId": null,
+      "ts": "2026-06-03T11:49:57.393Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "claude",
+      "profileKey": "claude/sonnet",
+      "callCount": 1,
+      "responseChars": 10000,
+      "durationMs": 95469,
+      "tokens": {
+        "input": 3,
+        "output": 5259,
+        "cacheRead": 0,
+        "cacheCreation": 37231
+      },
+      "cost": 0.23163324999999998,
+      "taskId": null,
+      "ts": "2026-06-03T11:50:17.169Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "claude",
+      "profileKey": "claude/sonnet",
+      "callCount": 1,
+      "responseChars": 8986,
+      "durationMs": 98193,
+      "tokens": {
+        "input": 3,
+        "output": 5495,
+        "cacheRead": 0,
+        "cacheCreation": 37602
+      },
+      "cost": 0.23690049999999996,
+      "taskId": null,
+      "ts": "2026-06-03T11:50:19.892Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "claude",
+      "profileKey": "claude/sonnet",
+      "callCount": 1,
+      "responseChars": 24407,
+      "durationMs": 276353,
+      "tokens": {
+        "input": 3,
+        "output": 14409,
+        "cacheRead": 0,
+        "cacheCreation": 37418
+      },
+      "cost": 0.3697965,
+      "taskId": null,
+      "ts": "2026-06-03T11:53:18.055Z"
     }
   ],
   "reviewRecoveryBaselines": [
@@ -872,6 +958,8 @@
     }
   ],
   "state": {
-    "finalizedAt": "2026-06-03T11:47:34.335Z"
+    "finalizedAt": "2026-06-03T11:47:34.335Z",
+    "mergeStrategy": "squash",
+    "featureBranchSquashedSha": "8d9fe92a425951c69bf05c86cfcfcc8975694fb0"
   }
 }
