@@ -22,6 +22,7 @@ import { PRESETS, resolveMultiChains, validatePresetChain } from "./lib/presets.
 import { buildTreeItems, select } from "./lib/multi-select.js";
 import { loadSddTemplate } from "./lib/agents-md.js";
 import { resolveWorkDir } from "./lib/config.js";
+import { mergeAgentDefaults } from "./lib/agent-defaults.js";
 import { deploySkills } from "./lib/skills.js";
 
 // ---------------------------------------------------------------------------
@@ -511,6 +512,11 @@ async function main() {
     } else {
       config.agent = defaultAgent;
     }
+
+    // Seed default agent profiles + their referenced providers (add-only;
+    // existing user values win). `useProfile` is intentionally left unset —
+    // which profile to use is the user's choice.
+    mergeAgentDefaults(config.agent);
   }
 
   validate(config);

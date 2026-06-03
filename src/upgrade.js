@@ -5,8 +5,10 @@
  * Upgrade skill-derived files (skills, AGENTS.md SDD section) to match
  * the currently installed sdd-forge version.
  *
- * Safe to run repeatedly — only overwrites skill-managed content.
- * Does NOT touch config.json or context.json.
+ * Safe to run repeatedly — only overwrites skill-managed content. config.json
+ * is migrated in place additively (chapters format; agent default profiles +
+ * their referenced providers, add-only with existing user values preserved);
+ * agent `default` / `useProfile` are never touched. context.json is untouched.
  *
  * Usage:
  *   sdd-forge upgrade [--dry-run]
@@ -16,6 +18,7 @@ import fs from "fs";
 import { repoRoot, parseArgs } from "./lib/cli.js";
 import { EXIT_ERROR } from "./lib/constants.js";
 import { loadConfig, sddConfigPath } from "./lib/config.js";
+import { mergeAgentDefaults } from "./lib/agent-defaults.js";
 import { translate } from "./lib/i18n.js";
 import { validatePresetChain } from "./lib/presets.js";
 import {
@@ -115,23 +118,43 @@ async function main() {
     });
   }
 
-  // Migrate chapters format (string[] → object[])
+  // Migrate config.json in place (chapters format + agent defaults). Single read/write.
   const configPath = sddConfigPath(root);
+  let configChanged = false;
   try {
     const raw = JSON.parse(fs.readFileSync(configPath, "utf8"));
+
+    // Migrate chapters format (string[] → object[])
     if (Array.isArray(raw.chapters) && raw.chapters.length > 0 && typeof raw.chapters[0] === "string") {
       raw.chapters = raw.chapters.map((name) => ({ chapter: name }));
-      if (!dryRun) {
-        fs.writeFileSync(configPath, JSON.stringify(raw, null, 2) + "\n", "utf8");
-      }
+      configChanged = true;
       console.log(`[upgrade] migrated chapters to new format (${raw.chapters.length} entries)`);
+    }
+
+    // Seed default agent profiles + their referenced providers (add-only; existing
+    // user values win). Only when an agent section already exists — never impose
+    // agent config on projects that don't use it. default/useProfile untouched.
+    if (raw.agent && typeof raw.agent === "object") {
+      const merged = mergeAgentDefaults(raw.agent);
+      if (merged.changed) {
+        configChanged = true;
+        const parts = [];
+        if (merged.addedProfiles.length) parts.push(`profiles: ${merged.addedProfiles.join(", ")}`);
+        if (merged.addedSlots.length) parts.push(`slots: ${merged.addedSlots.length}`);
+        if (merged.addedProviders.length) parts.push(`providers: ${merged.addedProviders.join(", ")}`);
+        console.log(`[upgrade] added agent defaults (${parts.join("; ")})`);
+      }
+    }
+
+    if (configChanged && !dryRun) {
+      fs.writeFileSync(configPath, JSON.stringify(raw, null, 2) + "\n", "utf8");
     }
   } catch (_) {
     // config.json missing or unreadable — skip
   }
 
   // Summary
-  const hasChanges = skillResults.some((r) => r.status === "updated") || removedSkills.length > 0;
+  const hasChanges = skillResults.some((r) => r.status === "updated") || removedSkills.length > 0 || configChanged;
   if (!hasChanges) {
     console.log(t("ui:upgrade.noChanges"));
   } else if (dryRun) {
