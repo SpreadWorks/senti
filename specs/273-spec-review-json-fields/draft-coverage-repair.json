@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "phase": "draft-coverage-repair",
+  "sourceTriage": "draft-coverage-triage.json",
+  "summary": "Applied the schema-repair fallback scope repair and approved the draft for draft-gate.",
+  "items": [
+    {
+      "title": "1. Schema-repair re-prompt fallback is silently dropped from scope",
+      "target": "GLOBAL",
+      "rationale": "The draft now includes the issue's schema-repair-only re-prompt fallback in the approach, decision map, and in-scope requirements, while keeping normalization narrow.",
+      "evidence": "draft.json analysis.proposedApproach, decisionMap.decisionPoints, and scopeVerification.in now mention retrying once with a schema-repair-only prompt when missing-array normalization cannot produce a valid spec-review response.",
+      "changedFieldPaths": [
+        "analysis.proposedApproach",
+        "analysis.validation",
+        "decisionMap.decisionPoints",
+        "decisionMap.deferredToSpec",
+        "scopeVerification.in",
+        "approval.approved",
+        "approval.confirmedAt",
+        "approval.notes"
+      ]
+    }
+  ]
+}

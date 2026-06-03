@@ -15,10 +15,12 @@ import {
   buildDraftReviewPrompt,
   buildSpecSummaryMarkdown,
   buildSpecReviewPrompt,
+  buildSpecReviewRepairPrompt,
   buildDraftSystemPrompt,
   formatSpecReviewJson,
   formatSpecReviewMd,
   parseSpecReviewFindings,
+  parseSpecReviewFindingsWithRepair,
   parseImplReviewFindings,
   filterImplReviewFindingsByScope,
   formatImplReviewMd,
@@ -416,6 +418,8 @@ describe("spec review classification helpers", () => {
 
     assert.ok(prompt.jsonSchema, "spec review should provide a JSON schema to Agent");
     assert.match(prompt.fmtFallback, /Return only a JSON object/);
+    assert.match(prompt.fmtFallback, /Always include both top-level arrays/);
+    assert.match(combined, /Always include both top-level arrays/);
     assert.match(combined, /blockingFindings\[\]/);
     assert.match(combined, /nonBlockingImprovements\[\]/);
     assert.match(combined, /Do not fail the review for non-blocking improvements/);
@@ -493,6 +497,70 @@ describe("spec review classification helpers", () => {
     assert.equal(parsed.improvements.length, 1);
     assert.equal(parsed.improvements[0].title, "Mention nearby helper");
     assert.equal(parsed.improvements[0].target, "src/lib/example.js");
+  });
+
+  it("treats omitted spec review finding arrays as empty arrays", () => {
+    const empty = parseSpecReviewFindings("{}");
+    assert.equal(empty.blocking.length, 0);
+    assert.equal(empty.improvements.length, 0);
+
+    const blockingOnly = parseSpecReviewFindings(JSON.stringify({ blockingFindings: [] }));
+    assert.equal(blockingOnly.blocking.length, 0);
+    assert.equal(blockingOnly.improvements.length, 0);
+
+    const improvementsOnly = parseSpecReviewFindings(JSON.stringify({ nonBlockingImprovements: [] }));
+    assert.equal(improvementsOnly.blocking.length, 0);
+    assert.equal(improvementsOnly.improvements.length, 0);
+  });
+
+  it("repairs schema-invalid parsed spec review output with one bounded retry", async () => {
+    let repairCalls = 0;
+    const findings = await parseSpecReviewFindingsWithRepair(
+      JSON.stringify({ blockingFindings: "not-array", nonBlockingImprovements: [] }),
+      async ({ rawResponse, validationError, repairPrompt }) => {
+        repairCalls += 1;
+        assert.match(rawResponse, /not-array/);
+        assert.match(validationError.message, /blockingFindings/);
+        assert.match(repairPrompt.userPrompt, /Rewrite the existing spec-review response/);
+        return JSON.stringify({ blockingFindings: [], nonBlockingImprovements: [] });
+      },
+    );
+
+    assert.equal(repairCalls, 1);
+    assert.equal(findings.blocking.length, 0);
+    assert.equal(findings.improvements.length, 0);
+  });
+
+  it("rejects invalid spec review repair output", async () => {
+    await assert.rejects(
+      parseSpecReviewFindingsWithRepair(
+        JSON.stringify({ blockingFindings: "not-array", nonBlockingImprovements: [] }),
+        async () => JSON.stringify({ blockingFindings: "still-not-array", nonBlockingImprovements: [] }),
+      ),
+      /spec review output failed schema validation|blockingFindings/,
+    );
+
+    await assert.rejects(
+      parseSpecReviewFindingsWithRepair(
+        JSON.stringify({ blockingFindings: "not-array", nonBlockingImprovements: [] }),
+        async () => "not json",
+      ),
+      /spec review output failed schema validation: repair response is invalid JSON/,
+    );
+  });
+
+  it("builds a schema-repair-only spec review prompt", () => {
+    const prompt = buildSpecReviewRepairPrompt(
+      JSON.stringify({ blockingFindings: "not-array" }),
+      new Error("blockingFindings must be array"),
+    );
+    const combined = `${prompt.systemPrompt || ""}\n${prompt.userPrompt || ""}\n${prompt.fmtFallback || ""}`;
+
+    assert.ok(prompt.jsonSchema);
+    assert.match(combined, /Rewrite the existing spec-review response/);
+    assert.match(combined, /Do not re-review the spec/i);
+    assert.match(combined, /blockingFindings must be array/);
+    assert.match(combined, /Always include both top-level arrays/);
   });
 
   it("rejects markdown proposal output instead of treating it as blocking", () => {

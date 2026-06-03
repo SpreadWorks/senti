@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "phase": "draft-coverage-review",
+  "sourceDraft": "draft.json",
+  "generatedAt": "2026-06-03T11:16:12.460Z",
+  "verdict": "FAIL",
+  "summary": "1 blocking, 0 advisory, 0 repair target finding(s) recorded.",
+  "blockingFindings": [
+    {
+      "title": "1. Schema-repair re-prompt fallback is silently dropped from scope",
+      "target": "GLOBAL",
+      "rationale": "Issue #352 explicitly proposes three improvements, but the decision map resolves only the prompt clarification and the empty-array normalization. Its decision point \"Do not hide malformed finding item objects, non-array field values, or invalid JSON behind normalization\" means those cases keep throwing at the existing validation point (`parseSpecReviewJsonOutput`, review.js:2349-2352) — i.e. it implicitly drops the re-prompt fallback the issue asked for. These are materially different specs: a re-prompt fallback requires agent re-invocation, a dedicated repair prompt, and retry/termination handling, whereas normalization is a few lines of array defaulting. This is a scope inclusion/exclusion decision the user proposed and that conservative implementation cannot resolve without overriding the author's stated intent, so the spec cannot be bounded until the user confirms which scope applies.",
+      "evidence": "The user must decide whether the fix includes the issue's third proposed improvement — re-prompting the provider with a schema-repair-only prompt when output cannot be auto-filled — or whether scope is limited to passive normalization (auto-fill the two missing top-level arrays; let all other malformed output fail validation).",
+      "classification": "blocking"
+    }
+  ],
+  "advisoryFindings": [],
+  "repairTargets": []
+}

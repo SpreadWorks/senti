@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "The spec-review prompt and fallback format must explicitly require a JSON object containing blockingFindings[] and nonBlockingImprovements[], and must instruct the provider to return empty arrays for categories with no findings.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/spec-review-json-fields.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "When parsed spec-review JSON omits blockingFindings, nonBlockingImprovements, or both, the parser must add the omitted top-level fields as empty arrays before validating against the spec-review response schema.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/spec-review-json-fields.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "When parsed spec-review JSON still fails the spec-review response schema after missing-array normalization, the spec-review execution must call the review agent at most one additional time with a schema-repair-only prompt.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/spec-review-json-fields.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "If schema-repair retry returns invalid JSON, non-array review fields, malformed finding items, or output that still violates the spec-review response schema, spec-review must fail with schema validation error behavior instead of writing a successful artifact.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/spec-review-json-fields.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "Accepted and repaired spec-review outputs must continue to write spec-review.json with blockingFindings and nonBlockingImprovements arrays and spec-review.md with separate blocking and non-blocking sections.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/spec-review-json-fields.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "Regression coverage must include spec-local tests for R1-R5 and unit-level assertions for missing-array normalization, schema-repair retry, and invalid-output rejection.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/spec-review-json-fields.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/spec-review-json-fields.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ]
+    }
+  ]
+}

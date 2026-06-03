@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "draft-coverage-triage",
+  "sourceReview": "draft-review-coverage.json",
+  "summary": "The single blocking finding is valid and should be repaired by including the issue's schema-repair re-prompt fallback in scope.",
+  "items": [
+    {
+      "title": "1. Schema-repair re-prompt fallback is silently dropped from scope",
+      "target": "GLOBAL",
+      "decision": "apply",
+      "rationale": "Issue #352 explicitly lists schema-repair-only re-prompting when auto-fill is not possible. The draft should carry that requirement instead of narrowing the bugfix to prompt wording and passive empty-array normalization.",
+      "evidence": "Issue #352 Proposed Improvements includes: \"If auto-fill is not possible, re-prompt using a schema-repair-only prompt to get corrected output.\" Current draft.json decisionMap.decisionPoints and scopeVerification.in omit this fallback."
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "spec": "specs/273-spec-review-json-fields/spec.json",
+  "date": "2026-06-03T11:44:50.530Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "The spec-review prompt and fallback format must explicitly require a JSON object containing blockingFindings[] and nonBlockingImprovements[], and must instruct the provider to return empty arrays for categories with no findings.",
+      "status": "done",
+      "note": "R1: spec-review prompt states both review arrays are always required"
+    },
+    {
+      "desc": "When parsed spec-review JSON omits blockingFindings, nonBlockingImprovements, or both, the parser must add the omitted top-level fields as empty arrays before validating against the spec-review response schema.",
+      "status": "done",
+      "note": "R2: parser treats missing spec-review arrays as empty arrays"
+    },
+    {
+      "desc": "When parsed spec-review JSON still fails the spec-review response schema after missing-array normalization, the spec-review execution must call the review agent at most one additional time with a schema-repair-only prompt.",
+      "status": "done",
+      "note": "R3: schema-invalid parsed response is repaired with one bounded retry"
+    },
+    {
+      "desc": "If schema-repair retry returns invalid JSON, non-array review fields, malformed finding items, or output that still violates the spec-review response schema, spec-review must fail with schema validation error behavior instead of writing a successful artifact.",
+      "status": "done",
+      "note": "R4: invalid schema-repair output still fails instead of writing success"
+    },
+    {
+      "desc": "Accepted and repaired spec-review outputs must continue to write spec-review.json with blockingFindings and nonBlockingImprovements arrays and spec-review.md with separate blocking and non-blocking sections.",
+      "status": "done",
+      "note": "R5: repaired output keeps the existing JSON and Markdown artifact sections"
+    },
+    {
+      "desc": "Regression coverage must include spec-local tests for R1-R5 and unit-level assertions for missing-array normalization, schema-repair retry, and invalid-output rejection.",
+      "status": "done",
+      "note": "R6: spec-local coverage maps every requirement and uses executable assertions"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 6,
+    "done": 6,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

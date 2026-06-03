@@ -2155,6 +2155,7 @@ const SPEC_REVIEW_RESPONSE_SCHEMA = Object.freeze({
 const SPEC_REVIEW_FMT_FALLBACK = [
   "OUTPUT FORMAT - strictly required:",
   "Return only a JSON object. No markdown, no preamble, no commentary.",
+  "Always include both top-level arrays: blockingFindings[] and nonBlockingImprovements[].",
   "Schema:",
   JSON.stringify(SPEC_REVIEW_RESPONSE_SCHEMA, null, 2),
   "Use empty arrays when there are no findings in a category.",
@@ -2192,6 +2193,7 @@ function buildSpecReviewPrompt(specText, contextEntries, previousReview = null) 
       "- Re-report previous blocking findings only if they are still blocking in the current spec.",
       "",
       "Return JSON only. The response object must contain:",
+      "- Always include both top-level arrays, even when one or both categories have no findings.",
       "- blockingFindings[] with title, target, issue, requiredChange, whyBlocking",
       "- nonBlockingImprovements[] with title, target, improvement, whyNonBlocking",
       "- Use empty arrays when there are no findings in a category.",
@@ -2212,6 +2214,28 @@ function buildSpecReviewPrompt(specText, contextEntries, previousReview = null) 
   }
 
   return pb.build();
+}
+
+function buildSpecReviewRepairPrompt(rawResponse, validationError) {
+  return new PromptBuilder()
+    .setRole("You repair spec-review JSON response shape. Do not re-review the spec and do not add new findings.")
+    .setRules([
+      "Rewrite the existing spec-review response into the required JSON shape.",
+      "Return JSON only. No markdown, no preamble, no commentary.",
+      "Always include both top-level arrays: blockingFindings[] and nonBlockingImprovements[].",
+      "Preserve every existing finding exactly when its fields already match the schema.",
+      "Use empty arrays only for missing categories that have no findings.",
+      "Do not invent findings, remove valid findings, or change blocking/advisory classification.",
+    ].join("\n"))
+    .setJsonSchema(SPEC_REVIEW_RESPONSE_SCHEMA)
+    .setFmtFallback(SPEC_REVIEW_FMT_FALLBACK)
+    .addUserPrompt(
+      "## Repair task",
+      "Rewrite the existing spec-review response into the required JSON shape. Do not re-review the spec.",
+    )
+    .addUserPrompt("## Existing spec-review response", rawResponse)
+    .addUserPrompt("## Validation error", validationError?.message || String(validationError || ""))
+    .build();
 }
 
 function extractMarkdownField(body, label) {
@@ -2338,6 +2362,27 @@ function extractJsonObjectCandidate(raw) {
   return text;
 }
 
+class SpecReviewSchemaValidationError extends Error {
+  constructor(errors, parsed) {
+    super(`spec review output failed schema validation: ${errors.join("; ")}`);
+    this.name = "SpecReviewSchemaValidationError";
+    this.errors = errors;
+    this.parsed = parsed;
+  }
+}
+
+function normalizeSpecReviewResponseShape(parsed) {
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return parsed;
+  const normalized = { ...parsed };
+  if (!Object.prototype.hasOwnProperty.call(normalized, "blockingFindings")) {
+    normalized.blockingFindings = [];
+  }
+  if (!Object.prototype.hasOwnProperty.call(normalized, "nonBlockingImprovements")) {
+    normalized.nonBlockingImprovements = [];
+  }
+  return normalized;
+}
+
 function parseSpecReviewJsonOutput(raw) {
   const candidate = extractJsonObjectCandidate(raw);
   let parsed;
@@ -2346,9 +2391,10 @@ function parseSpecReviewJsonOutput(raw) {
   } catch {
     parsed = JSON.parse(repairJson(candidate));
   }
+  parsed = normalizeSpecReviewResponseShape(parsed);
   const errors = validateSchema(parsed, SPEC_REVIEW_RESPONSE_SCHEMA);
   if (errors.length > 0) {
-    throw new Error(`spec review output failed schema validation: ${errors.join("; ")}`);
+    throw new SpecReviewSchemaValidationError(errors, parsed);
   }
   return parsed;
 }
@@ -2359,6 +2405,27 @@ function parseSpecReviewFindings(text) {
     blocking: parsed.blockingFindings.map((item) => new SpecReviewItem("blocking", item)),
     improvements: parsed.nonBlockingImprovements.map((item) => new SpecReviewItem("improvement", item)),
   };
+}
+
+async function parseSpecReviewFindingsWithRepair(raw, repairResponseProvider) {
+  try {
+    return parseSpecReviewFindings(raw);
+  } catch (err) {
+    if (!(err instanceof SpecReviewSchemaValidationError)) throw err;
+    if (typeof repairResponseProvider !== "function") throw err;
+    const repairPrompt = buildSpecReviewRepairPrompt(raw, err);
+    const repairedRaw = await repairResponseProvider({
+      rawResponse: raw,
+      validationError: err,
+      repairPrompt,
+    });
+    try {
+      return parseSpecReviewFindings(repairedRaw);
+    } catch (repairErr) {
+      if (repairErr instanceof SpecReviewSchemaValidationError) throw repairErr;
+      throw new Error(`spec review output failed schema validation: repair response is invalid JSON: ${repairErr.message}`);
+    }
+  }
 }
 
 function formatSpecReviewJson({ blocking = [], improvements = [], verdict = "PASS" } = {}) {
@@ -2475,7 +2542,10 @@ async function runSpecReview(root, flow, config, dryRun) {
   const proposePrompt = buildSpecReviewPrompt(specSummary, contextEntries, previousReview);
   const proposeRaw = await callReviewAgent(proposeAgent, proposePrompt, "flow.spec.review.propose");
 
-  const findings = parseSpecReviewFindings(proposeRaw);
+  const findings = await parseSpecReviewFindingsWithRepair(proposeRaw, async ({ repairPrompt }) => {
+    console.error("  [spec-review] Repairing response schema...");
+    return callReviewAgent(proposeAgent, repairPrompt, "flow.spec.review.repair");
+  });
   const blockingCount = findings.blocking.length;
   const improvementCount = findings.improvements.length;
   const proposalCount = blockingCount + improvementCount;
@@ -3216,7 +3286,8 @@ export {
   getReviewMaxAttempts, REVIEW_PHASES, extractRequirements, collectTestFiles, parseGaps,
   applyTestFixes, formatTestReviewMd, runReviewLoop,
   buildTestReviewPrompt, parseTestReviewFindings,
-  extractGoalAndScope, buildSpecSummaryMarkdown, buildSpecReviewPrompt, formatSpecReviewMd, formatSpecReviewJson, parseSpecReviewFindings,
+  extractGoalAndScope, buildSpecSummaryMarkdown, buildSpecReviewPrompt, buildSpecReviewRepairPrompt,
+  formatSpecReviewMd, formatSpecReviewJson, parseSpecReviewFindings, parseSpecReviewFindingsWithRepair,
   buildImplReviewPrompt, parseImplReviewFindings, filterImplReviewFindingsByScope,
   formatImplReviewMd, formatImplReviewJson, loadPreviousImplReviewMemory,
   runImplReview,

@@ -1,0 +1,93 @@
+{
+  "entries": [
+    {
+      "step": "spec",
+      "reason": "spec render was invoked with a positional spec path, but the command rejects positional paths as unknown options",
+      "trigger": "manual verification after writing spec.json",
+      "resolution": "checked spec render usage and will rerun with the supported current-flow invocation",
+      "guardrailCandidate": "verify CLI usage before running non-routine flow-adjacent commands",
+      "taskId": null,
+      "timestamp": "2026-06-03T11:19:33.734Z"
+    },
+    {
+      "step": "test-review",
+      "phase": "test",
+      "failureKind": "tooling_failure",
+      "reason": "test-review tooling failure: parser_error",
+      "trigger": "test-review post hook (auto)",
+      "resolution": "Recover the tooling failure or record an explicit evidence-based override before proceeding.",
+      "artifact": "specs/273-spec-review-json-fields/test-review.md",
+      "timestamp": "2026-06-03T11:26:39.212Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review provider output omitted required blockingFindings and advisoryFindings fields, causing parser_error tooling failure",
+      "trigger": "sdd-forge flow run review --phase test after scenario-validity passed",
+      "resolution": "recorded tooling failure evidence and reran test-review without changing test design",
+      "guardrailCandidate": "review parsers should tolerate or repair missing empty finding arrays consistently across phases",
+      "taskId": null,
+      "timestamp": "2026-06-03T11:27:09.235Z"
+    },
+    {
+      "step": "test-execute",
+      "reason": "R3 spec-local test failed because the schema-repair instruction was only in prompt rules, while the repair callback asserted userPrompt carried the repair task explicitly",
+      "trigger": "test-execute after implementing spec-review schema repair",
+      "resolution": "add an explicit Repair task user-prompt section to buildSpecReviewRepairPrompt",
+      "guardrailCandidate": "schema repair prompts should put the required transformation in the user prompt as well as system rules",
+      "taskId": null,
+      "timestamp": "2026-06-03T11:35:19.457Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: impl-gate stopped before AI evaluation because file-map.json was missing",
+      "trigger": "sdd-forge flow run gate after impl-review PASS",
+      "resolution": "recorded R1-R6 file mappings with flow set files so artifact validation can verify requirement-to-diff coverage",
+      "guardrailCandidate": "implementation flow should ensure file-map entries are recorded before integration gate",
+      "taskId": null,
+      "timestamp": "2026-06-03T11:40:22.763Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "Retry logic only triggers on SpecReviewSchemaValidationError and reparsed output is passed directly to parseSpecReviewFindings; if the repair response is invalid JSON, it can throw a raw parse/repair error instead of the explicit schema-validation error path, so failure is not guaranteed to be surfaced as the required schema validation failure.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-03T11:41:16.029Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R4",
+          "where": null,
+          "observed": "Retry logic only triggers on SpecReviewSchemaValidationError and reparsed output is passed directly to parseSpecReviewFindings; if the repair response is invalid JSON, it can throw a raw parse/repair error instead of the explicit schema-validation error path, so failure is not guaranteed to be surfaced as the required schema validation failure.",
+          "severity": "blocking",
+          "refs": [
+            "R4"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R5",
+        "R6"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R4",
+          "reason": "Retry logic only triggers on SpecReviewSchemaValidationError and reparsed output is passed directly to parseSpecReviewFindings; if the repair response is invalid JSON, it can throw a raw parse/repair error instead of the explicit schema-validation error path, so failure is not guaranteed to be surfaced as the required schema validation failure."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: R4 gate observation found repair-response invalid JSON could surface as a raw parse error rather than spec-review schema validation failure",
+      "trigger": "impl-gate integration evaluation for R4",
+      "resolution": "wrapped repair-response parse failures in spec review output failed schema validation errors and added R4 regression assertions",
+      "guardrailCandidate": "gate observations should drive both implementation behavior and regression coverage before retrying gate",
+      "taskId": null,
+      "timestamp": "2026-06-03T11:41:53.646Z"
+    }
+  ]
+}

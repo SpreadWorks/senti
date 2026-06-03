@@ -1,0 +1,229 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".sdd-forge/output/analysis.json                    |  28 +-\n .../draft-coverage-repair.json                     |  24 +\n .../draft-coverage-triage.json                     |  15 +\n .../draft-questions-repair.json                    |   8 +\n .../draft-questions-triage.json                    |   8 +\n .../draft-review-coverage.json                     |  19 +\n .../draft-review-questions.json                    |  11 +\n specs/273-spec-review-json-fields/draft.json       |  69 ++\n specs/273-spec-review-json-fields/file-map.json    |  31 +\n specs/273-spec-review-json-fields/flow.json        | 866 +++++++++++++++++++++\n specs/273-spec-review-json-fields/impl-review.json |  28 +\n specs/273-spec-review-json-fields/issue-log.json   |  93 +++\n specs/273-spec-review-json-fields/issue.md         |  28 +\n .../review-history/draft-coverage-attempt-001.json |  33 +\n .../draft-questions-attempt-001.json               |  14 +\n .../review-history/impl-attempt-001.json           |  31 +\n .../review-history/impl-attempt-001.md             |  16 +\n .../review-history/spec-attempt-001.json           |  72 ++\n .../review-history/spec-attempt-001.md             |  24 +\n .../review-history/test-attempt-001.json           |  33 +\n .../review-history/test-attempt-001.md             |  19 +\n .../review-history/test-attempt-002.json           |  81 ++\n .../review-history/test-attempt-002.md             |  26 +\n specs/273-spec-review-json-fields/review.md        |  16 +\n specs/273-spec-review-json-fields/spec-review.json |  38 +\n specs/273-spec-review-json-fields/spec-review.md   |  24 +\n specs/273-spec-review-json-fields/spec.json        | 222 ++++++\n specs/273-spec-review-json-fields/spec.md          | 111 +++\n specs/273-spec-review-json-fields/tasks/T-1.md     |  20 +\n specs/273-spec-review-json-fields/tasks/T-2.md     |  20 +\n specs/273-spec-review-json-fields/tasks/T-3.md     |  20 +\n .../273-spec-review-json-fields/test-coverage.json |  86 ++\n specs/273-spec-review-json-fields/test-review.json |  47 ++\n specs/273-spec-review-json-fields/test-review.md   |  26 +\n .../tests/spec-review-json-fields.test.js          |  95 +++\n src/flow/commands/review.js                        |  77 +-\n tests/unit/flow/commands/review.test.js            |  68 ++\n 37 files changed, 2420 insertions(+), 27 deletions(-)",
+      "commits": [
+        "fix spec review json recovery"
+      ]
+    },
+    "retro": {
+      "total": 6,
+      "done": 6,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "The spec-review prompt and fallback format must explicitly require a JSON object containing blockingFindings[] and nonBlockingImprovements[], and must instruct the provider to return empty arrays for categories with no findings.",
+          "status": "done",
+          "note": "R1: spec-review prompt states both review arrays are always required"
+        },
+        {
+          "desc": "When parsed spec-review JSON omits blockingFindings, nonBlockingImprovements, or both, the parser must add the omitted top-level fields as empty arrays before validating against the spec-review response schema.",
+          "status": "done",
+          "note": "R2: parser treats missing spec-review arrays as empty arrays"
+        },
+        {
+          "desc": "When parsed spec-review JSON still fails the spec-review response schema after missing-array normalization, the spec-review execution must call the review agent at most one additional time with a schema-repair-only prompt.",
+          "status": "done",
+          "note": "R3: schema-invalid parsed response is repaired with one bounded retry"
+        },
+        {
+          "desc": "If schema-repair retry returns invalid JSON, non-array review fields, malformed finding items, or output that still violates the spec-review response schema, spec-review must fail with schema validation error behavior instead of writing a successful artifact.",
+          "status": "done",
+          "note": "R4: invalid schema-repair output still fails instead of writing success"
+        },
+        {
+          "desc": "Accepted and repaired spec-review outputs must continue to write spec-review.json with blockingFindings and nonBlockingImprovements arrays and spec-review.md with separate blocking and non-blocking sections.",
+          "status": "done",
+          "note": "R5: repaired output keeps the existing JSON and Markdown artifact sections"
+        },
+        {
+          "desc": "Regression coverage must include spec-local tests for R1-R5 and unit-level assertions for missing-array normalization, schema-repair retry, and invalid-output rejection.",
+          "status": "done",
+          "note": "R6: spec-local coverage maps every requirement and uses executable assertions"
+        }
+      ]
+    },
+    "issueLog": {
+      "count": 7,
+      "fullLogPath": "specs/273-spec-review-json-fields/issue-log.json",
+      "importantTotal": 5,
+      "importantShown": 5,
+      "importantOmitted": 0,
+      "recentOtherTotal": 2,
+      "recentOtherShown": 2,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test-review tooling failure: parser_error",
+          "resolution": "Recover the tooling failure or record an explicit evidence-based override before proceeding."
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test-review provider output omitted required blockingFindings and advisoryFindings fields, causing parser_error tooling failure",
+          "resolution": "recorded tooling failure evidence and reran test-review without changing test design"
+        },
+        {
+          "classification": "important",
+          "step": "test-execute",
+          "reason": "R3 spec-local test failed because the schema-repair instruction was only in prompt rules, while the repair callback asserted userPrompt carried the repair task explicitly",
+          "resolution": "add an explicit Repair task user-prompt section to buildSpecReviewRepairPrompt"
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "Retry logic only triggers on SpecReviewSchemaValidationError and reparsed output is passed directly to parseSpecReviewFindings; if the repair response is invalid JSON, it can throw a raw parse/repair error instead of the explicit schema-...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "fix: R4 gate observation found repair-response invalid JSON could surface as a raw parse error rather than spec-review schema validation failure",
+          "resolution": "wrapped repair-response parse failures in spec review output failed schema validation errors and added R4 regression assertions"
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec",
+          "reason": "spec render was invoked with a positional spec path, but the command rejects positional paths as unknown options",
+          "resolution": "checked spec render usage and will rerun with the supported current-flow invocation"
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: impl-gate stopped before AI evaluation because file-map.json was missing",
+          "resolution": "recorded R1-R6 file mappings with flow set files so artifact validation can verify requirement-to-diff coverage"
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 5
+    },
+    "tokenMetrics": {
+      "input": 193367,
+      "output": 55804,
+      "cacheRead": 1381748,
+      "cacheCreation": 253756,
+      "cost": 3.4947519999999996,
+      "callCount": 16,
+      "durationMs": 597392,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 3193
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 54918
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 6509
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 103202
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 12689
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 295020
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 56300
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 65561
+        }
+      ]
+    },
+    "tests": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/273-spec-review-json-fields/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 57,
+          "end_line": 5234
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/273-spec-review-json-fields/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/review.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/commands/review.test.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/273-spec-review-json-fields/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/review.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/commands/review.test.js"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/273-spec-review-json-fields/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    fix spec review json recovery\n    37 files changed, 2420 insertions(+), 27 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (6 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 5\n    agent calls ................. 16\n    input tokens ................ 193,367\n    output tokens ............... 55,804\n    cache-read tokens ........... 1,381,748\n    cache-create tokens ......... 253,756\n    cost ........................ $3.4948\n    duration (total) ............ 597.4s\n      draft-questions-review .... 3.2s\n      draft-coverage-review ..... 54.9s\n      draft-gate ................ 6.5s\n      spec-review ............... 103.2s\n      spec-gate ................. 12.7s\n      test-review ............... 295.0s\n      impl-review ............... 56.3s\n      impl-gate ................. 65.6s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 6  passed 6  failed 0 verdict=pass\n    raw_output: specs/273-spec-review-json-fields/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (7 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/273-spec-review-json-fields/issue-log.json\n\n    Important (5)\n    - [test-review] test-review tooling failure: parser_error\n    - [test-review] test-review provider output omitted required blockingFindings and advisoryFindings fields, causing parser_error tooling failure\n    - [test-execute] R3 spec-local test failed because the schema-repair instruction was only in prompt rules, while the repair callback asserted userPrompt carried the repair task explicitly\n    - [spec-gate] Retry logic only triggers on SpecReviewSchemaValidationError and reparsed output is passed directly to parseSpecReviewFindings; if the repair response is invalid JSON, it can throw a raw parse/repair error instead of the explicit schema-...\n    - [impl-gate] fix: R4 gate observation found repair-response invalid JSON could surface as a raw parse error rather than spec-review schema validation failure\n\n    Recent Other (2)\n    - [spec] spec render was invoked with a positional spec path, but the command rejects positional paths as unknown options\n    - [impl-gate] fix: impl-gate stopped before AI evaluation because file-map.json was missing"
+}

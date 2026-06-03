@@ -1,0 +1,69 @@
+{
+  "devType": "bugfix",
+  "goal": "spec-review provider が blockingFindings / nonBlockingImprovements を欠いた JSON を返しても、spec-review artifact を作成できるようにする。",
+  "analysis": {
+    "problem": "Issue #352 reports that spec-review provider output missing blockingFindings / nonBlockingImprovements fails schema validation three times and prevents creation of the spec-review artifact. The failure blocks the SDD plan flow even when the provider likely intended zero findings.",
+    "proposedApproach": "Keep the fix inside the existing spec-review prompt, parser, and review-call boundary: make the required response fields explicit in the prompt/fallback schema, normalize output that only omits the two top-level review arrays to empty arrays, and add a schema-repair-only re-prompt path for parsed outputs that still fail the spec-review response schema.",
+    "validation": "src/flow/commands/review.js defines SPEC_REVIEW_RESPONSE_SCHEMA with required blockingFindings and nonBlockingImprovements, buildSpecReviewPrompt already instructs JSON-only output and empty arrays, and parseSpecReviewJsonOutput currently validates the parsed object directly. Therefore the root failure is handled by strengthening the prompt contract, adding narrow parser-side normalization before validation, and retrying with a schema-repair-only prompt when normalization cannot produce a valid response."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #352 is linked and labeled bug.",
+      "The reported failure is limited to spec-review provider output missing blockingFindings / nonBlockingImprovements.",
+      "src/flow/commands/review.js defines SPEC_REVIEW_RESPONSE_SCHEMA with both fields required.",
+      "buildSpecReviewPrompt passes that schema to PromptBuilder and includes a fallback format that says to use empty arrays when there are no findings.",
+      "parseSpecReviewJsonOutput extracts a JSON object, parses or repairs JSON text, and then validates the parsed object against SPEC_REVIEW_RESPONSE_SCHEMA.",
+      "SpecReviewArtifact persists both blockingFindings and nonBlockingImprovements in spec-review.json.",
+      "tests/unit/flow/commands/review.test.js already covers prompt schema presence, JSON findings parsing, markdown rejection, and artifact rendering."
+    ],
+    "decisionPoints": [
+      "Normalize only the missing top-level blockingFindings / nonBlockingImprovements arrays to empty arrays before schema validation.",
+      "If parsed JSON still fails the spec-review response schema after narrow normalization, retry once with a schema-repair-only prompt that asks for the same schema without re-reviewing the spec.",
+      "Do not hide malformed finding item objects, non-array field values, or invalid JSON behind normalization without the dedicated schema-repair path.",
+      "Keep the public spec-review artifact format unchanged.",
+      "Add unit regression coverage for omitted top-level arrays and for invalid non-array values still failing validation."
+    ],
+    "resolvedByProjectRules": [
+      "Do not add external dependencies; use only Node.js built-in modules and existing local helpers.",
+      "Do not split Issue #352 into multiple specs; prompt clarification and parser normalization are one bugfix concern.",
+      "Do not add project-specific paths, provider names beyond existing generic spec-review terms, or environment-specific diagnostics under src/.",
+      "Preserve the existing CLI command surface and artifact field names."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "Exact requirement priorities and acceptance criteria.",
+      "Whether the prompt needs wording changes beyond the existing JSON schema/fallback text.",
+      "Whether normalization and schema-repair orchestration should be implemented inline or via small helpers shared with tests."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] spec-review prompt/fallback must explicitly require blockingFindings[] and nonBlockingImprovements[] and empty arrays when no findings exist.",
+      "[must] parser-side handling must treat missing top-level blockingFindings and nonBlockingImprovements as empty arrays before schema validation.",
+      "[must] schema-invalid parsed JSON that cannot be fixed by missing-array normalization must be retried once through a schema-repair-only prompt.",
+      "[must] schema-repair re-prompt must preserve the original review intent and only ask the provider to rewrite the response into the required JSON shape.",
+      "[must] parser-side handling must still reject malformed JSON, non-array review fields, malformed finding items, and unrelated schema violations.",
+      "[must] spec-review artifact JSON and Markdown output must continue to include separate blocking and non-blocking sections.",
+      "[must] unit tests must cover missing-field normalization and invalid-value rejection."
+    ],
+    "out": [
+      "[must] No broad redesign of provider output parsing.",
+      "[must] No change to public flow command names or review artifact file names.",
+      "[must] No relaxation of item-level schema validation for blocking or non-blocking findings.",
+      "[must] No special handling for a single external model or local environment."
+    ]
+  },
+  "impactOnExisting": [
+    "[must] spec-review can proceed when a provider omits one or both top-level empty review arrays.",
+    "[must] Existing valid spec-review JSON output remains accepted unchanged.",
+    "[must] Existing invalid markdown or malformed finding output remains rejected.",
+    "[must] Existing spec-review.md and spec-review.json rendering keeps the same field names and sections."
+  ],
+  "qa": [],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-03T11:16:47Z",
+    "notes": "autoApprove: draft coverage repair applied Issue #352's schema-repair re-prompt fallback; no unresolved user decision remains."
+  }
+}
