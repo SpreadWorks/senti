@@ -1,12 +1,12 @@
 {
-  "analyzedAt": "2026-06-03T02:29:17.241Z",
+  "analyzedAt": "2026-06-03T03:08:47.075Z",
   "package": {
     "entries": [
       {
         "file": "package.json",
-        "hash": "dc26889c46ffc0b1cef2a57a79b03fd5",
+        "hash": "b9275198a93033eb70a2463594999658",
         "lines": 41,
-        "mtime": "2026-05-22T02:36:05.922Z",
+        "mtime": "2026-06-03T02:00:16.266Z",
         "packageDeps": {
           "dependencies": {},
           "devDependencies": {}
@@ -23,22 +23,25 @@
         "composerScripts": null,
         "makefileTest": null,
         "id": "451a9f25",
-        "summary": "The package manifest defines sdd-forge as an ESM-based CLI for spec-driven development and automated documentation workflows. It publishes only `src/` assets and exposes a single `sdd-forge` binary entry.",
-        "detail": "The manifest sets `type: module`, so runtime code follows Node.js ESM semantics. It enforces a minimum Node.js version of 18.19.0 and uses a no-extra-dependency footprint in the provided scripts and metadata. Test scripts are segmented by scope (`unit`, `e2e`, `acceptance`, `agent`, `all`) through a shared runner. Packaging is constrained with a `files` allowlist that excludes preset test fixtures from distribution.",
+        "summary": "Package manifest for the sdd-forge CLI tool, defining entry points, publish scope, engine requirements, and test script categories.",
+        "detail": "Declares sdd-forge as an ES module package with its binary at `src/sdd-forge.js` and restricts published files to `src/` (excluding preset test directories). Node.js >=18.19.0 is required. Test scripts are separated by scope (unit, e2e, acceptance, agent, all) and delegated to `node tests/run.js`. No external runtime dependencies are declared, consistent with the project's no-external-deps policy. Version follows the `0.1.0-alpha.N` scheme where N reflects total commit count.",
         "chapter": "stack_and_ops",
-        "role": "package_manifest",
+        "role": "configuration",
         "enrich": {
-          "processedAt": "2026-05-25T01:31:39.158Z",
+          "processedAt": "2026-06-03T03:11:07.310Z",
           "attempts": 1
         },
         "keywords": [
           "package.json",
-          "Node.js ESM",
+          "npm",
           "CLI binary",
+          "ES module",
           "engine requirement",
           "test scripts",
-          "npm packaging",
-          "spec-driven development"
+          "publish files",
+          "no dependencies",
+          "sdd-forge",
+          "package manifest"
         ]
       }
     ],
@@ -220,8 +223,25 @@
         ],
         "id": "7cccb0de",
         "enrich": {
-          "attempts": 14
-        }
+          "processedAt": "2026-06-03T03:11:07.310Z",
+          "attempts": 15
+        },
+        "summary": "Implements the `sdd-forge check scan` command, computing documentation coverage by comparing analyzed source files against configured include/exclude patterns.",
+        "detail": "Reads `analysis.json` from `.sdd-forge/output/` and walks the source tree to count included files versus analyzed files, computing a coverage percentage. Supports text, JSON, and Markdown output formats. Enforces hard traversal limits: depth 32, directory entries 10,000, and total files 100,000. Groups files by extension for the summary report. Exports `groupByExtension`, `computeCoverage`, and `formatText` for reuse.",
+        "chapter": "cli_commands",
+        "role": "command",
+        "keywords": [
+          "check scan",
+          "coverage",
+          "analysis.json",
+          "file walker",
+          "include exclude",
+          "glob",
+          "documentation coverage",
+          "output format",
+          "scan depth",
+          "extension grouping"
+        ]
       },
       {
         "file": "src/data/agents.js",
@@ -245,8 +265,25 @@
         ],
         "id": "8e7abcbd",
         "enrich": {
-          "attempts": 17
-        }
+          "processedAt": "2026-06-03T03:11:07.310Z",
+          "attempts": 18
+        },
+        "summary": "Registers an `AgentsSource` DataSource that supplies AGENTS.md template content and project configuration metadata for agents documentation generation.",
+        "detail": "Loads the preset's `AGENTS.sdd.md` template from the base preset's language-specific templates directory, returning a `Paragraph` or null when absent. Exposes the project language setting and raw `config.json` as query methods. Reads `package.json` for project-level metadata. Follows the standard `register(container)` DataSource registration pattern with class definition scoped inside the factory function.",
+        "chapter": "internal_design",
+        "role": "data-source",
+        "keywords": [
+          "AgentsSource",
+          "DataSource",
+          "AGENTS.md",
+          "template",
+          "preset",
+          "config.json",
+          "language",
+          "register",
+          "container",
+          "agents documentation"
+        ]
       },
       {
         "file": "src/data/docs.js",
@@ -268,8 +305,25 @@
         "usedBy": null,
         "id": "05590bea",
         "enrich": {
-          "attempts": 17
-        }
+          "processedAt": "2026-06-03T03:11:07.310Z",
+          "attempts": 18
+        },
+        "summary": "Registers a `DocsSource` DataSource providing documentation navigation links, language-relative paths, chapter navigation, and repository URL metadata.",
+        "detail": "Computes language-relative file paths for multi-language documentation structures, handling various directory layouts (docs/{lang}/, flat, etc.). Strips `git+` prefix and `.git` suffix from `package.json` repository URL. Loads locale-specific language name mappings from `src/locale/{lang}/ui.json` with English fallback. Provides chapter prev/next navigation by scanning the docs directory for ordered Markdown files and extracting H1 titles. Renders a pipe-separated navigation `Paragraph`.",
+        "chapter": "internal_design",
+        "role": "data-source",
+        "keywords": [
+          "DocsSource",
+          "DataSource",
+          "language navigation",
+          "chapter navigation",
+          "locale",
+          "repo URL",
+          "multi-language",
+          "path resolution",
+          "markdown",
+          "prev next"
+        ]
       },
       {
         "file": "src/data/lang.js",
@@ -288,8 +342,25 @@
         "usedBy": null,
         "id": "fdf0f411",
         "enrich": {
-          "attempts": 17
-        }
+          "processedAt": "2026-06-03T03:11:07.310Z",
+          "attempts": 18
+        },
+        "summary": "Registers a `LangSource` DataSource that generates emoji-prefixed language navigation links for multi-language documentation files.",
+        "detail": "Detects the current file's language from its path using a regex match, defaulting to the configured default language. Computes target file paths for each supported language relative to the current file's position in the directory hierarchy. Uses a static `LANG_NAMES` map for human-readable language labels. Loads language configuration from `.sdd-forge/config.json`. Returns a `Paragraph` of pipe-joined links.",
+        "chapter": "internal_design",
+        "role": "data-source",
+        "keywords": [
+          "LangSource",
+          "DataSource",
+          "language navigation",
+          "multilingual",
+          "lang detection",
+          "path computation",
+          "config.json",
+          "language names",
+          "Paragraph",
+          "i18n"
+        ]
       },
       {
         "file": "src/data/project.js",
@@ -309,8 +380,25 @@
         "usedBy": null,
         "id": "b9d76d8b",
         "enrich": {
-          "attempts": 17
-        }
+          "processedAt": "2026-06-03T03:11:07.310Z",
+          "attempts": 18
+        },
+        "summary": "Registers a `ProjectSource` DataSource exposing basic project metadata — name, description, and version — sourced from `package.json`.",
+        "detail": "Reads and caches `package.json` on first access to avoid repeated disk reads. Returns a `Paragraph` for the project name (falling back to the directory basename if absent), a `Paragraph` for the description when present, and the version string. Provides a Markdown table output via the inherited `toMarkdownTable` method. Follows the standard `register(container)` DataSource registration pattern.",
+        "chapter": "internal_design",
+        "role": "data-source",
+        "keywords": [
+          "ProjectSource",
+          "DataSource",
+          "package.json",
+          "project name",
+          "version",
+          "description",
+          "metadata",
+          "Paragraph",
+          "caching",
+          "toMarkdownTable"
+        ]
       },
       {
         "file": "src/data/skills.js",
@@ -329,8 +417,25 @@
         "usedBy": null,
         "id": "39b2aa36",
         "enrich": {
-          "attempts": 17
-        }
+          "processedAt": "2026-06-03T03:11:07.310Z",
+          "attempts": 18
+        },
+        "summary": "Registers a `SkillsSource` DataSource that retrieves skill rule body text by ID from the loaded skill rules registry.",
+        "detail": "Lazily loads skill rules via `loadRules()` with a module-level cache to avoid repeated file I/O. Validates that the required `id` parameter is present and that the requested rule exists, throwing descriptive errors for missing or unknown IDs. Returns the rule body as a `Paragraph` with trailing newlines stripped. Follows the standard `register(container)` DataSource pattern.",
+        "chapter": "internal_design",
+        "role": "data-source",
+        "keywords": [
+          "SkillsSource",
+          "DataSource",
+          "skill rules",
+          "loadRules",
+          "rule id",
+          "Paragraph",
+          "lazy loading",
+          "cache",
+          "validation",
+          "register"
+        ]
       },
       {
         "file": "src/data/text.js",
@@ -351,8 +456,25 @@
         ],
         "id": "e1379661",
         "enrich": {
-          "attempts": 17
-        }
+          "processedAt": "2026-06-03T03:11:07.310Z",
+          "attempts": 18
+        },
+        "summary": "Registers a minimal `TextSource` DataSource stub that returns null for all queries, acting as a no-op placeholder in the DataSource registry.",
+        "detail": "Contains only the class definition with a single method unconditionally returning null. Serves as a fallback entry in the DataSource registry when no text-specific data is available, or as a minimal template for implementing custom text data sources. Follows the `register(container)` registration pattern without any logic.",
+        "chapter": "internal_design",
+        "role": "data-source",
+        "keywords": [
+          "TextSource",
+          "DataSource",
+          "stub",
+          "placeholder",
+          "null",
+          "register",
+          "container",
+          "no-op",
+          "fallback",
+          "template"
+        ]
       },
       {
         "file": "src/docs.js",
@@ -1015,8 +1137,25 @@
         ],
         "id": "7c5e7654",
         "enrich": {
-          "attempts": 5
-        }
+          "processedAt": "2026-06-03T03:11:07.310Z",
+          "attempts": 6
+        },
+        "summary": "Implements the `sdd-forge docs text` command, driving an AI agent to fill `{{text(...)}}` directives in documentation files via batch prompt processing.",
+        "detail": "Parses `{{text(...)}}` directives from Markdown files and groups them into batch prompts submitted to the configured AI agent. Uses `mapWithConcurrency` for controlled parallel file processing. Validates batch JSON responses and applies shrinkage detection (warns when output shrinks >50% relative to minimum 20 lines). Detects changed chapters by hashing source files against the analysis entry list to skip unmodified files. Exports individual processing functions (`processTemplate`, `processTemplateFileBatch`, `validateBatchResult`, etc.) for unit testability.",
+        "chapter": "cli_commands",
+        "role": "command",
+        "keywords": [
+          "docs text",
+          "AI agent",
+          "text directive",
+          "batch processing",
+          "concurrency",
+          "retry",
+          "shrinkage detection",
+          "directive fill",
+          "chapter detection",
+          "analysis hash"
+        ]
       },
       {
         "file": "src/docs/commands/translate.js",
@@ -1142,8 +1281,25 @@
         "usedBy": null,
         "id": "f3ac0c38",
         "enrich": {
-          "attempts": 14
-        }
+          "processedAt": "2026-06-03T03:11:07.310Z",
+          "attempts": 15
+        },
+        "summary": "Provides utilities to filter analysis entries by excluding files whose paths match configured glob patterns.",
+        "detail": "Compiles an array of glob pattern strings into regex matchers via `globToRegex`. Filters entry arrays by rejecting any entry whose `file` field matches at least one compiled matcher. `filterAnalysisByDocsExclude` applies the filter across all analysis categories using `iterateAnalysisCategories`. Designed to be composed into the docs pipeline before rendering or enrichment steps.",
+        "chapter": "internal_design",
+        "role": "utility",
+        "keywords": [
+          "analysis filter",
+          "exclude patterns",
+          "glob",
+          "regex",
+          "analysis entries",
+          "docs exclude",
+          "file filter",
+          "iterateAnalysisCategories",
+          "pipeline",
+          "scan"
+        ]
       },
       {
         "file": "src/docs/lib/chapter-resolver.js",
@@ -1386,8 +1542,25 @@
         ],
         "id": "bbb893ea",
         "enrich": {
-          "attempts": 16
-        }
+          "processedAt": "2026-06-03T03:11:07.310Z",
+          "attempts": 17
+        },
+        "summary": "Parses and manipulates template directives (`{{data(...)}}`, `{{text(...)}}`, `{%block%}`, `{%extends%}`) in Markdown documentation files for the docs pipeline.",
+        "detail": "Supports three directive families: block and inline `data`, `text`, and block-inheritance `{%block%}`/`{%extends%}`. Separates parser-owned option keys (labels, header, footer, ignoreError, format) from user-defined params passed to DataSource methods. Provides `resolveDataDirectives` for in-place content substitution and `stripDataMarkers`/`stripBlockDirectives` for cleanup. Throws descriptive errors for unclosed or stray directive markers. `parseBlocks` extracts the extends target, named block definitions, preamble, and postamble for template inheritance resolution.",
+        "chapter": "internal_design",
+        "role": "parser",
+        "keywords": [
+          "directive parser",
+          "data directive",
+          "text directive",
+          "block directive",
+          "extends",
+          "template inheritance",
+          "options parsing",
+          "preamble",
+          "markdown template",
+          "resolveDataDirectives"
+        ]
       },
       {
         "file": "src/docs/lib/docs-context.js",
@@ -1888,8 +2061,25 @@
         ],
         "id": "f6126150",
         "enrich": {
-          "attempts": 16
-        }
+          "processedAt": "2026-06-03T03:11:07.310Z",
+          "attempts": 17
+        },
+        "summary": "Defines the OOP class hierarchy for renderable Markdown elements — Table, BulletList, OrderedList, Paragraph, CodeBlock, Blockquote, Heading, and Fragment — returned by DataSource methods.",
+        "detail": "All classes extend the abstract `Renderable` base, which enforces `toMarkdown()` override and provides `toMarkdownFormat(format)` dispatch. `Table` validates non-empty labels and array rows at construction and supports both table and list output formats; pipe characters in cells are escaped. `Fragment` composes multiple `Renderable` or string parts with double-newline separation. This hierarchy enables `instanceof`-based type discrimination and attaches rendering behavior directly to value objects per the project's OOP-over-discriminated-union policy.",
+        "chapter": "internal_design",
+        "role": "rendering",
+        "keywords": [
+          "Renderable",
+          "Table",
+          "Paragraph",
+          "BulletList",
+          "CodeBlock",
+          "Fragment",
+          "Heading",
+          "OOP",
+          "markdown rendering",
+          "DataSource return type"
+        ]
       },
       {
         "file": "src/docs/lib/resolver-factory.js",
@@ -1920,8 +2110,25 @@
         "usedBy": null,
         "id": "cb355898",
         "enrich": {
-          "attempts": 17
-        }
+          "processedAt": "2026-06-03T03:11:07.310Z",
+          "attempts": 18
+        },
+        "summary": "Factory module that assembles data resolvers by loading DataSource instances from preset chains and wiring them to analysis data and project overrides.",
+        "detail": "Resolves preset chains with `resolveMultiChains` and loads DataSource files from each preset's `data/` subdirectory via `loadDataSourcesBase`. Applies project-level overrides from `.sdd-forge/overrides.json` for section/key description fallbacks. Emits a deprecation warning for the legacy `.sdd-forge/data/` directory. The returned resolver dispatches calls by preset key, source name, and method, returning null for unknown paths. Exposes `resolverMap.keys()` for introspection of available resolver entries.",
+        "chapter": "internal_design",
+        "role": "factory",
+        "keywords": [
+          "resolver factory",
+          "DataSource",
+          "preset chain",
+          "overrides.json",
+          "createResolver",
+          "multi-chain",
+          "directive resolution",
+          "data source loader",
+          "deprecated path",
+          "resolver map"
+        ]
       },
       {
         "file": "src/docs/lib/review-parser.js",
@@ -2034,8 +2241,25 @@
         "usedBy": null,
         "id": "cf9f71e2",
         "enrich": {
-          "attempts": 14
-        }
+          "processedAt": "2026-06-03T03:11:07.310Z",
+          "attempts": 15
+        },
+        "summary": "Provides file system scanning utilities for discovering, walking, and parsing source files (PHP, JavaScript, and generic) during the docs scan pipeline.",
+        "detail": "`findFiles` walks directories recursively filtered by pattern and optional exclude list with subdirectory scoping. `parsePHPFile` extracts class names, parent class, methods, properties, and relations via regex. `parseJSFile` similarly extracts class structure from JavaScript. `parseFile` delegates to `getLangHandler` for language-specific parsing, falling back to a minimal structure using the filename as className. `collectFiles` performs include/exclude glob-based collection. Re-exports `camelToSnake` and `pluralize` from `php-array-parser.js`.",
+        "chapter": "internal_design",
+        "role": "scanner",
+        "keywords": [
+          "file scanner",
+          "recursive walk",
+          "PHP parser",
+          "JS parser",
+          "class extraction",
+          "include exclude",
+          "glob",
+          "lang handler",
+          "collectFiles",
+          "findFiles"
+        ]
       },
       {
         "file": "src/docs/lib/template-merger.js",
@@ -2247,8 +2471,25 @@
         "usedBy": null,
         "id": "1ab08f2b",
         "enrich": {
-          "attempts": 7
-        }
+          "processedAt": "2026-06-03T03:11:07.310Z",
+          "attempts": 8
+        },
+        "summary": "Entry-point dispatcher for the `sdd-forge flow` CLI command group, routing subcommands to registered handlers via the shared dispatch infrastructure.",
+        "detail": "Parses `process.argv` and routes to flow commands registered in `flowCommands` from the command registry. Handles special-cased routing for the `resume` and `prepare` subcommands with their respective envelope types (`run/resume`, `run/prepare-spec`). Initializes the DI container and resolves flow context before delegating to `dispatch()`. Exits with `EXIT_ERROR` for unknown commands or missing command groups.",
+        "chapter": "cli_commands",
+        "role": "entry-point",
+        "keywords": [
+          "flow dispatcher",
+          "CLI entry point",
+          "subcommand routing",
+          "dispatch",
+          "container",
+          "flow context",
+          "command registry",
+          "process.argv",
+          "EXIT_ERROR",
+          "envelope type"
+        ]
       },
       {
         "file": "src/flow/commands/merge.js",
@@ -2293,8 +2534,25 @@
         "usedBy": null,
         "id": "3a0db928",
         "enrich": {
-          "attempts": 11
-        }
+          "processedAt": "2026-06-03T03:11:07.310Z",
+          "attempts": 12
+        },
+        "summary": "Implements the flow merge step, selecting between GitHub PR creation and squash merge strategies and managing pre-sync rebase onto the base branch.",
+        "detail": "Selects merge strategy based on `config.flow.merge` combined with GitHub CLI availability; defaults to squash when `gh` is absent. For squash merge, builds a commit message from spec requirements, scope blocks, and implementation commit subjects (capped at 50 entries / 4000 chars). Executes the squash in a temporary worktree under `os.tmpdir()` to avoid branch contamination. `runPreSync` rebases the feature branch onto the remote base branch, returning conflict file details on failure. PR body is constructed from spec requirements and scope fields via `buildPrBody`.",
+        "chapter": "internal_design",
+        "role": "command",
+        "keywords": [
+          "flow merge",
+          "squash merge",
+          "PR creation",
+          "gh CLI",
+          "rebase",
+          "pre-sync",
+          "commit message",
+          "spec",
+          "temporary worktree",
+          "merge strategy"
+        ]
       },
       {
         "file": "src/flow/commands/report.js",
@@ -2338,8 +2596,25 @@
         "usedBy": null,
         "id": "5f80ffd2",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-06-03T03:11:07.310Z",
+          "attempts": 3
+        },
+        "summary": "Generates structured flow reports from task state, issue-log entries, and metrics summaries, persisting results as `report.json` in the spec directory.",
+        "detail": "Builds per-task report rows from step results and artifact availability using `taskStepResult` and `taskArtifactResult`. Classifies issue-log entries into `important` (matching failure signals or key terms) and `recent other` via the `IssueLogSummary` class, capping display counts at configurable maximums. Integrates `buildMetricsSummary` and `buildBoundedBroadModeHistory` for aggregate flow metrics. `saveReport` writes `report.json` into the spec directory using `fs.mkdirSync` with `recursive: true`.",
+        "chapter": "internal_design",
+        "role": "command",
+        "keywords": [
+          "flow report",
+          "issue log",
+          "task state",
+          "metrics summary",
+          "IssueLogSummary",
+          "failure signal",
+          "artifact availability",
+          "saveReport",
+          "broad mode history",
+          "report generation"
+        ]
       },
       {
         "file": "src/flow/commands/review.js",
@@ -2542,7 +2817,10 @@
         ],
         "extends": "Command",
         "usedBy": null,
-        "id": "331cf497"
+        "id": "331cf497",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/definition.js",
@@ -2609,7 +2887,7 @@
         ],
         "id": "2cb27b93",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -2903,7 +3181,7 @@
         ],
         "id": "41c7d805",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -3065,7 +3343,10 @@
           "src/flow/lib/set-step.js",
           "src/flow/registry.js"
         ],
-        "id": "f336678e"
+        "id": "f336678e",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/gate-recovery-display.js",
@@ -3139,7 +3420,7 @@
         ],
         "id": "9bbc3f1d",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -3374,7 +3655,7 @@
         "usedBy": null,
         "id": "c68afd69",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -3574,7 +3855,7 @@
         ],
         "id": "9aca938f",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -3892,7 +4173,7 @@
         ],
         "id": "30a7075c",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -3978,6 +4259,33 @@
           "command context",
           "id fallback"
         ]
+      },
+      {
+        "file": "src/flow/lib/retro-artifacts.js",
+        "hash": "04239de2d8fe028efc2681bc8f09eafe",
+        "lines": 28,
+        "mtime": "2026-06-03T03:08:33.362Z",
+        "className": "retro-artifacts",
+        "methods": [
+          "readRetroResultIfExists",
+          "readJsonIfExists"
+        ],
+        "imports": [
+          "fs",
+          "path"
+        ],
+        "exports": [
+          "readRetroResultIfExists"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/run-finalize.js",
+          "src/flow/lib/run-report.js"
+        ],
+        "id": "4cc38837",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/retry-recovery.js",
@@ -4074,7 +4382,7 @@
         ],
         "id": "3de0db3f",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -4116,7 +4424,7 @@
         ],
         "id": "fcf92359",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -4258,7 +4566,10 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "49364661"
+        "id": "49364661",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/run-finalize-cleanup.js",
@@ -4439,9 +4750,9 @@
       },
       {
         "file": "src/flow/lib/run-finalize.js",
-        "hash": "94621675ee5ce073477bb7cff7956658",
-        "lines": 341,
-        "mtime": "2026-05-20T06:47:16.447Z",
+        "hash": "36ad9eb418b5366afa5dd2edf86bb6f5",
+        "lines": 344,
+        "mtime": "2026-06-03T03:08:33.362Z",
         "className": "run-finalize",
         "methods": [
           "finalizeOnError",
@@ -4472,7 +4783,8 @@
           "../../lib/git-helpers.js",
           "../../lib/container.js",
           "./run-report-show.js",
-          "./test-artifacts.js"
+          "./test-artifacts.js",
+          "./retro-artifacts.js"
         ],
         "exports": [
           "finalizeOnError",
@@ -4497,24 +4809,8 @@
         ],
         "id": "c711309b",
         "enrich": {
-          "processedAt": "2026-05-25T03:57:50.884Z",
-          "attempts": 7
-        },
-        "summary": "Contains shared finalize-phase logic for preflight validation, metadata-only commit safety, migration hooks, and post-commit housekeeping. It enforces repository integrity rules before and during finalization.",
-        "detail": "The module provides reusable helpers for error wrapping, pointer file updates, conditional commit behavior, and finalize metadata path allowlisting. It parses porcelain status to detect dirty paths and determines whether merge metadata can be committed safely without touching unrelated files. Git common directory resolution and lock-file write tests verify write access early, producing typed preflight errors for clear failure handling. Preflight checks evaluate branch state, worktree cleanliness, and step conditions to prevent unsafe finalize transitions. Optional migration hooks and post-commit checks coordinate spec-scoped scripts and test-result artifacts during finalize completion.",
-        "chapter": "development",
-        "role": "Finalize workflow safety and preflight orchestration library",
-        "keywords": [
-          "finalize workflow",
-          "preflight validation",
-          "git write access",
-          "dirty worktree detection",
-          "metadata commit safety",
-          "migration hook",
-          "post-commit checks",
-          "flow finalization",
-          "repository integrity"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/run-gate.js",
@@ -4706,7 +5002,10 @@
           "src/flow/lib/gate-recovery-display.js",
           "src/flow/lib/set-retry.js"
         ],
-        "id": "b4aa4dad"
+        "id": "b4aa4dad",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/run-impl-confirm.js",
@@ -4874,7 +5173,7 @@
         "usedBy": null,
         "id": "82a89eee",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4926,13 +5225,12 @@
       },
       {
         "file": "src/flow/lib/run-report.js",
-        "hash": "cfab5eda6cadf3bce8e7fdc8ccf3ec8e",
-        "lines": 92,
-        "mtime": "2026-05-16T08:19:57.846Z",
+        "hash": "f8b7e8f7526c1ac86509f4204e322252",
+        "lines": 78,
+        "mtime": "2026-06-03T03:08:33.363Z",
         "className": "run-report",
         "methods": [
-          "RunReportCommand",
-          "readJsonIfExists"
+          "RunReportCommand"
         ],
         "imports": [
           "fs",
@@ -4941,7 +5239,8 @@
           "../commands/report.js",
           "./set-issue-log.js",
           "./base-command.js",
-          "./test-artifacts.js"
+          "./test-artifacts.js",
+          "./retro-artifacts.js"
         ],
         "exports": [
           "RunReportCommand",
@@ -4951,20 +5250,8 @@
         "usedBy": null,
         "id": "43872d6b",
         "enrich": {
-          "processedAt": "2026-05-18T13:31:12.050Z",
-          "attempts": 5
-        },
-        "summary": "Builds and saves a flow report by combining git context, issue history, test artifacts, and retrospective data.",
-        "detail": "The command requires base-branch context from flow state and resolves the active spec directory. It conditionally loads retro and test-result artifacts, then delegates report generation and persistence to shared report utilities. Output includes changed report paths and metadata suitable for finalize/reporting steps.",
-        "chapter": "cli_commands",
-        "role": "flow report generation command",
-        "keywords": [
-          "report generation",
-          "git summary",
-          "issue log",
-          "retro integration",
-          "test artifacts"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/run-resume.js",
@@ -5119,7 +5406,7 @@
         ],
         "id": "d4e97204",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -5172,7 +5459,7 @@
         "usedBy": null,
         "id": "c99f2f87",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -5336,7 +5623,10 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "c1fba537"
+        "id": "c1fba537",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/run-update-overview.js",
@@ -5482,7 +5772,7 @@
         "usedBy": null,
         "id": "b77c2c3d",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -5820,7 +6110,7 @@
         "usedBy": null,
         "id": "ee559b7a",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -5854,7 +6144,10 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "d4cb8d93"
+        "id": "d4cb8d93",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/set-summary.js",
@@ -5981,7 +6274,7 @@
         ],
         "id": "5fd87c16",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -6111,7 +6404,10 @@
           "src/flow/lib/run-test-result-review.js",
           "src/flow/lib/set-step.js"
         ],
-        "id": "0b1b96b3"
+        "id": "0b1b96b3",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/test-headers.js",
@@ -6300,7 +6596,10 @@
         "usedBy": [
           "src/workflow/index.js"
         ],
-        "id": "d64f4095"
+        "id": "d64f4095",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/help.js",
@@ -6323,7 +6622,7 @@
         "usedBy": null,
         "id": "4ac07fa0",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -6395,7 +6694,10 @@
           "src/setup.js",
           "src/upgrade.js"
         ],
-        "id": "1af31edd"
+        "id": "1af31edd",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/lib/agent-metrics.js",
@@ -6731,7 +7033,7 @@
         ],
         "id": "dff6e5b4",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -7085,7 +7387,7 @@
         ],
         "id": "09ff0ab4",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -7240,7 +7542,7 @@
         ],
         "id": "5332364e",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -8273,7 +8575,7 @@
         ],
         "id": "a1344e4a",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -8362,7 +8664,7 @@
         ],
         "id": "deaeeb23",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -8415,7 +8717,7 @@
         "usedBy": null,
         "id": "69d5afb4",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -11500,7 +11802,7 @@
         "usedBy": null,
         "id": "acdc1ca9",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11522,7 +11824,7 @@
         "usedBy": null,
         "id": "a8608997",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -11569,7 +11871,10 @@
         ],
         "extends": null,
         "usedBy": null,
-        "id": "9820c9db"
+        "id": "9820c9db",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/spec.js",
@@ -11685,7 +11990,10 @@
         ],
         "extends": null,
         "usedBy": null,
-        "id": "a631f658"
+        "id": "a631f658",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/workflow/index.js",
@@ -11713,7 +12021,7 @@
         "usedBy": null,
         "id": "cc286b88",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -11780,7 +12088,7 @@
         ],
         "id": "c9908fa4",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -11809,7 +12117,7 @@
         "usedBy": null,
         "id": "4e4593ba",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -11830,7 +12138,7 @@
         "usedBy": null,
         "id": "11e11b10",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -11856,7 +12164,7 @@
         "usedBy": null,
         "id": "9219bc6c",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -11889,7 +12197,7 @@
         "usedBy": null,
         "id": "970e6266",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -11915,7 +12223,7 @@
         "usedBy": null,
         "id": "27d732ed",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -11937,7 +12245,7 @@
         "usedBy": null,
         "id": "8dd05cbb",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -11962,7 +12270,7 @@
         "usedBy": null,
         "id": "c1034289",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -11984,7 +12292,7 @@
         "usedBy": null,
         "id": "b70ba15e",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -12006,7 +12314,7 @@
         "usedBy": null,
         "id": "7752e8c4",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -12029,7 +12337,7 @@
         "usedBy": null,
         "id": "e75cf809",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -12067,7 +12375,7 @@
         ],
         "id": "60bcd438",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -12106,7 +12414,7 @@
         ],
         "id": "731ada65",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -12135,7 +12443,7 @@
         ],
         "id": "d5313dab",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -12163,7 +12471,7 @@
         "usedBy": null,
         "id": "e88a4b0e",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -12183,15 +12491,15 @@
         ],
         "id": "780bd655",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       }
     ],
     "summary": {
-      "total": 337,
-      "totalMethods": 1638
+      "total": 338,
+      "totalMethods": 1639
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-01T12:04:58.704Z"
+  "enrichedAt": "2026-06-03T03:13:40.843Z"
 }
