@@ -1,12 +1,12 @@
 {
-  "analyzedAt": "2026-06-03T11:12:05.067Z",
+  "analyzedAt": "2026-06-03T11:48:41.584Z",
   "package": {
     "entries": [
       {
         "file": "package.json",
-        "hash": "dc26889c46ffc0b1cef2a57a79b03fd5",
+        "hash": "b9275198a93033eb70a2463594999658",
         "lines": 41,
-        "mtime": "2026-06-03T11:12:04.453Z",
+        "mtime": "2026-06-03T02:00:16.266Z",
         "packageDeps": {
           "dependencies": {},
           "devDependencies": {}
@@ -22,7 +22,27 @@
         "composerDeps": null,
         "composerScripts": null,
         "makefileTest": null,
-        "id": "451a9f25"
+        "id": "451a9f25",
+        "summary": "NPM package manifest for sdd-forge, defining entry points, test scripts, and distribution configuration.",
+        "detail": "Declares sdd-forge as an ES module package with a single CLI binary at `./src/sdd-forge.js`. Requires Node.js >=18.19.0 and ships only the `src/` directory (excluding preset test subdirectories). Defines six test scripts covering unit, e2e, acceptance, agent-execution, and full-suite modes. No external runtime dependencies are declared, consistent with the project's zero-dependency policy. Uses pnpm as the package manager.",
+        "chapter": "stack_and_ops",
+        "role": "manifest",
+        "enrich": {
+          "processedAt": "2026-06-03T11:49:57.400Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "package.json",
+          "npm",
+          "cli",
+          "entry point",
+          "es module",
+          "node engine",
+          "test scripts",
+          "distribution",
+          "zero dependencies",
+          "pnpm"
+        ]
       }
     ],
     "summary": {
@@ -2598,9 +2618,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "0626c069b2de0b89ae87da5b8978e491",
-        "lines": 3251,
-        "mtime": "2026-06-02T11:45:07.596Z",
+        "hash": "c8e28d1f33aa54c4ca44dcc9df4c8988",
+        "lines": 3322,
+        "mtime": "2026-06-03T11:47:48.698Z",
         "className": "review",
         "methods": [
           "writeReviewAttemptHistory",
@@ -2683,10 +2703,13 @@
           "extractGoalAndScope",
           "extractScopePaths",
           "buildSpecReviewPrompt",
+          "buildSpecReviewRepairPrompt",
           "extractMarkdownField",
           "extractJsonObjectCandidate",
+          "normalizeSpecReviewResponseShape",
           "parseSpecReviewJsonOutput",
           "parseSpecReviewFindings",
+          "parseSpecReviewFindingsWithRepair",
           "formatSpecReviewJson",
           "loadSpecReviewArtifact",
           "formatPhaseReviewMd",
@@ -2771,9 +2794,11 @@
           "extractGoalAndScope",
           "buildSpecSummaryMarkdown",
           "buildSpecReviewPrompt",
+          "buildSpecReviewRepairPrompt",
           "formatSpecReviewMd",
           "formatSpecReviewJson",
           "parseSpecReviewFindings",
+          "parseSpecReviewFindingsWithRepair",
           "buildImplReviewPrompt",
           "parseImplReviewFindings",
           "filterImplReviewFindingsByScope",
@@ -2795,12 +2820,29 @@
           "LOOP_REVIEW_THRESHOLD",
           "MAX_LOOP_CALLS"
         ],
-        "extends": "Command",
+        "extends": "Error",
         "usedBy": null,
         "id": "331cf497",
+        "summary": "Implements the `flow review` command, orchestrating draft, spec, test, and implementation review phases with AI-driven analysis and structured artifact output.",
+        "detail": "Each review phase (draft, spec, test, impl) has dedicated prompt builders, JSON schema validators, and artifact writers that produce both Markdown and JSON files in the spec directory. Findings are classified by severity (blocking vs. non-blocking) and stored with attempt history under `review-history/`. Large changesets trigger a loop-review path that groups diffs by file and runs per-chunk agents up to MAX_LOOP_CALLS. Scope filtering removes proposals touching files outside the current branch diff. The impl review phase uses SHA-256 fingerprinted progress signatures and supports memory carry-over across retry attempts.",
+        "chapter": "internal_design",
+        "role": "command",
         "enrich": {
+          "processedAt": "2026-06-03T11:49:57.400Z",
           "attempts": 1
-        }
+        },
+        "keywords": [
+          "flow review",
+          "spec review",
+          "impl review",
+          "test review",
+          "draft review",
+          "blocking findings",
+          "review artifacts",
+          "prompt builder",
+          "schema validation",
+          "retry history"
+        ]
       },
       {
         "file": "src/flow/definition.js",
@@ -2867,8 +2909,25 @@
         ],
         "id": "2cb27b93",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-06-03T11:49:57.400Z",
+          "attempts": 4
+        },
+        "summary": "Defines the complete SDD flow and task step graph as frozen arrays of FlowNode objects with hierarchical children and configurable max-attempt policies.",
+        "detail": "FLOW_DEFINITION and TASK_DEFINITION are frozen arrays of FlowNode instances, each carrying an id, label, optional children, maxAttempts, and side-effect flags. ModeMaxAttempts allows separate retry limits for auto-approve versus manual modes, while ScalarMaxAttempts handles a fixed integer. Graph traversal utilities—flattenSteps, resolveNodeFor, derivePhaseMap, findLatestInProgressLeaf, deriveNextAction—power the flow engine. buildInitialNestedSteps and buildInitialTaskSteps generate the initial pending-step trees from the definitions. GATE_IMPL_SIDE_EFFECTS lists allowed side-effect identifiers for gate nodes.",
+        "chapter": "internal_design",
+        "role": "definition",
+        "keywords": [
+          "flow definition",
+          "FlowNode",
+          "step graph",
+          "max attempts",
+          "auto approve",
+          "side effects",
+          "flatten steps",
+          "derive next action",
+          "task definition",
+          "flow engine"
+        ]
       },
       {
         "file": "src/flow/lib/acknowledged-rationale.js",
@@ -3161,8 +3220,25 @@
         ],
         "id": "41c7d805",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-06-03T11:49:57.400Z",
+          "attempts": 4
+        },
+        "summary": "Defines draft review routing configuration, mapping route keys to review phases, artifact basenames, and retry limits.",
+        "detail": "Exports two DraftReviewRoute instances—'questions' and 'coverage'—as a frozen DRAFT_REVIEW_ROUTES array. Each route carries a key, retryPhase, artifact filename, and triage step identifier. Two lookup Maps (by retryPhase and by key) enable O(1) route resolution via draftReviewRouteForRetryPhase and draftReviewRouteForKey. Module-level constants DRAFT_REVIEW_ARTIFACT_LIMIT (20) and DRAFT_TRIAGE_REPAIR_ARTIFACT_LIMIT (40) cap array sizes in downstream prompt builders. requireNonEmptyString enforces invariants at construction time.",
+        "chapter": "internal_design",
+        "role": "routing",
+        "keywords": [
+          "draft review",
+          "review route",
+          "questions route",
+          "coverage route",
+          "artifact limit",
+          "retry phase",
+          "route lookup",
+          "triage",
+          "prompt builder",
+          "flow planning"
+        ]
       },
       {
         "file": "src/flow/lib/fetch-issue.js",
@@ -3325,8 +3401,25 @@
         ],
         "id": "f336678e",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-06-03T11:49:57.400Z",
+          "attempts": 2
+        },
+        "summary": "Implements the flow judgment contract system, providing structured completion validation, override evidence, and SHA-256 progress signatures for SDD step transitions.",
+        "detail": "FlowJudgmentContract encapsulates blocking findings, verdict, target step, and artifact provenance for a review result. StepCompletionPolicy maps step IDs to allowed verdicts and is consulted by CompletionValidator before any step-completion transition. OverrideCompletionEvidence allows manual bypass of normal policies with an explicit FindingDisposition record persisted to `completion-overrides.json`. progressSignature computes a deterministic SHA-256 hash over stable-stringified contract fields. Factory functions (contractFromTestReviewArtifact, contractFromImplReviewArtifact, etc.) build typed contracts from raw JSON artifacts read from the spec directory.",
+        "chapter": "internal_design",
+        "role": "contract",
+        "keywords": [
+          "judgment contract",
+          "completion validation",
+          "blocking findings",
+          "override evidence",
+          "progress signature",
+          "SHA-256",
+          "step transition",
+          "StepCompletionPolicy",
+          "FindingDisposition",
+          "flow gate"
+        ]
       },
       {
         "file": "src/flow/lib/gate-recovery-display.js",
@@ -3400,8 +3493,25 @@
         ],
         "id": "9bbc3f1d",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-06-03T11:49:57.400Z",
+          "attempts": 4
+        },
+        "summary": "Resolves gate step IDs and phases from flow state by deriving bidirectional maps between phase names and step identifiers at module load time.",
+        "detail": "PHASE_TO_STEP and STEP_TO_PHASE are derived once from FLOW_DEFINITION via collectGatePhaseEntries and frozen as module-level constants. resolveGateStepId maps a phase name to the corresponding gate step ID, defaulting to 'spec-gate'. resolveGatePhaseFromState inspects in-progress steps from either task or flow scope, delegating to pickLatestFlowGateStep to find the most recently activated gate leaf. TASK_STEP_TO_PHASE covers task-scoped gate phases separately. flattenForGate handles nested step structures for gate resolution.",
+        "chapter": "internal_design",
+        "role": "resolver",
+        "keywords": [
+          "gate step",
+          "phase resolution",
+          "STEP_TO_PHASE",
+          "PHASE_TO_STEP",
+          "flow definition",
+          "gate phase",
+          "task scope",
+          "in-progress steps",
+          "flow state",
+          "step ID"
+        ]
       },
       {
         "file": "src/flow/lib/get-check.js",
@@ -3635,8 +3745,25 @@
         "usedBy": null,
         "id": "c68afd69",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-06-03T11:49:57.400Z",
+          "attempts": 4
+        },
+        "summary": "Implements GetNextActionCommand, evaluating current flow state against loaded rules and schemas to determine the appropriate next SDD action.",
+        "detail": "Loads JSON schemas from `flow/schemas/` and skill rules from the filesystem, caching them after the first read. Calls assertNoUnresolvedInProgressTarget to guard against ambiguous state before rule evaluation. deriveStateSet computes a set of active state flags used for rule filtering. injectPersistentRules prepends persistent rule blocks to the base content for context-sensitive guidance. Handles task promotion (promoteNextTaskAndFirstStep, promoteNextAvailableTarget) and attaches retry recovery views when a review or gate step is in a failure state. Returns an Envelope containing the next action descriptor or a failure reason.",
+        "chapter": "internal_design",
+        "role": "command",
+        "keywords": [
+          "next action",
+          "flow state",
+          "rule evaluation",
+          "Envelope",
+          "step promotion",
+          "retry recovery",
+          "task promotion",
+          "schema loading",
+          "state flags",
+          "get-next-action"
+        ]
       },
       {
         "file": "src/flow/lib/get-prompt.js",
@@ -3835,8 +3962,25 @@
         ],
         "id": "9aca938f",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-06-03T11:49:57.400Z",
+          "attempts": 4
+        },
+        "summary": "Implements GetStatusCommand, aggregating token metrics, activity counters, and review/gate views into a unified flow status output.",
+        "detail": "buildMetricsSummary iterates metric entries to accumulate token buckets (input, output, cacheRead, cacheCreation) and activity counters per phase and provider. buildStatusOutput consolidates active step info, requirements, metrics summary, review stop views, and retry recovery into a single status object. buildStatusReviewViews and buildStatusGateViews delegate to reviewPhaseForStepId and resolveGateRecoveryDisplayPhase respectively. Supports both run-ID lookup and current-state access via the Envelope pattern. resolveActiveStepMaxAttempts derives the attempt limit from the flow definition for the current active node.",
+        "chapter": "internal_design",
+        "role": "command",
+        "keywords": [
+          "flow status",
+          "token metrics",
+          "activity counters",
+          "review views",
+          "gate views",
+          "retry recovery",
+          "Envelope",
+          "GetStatusCommand",
+          "metrics summary",
+          "flow state"
+        ]
       },
       {
         "file": "src/flow/lib/get-step-instructions.js",
@@ -4153,7 +4297,7 @@
         ],
         "id": "30a7075c",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -4264,7 +4408,7 @@
         ],
         "id": "4cc38837",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4362,7 +4506,7 @@
         ],
         "id": "3de0db3f",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -4404,7 +4548,7 @@
         ],
         "id": "fcf92359",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -4548,7 +4692,7 @@
         "usedBy": null,
         "id": "49364661",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4789,7 +4933,7 @@
         ],
         "id": "c711309b",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4984,7 +5128,7 @@
         ],
         "id": "b4aa4dad",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -5153,7 +5297,7 @@
         "usedBy": null,
         "id": "82a89eee",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -5230,7 +5374,7 @@
         "usedBy": null,
         "id": "43872d6b",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -5386,7 +5530,7 @@
         ],
         "id": "d4e97204",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -5439,7 +5583,7 @@
         "usedBy": null,
         "id": "c99f2f87",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -5605,7 +5749,7 @@
         "usedBy": null,
         "id": "c1fba537",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -5752,7 +5896,7 @@
         "usedBy": null,
         "id": "b77c2c3d",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -6090,7 +6234,7 @@
         "usedBy": null,
         "id": "ee559b7a",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -6126,7 +6270,7 @@
         "usedBy": null,
         "id": "d4cb8d93",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -6254,7 +6398,7 @@
         ],
         "id": "5fd87c16",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -6386,7 +6530,7 @@
         ],
         "id": "0b1b96b3",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -6578,7 +6722,7 @@
         ],
         "id": "d64f4095",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -6602,7 +6746,7 @@
         "usedBy": null,
         "id": "4ac07fa0",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -6676,7 +6820,7 @@
         ],
         "id": "1af31edd",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -7013,7 +7157,7 @@
         ],
         "id": "dff6e5b4",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -7367,7 +7511,7 @@
         ],
         "id": "09ff0ab4",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -7522,7 +7666,7 @@
         ],
         "id": "5332364e",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -8555,7 +8699,7 @@
         ],
         "id": "a1344e4a",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -8644,7 +8788,7 @@
         ],
         "id": "deaeeb23",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -8697,7 +8841,7 @@
         "usedBy": null,
         "id": "69d5afb4",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11782,7 +11926,7 @@
         "usedBy": null,
         "id": "acdc1ca9",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -11804,7 +11948,7 @@
         "usedBy": null,
         "id": "a8608997",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11853,7 +11997,7 @@
         "usedBy": null,
         "id": "9820c9db",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -11972,7 +12116,7 @@
         "usedBy": null,
         "id": "a631f658",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -12001,7 +12145,7 @@
         "usedBy": null,
         "id": "cc286b88",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12068,7 +12212,7 @@
         ],
         "id": "c9908fa4",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12097,7 +12241,7 @@
         "usedBy": null,
         "id": "4e4593ba",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12118,7 +12262,7 @@
         "usedBy": null,
         "id": "11e11b10",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12144,18 +12288,30 @@
         "usedBy": null,
         "id": "9219bc6c",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
         "file": "src/workflow/lib/commands/issue-log-import.js",
-        "hash": "c60f7259cb83e22db9c0b73037c90052",
-        "lines": 145,
-        "mtime": "2026-06-01T12:00:23.193Z",
+        "hash": "79c204dea792af7e822a6475bbba6c94",
+        "lines": 338,
+        "mtime": "2026-06-03T04:21:29.638Z",
         "className": "issue-log-import",
         "methods": [
           "validateSpecPath",
           "buildCandidates",
+          "labelsFor",
+          "text",
+          "normalizeCategory",
+          "classifyCategory",
+          "knownJapaneseSummary",
+          "buildTitle",
+          "buildTarget",
+          "buildProblem",
+          "buildCause",
+          "buildImprovement",
+          "isRawDiagnosticEntry",
+          "isDecisionReadyEntry",
           "entryToCandidate",
           "refineWithAi"
         ],
@@ -12177,7 +12333,7 @@
         "usedBy": null,
         "id": "970e6266",
         "enrich": {
-          "attempts": 2
+          "attempts": 1
         }
       },
       {
@@ -12203,7 +12359,7 @@
         "usedBy": null,
         "id": "27d732ed",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12225,7 +12381,7 @@
         "usedBy": null,
         "id": "8dd05cbb",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12250,7 +12406,7 @@
         "usedBy": null,
         "id": "c1034289",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12272,7 +12428,7 @@
         "usedBy": null,
         "id": "b70ba15e",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12294,7 +12450,7 @@
         "usedBy": null,
         "id": "7752e8c4",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12317,7 +12473,7 @@
         "usedBy": null,
         "id": "e75cf809",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12355,7 +12511,7 @@
         ],
         "id": "60bcd438",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12394,7 +12550,7 @@
         ],
         "id": "731ada65",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12423,7 +12579,7 @@
         ],
         "id": "d5313dab",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12451,7 +12607,7 @@
         "usedBy": null,
         "id": "e88a4b0e",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12471,15 +12627,15 @@
         ],
         "id": "780bd655",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       }
     ],
     "summary": {
       "total": 338,
-      "totalMethods": 1639
+      "totalMethods": 1654
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-03T03:13:40.843Z"
+  "enrichedAt": "2026-06-03T11:53:18.057Z"
 }
