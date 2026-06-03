@@ -1,0 +1,62 @@
+{
+  "devType": "bugfix",
+  "goal": "finalize 後に表示・保存される report の Retro セクションへ、既存の retro.json 集計結果を反映する。",
+  "analysis": {
+    "problem": "finalize post-hook の report 生成時に retro.json が results.retro へ戻されないため、retro.json が存在しても report.json と report 表示の Retro セクションが '-' になる。",
+    "proposedApproach": "finalize の report 生成前に spec ディレクトリの retro.json を読み込み、run-report と同じ形で results.retro に summary と requirements を渡す。Retro 実行自体は mainline step の責務として維持する。",
+    "validation": "Issue #351、src/flow/lib/run-finalize.js の executeCommitPost、src/flow/lib/run-report.js の retro.json 読み込み、src/flow/commands/report.js の generateReport 条件を確認した。generateReport は results.retro.status が done かつ summary がある場合だけ data.retro を作るため、既存 retro.json を report 入力へ復元すれば根本原因に対応できる。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #351 は retro.json が生成済みなのに finalize report の Retro セクションが '-' になる不具合を対象にしている。",
+      "src/flow/lib/run-report.js は retro.json を読み、results.retro = { status: \"done\", summary, requirements } を構築して generateReport に渡している。",
+      "src/flow/lib/run-finalize.js の executeCommitPost は test-execute-result.json と test-result-review.json を読み込むが、現状では retro.json を読み込まない。",
+      "src/flow/commands/report.js の generateReport は results.retro.status === \"done\" かつ summary が存在する場合だけ Retro report data を作る。",
+      "tests/unit/flow/run-finalize-retro-invocation.test.js は finalize が RetroCommand を呼ばないことを検証しており、finalize report が既存 retro.json を表示することは検証していない。"
+    ],
+    "decisionPoints": [
+      "finalize post-hook が RetroCommand を再実行するのではなく、既存 retro.json を report 入力へ復元する。",
+      "run-report と finalize post-hook の retro.json 読み込み形状を一致させる。",
+      "回帰テストは finalize 経由の report が retro.json summary を表示・保存することを検証する。"
+    ],
+    "resolvedByProjectRules": [
+      "外部依存は追加しない。Node.js 組み込みモジュールのみを使う。",
+      "spec は Issue #351 の単一 concern に限定し、別 Issue への分割や周辺 refactor は行わない。",
+      "Retro 実行は mainline impl-phase step の責務として維持し、finalize post-hook では再実行しない。",
+      "テスト失敗時は妥当性を確認し、妥当な失敗であれば production code を修正する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "retro.json が不正 JSON の場合の扱いは既存 run-report の error policy と整合させる。",
+      "共通 helper 抽出の要否は run-report と finalize の重複量を spec で検討する。",
+      "report text と report.json のどちらをテスト対象にするかは、既存テストパターンに合わせて spec/test step で定義する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: finalize post-hook の report 生成入力に既存 retro.json を反映する。",
+      "must: report.json の data.retro に retro.json summary と requirements が入ることを保証する。",
+      "must: 人間向け report 表示の Retro セクションが '-' ではなく集計行を表示することを保証する。",
+      "must: finalize 経由の回帰テストを追加する。"
+    ],
+    "out": [
+      "RetroCommand を finalize post-hook から再実行する変更。",
+      "retro.json の生成ロジック自体の変更。",
+      "report 全体の表示形式の刷新。",
+      "GitHub issue comment や finalize cleanup の挙動変更。"
+    ]
+  },
+  "impactOnExisting": [
+    "finalize-commit 後の report.json と report 表示に Retro 結果が含まれる。",
+    "flow run report 単体の既存挙動は維持する。",
+    "finalize post-hook が RetroCommand を呼ばない既存責務分離は維持する。",
+    "durable impl-phase artifact commit 対象には既存方針通り retro/report artifact が含まれる。"
+  ],
+  "qa": [],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-03T02:32:35.000Z",
+    "notes": "autoApprove: Issue #351 と関連 source context から未解決のユーザー判断なし。"
+  }
+}

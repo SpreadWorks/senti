@@ -18,15 +18,7 @@ import { generateReport, saveReport } from "../commands/report.js";
 import { loadIssueLog } from "./set-issue-log.js";
 import { FlowCommand } from "./base-command.js";
 import { buildTestResultsFromArtifacts } from "./test-artifacts.js";
-
-function readJsonIfExists(filePath) {
-  if (!fs.existsSync(filePath)) return null;
-  try {
-    return JSON.parse(fs.readFileSync(filePath, "utf8"));
-  } catch (err) {
-    throw new Error(`[sdd-forge] run-report: failed to parse ${filePath}: ${err.message}`);
-  }
-}
+import { readRetroResultIfExists } from "./retro-artifacts.js";
 
 export class RunReportCommand extends FlowCommand {
   async execute(ctx) {
@@ -45,18 +37,12 @@ export class RunReportCommand extends FlowCommand {
     try { redolog = loadIssueLog(root, state.spec); } catch (_) { /* no redolog */ }
 
     const specDir = path.dirname(path.resolve(root, state.spec));
-    const retro = readJsonIfExists(path.join(specDir, "retro.json"));
+    const retroResult = readRetroResultIfExists(specDir, "run-report");
     const hasTestExecuteResult = fs.existsSync(path.join(specDir, "test-execute-result.json"));
     const hasTestResultReview = fs.existsSync(path.join(specDir, "test-result-review.json"));
 
     const results = {};
-    if (retro) {
-      results.retro = {
-        status: "done",
-        summary: retro.summary,
-        requirements: retro.requirements,
-      };
-    }
+    if (retroResult) results.retro = retroResult;
     // Shared loader preserves results.testExecute.projectRegression for report rendering.
     if (hasTestExecuteResult || hasTestResultReview) {
       Object.assign(results, buildTestResultsFromArtifacts(specDir));

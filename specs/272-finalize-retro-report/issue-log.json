@@ -1,0 +1,176 @@
+{
+  "entries": [
+    {
+      "step": "draft",
+      "reason": "metric recording rejected parent phase plan during draft context read",
+      "trigger": "sdd-forge flow set metric plan docsRead returned INVALID_PHASE",
+      "resolution": "recorded docsRead with accepted draft phase metric key",
+      "guardrailCandidate": "use next-action step id for metrics when status phase is a parent phase",
+      "taskId": null,
+      "timestamp": "2026-06-03T02:30:09.668Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-03T02:32:45.989Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft approval is required: set approval.approved = true",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate required approval.approved true after coverage pass with no unresolved user decision",
+      "trigger": "sdd-forge flow run gate --phase draft returned structural approval errors",
+      "resolution": "set draft approval true with autoApprove note after confirming qa was empty and coverage review passed",
+      "guardrailCandidate": "auto draft with no unresolved QA must set approval before draft gate",
+      "taskId": null,
+      "timestamp": "2026-06-03T02:33:01.470Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Requirement list has more than three items, but this item has no assigned priority (must/should/nice-to-have).; Requirement list has more than three items, but this item has no assigned priority (must/should/nice-to-have).; Requirement list has more than three items, but this item has no assigned priority (must/should/nice-to-have).; Requirement list has more than three items, but this item has no assigned priority (must/should/nice-to-have).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-03T02:33:35.088Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[0]"
+          },
+          "observed": "Requirement list has more than three items, but this item has no assigned priority (must/should/nice-to-have).",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[1]"
+          },
+          "observed": "Requirement list has more than three items, but this item has no assigned priority (must/should/nice-to-have).",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[2]"
+          },
+          "observed": "Requirement list has more than three items, but this item has no assigned priority (must/should/nice-to-have).",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[3]"
+          },
+          "observed": "Requirement list has more than three items, but this item has no assigned priority (must/should/nice-to-have).",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "Requirement list has more than three items, but this item has no assigned priority (must/should/nice-to-have)."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "Requirement list has more than three items, but this item has no assigned priority (must/should/nice-to-have)."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "Requirement list has more than three items, but this item has no assigned priority (must/should/nice-to-have)."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "Requirement list has more than three items, but this item has no assigned priority (must/should/nice-to-have)."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate required priority labels for four in-scope requirements",
+      "trigger": "prioritize-requirements guardrail failed on scopeVerification.in entries",
+      "resolution": "prefixed each in-scope requirement with must priority",
+      "guardrailCandidate": "when draft scope lists more than three requirements assign priority before gate",
+      "taskId": null,
+      "timestamp": "2026-06-03T02:33:50.743Z"
+    },
+    {
+      "step": "spec-review",
+      "reason": "spec review provider returned JSON missing blockingFindings and nonBlockingImprovements fields",
+      "trigger": "sdd-forge flow run review --phase spec failed schema validation after provider retries",
+      "resolution": "recorded tooling failure and retrying the same review step with unchanged spec evidence",
+      "guardrailCandidate": "review provider outputs must include required structured fields before parsing",
+      "taskId": null,
+      "timestamp": "2026-06-03T02:40:30.557Z"
+    },
+    {
+      "step": "spec-review",
+      "reason": "spec review blocked after three consecutive provider schema validation failures",
+      "trigger": "third sdd-forge flow run review --phase spec returned missing blockingFindings and nonBlockingImprovements",
+      "resolution": "stopped before bypassing review step because no valid spec-review artifact was produced",
+      "guardrailCandidate": "do not advance review steps without a valid structured review artifact",
+      "taskId": null,
+      "timestamp": "2026-06-03T02:49:25.615Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "impl-gate failed before AI evaluation because file-map.json was missing",
+      "trigger": "sdd-forge flow run gate returned ARTIFACT_PLACEHOLDER file-map.json missing",
+      "resolution": "record requirement-to-file mappings with sdd-forge flow set files before rerunning gate",
+      "guardrailCandidate": "record file-map before impl-gate when implementation touches production files",
+      "taskId": null,
+      "timestamp": "2026-06-03T03:03:47.647Z"
+    }
+  ]
+}

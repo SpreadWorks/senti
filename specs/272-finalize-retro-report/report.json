@@ -1,0 +1,202 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".sdd-forge/output/analysis.json                    |   2 +-\n .../draft-coverage-repair.json                     |   8 +\n .../draft-coverage-triage.json                     |   8 +\n .../draft-questions-repair.json                    |   8 +\n .../draft-questions-triage.json                    |   8 +\n .../draft-review-coverage.json                     |  11 +\n .../draft-review-questions.json                    |  11 +\n specs/272-finalize-retro-report/draft.json         |  62 ++\n specs/272-finalize-retro-report/file-map.json      |  26 +\n specs/272-finalize-retro-report/flow.json          | 969 +++++++++++++++++++++\n specs/272-finalize-retro-report/impl-review.json   |  28 +\n specs/272-finalize-retro-report/issue-log.json     | 176 ++++\n specs/272-finalize-retro-report/issue.md           |  48 +\n .../review-history/draft-coverage-attempt-001.json |  14 +\n .../draft-questions-attempt-001.json               |  14 +\n .../review-history/impl-attempt-001.json           |  31 +\n .../review-history/impl-attempt-001.md             |  16 +\n .../review-history/test-attempt-001.json           |  64 ++\n .../review-history/test-attempt-001.md             |  21 +\n specs/272-finalize-retro-report/review.md          |  16 +\n specs/272-finalize-retro-report/spec-repair.json   |   7 +\n specs/272-finalize-retro-report/spec-review.json   |  13 +\n specs/272-finalize-retro-report/spec-review.md     |  13 +\n specs/272-finalize-retro-report/spec-triage.json   |   7 +\n specs/272-finalize-retro-report/spec.json          | 176 ++++\n specs/272-finalize-retro-report/spec.md            |  99 +++\n specs/272-finalize-retro-report/tasks/T-1.md       |  20 +\n specs/272-finalize-retro-report/tasks/T-2.md       |  20 +\n specs/272-finalize-retro-report/test-coverage.json |  64 ++\n specs/272-finalize-retro-report/test-review.json   |  40 +\n specs/272-finalize-retro-report/test-review.md     |  21 +\n .../tests/finalize-retro-report.test.js            | 188 ++++\n src/flow/lib/retro-artifacts.js                    |  27 +\n src/flow/lib/run-finalize.js                       |   3 +\n src/flow/lib/run-report.js                         |  20 +-\n 35 files changed, 2241 insertions(+), 18 deletions(-)",
+      "commits": [
+        "fix: include retro results in finalize report"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 8,
+      "fullLogPath": "specs/272-finalize-retro-report/issue-log.json",
+      "importantTotal": 5,
+      "importantShown": 5,
+      "importantOmitted": 0,
+      "recentOtherTotal": 3,
+      "recentOtherShown": 3,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "draft gate required approval.approved true after coverage pass with no unresolved user decision",
+          "resolution": "set draft approval true with autoApprove note after confirming qa was empty and coverage review passed"
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "draft gate required priority labels for four in-scope requirements",
+          "resolution": "prefixed each in-scope requirement with must priority"
+        },
+        {
+          "classification": "important",
+          "step": "spec-review",
+          "reason": "spec review provider returned JSON missing blockingFindings and nonBlockingImprovements fields",
+          "resolution": "recorded tooling failure and retrying the same review step with unchanged spec evidence"
+        },
+        {
+          "classification": "important",
+          "step": "spec-review",
+          "reason": "spec review blocked after three consecutive provider schema validation failures",
+          "resolution": "stopped before bypassing review step because no valid spec-review artifact was produced"
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "impl-gate failed before AI evaluation because file-map.json was missing",
+          "resolution": "record requirement-to-file mappings with sdd-forge flow set files before rerunning gate"
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft",
+          "reason": "metric recording rejected parent phase plan during draft context read",
+          "resolution": "recorded docsRead with accepted draft phase metric key"
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "Requirement list has more than three items, but this item has no assigned priority (must/should/nice-to-have).; Requirement list has more than three items, but this item has no assigned priority (must/should/nice-to-have).; Requirement l...",
+          "resolution": null
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 2,
+      "srcRead": 2,
+      "question": 0,
+      "issueLog": 6
+    },
+    "tokenMetrics": {
+      "input": 224395,
+      "output": 78237,
+      "cacheRead": 1419534,
+      "cacheCreation": 425646,
+      "cost": 5.5784495,
+      "callCount": 22,
+      "durationMs": 940083,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 3881
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 14572
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 37431
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 736409
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 8808
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 90547
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 13617
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 34818
+        }
+      ]
+    },
+    "tests": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/272-finalize-retro-report/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 43,
+          "end_line": 5222
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/272-finalize-retro-report/"
+          },
+          {
+            "status": "untracked",
+            "path": "src/flow/lib/retro-artifacts.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-finalize.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-report.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/272-finalize-retro-report/"
+          },
+          {
+            "status": "untracked",
+            "path": "src/flow/lib/retro-artifacts.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-finalize.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-report.js"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/272-finalize-retro-report/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    fix: include retro results in finalize report\n    35 files changed, 2241 insertions(+), 18 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 2\n    Q&A ......................... 0\n    issue-log ................... 6\n    agent calls ................. 22\n    input tokens ................ 224,395\n    output tokens ............... 78,237\n    cache-read tokens ........... 1,419,534\n    cache-create tokens ......... 425,646\n    cost ........................ $5.5784\n    duration (total) ............ 940.1s\n      draft-questions-review .... 3.9s\n      draft-coverage-review ..... 14.6s\n      draft-gate ................ 37.4s\n      spec-review ............... 736.4s\n      spec-gate ................. 8.8s\n      test-review ............... 90.5s\n      impl-review ............... 13.6s\n      impl-gate ................. 34.8s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 4  passed 4  failed 0 verdict=pass\n    raw_output: specs/272-finalize-retro-report/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (8 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/272-finalize-retro-report/issue-log.json\n\n    Important (5)\n    - [draft-gate] draft gate required approval.approved true after coverage pass with no unresolved user decision\n    - [draft-gate] draft gate required priority labels for four in-scope requirements\n    - [spec-review] spec review provider returned JSON missing blockingFindings and nonBlockingImprovements fields\n    - [spec-review] spec review blocked after three consecutive provider schema validation failures\n    - [impl-gate] impl-gate failed before AI evaluation because file-map.json was missing\n\n    Recent Other (3)\n    - [draft] metric recording rejected parent phase plan during draft context read\n    - [draft-gate] draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved\n    - [draft-gate] Requirement list has more than three items, but this item has no assigned priority (must/should/nice-to-have).; Requirement list has more than three items, but this item has no assigned priority (must/should/nice-to-have).; Requirement l..."
+}

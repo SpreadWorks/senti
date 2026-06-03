@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-03T02:58:40.445Z",
+  "verdict": "ADVISORY",
+  "counts": {
+    "blocking": 0,
+    "advisory": 2,
+    "total": 2
+  },
+  "coverageArtifact": "specs/272-finalize-retro-report/test-coverage.json",
+  "blockingFindings": [],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R4 negative regex is brittle and hard to read",
+      "target": "specs/272-finalize-retro-report/tests/finalize-retro-report.test.js (R4 test)",
+      "improvement": "The assertion `assert.doesNotMatch(report.text, /Retro\\n[-\\s]+\\n\\s+-\\n/)` relies on `[-\\s]+` spanning the divider plus newlines, which is opaque and could silently stop guarding the '-only' case if the Retro section header/divider format changes. Consider asserting on a more explicit anchor (e.g. that the line immediately following the Retro divider contains the aggregate bar/percentage rather than a bare '-').",
+      "whyNonBlocking": "The current regex still correctly distinguishes the retro-present case from the '-' placeholder for the fixture used, so the test exercises real behavior and passes; this is a readability/maintainability refinement only."
+    },
+    {
+      "kind": "advisory",
+      "title": "No assertion on partial/not_done requirement lines in report text",
+      "target": "specs/272-finalize-retro-report/tests/finalize-retro-report.test.js (R3/R4 tests)",
+      "improvement": "R3 supplies a rate=0.5 summary with a partial requirement but only asserts on `report.data.retro`; the `formatText` branch `if (r.rate < 1.0 && r.requirements)` that renders `[partial] ...` / note lines in the human text is left unverified. Adding a text assertion for a rate<1 case would cover that rendering path.",
+      "whyNonBlocking": "R3 (data.retro) and R4 (aggregate line) are each covered by executable assertions; this is an additional boundary case for the partial-requirement text rendering, not a coverage gap for the stated requirements."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/272-finalize-retro-report/test-review.json",
+    "verdict": "ADVISORY",
+    "result": "ADVISORY",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": "implement",
+    "completionKind": "normal",
+    "progressSignature": "ac597ea9c4c9fc8cbbbda35fa1099a6c836e6210f7fa0f3d47867828ddbbe830"
+  }
+}

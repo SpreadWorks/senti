@@ -1,0 +1,114 @@
+{
+  "verdict": "pass",
+  "issues": [],
+  "nextAction": {
+    "diagnosis": {
+      "summary": "No blocking observations.",
+      "observations": []
+    },
+    "prescription": "retro"
+  },
+  "level": "integration",
+  "phase": "integration",
+  "evaluations": [
+    {
+      "guardrail_id": "R1",
+      "result": "pass",
+      "reason": "`executeCommitPost` now imports `readRetroResultIfExists`, reads `specAbsDir/retro.json` before report building, and assigns `results.retro` to `{ status: \"done\", summary, requirements }` when the file exists.",
+      "title": "R1",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R2",
+      "result": "pass",
+      "reason": "`executeCommitPost` sets `results.retro` only when `readRetroResultIfExists` returns a value, and `readRetroResultIfExists` returns null when `retro.json` is missing, so no retro data is generated; no new RetroCommand/RunRetroCommand calls were introduced.",
+      "title": "R2",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R3",
+      "result": "pass",
+      "reason": "run-finalize now reads existing `retro.json` into `results.retro` (status/summary/requirements) before report generation, and the added finalize-local test asserts `report.json` contains matching `data.retro` fields including requirements.",
+      "title": "R3",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R4",
+      "result": "pass",
+      "reason": "The finalize path now injects `retro.json` into `results.retro` via `executeCommitPost`, and the new spec test explicitly validates report text contains the Retro aggregate line and not the `'-'`-only placeholder, matching the requirement.",
+      "title": "R4",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": []
+    },
+    {
+      "guardrail_id": "no-overengineering",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "code-quality",
+      "title": "Avoid Overengineering",
+      "observations": []
+    }
+  ],
+  "reasons": [
+    {
+      "verdict": "PASS",
+      "detail": "R1 — `executeCommitPost` now imports `readRetroResultIfExists`, reads `specAbsDir/retro.json` before report building, and assigns `results.retro` to `{ status: \"done\", summary, requirements }` when the file exists.",
+      "guardrail_id": "R1",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R2 — `executeCommitPost` sets `results.retro` only when `readRetroResultIfExists` returns a value, and `readRetroResultIfExists` returns null when `retro.json` is missing, so no retro data is generated; no new RetroCommand/RunRetroCommand calls were introduced.",
+      "guardrail_id": "R2",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R3 — run-finalize now reads existing `retro.json` into `results.retro` (status/summary/requirements) before report generation, and the added finalize-local test asserts `report.json` contains matching `data.retro` fields including requirements.",
+      "guardrail_id": "R3",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R4 — The finalize path now injects `retro.json` into `results.retro` via `executeCommitPost`, and the new spec test explicitly validates report text contains the Retro aggregate line and not the `'-'`-only placeholder, matching the requirement.",
+      "guardrail_id": "R4",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Spec Test Coverage — no observations emitted",
+      "guardrail_id": "spec-test-coverage",
+      "category": "testing"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Avoid Overengineering — no observations emitted",
+      "guardrail_id": "no-overengineering",
+      "category": "code-quality"
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "impl-gate",
+    "artifactPath": "specs/272-finalize-retro-report/impl-gate-result.json",
+    "verdict": "pass",
+    "result": "pass",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": {
+      "diagnosis": {
+        "summary": "No blocking observations.",
+        "observations": []
+      },
+      "prescription": "retro"
+    },
+    "completionKind": "normal",
+    "progressSignature": "bdc1046f56051fc5fd517d9ed06faf7531e61f46c474067c990ffeabff5d4c3a"
+  }
+}

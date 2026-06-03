@@ -25,6 +25,7 @@ import {
   collectExistingArtifactPathspecs,
   durableTestArtifactPathspecs,
 } from "./test-artifacts.js";
+import { readRetroResultIfExists } from "./retro-artifacts.js";
 
 export function finalizeOnError(stepName, trigger) {
   return (ctx, err) => {
@@ -286,6 +287,8 @@ export async function executeCommitPost(ctx) {
   // and preserves results.testExecute.projectRegression for finalize report rendering.
   const testExecutePath = path.join(specAbsDir, "test-execute-result.json");
   const testResultReviewPath = path.join(specAbsDir, "test-result-review.json");
+  const retroResult = readRetroResultIfExists(specAbsDir, "run-finalize");
+  if (retroResult) results.retro = retroResult;
   if (fs.existsSync(testExecutePath) || fs.existsSync(testResultReviewPath)) {
     Object.assign(results, buildTestResultsFromArtifacts(specAbsDir));
   }

@@ -1,0 +1,38 @@
+{
+  "spec": "specs/272-finalize-retro-report/spec.json",
+  "date": "2026-06-03T03:05:37.930Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "src/flow/lib/run-finalize.js の executeCommitPost は、spec ファイルが存在する場合に report 生成前へ spec ディレクトリの retro.json 読み込みを追加する。retro.json が存在する場合、results.retro に { status: \"done\", summary: retro.summary, requirements: retro.requirements } を設定する。",
+      "status": "done",
+      "note": "R1: executeCommitPost restores existing retro.json into report input"
+    },
+    {
+      "desc": "retro.json が存在しない finalize flow では results.retro を生成せず、既存の「finalize post-hook は RetroCommand を呼ばない」挙動を維持する。",
+      "status": "done",
+      "note": "R2: executeCommitPost still leaves results.retro unset when retro.json is absent"
+    },
+    {
+      "desc": "finalize 経由で保存される report.json は、retro.json の summary を data.retro に含め、retro.json の requirements がある場合は data.retro.requirements に含める。",
+      "status": "done",
+      "note": "R3: finalize report.json includes retro summary and requirements from retro.json"
+    },
+    {
+      "desc": "finalize 経由で生成される人間向け report text の Retro セクションは、retro.json summary の rate/done/partial/not_done から集計行を表示し、retro.json が存在するケースで '-' だけを表示しない。",
+      "status": "done",
+      "note": "R4: finalize report text displays the Retro aggregate instead of only "
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 4,
+    "done": 4,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}
