@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "`sdd-forge check freshness --help` must display `sdd-forge docs build` as the command to run when docs regeneration is needed and must not display `sdd-forge build` as that command.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/freshness-guidance.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "`sdd-forge check freshness` text output for both `stale` and `never-built` results must display `sdd-forge docs build` and must not display `sdd-forge build`.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/freshness-guidance.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "The fix must preserve freshness result classification, JSON output shape, and exit codes for `fresh`, `stale`, and `never-built`.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/freshness-guidance.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "`sdd-forge check freshness` must keep the existing user-facing argument contract: `--format <text|json>` accepts only `text` or `json`, `-h` and `--help` print help, and no internal-only arguments are introduced.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/freshness-guidance.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/freshness-guidance.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ]
+    }
+  ]
+}

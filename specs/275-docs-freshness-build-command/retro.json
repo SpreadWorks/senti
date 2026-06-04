@@ -1,0 +1,38 @@
+{
+  "spec": "specs/275-docs-freshness-build-command/spec.json",
+  "date": "2026-06-04T09:45:47.632Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "`sdd-forge check freshness --help` must display `sdd-forge docs build` as the command to run when docs regeneration is needed and must not display `sdd-forge build` as that command.",
+      "status": "done",
+      "note": "R1: help guidance points to sdd-forge docs build"
+    },
+    {
+      "desc": "`sdd-forge check freshness` text output for both `stale` and `never-built` results must display `sdd-forge docs build` and must not display `sdd-forge build`.",
+      "status": "done",
+      "note": "R2: stale and never-built text output point to sdd-forge docs build"
+    },
+    {
+      "desc": "The fix must preserve freshness result classification, JSON output shape, and exit codes for `fresh`, `stale`, and `never-built`.",
+      "status": "done",
+      "note": "R3: JSON output shape and exit code contract stay unchanged"
+    },
+    {
+      "desc": "`sdd-forge check freshness` must keep the existing user-facing argument contract: `--format <text|json>` accepts only `text` or `json`, `-h` and `--help` print help, and no internal-only arguments are introduced.",
+      "status": "done",
+      "note": "R4: format validation and help arguments keep the existing contract"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 4,
+    "done": 4,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

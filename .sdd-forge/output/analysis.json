@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-04T05:51:56.620Z",
+  "analyzedAt": "2026-06-04T09:14:18.833Z",
   "package": {
     "entries": [
       {
@@ -5746,11 +5746,12 @@
       },
       {
         "file": "src/flow/lib/run-test-execute.js",
-        "hash": "6b2d6b1ef454ad181de68dbf2bb3139c",
-        "lines": 299,
-        "mtime": "2026-05-20T06:47:16.447Z",
+        "hash": "664e2c995a5fdf18ea06680d95fb3d31",
+        "lines": 331,
+        "mtime": "2026-06-04T09:14:18.555Z",
         "className": "run-test-execute",
         "methods": [
+          "failedRequirementIdsFromSpecLocal",
           "recordPrerequisiteIssue",
           "listSpecTestFiles",
           "extractRequirementTestName",
@@ -5758,6 +5759,8 @@
           "appendRaw",
           "runSpecLocalTests",
           "testableRequirementsForSummary",
+          "extractRequirementIds",
+          "requirementResult",
           "buildSummary",
           "specLocalPassed",
           "buildSkippedRegression",
@@ -5776,31 +5779,12 @@
           "./test-regression.js"
         ],
         "exports": [
+          "failedRequirementIdsFromSpecLocal",
           "default"
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "41745e8b",
-        "enrich": {
-          "processedAt": "2026-05-20T15:12:33.535Z",
-          "attempts": 4
-        },
-        "summary": "Implements the flow `test-execute` command that runs requirement-linked spec-local tests and optional project regression tests, then writes structured artifacts. It enforces prerequisites and produces machine-readable outputs for later flow stages.",
-        "detail": "The module defines helper functions to discover spec test files, map requirement IDs to test files, extract readable test names, and cap processed requirements with a maximum threshold for safety. During execution, it resolves the spec directory, validates required inputs such as `analysis.json`, runs local spec tests with Node's test runner, and records command/process failures with explicit error handling. It builds a summary per testable requirement, including normalized relative test file paths and pass/fail interpretation, then classifies whether project-wide regression tests are required or skipped. Finally, it appends raw execution logs, saves a result artifact JSON with output paths and ranges, and updates issue-log state so downstream flow steps can consume consistent test evidence.",
-        "chapter": "cli_commands",
-        "role": "Flow command executor for test orchestration and artifact generation",
-        "keywords": [
-          "test execute",
-          "flow command",
-          "spec-local tests",
-          "regression testing",
-          "requirement traceability",
-          "artifact generation",
-          "issue log",
-          "Node.js test runner",
-          "command orchestration",
-          "failure handling"
-        ]
+        "id": "41745e8b"
       },
       {
         "file": "src/flow/lib/run-test-result-review.js",
@@ -12706,7 +12690,7 @@
     ],
     "summary": {
       "total": 338,
-      "totalMethods": 1656
+      "totalMethods": 1659
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },

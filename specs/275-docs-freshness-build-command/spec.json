@@ -1,0 +1,150 @@
+{
+  "goal": "`sdd-forge check freshness` が docs regeneration を案内するとき、実在する `sdd-forge docs build` を表示し、実在しない `sdd-forge build` を表示しない。",
+  "scope": {
+    "in": [
+      "`sdd-forge check freshness --help` の docs regeneration guidance",
+      "`sdd-forge check freshness` の `stale` text output",
+      "`sdd-forge check freshness` の `never-built` text output",
+      "freshness guidance を検証する spec-local test"
+    ],
+    "out": [
+      "top-level `sdd-forge build` alias の追加",
+      "`sdd-forge docs build` pipeline の実行順序や生成内容の変更",
+      "`sdd-forge check freshness` の mtime 判定、JSON output shape、exit code contract の変更"
+    ]
+  },
+  "constraints": [
+    "alpha 版ポリシーに従い、存在しない旧 command への互換 alias は追加しない。",
+    "`sdd-forge check freshness` の text output と help text の案内先は `sdd-forge docs build` に統一する。",
+    "`sdd-forge check freshness` の exit code contract は維持する。`fresh` は exit code 0、`stale` と `never-built` は exit code 1 のままとする。",
+    "JSON output は `{ ok, result, srcNewest, docsNewest }` の shape と値の意味を維持する。",
+    "`sdd-forge check freshness` の user-facing arguments は既存の `--format <text|json>` と `-h` / `--help` のみとする。`--format` は `text` または `json` の文字列だけを受け付け、その他の値は既存どおり error output と non-zero exit にする。内部専用 argument は追加しない。"
+  ],
+  "design_principles": [
+    "CLI が次に実行すべき command を表示する場合、表示する command は現在の registry で dispatch 可能な command と一致させる。",
+    "freshness check の責務は docs freshness 判定と次アクション案内に限定し、docs build の動作や command surface は変更しない。"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/check/commands/freshness.js` owns `sdd-forge check freshness` help text, text result rendering, freshness comparison, and JSON output."
+      },
+      {
+        "text": "`src/lib/command-registry.js` registers docs build as `docsCommands.build`; `src/docs.js` dispatches it as `sdd-forge docs build`."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "`runFreshnessCheck` parses `--format`, computes freshness via `checkFreshness`, then renders either JSON output or one text line for `fresh`, `stale`, or `never-built`."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] Checked draft policy against source: docs build is registered under the docs command subtree, so freshness guidance must point to `sdd-forge docs build`.",
+        "evidence": "`src/lib/command-registry.js` exports `docsCommands = { build: rawEntry(\"../docs/commands/build.js\"), ... }`; `src/docs.js` displays `Usage: sdd-forge docs <command>` and dispatches docs subcommands."
+      },
+      {
+        "text": "Do not add a top-level `sdd-forge build` alias.",
+        "evidence": "Draft q1 answered that the fix is limited to freshness guidance. AGENTS.md alpha policy says not to write backward compatibility code or preserve old formats/paths.",
+        "consideredAlternatives": "Adding a top-level alias would expand the CLI surface and is outside issue #355, which reports incorrect guidance from freshness check."
+      },
+      {
+        "text": "Existing behavior impact is limited to text output and help text.",
+        "evidence": "The draft impact list preserves JSON output shape, freshness logic, and `sdd-forge docs build` behavior."
+      }
+    ]
+  },
+  "background": "`sdd-forge check freshness` currently tells users to run `sdd-forge build` when docs are stale or missing. The CLI registry exposes docs generation through `sdd-forge docs build`, so the displayed next action can send users to an unknown command. The fix is a narrow bugfix to align freshness check guidance with the registered docs command.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "`sdd-forge check freshness --help` must display `sdd-forge docs build` as the command to run when docs regeneration is needed and must not display `sdd-forge build` as that command.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "`sdd-forge check freshness` text output for both `stale` and `never-built` results must display `sdd-forge docs build` and must not display `sdd-forge build`.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "The fix must preserve freshness result classification, JSON output shape, and exit codes for `fresh`, `stale`, and `never-built`.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "`sdd-forge check freshness` must keep the existing user-facing argument contract: `--format <text|json>` accepts only `text` or `json`, `-h` and `--help` print help, and no internal-only arguments are introduced.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "`sdd-forge check freshness --help` output contains `sdd-forge docs build` and does not contain `sdd-forge build` as the regeneration command.",
+    "A stale docs scenario exits non-zero and prints `run: sdd-forge docs build`.",
+    "A missing docs scenario exits non-zero and prints `run: sdd-forge docs build`.",
+    "`--format json` behavior continues to emit the existing JSON fields and non-zero exit for stale or never-built results.",
+    "`--format xml` or any other unsupported format continues to fail validation at the command entry point."
+  ],
+  "clarifications": [
+    {
+      "q": "Should this spec add a top-level `sdd-forge build` alias?",
+      "a": "No. The issue is resolved by correcting freshness guidance to the registered command. Adding an alias is out of scope."
+    },
+    {
+      "q": "Which command is the canonical docs generation command for this spec?",
+      "a": "`sdd-forge docs build`."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Add top-level `sdd-forge build` alias",
+      "reason": "Rejected because issue #355 targets incorrect freshness guidance, and the project alpha policy avoids backward compatibility code for old or nonexistent command forms."
+    },
+    {
+      "option": "Leave freshness output unchanged and document a fallback elsewhere",
+      "reason": "Rejected because users still encounter the wrong command directly in the failing workflow."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "check freshness",
+    "docs build",
+    "freshness guidance",
+    "stale output",
+    "never-built output",
+    "CLI help",
+    "command registry",
+    "src/check/commands/freshness.js",
+    "sdd-forge docs build"
+  ],
+  "implementationTargets": [
+    "src/check/commands/freshness.js",
+    "specs/275-docs-freshness-build-command/tests/"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Update freshness guidance",
+      "goal": "Change freshness check help and text result output so every docs regeneration hint points to `sdd-forge docs build`.",
+      "acceptance": [
+        "Help text uses `sdd-forge docs build` for docs regeneration guidance.",
+        "`stale` text output uses `run: sdd-forge docs build`.",
+        "`never-built` text output uses `run: sdd-forge docs build`."
+      ],
+      "implementation_notes": "Edit only `src/check/commands/freshness.js` unless tests reveal another freshness guidance source. Do not add a top-level build alias.",
+      "test_strategy": "Add a spec-local Node test under `specs/275-docs-freshness-build-command/tests/` with `// spec: R<N> ...` headers covering R1, R2, R3, and R4. The test should exercise help output, stale output, never-built output, JSON output shape, exit codes, and unsupported `--format` validation through the CLI.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-06-04T09:28:48.471Z",
+    "notes": "User selected option 1 to approve the gate-passed spec."
+  }
+}

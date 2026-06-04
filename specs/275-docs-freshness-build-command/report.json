@@ -1,0 +1,216 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".sdd-forge/config.json                             |   4 +-\n .sdd-forge/output/analysis.json                    |  36 +-\n package.json                                       |   2 +-\n .../draft-coverage-repair.json                     |   8 +\n .../draft-coverage-triage.json                     |   8 +\n .../draft-questions-repair.json                    |  17 +\n .../draft-questions-triage.json                    |  15 +\n .../draft-review-coverage.json                     |  11 +\n .../draft-review-questions.json                    |  19 +\n specs/275-docs-freshness-build-command/draft.json  |  67 ++\n .../275-docs-freshness-build-command/file-map.json |  18 +\n specs/275-docs-freshness-build-command/flow.json   | 928 +++++++++++++++++++++\n .../gate-impl-memory.json                          |  16 +\n .../impl-review.json                               |  28 +\n .../issue-log.json                                 | 107 +++\n .../review-history/draft-coverage-attempt-001.json |  14 +\n .../draft-questions-attempt-001.json               |  33 +\n .../review-history/impl-attempt-001.json           |  31 +\n .../review-history/impl-attempt-001.md             |  16 +\n .../review-history/spec-attempt-001.json           |  36 +\n .../review-history/spec-attempt-001.md             |  14 +\n .../review-history/test-attempt-001.json           |  83 ++\n .../review-history/test-attempt-001.md             |  26 +\n .../review-history/test-attempt-002.json           |  28 +\n .../review-history/test-attempt-002.md             |  13 +\n specs/275-docs-freshness-build-command/review.md   |  16 +\n .../spec-review.json                               |  22 +\n .../spec-review.md                                 |  14 +\n specs/275-docs-freshness-build-command/spec.json   | 150 ++++\n specs/275-docs-freshness-build-command/spec.md     |  88 ++\n .../275-docs-freshness-build-command/tasks/T-1.md  |  20 +\n .../test-coverage.json                             |  64 ++\n .../test-review.json                               |  25 +\n .../test-review.md                                 |  13 +\n .../tests/freshness-guidance.test.js               | 152 ++++\n src/check/commands/freshness.js                    |  12 +-\n 36 files changed, 2119 insertions(+), 35 deletions(-)",
+      "commits": [
+        "fix: update freshness docs build guidance",
+        "chore: sync package version with main"
+      ]
+    },
+    "retro": {
+      "total": 4,
+      "done": 4,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "`sdd-forge check freshness --help` must display `sdd-forge docs build` as the command to run when docs regeneration is needed and must not display `sdd-forge build` as that command.",
+          "status": "done",
+          "note": "R1: help guidance points to sdd-forge docs build"
+        },
+        {
+          "desc": "`sdd-forge check freshness` text output for both `stale` and `never-built` results must display `sdd-forge docs build` and must not display `sdd-forge build`.",
+          "status": "done",
+          "note": "R2: stale and never-built text output point to sdd-forge docs build"
+        },
+        {
+          "desc": "The fix must preserve freshness result classification, JSON output shape, and exit codes for `fresh`, `stale`, and `never-built`.",
+          "status": "done",
+          "note": "R3: JSON output shape and exit code contract stay unchanged"
+        },
+        {
+          "desc": "`sdd-forge check freshness` must keep the existing user-facing argument contract: `--format <text|json>` accepts only `text` or `json`, `-h` and `--help` print help, and no internal-only arguments are introduced.",
+          "status": "done",
+          "note": "R4: format validation and help arguments keep the existing contract"
+        }
+      ]
+    },
+    "issueLog": {
+      "count": 5,
+      "fullLogPath": "specs/275-docs-freshness-build-command/issue-log.json",
+      "importantTotal": 3,
+      "importantShown": 3,
+      "importantOmitted": 0,
+      "recentOtherTotal": 2,
+      "recentOtherShown": 2,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "evaluations[1]: unknown guardrail_id \"R2\"",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "impl-gate re-run rejected: working tree is unchanged since the previous FAIL (phase \"integration\").\nPrevious FAIL reason:\n  (no reason recorded)\n\nModify the spec or implementation before retrying.",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "fix: switch codex-only gate profile from spark to gpt-5.5 after schema error",
+          "resolution": "The previous gate failed because the AI returned an invalid guardrail_id. Using the stronger codex-only gate model changes the evaluation configuration while preserving the requested codex-only profile."
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "The spec modifies an existing CLI command but does not list user-facing arguments (e.g., `--format`, `--help`) with explicit validation requirements (type/format/range), nor marks internal-only arguments.; The spec test strategy requests...",
+          "resolution": null
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 4,
+      "question": 0,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 258456,
+      "output": 47381,
+      "cacheRead": 840103,
+      "cacheCreation": 107441,
+      "cost": 1.6335117499999998,
+      "callCount": 19,
+      "durationMs": 564618,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 23690
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 5580
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 16774
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 72307
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 109222
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 275770
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 11006
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 50269
+        }
+      ]
+    },
+    "tests": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/275-docs-freshness-build-command/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 43,
+          "end_line": 5217
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "modified",
+            "path": ".sdd-forge/config.json"
+          },
+          {
+            "status": "modified",
+            "path": "package.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/275-docs-freshness-build-command/"
+          },
+          {
+            "status": "modified",
+            "path": "src/check/commands/freshness.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "modified",
+            "path": ".sdd-forge/config.json"
+          },
+          {
+            "status": "modified",
+            "path": "package.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/275-docs-freshness-build-command/"
+          },
+          {
+            "status": "modified",
+            "path": "src/check/commands/freshness.js"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/275-docs-freshness-build-command/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    fix: update freshness docs build guidance\n    chore: sync package version with main\n    36 files changed, 2119 insertions(+), 35 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (4 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 4\n    Q&A ......................... 0\n    issue-log ................... 1\n    agent calls ................. 19\n    input tokens ................ 258,456\n    output tokens ............... 47,381\n    cache-read tokens ........... 840,103\n    cache-create tokens ......... 107,441\n    cost ........................ $1.6335\n    duration (total) ............ 564.6s\n      draft-questions-review .... 23.7s\n      draft-coverage-review ..... 5.6s\n      draft-gate ................ 16.8s\n      spec-review ............... 72.3s\n      spec-gate ................. 109.2s\n      test-review ............... 275.8s\n      impl-review ............... 11.0s\n      impl-gate ................. 50.3s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 4  passed 4  failed 0 verdict=pass\n    raw_output: specs/275-docs-freshness-build-command/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (5 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/275-docs-freshness-build-command/issue-log.json\n\n    Important (3)\n    - [impl-gate] evaluations[1]: unknown guardrail_id \"R2\"\n    - [impl-gate] impl-gate re-run rejected: working tree is unchanged since the previous FAIL (phase \"integration\").\nPrevious FAIL reason:\n  (no reason recorded)\n\nModify the spec or implementation before retrying.\n    - [impl-gate] fix: switch codex-only gate profile from spark to gpt-5.5 after schema error\n\n    Recent Other (2)\n    - [draft-gate] draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved\n    - [spec-gate] The spec modifies an existing CLI command but does not list user-facing arguments (e.g., `--format`, `--help`) with explicit validation requirements (type/format/range), nor marks internal-only arguments.; The spec test strategy requests..."
+}

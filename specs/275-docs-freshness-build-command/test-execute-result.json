@@ -1,0 +1,113 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/275-docs-freshness-build-command/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/275-docs-freshness-build-command/tests/freshness-guidance.test.js",
+        "test_name": "R1: help guidance points to sdd-forge docs build",
+        "command": "node --test specs/275-docs-freshness-build-command/tests/freshness-guidance.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 42
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/275-docs-freshness-build-command/tests/freshness-guidance.test.js",
+        "test_name": "R2: stale and never-built text output point to sdd-forge docs build",
+        "command": "node --test specs/275-docs-freshness-build-command/tests/freshness-guidance.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 42
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/275-docs-freshness-build-command/tests/freshness-guidance.test.js",
+        "test_name": "R3: JSON output shape and exit code contract stay unchanged",
+        "command": "node --test specs/275-docs-freshness-build-command/tests/freshness-guidance.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 42
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/275-docs-freshness-build-command/tests/freshness-guidance.test.js",
+        "test_name": "R4: format validation and help arguments keep the existing contract",
+        "command": "node --test specs/275-docs-freshness-build-command/tests/freshness-guidance.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 42
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": true,
+    "mode": "full",
+    "root_test_command": "node tests/run.js",
+    "root_test_command_source": "test.command",
+    "command": "node tests/run.js",
+    "result": "pass",
+    "raw_output_lines": {
+      "start_line": 43,
+      "end_line": 5217
+    },
+    "trigger_relevant_changed_files": [
+      {
+        "status": "modified",
+        "path": ".sdd-forge/config.json"
+      },
+      {
+        "status": "modified",
+        "path": "package.json"
+      },
+      {
+        "status": "untracked",
+        "path": "specs/275-docs-freshness-build-command/"
+      },
+      {
+        "status": "modified",
+        "path": "src/check/commands/freshness.js"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "modified",
+        "path": ".sdd-forge/config.json"
+      },
+      {
+        "status": "modified",
+        "path": "package.json"
+      },
+      {
+        "status": "untracked",
+        "path": "specs/275-docs-freshness-build-command/"
+      },
+      {
+        "status": "modified",
+        "path": "src/check/commands/freshness.js"
+      }
+    ],
+    "process": {
+      "started": true,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "spawnError": null
+    }
+  }
+}

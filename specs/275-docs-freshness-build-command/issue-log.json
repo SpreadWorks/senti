@@ -1,0 +1,117 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-04T09:20:52.113Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft approval is required: set approval.approved = true",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The spec modifies an existing CLI command but does not list user-facing arguments (e.g., `--format`, `--help`) with explicit validation requirements (type/format/range), nor marks internal-only arguments.; The spec test strategy requests adding a spec-local test but does not require new spec behavior coverage to be placed under `specs/<specid>/tests/` with `// spec: R<N> ...` headers per file as mandated.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-04T09:26:01.141Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "validate-user-input-at-entry-point",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements / acceptance_criteria"
+          },
+          "observed": "The spec modifies an existing CLI command but does not list user-facing arguments (e.g., `--format`, `--help`) with explicit validation requirements (type/format/range), nor marks internal-only arguments.",
+          "severity": "blocking",
+          "refs": [
+            "validate-user-input-at-entry-point"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[0].test_strategy"
+          },
+          "observed": "The spec test strategy requests adding a spec-local test but does not require new spec behavior coverage to be placed under `specs/<specid>/tests/` with `// spec: R<N> ...` headers per file as mandated.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "validate-user-input-at-entry-point",
+          "reason": "The spec modifies an existing CLI command but does not list user-facing arguments (e.g., `--format`, `--help`) with explicit validation requirements (type/format/range), nor marks internal-only arguments."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "The spec test strategy requests adding a spec-local test but does not require new spec behavior coverage to be placed under `specs/<specid>/tests/` with `// spec: R<N> ...` headers per file as mandated."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "phase": "integration",
+      "reason": "evaluations[1]: unknown guardrail_id \"R2\"",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-04T09:44:14.734Z"
+    },
+    {
+      "step": "impl-gate",
+      "phase": "integration",
+      "reason": "impl-gate re-run rejected: working tree is unchanged since the previous FAIL (phase \"integration\").\nPrevious FAIL reason:\n  (no reason recorded)\n\nModify the spec or implementation before retrying.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-04T09:44:32.551Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: switch codex-only gate profile from spark to gpt-5.5 after schema error",
+      "resolution": "The previous gate failed because the AI returned an invalid guardrail_id. Using the stronger codex-only gate model changes the evaluation configuration while preserving the requested codex-only profile.",
+      "taskId": null,
+      "timestamp": "2026-06-04T09:44:53.272Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-06-04T10:44:01.193Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-06-04T10:44:54.866Z"
+    }
+  ]
+}

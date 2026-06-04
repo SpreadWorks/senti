@@ -1,0 +1,67 @@
+{
+  "devType": "bugfix",
+  "goal": "docs freshness check が source newer / never-built を報告するとき、実在しない `sdd-forge build` ではなく実 CLI の docs 生成コマンド `sdd-forge docs build` を案内する。",
+  "analysis": {
+    "problem": "`sdd-forge check freshness` のヘルプと stale / never-built 出力が `sdd-forge build` を案内しているが、CLI の docs 生成コマンドは `sdd-forge docs build` として登録されている。ユーザーは freshness check 後に案内されたコマンドを実行しても unknown command で停止する。",
+    "proposedApproach": "`src/check/commands/freshness.js` の user-facing guidance を `sdd-forge docs build` に揃える。存在しない top-level alias は追加せず、freshness check の責務である次アクション案内だけを修正する。",
+    "validation": "issue #355 は docs freshness check 前後の案内不一致を対象にしている。`src/lib/command-registry.js` では docs subtree に `build` が登録され、`src/docs.js` は `sdd-forge docs <command>` を dispatch するため、案内先は `sdd-forge docs build` が実 CLI と一致する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "issue #355 は `sdd-forge build` 案内が unknown command を誘発することを報告している。",
+      "`src/check/commands/freshness.js` の help / stale / never-built 文言は `sdd-forge build` を案内している。",
+      "`src/lib/command-registry.js` の `docsCommands` には `build` が登録され、docs dispatcher は `sdd-forge docs <command>` 形式で dispatch する。"
+    ],
+    "decisionPoints": [
+      "修正範囲を freshness check の文言更新に限定するか、top-level `sdd-forge build` alias 追加まで含めるか。",
+      "ヘルプ文、stale 出力、never-built 出力を同じコマンド表記へ統一するか。"
+    ],
+    "resolvedByProjectRules": [
+      "alpha 版ポリシーにより、存在しない旧フォーマット・非推奨パスのための後方互換コードは追加しない。",
+      "ユーザー可視の CLI 案内は実在するコマンドと一致している必要がある。",
+      "外部依存追加は禁止されているため、文言修正と既存テストで検証する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "受け入れ条件として、help / stale / never-built のすべてで `sdd-forge docs build` が表示され、`sdd-forge build` が表示されないことを明文化する。",
+      "検証方法として freshness command の既存または新規ユニットテストと、必要に応じた `sdd-forge check freshness --help` の実行を定義する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "`sdd-forge check freshness --help` の docs build guidance",
+      "`sdd-forge check freshness` の stale 出力",
+      "`sdd-forge check freshness` の never-built 出力",
+      "上記 user-facing output を検証するテスト"
+    ],
+    "out": [
+      "top-level `sdd-forge build` alias の追加",
+      "docs build pipeline の挙動変更",
+      "freshness check の mtime 判定ロジック変更"
+    ]
+  },
+  "impactOnExisting": [
+    "`sdd-forge check freshness` の text output と help text が変わる。",
+    "JSON output の shape と freshness 判定ロジックは変更しない。",
+    "`sdd-forge docs build` 自体の動作は変更しない。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "今回の修正は `sdd-forge check freshness` の案内文を `sdd-forge docs build` に揃える範囲に限定し、top-level `sdd-forge build` alias は追加しない扱いでよいですか。",
+      "answer": "はい。今回の修正は freshness check の案内文更新に限定し、top-level `sdd-forge build` alias は追加しない。",
+      "evidence": "issue #355 の対象は docs freshness check の案内不一致。AGENTS.md の alpha 版ポリシーは後方互換コードを書かず旧フォーマット・非推奨パスを保持しない。`src/lib/command-registry.js` は docs build を `docsCommands.build` として登録している。",
+      "why": "実在する CLI command を案内するだけで issue の根本原因を解消できる。存在しない短縮 alias の追加は CLI surface を広げ、issue の範囲外になる。",
+      "considered": "top-level `sdd-forge build` alias を追加する案は、alpha 版ポリシーと scopeVerification.out に反するため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-04T09:20:35.741Z",
+    "notes": "Draft coverage review passed with no unresolved user decisions."
+  }
+}

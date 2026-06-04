@@ -1,0 +1,114 @@
+{
+  "verdict": "pass",
+  "issues": [],
+  "nextAction": {
+    "diagnosis": {
+      "summary": "No blocking observations.",
+      "observations": []
+    },
+    "prescription": "retro"
+  },
+  "level": "integration",
+  "phase": "integration",
+  "evaluations": [
+    {
+      "guardrail_id": "R1",
+      "result": "pass",
+      "reason": "`printHelp()` in `src/check/commands/freshness.js` now documents `sdd-forge docs build` for stale/never-built guidance and no longer advertises `sdd-forge build` in that help path.",
+      "title": "R1",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R2",
+      "result": "pass",
+      "reason": "The diff updates both stale and never-built text outputs in `src/check/commands/freshness.js` to say `sdd-forge docs build`, removing the previous `sdd-forge build` guidance.",
+      "title": "R2",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R3",
+      "result": "pass",
+      "reason": "The diff does not alter freshness status determination or JSON serialization logic. `fresh`/`stale`/`never-built` branches are unchanged except guidance text, so classification fields and exit-code behavior remain intact (`fresh`=0, `stale`/`never-built` non-zero) and JSON output shape stays `{ ok, result, srcNewest, docsNewest }`.",
+      "title": "R3",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R4",
+      "result": "pass",
+      "reason": "Diff does not add any new command-line arguments for `check freshness`; it only updates help/output text. The added spec-local test explicitly verifies `--format` accepts only `text|json` (invalid `xml` fails) and that `-h/--help` behave as help entry points.",
+      "title": "R4",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": []
+    },
+    {
+      "guardrail_id": "no-overengineering",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "code-quality",
+      "title": "Avoid Overengineering",
+      "observations": []
+    }
+  ],
+  "reasons": [
+    {
+      "verdict": "PASS",
+      "detail": "R1 — `printHelp()` in `src/check/commands/freshness.js` now documents `sdd-forge docs build` for stale/never-built guidance and no longer advertises `sdd-forge build` in that help path.",
+      "guardrail_id": "R1",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R2 — The diff updates both stale and never-built text outputs in `src/check/commands/freshness.js` to say `sdd-forge docs build`, removing the previous `sdd-forge build` guidance.",
+      "guardrail_id": "R2",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R3 — The diff does not alter freshness status determination or JSON serialization logic. `fresh`/`stale`/`never-built` branches are unchanged except guidance text, so classification fields and exit-code behavior remain intact (`fresh`=0, `stale`/`never-built` non-zero) and JSON output shape stays `{ ok, result, srcNewest, docsNewest }`.",
+      "guardrail_id": "R3",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R4 — Diff does not add any new command-line arguments for `check freshness`; it only updates help/output text. The added spec-local test explicitly verifies `--format` accepts only `text|json` (invalid `xml` fails) and that `-h/--help` behave as help entry points.",
+      "guardrail_id": "R4",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Spec Test Coverage — no observations emitted",
+      "guardrail_id": "spec-test-coverage",
+      "category": "testing"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Avoid Overengineering — no observations emitted",
+      "guardrail_id": "no-overengineering",
+      "category": "code-quality"
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "impl-gate",
+    "artifactPath": "specs/275-docs-freshness-build-command/impl-gate-result.json",
+    "verdict": "pass",
+    "result": "pass",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": {
+      "diagnosis": {
+        "summary": "No blocking observations.",
+        "observations": []
+      },
+      "prescription": "retro"
+    },
+    "completionKind": "normal",
+    "progressSignature": "c0adc133af6038af982ada848051644a889912df6b75a24d89ea9a48fcce5e0d"
+  }
+}

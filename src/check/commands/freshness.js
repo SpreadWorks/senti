@@ -4,7 +4,7 @@
  *
  * sdd-forge check freshness — compare docs/ and source modification timestamps.
  *
- * Determines whether `sdd-forge build` is needed by comparing the newest mtime
+ * Determines whether `sdd-forge docs build` is needed by comparing the newest mtime
  * of files under SDD_SOURCE_ROOT with the newest mtime of files under docs/.
  *
  * Results:
@@ -27,12 +27,12 @@ function printHelp() {
       "Usage: sdd-forge check freshness [options]",
       "",
       "Compare docs/ and source modification timestamps to determine if",
-      "sdd-forge build is needed.",
+      "sdd-forge docs build is needed.",
       "",
       "Results:",
       "  fresh       docs/ is up to date",
-      "  stale       source is newer than docs/ — run sdd-forge build",
-      "  never-built docs/ does not exist — run sdd-forge build",
+      "  stale       source is newer than docs/ — run sdd-forge docs build",
+      "  never-built docs/ does not exist — run sdd-forge docs build",
       "",
       "Exit codes:",
       "  0  fresh",
@@ -191,11 +191,11 @@ async function runFreshnessCheck(rawArgs, container) {
       process.stdout.write("fresh — docs/ is up to date\n");
       break;
     case "stale":
-      process.stdout.write("stale — source is newer than docs/, run: sdd-forge build\n");
+      process.stdout.write("stale — source is newer than docs/, run: sdd-forge docs build\n");
       process.exit(EXIT_ERROR);
       break;
     case "never-built":
-      process.stdout.write("never-built — docs/ does not exist, run: sdd-forge build\n");
+      process.stdout.write("never-built — docs/ does not exist, run: sdd-forge docs build\n");
       process.exit(EXIT_ERROR);
       break;
   }
