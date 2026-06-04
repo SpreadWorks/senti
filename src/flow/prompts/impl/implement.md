@@ -49,7 +49,7 @@
      - **If `autoApprove: true`**: present the approach briefly, then auto-select [1] and proceed. Display: "auto: approach confirmed → proceeding to implementation"
    - Code only after confirming gate PASS, test phase completion, and approach approval.
    - Aim to make tests pass.
-   - **Update requirements as you go**: `sdd-forge flow set req <index> done` for each completed requirement.
+   - **Update requirements as you go**: `sdd-forge flow set req <reqId> done` (for example `R1`) for each completed requirement. Numeric values are still accepted as 0-based indexes when needed.
    - **Do NOT run tests in this step.** Test execution is centralized in the `test-execute` step that runs after `implement` completes. Implement code so it is self-consistent; the dispatcher will invoke `test-execute` next.
    - **Prepare/docs scan hard stop:** if preparation or later execution reports that `.sdd-forge/output/analysis.json` cannot be created, read, or validated, stop through the normal flow error path. Do not mask it with manual `flow set step`.
    - **v2 test artifact contract:** `test-execute` produces `test-execute-result.json` version `"2"` and raw output. Started project regression failures still create a normal artifact and advance to `test-result-review`; prerequisite failures before the command starts are hard stops and must be fixed before rerunning.

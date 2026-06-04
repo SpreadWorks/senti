@@ -425,8 +425,8 @@ export const FLOW_COMMANDS = {
     req: {
       helpKey: "flow.set.req",
       command: () => import("./lib/set-req.js"),
-      args: { positional: ["index", "status"] },
-      help: "Usage: sdd-forge flow set req <index> <status>\n\nUpdate a single requirement's status.",
+      args: { positional: ["reqRef", "status"] },
+      help: "Usage: sdd-forge flow set req <reqId|zeroBasedIndex> <status>\n\nUpdate a single requirement's status. Prefer requirement ids like R1; numeric values are 0-based indexes.",
     },
     files: {
       helpKey: "flow.set.files",

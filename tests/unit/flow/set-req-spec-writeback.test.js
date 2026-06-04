@@ -1,8 +1,9 @@
 /**
  * tests/unit/flow/set-req-spec-writeback.test.js
  *
- * spec 219 R3: `flow set req <index> <status>` は spec.json.requirements[index].status
- * を更新し、更新後の spec.json が spec.schema.json のバリデーションを通過する。
+ * spec 219 R3: `flow set req <reqId|zeroBasedIndex> <status>` は対象
+ * requirement の status を更新し、更新後の spec.json が spec.schema.json
+ * のバリデーションを通過する。
  */
 
 import { describe, it, afterEach } from "node:test";
@@ -88,6 +89,26 @@ describe("spec 219 R3: flow set req writes to spec.json.requirements", () => {
 
     const res = run(tmp, ["flow", "set", "req", "1", "done"]);
     assert.equal(res.status, 0, res.stderr || res.stdout);
+
+    const updated = loadSpecJson(path.join(specDir, "spec.json"));
+    assert.equal(updated.requirements[1].status, "done");
+    assert.equal(updated.requirements[0].status, "pending");
+  });
+
+  it("updates spec.json.requirements by requirement id", () => {
+    tmp = createProject();
+    const specId = "001-test";
+    const specDir = setup(tmp, specId, [
+      { id: "R1", desc: "first", priority: "must", status: "pending" },
+      { id: "R2", desc: "second", priority: "must", status: "pending" },
+    ]);
+
+    const res = run(tmp, ["flow", "set", "req", "R2", "done"]);
+    assert.equal(res.status, 0, res.stderr || res.stdout);
+
+    const envelope = JSON.parse(res.stdout);
+    assert.equal(envelope.data.index, 1);
+    assert.equal(envelope.data.reqId, "R2");
 
     const updated = loadSpecJson(path.join(specDir, "spec.json"));
     assert.equal(updated.requirements[1].status, "done");

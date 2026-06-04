@@ -487,7 +487,7 @@ sdd-forge flow get resolve-context
 sdd-forge flow set init [--issue N] [--request "..."]
 sdd-forge flow set step <id> <status>
 sdd-forge flow set summary '<JSON array>'
-sdd-forge flow set req <index> <status>
+sdd-forge flow set req <reqId|zeroBasedIndex> <status>
 sdd-forge flow set request "<text>"
 sdd-forge flow set note "<text>"
 sdd-forge flow set issue <number>

@@ -3,34 +3,42 @@
  *
  * Update a single requirement's status in spec.json (the single source of truth).
  *
- * ctx.index  — requirement index (string or number)
+ * ctx.reqRef — requirement id (for example R1) or zero-based index
  * ctx.status — new status string
  */
 
 import { FlowCommand } from "./base-command.js";
 import { VALID_REQ_STATUSES } from "../../lib/constants.js";
 import { Envelope } from "../../lib/flow-envelope.js";
-import { updateSpecRequirementStatus } from "../../lib/spec-json.js";
+import { loadSpecRequirements, updateSpecRequirementStatus } from "../../lib/spec-json.js";
+
+function resolveRequirementIndex(root, specPath, rawRef) {
+  const ref = String(rawRef);
+  if (/^\d+$/.test(ref)) return parseInt(ref, 10);
+
+  const requirements = loadSpecRequirements(root, specPath);
+  const index = requirements.findIndex((req) => req.id === ref);
+  return index >= 0 ? index : null;
+}
 
 export default class SetReqCommand extends FlowCommand {
   execute(ctx) {
-    const { index: rawIndex, status } = ctx;
+    const rawRef = ctx.reqRef ?? ctx.index;
+    const { status } = ctx;
 
-    if (rawIndex == null || !status) {
-      return Envelope.fail("set", "req", "INVALID_USAGE", "usage: flow set req <index> <status>");
+    if (rawRef == null || !status) {
+      return Envelope.fail("set", "req", "INVALID_USAGE", "usage: flow set req <reqId|zeroBasedIndex> <status>");
     }
 
-    const str = String(rawIndex);
-    if (!/^\d+$/.test(str)) {
+    const index = resolveRequirementIndex(ctx.root, ctx.flowState.spec, rawRef);
+    if (index == null) {
       return Envelope.fail(
         "set",
         "req",
         "INVALID_ARG_VALUE",
-        `not a valid non-negative integer: ${rawIndex}`,
+        `not a valid requirement id or zero-based index: ${rawRef}`,
       );
     }
-
-    const index = parseInt(str, 10);
 
     if (!VALID_REQ_STATUSES.includes(status)) {
       return Envelope.fail(
@@ -41,8 +49,8 @@ export default class SetReqCommand extends FlowCommand {
       );
     }
 
-    updateSpecRequirementStatus(ctx.root, ctx.flowState.spec, index, status);
+    const requirement = updateSpecRequirementStatus(ctx.root, ctx.flowState.spec, index, status);
 
-    return { index, status };
+    return { index, reqId: requirement.id ?? null, status };
   }
 }
