@@ -1,6 +1,6 @@
 ---
 name: sdd-forge.flow
-description: Run the SDD flow end-to-end — planning (draft → spec → approval → test), implementation (code → review → gate), and finalization (commit → merge → sync → cleanup). Thin dispatcher over the CLI's next-action facility; use this for any feature or fix request.
+description: Run the SDD flow end-to-end after the user explicitly invokes SDD flow, chooses SDD flow for a feature/fix request, or resumes an active flow. Thin dispatcher over the CLI's next-action facility.
 ---
 
 # SDD Flow
@@ -44,8 +44,26 @@ Note: `sdd-forge flow get context` automatically records these metrics via hooks
 
 Run `sdd-forge flow get status`.
 
-- If `active: false` → go to **B. Prelude**.
+- If `active: false` and the user's latest request did not explicitly invoke SDD flow → go to **A.0 Route choice**.
+- If `active: false` and the user's latest request explicitly invoked SDD flow → go to **B. Prelude**.
 - If `active: true` → go to **C. Dispatcher loop**.
+
+### A.0 Route choice — SDD flow or direct edit
+
+Apply this only when there is no active flow and the latest user request is a feature/fix request that did not explicitly invoke SDD flow.
+
+**MUST: Ask the user whether to use SDD flow or direct editing before running any `sdd-forge flow set init`, `sdd-forge flow prepare`, or code-editing command.** This enforces the project rule in `AGENTS.md`: feature/fix requests require a user decision between SDD flow and direct repair; code must not be changed before that decision.
+
+Use Choice Format:
+
+```text
+[1] SDD flow — create/continue a spec-driven flow with draft, tests, review, gate, and finalize.
+[2] Direct edit — make a scoped code change without starting SDD flow.
+```
+
+- If the user chooses `[1]`: continue to **B. Prelude**.
+- If the user chooses `[2]`: STOP this skill immediately and handle the request as a normal direct edit. Do not run flow commands and do not create flow state.
+- If the user's latest request explicitly invokes `$sdd-forge.flow`, `/sdd-forge.flow`, `sdd-forge flow`, or clearly says to use flow, skip this choice and continue to **B. Prelude**.
 
 ### B. Prelude (pre-flow setup)
 
