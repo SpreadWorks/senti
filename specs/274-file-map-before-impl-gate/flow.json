@@ -384,16 +384,30 @@
             },
             {
               "id": "finalize-merge",
-              "status": "in_progress",
-              "startedAt": "2026-06-04T05:31:04.093Z"
+              "status": "done",
+              "startedAt": "2026-06-04T05:31:04.093Z",
+              "finishedAt": "2026-06-04T05:31:21.193Z"
             },
             {
               "id": "finalize-sync",
-              "status": "pending"
+              "status": "done",
+              "startedAt": "2026-06-04T05:31:21.193Z",
+              "finishedAt": "2026-06-04T05:34:13.072Z",
+              "runtimeLog": {
+                "runId": "14e1c223-f79d-4171-84fb-215ab8452745",
+                "sequence": 103,
+                "attempt": 1,
+                "command": "flow run finalize-sync",
+                "startedAt": "2026-06-04T05:31:33.375Z",
+                "endedAt": "2026-06-04T05:34:13.075Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-cleanup",
-              "status": "pending"
+              "status": "done",
+              "startedAt": "2026-06-04T05:34:13.072Z",
+              "finishedAt": "2026-06-04T05:34:37.706Z"
             }
           ]
         }
@@ -801,6 +815,8 @@
   },
   "autoApprove": true,
   "state": {
-    "finalizedAt": "2026-06-04T05:31:03.966Z"
+    "finalizedAt": "2026-06-04T05:31:03.966Z",
+    "mergeStrategy": "squash",
+    "featureBranchSquashedSha": "ec40761f23e1b284e1df518a3b171b52c943bdae"
   }
 }
