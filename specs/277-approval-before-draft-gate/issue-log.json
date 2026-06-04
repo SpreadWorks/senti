@@ -1,0 +1,67 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "要件数が3件を超える範囲一覧があるが、各要件に優先度（must/should/nice-to-have）の割当がありません。; 推奨回答は提示されているが、推奨の根拠が (1) project docs/ (2) guardrail principles/ (3) existing code patterns のいずれかとして明示的に示されていません。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-04T13:08:20.153Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "scopeVerification.in",
+            "locator": "4 items added without must/should/nice-to-have labels"
+          },
+          "observed": "要件数が3件を超える範囲一覧があるが、各要件に優先度（must/should/nice-to-have）の割当がありません。",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "qa[0].answer",
+            "locator": "question q1"
+          },
+          "observed": "推奨回答は提示されているが、推奨の根拠が (1) project docs/ (2) guardrail principles/ (3) existing code patterns のいずれかとして明示的に示されていません。",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "要件数が3件を超える範囲一覧があるが、各要件に優先度（must/should/nice-to-have）の割当がありません。"
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "推奨回答は提示されているが、推奨の根拠が (1) project docs/ (2) guardrail principles/ (3) existing code patterns のいずれかとして明示的に示されていません。"
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: updated draft-gate prompt wording and refreshed test artifacts after spec-local R1/R3 failures",
+      "resolution": "test-execute now records current prompt guidance and test-result-review verifies the updated artifact",
+      "taskId": null,
+      "timestamp": "2026-06-04T14:29:19.461Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: corrected spec-local assertion false positive and refreshed passing R1/R2/R3 artifacts",
+      "resolution": "test-execute now records all spec-local requirements as pass and test-result-review verdict is pass",
+      "taskId": null,
+      "timestamp": "2026-06-04T14:35:20.350Z"
+    }
+  ]
+}

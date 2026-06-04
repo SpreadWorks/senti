@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "`draft-gate` step guidance must instruct the operator to confirm `draft.json.approval.approved` is true and `approval.confirmedAt` is set before running `sdd-forge flow run gate --phase draft` when no unresolved user decision remains.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/draft-gate-approval-guidance.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "The guidance must preserve the existing validation contract: it must not tell users to bypass `DraftApproval.validate()`, loosen draft-gate approval checks, or approve a draft while a `requires_user_decision` item remains unresolved.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/draft-gate-approval-guidance.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "The corrected pre-draft-gate approval setup guidance must be verifiable through `src/flow/prompts/plan/draft-gate.md` and the `sdd-forge flow get next-action` instructions for the `draft-gate` step.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/draft-gate-approval-guidance.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/draft-gate-approval-guidance.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3"
+      ]
+    }
+  ]
+}

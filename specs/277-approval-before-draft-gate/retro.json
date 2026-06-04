@@ -1,0 +1,33 @@
+{
+  "spec": "specs/277-approval-before-draft-gate/spec.json",
+  "date": "2026-06-04T14:35:56.648Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "`draft-gate` step guidance must instruct the operator to confirm `draft.json.approval.approved` is true and `approval.confirmedAt` is set before running `sdd-forge flow run gate --phase draft` when no unresolved user decision remains.",
+      "status": "done",
+      "note": "R1: draft-gate prompt requires approval setup before running the gate"
+    },
+    {
+      "desc": "The guidance must preserve the existing validation contract: it must not tell users to bypass `DraftApproval.validate()`, loosen draft-gate approval checks, or approve a draft while a `requires_user_decision` item remains unresolved.",
+      "status": "done",
+      "note": "R2: draft approval validation remains strict"
+    },
+    {
+      "desc": "The corrected pre-draft-gate approval setup guidance must be verifiable through `src/flow/prompts/plan/draft-gate.md` and the `sdd-forge flow get next-action` instructions for the `draft-gate` step.",
+      "status": "done",
+      "note": "R3: draft-gate next-action renders approval setup guidance from prompt source"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 3,
+    "done": 3,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

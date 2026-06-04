@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Repaired R3 and related acceptance/task wording so draft-gate guidance is verified through prompt source and next-action output, not generated skill artifacts.",
+  "items": [
+    {
+      "title": "Generated skill artifact target contradicts dispatcher architecture",
+      "target": "R3 / Acceptance Criteria / T-1 test_strategy",
+      "decision": "applied",
+      "rationale": "The spec now treats `src/flow/prompts/plan/draft-gate.md` and rendered `sdd-forge flow get next-action` output as the runtime guidance targets. Generated skill artifacts are mentioned only as dispatcher behavior and are not required to inline draft-gate prompt text.",
+      "evidence": "spec.json R3, acceptance_criteria[0,3], clarifications[2], alternatives_considered[2], implementationTargets, and tasks[0] now point to prompt source and next-action output.",
+      "changedFields": [
+        "scope.in[2]",
+        "constraints[1]",
+        "overview.decisions",
+        "background",
+        "requirements[2].desc",
+        "acceptance_criteria[0]",
+        "acceptance_criteria[3]",
+        "clarifications[2].a",
+        "alternatives_considered[2]",
+        "keywords",
+        "implementationTargets",
+        "tasks[0].acceptance[3]",
+        "tasks[0].implementation_notes",
+        "tasks[0].test_strategy"
+      ]
+    }
+  ]
+}

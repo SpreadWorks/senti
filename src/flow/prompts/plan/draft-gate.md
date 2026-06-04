@@ -1,3 +1,7 @@
+   - Before running the gate, confirm draft approval metadata:
+     - Only when there is no unresolved user decision, including no unresolved `requires_user_decision` item, set or confirm `draft.json` has `approval.approved = true`.
+     - Set or confirm `approval.confirmedAt` is a non-empty ISO timestamp in `draft.json`.
+     - Do not approve or proceed while any unresolved `requires_user_decision` item remains.
    - `sdd-forge flow run gate --phase draft` (step status is automatically managed by hooks: pre sets draft-gate to in_progress, post sets done on PASS)
    - Checks draft.json for: devType enum, goal, analysis (problem/proposedApproach/validation), decisionMap shape, qa[] lifecycle shape, approval + guardrail AI compliance.
    - If FAIL (`data.result === "fail"`): show every row in `data.artifacts.reasons` (one per violation on FAIL article entries) and every entry in `data.artifacts.issues`.

@@ -1,0 +1,70 @@
+{
+  "devType": "bugfix",
+  "goal": "draft-gate 前に draft approval metadata が明示的に設定または確認され、QA 解決後の不要な gate 失敗を防ぐ。",
+  "analysis": {
+    "problem": "Issue #357 は、QA entries が解決済みでも draft.json の approval.approved が false のまま残り、draft-gate が失敗する手順上の欠落を扱う。",
+    "proposedApproach": "draft-gate に進む前の required sequence に approval metadata の設定確認を追加し、未解決の user decision がない場合は approval.approved と confirmedAt を明示的に更新する手順を文書化する。",
+    "validation": "src/flow/lib/draft-lifecycle.js は approval.approved が true でない draft を拒否し、src/flow/prompts/plan/draft-coverage-repair.md は repair 経路で approval を設定する。問題は draft-gate 手順と PASS 経路の案内がその契約を十分に明示していない点にある。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #357 reports a draft-gate failure caused by draft.json approval.approved remaining false after QA entries were resolved.",
+      "src/flow/lib/draft-lifecycle.js validates draft approval and reports \"draft approval is required: set approval.approved = true\" when approval is missing.",
+      "src/flow/prompts/plan/draft-coverage-repair.md already sets approval metadata in the repair path when no unresolved requires_user_decision item remains.",
+      "src/flow/prompts/plan/draft-gate.md lists approval as a gate check but does not give a pre-gate setup command or explicit metadata confirmation step."
+    ],
+    "decisionPoints": [
+      "Where to add the missing instruction so both direct PASS and repair paths reach draft-gate with approval metadata set.",
+      "How to verify the guidance without changing draft approval validation semantics."
+    ],
+    "resolvedByProjectRules": [
+      "Changes under src/skills or prompt templates must be followed by sdd-forge upgrade so generated project skill artifacts stay in sync.",
+      "CLI validation behavior should remain the source of truth; this bugfix should document the required setup rather than weakening draft-gate."
+    ],
+    "requiresUserJudgment": [
+      "No unresolved user judgment remains; the linked Issue defines a procedural guidance fix and excludes validation bypass by implication."
+    ],
+    "deferredToSpec": [
+      "Exact target prompt file list.",
+      "Spec-local tests that assert the pre-draft-gate instruction and preserve draft-gate approval validation."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: draft-gate 前後の flow step guidance",
+      "must: approval metadata setup/check を明示する prompt または skill source",
+      "must: sdd-forge upgrade による生成済み artifact の同期",
+      "must: approval metadata guidance と draft-gate validation contract を固定する spec-local tests"
+    ],
+    "out": [
+      "must not: draft-gate の approval validation を緩めること",
+      "must not: 未解決 user decision がある draft を自動承認すること",
+      "must not: draft lifecycle schema または approval data shape の変更",
+      "must not: spec approval step の user_approval metadata 変更"
+    ]
+  },
+  "impactOnExisting": [
+    "draft-gate の事前手順が明確になり、既存の approval.approved validation は維持される。",
+    "draft-coverage-repair の既存責務と矛盾しないよう、PASS 経路でも gate 前に approval metadata を確認する案内が必要になる。",
+    "prompt または skill source を変更する場合、生成済み project artifacts も更新対象になる。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "今回の修正範囲は、draft-gate 前の手順に approval metadata の設定確認を明示し、draft-gate の validation 自体は維持する方針でよいですか。",
+      "answer": "はい。修正範囲は draft-gate 前の approval metadata 設定確認を明示する手順改善に限定し、draft-gate が approval.approved を要求する validation は維持する。根拠は existing code patterns で、draft lifecycle は approval.approved を gate 条件として扱い、repair prompt は未解決 decision がない場合だけ approval metadata を設定する。",
+      "evidence": "Issue #357 Improvement Direction asks to add an approval metadata setup check before draft-gate; src/flow/lib/draft-lifecycle.js validates approval.approved and reports that draft approval is required when it is false.",
+      "why": "Issue の原因は手順が明示されていないことなので、validation を緩めると未承認 draft を通す別の問題になる。既存の gate 契約を維持したまま、gate 前の準備手順を明確にするのが root problem に対応する。",
+      "considered": "",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-04T13:08:01Z",
+    "notes": "autoApprove: no unresolved user decision remains after draft-refine; approval metadata set before draft-gate."
+  }
+}

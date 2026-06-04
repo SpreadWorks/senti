@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "One blocking finding will be applied: generated skill artifacts are not the runtime location for draft-gate per-step prompt text.",
+  "items": [
+    {
+      "title": "Generated skill artifact target contradicts dispatcher architecture",
+      "target": "R3 / Acceptance Criteria / T-1 test_strategy",
+      "decision": "apply",
+      "rationale": "The finding matches verified architecture: sdd-forge.flow is a thin dispatcher and draft-gate text is loaded from src/flow/prompts/plan/draft-gate.md through next-action, not inlined into generated skill artifacts.",
+      "evidence": "spec.json overview.modules names src/flow/prompts/plan/draft-gate.md as the step instruction source; spec-review.md cites src/flow/lib/get-step-instructions.js and src/upgrade.js behavior."
+    }
+  ]
+}

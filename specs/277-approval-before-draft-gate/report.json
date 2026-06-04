@@ -1,0 +1,174 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".../draft-coverage-repair.json                     |   8 +\n .../draft-coverage-triage.json                     |   8 +\n .../draft-questions-repair.json                    |   8 +\n .../draft-questions-triage.json                    |   8 +\n .../draft-review-coverage.json                     |  11 +\n .../draft-review-questions.json                    |  11 +\n specs/277-approval-before-draft-gate/draft.json    |  70 ++\n specs/277-approval-before-draft-gate/file-map.json |  14 +\n specs/277-approval-before-draft-gate/flow.json     | 877 +++++++++++++++++++++\n .../impl-review.json                               |  28 +\n .../277-approval-before-draft-gate/issue-log.json  |  67 ++\n specs/277-approval-before-draft-gate/issue.md      |  36 +\n .../review-history/draft-coverage-attempt-001.json |  14 +\n .../draft-questions-attempt-001.json               |  14 +\n .../review-history/impl-attempt-001.json           |  31 +\n .../review-history/impl-attempt-001.md             |  16 +\n .../review-history/impl-attempt-002.json           |  31 +\n .../review-history/impl-attempt-002.md             |  16 +\n .../review-history/impl-attempt-003.json           |  31 +\n .../review-history/impl-attempt-003.md             |  16 +\n .../review-history/spec-attempt-001.json           |  56 ++\n .../review-history/spec-attempt-001.md             |  19 +\n .../review-history/test-attempt-001.json           |  66 ++\n .../review-history/test-attempt-001.md             |  24 +\n .../review-history/test-attempt-002.json           |  48 ++\n .../review-history/test-attempt-002.md             |  18 +\n .../review-history/test-attempt-003.json           |  48 ++\n .../review-history/test-attempt-003.md             |  18 +\n .../review-history/test-attempt-004.json           |  28 +\n .../review-history/test-attempt-004.md             |  13 +\n specs/277-approval-before-draft-gate/review.md     |  16 +\n .../spec-repair.json                               |  31 +\n .../spec-review.json                               |  32 +\n .../277-approval-before-draft-gate/spec-review.md  |  19 +\n .../spec-triage.json                               |  15 +\n specs/277-approval-before-draft-gate/spec.json     | 167 ++++\n specs/277-approval-before-draft-gate/spec.md       |  96 +++\n specs/277-approval-before-draft-gate/tasks/T-1.md  |  21 +\n .../test-coverage.json                             |  53 ++\n .../test-review.json                               |  25 +\n .../277-approval-before-draft-gate/test-review.md  |  13 +\n .../tests/draft-gate-approval-guidance.test.js     | 129 +++\n src/flow/prompts/plan/draft-gate.md                |   4 +\n 43 files changed, 2274 insertions(+)",
+      "commits": [
+        "fix: add draft approval gate guidance"
+      ]
+    },
+    "retro": {
+      "total": 3,
+      "done": 3,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "`draft-gate` step guidance must instruct the operator to confirm `draft.json.approval.approved` is true and `approval.confirmedAt` is set before running `sdd-forge flow run gate --phase draft` when no unresolved user decision remains.",
+          "status": "done",
+          "note": "R1: draft-gate prompt requires approval setup before running the gate"
+        },
+        {
+          "desc": "The guidance must preserve the existing validation contract: it must not tell users to bypass `DraftApproval.validate()`, loosen draft-gate approval checks, or approve a draft while a `requires_user_decision` item remains unresolved.",
+          "status": "done",
+          "note": "R2: draft approval validation remains strict"
+        },
+        {
+          "desc": "The corrected pre-draft-gate approval setup guidance must be verifiable through `src/flow/prompts/plan/draft-gate.md` and the `sdd-forge flow get next-action` instructions for the `draft-gate` step.",
+          "status": "done",
+          "note": "R3: draft-gate next-action renders approval setup guidance from prompt source"
+        }
+      ]
+    },
+    "issueLog": {
+      "count": 3,
+      "fullLogPath": "specs/277-approval-before-draft-gate/issue-log.json",
+      "importantTotal": 1,
+      "importantShown": 1,
+      "importantOmitted": 0,
+      "recentOtherTotal": 2,
+      "recentOtherShown": 2,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "fix: updated draft-gate prompt wording and refreshed test artifacts after spec-local R1/R3 failures",
+          "resolution": "test-execute now records current prompt guidance and test-result-review verifies the updated artifact"
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "要件数が3件を超える範囲一覧があるが、各要件に優先度（must/should/nice-to-have）の割当がありません。; 推奨回答は提示されているが、推奨の根拠が (1) project docs/ (2) guardrail principles/ (3) existing code patterns のいずれかとして明示的に示されていません。",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: corrected spec-local assertion false positive and refreshed passing R1/R2/R3 artifacts",
+          "resolution": "test-execute now records all spec-local requirements as pass and test-result-review verdict is pass"
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 2
+    },
+    "tokenMetrics": {
+      "input": 217476,
+      "output": 17467,
+      "cacheRead": 586624,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 18,
+      "durationMs": 273382,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 8880
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 6143
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 14383
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 106238
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 15918
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 75738
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 8646
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 37436
+        }
+      ]
+    },
+    "tests": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/277-approval-before-draft-gate/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 36,
+          "end_line": 5211
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/277-approval-before-draft-gate/"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/277-approval-before-draft-gate/"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/277-approval-before-draft-gate/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    fix: add draft approval gate guidance\n    43 files changed, 2274 insertions(+)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (3 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 2\n    agent calls ................. 18\n    input tokens ................ 217,476\n    output tokens ............... 17,467\n    cache-read tokens ........... 586,624\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 273.4s\n      draft-questions-review .... 8.9s\n      draft-coverage-review ..... 6.1s\n      draft-gate ................ 14.4s\n      spec-review ............... 106.2s\n      spec-gate ................. 15.9s\n      test-review ............... 75.7s\n      impl-review ............... 8.6s\n      impl-gate ................. 37.4s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 3  passed 3  failed 0 verdict=pass\n    raw_output: specs/277-approval-before-draft-gate/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (3 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/277-approval-before-draft-gate/issue-log.json\n\n    Important (1)\n    - [impl-gate] fix: updated draft-gate prompt wording and refreshed test artifacts after spec-local R1/R3 failures\n\n    Recent Other (2)\n    - [draft-gate] 要件数が3件を超える範囲一覧があるが、各要件に優先度（must/should/nice-to-have）の割当がありません。; 推奨回答は提示されているが、推奨の根拠が (1) project docs/ (2) guardrail principles/ (3) existing code patterns のいずれかとして明示的に示されていません。\n    - [impl-gate] fix: corrected spec-local assertion false positive and refreshed passing R1/R2/R3 artifacts"
+}
