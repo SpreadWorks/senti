@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-04T05:47:25.381Z",
+  "analyzedAt": "2026-06-04T05:51:56.620Z",
   "package": {
     "entries": [
       {
@@ -2825,7 +2825,7 @@
         "usedBy": null,
         "id": "331cf497",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -5211,7 +5211,7 @@
         ],
         "id": "b4aa4dad",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -5380,7 +5380,7 @@
         "usedBy": null,
         "id": "82a89eee",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -5457,7 +5457,7 @@
         "usedBy": null,
         "id": "43872d6b",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -5613,7 +5613,7 @@
         ],
         "id": "d4e97204",
         "enrich": {
-          "attempts": 6
+          "attempts": 7
         }
       },
       {
@@ -5666,7 +5666,7 @@
         "usedBy": null,
         "id": "c99f2f87",
         "enrich": {
-          "attempts": 6
+          "attempts": 7
         }
       },
       {
@@ -5832,7 +5832,7 @@
         "usedBy": null,
         "id": "c1fba537",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -5979,7 +5979,7 @@
         "usedBy": null,
         "id": "b77c2c3d",
         "enrich": {
-          "attempts": 6
+          "attempts": 7
         }
       },
       {
@@ -6222,11 +6222,13 @@
       },
       {
         "file": "src/flow/lib/set-req.js",
-        "hash": "71c599e9833184e236867738bdb5887c",
-        "lines": 49,
-        "mtime": "2026-04-23T04:45:33.474Z",
+        "hash": "49236d6257c88bbc056992a0c3a30479",
+        "lines": 57,
+        "mtime": "2026-06-04T05:44:48.592Z",
         "className": "set-req",
-        "methods": [],
+        "methods": [
+          "resolveRequirementIndex"
+        ],
         "imports": [
           "./base-command.js",
           "../../lib/constants.js",
@@ -6240,20 +6242,8 @@
         "usedBy": null,
         "id": "6dd22e12",
         "enrich": {
-          "processedAt": "2026-04-23T08:18:11.489Z",
-          "attempts": 5
-        },
-        "summary": "Implements `flow set req` to update a single requirement status by index. It validates usage, status value, and index bounds before applying mutations.",
-        "detail": "The command parses positional args and rejects invalid invocation with structured envelope errors. Allowed statuses are sourced from shared constants to keep validation centralized. Requirement updates are delegated to `updateSpecRequirementStatus`, which handles path resolution and persistence. Error responses include explicit codes for invalid usage and invalid value cases. On success, it returns the updated index and status for auditability.",
-        "chapter": "cli_commands",
-        "role": "controller",
-        "keywords": [
-          "set req",
-          "requirement status update",
-          "index validation",
-          "spec.json mutation",
-          "flow set command"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/set-request.js",
@@ -6317,7 +6307,7 @@
         "usedBy": null,
         "id": "ee559b7a",
         "enrich": {
-          "attempts": 6
+          "attempts": 7
         }
       },
       {
@@ -6353,7 +6343,7 @@
         "usedBy": null,
         "id": "d4cb8d93",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -6481,7 +6471,7 @@
         ],
         "id": "5fd87c16",
         "enrich": {
-          "attempts": 6
+          "attempts": 7
         }
       },
       {
@@ -6613,7 +6603,7 @@
         ],
         "id": "0b1b96b3",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -6764,9 +6754,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "88ec4cd0bde52ef0c4174738ac9f44c3",
+        "hash": "0109c6d7a810218d8675f9698ca26666",
         "lines": 1104,
-        "mtime": "2026-06-02T11:45:07.598Z",
+        "mtime": "2026-06-04T05:44:48.597Z",
         "className": "registry",
         "methods": [
           "assertDraftReviewRegistryHookBoundary",
@@ -6805,7 +6795,7 @@
         ],
         "id": "d64f4095",
         "enrich": {
-          "attempts": 4
+          "attempts": 1
         }
       },
       {
@@ -6829,7 +6819,7 @@
         "usedBy": null,
         "id": "4ac07fa0",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -6903,7 +6893,7 @@
         ],
         "id": "1af31edd",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -7240,7 +7230,7 @@
         ],
         "id": "dff6e5b4",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -7594,7 +7584,7 @@
         ],
         "id": "09ff0ab4",
         "enrich": {
-          "attempts": 6
+          "attempts": 7
         }
       },
       {
@@ -7749,7 +7739,7 @@
         ],
         "id": "5332364e",
         "enrich": {
-          "attempts": 6
+          "attempts": 7
         }
       },
       {
@@ -8782,7 +8772,7 @@
         ],
         "id": "a1344e4a",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -8871,7 +8861,7 @@
         ],
         "id": "deaeeb23",
         "enrich": {
-          "attempts": 6
+          "attempts": 7
         }
       },
       {
@@ -8924,7 +8914,7 @@
         "usedBy": null,
         "id": "69d5afb4",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -12009,7 +11999,7 @@
         "usedBy": null,
         "id": "acdc1ca9",
         "enrich": {
-          "attempts": 6
+          "attempts": 7
         }
       },
       {
@@ -12031,7 +12021,7 @@
         "usedBy": null,
         "id": "a8608997",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -12080,7 +12070,7 @@
         "usedBy": null,
         "id": "9820c9db",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12199,7 +12189,7 @@
         "usedBy": null,
         "id": "a631f658",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12228,7 +12218,7 @@
         "usedBy": null,
         "id": "cc286b88",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12295,7 +12285,7 @@
         ],
         "id": "c9908fa4",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -12324,7 +12314,7 @@
         "usedBy": null,
         "id": "4e4593ba",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -12345,7 +12335,7 @@
         "usedBy": null,
         "id": "11e11b10",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -12371,7 +12361,7 @@
         "usedBy": null,
         "id": "9219bc6c",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -12416,7 +12406,7 @@
         "usedBy": null,
         "id": "970e6266",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12442,7 +12432,7 @@
         "usedBy": null,
         "id": "27d732ed",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12464,7 +12454,7 @@
         "usedBy": null,
         "id": "8dd05cbb",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -12489,7 +12479,7 @@
         "usedBy": null,
         "id": "c1034289",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -12511,7 +12501,7 @@
         "usedBy": null,
         "id": "b70ba15e",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -12533,7 +12523,7 @@
         "usedBy": null,
         "id": "7752e8c4",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -12556,7 +12546,7 @@
         "usedBy": null,
         "id": "e75cf809",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -12594,7 +12584,7 @@
         ],
         "id": "60bcd438",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -12633,7 +12623,7 @@
         ],
         "id": "731ada65",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -12662,7 +12652,7 @@
         ],
         "id": "d5313dab",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -12690,7 +12680,7 @@
         "usedBy": null,
         "id": "e88a4b0e",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -12710,15 +12700,15 @@
         ],
         "id": "780bd655",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       }
     ],
     "summary": {
       "total": 338,
-      "totalMethods": 1655
+      "totalMethods": 1656
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-04T05:49:45.924Z"
+  "enrichedAt": "2026-06-04T05:54:36.099Z"
 }
