@@ -402,16 +402,30 @@
             },
             {
               "id": "finalize-merge",
-              "status": "in_progress",
-              "startedAt": "2026-06-04T12:56:48.643Z"
+              "status": "done",
+              "startedAt": "2026-06-04T12:56:48.643Z",
+              "finishedAt": "2026-06-04T12:57:13.062Z"
             },
             {
               "id": "finalize-sync",
-              "status": "pending"
+              "status": "done",
+              "startedAt": "2026-06-04T12:57:13.062Z",
+              "finishedAt": "2026-06-04T12:58:48.309Z",
+              "runtimeLog": {
+                "runId": "e7e45497-2b8a-48ae-ae66-daa9d0fa239c",
+                "sequence": 84,
+                "attempt": 1,
+                "command": "flow run finalize-sync",
+                "startedAt": "2026-06-04T12:57:27.813Z",
+                "endedAt": "2026-06-04T12:58:48.312Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-cleanup",
-              "status": "pending"
+              "status": "done",
+              "startedAt": "2026-06-04T12:58:48.309Z",
+              "finishedAt": "2026-06-04T12:59:23.294Z"
             }
           ]
         }
@@ -822,9 +836,38 @@
       "reset": true,
       "taskId": null,
       "ts": "2026-06-04T12:53:11.108Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.4",
+      "callCount": 1,
+      "responseChars": 22504,
+      "durationMs": 79447,
+      "tokens": {
+        "input": 11384,
+        "output": 4162,
+        "cacheRead": 8064,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-04T12:58:47.858Z"
     }
   ],
   "state": {
-    "finalizedAt": "2026-06-04T12:56:48.435Z"
+    "finalizedAt": "2026-06-04T12:56:48.435Z",
+    "mergeStrategy": "squash",
+    "featureBranchSquashedSha": "6490d1bf350e4de3e2a2a1a3c64726471509013c"
+  },
+  "autoCheck": {
+    "eligible": true,
+    "skipped": true,
+    "reason": "spec approved",
+    "goalGate": {
+      "checked": false,
+      "passed": true,
+      "skipped": "spec-approved"
+    }
   }
 }
