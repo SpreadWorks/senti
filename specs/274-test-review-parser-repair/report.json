@@ -1,0 +1,264 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".sdd-forge/output/analysis.json                    | 260 ++++--\n docs/ja/project_structure.md                       |   2 +-\n docs/project_structure.md                          |   2 +-\n .../completion-overrides.json                      |  19 +\n .../draft-coverage-repair.json                     |   8 +\n .../draft-coverage-triage.json                     |   8 +\n .../draft-questions-repair.json                    |   8 +\n .../draft-questions-triage.json                    |   8 +\n .../draft-review-coverage.json                     |  11 +\n .../draft-review-questions.json                    |  11 +\n specs/274-test-review-parser-repair/draft.json     | 122 +++\n specs/274-test-review-parser-repair/file-map.json  |  24 +\n specs/274-test-review-parser-repair/flow.json      | 928 +++++++++++++++++++++\n .../274-test-review-parser-repair/impl-review.json |  28 +\n specs/274-test-review-parser-repair/issue-log.json | 241 ++++++\n specs/274-test-review-parser-repair/issue.md       |  52 ++\n .../review-history/draft-coverage-attempt-001.json |  14 +\n .../draft-questions-attempt-001.json               |  14 +\n .../review-history/impl-attempt-001.json           |  31 +\n .../review-history/impl-attempt-001.md             |  16 +\n .../review-history/spec-attempt-001.json           |  54 ++\n .../review-history/spec-attempt-001.md             |  19 +\n .../review-history/test-attempt-001.json           |  33 +\n .../review-history/test-attempt-001.md             |  19 +\n .../review-history/test-attempt-002.json           |  33 +\n .../review-history/test-attempt-002.md             |  19 +\n specs/274-test-review-parser-repair/review.md      |  16 +\n .../274-test-review-parser-repair/spec-review.json |  30 +\n specs/274-test-review-parser-repair/spec-review.md |  19 +\n specs/274-test-review-parser-repair/spec.json      | 203 +++++\n specs/274-test-review-parser-repair/spec.md        | 106 +++\n specs/274-test-review-parser-repair/tasks/T-1.md   |  21 +\n specs/274-test-review-parser-repair/tasks/T-2.md   |  20 +\n .../test-coverage.json                             |  75 ++\n .../274-test-review-parser-repair/test-review.json |  30 +\n specs/274-test-review-parser-repair/test-review.md |  19 +\n .../tests/test-review-parser-repair.test.js        |  99 +++\n src/flow/commands/review.js                        |  16 +-\n tests/unit/flow/commands/review.test.js            |  41 +\n 39 files changed, 2585 insertions(+), 94 deletions(-)",
+      "commits": [
+        "fix: normalize test review arrays"
+      ]
+    },
+    "retro": {
+      "total": 5,
+      "done": 5,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "When parsed test-review JSON omits blockingFindings, advisoryFindings, or both, the parser must add each omitted top-level field as an empty array before validating against TEST_REVIEW_RESPONSE_SCHEMA.",
+          "status": "done",
+          "note": "R1: test-review parser fills omitted top-level findings arrays"
+        },
+        {
+          "desc": "The parser must still reject invalid JSON, non-object JSON, non-array blockingFindings or advisoryFindings values, and malformed finding item objects after missing-array normalization.",
+          "status": "done",
+          "note": "R2: test-review parser still rejects invalid values and malformed items"
+        },
+        {
+          "desc": "Accepted test-review output must continue to produce TestReviewArtifact JSON with blockingFindings and advisoryFindings arrays, accurate counts, and the existing PASS / ADVISORY / FAIL verdict rules.",
+          "status": "done",
+          "note": "R3: accepted test-review output keeps artifact-compatible finding counts"
+        },
+        {
+          "desc": "The implementation must share or centralize the top-level review array normalization pattern used by test-review and spec-review so future changes do not maintain two divergent missing-array code paths.",
+          "status": "done",
+          "note": "R4: test-review and spec-review use one top-level array normalization helper"
+        },
+        {
+          "desc": "Regression coverage must include spec-local tests for R1-R4 and a shared unit test that proves parseTestReviewFindings accepts missing top-level test-review findings arrays while preserving rejection of invalid item shape.",
+          "status": "done",
+          "note": "R5: shared unit regression covers missing test-review findings arrays"
+        }
+      ]
+    },
+    "issueLog": {
+      "count": 13,
+      "fullLogPath": "specs/274-test-review-parser-repair/issue-log.json",
+      "importantTotal": 10,
+      "importantShown": 10,
+      "importantOmitted": 0,
+      "recentOtherTotal": 3,
+      "recentOtherShown": 3,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft",
+          "reason": "Requested docs freshness build failed because the installed sdd-forge CLI does not expose a build subcommand",
+          "resolution": "Recorded the failure and inspected available CLI commands before continuing with source as truth"
+        },
+        {
+          "classification": "important",
+          "step": "draft",
+          "reason": "Metric recording with phase plan failed because the CLI accepts draft as the valid planning-phase metric key",
+          "resolution": "Recorded the failed metric attempt and reran metric recording with the draft phase key"
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "Draft gate failed because draft approval was still false after all QA entries were resolved",
+          "resolution": "Set draft approval.approved true with confirmation metadata and rerun draft gate"
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "Draft gate failed because every requirement-like QA entry lacked an explicit must should or nice-to-have priority",
+          "resolution": "Added explicit [must] priority markers to all draft QA questions and reran draft gate"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test-review tooling failure: parser_error",
+          "resolution": "Recover the tooling failure or record an explicit evidence-based override before proceeding."
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test-review tooling failure reproduced the target parser_error because provider output omitted blockingFindings and advisoryFindings",
+          "resolution": "Recorded evidence and reran test-review without changing test design because the failure matches the approved parser repair scope"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test-review tooling failure: parser_error",
+          "resolution": "Recover the tooling failure or record an explicit evidence-based override before proceeding."
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Repeated test-review tooling failure reproduced the same missing blockingFindings and advisoryFindings parser_error after evidence-only rerun",
+          "resolution": "Preserved the repeated tooling evidence for the approved parser repair implementation scope"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Manual test-review completion was rejected because no completion override evidence artifact existed",
+          "resolution": "Inspect completion override contract and create valid evidence before retrying completion"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Created completion override evidence for repeated target parser_error TOOLING_FAILURE before proceeding to implementation",
+          "resolution": "Added test-review override evidence assigning accepted risk to implementation T-1 and kept downstream verification mandatory"
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft",
+          "reason": "Draft edit initially targeted a relative path from the main repository context instead of the active worktree",
+          "resolution": "Confirmed no main-repo file was modified and retried the edit with an absolute path under the active worktree"
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "When requirements are listed as a QA item (Goal confirmation), no priority (must/should/nice-to-have) is assigned.; When requirements are listed as a QA item (Scope confirmation), no priority (must/should/nice-to-have) is assigned.; When...",
+          "resolution": null
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 2,
+      "question": 0,
+      "issueLog": 9
+    },
+    "tokenMetrics": {
+      "input": 189841,
+      "output": 84341,
+      "cacheRead": 1418777,
+      "cacheCreation": 293159,
+      "cost": 3.92423965,
+      "callCount": 20,
+      "durationMs": 1046126,
+      "phaseDurations": [
+        {
+          "phase": "draft",
+          "durationMs": 467922
+        },
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 24286
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 10233
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 28967
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 75811
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 17243
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 326827
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 34979
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 59858
+        }
+      ]
+    },
+    "tests": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/274-test-review-parser-repair/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 50,
+          "end_line": 5226
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/274-test-review-parser-repair/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/review.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/commands/review.test.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/274-test-review-parser-repair/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/review.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/commands/review.test.js"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/274-test-review-parser-repair/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    fix: normalize test review arrays\n    39 files changed, 2585 insertions(+), 94 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (5 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 2\n    Q&A ......................... 0\n    issue-log ................... 9\n    agent calls ................. 20\n    input tokens ................ 189,841\n    output tokens ............... 84,341\n    cache-read tokens ........... 1,418,777\n    cache-create tokens ......... 293,159\n    cost ........................ $3.9242\n    duration (total) ............ 1046.1s\n      draft ..................... 467.9s\n      draft-questions-review .... 24.3s\n      draft-coverage-review ..... 10.2s\n      draft-gate ................ 29.0s\n      spec-review ............... 75.8s\n      spec-gate ................. 17.2s\n      test-review ............... 326.8s\n      impl-review ............... 35.0s\n      impl-gate ................. 59.9s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 5  passed 5  failed 0 verdict=pass\n    raw_output: specs/274-test-review-parser-repair/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (13 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/274-test-review-parser-repair/issue-log.json\n\n    Important (10)\n    - [draft] Requested docs freshness build failed because the installed sdd-forge CLI does not expose a build subcommand\n    - [draft] Metric recording with phase plan failed because the CLI accepts draft as the valid planning-phase metric key\n    - [draft-gate] Draft gate failed because draft approval was still false after all QA entries were resolved\n    - [draft-gate] Draft gate failed because every requirement-like QA entry lacked an explicit must should or nice-to-have priority\n    - [test-review] test-review tooling failure: parser_error\n    - [test-review] test-review tooling failure reproduced the target parser_error because provider output omitted blockingFindings and advisoryFindings\n    - [test-review] test-review tooling failure: parser_error\n    - [test-review] Repeated test-review tooling failure reproduced the same missing blockingFindings and advisoryFindings parser_error after evidence-only rerun\n    - [test-review] Manual test-review completion was rejected because no completion override evidence artifact existed\n    - [test-review] Created completion override evidence for repeated target parser_error TOOLING_FAILURE before proceeding to implementation\n\n    Recent Other (3)\n    - [draft] Draft edit initially targeted a relative path from the main repository context instead of the active worktree\n    - [draft-gate] draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved\n    - [draft-gate] When requirements are listed as a QA item (Goal confirmation), no priority (must/should/nice-to-have) is assigned.; When requirements are listed as a QA item (Scope confirmation), no priority (must/should/nice-to-have) is assigned.; When..."
+}

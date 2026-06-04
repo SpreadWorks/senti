@@ -1,0 +1,122 @@
+{
+  "devType": "bugfix",
+  "goal": "test-review の AI 出力が findings 配列を省略しても、空配列として扱える入力補正を追加し、parser_error による tooling failure の再発を防ぐ。",
+  "analysis": {
+    "problem": "Issue #354 は、test-review provider output が必須 top-level 配列である blockingFindings と advisoryFindings を省略したため、schema validation が parser_error として失敗した事象を対象にしている。spec-review には同種の top-level findings 配列を補完する処理がある一方、test-review は補完せず validation へ進むため、空 findings を意図した出力でも tooling failure になる。",
+    "proposedApproach": "test-review の structured review response について、欠落した findings 配列を空配列として扱う要件を定義する。既存の schema validation と finding item validation は維持し、配列の中身が不正な場合は従来通り failure とする。",
+    "validation": "src/flow/commands/review.js では TEST_REVIEW_RESPONSE_SCHEMA が blockingFindings と advisoryFindings を必須にしており、parseTestReviewJsonOutput は repairJson 後にそのまま validateSchema を呼ぶ。既存の spec-review parsing には normalizeSpecReviewResponseShape があり、missing top-level findings arrays を補完してから validation している。tests/unit/flow/commands/review.test.js には parseTestReviewFindings の既存単体テストがあり、今回の回帰観点を追加できる。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #354 の観測内容は、test-review provider output が blockingFindings と advisoryFindings を省略し、parser_error tooling failure になったこと。",
+      "src/flow/commands/review.js の TEST_REVIEW_RESPONSE_SCHEMA は blockingFindings と advisoryFindings を top-level required fields としている。",
+      "src/flow/commands/review.js の parseTestReviewJsonOutput は JSON parse / repairJson の後、missing top-level arrays を補完せず TEST_REVIEW_RESPONSE_SCHEMA で validation する。",
+      "src/flow/commands/review.js の spec-review path には normalizeSpecReviewResponseShape があり、blockingFindings と nonBlockingImprovements の欠落を空配列で補完する。",
+      "tests/unit/flow/commands/review.test.js には parseTestReviewFindings の JSON parsing regression test がある。",
+      "Issue #354 の目的は test-review parser_error tooling failure の再発防止であり、補正対象は top-level findings arrays 欠落に限定する。",
+      "欠落した top-level findings arrays は空配列として補完し、finding item 内の required fields validation は維持する。",
+      "spec-local test と既存 unit regression の両方で、SDD 要件証明と parser 単体回帰を分けて検証する。"
+    ],
+    "decisionPoints": [
+      "補正 helper の具体的な形を spec で定義する。",
+      "schema validation error の既存文言をどこまで維持するかを spec で定義する。",
+      "spec-local test と unit regression の責務分担を spec で定義する。"
+    ],
+    "resolvedByProjectRules": [
+      "Issue は 1 つの concern として扱い、勝手に spec 分割しない。",
+      "外部依存は追加しない。Node.js 組み込みモジュールと既存 test runner のみ使う。",
+      "src/ 配下にプロジェクト固有情報を入れない。今回の変更は汎用的な review parser behavior として記述する。",
+      "後方互換のための旧フォーマット維持コードは追加しない。ただし AI provider が空 findings を省略する現行 failure mode を受ける入力補正は、現在の schema contract を補強するものとして扱う。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "補正 helper の名前、配置、呼び出し順序。",
+      "schema validation error message の具体的な文言。",
+      "spec-local test file 名と TC 番号。",
+      "既存 unit test へ追加する assertion の具体的な shape。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "test-review structured output の top-level findings arrays 欠落時の扱い",
+      "schema validation 前の入力 shape normalization",
+      "parser regression coverage",
+      "spec-local test coverage"
+    ],
+    "out": [
+      "AI provider 設定や model selection の変更",
+      "test-review prompt の大幅な再設計",
+      "draft-review / impl-review の artifact contract 変更",
+      "GitHub workflow board 機能の変更"
+    ]
+  },
+  "impactOnExisting": [
+    "test-review が空 findings を省略した AI output を tooling failure とせず、空配列として処理できるようになる。",
+    "finding item の required fields validation は維持され、不正な item shape は引き続き failure になる。",
+    "spec-review の既存補正方針との一貫性が高まる。",
+    "既存の review artifact format は blockingFindings と advisoryFindings を含む形のまま維持される。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "[must] Goal 確認: Issue #354 の目的を、test-review の AI 出力が blockingFindings / advisoryFindings を省略した場合に空配列として扱い、parser_error tooling failure を防ぐ bugfix として進めてよいですか。推奨は Yes です。観測された failure mode に直接対応し、既存 artifact contract は維持できます。",
+      "answer": "Yes。Issue #354 の目的を test-review parser_error tooling failure の再発防止 bugfix として進める。",
+      "evidence": "Issue #354 body: Observation は test-review provider output が blockingFindings / advisoryFindings を省略し parser_error tooling failure になったこと。src/flow/commands/review.js:1307-1319 は TEST_REVIEW_RESPONSE_SCHEMA で両配列を必須にしている。",
+      "why": "ユーザーは Issue #354 を SDD flow に指定済みで、Issue 本文も recurrence prevention を目的としている。artifact contract を維持したまま欠落配列を空配列として扱うと、観測された failure mode に直接対応できる。",
+      "considered": "test-review prompt だけを強める案もあるが、provider output は既に jsonSchema / fmtFallback を受けていても欠落したため、parser 側の補正が必要。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "[must] Scope 確認: 今回の補正対象は test-review の top-level blockingFindings / advisoryFindings 欠落に限定してよいですか。推奨は Yes です。spec-review には既に同種補正があり、今回の Issue は test-review の再発防止に絞られています。",
+      "answer": "Yes。補正対象は test-review の top-level blockingFindings / advisoryFindings 欠落に限定する。",
+      "evidence": "Issue #354 の Target は step: test-review。src/flow/commands/review.js:2374-2382 には spec-review 用の normalizeSpecReviewResponseShape があり、今回の欠落とは別 phase で既に補正済み。",
+      "why": "Issue の scope boundary は test-review であり、draft guardrail の Single Responsibility はユーザー定義 Issue を 1 concern として扱う。draft-review / impl-review の artifact contract 変更は不要。",
+      "considered": "review parser 全体の契約再設計も考えられるが、draft-review / impl-review まで含めると Issue #354 の再発防止を超える。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "[must] Acceptance Criteria 確認: blockingFindings と advisoryFindings のどちらか、または両方が欠落した valid JSON object は欠落分を空配列として補完し、finding item 内の required fields 欠落は従来通り validation failure とする条件でよいですか。推奨は Yes です。空 findings の省略だけを救済し、不完全な finding は誤って通しません。",
+      "answer": "Yes。valid JSON object の top-level findings arrays 欠落だけを空配列で補完し、finding item 内の required fields 欠落は validation failure のままにする。",
+      "evidence": "src/flow/commands/review.js:1282-1319 は blocking item と advisory item の required fields を別 schema として定義している。src/flow/commands/review.js:1567-1578 は parse / repairJson 後に validateSchema を呼ぶ。",
+      "why": "空 findings の省略は PASS / ADVISORY 判定前の shape 問題だが、不完全な finding item は review 結果の意味を壊す。top-level 補完に限定すると誤った finding を通さずに tooling failure だけを減らせる。",
+      "considered": "schema を緩めて item 欠落も fallback text で補う案はあるが、blocking / advisory の意味が曖昧になり、test-review の判定品質を落とす。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "[must] Implementation Policy 確認: spec-review と同じ補正方針を test-review に導入しつつ、共通化は重複を減らす範囲に留める方針でよいですか。推奨は Yes です。同種の parser behavior を揃えながら、review artifact contract の変更は避けられます。",
+      "answer": "Yes。spec-review と同じ補正方針を test-review に導入し、共通化は重複を減らす範囲に留める。",
+      "evidence": "AGENTS.md は同じパターンが 2 箇所以上で繰り返される場合に共通ヘルパー抽出を求めている。src/flow/commands/review.js には spec-review の normalizeSpecReviewResponseShape があり、test-review に同種処理が必要になる。",
+      "why": "同種の top-level findings array normalization を別々に持つと再発防止の一貫性が下がる。必要な helper 化に留めれば、review artifact contract や prompt contract を広げずに重複を減らせる。",
+      "considered": "test-review 専用関数だけを追加する案もあるが、spec-review と同じ shape 補正が 2 箇所に分かれて保守リスクが残る。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "follow-up-coverage",
+      "question": "[must] Test Strategy 確認: spec-local test で requirement を証明し、既存の tests/unit/flow/commands/review.test.js に parseTestReviewFindings の共有 regression を追加する方針でよいですか。推奨は Yes です。SDD の spec-local coverage と既存 parser unit coverage の両方を満たせます。",
+      "answer": "Yes。spec-local test で requirement を証明し、tests/unit/flow/commands/review.test.js に parseTestReviewFindings の共有 regression を追加する。",
+      "evidence": "draft guardrail は spec-local test coverage を重視する。tests/unit/flow/commands/review.test.js:235-253 には parseTestReviewFindings の既存 parser regression がある。",
+      "why": "spec-local test は今回の SDD requirement を直接証明し、unit regression は共有 parser API の将来変更を検知する。両方を分けると coverage の目的が明確になる。",
+      "considered": "spec-local test のみにする案もあるが、既存 parser unit test に近い回帰を置かないと、共有 test suite で parser 契約の変化を見逃しやすい。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-04T05:17:30.243Z",
+    "notes": "All draft QA entries are answered from Issue #354, project rules, and verified source context; no unresolved user decision remains before spec writing."
+  }
+}

@@ -252,6 +252,47 @@ describe("test-review spec-local file scope", () => {
     assert.equal(parsed.advisory.length, 1);
     assert.throws(() => parseTestReviewFindings("### GAP-1\nMissing"), /test review output failed schema validation|Unexpected token|JSON/i);
   });
+
+  it("accepts missing top-level test review findings arrays and rejects malformed items", () => {
+    const empty = parseTestReviewFindings(JSON.stringify({}));
+    assert.equal(empty.blocking.length, 0);
+    assert.equal(empty.advisory.length, 0);
+
+    const blockingOnly = parseTestReviewFindings(JSON.stringify({
+      blockingFindings: [{
+        title: "Missing coverage",
+        target: "R2",
+        issue: "R2 has no test.",
+        requiredChange: "Add a spec-local test for R2.",
+        whyBlocking: "Implementation would proceed without acceptance coverage.",
+      }],
+    }));
+    assert.equal(blockingOnly.blocking.length, 1);
+    assert.equal(blockingOnly.advisory.length, 0);
+
+    const advisoryOnly = parseTestReviewFindings(JSON.stringify({
+      advisoryFindings: [{
+        title: "Extra boundary",
+        target: "R1",
+        improvement: "Add one more boundary case.",
+        whyNonBlocking: "Current coverage is adequate for implementation.",
+      }],
+    }));
+    assert.equal(advisoryOnly.blocking.length, 0);
+    assert.equal(advisoryOnly.advisory.length, 1);
+
+    assert.throws(
+      () => parseTestReviewFindings(JSON.stringify({ blockingFindings: "none", advisoryFindings: [] })),
+      /test review output failed schema validation/,
+    );
+    assert.throws(
+      () => parseTestReviewFindings(JSON.stringify({
+        blockingFindings: [{ title: "Missing required fields" }],
+        advisoryFindings: [],
+      })),
+      /test review output failed schema validation/,
+    );
+  });
 });
 
 describe("resolveAgent for flow.review", () => {

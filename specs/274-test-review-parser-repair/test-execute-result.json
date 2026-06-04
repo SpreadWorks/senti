@@ -1,0 +1,118 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/274-test-review-parser-repair/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/274-test-review-parser-repair/tests/test-review-parser-repair.test.js",
+        "test_name": "R1: test-review parser fills omitted top-level findings arrays",
+        "command": "node --test specs/274-test-review-parser-repair/tests/test-review-parser-repair.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 49
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/274-test-review-parser-repair/tests/test-review-parser-repair.test.js",
+        "test_name": "R2: test-review parser still rejects invalid values and malformed items",
+        "command": "node --test specs/274-test-review-parser-repair/tests/test-review-parser-repair.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 49
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/274-test-review-parser-repair/tests/test-review-parser-repair.test.js",
+        "test_name": "R3: accepted test-review output keeps artifact-compatible finding counts",
+        "command": "node --test specs/274-test-review-parser-repair/tests/test-review-parser-repair.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 49
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/274-test-review-parser-repair/tests/test-review-parser-repair.test.js",
+        "test_name": "R4: test-review and spec-review use one top-level array normalization helper",
+        "command": "node --test specs/274-test-review-parser-repair/tests/test-review-parser-repair.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 49
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/274-test-review-parser-repair/tests/test-review-parser-repair.test.js",
+        "test_name": "R5: shared unit regression covers missing test-review findings arrays",
+        "command": "node --test specs/274-test-review-parser-repair/tests/test-review-parser-repair.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 49
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": true,
+    "mode": "full",
+    "root_test_command": "node tests/run.js",
+    "root_test_command_source": "test.command",
+    "command": "node tests/run.js",
+    "result": "pass",
+    "raw_output_lines": {
+      "start_line": 50,
+      "end_line": 5226
+    },
+    "trigger_relevant_changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/274-test-review-parser-repair/"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/commands/review.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/commands/review.test.js"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/274-test-review-parser-repair/"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/commands/review.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/commands/review.test.js"
+      }
+    ],
+    "process": {
+      "started": true,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "spawnError": null
+    }
+  }
+}

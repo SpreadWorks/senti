@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "When parsed test-review JSON omits blockingFindings, advisoryFindings, or both, the parser must add each omitted top-level field as an empty array before validating against TEST_REVIEW_RESPONSE_SCHEMA.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/test-review-parser-repair.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "The parser must still reject invalid JSON, non-object JSON, non-array blockingFindings or advisoryFindings values, and malformed finding item objects after missing-array normalization.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/test-review-parser-repair.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "Accepted test-review output must continue to produce TestReviewArtifact JSON with blockingFindings and advisoryFindings arrays, accurate counts, and the existing PASS / ADVISORY / FAIL verdict rules.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/test-review-parser-repair.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "The implementation must share or centralize the top-level review array normalization pattern used by test-review and spec-review so future changes do not maintain two divergent missing-array code paths.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/test-review-parser-repair.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "Regression coverage must include spec-local tests for R1-R4 and a shared unit test that proves parseTestReviewFindings accepts missing top-level test-review findings arrays while preserving rejection of invalid item shape.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/test-review-parser-repair.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/test-review-parser-repair.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ]
+    }
+  ]
+}

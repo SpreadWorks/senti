@@ -1,0 +1,255 @@
+{
+  "entries": [
+    {
+      "step": "draft",
+      "reason": "Requested docs freshness build failed because the installed sdd-forge CLI does not expose a build subcommand",
+      "trigger": "sdd-forge build returned unknown command during pre-draft docs freshness check",
+      "resolution": "Recorded the failure and inspected available CLI commands before continuing with source as truth",
+      "guardrailCandidate": "Docs freshness guidance should reference an available CLI command or define fallback behavior when build is unavailable",
+      "taskId": null,
+      "timestamp": "2026-06-04T05:08:39.488Z"
+    },
+    {
+      "step": "draft",
+      "reason": "Metric recording with phase plan failed because the CLI accepts draft as the valid planning-phase metric key",
+      "trigger": "sdd-forge flow set metric plan srcRead returned INVALID_PHASE after direct source inspection",
+      "resolution": "Recorded the failed metric attempt and reran metric recording with the draft phase key",
+      "guardrailCandidate": "Metric instructions should align phase examples with CLI-accepted phase identifiers before direct-read accounting",
+      "taskId": null,
+      "timestamp": "2026-06-04T05:12:44.528Z"
+    },
+    {
+      "step": "draft",
+      "reason": "Draft edit initially targeted a relative path from the main repository context instead of the active worktree",
+      "trigger": "apply_patch could not find specs/274-test-review-parser-repair/draft.json because the patch tool resolved the path outside the worktree",
+      "resolution": "Confirmed no main-repo file was modified and retried the edit with an absolute path under the active worktree",
+      "guardrailCandidate": "During worktree flows, patch paths must be absolute worktree paths or tool cwd must be verified before editing",
+      "taskId": null,
+      "timestamp": "2026-06-04T05:13:58.287Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-04T05:17:14.966Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft approval is required: set approval.approved = true",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate failed because draft approval was still false after all QA entries were resolved",
+      "trigger": "sdd-forge flow run gate --phase draft reported approval.approved must be true when no user decision is unresolved",
+      "resolution": "Set draft approval.approved true with confirmation metadata and rerun draft gate",
+      "guardrailCandidate": "When draft coverage review passes without repair, approval metadata still needs to be set before draft gate",
+      "taskId": null,
+      "timestamp": "2026-06-04T05:17:30.243Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "When requirements are listed as a QA item (Goal confirmation), no priority (must/should/nice-to-have) is assigned.; When requirements are listed as a QA item (Scope confirmation), no priority (must/should/nice-to-have) is assigned.; When requirements are listed as a QA item (Acceptance Criteria confirmation), no priority (must/should/nice-to-have) is assigned.; When requirements are listed as a QA item (Implementation Policy confirmation), no priority (must/should/nice-to-have) is assigned.; When requirements are listed as a QA item (Test Strategy confirmation), no priority (must/should/nice-to-have) is assigned.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-04T05:18:00.475Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "content",
+            "locator": "qa[0]"
+          },
+          "observed": "When requirements are listed as a QA item (Goal confirmation), no priority (must/should/nice-to-have) is assigned.",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "content",
+            "locator": "qa[1]"
+          },
+          "observed": "When requirements are listed as a QA item (Scope confirmation), no priority (must/should/nice-to-have) is assigned.",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "content",
+            "locator": "qa[2]"
+          },
+          "observed": "When requirements are listed as a QA item (Acceptance Criteria confirmation), no priority (must/should/nice-to-have) is assigned.",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "content",
+            "locator": "qa[3]"
+          },
+          "observed": "When requirements are listed as a QA item (Implementation Policy confirmation), no priority (must/should/nice-to-have) is assigned.",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "content",
+            "locator": "qa[4]"
+          },
+          "observed": "When requirements are listed as a QA item (Test Strategy confirmation), no priority (must/should/nice-to-have) is assigned.",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "When requirements are listed as a QA item (Goal confirmation), no priority (must/should/nice-to-have) is assigned."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "When requirements are listed as a QA item (Scope confirmation), no priority (must/should/nice-to-have) is assigned."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "When requirements are listed as a QA item (Acceptance Criteria confirmation), no priority (must/should/nice-to-have) is assigned."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "When requirements are listed as a QA item (Implementation Policy confirmation), no priority (must/should/nice-to-have) is assigned."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "When requirements are listed as a QA item (Test Strategy confirmation), no priority (must/should/nice-to-have) is assigned."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate failed because every requirement-like QA entry lacked an explicit must should or nice-to-have priority",
+      "trigger": "draft gate prioritize-requirements guardrail reported qa[0] through qa[4] without priority",
+      "resolution": "Added explicit [must] priority markers to all draft QA questions and reran draft gate",
+      "guardrailCandidate": "Draft QA entries that confirm requirements should carry explicit priority before draft gate",
+      "taskId": null,
+      "timestamp": "2026-06-04T05:18:10.448Z"
+    },
+    {
+      "step": "test-review",
+      "phase": "test",
+      "failureKind": "tooling_failure",
+      "reason": "test-review tooling failure: parser_error",
+      "trigger": "test-review post hook (auto)",
+      "resolution": "Recover the tooling failure or record an explicit evidence-based override before proceeding.",
+      "artifact": "specs/274-test-review-parser-repair/test-review.md",
+      "timestamp": "2026-06-04T05:28:20.399Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review tooling failure reproduced the target parser_error because provider output omitted blockingFindings and advisoryFindings",
+      "trigger": "sdd-forge flow run review --phase test after scenario-validity passed for spec 274",
+      "resolution": "Recorded evidence and reran test-review without changing test design because the failure matches the approved parser repair scope",
+      "guardrailCandidate": "test-review parser should normalize missing top-level finding arrays before schema validation",
+      "taskId": null,
+      "timestamp": "2026-06-04T05:28:45.176Z"
+    },
+    {
+      "step": "test-review",
+      "phase": "test",
+      "failureKind": "tooling_failure",
+      "reason": "test-review tooling failure: parser_error",
+      "trigger": "test-review post hook (auto)",
+      "resolution": "Recover the tooling failure or record an explicit evidence-based override before proceeding.",
+      "artifact": "specs/274-test-review-parser-repair/test-review.md",
+      "timestamp": "2026-06-04T05:31:04.585Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Repeated test-review tooling failure reproduced the same missing blockingFindings and advisoryFindings parser_error after evidence-only rerun",
+      "trigger": "second sdd-forge flow run review --phase test without test design changes",
+      "resolution": "Preserved the repeated tooling evidence for the approved parser repair implementation scope",
+      "guardrailCandidate": "Missing top-level test-review finding arrays must be normalized deterministically instead of relying on provider retries",
+      "taskId": null,
+      "timestamp": "2026-06-04T05:31:15.862Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Manual test-review completion was rejected because no completion override evidence artifact existed",
+      "trigger": "sdd-forge flow set step test-review done returned STEP_COMPLETION_VALIDATION_FAILED after repeated parser_error evidence",
+      "resolution": "Inspect completion override contract and create valid evidence before retrying completion",
+      "guardrailCandidate": "When proceeding after test-review TOOLING_FAILURE, create completion override evidence before setting the step done",
+      "taskId": null,
+      "timestamp": "2026-06-04T05:31:37.131Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Created completion override evidence for repeated target parser_error TOOLING_FAILURE before proceeding to implementation",
+      "trigger": "test-review normal completion policy rejected TOOLING_FAILURE without completion-overrides.json",
+      "resolution": "Added test-review override evidence assigning accepted risk to implementation T-1 and kept downstream verification mandatory",
+      "guardrailCandidate": "Non-normal test-review completion should use structured completion-overrides evidence rather than free-text issue-log only",
+      "taskId": null,
+      "timestamp": "2026-06-04T05:32:10.337Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-06-04T05:44:43.644Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "finalize-merge failed because merging feature branch into main detected conflicts",
+      "trigger": "sdd-forge flow run finalize-merge returned Merge conflict detected and instructed git rebase main",
+      "resolution": "Inspect worktree rebase status, resolve conflicts inside the active worktree, and retry finalize-merge",
+      "guardrailCandidate": "Before finalize merge, consider rebasing the feature worktree on the base branch to surface conflicts earlier",
+      "taskId": null,
+      "timestamp": "2026-06-04T05:44:53.454Z"
+    }
+  ]
+}

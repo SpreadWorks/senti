@@ -1,0 +1,43 @@
+{
+  "spec": "specs/274-test-review-parser-repair/spec.json",
+  "date": "2026-06-04T05:41:30.106Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "When parsed test-review JSON omits blockingFindings, advisoryFindings, or both, the parser must add each omitted top-level field as an empty array before validating against TEST_REVIEW_RESPONSE_SCHEMA.",
+      "status": "done",
+      "note": "R1: test-review parser fills omitted top-level findings arrays"
+    },
+    {
+      "desc": "The parser must still reject invalid JSON, non-object JSON, non-array blockingFindings or advisoryFindings values, and malformed finding item objects after missing-array normalization.",
+      "status": "done",
+      "note": "R2: test-review parser still rejects invalid values and malformed items"
+    },
+    {
+      "desc": "Accepted test-review output must continue to produce TestReviewArtifact JSON with blockingFindings and advisoryFindings arrays, accurate counts, and the existing PASS / ADVISORY / FAIL verdict rules.",
+      "status": "done",
+      "note": "R3: accepted test-review output keeps artifact-compatible finding counts"
+    },
+    {
+      "desc": "The implementation must share or centralize the top-level review array normalization pattern used by test-review and spec-review so future changes do not maintain two divergent missing-array code paths.",
+      "status": "done",
+      "note": "R4: test-review and spec-review use one top-level array normalization helper"
+    },
+    {
+      "desc": "Regression coverage must include spec-local tests for R1-R4 and a shared unit test that proves parseTestReviewFindings accepts missing top-level test-review findings arrays while preserving rejection of invalid item shape.",
+      "status": "done",
+      "note": "R5: shared unit regression covers missing test-review findings arrays"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 5,
+    "done": 5,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

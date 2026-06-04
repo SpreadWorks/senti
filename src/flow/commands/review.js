@@ -1572,6 +1572,7 @@ function parseTestReviewJsonOutput(raw) {
   } catch {
     parsed = JSON.parse(repairJson(candidate));
   }
+  parsed = normalizeReviewResponseArrays(parsed, ["blockingFindings", "advisoryFindings"]);
   const errors = validateSchema(parsed, TEST_REVIEW_RESPONSE_SCHEMA);
   if (errors.length > 0) {
     throw new Error(`test review output failed schema validation: ${errors.join("; ")}`);
@@ -2371,16 +2372,19 @@ class SpecReviewSchemaValidationError extends Error {
   }
 }
 
-function normalizeSpecReviewResponseShape(parsed) {
+function normalizeReviewResponseArrays(parsed, fields) {
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return parsed;
   const normalized = { ...parsed };
-  if (!Object.prototype.hasOwnProperty.call(normalized, "blockingFindings")) {
-    normalized.blockingFindings = [];
-  }
-  if (!Object.prototype.hasOwnProperty.call(normalized, "nonBlockingImprovements")) {
-    normalized.nonBlockingImprovements = [];
+  for (const field of fields) {
+    if (!Object.prototype.hasOwnProperty.call(normalized, field)) {
+      normalized[field] = [];
+    }
   }
   return normalized;
+}
+
+function normalizeSpecReviewResponseShape(parsed) {
+  return normalizeReviewResponseArrays(parsed, ["blockingFindings", "nonBlockingImprovements"]);
 }
 
 function parseSpecReviewJsonOutput(raw) {
