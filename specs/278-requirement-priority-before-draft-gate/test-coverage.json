@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "When the draft step renders its QA creation rules, the instructions must state that every requirement-like draft QA, scope, impact, decision, or open-question entry that expresses a requirement uses exactly one accepted priority marker: `must`, `should`, or `nice-to-have`.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/requirement-priority-guidance.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "Before `sdd-forge flow run gate --phase draft`, the draft-gate instructions must require a scan of requirement-like draft fields for entries missing `must`, `should`, or `nice-to-have` markers.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/requirement-priority-guidance.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "The priority guidance must preserve existing validation behavior: it must not add a persisted draft priority field, relax the `prioritize-requirements` guardrail, or change spec requirement priority schema.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/requirement-priority-guidance.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "Spec-local tests under `specs/278-requirement-priority-before-draft-gate/tests/` must verify the source prompt text and rendered `sdd-forge flow get next-action` instructions for R1 and R2.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/requirement-priority-guidance.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/requirement-priority-guidance.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ]
+    }
+  ]
+}

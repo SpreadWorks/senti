@@ -1,0 +1,51 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Question q1 does not provide a recommended answer; the `answer` field is empty.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-04T14:47:05.728Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "draft-content",
+            "locator": "qa[0].answer"
+          },
+          "observed": "Question q1 does not provide a recommended answer; the `answer` field is empty.",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Question q1 does not provide a recommended answer; the `answer` field is empty."
+        }
+      ]
+    },
+    {
+      "step": "test-review",
+      "phase": "test",
+      "failureKind": "tooling_failure",
+      "reason": "test-review tooling failure: agent_error",
+      "trigger": "test-review post hook (auto)",
+      "resolution": "Recover the tooling failure or record an explicit evidence-based override before proceeding.",
+      "artifact": "specs/278-requirement-priority-before-draft-gate/test-review.md",
+      "timestamp": "2026-06-04T14:55:33.787Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl-review provider failed twice with retryBudgetConsumed=false under codex-only profile; manual review artifact recorded no blocking findings after inspecting the two prompt-only diffs and passing test artifacts.",
+      "taskId": null,
+      "timestamp": "2026-06-04T15:04:50.501Z"
+    }
+  ]
+}

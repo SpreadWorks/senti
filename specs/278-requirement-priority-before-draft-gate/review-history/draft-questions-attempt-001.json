@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "phase": "draft-questions",
+  "sourceDraft": "draft.json",
+  "generatedAt": "2026-06-04T14:45:08.247Z",
+  "verdict": "ADVISORY",
+  "summary": "0 blocking, 0 advisory, 1 repair target finding(s) recorded.",
+  "blockingFindings": [],
+  "advisoryFindings": [],
+  "repairTargets": [
+    {
+      "title": "1. Empty initial QA list",
+      "target": "q<N> (no qa.id present)",
+      "rationale": "Repair the draft output so it contains at least one initial QA entry before draft-gate review.",
+      "evidence": "qa[] is empty before any answer exists",
+      "classification": "repair_target"
+    }
+  ],
+  "sourceArtifact": "draft-review-questions.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "draft-questions-001-blocking-001",
+      "phase": "draft-questions",
+      "sourceArtifact": "draft-review-questions.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "1. Empty initial QA list",
+      "body": "Repair the draft output so it contains at least one initial QA entry before draft-gate review.",
+      "category": "repair_target"
+    }
+  ]
+}

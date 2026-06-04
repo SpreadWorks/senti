@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "One repair target is valid: keep qa[] non-empty without introducing unresolved user decisions.",
+  "items": [
+    {
+      "title": "1. Empty initial QA list",
+      "target": "q<N> (no qa.id present)",
+      "decision": "apply",
+      "rationale": "The draft needs a QA lifecycle entry, but Issue #358 and project rules already resolve the only apparent decision boundary.",
+      "evidence": "draft.json decisionMap.requiresUserJudgment is empty, while scopeVerification.in records the priority-marker requirements."
+    }
+  ]
+}

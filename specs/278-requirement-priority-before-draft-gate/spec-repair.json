@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Clarified that shared draft QA priority text is authoring/preflight guidance and must not make draft coverage review report priority omissions as user-decision blockers.",
+  "items": [
+    {
+      "title": "Shared draft QA rules also affect coverage review",
+      "target": "R1 / Design Principles / Acceptance Criteria",
+      "decision": "applied",
+      "rationale": "Added design, acceptance, and clarification text that constrains the coverage-review consumer of the shared partial.",
+      "evidence": "spec.json design_principles[3], acceptance_criteria[4], and clarifications[3] now state that missing priority markers are not draft coverage review user-decision blockers.",
+      "changedFields": [
+        "design_principles[3]",
+        "acceptance_criteria[4]",
+        "clarifications[3]"
+      ]
+    }
+  ]
+}

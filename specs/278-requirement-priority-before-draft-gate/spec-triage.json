@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "One blocking finding is valid and should be repaired with a spec clarification about draft coverage review consuming the shared QA rules partial.",
+  "items": [
+    {
+      "title": "Shared draft QA rules also affect coverage review",
+      "target": "R1 / Design Principles / Acceptance Criteria",
+      "decision": "apply",
+      "rationale": "The shared partial is consumed outside the draft authoring next-action path, so the spec must prevent an implementation from turning priority omissions into coverage-review user-decision blockers.",
+      "evidence": "spec-review.json blockingFindings[0] identifies the shared partial coverage-review consumer; spec.json design_principles and acceptance_criteria do not yet constrain coverage review behavior."
+    }
+  ]
+}

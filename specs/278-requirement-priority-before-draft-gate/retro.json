@@ -1,0 +1,38 @@
+{
+  "spec": "specs/278-requirement-priority-before-draft-gate/spec.json",
+  "date": "2026-06-04T15:06:38.019Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "When the draft step renders its QA creation rules, the instructions must state that every requirement-like draft QA, scope, impact, decision, or open-question entry that expresses a requirement uses exactly one accepted priority marker: `must`, `should`, or `nice-to-have`.",
+      "status": "done",
+      "note": "R1: shared draft QA rules require accepted priority markers for requirement-like draft text"
+    },
+    {
+      "desc": "Before `sdd-forge flow run gate --phase draft`, the draft-gate instructions must require a scan of requirement-like draft fields for entries missing `must`, `should`, or `nice-to-have` markers.",
+      "status": "done",
+      "note": "R2: draft-gate prompt requires a missing-priority preflight scan before the gate command"
+    },
+    {
+      "desc": "The priority guidance must preserve existing validation behavior: it must not add a persisted draft priority field, relax the `prioritize-requirements` guardrail, or change spec requirement priority schema.",
+      "status": "done",
+      "note": "R3: priority guidance stays marker-based and does not introduce schema or guardrail relaxation"
+    },
+    {
+      "desc": "Spec-local tests under `specs/278-requirement-priority-before-draft-gate/tests/` must verify the source prompt text and rendered `sdd-forge flow get next-action` instructions for R1 and R2.",
+      "status": "done",
+      "note": "R4: rendered next-action instructions expose draft and draft-gate priority guidance"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 4,
+    "done": 4,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

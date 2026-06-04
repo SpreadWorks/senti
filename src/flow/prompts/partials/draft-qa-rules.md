@@ -34,6 +34,13 @@ If the analysis cannot be filled without more context, investigate by reading co
 ### Decision entry rule
 A decision entry is any QA entry with non-empty `why` or non-empty `considered`. Every decision entry MUST have non-empty `evidence` that supports the decision.
 
+### Requirement priority markers
+Every requirement-like draft entry that expresses a required outcome MUST include exactly one accepted priority marker: `must`, `should`, or `nice-to-have`.
+
+Apply this to authored requirement-like text in `qa[]`, `scopeVerification`, `impactOnExisting`, `decisionMap`, and `openQuestions`. The marker belongs in the prose for the requirement-like entry, not in a separate field.
+
+Draft coverage review must not report missing priority markers as unresolved user-decision blockers. Draft-gate preflight and gate validation own residual priority issues.
+
 ### Research and self-verification
 Before generating questions, fill `decisionMap` from the request or issue, docs, project rules, and relevant source code. Use it to avoid discovering design topics later through review loops. For each question, research first, self-verify the premise, then generate the question with evidence. Do not ask questions based on assumptions.
 

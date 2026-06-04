@@ -2,6 +2,9 @@
      - Only when there is no unresolved user decision, including no unresolved `requires_user_decision` item, set or confirm `draft.json` has `approval.approved = true`.
      - Set or confirm `approval.confirmedAt` is a non-empty ISO timestamp in `draft.json`.
      - Do not approve or proceed while any unresolved `requires_user_decision` item remains.
+   - Before running the gate, scan requirement-like authored fields in `draft.json` for missing priority marker text. Check `scopeVerification.in`, `scopeVerification.out`, `impactOnExisting`, `decisionMap.decisionPoints`, `decisionMap.requiresUserJudgment`, `decisionMap.deferredToSpec`, `openQuestions`, and `qa[].question`, `qa[].answer`, `qa[].why`, `qa[].droppedReason` when they express required outcomes.
+     - Each requirement-like entry MUST carry exactly one accepted priority marker: `must`, `should`, or `nice-to-have`.
+     - Fix all missing priority marker instances before running `sdd-forge flow run gate --phase draft`.
    - `sdd-forge flow run gate --phase draft` (step status is automatically managed by hooks: pre sets draft-gate to in_progress, post sets done on PASS)
    - Checks draft.json for: devType enum, goal, analysis (problem/proposedApproach/validation), decisionMap shape, qa[] lifecycle shape, approval + guardrail AI compliance.
    - If FAIL (`data.result === "fail"`): show every row in `data.artifacts.reasons` (one per violation on FAIL article entries) and every entry in `data.artifacts.issues`.

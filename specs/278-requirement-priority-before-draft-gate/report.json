@@ -1,0 +1,179 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".sdd-forge/output/analysis.json                    |   2 +-\n .../completion-overrides.json                      |  19 +\n .../draft-coverage-repair.json                     |   8 +\n .../draft-coverage-triage.json                     |   8 +\n .../draft-questions-repair.json                    |  17 +\n .../draft-questions-triage.json                    |  15 +\n .../draft-review-coverage.json                     |  11 +\n .../draft-review-questions.json                    |  19 +\n .../draft.json                                     |  69 ++\n .../file-map.json                                  |  20 +\n .../flow.json                                      | 778 +++++++++++++++++++++\n .../impl-review.json                               |  25 +\n .../issue-log.json                                 |  51 ++\n .../issue.md                                       |  36 +\n .../review-history/draft-coverage-attempt-001.json |  14 +\n .../draft-questions-attempt-001.json               |  33 +\n .../review-history/spec-attempt-001.json           |  56 ++\n .../review-history/spec-attempt-001.md             |  19 +\n .../review-history/test-attempt-001.json           |  33 +\n .../review-history/test-attempt-001.md             |  21 +\n .../review.md                                      |  27 +\n .../spec-repair.json                               |  20 +\n .../spec-review.json                               |  32 +\n .../spec-review.md                                 |  19 +\n .../spec-triage.json                               |  15 +\n .../spec.json                                      | 178 +++++\n .../spec.md                                        | 101 +++\n .../tasks/T-1.md                                   |  21 +\n .../test-coverage.json                             |  64 ++\n .../test-review.json                               |  30 +\n .../test-review.md                                 |  21 +\n .../tests/requirement-priority-guidance.test.js    | 132 ++++\n src/flow/prompts/partials/draft-qa-rules.md        |   7 +\n src/flow/prompts/plan/draft-gate.md                |   3 +\n 34 files changed, 1923 insertions(+), 1 deletion(-)",
+      "commits": [
+        "Add draft priority marker guidance"
+      ]
+    },
+    "retro": {
+      "total": 4,
+      "done": 4,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "When the draft step renders its QA creation rules, the instructions must state that every requirement-like draft QA, scope, impact, decision, or open-question entry that expresses a requirement uses exactly one accepted priority marker: `must`, `should`, or `nice-to-have`.",
+          "status": "done",
+          "note": "R1: shared draft QA rules require accepted priority markers for requirement-like draft text"
+        },
+        {
+          "desc": "Before `sdd-forge flow run gate --phase draft`, the draft-gate instructions must require a scan of requirement-like draft fields for entries missing `must`, `should`, or `nice-to-have` markers.",
+          "status": "done",
+          "note": "R2: draft-gate prompt requires a missing-priority preflight scan before the gate command"
+        },
+        {
+          "desc": "The priority guidance must preserve existing validation behavior: it must not add a persisted draft priority field, relax the `prioritize-requirements` guardrail, or change spec requirement priority schema.",
+          "status": "done",
+          "note": "R3: priority guidance stays marker-based and does not introduce schema or guardrail relaxation"
+        },
+        {
+          "desc": "Spec-local tests under `specs/278-requirement-priority-before-draft-gate/tests/` must verify the source prompt text and rendered `sdd-forge flow get next-action` instructions for R1 and R2.",
+          "status": "done",
+          "note": "R4: rendered next-action instructions expose draft and draft-gate priority guidance"
+        }
+      ]
+    },
+    "issueLog": {
+      "count": 3,
+      "fullLogPath": "specs/278-requirement-priority-before-draft-gate/issue-log.json",
+      "importantTotal": 2,
+      "importantShown": 2,
+      "importantOmitted": 0,
+      "recentOtherTotal": 1,
+      "recentOtherShown": 1,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test-review tooling failure: agent_error",
+          "resolution": "Recover the tooling failure or record an explicit evidence-based override before proceeding."
+        },
+        {
+          "classification": "important",
+          "step": "impl-review",
+          "reason": "impl-review provider failed twice with retryBudgetConsumed=false under codex-only profile; manual review artifact recorded no blocking findings after inspecting the two prompt-only diffs and passing test artifacts.",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "Question q1 does not provide a recommended answer; the `answer` field is empty.",
+          "resolution": null
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 172691,
+      "output": 15972,
+      "cacheRead": 334592,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 14,
+      "durationMs": 273511,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 10596
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 6931
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 19676
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 118199
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 10630
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 25703
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 44823
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 36953
+        }
+      ]
+    },
+    "tests": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/278-requirement-priority-before-draft-gate/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 43,
+          "end_line": 5208
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/278-requirement-priority-before-draft-gate/"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/278-requirement-priority-before-draft-gate/"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/278-requirement-priority-before-draft-gate/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    Add draft priority marker guidance\n    34 files changed, 1923 insertions(+), 1 deletion(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (4 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 1\n    agent calls ................. 14\n    input tokens ................ 172,691\n    output tokens ............... 15,972\n    cache-read tokens ........... 334,592\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 273.5s\n      draft-questions-review .... 10.6s\n      draft-coverage-review ..... 6.9s\n      draft-gate ................ 19.7s\n      spec-review ............... 118.2s\n      spec-gate ................. 10.6s\n      test-review ............... 25.7s\n      impl-review ............... 44.8s\n      impl-gate ................. 37.0s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 4  passed 4  failed 0 verdict=pass\n    raw_output: specs/278-requirement-priority-before-draft-gate/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (3 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/278-requirement-priority-before-draft-gate/issue-log.json\n\n    Important (2)\n    - [test-review] test-review tooling failure: agent_error\n    - [impl-review] impl-review provider failed twice with retryBudgetConsumed=false under codex-only profile; manual review artifact recorded no blocking findings after inspecting the two prompt-only diffs and passing test artifacts.\n\n    Recent Other (1)\n    - [draft-gate] Question q1 does not provide a recommended answer; the `answer` field is empty."
+}

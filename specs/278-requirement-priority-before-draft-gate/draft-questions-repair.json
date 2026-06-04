@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Added one dropped QA entry so the draft records the only apparent decision boundary without leaving an unresolved user question.",
+  "items": [
+    {
+      "title": "1. Empty initial QA list",
+      "target": "q<N> (no qa.id present)",
+      "rationale": "Added a dropped implementation-policy QA entry documenting that a new persisted priority field is not required for this issue.",
+      "evidence": "draft.json qa[0] now records the dismissed priority-field question with status `dropped` and a non-empty droppedReason.",
+      "changedFieldPaths": [
+        "qa[0]"
+      ]
+    }
+  ]
+}

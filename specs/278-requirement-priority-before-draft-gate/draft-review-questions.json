@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "phase": "draft-questions-review",
+  "sourceDraft": "draft.json",
+  "generatedAt": "2026-06-04T14:45:08.247Z",
+  "verdict": "ADVISORY",
+  "summary": "0 blocking, 0 advisory, 1 repair target finding(s) recorded.",
+  "blockingFindings": [],
+  "advisoryFindings": [],
+  "repairTargets": [
+    {
+      "title": "1. Empty initial QA list",
+      "target": "q<N> (no qa.id present)",
+      "rationale": "Repair the draft output so it contains at least one initial QA entry before draft-gate review.",
+      "evidence": "qa[] is empty before any answer exists",
+      "classification": "repair_target"
+    }
+  ]
+}

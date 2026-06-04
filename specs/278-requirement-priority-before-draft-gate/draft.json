@@ -1,0 +1,69 @@
+{
+  "devType": "bugfix",
+  "goal": "Prevent draft-gate failures caused by requirement-like draft QA entries that omit requirement priority markers.",
+  "analysis": {
+    "problem": "The draft procedure can create requirement-like QA and scope text without `must`, `should`, or `nice-to-have` priority markers. When the draft gate applies the `prioritize-requirements` guardrail, those missing markers can fail the gate even though the missing priority could have been prevented earlier.",
+    "proposedApproach": "Update the draft QA guidance to require priority markers on requirement-like draft entries, and update draft-gate guidance to check for missing priority markers before running `sdd-forge flow run gate --phase draft`.",
+    "validation": "The issue names draft QA priority omission as the root cause and asks for both draft-time priority assignment and a pre-gate missing-priority check. The relevant prompt sources are `src/flow/prompts/partials/draft-qa-rules.md`, `src/flow/prompts/plan/draft.md`, and `src/flow/prompts/plan/draft-gate.md`."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #358 reports that requirement-like QA entries lacked priority markers and caused `prioritize-requirements` draft-gate failures.",
+      "`sdd-forge flow get guardrail draft` states that when requirements number more than three items, each requirement needs one priority: `must`, `should`, or `nice-to-have`.",
+      "`src/flow/prompts/partials/draft-qa-rules.md` is included by the draft prompt and defines shared QA creation rules.",
+      "`src/flow/prompts/plan/draft-gate.md` defines the pre-gate procedure before `sdd-forge flow run gate --phase draft`."
+    ],
+    "decisionPoints": [
+      "must: Shared draft QA rules must tell agents to attach `must`, `should`, or `nice-to-have` to requirement-like draft entries when generating draft artifacts.",
+      "must: Draft-gate guidance must include a pre-gate scan for requirement-like draft text that lacks one of the accepted priority markers.",
+      "should: The change should live in shared prompt text so rendered next-action instructions inherit the guidance without duplicating implementation logic.",
+      "should: Tests should verify both source prompt text and rendered next-action output."
+    ],
+    "resolvedByProjectRules": [
+      "No external dependencies may be added; prompt and test changes can use existing Node.js built-ins.",
+      "`src/skills/` changes require `sdd-forge upgrade`, but this issue can be resolved through `src/flow/prompts/` unless review identifies generated skill text that must change.",
+      "The alpha policy allows direct prompt contract changes without backward-compatibility shims."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "Exact wording of prompt guidance and spec-local test assertions can be chosen during spec and implementation as long as the priority contract is observable."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: Add draft QA guidance requiring requirement-like entries in draft artifacts to carry one accepted priority marker: `must`, `should`, or `nice-to-have`.",
+      "must: Add draft-gate preflight guidance to scan draft requirement-like text for missing accepted priority markers before running the draft gate.",
+      "should: Cover rendered next-action instructions so agents see the new priority procedure during normal flow execution.",
+      "should: Add focused tests that fail if the draft priority creation guidance or draft-gate missing-priority check disappears."
+    ],
+    "out": [
+      "nice-to-have: Do not change the guardrail article text unless implementation proves the article itself is incorrect.",
+      "nice-to-have: Do not add a new persisted draft JSON field for priority unless existing prompt-level markers cannot satisfy the gate.",
+      "nice-to-have: Do not change spec requirement priority schema or spec-gate behavior."
+    ]
+  },
+  "impactOnExisting": [
+    "must: Draft authors receive explicit priority-marker instructions before creating requirement-like draft QA or scope text.",
+    "must: Draft-gate operators receive an explicit preflight check that catches missing priority markers before invoking the AI gate.",
+    "should: Existing draft QA lifecycle fields and approval metadata behavior remain unchanged."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "Should this fix add a new persisted priority field to draft QA entries instead of using existing requirement priority markers in draft text?",
+      "answer": "Recommendation: do not add a new persisted priority field. Use the existing `must`, `should`, and `nice-to-have` priority markers in requirement-like draft text.",
+      "evidence": "Issue #358 asks for `must`, `should`, and `nice-to-have` priority markers, and `sdd-forge flow get guardrail draft` defines those markers for prioritized requirements.",
+      "why": "The issue is caused by missing procedural guidance, not by missing draft schema capacity. Prompt-level guidance keeps the fix scoped to draft creation and pre-gate checks.",
+      "considered": "Adding a persisted QA priority field was considered, but it would change the draft schema and exceed the requested marker-based fix.",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-04T14:46:37.000Z",
+    "notes": "Coverage review passed and no unresolved user decision remains."
+  }
+}
