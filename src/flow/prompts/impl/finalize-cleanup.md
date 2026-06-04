@@ -9,7 +9,16 @@ Clean up flow state and worktree as the final finalize sub-step.
 When enabled:
 
 1. Run `sdd-forge workflow issue-log-import --spec <currentSpecPath>` (take `<currentSpecPath>` from `sdd-forge flow get status`'s `spec` field) to obtain board-draft candidates derived from this spec's `issue-log.json`. This command only emits `data.candidates` — it writes nothing to the board.
-2. If `data.candidates` is empty, skip the rest of this section. Otherwise present the candidates to the user using the Choice Format (one selectable entry per candidate; the user may approve some, all, or none).
+2. If `data.candidates` is empty, skip the rest of this section. Otherwise screen the candidates before presenting them:
+   - Present only candidates that are worth tracking on the board. Do not present raw diagnostic entries, duplicates, one-off agent mistakes, or items whose only action was already fully resolved inside the current flow.
+   - Do not ask the user to choose from title-only candidates. For every presented candidate, show enough decision material in the user's language before the choice block:
+     - target: affected step / command / artifact / feature
+     - problem: what happened and why it matters
+     - cause: observed cause or evidence; do not write "probably"
+     - improvement direction: what should change to prevent recurrence
+     - board reason: why this belongs on the board now
+   - If a candidate lacks target, problem, cause, or improvement direction, exclude it instead of asking the user to infer the missing material.
+   - Use the Choice Format after the candidate explanations. Each selectable entry maps to one presented candidate; the user may approve some, all, or none.
 3. For each **user-approved** candidate only, run `sdd-forge workflow add "<title>" --category <category> --body "<body>"` to create the board draft. Do NOT call `workflow add` for candidates the user did not approve. If the user approves none or skips the prompt, create nothing (0 board writes).
 4. If `issue-log-import` fails (e.g., no `issue-log.json`, or an invalid `--spec` — the command returns `ok: false` with a non-zero exit), treat that failure as **non-blocking for finalize**: note it and proceed to the Required Sequence anyway. Do not abort finalize over the board import.
 

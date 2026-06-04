@@ -36,6 +36,13 @@ sdd-forge workflow <subcommand> [args]
 - **MUST: Before running `add` / `update`, verify that the title and body consist only of the source language.**
 - **MUST: Immediately after `add` / `update`, run `show <hash>` to verify that the draft is stored in the source language.**
 
+### Candidate quality rules
+- **MUST: Before proposing or adding a board draft, make the decision material explicit.** The user must be able to judge the item without opening logs or asking follow-up questions.
+- **MUST: A board draft body must include target, problem, cause, improvement direction, and why it belongs on the board.** Use headings in the source language.
+- **MUST: Do not propose unnecessary items.** Skip raw diagnostics, duplicates, one-off agent mistakes, and items already fully resolved inside the current work unless they reveal a reusable process/tooling problem.
+- **MUST: Do not ask the user to choose from title-only candidates.** If the cause or improvement direction is unclear, explain that it is not board-ready instead of adding it.
+- **MUST: Do not use speculative wording such as "probably" / "おそらく" for the cause.** Use observed evidence, or state that the candidate is not ready for board entry.
+
 ### Status management
 - **MUST: New drafts must always be created with `Ideas` status. Do not pass `--status` to `add`.** Even implementation tasks and bugs must be added as `Ideas`. Promotion to `Todo` is the user's decision; the AI must never do it on its own.
 - Use `--category` when a classification tag is needed.
@@ -49,10 +56,11 @@ sdd-forge workflow <subcommand> [args]
 ## Procedure
 
 1. When the user says "ボードに追加", "タスク化", "メモしておいて", or similar, compose the title and body in the source language.
-2. Run `sdd-forge workflow add "<title>" [--category ...] [--body <text>]` and check `data.title` in the JSON envelope. Do not pass `--status` (always `Ideas`).
-3. When the user says "issue にして", look up the corresponding hash via `search` or `show`.
-4. Run `sdd-forge workflow publish <hash> --label <label>`.
-5. Report the resulting `data.issueUrl` back to the user.
+2. Ensure the body includes target, problem, cause, improvement direction, and board reason. If the item is not board-ready, do not add it; explain the missing decision material.
+3. Run `sdd-forge workflow add "<title>" [--category ...] [--body <text>]` and check `data.title` in the JSON envelope. Do not pass `--status` (always `Ideas`).
+4. When the user says "issue にして", look up the corresponding hash via `search` or `show`.
+5. Run `sdd-forge workflow publish <hash> --label <label>`.
+6. Report the resulting `data.issueUrl` back to the user.
 
 ## Output Format
 
