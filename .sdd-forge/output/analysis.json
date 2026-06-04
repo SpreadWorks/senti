@@ -1,12 +1,12 @@
 {
-  "analyzedAt": "2026-06-04T04:37:45.825Z",
+  "analyzedAt": "2026-06-04T05:31:33.934Z",
   "package": {
     "entries": [
       {
         "file": "package.json",
-        "hash": "dc26889c46ffc0b1cef2a57a79b03fd5",
+        "hash": "b9275198a93033eb70a2463594999658",
         "lines": 41,
-        "mtime": "2026-06-04T04:37:45.188Z",
+        "mtime": "2026-06-03T02:00:16.266Z",
         "packageDeps": {
           "dependencies": {},
           "devDependencies": {}
@@ -22,7 +22,27 @@
         "composerDeps": null,
         "composerScripts": null,
         "makefileTest": null,
-        "id": "451a9f25"
+        "id": "451a9f25",
+        "summary": "Package manifest for the sdd-forge CLI tool, declaring metadata, entry points, scripts, and runtime requirements.",
+        "detail": "Defines sdd-forge as an ES module package with a single CLI binary entry point at `./src/sdd-forge.js` and a matching `exports` map. Specifies Node.js >=18.19.0 as the minimum engine, reflecting exclusive use of built-in modules with no external dependencies. The `files` field restricts the published artifact to `src/` while excluding preset test subdirectories. Multiple test script scopes (unit, e2e, acceptance, agent, all) are wired through a central `tests/run.js` dispatcher. pnpm is declared as the package manager via the `packageManager` field.",
+        "chapter": "stack_and_ops",
+        "role": "package-manifest",
+        "enrich": {
+          "processedAt": "2026-06-04T05:32:49.284Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "package.json",
+          "npm",
+          "CLI",
+          "ES module",
+          "bin entry point",
+          "Node.js",
+          "pnpm",
+          "no external dependencies",
+          "package manifest",
+          "sdd-forge"
+        ]
       }
     ],
     "summary": {
@@ -4277,8 +4297,25 @@
         ],
         "id": "30a7075c",
         "enrich": {
-          "attempts": 4
-        }
+          "processedAt": "2026-06-04T05:32:49.284Z",
+          "attempts": 5
+        },
+        "summary": "Resolves the text input and early-exit conditions (skip or fail) for the automatic spec-approval check step in the SDD flow.",
+        "detail": "Exports `resolveAutoCheckInput`, which inspects flow state and decides whether the auto-check should be skipped (spec already approved), hard-failed (goal string missing from draft.json), or executed with a constructed prompt string. Reads sibling files adjacent to the spec path—draft.json, issue-log.json, and others—via `loadSpecSiblingText` to assemble the input text. Uses `findStepById` and `resolveNodeFor` from the flow definition to inspect step completion status. Also exports `isSpecApproved`, `buildGoalMissingVerdict`, and `buildSkipVerdict` as shared helpers consumed by `set-auto.js`.",
+        "chapter": "internal_design",
+        "role": "flow-input-resolver",
+        "keywords": [
+          "auto-check",
+          "spec approval",
+          "flow state",
+          "input resolution",
+          "draft.json",
+          "issue-log",
+          "goal gate",
+          "step status",
+          "skip verdict",
+          "SDD flow"
+        ]
       },
       {
         "file": "src/flow/lib/resolve-context-envelope.js",
@@ -4388,8 +4425,23 @@
         ],
         "id": "4cc38837",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-06-04T05:32:49.284Z",
+          "attempts": 3
+        },
+        "summary": "Reads retrospective result JSON artifacts from a spec directory, returning null when the file is absent.",
+        "detail": "Provides the exported function `readRetroResultIfExists`, which delegates to an internal `readJsonIfExists` helper that safely handles missing files and throws descriptive errors on parse failure. Returns a structured object containing the parsed `retro.json` content from the given spec directory. Designed as a focused, single-responsibility module to be consumed by finalize and reporting commands. The thin surface area keeps the artifact-reading concern isolated from flow orchestration logic.",
+        "chapter": "internal_design",
+        "role": "artifact-reader",
+        "keywords": [
+          "retro",
+          "retrospective",
+          "artifacts",
+          "spec directory",
+          "retro.json",
+          "JSON reader",
+          "flow artifacts",
+          "finalize"
+        ]
       },
       {
         "file": "src/flow/lib/retry-recovery.js",
@@ -4486,8 +4538,25 @@
         ],
         "id": "3de0db3f",
         "enrich": {
-          "attempts": 4
-        }
+          "processedAt": "2026-06-04T05:32:49.284Z",
+          "attempts": 5
+        },
+        "summary": "Implements the full retry-recovery system for failed gate and review flow steps, including evidence fingerprinting, eligibility evaluation, and baseline persistence.",
+        "detail": "Defines class hierarchies for recovery inputs (`RetryRecoveryInput`), targets (`RecoveryTarget`), evidence sources (`RecoveryEvidenceSource`), fingerprints (`EvidenceFingerprint`), and baselines (`ReviewRecoveryBaseline`, `RetryRecoveryEntry`). Evaluates recovery eligibility by computing SHA-256 fingerprints over relevant files and comparing them against persisted baselines to detect unchanged evidence. Persists recovery state in `retry-recovery.json` alongside the spec file. Supports both gate (task-impl, integration) and review (impl, integration, e2e) recovery kinds with configurable maximum attempt counts enforced via `resolveRecoveryMaxAttempts`.",
+        "chapter": "internal_design",
+        "role": "recovery-manager",
+        "keywords": [
+          "retry",
+          "recovery",
+          "gate",
+          "review",
+          "evidence fingerprint",
+          "baseline",
+          "eligibility",
+          "retry-recovery.json",
+          "SHA256",
+          "flow recovery"
+        ]
       },
       {
         "file": "src/flow/lib/review-failure.js",
@@ -4528,8 +4597,25 @@
         ],
         "id": "fcf92359",
         "enrich": {
-          "attempts": 4
-        }
+          "processedAt": "2026-06-04T05:32:49.284Z",
+          "attempts": 5
+        },
+        "summary": "Classifies review failures into typed categories and serializes them as structured marker lines for inter-process communication in the SDD flow.",
+        "detail": "Defines the `ReviewFailure` class with static factory methods for each classification: `providerFailure`, `inputSizeFailure`, `subprocessFailure`, `stopFailure`, and `reviewMarkerFailure`. Uses regex-based heuristics to detect provider rate-limit or quota errors and prompt-too-large conditions from subprocess output. Instances can be emitted as `SDD_FORGE_REVIEW_FAILURE`-prefixed JSON marker lines written to stdout for downstream parsing. Exports `writeReviewStopState`, `clearReviewStopState`, and `buildReviewStopView` for managing stop state within the flow JSON document.",
+        "chapter": "internal_design",
+        "role": "failure-classifier",
+        "keywords": [
+          "review failure",
+          "classification",
+          "provider failure",
+          "input size",
+          "subprocess",
+          "stop state",
+          "marker",
+          "review phase",
+          "SDD flow",
+          "retry"
+        ]
       },
       {
         "file": "src/flow/lib/run-auto-check.js",
@@ -4672,8 +4758,24 @@
         "usedBy": null,
         "id": "49364661",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-06-04T05:32:49.284Z",
+          "attempts": 3
+        },
+        "summary": "Executes final regression tests as a FlowCommand, classifying failures by kind and recording attempt artifacts in the issue log.",
+        "detail": "Extends `FlowCommand` to run a configured test subprocess and capture its stdout/stderr into sequentially numbered attempt log files under the spec's raw directory. Uses `TextFailureClassifier` instances to categorize failures as EPERM, sandbox, permission, dependency, infra, or change-scope (current-change vs pre-existing). Tracks attempt count against `MAX_FINAL_REGRESSION_ATTEMPTS` (10,000) and enforces the limit. Records structured `FinalRegressionArtifact` objects and persists them via `recordFinalRegressionFailure` to the issue log. Returns an `Envelope` indicating pass, fail, or skip.",
+        "chapter": "internal_design",
+        "role": "regression-runner",
+        "keywords": [
+          "final regression",
+          "test execution",
+          "failure classification",
+          "issue log",
+          "FlowCommand",
+          "attempt tracking",
+          "envelope",
+          "regression artifact",
+          "change scope"
+        ]
       },
       {
         "file": "src/flow/lib/run-finalize-cleanup.js",
@@ -4913,8 +5015,25 @@
         ],
         "id": "c711309b",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-06-04T05:32:49.284Z",
+          "attempts": 3
+        },
+        "summary": "Orchestrates the finalize step of the SDD flow, handling git commit, merge metadata safety checks, preflight validation, and post-commit cleanup.",
+        "detail": "Exports `commitOrSkip` for conditionally invoking git commits when there are staged changes, and `runPreflightChecks` for validating worktree cleanliness and branch preconditions before a merge. Provides `assertGitWriteAccess` to verify write permissions on the git directory by writing and removing a temporary lock file. Handles finalize-merge metadata by walking git porcelain status output and committing only paths deemed safe via `commitFinalizeMergeMetadataIfSafe`. Writes a last-finalized spec pointer file consumed by `run-report-show`, and invokes an optional `finalize-migration.js` hook script from the spec's scripts directory.",
+        "chapter": "internal_design",
+        "role": "finalize-orchestrator",
+        "keywords": [
+          "finalize",
+          "git commit",
+          "merge metadata",
+          "preflight",
+          "worktree",
+          "spec pointer",
+          "migration hook",
+          "FlowCommand",
+          "finalize flow",
+          "git write access"
+        ]
       },
       {
         "file": "src/flow/lib/run-gate.js",
@@ -5108,7 +5227,7 @@
         ],
         "id": "b4aa4dad",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -5277,7 +5396,7 @@
         "usedBy": null,
         "id": "82a89eee",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -5354,7 +5473,7 @@
         "usedBy": null,
         "id": "43872d6b",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -5510,7 +5629,7 @@
         ],
         "id": "d4e97204",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -5563,7 +5682,7 @@
         "usedBy": null,
         "id": "c99f2f87",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -5729,7 +5848,7 @@
         "usedBy": null,
         "id": "c1fba537",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -5876,7 +5995,7 @@
         "usedBy": null,
         "id": "b77c2c3d",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -6214,7 +6333,7 @@
         "usedBy": null,
         "id": "ee559b7a",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -6250,7 +6369,7 @@
         "usedBy": null,
         "id": "d4cb8d93",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -6378,7 +6497,7 @@
         ],
         "id": "5fd87c16",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -6510,7 +6629,7 @@
         ],
         "id": "0b1b96b3",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -6702,7 +6821,7 @@
         ],
         "id": "d64f4095",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -6726,7 +6845,7 @@
         "usedBy": null,
         "id": "4ac07fa0",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -6800,7 +6919,7 @@
         ],
         "id": "1af31edd",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -7137,7 +7256,7 @@
         ],
         "id": "dff6e5b4",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -7491,7 +7610,7 @@
         ],
         "id": "09ff0ab4",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -7646,7 +7765,7 @@
         ],
         "id": "5332364e",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -8679,7 +8798,7 @@
         ],
         "id": "a1344e4a",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -8768,7 +8887,7 @@
         ],
         "id": "deaeeb23",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -8821,7 +8940,7 @@
         "usedBy": null,
         "id": "69d5afb4",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11906,7 +12025,7 @@
         "usedBy": null,
         "id": "acdc1ca9",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11928,7 +12047,7 @@
         "usedBy": null,
         "id": "a8608997",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11977,7 +12096,7 @@
         "usedBy": null,
         "id": "9820c9db",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12096,7 +12215,7 @@
         "usedBy": null,
         "id": "a631f658",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12125,7 +12244,7 @@
         "usedBy": null,
         "id": "cc286b88",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -12192,7 +12311,7 @@
         ],
         "id": "c9908fa4",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12221,7 +12340,7 @@
         "usedBy": null,
         "id": "4e4593ba",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12242,7 +12361,7 @@
         "usedBy": null,
         "id": "11e11b10",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12268,18 +12387,30 @@
         "usedBy": null,
         "id": "9219bc6c",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
         "file": "src/workflow/lib/commands/issue-log-import.js",
-        "hash": "c60f7259cb83e22db9c0b73037c90052",
-        "lines": 145,
-        "mtime": "2026-06-04T04:37:45.576Z",
+        "hash": "79c204dea792af7e822a6475bbba6c94",
+        "lines": 338,
+        "mtime": "2026-06-03T04:21:29.638Z",
         "className": "issue-log-import",
         "methods": [
           "validateSpecPath",
           "buildCandidates",
+          "labelsFor",
+          "text",
+          "normalizeCategory",
+          "classifyCategory",
+          "knownJapaneseSummary",
+          "buildTitle",
+          "buildTarget",
+          "buildProblem",
+          "buildCause",
+          "buildImprovement",
+          "isRawDiagnosticEntry",
+          "isDecisionReadyEntry",
           "entryToCandidate",
           "refineWithAi"
         ],
@@ -12299,7 +12430,10 @@
         ],
         "extends": "WorkflowCommand",
         "usedBy": null,
-        "id": "970e6266"
+        "id": "970e6266",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/workflow/lib/commands/issue-start.js",
@@ -12324,7 +12458,7 @@
         "usedBy": null,
         "id": "27d732ed",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -12346,7 +12480,7 @@
         "usedBy": null,
         "id": "8dd05cbb",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12371,7 +12505,7 @@
         "usedBy": null,
         "id": "c1034289",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12393,7 +12527,7 @@
         "usedBy": null,
         "id": "b70ba15e",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12415,7 +12549,7 @@
         "usedBy": null,
         "id": "7752e8c4",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12438,7 +12572,7 @@
         "usedBy": null,
         "id": "e75cf809",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12476,7 +12610,7 @@
         ],
         "id": "60bcd438",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12515,7 +12649,7 @@
         ],
         "id": "731ada65",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12544,7 +12678,7 @@
         ],
         "id": "d5313dab",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12572,7 +12706,7 @@
         "usedBy": null,
         "id": "e88a4b0e",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12592,15 +12726,15 @@
         ],
         "id": "780bd655",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       }
     ],
     "summary": {
       "total": 338,
-      "totalMethods": 1642
+      "totalMethods": 1654
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-03T11:53:18.057Z"
+  "enrichedAt": "2026-06-04T05:34:12.717Z"
 }
