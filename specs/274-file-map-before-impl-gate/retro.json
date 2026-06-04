@@ -1,0 +1,43 @@
+{
+  "spec": "specs/274-file-map-before-impl-gate/spec.json",
+  "date": "2026-06-04T05:28:27.592Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "The flow-level implementation instructions shown before impl-gate shall state that file-map.json must be prepared before running the flow-level impl-gate / integration gate.",
+      "status": "done",
+      "note": "R1: implement instruction says file-map.json is prepared before flow-level impl-gate"
+    },
+    {
+      "desc": "The instructions shall include the exact CLI example `sdd-forge flow set files <reqId> <path...>` and explain that reqId is a spec requirement id and each path is a repo-relative changed file path.",
+      "status": "done",
+      "note": "R2: implement instruction includes command example and argument semantics"
+    },
+    {
+      "desc": "The instructions shall tell the agent to record at least one file-map entry for every testable requirement before proceeding to flow-level impl-gate.",
+      "status": "done",
+      "note": "R3: implement instruction requires file-map entries for every testable requirement"
+    },
+    {
+      "desc": "Spec-local tests shall verify that next-action instruction content for the flow-level implementation path includes file-map preparation timing, target requirement/path semantics, and the `flow set files` CLI example.",
+      "status": "done",
+      "note": "R4: flow-level implementation instructions expose complete file-map guidance"
+    },
+    {
+      "desc": "The implementation shall not change file-map.json schema, `flow set files` CLI interface, or existing integration artifact validation behavior.",
+      "status": "done",
+      "note": "R5: file-map command and validation contracts remain in existing modules"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 5,
+    "done": 5,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

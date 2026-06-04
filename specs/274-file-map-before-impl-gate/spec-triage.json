@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "1 blocking finding remains and will be repaired: R3 and acceptance criteria must require file-map entries for every testable requirement, not only requirements with diff coverage.",
+  "items": [
+    {
+      "title": "Instruction scope is narrower than the gate's file-map requirement",
+      "target": "R3 / Acceptance Criteria (\"every testable requirement with implementation or test diff coverage\")",
+      "decision": "apply",
+      "rationale": "The finding matches verified validation behavior. validateFileMap requires entries for every requirement where testable !== false, so the spec must not instruct agents to skip testable requirements without judged diff coverage.",
+      "evidence": "spec.json requirements[2].desc and acceptance_criteria[2] contain the narrower phrase. src/flow/lib/test-artifacts.js validateFileMap builds expected from requirements.filter(r => r.testable !== false) and rejects missing entries."
+    }
+  ]
+}

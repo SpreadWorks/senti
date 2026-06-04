@@ -1,0 +1,110 @@
+{
+  "devType": "bugfix",
+  "goal": "impl-gate 前に file-map.json 作成手順を明示し、実装差分と要件の対応記録が不足したまま gate に進んで AI 評価前に停止する再発を防ぐ。",
+  "analysis": {
+    "problem": "Issue #353 は impl-review PASS 後の impl-gate で file-map.json がなく、AI 評価前の artifact validation で停止した事象を対象にしている。既存の integration gate は file-map.json を検証材料として使うが、実装フローの手順には gate 前に flow set files で要件と変更ファイルを記録することが明確に出ていない。",
+    "proposedApproach": "実装フローの step instruction に、testable requirement ごとの file-map 記録タイミング、対象、CLI 例を明示する。既存の file-map validation と flow set files のコマンド境界は維持し、必要な regression test で next-action instruction に手順が含まれることを確認する。",
+    "validation": "Issue #353 の本文は target を impl-gate とし、現行 workaround として R1-R6 の file mapping を flow set files で記録したと説明している。src/flow/lib/set-files.js は file-map.json への記録コマンド、src/flow/lib/req-map.js は file-map の永続化と差分照合、src/flow/lib/test-artifacts.js は integration artifact validation で file-map.json entries を要求する。src/flow/prompts/impl/implement.md と impl-gate.md には、現状この作成手順が明示されていない。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #353 の対象 step は impl-gate。",
+      "flow set files <reqId> <path...> は既存の file-map.json 記録コマンド。",
+      "integration gate の artifact validation は testable requirement の file-map entry を検証する。",
+      "file-map がある場合、gate は requirement ごとの diff 評価に file-map を利用する。",
+      "draft 開始時の workflow issue-start は Issue #353 の board status を Todo から In Progress に更新した。",
+      "本 spec の対象は flow-level の impl-gate / integration gate 前手順であり、task-impl gate の仕様変更は含めない。",
+      "file-map.json schema、gate artifact validation、flow set files CLI 仕様は変更しない。"
+    ],
+    "decisionPoints": [
+      "file-map 作成手順を implement step、impl-gate step、または両方に明示するか。",
+      "対象を flow-level integration gate に限定するか、task-impl gate も同じ再発防止対象に含めるか。",
+      "修正の受入条件を手順表示の regression test に限定するか、gate 前の不足案内を含めるか。"
+    ],
+    "resolvedByProjectRules": [
+      "外部依存は追加しない。Node.js 組み込みモジュールのみを使う。",
+      "src/ 配下には特定プロジェクト固有の情報を書かない。",
+      "alpha 版ポリシーにより旧フォーマット維持のための後方互換コードは追加しない。",
+      "src/skills または src/presets を変更した場合は sdd-forge upgrade を実行する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "具体的な文言、対象 prompt、unit/e2e test の分担。",
+      "file-map 記録済み requirement と変更ファイルの関係をどう検証文言に落とすか。",
+      "gate 前の不足案内を追加する場合も、既存 validation の意味を変えず、file-map.json 不在時の表示文言に限定する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] impl-gate 前に file-map.json 作成手順を明示する flow instruction の変更。",
+      "[must] flow set files の使用タイミングと対象 requirement / path の説明。",
+      "[must] 手順が next-action instruction に出ることを確認する regression test。",
+      "[should] 既存 gate validation と矛盾しない acceptance criteria の整理。"
+    ],
+    "out": [
+      "file-map.json の schema 変更。",
+      "diff から file-map.json を自動生成する新機能。",
+      "既存の artifact validation を緩和する変更。",
+      "GitHub Issue や board 操作の仕様変更。",
+      "npm publish / dist-tag 操作。"
+    ]
+  },
+  "impactOnExisting": [
+    "AI / agent が受け取る implementation flow の step instruction が変わる。",
+    "flow set files の既存 CLI 仕様は維持される。",
+    "impl-gate の既存 validation は維持され、gate 到達前に必要な file-map 記録手順を表示する。",
+    "prompt や skill source を変更する場合、生成済み skill への反映確認が必要になる可能性がある。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "今回の主目的は、impl-gate 前に `flow set files <reqId> <path...>` を使って testable requirement と変更ファイルの対応を記録する手順を AI に明示し、file-map.json 不在で gate が AI 評価前に停止する再発を防ぐ、でよいですか。",
+      "answer": "はい。主目的は impl-gate 前の file-map 記録手順を AI に明示し、file-map.json 不在による artifact validation 停止を再発防止すること。",
+      "evidence": "Issue #353 body: Target は step: impl-gate。Problem は file-map.json creation steps が impl-gate 前に明示されないこと。Current workaround は R1-R6 file mappings を flow set files で記録したこと。",
+      "why": "Issue の Problem、Observed、Improvement Direction がすべて手順明示と file-map 記録不足の再発防止を指しているため。",
+      "considered": "file-map 自動生成や validation 緩和は Issue の workaround と改善方向に含まれず、scope 外として扱う。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "手順明示の対象は flow-level の integration gate に進む通常実装フローだけに限定しますか。それとも task-impl gate の文脈にも同等の file-map 記録案内を含めますか。",
+      "answer": "flow-level の integration gate に進む通常実装フローに限定する。task-impl gate の仕様変更は含めない。",
+      "evidence": "Issue #353 body は Target を impl-gate とし、Improvement Direction で implementation flow should ensure file-map entries are recorded before integration gate としている。src/flow/prompts/impl/impl-gate.md は overall flow の impl-gate が phase integration に解決されると説明している。",
+      "why": "Issue が定義した concern は impl-gate / integration gate 前の手順欠落であり、task-impl gate まで広げると別の gate 文脈に scope が広がるため。",
+      "considered": "task-impl gate へ同等案内を広げる案は、Issue の target 外であり、本 spec では採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "受入条件は、next-action instruction に file-map 作成タイミング、対象 requirement、`flow set files` の CLI 例が含まれることを regression test で確認する範囲で十分ですか。",
+      "answer": "はい。next-action instruction に gate 前の file-map 作成タイミング、testable requirement ごとの対象、`flow set files <reqId> <path...>` の CLI 例が含まれることを regression test で確認する。",
+      "evidence": "src/flow/lib/get-step-instructions.js は next-action instruction の prompt content を解決する。src/flow/registry.js は flow set files の CLI help を定義している。src/flow/prompts/impl/implement.md と impl-gate.md には現状 file-map 作成手順が明示されていない。",
+      "why": "今回の欠落は手順表示の問題なので、instruction content を直接検証する regression test が観測可能な受入条件になる。",
+      "considered": "gate validation の振る舞い変更を受入条件に含める案は、Issue の手順明示という主目的より広いため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "この修正では file-map.json の schema、gate artifact validation、`flow set files` の CLI 仕様は変更せず、手順明示と instruction content regression test に限定してよいですか。",
+      "answer": "はい。file-map.json schema、gate artifact validation、`flow set files` CLI 仕様は変更しない。手順明示と instruction content regression test に限定する。",
+      "evidence": "src/flow/lib/test-artifacts.js は file-map.json の entry validation を定義済み。src/flow/lib/set-files.js は既存 CLI で file-map.json に追記する。Issue #353 は validation 変更ではなく file-map.json creation steps の欠落を Problem としている。",
+      "why": "既存 validation は gate の trust boundary として有効であり、問題はその前に必要 artifact の作成手順が AI に明示されていない点にあるため。",
+      "considered": "validation 緩和、schema 変更、CLI 仕様変更はいずれも手順表示の欠落を直接直す変更ではなく、既存 contract への影響が大きいため除外する。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-04T04:45:07Z",
+    "notes": "All QA entries resolved from Issue #353, project rules, and source context; no unresolved user decision remains."
+  }
+}

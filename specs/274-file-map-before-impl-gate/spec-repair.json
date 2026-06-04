@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied 1 repair: R3 and matching acceptance text now require file-map entries for every testable requirement.",
+  "items": [
+    {
+      "title": "Instruction scope is narrower than the gate's file-map requirement",
+      "target": "R3 / Acceptance Criteria (\"every testable requirement with implementation or test diff coverage\")",
+      "decision": "applied",
+      "rationale": "Removed the diff-coverage qualifier so the spec matches validateFileMap(), which requires entries for every requirement where testable is not false.",
+      "evidence": "spec.json requirements[2].desc, acceptance_criteria[2], and tasks[0].acceptance[3] now require at least one file-map entry for every testable requirement before flow-level impl-gate.",
+      "changedFields": [
+        "requirements[2].desc",
+        "acceptance_criteria[2]",
+        "tasks[0].acceptance[3]"
+      ]
+    }
+  ]
+}

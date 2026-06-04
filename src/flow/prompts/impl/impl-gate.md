@@ -1,5 +1,10 @@
    - `sdd-forge flow run gate` (step status is automatically managed by hooks: pre sets impl-gate to in_progress, post sets done on PASS. The CLI auto-resolves the gate phase from the in-progress step: when the active impl step is the overall flow's impl-gate, phase resolves to `integration`; when it is a task's task-gate, phase resolves to `task-impl`.)
    - Responsibility boundary: gate is mechanical readiness validation. It checks schemas, artifact links, required fields, unresolved decisions, approval, tests, diff coverage, and guardrail compliance.
+   - **File-map readiness:** `file-map.json` must be prepared before running this flow-level `impl-gate` / integration gate for every testable requirement.
+     - Use: `sdd-forge flow set files <reqId> <path...>`
+     - `reqId` is a spec requirement id, such as `R1`.
+     - Each `path` is a repo-relative changed file path.
+     - Record at least one file-map entry for every testable requirement before proceeding with the flow-level `impl-gate`.
    - Gate does not discover review findings, make triage disposition, or perform repair mutation/audit.
    - Checks spec requirements against `git diff baseBranch...HEAD` + guardrail compliance via AI.
    - If FAIL (`data.result === "fail"`): show every Observation from `data.artifacts.nextAction.diagnosis.observations`. Fix using those observations and `git diff baseBranch...HEAD` — do NOT rely on flattened failure reasons as the primary repair input. Re-run gate.

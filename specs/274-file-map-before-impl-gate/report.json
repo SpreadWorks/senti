@@ -1,0 +1,190 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".sdd-forge/output/analysis.json                    |  53 +-\n .../draft-coverage-repair.json                     |   8 +\n .../draft-coverage-triage.json                     |   8 +\n .../draft-questions-repair.json                    |   8 +\n .../draft-questions-triage.json                    |   8 +\n .../draft-review-coverage.json                     |  11 +\n .../draft-review-questions.json                    |  11 +\n specs/274-file-map-before-impl-gate/draft.json     | 110 +++\n specs/274-file-map-before-impl-gate/file-map.json  |  20 +\n specs/274-file-map-before-impl-gate/flow.json      | 795 +++++++++++++++++++++\n .../274-file-map-before-impl-gate/impl-review.json |  28 +\n specs/274-file-map-before-impl-gate/issue-log.json | 172 +++++\n .../review-history/draft-coverage-attempt-001.json |  14 +\n .../draft-questions-attempt-001.json               |  14 +\n .../review-history/impl-attempt-001.json           |  31 +\n .../review-history/impl-attempt-001.md             |  16 +\n .../review-history/spec-attempt-001.json           |  74 ++\n .../review-history/spec-attempt-001.md             |  24 +\n .../review-history/test-attempt-001.json           |  81 +++\n .../review-history/test-attempt-001.md             |  26 +\n specs/274-file-map-before-impl-gate/review.md      |  16 +\n .../274-file-map-before-impl-gate/spec-repair.json |  20 +\n .../274-file-map-before-impl-gate/spec-review.json |  40 ++\n specs/274-file-map-before-impl-gate/spec-review.md |  24 +\n .../274-file-map-before-impl-gate/spec-triage.json |  15 +\n specs/274-file-map-before-impl-gate/spec.json      | 218 ++++++\n specs/274-file-map-before-impl-gate/spec.md        | 115 +++\n specs/274-file-map-before-impl-gate/tasks/T-1.md   |  22 +\n .../test-coverage.json                             |  75 ++\n .../274-file-map-before-impl-gate/test-review.json |  47 ++\n specs/274-file-map-before-impl-gate/test-review.md |  26 +\n .../tests/file-map-instructions.test.js            |  80 +++\n src/flow/prompts/impl/impl-gate.md                 |   5 +\n src/flow/prompts/impl/implement.md                 |   5 +\n 34 files changed, 2176 insertions(+), 44 deletions(-)",
+      "commits": [
+        "Clarify file-map preparation before impl gate"
+      ]
+    },
+    "retro": {
+      "total": 5,
+      "done": 5,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "The flow-level implementation instructions shown before impl-gate shall state that file-map.json must be prepared before running the flow-level impl-gate / integration gate.",
+          "status": "done",
+          "note": "R1: implement instruction says file-map.json is prepared before flow-level impl-gate"
+        },
+        {
+          "desc": "The instructions shall include the exact CLI example `sdd-forge flow set files <reqId> <path...>` and explain that reqId is a spec requirement id and each path is a repo-relative changed file path.",
+          "status": "done",
+          "note": "R2: implement instruction includes command example and argument semantics"
+        },
+        {
+          "desc": "The instructions shall tell the agent to record at least one file-map entry for every testable requirement before proceeding to flow-level impl-gate.",
+          "status": "done",
+          "note": "R3: implement instruction requires file-map entries for every testable requirement"
+        },
+        {
+          "desc": "Spec-local tests shall verify that next-action instruction content for the flow-level implementation path includes file-map preparation timing, target requirement/path semantics, and the `flow set files` CLI example.",
+          "status": "done",
+          "note": "R4: flow-level implementation instructions expose complete file-map guidance"
+        },
+        {
+          "desc": "The implementation shall not change file-map.json schema, `flow set files` CLI interface, or existing integration artifact validation behavior.",
+          "status": "done",
+          "note": "R5: file-map command and validation contracts remain in existing modules"
+        }
+      ]
+    },
+    "issueLog": {
+      "count": 4,
+      "fullLogPath": "specs/274-file-map-before-impl-gate/issue-log.json",
+      "importantTotal": 1,
+      "importantShown": 1,
+      "importantOmitted": 0,
+      "recentOtherTotal": 3,
+      "recentOtherShown": 3,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "fix: set draft approval after all QA entries were resolved",
+          "resolution": "draft-gate failed only because approval.approved was false; approval is now true with confirmedAt and notes"
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "In-scope item #1 is listed as a requirement but has no priority label (must/should/nice-to-have).; In-scope item #2 is listed as a requirement but has no priority label (must/should/nice-to-have).; In-scope item #3 is listed as a require...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "fix: add priorities and remove unverifiable wording",
+          "resolution": "scopeVerification.in now uses [must]/[should] priorities and the vague phrase '必要最小限' was replaced with instruction content regression test scope"
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 4,
+      "question": 0,
+      "issueLog": 2
+    },
+    "tokenMetrics": {
+      "input": 123484,
+      "output": 38356,
+      "cacheRead": 440245,
+      "cacheCreation": 138046,
+      "cost": 1.6825679999999998,
+      "callCount": 14,
+      "durationMs": 337168,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 6665
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 26716
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 23612
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 135183
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 8881
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 86670
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 12584
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 36857
+        }
+      ]
+    },
+    "tests": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/274-file-map-before-impl-gate/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 50,
+          "end_line": 5226
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/274-file-map-before-impl-gate/"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/274-file-map-before-impl-gate/"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/274-file-map-before-impl-gate/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    Clarify file-map preparation before impl gate\n    34 files changed, 2176 insertions(+), 44 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (5 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 4\n    Q&A ......................... 0\n    issue-log ................... 2\n    agent calls ................. 14\n    input tokens ................ 123,484\n    output tokens ............... 38,356\n    cache-read tokens ........... 440,245\n    cache-create tokens ......... 138,046\n    cost ........................ $1.6826\n    duration (total) ............ 337.2s\n      draft-questions-review .... 6.7s\n      draft-coverage-review ..... 26.7s\n      draft-gate ................ 23.6s\n      spec-review ............... 135.2s\n      spec-gate ................. 8.9s\n      test-review ............... 86.7s\n      impl-review ............... 12.6s\n      impl-gate ................. 36.9s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 5  passed 5  failed 0 verdict=pass\n    raw_output: specs/274-file-map-before-impl-gate/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (4 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/274-file-map-before-impl-gate/issue-log.json\n\n    Important (1)\n    - [draft-gate] fix: set draft approval after all QA entries were resolved\n\n    Recent Other (3)\n    - [draft-gate] draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved\n    - [draft-gate] In-scope item #1 is listed as a requirement but has no priority label (must/should/nice-to-have).; In-scope item #2 is listed as a requirement but has no priority label (must/should/nice-to-have).; In-scope item #3 is listed as a require...\n    - [draft-gate] fix: add priorities and remove unverifiable wording"
+}

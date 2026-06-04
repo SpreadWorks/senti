@@ -1,0 +1,172 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-04T04:44:45.694Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft approval is required: set approval.approved = true",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "draft-gate",
+      "reason": "fix: set draft approval after all QA entries were resolved",
+      "resolution": "draft-gate failed only because approval.approved was false; approval is now true with confirmedAt and notes",
+      "taskId": null,
+      "timestamp": "2026-06-04T04:45:24.751Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "In-scope item #1 is listed as a requirement but has no priority label (must/should/nice-to-have).; In-scope item #2 is listed as a requirement but has no priority label (must/should/nice-to-have).; In-scope item #3 is listed as a requirement but has no priority label (must/should/nice-to-have).; In-scope item #4 is listed as a requirement but has no priority label (must/should/nice-to-have).; The term \"必要最小限の検証追加\" is not a verifiable condition, so reviewers cannot objectively determine scope for acceptance.; The criterion \"必要最小限の検証追加\" lacks measurable detail, so independent reviewers cannot unambiguously agree on completion boundaries.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-04T04:45:47.168Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[0]"
+          },
+          "observed": "In-scope item #1 is listed as a requirement but has no priority label (must/should/nice-to-have).",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[1]"
+          },
+          "observed": "In-scope item #2 is listed as a requirement but has no priority label (must/should/nice-to-have).",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[2]"
+          },
+          "observed": "In-scope item #3 is listed as a requirement but has no priority label (must/should/nice-to-have).",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[3]"
+          },
+          "observed": "In-scope item #4 is listed as a requirement but has no priority label (must/should/nice-to-have).",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "qa[3].answer"
+          },
+          "observed": "The term \"必要最小限の検証追加\" is not a verifiable condition, so reviewers cannot objectively determine scope for acceptance.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "qa[3].considered"
+          },
+          "observed": "The criterion \"必要最小限の検証追加\" lacks measurable detail, so independent reviewers cannot unambiguously agree on completion boundaries.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "In-scope item #1 is listed as a requirement but has no priority label (must/should/nice-to-have)."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "In-scope item #2 is listed as a requirement but has no priority label (must/should/nice-to-have)."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "In-scope item #3 is listed as a requirement but has no priority label (must/should/nice-to-have)."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "In-scope item #4 is listed as a requirement but has no priority label (must/should/nice-to-have)."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The term \"必要最小限の検証追加\" is not a verifiable condition, so reviewers cannot objectively determine scope for acceptance."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The criterion \"必要最小限の検証追加\" lacks measurable detail, so independent reviewers cannot unambiguously agree on completion boundaries."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "fix: add priorities and remove unverifiable wording",
+      "resolution": "scopeVerification.in now uses [must]/[should] priorities and the vague phrase '必要最小限' was replaced with instruction content regression test scope",
+      "taskId": null,
+      "timestamp": "2026-06-04T04:46:34.149Z"
+    }
+  ]
+}

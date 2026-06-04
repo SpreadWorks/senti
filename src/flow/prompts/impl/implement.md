@@ -54,6 +54,11 @@
    - **Prepare/docs scan hard stop:** if preparation or later execution reports that `.sdd-forge/output/analysis.json` cannot be created, read, or validated, stop through the normal flow error path. Do not mask it with manual `flow set step`.
    - **v2 test artifact contract:** `test-execute` produces `test-execute-result.json` version `"2"` and raw output. Started project regression failures still create a normal artifact and advance to `test-result-review`; prerequisite failures before the command starts are hard stops and must be fixed before rerunning.
    - **Placeholder artifact permission:** do not write hand-made placeholder test artifacts to satisfy the flow. If real execution is unavailable, use the `placeholder-permission.json` contract documented in the flow skill; without explicit user permission, flow-level `impl-gate` rejects placeholder artifacts with `ARTIFACT_PLACEHOLDER`.
+   - **Prepare file-map before impl-gate:** before running the flow-level `impl-gate` / integration gate, prepare `file-map.json` by recording changed files for every testable requirement.
+     - Use: `sdd-forge flow set files <reqId> <path...>`
+     - `reqId` is a spec requirement id, such as `R1`.
+     - Each `path` is a repo-relative changed file path.
+     - Record at least one file-map entry for every testable requirement before proceeding to the flow-level `impl-gate`.
    - **MUST: If implementation reveals a pre-existing bug outside the current spec's scope**, record it in issue-log (`sdd-forge flow set issue-log --step implement --reason "..."`) before adjusting the spec or applying a workaround.
    - **On complete**:
      - Run guardrail lint check: `sdd-forge flow run lint`. If violations are found, fix them before proceeding. If lint passes with no guardrail articles defined, this is normal — proceed.
