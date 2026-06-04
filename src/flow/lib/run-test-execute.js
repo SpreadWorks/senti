@@ -125,14 +125,38 @@ function testableRequirementsForSummary(requirements) {
   return testable;
 }
 
-function buildSummary({ root, specDir, testableRequirements, specLocal, range }) {
-  const pass = specLocalPassed(specLocal);
+function extractRequirementIds(text) {
+  return [...String(text || "").matchAll(/\bR\d+\b/g)].map((match) => match[0]);
+}
+
+export function failedRequirementIdsFromSpecLocal(specLocal, testableRequirements) {
+  if (specLocalPassed(specLocal)) return new Set();
+
+  const validIds = new Set(testableRequirements.map((req) => req.id));
+  const failedIds = new Set();
+  for (const line of processOutputLines(specLocal.result)) {
+    if (!/^not ok\b/.test(line)) continue;
+    for (const id of extractRequirementIds(line)) {
+      if (validIds.has(id)) failedIds.add(id);
+    }
+  }
+  return failedIds.size > 0 ? failedIds : null;
+}
+
+function requirementResult(reqId, failedIds) {
+  if (failedIds == null) return "fail";
+  return failedIds.has(reqId) ? "fail" : "pass";
+}
+
+function buildSummary({ root, specDir, testableRequirements, specLocal, range, failedIds = null }) {
+  const resolvedFailedIds = failedIds ?? failedRequirementIdsFromSpecLocal(specLocal, testableRequirements);
   return testableRequirements.map((req) => {
     const file = findSpecTestFileForReq(specDir, req.id);
+    const result = requirementResult(req.id, resolvedFailedIds);
     return {
       id: req.id,
-      result: pass ? "pass" : "fail",
-      ...(pass ? {} : { error: "spec-local requirement tests failed" }),
+      result,
+      ...(result === "pass" ? {} : { error: "spec-local requirement tests failed" }),
       evidence: {
         test_file: path.relative(root, file).split(path.sep).join("/"),
         test_name: extractRequirementTestName(file, req.id),
@@ -212,15 +236,23 @@ export default class RunTestExecuteCommand extends FlowCommand {
       if (specLocal.result.spawnError && !specLocal.result.started) {
         throw new Error(`spec-local test command failed to start: ${specLocal.result.spawnError}`);
       }
+      const specLocalFailedIds = failedRequirementIdsFromSpecLocal(specLocal, testableRequirements);
       const specRange = appendRaw(rawLines, [
         "[sdd-forge] spec-local tests start",
         `command: ${specLocal.command}`,
         ...processOutputLines(specLocal.result),
         ...testableRequirements
-          .map((req) => `[sdd-forge] requirement ${req.id} result ${specLocalPassed(specLocal) ? "pass" : "fail"}`),
+          .map((req) => `[sdd-forge] requirement ${req.id} result ${requirementResult(req.id, specLocalFailedIds)}`),
         "[sdd-forge] spec-local tests end",
       ]);
-      const summary = buildSummary({ root, specDir, testableRequirements, specLocal, range: specRange });
+      const summary = buildSummary({
+        root,
+        specDir,
+        testableRequirements,
+        specLocal,
+        range: specRange,
+        failedIds: specLocalFailedIds,
+      });
       writeTempRequirementSummary(specDir, summary);
       tempSummaryWritten = true;
       const persistedSummary = readJsonStrict(tempRequirementSummaryPath(specDir));
