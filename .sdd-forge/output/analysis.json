@@ -1,12 +1,12 @@
 {
-  "analyzedAt": "2026-06-04T09:14:18.833Z",
+  "analyzedAt": "2026-06-04T10:47:31.661Z",
   "package": {
     "entries": [
       {
         "file": "package.json",
-        "hash": "b9275198a93033eb70a2463594999658",
+        "hash": "d6120e835a6456b8feb8809fb8be3a1e",
         "lines": 41,
-        "mtime": "2026-06-03T02:00:16.266Z",
+        "mtime": "2026-06-04T09:28:56.577Z",
         "packageDeps": {
           "dependencies": {},
           "devDependencies": {}
@@ -23,25 +23,23 @@
         "composerScripts": null,
         "makefileTest": null,
         "id": "451a9f25",
-        "summary": "Package manifest for the sdd-forge CLI tool, declaring metadata, entry points, scripts, and runtime requirements.",
-        "detail": "Defines sdd-forge as an ES module package with a single CLI binary entry point at `./src/sdd-forge.js` and a matching `exports` map. Specifies Node.js >=18.19.0 as the minimum engine, reflecting exclusive use of built-in modules with no external dependencies. The `files` field restricts the published artifact to `src/` while excluding preset test subdirectories. Multiple test script scopes (unit, e2e, acceptance, agent, all) are wired through a central `tests/run.js` dispatcher. pnpm is declared as the package manager via the `packageManager` field.",
+        "summary": "The package manifest defines `sdd-forge` as a Node.js CLI for spec-driven development and automated documentation generation. It exposes a single executable entry point and a focused test matrix without third-party runtime dependencies.",
+        "detail": "The package is published as an ES module and maps both the binary and top-level export to `src/sdd-forge.js`, keeping the CLI entry surface minimal. Distribution is restricted to `src/` while explicitly excluding preset test fixtures from published artifacts. Engine and package manager fields pin the expected runtime to Node.js 18.19.0 or newer and a specific pnpm release for reproducible development. The script set separates unit, end-to-end, acceptance, agent, and full test runs, which reflects an intentionally segmented validation workflow for CLI and AI-assisted features.",
         "chapter": "stack_and_ops",
-        "role": "package-manifest",
+        "role": "CLI package manifest and runtime contract",
         "enrich": {
-          "processedAt": "2026-06-04T05:32:49.284Z",
+          "processedAt": "2026-06-04T10:47:55.713Z",
           "attempts": 1
         },
         "keywords": [
-          "package.json",
-          "npm",
-          "CLI",
-          "ES module",
-          "bin entry point",
-          "Node.js",
-          "pnpm",
-          "no external dependencies",
           "package manifest",
-          "sdd-forge"
+          "Node.js CLI",
+          "ES module",
+          "bin entrypoint",
+          "runtime requirements",
+          "test scripts",
+          "pnpm",
+          "package exports"
         ]
       }
     ],
@@ -142,9 +140,9 @@
       },
       {
         "file": "src/check/commands/freshness.js",
-        "hash": "5835de9045c4ce68031b757d016d405a",
+        "hash": "42b3f21ceb1bab73a981b0ae95204dda",
         "lines": 212,
-        "mtime": "2026-04-18T20:35:29.037Z",
+        "mtime": "2026-06-04T10:47:16.749Z",
         "className": "freshness",
         "methods": [
           "printHelp",
@@ -167,21 +165,23 @@
         "extends": "Command",
         "usedBy": null,
         "id": "b9efb503",
-        "summary": "This command checks whether generated docs are up to date compared to source files. It powers `sdd-forge check freshness` with stale/fresh/never-built states.",
-        "detail": "It walks source and docs directories with a file-count guard to avoid unbounded scans. Newest modification timestamps are computed and compared to determine freshness status. The command detects missing docs as a separate `never-built` result and suggests running `sdd-forge build`. Output can be text or JSON and exits with failure when docs are stale or absent. Shared CLI parsing and constants keep behavior aligned with other check commands.",
-        "chapter": "development",
-        "role": "cli",
+        "summary": "This module implements the `check freshness` command that compares the newest modification times in `src/` and `docs/`. It reports whether documentation is fresh, stale, or never built, with both text and JSON output modes.",
+        "detail": "The command walks the source tree asynchronously with a configurable file cap, tracking truncation to avoid unbounded scans in large repositories. It computes the latest `mtimeMs` for discovered files and handles the missing `docs/` case as a dedicated `never-built` result instead of a generic failure. CLI execution parses arguments, validates the requested output format, and maps freshness states to human-readable messages or structured JSON. Non-fresh outcomes and invalid formats terminate with an error exit code, making the command suitable for automation and CI checks.",
+        "chapter": "cli_commands",
+        "role": "Documentation freshness checker",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:02.294Z",
+          "processedAt": "2026-06-04T10:47:55.713Z",
           "attempts": 1
         },
         "keywords": [
           "freshness check",
+          "docs staleness",
           "mtime comparison",
-          "documentation staleness",
-          "file walker",
-          "build hint",
-          "status report"
+          "CLI command",
+          "JSON output",
+          "documentation build",
+          "source scan",
+          "exit code"
         ]
       },
       {
@@ -2825,8 +2825,25 @@
         "usedBy": null,
         "id": "331cf497",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-06-04T10:47:55.713Z",
+          "attempts": 3
+        },
+        "summary": "This module implements the `flow review` command suite, covering draft, spec, implementation, and test review phases in the SDD workflow. It orchestrates diff collection, prompt construction, AI-agent calls, schema validation, artifact persistence, and retry-oriented review loops.",
+        "detail": "The module is structured around phase-specific pipelines that load spec context, resolve touched files and merge bases, and build prompts tailored to draft QA, spec quality, implementation findings, or test coverage analysis. It uses explicit artifact classes and JSON schemas to normalize AI output, repair malformed JSON when possible, and preserve review history in reproducible files such as `review.md`, `impl-review.json`, `test-review.json`, and phase attempt logs. Several helper layers constrain scope by filtering findings to touched files, requirement IDs, and review stage classifications, while also enforcing limits on prompt size, field length, and loop retries. The command integrates guardrails, rationale summaries, git diff inspection, and optional automated fix application for test review outputs, making it a central orchestration module for review automation in the flow subsystem.",
+        "chapter": "cli_commands",
+        "role": "SDD flow review orchestrator",
+        "keywords": [
+          "flow review",
+          "spec review",
+          "implementation review",
+          "test review",
+          "AI agent orchestration",
+          "prompt builder",
+          "schema validation",
+          "review artifacts",
+          "git diff analysis",
+          "retry loop"
+        ]
       },
       {
         "file": "src/flow/definition.js",
@@ -5211,8 +5228,25 @@
         ],
         "id": "b4aa4dad",
         "enrich": {
-          "attempts": 5
-        }
+          "processedAt": "2026-06-04T10:48:04.185Z",
+          "attempts": 6
+        },
+        "summary": "Implements the flow gate engine that validates specs, drafts, implementation diffs, and integration state before workflow progress continues. It combines local artifact checks, git-based diff analysis, AI guardrail evaluation, retry handling, and result persistence.",
+        "detail": "This module is the central gate runner for SDD flow phases such as draft, spec, task implementation, and integration. It builds phase-specific prompts, filters applicable guardrails, parses strict JSON evaluation responses, and converts them into normalized gate reports and next actions. The code also performs substantial local validation without AI, including spec text and JSON checks, draft review artifact lifecycle checks, integration artifact presence checks, file-map reconciliation, and untracked diff collection. Retry budgets, repeated-failure detection, recovery baselines, issue-log updates, and prior-memory artifacts are used to prevent loops and preserve diagnostic context across attempts.",
+        "chapter": "internal_design",
+        "role": "Flow gate orchestration and validation engine",
+        "keywords": [
+          "flow gate",
+          "guardrail evaluation",
+          "spec validation",
+          "draft lifecycle",
+          "implementation diff",
+          "integration gate",
+          "retry budget",
+          "issue log",
+          "JSON schema parsing",
+          "workflow enforcement"
+        ]
       },
       {
         "file": "src/flow/lib/run-impl-confirm.js",
@@ -5380,8 +5414,23 @@
         "usedBy": null,
         "id": "82a89eee",
         "enrich": {
-          "attempts": 6
-        }
+          "processedAt": "2026-06-04T10:48:04.185Z",
+          "attempts": 7
+        },
+        "summary": "Reopens a draft workflow state by resetting selected steps, clearing stale review artifacts, and recording the reason in the issue log. It provides a controlled rollback path for restarting draft review work.",
+        "detail": "The command validates a user-supplied reopen reason, enforcing string type, NUL rejection, trimming, and a maximum length. It derives the review artifacts and step IDs associated with draft review routes, then clears timestamps and rewinds the relevant flow steps back to active or pending states. The implementation also removes stale draft artifacts that would otherwise conflict with the reopened review cycle. All state changes are wrapped in flow envelopes, and the reopen action is appended to the issue log for traceability.",
+        "chapter": "cli_commands",
+        "role": "Draft reopening command",
+        "keywords": [
+          "reopen draft",
+          "workflow reset",
+          "draft review",
+          "stale artifacts",
+          "issue log",
+          "flow state",
+          "step status",
+          "retry preparation"
+        ]
       },
       {
         "file": "src/flow/lib/run-report-show.js",
@@ -5457,8 +5506,23 @@
         "usedBy": null,
         "id": "43872d6b",
         "enrich": {
-          "attempts": 5
-        }
+          "processedAt": "2026-06-04T10:48:04.185Z",
+          "attempts": 6
+        },
+        "summary": "Generates the flow report artifact by gathering repository, test, and retrospective context from the active spec directory. It acts as the reporting bridge between flow state and persisted report output.",
+        "detail": "The command requires an active flow with a configured base branch and resolves the spec directory from flow state. It inspects whether upstream test and retro artifacts exist so the report generator can include the right evidence set. Repository changes are summarized through git helpers and combined with issue-log history before calling the report generation logic. The result is saved as report.json in the spec-relative output area and returned as a changed-file artifact from the command.",
+        "chapter": "cli_commands",
+        "role": "Flow report generation command",
+        "keywords": [
+          "report generation",
+          "flow report",
+          "git summary",
+          "issue log",
+          "retro artifacts",
+          "test artifacts",
+          "spec directory",
+          "report.json"
+        ]
       },
       {
         "file": "src/flow/lib/run-resume.js",
@@ -5613,8 +5677,24 @@
         ],
         "id": "d4e97204",
         "enrich": {
-          "attempts": 7
-        }
+          "processedAt": "2026-06-04T10:48:04.185Z",
+          "attempts": 8
+        },
+        "summary": "Runs review phases for draft, spec, test, and implementation steps, with subprocess retries, verdict parsing, and flow-state transitions. It is the main review command dispatcher for the SDD workflow.",
+        "detail": "The module maps review phases to flow nodes, retry budgets, and follow-up step transitions, including special routing for draft review sub-phases. It invokes the review script as a subprocess, retries transient failures with configurable delay, and parses structured verdict markers and artifact references from stdout and stderr. Implementation reviews can reset downstream evidence when proposals require rework, while tooling failures and verdict failures are recorded into retry and recovery state. The command persists counters, updates issue logs, and returns envelope-based success or failure responses aligned with workflow rules.",
+        "chapter": "internal_design",
+        "role": "Review phase orchestration command",
+        "keywords": [
+          "review command",
+          "verdict parsing",
+          "subprocess retry",
+          "implementation review",
+          "spec review",
+          "draft review",
+          "test review",
+          "flow transition",
+          "recovery baseline"
+        ]
       },
       {
         "file": "src/flow/lib/run-scenario-validity.js",
@@ -5666,8 +5746,23 @@
         "usedBy": null,
         "id": "c99f2f87",
         "enrich": {
-          "attempts": 7
-        }
+          "processedAt": "2026-06-04T10:48:04.185Z",
+          "attempts": 8
+        },
+        "summary": "Executes scenario-validity tests for spec requirements and writes normalized result and raw-output artifacts. It verifies that requirement-level scenario tests exist, are allowed, and can be run safely from the spec workspace.",
+        "detail": "The module discovers candidate test files under the spec tests directory, filters them by naming convention, and validates that changed files stay within allowed scenario-validity paths. It runs tests per file with timeout handling, captures stdout and stderr into line ranges, and maps test entries back to requirement IDs using source inspection heuristics. The resulting artifact includes per-requirement outcomes, associated test names, raw-output references, and fallback records when execution or parsing fails. Preflight git diff checks and artifact cleanup logic make the command suitable for guarded flow automation.",
+        "chapter": "cli_commands",
+        "role": "Scenario validity test runner",
+        "keywords": [
+          "scenario validity",
+          "requirement tests",
+          "node test runner",
+          "preflight validation",
+          "spec tests",
+          "raw output artifact",
+          "timeout handling",
+          "changed files"
+        ]
       },
       {
         "file": "src/flow/lib/run-start-task.js",
@@ -5784,7 +5879,25 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "41745e8b"
+        "id": "41745e8b",
+        "summary": "Executes spec-local tests and optional regression commands, then writes a structured test-execute artifact for the flow. It summarizes pass or fail status at the requirement level and preserves raw execution output.",
+        "detail": "The command resolves the active spec directory, loads spec.json, and requires prior analysis output before running tests. It discovers local spec test files, runs them with Node's built-in test runner, extracts referenced requirement IDs from output, and maps failures back to individual requirements for summary generation. Depending on project analysis, it either skips regression checks or runs the required regression command and records its process result. Both raw logs and a normalized JSON artifact are persisted so later review and report steps can consume consistent evidence.",
+        "chapter": "cli_commands",
+        "role": "Test execution command",
+        "enrich": {
+          "processedAt": "2026-06-04T10:48:04.185Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "test execute",
+          "spec-local tests",
+          "regression tests",
+          "requirement mapping",
+          "node --test",
+          "analysis.json",
+          "raw output",
+          "test artifact"
+        ]
       },
       {
         "file": "src/flow/lib/run-test-result-review.js",
@@ -5816,8 +5929,22 @@
         "usedBy": null,
         "id": "c1fba537",
         "enrich": {
-          "attempts": 5
-        }
+          "processedAt": "2026-06-04T10:48:25.705Z",
+          "attempts": 6
+        },
+        "summary": "Implements the flow step that reviews `test-execute` artifacts and persists a validated review report. It checks summary evidence, regression evidence, and raw log bounds before writing JSON and Markdown outputs.",
+        "detail": "The command resolves the spec directory from flow state, then requires both `test-execute-result.json` and the raw execution log to exist before proceeding. It loads the spec and raw output, validates summary evidence and project regression evidence through dedicated helper functions, and converts failures into structured pass/fail check items. Raw output reading is bounded by artifact size limits to avoid oversized logs. After validation, it writes the review artifact JSON and a Markdown rendering into the spec directory, and returns repo-relative paths for downstream flow steps.",
+        "chapter": "cli_commands",
+        "role": "test artifact review command",
+        "keywords": [
+          "test review",
+          "artifact validation",
+          "raw output log",
+          "regression evidence",
+          "flow command",
+          "markdown report",
+          "test-execute result"
+        ]
       },
       {
         "file": "src/flow/lib/run-update-overview.js",
@@ -5963,8 +6090,22 @@
         "usedBy": null,
         "id": "b77c2c3d",
         "enrich": {
-          "attempts": 7
-        }
+          "processedAt": "2026-06-04T10:48:25.705Z",
+          "attempts": 8
+        },
+        "summary": "Provides a flow command for enabling or recording broad mode in task-scoped execution. It wraps broad-mode creation errors in a standard flow envelope failure response.",
+        "detail": "The command extends the base flow command abstraction and delegates broad-mode record creation to `createBroadModeRecord`. It uses the shared `Envelope` error format so invalid inputs become machine-readable command failures instead of uncaught exceptions. On success it returns a small payload containing the newly created broad mode record. The implementation is intentionally thin because the task-scope module owns the business rules for broad mode eligibility and structure.",
+        "chapter": "cli_commands",
+        "role": "broad mode setter",
+        "keywords": [
+          "broad mode",
+          "task scope",
+          "flow set command",
+          "envelope failure",
+          "scope control",
+          "mode record",
+          "workflow state"
+        ]
       },
       {
         "file": "src/flow/lib/set-files.js",
@@ -6226,8 +6367,22 @@
         "usedBy": null,
         "id": "6dd22e12",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-06-04T10:48:25.705Z",
+          "attempts": 2
+        },
+        "summary": "Implements `flow set req`, which updates a requirement status by explicit ID or zero-based index. It validates usage, accepted statuses, and requirement resolution before persisting the change.",
+        "detail": "A helper resolves the target requirement reference by first attempting an index lookup and otherwise matching the provided identifier. The command rejects invalid argument counts and unsupported statuses using the shared `Envelope.fail` response shape. It relies on `loadSpecRequirements` to inspect the current spec and `updateSpecRequirementStatus` to persist the mutation. The return payload includes the resolved index, requirement ID, and applied status so callers can confirm exactly which requirement changed.",
+        "chapter": "cli_commands",
+        "role": "requirement status setter",
+        "keywords": [
+          "requirement status",
+          "flow set req",
+          "spec requirements",
+          "index lookup",
+          "status update",
+          "command validation",
+          "requirement id"
+        ]
       },
       {
         "file": "src/flow/lib/set-request.js",
@@ -6291,8 +6446,22 @@
         "usedBy": null,
         "id": "ee559b7a",
         "enrich": {
-          "attempts": 7
-        }
+          "processedAt": "2026-06-04T10:48:25.705Z",
+          "attempts": 8
+        },
+        "summary": "Implements retry-reset behavior for review and gate phases, including counter tracking, reset grants, and rollback support for specific migrations. It centralizes retry policy by kind and phase.",
+        "detail": "The module defines immutable lookup tables for retry counters, max resolvers, and reset logic so gate and review retries follow consistent rules. It normalizes review reset phases, expands grouped phases where needed, and includes a rollback path for load-only run ID migration when resets require state restoration. `RetryResetOperation` encapsulates parsed input and exposes derived properties used by the command. The command validates action, kind, and phase, computes reset phases and grants, then returns structured retry metadata including counters and whether a reset actually occurred.",
+        "chapter": "internal_design",
+        "role": "retry policy and reset command",
+        "keywords": [
+          "retry reset",
+          "review retry",
+          "gate retry",
+          "phase reset",
+          "retry counter",
+          "rollback migration",
+          "flow recovery"
+        ]
       },
       {
         "file": "src/flow/lib/set-step.js",
@@ -6327,8 +6496,22 @@
         "usedBy": null,
         "id": "d4cb8d93",
         "enrich": {
-          "attempts": 5
-        }
+          "processedAt": "2026-06-04T10:48:25.705Z",
+          "attempts": 6
+        },
+        "summary": "Implements `flow set step`, including status validation, preconditions for test-related steps, and post-hook managed artifact checks. It also triggers step side effects and auto-check integration.",
+        "detail": "The command gathers step metadata from the flow definition and validates requested status transitions against shared constants and judgment contracts. Before allowing certain steps to complete, it performs targeted checks such as loading spec JSON without strict validation, verifying test headers, or requiring generated artifacts like `test-execute-result.json` and `retro.json`. It also blocks manual completion of post-hook managed steps when required artifacts are missing or invalid. After successful mutation, it can sync spec tasks, run auto-check logic, and emit stderr diagnostics when transitions are skipped or adjusted.",
+        "chapter": "cli_commands",
+        "role": "step status mutation command",
+        "keywords": [
+          "step status",
+          "flow set step",
+          "transition validation",
+          "auto check",
+          "test headers",
+          "side effects",
+          "artifact gate"
+        ]
       },
       {
         "file": "src/flow/lib/set-summary.js",
@@ -6455,8 +6638,22 @@
         ],
         "id": "5fd87c16",
         "enrich": {
-          "attempts": 7
-        }
+          "processedAt": "2026-06-04T10:48:25.705Z",
+          "attempts": 8
+        },
+        "summary": "Defines task-scope decision logic for choosing between flow-wide, task-scoped, broad, promote, or blocked execution. It also manages broad-mode history and resolves the current task spec file safely.",
+        "detail": "The module models scope decisions with a dedicated `TaskScopeDecision` class instead of loose tagged objects, giving downstream code explicit predicates like `isExecutable` and `isPromotion`. It inspects task arrays to detect actionable work, in-progress tasks, and in-progress task steps, then selects the appropriate scope outcome for a requested step. Broad mode records are created with strict validation of allowed step IDs and required reasons, and a bounded history helper prevents unbounded growth. When task-scoped execution is required, `resolveCurrentTaskSpec` verifies that the task exists, has a spec path, and that the referenced spec file is present under the repo.",
+        "chapter": "internal_design",
+        "role": "task scope decision engine",
+        "keywords": [
+          "task scope",
+          "broad mode",
+          "current task",
+          "scope decision",
+          "flow promotion",
+          "task selection",
+          "spec resolution"
+        ]
       },
       {
         "file": "src/flow/lib/test-artifacts.js",
@@ -6587,8 +6784,22 @@
         ],
         "id": "0b1b96b3",
         "enrich": {
-          "attempts": 5
-        }
+          "processedAt": "2026-06-04T10:48:25.705Z",
+          "attempts": 6
+        },
+        "summary": "Centralizes test artifact file names, size limits, trust checks, and validation routines used across flow test phases. It is the main contract layer for test execution, review, regression, and scenario-validity artifacts.",
+        "detail": "The module declares artifact paths and hard limits for JSON size, raw log size, line counts, collected artifacts, and placeholder permissions, then provides bounded readers that enforce those constraints. It validates multiple artifact types including test execution results, review summaries, final regression results, scenario-validity outputs, and integration trust inputs. Several helpers resolve repo-safe paths, verify evidence ranges against raw logs, confirm referenced test names exist in source files, and detect stale changed-file snapshots. It also implements placeholder and sentinel scanning with explicit permission files so downstream gates can distinguish trustworthy artifacts from placeholders or incomplete fixtures.",
+        "chapter": "internal_design",
+        "role": "test artifact contract and validation layer",
+        "keywords": [
+          "test artifacts",
+          "artifact trust",
+          "raw output validation",
+          "scenario validity",
+          "regression validation",
+          "placeholder detection",
+          "integration gate"
+        ]
       },
       {
         "file": "src/flow/lib/test-headers.js",
@@ -6779,8 +6990,22 @@
         ],
         "id": "d64f4095",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-06-04T10:48:25.705Z",
+          "attempts": 2
+        },
+        "summary": "Registers flow commands and hook behavior for retries, review routes, gate phases, and finalize handling. It coordinates runtime step mapping and artifact checks across the flow lifecycle.",
+        "detail": "The registry defines constant sets for finalize success states, retry-help phase coverage, and valid draft-review verdicts, making command routing deterministic. It contains helpers that derive the active phase, locate the runtime step that should receive logs, and safely attempt step-status or issue-log updates without crashing the caller on absent active flows. For draft review flows it can prewrite empty triage and repair artifacts so downstream consumers always find expected files. It also performs artifact validation for key steps such as test review and final regression before allowing later flow actions to proceed.",
+        "chapter": "cli_commands",
+        "role": "flow command registry and hook coordinator",
+        "keywords": [
+          "flow registry",
+          "command routing",
+          "draft review",
+          "finalize hooks",
+          "runtime logging",
+          "retry phases",
+          "artifact enforcement"
+        ]
       },
       {
         "file": "src/help.js",
@@ -6803,8 +7028,22 @@
         "usedBy": null,
         "id": "4ac07fa0",
         "enrich": {
-          "attempts": 8
-        }
+          "processedAt": "2026-06-04T10:48:25.705Z",
+          "attempts": 9
+        },
+        "summary": "Defines the CLI help layout and localized command descriptions. It exposes a small main entry point plus the raw command layout for reuse.",
+        "detail": "The module imports the package version helper and i18n translation function, then stores command ordering in a `LAYOUT` array. The `main` function maps each layout entry to a translated help description using stable translation keys under `ui:help.commands.*`. This keeps help rendering data-driven and language-aware without embedding strings directly in the command logic. It exports both the renderer and the command layout so other parts of the CLI can reuse the same structure.",
+        "chapter": "cli_commands",
+        "role": "help command renderer",
+        "keywords": [
+          "CLI help",
+          "command layout",
+          "localization",
+          "translation keys",
+          "package version",
+          "usage output",
+          "help renderer"
+        ]
       },
       {
         "file": "src/lib/active-flow-registry.js",
@@ -6877,8 +7116,22 @@
         ],
         "id": "1af31edd",
         "enrich": {
-          "attempts": 5
-        }
+          "processedAt": "2026-06-04T10:48:25.705Z",
+          "attempts": 6
+        },
+        "summary": "Provides built-in agent provider and profile defaults plus a merge routine for user agent settings. It deep-clones defaults and verifies profile-to-provider references before returning merged data.",
+        "detail": "The module keeps provider definitions and profile definitions in separate constant pools, then exposes clone-based accessors so callers cannot mutate shared defaults. `defaultAgentProviders` validates that every default profile references a known provider, failing fast on inconsistent built-in configuration. A helper computes the set of referenced provider keys from profiles, which supports selective inclusion of providers during merge. `mergeAgentDefaults` requires an object input and returns agent settings with defaults filled in while preserving caller overrides.",
+        "chapter": "configuration",
+        "role": "agent default configuration provider",
+        "keywords": [
+          "agent defaults",
+          "provider profiles",
+          "configuration merge",
+          "default providers",
+          "profile mapping",
+          "deep clone",
+          "agent settings"
+        ]
       },
       {
         "file": "src/lib/agent-metrics.js",
@@ -7214,8 +7467,22 @@
         ],
         "id": "dff6e5b4",
         "enrich": {
-          "attempts": 6
-        }
+          "processedAt": "2026-06-04T10:48:25.705Z",
+          "attempts": 7
+        },
+        "summary": "Implements configuration loading, schema validation, and key path resolvers for `.sdd-forge` directories. It also enforces constraints on test commands and project test paths.",
+        "detail": "The module defines default values such as concurrency and language, then provides small helpers to derive the config path, output directory, and work directory relative to the repository root. It loads JSON from disk defensively, exposing helpers for reading package fields and current language while tolerating missing config files where appropriate. A schema object and validation wrapper feed into `validateSchema`, producing aggregated configuration errors with readable messages. Additional checks reject unsafe test command patterns and require project test paths to remain root-relative, keeping execution and file references constrained.",
+        "chapter": "configuration",
+        "role": "configuration loader and validator",
+        "keywords": [
+          "config loader",
+          "schema validation",
+          "work directory",
+          "language setting",
+          "concurrency",
+          "test command validation",
+          "project test path"
+        ]
       },
       {
         "file": "src/lib/constants.js",
@@ -7568,8 +7835,22 @@
         ],
         "id": "09ff0ab4",
         "enrich": {
-          "attempts": 7
-        }
+          "processedAt": "2026-06-04T10:48:25.705Z",
+          "attempts": 8
+        },
+        "summary": "Provides shared flow-state helpers for phases, step initialization, task lifecycle, and spec path handling. It is the lightweight utility layer used by higher-level flow commands and storage code.",
+        "detail": "The module exports canonical file names, scan limits, task status constants, and phase maps derived from the flow definition so the rest of the system can share one source of truth. It includes helpers for deriving the current phase from completed steps, building initial flow and task step structures, and checking whether task statuses are terminal. Task traversal logic such as `findNextPendingTask` and promotion helpers support nested or sequential task execution. It also resolves the spec directory and extracts a spec ID from spec-relative paths for consistent file addressing.",
+        "chapter": "internal_design",
+        "role": "shared flow state helpers",
+        "keywords": [
+          "flow helpers",
+          "phase map",
+          "task status",
+          "initial steps",
+          "pending task",
+          "spec id",
+          "state constants"
+        ]
       },
       {
         "file": "src/lib/flow-manager.js",
@@ -7723,8 +8004,22 @@
         ],
         "id": "5332364e",
         "enrich": {
-          "attempts": 7
-        }
+          "processedAt": "2026-06-04T10:48:25.705Z",
+          "attempts": 8
+        },
+        "summary": "Implements persistent storage, migration, and mutation logic for flow state files. It validates flow schema, rewrites legacy step structures, and manages task-aware mutations safely.",
+        "detail": "The module stores flow state under spec-local `flow.json` paths and includes bounded reads to avoid loading malformed or oversized state files. It performs several in-place migrations, including draft-review step insertion, artifact filename rewrites, step ID renames, and optional run ID rollback support, while logging migration evidence to `issue-log.json` when needed. `FlowStore` exposes methods for loading, saving, updating, and read-only inspection, and it understands both worktree and main-repo locations when constructing paths. Additional helpers validate task shapes, resolve mutation scope for task-aware edits, guard against duplicate task IDs, and enforce strict schema expectations before persistence.",
+        "chapter": "internal_design",
+        "role": "flow state persistence and migration layer",
+        "keywords": [
+          "flow store",
+          "state migration",
+          "flow.json",
+          "task mutation",
+          "schema validation",
+          "worktree paths",
+          "draft review migration"
+        ]
       },
       {
         "file": "src/lib/formatter.js",
@@ -8756,7 +9051,7 @@
         ],
         "id": "a1344e4a",
         "enrich": {
-          "attempts": 8
+          "attempts": 9
         }
       },
       {
@@ -8845,7 +9140,7 @@
         ],
         "id": "deaeeb23",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -8898,7 +9193,7 @@
         "usedBy": null,
         "id": "69d5afb4",
         "enrich": {
-          "attempts": 8
+          "attempts": 9
         }
       },
       {
@@ -11983,7 +12278,7 @@
         "usedBy": null,
         "id": "acdc1ca9",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -12005,7 +12300,7 @@
         "usedBy": null,
         "id": "a8608997",
         "enrich": {
-          "attempts": 8
+          "attempts": 9
         }
       },
       {
@@ -12054,7 +12349,7 @@
         "usedBy": null,
         "id": "9820c9db",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12173,7 +12468,7 @@
         "usedBy": null,
         "id": "a631f658",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12202,7 +12497,7 @@
         "usedBy": null,
         "id": "cc286b88",
         "enrich": {
-          "attempts": 6
+          "attempts": 7
         }
       },
       {
@@ -12269,7 +12564,7 @@
         ],
         "id": "c9908fa4",
         "enrich": {
-          "attempts": 8
+          "attempts": 9
         }
       },
       {
@@ -12298,7 +12593,7 @@
         "usedBy": null,
         "id": "4e4593ba",
         "enrich": {
-          "attempts": 8
+          "attempts": 9
         }
       },
       {
@@ -12319,7 +12614,7 @@
         "usedBy": null,
         "id": "11e11b10",
         "enrich": {
-          "attempts": 8
+          "attempts": 9
         }
       },
       {
@@ -12345,7 +12640,7 @@
         "usedBy": null,
         "id": "9219bc6c",
         "enrich": {
-          "attempts": 8
+          "attempts": 9
         }
       },
       {
@@ -12390,7 +12685,7 @@
         "usedBy": null,
         "id": "970e6266",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -12416,7 +12711,7 @@
         "usedBy": null,
         "id": "27d732ed",
         "enrich": {
-          "attempts": 6
+          "attempts": 7
         }
       },
       {
@@ -12438,7 +12733,7 @@
         "usedBy": null,
         "id": "8dd05cbb",
         "enrich": {
-          "attempts": 8
+          "attempts": 9
         }
       },
       {
@@ -12463,7 +12758,7 @@
         "usedBy": null,
         "id": "c1034289",
         "enrich": {
-          "attempts": 8
+          "attempts": 9
         }
       },
       {
@@ -12485,7 +12780,7 @@
         "usedBy": null,
         "id": "b70ba15e",
         "enrich": {
-          "attempts": 8
+          "attempts": 9
         }
       },
       {
@@ -12507,7 +12802,7 @@
         "usedBy": null,
         "id": "7752e8c4",
         "enrich": {
-          "attempts": 8
+          "attempts": 9
         }
       },
       {
@@ -12530,7 +12825,7 @@
         "usedBy": null,
         "id": "e75cf809",
         "enrich": {
-          "attempts": 8
+          "attempts": 9
         }
       },
       {
@@ -12568,7 +12863,7 @@
         ],
         "id": "60bcd438",
         "enrich": {
-          "attempts": 8
+          "attempts": 9
         }
       },
       {
@@ -12607,7 +12902,7 @@
         ],
         "id": "731ada65",
         "enrich": {
-          "attempts": 8
+          "attempts": 9
         }
       },
       {
@@ -12636,7 +12931,7 @@
         ],
         "id": "d5313dab",
         "enrich": {
-          "attempts": 8
+          "attempts": 9
         }
       },
       {
@@ -12664,7 +12959,7 @@
         "usedBy": null,
         "id": "e88a4b0e",
         "enrich": {
-          "attempts": 8
+          "attempts": 9
         }
       },
       {
@@ -12684,7 +12979,7 @@
         ],
         "id": "780bd655",
         "enrich": {
-          "attempts": 6
+          "attempts": 7
         }
       }
     ],
@@ -12694,5 +12989,5 @@
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-04T05:54:36.099Z"
+  "enrichedAt": "2026-06-04T10:48:58.840Z"
 }
