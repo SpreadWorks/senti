@@ -1,0 +1,256 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".agents/skills/sdd-forge.flow/SKILL.md             |   30 +\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-questions-repair.json                    |   17 +\n .../draft-questions-triage.json                    |   15 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   19 +\n specs/277-post-flow-board-candidates/draft.json    |  111 +++\n specs/277-post-flow-board-candidates/file-map.json |   23 +\n specs/277-post-flow-board-candidates/flow.json     | 1054 ++++++++++++++++++++\n .../impl-review.json                               |   28 +\n .../277-post-flow-board-candidates/issue-log.json  |  382 +++++++\n specs/277-post-flow-board-candidates/issue.md      |   76 ++\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |   33 +\n .../review-history/impl-attempt-001.json           |   31 +\n .../review-history/impl-attempt-001.md             |   16 +\n .../review-history/spec-attempt-001.json           |   54 +\n .../review-history/spec-attempt-001.md             |   19 +\n .../review-history/test-attempt-001.json           |   84 ++\n .../review-history/test-attempt-001.md             |   30 +\n .../review-history/test-attempt-002.json           |   48 +\n .../review-history/test-attempt-002.md             |   18 +\n .../review-history/test-attempt-003.json           |   66 ++\n .../review-history/test-attempt-003.md             |   24 +\n .../review-history/test-attempt-004.json           |   28 +\n .../review-history/test-attempt-004.md             |   13 +\n specs/277-post-flow-board-candidates/review.md     |   16 +\n .../spec-review.json                               |   30 +\n .../277-post-flow-board-candidates/spec-review.md  |   19 +\n specs/277-post-flow-board-candidates/spec.json     |  220 ++++\n specs/277-post-flow-board-candidates/spec.md       |  111 +++\n specs/277-post-flow-board-candidates/tasks/T-1.md  |   20 +\n specs/277-post-flow-board-candidates/tasks/T-2.md  |   19 +\n .../test-coverage.json                             |   97 ++\n .../test-review.json                               |   25 +\n .../277-post-flow-board-candidates/test-review.md  |   13 +\n .../tests/post-flow-board-candidates.test.js       |  125 +++\n src/flow/prompts/impl/finalize-cleanup.md          |   22 -\n src/skills/sdd-forge.flow/SKILL.md                 |   30 +\n .../unit/workflow-board-candidate-guidance.test.js |   24 +-\n 41 files changed, 3001 insertions(+), 30 deletions(-)",
+      "commits": [
+        "feat: feature/277-post-flow-board-candidates"
+      ]
+    },
+    "retro": {
+      "total": 7,
+      "done": 7,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "src/flow/prompts/impl/finalize-cleanup.md must not contain the pre-cleanup workflow board integration section, nor instructions to run issue-log-import or workflow add before finalize-cleanup.",
+          "status": "done",
+          "note": "R1: finalize-cleanup prompt no longer contains pre-cleanup board registration"
+        },
+        {
+          "desc": "src/skills/sdd-forge.flow/SKILL.md must describe optional post-flow board registration candidate handling after the dispatcher loop exit, and the wording must state that the flow is complete and the processing is optional.",
+          "status": "done",
+          "note": "R2: source flow skill contains post-flow completion wording"
+        },
+        {
+          "desc": "The post-flow guidance must run only when finalize-cleanup has succeeded, flow get status reports active:false, and .sdd-forge/config.json has workflow.flowIntegration equal to enable.",
+          "status": "done",
+          "note": "R3: source flow skill gates post-flow handling on cleanup success, inactive flow, and flowIntegration"
+        },
+        {
+          "desc": "The post-flow guidance must use .sdd-forge/last-finalized-spec to locate the finalized spec on the main repo side and run sdd-forge workflow issue-log-import --spec <lastFinalizedSpec> from the main repo.",
+          "status": "done",
+          "note": "R4: source flow skill uses last-finalized-spec for issue-log import"
+        },
+        {
+          "desc": "When post-flow candidates are present, the guidance must process only the bounded data.candidates array returned by one issue-log-import invocation, screen those candidates for board readiness, present target, problem, cause or evidence, improvement direction, and board reason for each displayed candidate, and call workflow add only for user-approved candidates.",
+          "status": "done",
+          "note": "R5: source flow skill screens bounded candidates and adds only approved drafts"
+        },
+        {
+          "desc": "Failures in post-flow issue-log import or board draft creation must be described as post-processing failures after flow completion and must not change the flow completion state.",
+          "status": "done",
+          "note": "R6: source flow skill treats post-flow failures as non-completion failures"
+        },
+        {
+          "desc": "Generated skill artifacts must be refreshed so .agents/skills/sdd-forge.flow/SKILL.md and .claude/skills/sdd-forge.flow/SKILL.md include the new post-flow guidance.",
+          "status": "done",
+          "note": "R7: generated flow skills include post-flow guidance after upgrade"
+        }
+      ]
+    },
+    "issueLog": {
+      "count": 12,
+      "fullLogPath": "specs/277-post-flow-board-candidates/issue-log.json",
+      "importantTotal": 9,
+      "importantShown": 9,
+      "importantOmitted": 0,
+      "recentOtherTotal": 3,
+      "recentOtherShown": 3,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "draft-gate failed because draft approval metadata remained false after coverage review passed",
+          "resolution": "set draft approval.approved true with autoApprove note after all QA entries were answered"
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "draft-gate failed because QA answers lacked explicit priority and recommendation basis",
+          "resolution": "added must or should priority markers and explicit guardrail or existing-code-pattern basis to every QA answer and rationale"
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "R5 requires the guidance to \"present enough decision material,\" which is a vague adjective without a verifiable threshold or criterion.; R5’s phrase \"present enough decision material\" is not sufficiently specific for two independent revi...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "spec-gate failed because R5 used vague decision-material wording and spec lacked explicit impact and spec-local header coverage",
+          "resolution": "replaced R5 with explicit candidate fields, added existing feature impact constraint, and added spec-local test header requirements"
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "spec-gate failed because post-flow candidate handling lacked an explicit bounded-resource contract",
+          "resolution": "specified that post-flow guidance processes only the bounded data.candidates array from one issue-log-import invocation"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test-review failed because R3 R4 and R5 assertions checked loose term presence instead of combined guidance contracts",
+          "resolution": "tightened spec-local tests to extract the post-flow section and assert combined gate, main-repo execution, one-import bounded candidates, and board-readiness screening"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test-review failed because R2 did not verify that post-flow guidance appears after the dispatcher loop exit",
+          "resolution": "added a shared assertion that post-flow workflow board integration appears after the loop exit condition section"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test-review failed because R5 and R6 tests still allowed disconnected keyword matches",
+          "resolution": "replaced loose keyword checks with exact connected guidance sentences for bounded candidate processing, approved-only workflow add, and non-mutating post-flow failures"
+        },
+        {
+          "classification": "important",
+          "step": "test-execute",
+          "reason": "project regression failed because an existing unit test still asserted pre-cleanup board candidate guidance in finalize-cleanup",
+          "resolution": "updated workflow board candidate guidance unit test to assert post-flow skill guidance and absence from finalize-cleanup"
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "q1 is a requirement item but has no explicit priority assignment (must/should/nice-to-have).; q2 is a requirement item but has no explicit priority assignment (must/should/nice-to-have).; q3 is a requirement item but has no explicit prio...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "R5 specifies screening and handling of post-flow candidates but sets no explicit bound on number of candidates returned, screened, or presented, so bulk candidate processing is unbounded.",
+          "resolution": null
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 2,
+      "question": 0,
+      "issueLog": 8
+    },
+    "tokenMetrics": {
+      "input": 377499,
+      "output": 48586,
+      "cacheRead": 597888,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 24,
+      "durationMs": 456550,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 12987
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 6757
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 71253
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 137043
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 49284
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 76578
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 8684
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 93964
+        }
+      ]
+    },
+    "tests": {
+      "total": 7,
+      "passed": 7,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/277-post-flow-board-candidates/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 64,
+          "end_line": 5238
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/277-post-flow-board-candidates/"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/workflow-board-candidate-guidance.test.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/277-post-flow-board-candidates/"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/workflow-board-candidate-guidance.test.js"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/277-post-flow-board-candidates/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/277-post-flow-board-candidates\n    41 files changed, 3001 insertions(+), 30 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (7 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 2\n    Q&A ......................... 0\n    issue-log ................... 8\n    agent calls ................. 24\n    input tokens ................ 377,499\n    output tokens ............... 48,586\n    cache-read tokens ........... 597,888\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 456.6s\n      draft-questions-review .... 13.0s\n      draft-coverage-review ..... 6.8s\n      draft-gate ................ 71.3s\n      spec-review ............... 137.0s\n      spec-gate ................. 49.3s\n      test-review ............... 76.6s\n      impl-review ............... 8.7s\n      impl-gate ................. 94.0s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 7  passed 7  failed 0 verdict=pass\n    raw_output: specs/277-post-flow-board-candidates/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (12 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/277-post-flow-board-candidates/issue-log.json\n\n    Important (9)\n    - [draft-gate] draft-gate failed because draft approval metadata remained false after coverage review passed\n    - [draft-gate] draft-gate failed because QA answers lacked explicit priority and recommendation basis\n    - [spec-gate] R5 requires the guidance to \"present enough decision material,\" which is a vague adjective without a verifiable threshold or criterion.; R5’s phrase \"present enough decision material\" is not sufficiently specific for two independent revi...\n    - [spec-gate] spec-gate failed because R5 used vague decision-material wording and spec lacked explicit impact and spec-local header coverage\n    - [spec-gate] spec-gate failed because post-flow candidate handling lacked an explicit bounded-resource contract\n    - [test-review] test-review failed because R3 R4 and R5 assertions checked loose term presence instead of combined guidance contracts\n    - [test-review] test-review failed because R2 did not verify that post-flow guidance appears after the dispatcher loop exit\n    - [test-review] test-review failed because R5 and R6 tests still allowed disconnected keyword matches\n    - [test-execute] project regression failed because an existing unit test still asserted pre-cleanup board candidate guidance in finalize-cleanup\n\n    Recent Other (3)\n    - [draft-gate] draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved\n    - [draft-gate] q1 is a requirement item but has no explicit priority assignment (must/should/nice-to-have).; q2 is a requirement item but has no explicit priority assignment (must/should/nice-to-have).; q3 is a requirement item but has no explicit prio...\n    - [spec-gate] R5 specifies screening and handling of post-flow candidates but sets no explicit bound on number of candidates returned, screened, or presented, so bulk candidate processing is unbounded."
+}

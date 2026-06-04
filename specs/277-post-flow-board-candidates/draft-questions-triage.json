@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "1 repair target applies: q3 should avoid exposing internal command names in the user-facing draft question.",
+  "items": [
+    {
+      "title": "1. q3 asks about internal implementation details",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "The question can preserve the user-visible failure policy while removing internal command names. This is a small draft-only wording repair.",
+      "evidence": "draft-review-questions.json repairTargets[0] recommends replacing q3 with a wording that says post-flow board registration processing instead of naming issue-log-import and workflow add."
+    }
+  ]
+}

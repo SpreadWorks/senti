@@ -10,16 +10,24 @@ function readProjectFile(relPath) {
 }
 
 describe("workflow board candidate guidance", () => {
-  it("requires decision-ready issue-log candidates before finalize cleanup prompts the user", () => {
+  it("moves decision-ready issue-log candidates to post-flow guidance", () => {
     const prompt = readProjectFile("src/flow/prompts/impl/finalize-cleanup.md");
+    const skill = readProjectFile("src/skills/sdd-forge.flow/SKILL.md");
 
-    assert.match(prompt, /Do not ask the user to choose from title-only candidates/);
-    assert.match(prompt, /target: affected step \/ command \/ artifact \/ feature/);
-    assert.match(prompt, /problem: what happened and why it matters/);
-    assert.match(prompt, /cause: observed cause or evidence; do not write "probably"/);
-    assert.match(prompt, /improvement direction: what should change to prevent recurrence/);
-    assert.match(prompt, /board reason: why this belongs on the board now/);
-    assert.match(prompt, /raw diagnostic entries, duplicates, one-off agent mistakes/);
+    assert.doesNotMatch(prompt, /Pre-cleanup: workflow board integration/);
+    assert.doesNotMatch(prompt, /Do not ask the user to choose from title-only candidates/);
+    assert.doesNotMatch(prompt, /target: affected step \/ command \/ artifact \/ feature/);
+    assert.doesNotMatch(prompt, /sdd-forge workflow issue-log-import/);
+    assert.doesNotMatch(prompt, /sdd-forge workflow add/);
+
+    assert.match(skill, /Post-flow: workflow board integration/);
+    assert.match(skill, /Only when finalize-cleanup succeeded, `sdd-forge flow get status` reports `active:false`, and `workflow\.flowIntegration` equals `"enable"`/);
+    assert.match(skill, /\.sdd-forge\/last-finalized-spec/);
+    assert.match(skill, /sdd-forge workflow issue-log-import --spec <lastFinalizedSpec>/);
+    assert.match(skill, /Process only the bounded `data\.candidates` array returned by that one issue-log-import invocation/);
+    assert.match(skill, /Before presenting or adding any candidate, screen it for board readiness and show target, problem, cause or evidence, improvement direction, and board reason/);
+    assert.match(skill, /Run `sdd-forge workflow add` only for candidates the user approved/);
+    assert.match(skill, /Treat issue-log-import and workflow add failures as post-processing failures after flow completion/);
   });
 
   it("requires manual workflow drafts to include target, problem, cause, and improvement direction", () => {

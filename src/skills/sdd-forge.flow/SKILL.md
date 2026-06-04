@@ -180,6 +180,36 @@ C.3. **Loop**
 
 The loop exits when `sdd-forge flow get status` reports all steps either `done` or `skipped`, or when a retry budget is exhausted. On budget exhaustion, STOP and return control to the user.
 
+## Post-flow: workflow board integration
+
+This is optional post-flow handling. The flow is complete before this section runs.
+
+Only when finalize-cleanup succeeded, `sdd-forge flow get status` reports `active:false`, and `workflow.flowIntegration` equals `"enable"` in `.sdd-forge/config.json`, run the board registration candidate flow below. If any condition is false, skip this section.
+
+After cleanup, read `.sdd-forge/last-finalized-spec` from the main repo to obtain `<lastFinalizedSpec>`. Run `sdd-forge workflow issue-log-import --spec <lastFinalizedSpec>` from the main repo.
+
+Process only the bounded `data.candidates` array returned by that one issue-log-import invocation. If `data.candidates` is empty, skip the rest of this section.
+
+Before presenting or adding any candidate, screen it for board readiness and show target, problem, cause or evidence, improvement direction, and board reason for each displayed candidate. Do not present raw diagnostic entries, duplicates, one-off agent mistakes, or items whose only action was already fully resolved inside the completed flow.
+
+Show this wording before the choice block:
+
+```text
+Board registration candidates
+
+The flow is complete.
+There are candidates from notes left in the issue-log that can be registered on the board as separate tasks.
+This is optional post-flow processing and does not affect the completion state of this flow.
+
+[1] Register by specifying numbers — for example, choose like 1,3
+[2] Register all — add all displayed candidates to Ideas
+[3] Do not register — add nothing to the board
+```
+
+Run `sdd-forge workflow add` only for candidates the user approved. If the user approves none or skips the prompt, create nothing.
+
+Treat issue-log-import and workflow add failures as post-processing failures after flow completion; report them without changing the flow completion state.
+
 ## Universal Guardrails
 
 These apply to every step executed by the dispatcher. They are enforced here because they are cross-cutting — the per-step instructions assume them.

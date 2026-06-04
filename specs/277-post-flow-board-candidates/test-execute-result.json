@@ -1,0 +1,136 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/277-post-flow-board-candidates/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/277-post-flow-board-candidates/tests/post-flow-board-candidates.test.js",
+        "test_name": "R1: finalize-cleanup prompt no longer contains pre-cleanup board registration",
+        "command": "node --test specs/277-post-flow-board-candidates/tests/post-flow-board-candidates.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 63
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/277-post-flow-board-candidates/tests/post-flow-board-candidates.test.js",
+        "test_name": "R2: source flow skill contains post-flow completion wording",
+        "command": "node --test specs/277-post-flow-board-candidates/tests/post-flow-board-candidates.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 63
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/277-post-flow-board-candidates/tests/post-flow-board-candidates.test.js",
+        "test_name": "R3: source flow skill gates post-flow handling on cleanup success, inactive flow, and flowIntegration",
+        "command": "node --test specs/277-post-flow-board-candidates/tests/post-flow-board-candidates.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 63
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/277-post-flow-board-candidates/tests/post-flow-board-candidates.test.js",
+        "test_name": "R4: source flow skill uses last-finalized-spec for issue-log import",
+        "command": "node --test specs/277-post-flow-board-candidates/tests/post-flow-board-candidates.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 63
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/277-post-flow-board-candidates/tests/post-flow-board-candidates.test.js",
+        "test_name": "R5: source flow skill screens bounded candidates and adds only approved drafts",
+        "command": "node --test specs/277-post-flow-board-candidates/tests/post-flow-board-candidates.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 63
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/277-post-flow-board-candidates/tests/post-flow-board-candidates.test.js",
+        "test_name": "R6: source flow skill treats post-flow failures as non-completion failures",
+        "command": "node --test specs/277-post-flow-board-candidates/tests/post-flow-board-candidates.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 63
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/277-post-flow-board-candidates/tests/post-flow-board-candidates.test.js",
+        "test_name": "R7: generated flow skills include post-flow guidance after upgrade",
+        "command": "node --test specs/277-post-flow-board-candidates/tests/post-flow-board-candidates.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 63
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": true,
+    "mode": "full",
+    "root_test_command": "node tests/run.js",
+    "root_test_command_source": "test.command",
+    "command": "node tests/run.js",
+    "result": "pass",
+    "raw_output_lines": {
+      "start_line": 64,
+      "end_line": 5238
+    },
+    "trigger_relevant_changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/277-post-flow-board-candidates/"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/workflow-board-candidate-guidance.test.js"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/277-post-flow-board-candidates/"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/workflow-board-candidate-guidance.test.js"
+      }
+    ],
+    "process": {
+      "started": true,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "spawnError": null
+    }
+  }
+}

@@ -1,0 +1,382 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-04T13:06:28.928Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft approval is required: set approval.approved = true",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft-gate failed because draft approval metadata remained false after coverage review passed",
+      "trigger": "running sdd-forge flow run gate --phase draft for issue #360",
+      "resolution": "set draft approval.approved true with autoApprove note after all QA entries were answered",
+      "guardrailCandidate": "when autoApprove resolves all draft QA entries and coverage review passes, ensure draft approval metadata is set before draft-gate",
+      "taskId": null,
+      "timestamp": "2026-06-04T13:06:42.590Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "q1 is a requirement item but has no explicit priority assignment (must/should/nice-to-have).; q2 is a requirement item but has no explicit priority assignment (must/should/nice-to-have).; q3 is a requirement item but has no explicit priority assignment (must/should/nice-to-have).; q4 is a requirement item but has no explicit priority assignment (must/should/nice-to-have).; Recommended answer is present, but the stated basis is only Issue #360 evidence; it does not explicitly cite allowed bases: project docs/, guardrail principles, or existing code patterns.; Recommended answer is present, but the rationale source is not explicitly tied to one allowed basis (project docs / guardrail principles / existing code patterns).; Recommended answer is present, but the basis for the recommendation is not explicitly stated as project docs, guardrail principles, or existing code patterns.; Recommended answer is present, but basis is not explicitly one of the required sources (project docs, guardrail principles, or existing code patterns).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-04T13:07:52.576Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "draft-content",
+            "locator": "qa[0]"
+          },
+          "observed": "q1 is a requirement item but has no explicit priority assignment (must/should/nice-to-have).",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "draft-content",
+            "locator": "qa[1]"
+          },
+          "observed": "q2 is a requirement item but has no explicit priority assignment (must/should/nice-to-have).",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "draft-content",
+            "locator": "qa[2]"
+          },
+          "observed": "q3 is a requirement item but has no explicit priority assignment (must/should/nice-to-have).",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "draft-content",
+            "locator": "qa[3]"
+          },
+          "observed": "q4 is a requirement item but has no explicit priority assignment (must/should/nice-to-have).",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "draft-content",
+            "locator": "qa[0]"
+          },
+          "observed": "Recommended answer is present, but the stated basis is only Issue #360 evidence; it does not explicitly cite allowed bases: project docs/, guardrail principles, or existing code patterns.",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "draft-content",
+            "locator": "qa[1]"
+          },
+          "observed": "Recommended answer is present, but the rationale source is not explicitly tied to one allowed basis (project docs / guardrail principles / existing code patterns).",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "draft-content",
+            "locator": "qa[2]"
+          },
+          "observed": "Recommended answer is present, but the basis for the recommendation is not explicitly stated as project docs, guardrail principles, or existing code patterns.",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "draft-content",
+            "locator": "qa[3]"
+          },
+          "observed": "Recommended answer is present, but basis is not explicitly one of the required sources (project docs, guardrail principles, or existing code patterns).",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "q1 is a requirement item but has no explicit priority assignment (must/should/nice-to-have)."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "q2 is a requirement item but has no explicit priority assignment (must/should/nice-to-have)."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "q3 is a requirement item but has no explicit priority assignment (must/should/nice-to-have)."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "q4 is a requirement item but has no explicit priority assignment (must/should/nice-to-have)."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Recommended answer is present, but the stated basis is only Issue #360 evidence; it does not explicitly cite allowed bases: project docs/, guardrail principles, or existing code patterns."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Recommended answer is present, but the rationale source is not explicitly tied to one allowed basis (project docs / guardrail principles / existing code patterns)."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Recommended answer is present, but the basis for the recommendation is not explicitly stated as project docs, guardrail principles, or existing code patterns."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Recommended answer is present, but basis is not explicitly one of the required sources (project docs, guardrail principles, or existing code patterns)."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft-gate failed because QA answers lacked explicit priority and recommendation basis",
+      "trigger": "second sdd-forge flow run gate --phase draft evaluation after approval metadata fix",
+      "resolution": "added must or should priority markers and explicit guardrail or existing-code-pattern basis to every QA answer and rationale",
+      "guardrailCandidate": "when answering draft QA entries, include explicit priority and cite the allowed recommendation basis before running draft-gate",
+      "taskId": null,
+      "timestamp": "2026-06-04T13:08:22.494Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "R5 requires the guidance to \"present enough decision material,\" which is a vague adjective without a verifiable threshold or criterion.; R5’s phrase \"present enough decision material\" is not sufficiently specific for two independent reviewers to agree on pass/fail without additional interpretation.; The spec does not include an explicit section or statement describing impact on existing features, and does not explicitly state that no existing features are affected.; The guardrail requires new spec behavior coverage under specs/<specid>/tests/ with `// spec: R<N> ...` headers per file, but the spec only lists test intents and does not require or include that header format.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-04T13:13:13.787Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[4].desc"
+          },
+          "observed": "R5 requires the guidance to \"present enough decision material,\" which is a vague adjective without a verifiable threshold or criterion.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[4].desc"
+          },
+          "observed": "R5’s phrase \"present enough decision material\" is not sufficiently specific for two independent reviewers to agree on pass/fail without additional interpretation.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "impact-on-existing-features",
+          "where": {
+            "file": "spec.json",
+            "locator": "overall content"
+          },
+          "observed": "The spec does not include an explicit section or statement describing impact on existing features, and does not explicitly state that no existing features are affected.",
+          "severity": "blocking",
+          "refs": [
+            "impact-on-existing-features"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria"
+          },
+          "observed": "The guardrail requires new spec behavior coverage under specs/<specid>/tests/ with `// spec: R<N> ...` headers per file, but the spec only lists test intents and does not require or include that header format.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "R5 requires the guidance to \"present enough decision material,\" which is a vague adjective without a verifiable threshold or criterion."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "R5’s phrase \"present enough decision material\" is not sufficiently specific for two independent reviewers to agree on pass/fail without additional interpretation."
+        },
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "The spec does not include an explicit section or statement describing impact on existing features, and does not explicitly state that no existing features are affected."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "The guardrail requires new spec behavior coverage under specs/<specid>/tests/ with `// spec: R<N> ...` headers per file, but the spec only lists test intents and does not require or include that header format."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec-gate failed because R5 used vague decision-material wording and spec lacked explicit impact and spec-local header coverage",
+      "trigger": "running sdd-forge flow run gate for the first spec-gate attempt",
+      "resolution": "replaced R5 with explicit candidate fields, added existing feature impact constraint, and added spec-local test header requirements",
+      "guardrailCandidate": "before spec-gate, scan requirements for vague threshold words and ensure acceptance criteria mention spec-local tests with spec headers",
+      "taskId": null,
+      "timestamp": "2026-06-04T13:13:43.981Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "R5 specifies screening and handling of post-flow candidates but sets no explicit bound on number of candidates returned, screened, or presented, so bulk candidate processing is unbounded.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-04T13:14:16.753Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements.R5"
+          },
+          "observed": "R5 specifies screening and handling of post-flow candidates but sets no explicit bound on number of candidates returned, screened, or presented, so bulk candidate processing is unbounded.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "R5 specifies screening and handling of post-flow candidates but sets no explicit bound on number of candidates returned, screened, or presented, so bulk candidate processing is unbounded."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec-gate failed because post-flow candidate handling lacked an explicit bounded-resource contract",
+      "trigger": "second sdd-forge flow run gate evaluation after initial spec fixes",
+      "resolution": "specified that post-flow guidance processes only the bounded data.candidates array from one issue-log-import invocation",
+      "guardrailCandidate": "when a spec describes candidate screening or bulk handling, state the exact bounded collection and avoid implicit rescans",
+      "taskId": null,
+      "timestamp": "2026-06-04T13:14:38.884Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review failed because R3 R4 and R5 assertions checked loose term presence instead of combined guidance contracts",
+      "trigger": "running sdd-forge flow run review --phase test after scenario-validity passed",
+      "resolution": "tightened spec-local tests to extract the post-flow section and assert combined gate, main-repo execution, one-import bounded candidates, and board-readiness screening",
+      "guardrailCandidate": "spec-local prompt tests should assert the same section and combined contract, not independent keyword presence",
+      "taskId": null,
+      "timestamp": "2026-06-04T13:17:37.263Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review failed because R2 did not verify that post-flow guidance appears after the dispatcher loop exit",
+      "trigger": "rerunning sdd-forge flow run review --phase test after tightening combined condition assertions",
+      "resolution": "added a shared assertion that post-flow workflow board integration appears after the loop exit condition section",
+      "guardrailCandidate": "when a requirement specifies prompt placement, tests must compare marker order instead of checking section existence only",
+      "taskId": null,
+      "timestamp": "2026-06-04T13:18:37.666Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review failed because R5 and R6 tests still allowed disconnected keyword matches",
+      "trigger": "rerunning test review after adding loop-exit placement assertion",
+      "resolution": "replaced loose keyword checks with exact connected guidance sentences for bounded candidate processing, approved-only workflow add, and non-mutating post-flow failures",
+      "guardrailCandidate": "prompt contract tests should assert connected normative sentences for required behavior, especially failure semantics",
+      "taskId": null,
+      "timestamp": "2026-06-04T13:19:49.435Z"
+    },
+    {
+      "step": "test-execute",
+      "reason": "project regression failed because an existing unit test still asserted pre-cleanup board candidate guidance in finalize-cleanup",
+      "trigger": "test-execute full regression and isolated unit regression for issue #360",
+      "resolution": "updated workflow board candidate guidance unit test to assert post-flow skill guidance and absence from finalize-cleanup",
+      "guardrailCandidate": "when moving prompt guidance between files, update existing shared regression tests that encode the old placement contract",
+      "taskId": null,
+      "timestamp": "2026-06-04T13:30:26.295Z"
+    }
+  ]
+}

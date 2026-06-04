@@ -1,0 +1,53 @@
+{
+  "spec": "specs/277-post-flow-board-candidates/spec.json",
+  "date": "2026-06-04T13:34:52.602Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "src/flow/prompts/impl/finalize-cleanup.md must not contain the pre-cleanup workflow board integration section, nor instructions to run issue-log-import or workflow add before finalize-cleanup.",
+      "status": "done",
+      "note": "R1: finalize-cleanup prompt no longer contains pre-cleanup board registration"
+    },
+    {
+      "desc": "src/skills/sdd-forge.flow/SKILL.md must describe optional post-flow board registration candidate handling after the dispatcher loop exit, and the wording must state that the flow is complete and the processing is optional.",
+      "status": "done",
+      "note": "R2: source flow skill contains post-flow completion wording"
+    },
+    {
+      "desc": "The post-flow guidance must run only when finalize-cleanup has succeeded, flow get status reports active:false, and .sdd-forge/config.json has workflow.flowIntegration equal to enable.",
+      "status": "done",
+      "note": "R3: source flow skill gates post-flow handling on cleanup success, inactive flow, and flowIntegration"
+    },
+    {
+      "desc": "The post-flow guidance must use .sdd-forge/last-finalized-spec to locate the finalized spec on the main repo side and run sdd-forge workflow issue-log-import --spec <lastFinalizedSpec> from the main repo.",
+      "status": "done",
+      "note": "R4: source flow skill uses last-finalized-spec for issue-log import"
+    },
+    {
+      "desc": "When post-flow candidates are present, the guidance must process only the bounded data.candidates array returned by one issue-log-import invocation, screen those candidates for board readiness, present target, problem, cause or evidence, improvement direction, and board reason for each displayed candidate, and call workflow add only for user-approved candidates.",
+      "status": "done",
+      "note": "R5: source flow skill screens bounded candidates and adds only approved drafts"
+    },
+    {
+      "desc": "Failures in post-flow issue-log import or board draft creation must be described as post-processing failures after flow completion and must not change the flow completion state.",
+      "status": "done",
+      "note": "R6: source flow skill treats post-flow failures as non-completion failures"
+    },
+    {
+      "desc": "Generated skill artifacts must be refreshed so .agents/skills/sdd-forge.flow/SKILL.md and .claude/skills/sdd-forge.flow/SKILL.md include the new post-flow guidance.",
+      "status": "done",
+      "note": "R7: generated flow skills include post-flow guidance after upgrade"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 7,
+    "done": 7,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-04T13:19:09.277Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/277-post-flow-board-candidates/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R5 keyword-only assertions can pass without enforcing approved-candidate behavior",
+      "target": "specs/277-post-flow-board-candidates/tests/post-flow-board-candidates.test.js",
+      "issue": "The R5 test checks for separate keywords such as `workflow add`, `user-approved`, `target`, `problem`, and `bounded data.candidates`, but it does not assert that the guidance processes only the returned `data.candidates` array, displays the required fields for each displayed candidate, or limits `workflow add` to user-approved candidates. A section containing those words in unrelated or contradictory sentences would pass.",
+      "requiredChange": "Replace the loose keyword checks for R5 with assertions against connected guidance text that states candidates come only from the single bounded `data.candidates` result, each displayed candidate includes the required fields, and `workflow add` is run only after user approval.",
+      "whyBlocking": "R5 is an acceptance requirement, and the current test has a static anti-pattern that can pass without validating the required behavior."
+    },
+    {
+      "kind": "blocking",
+      "title": "R6 assertions do not verify failures preserve flow completion state",
+      "target": "specs/277-post-flow-board-candidates/tests/post-flow-board-candidates.test.js",
+      "issue": "The R6 test only checks that `issue-log-import`, `workflow add`, `post-processing failure`, and `flow completion state` appear somewhere in the source skill. It would pass even if the text said post-processing failures do change the flow completion state, or if the failure wording is unrelated to issue-log import and board draft creation.",
+      "requiredChange": "Assert a connected sentence or section-level wording that describes issue-log-import and workflow add failures as post-processing failures after flow completion and explicitly says they must not change the flow completion state.",
+      "whyBlocking": "R6 is an acceptance requirement, and the current test can pass while the implementation contradicts the required failure semantics."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/277-post-flow-board-candidates/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "f3573b06be133e02d09dea3b8564bf3b24ca22fe0527f5048d72b840737c44c7"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "test-003-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R5 keyword-only assertions can pass without enforcing approved-candidate behavior",
+      "body": "The R5 test checks for separate keywords such as `workflow add`, `user-approved`, `target`, `problem`, and `bounded data.candidates`, but it does not assert that the guidance processes only the returned `data.candidates` array, displays the required fields for each displayed candidate, or limits `workflow add` to user-approved candidates. A section containing those words in unrelated or contradictory sentences would pass.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-003-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R6 assertions do not verify failures preserve flow completion state",
+      "body": "The R6 test only checks that `issue-log-import`, `workflow add`, `post-processing failure`, and `flow completion state` appear somewhere in the source skill. It would pass even if the text said post-processing failures do change the flow completion state, or if the failure wording is unrelated to issue-log import and board draft creation.",
+      "category": "unknown"
+    }
+  ]
+}

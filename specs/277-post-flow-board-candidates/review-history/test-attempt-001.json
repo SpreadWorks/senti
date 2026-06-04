@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-04T13:16:47.628Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 3,
+    "advisory": 0,
+    "total": 3
+  },
+  "coverageArtifact": "specs/277-post-flow-board-candidates/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R3 only-if gating is not actually covered",
+      "target": "specs/277-post-flow-board-candidates/tests/post-flow-board-candidates.test.js",
+      "issue": "The R3 test only checks that cleanup success, active:false, workflow.flowIntegration, and \"enable\" appear somewhere in the skill. It does not assert that post-flow guidance is gated to run only when all three conditions are satisfied, so wording that mentions these terms independently would pass.",
+      "requiredChange": "Add a spec-local assertion that the post-flow guidance states the handling runs only when finalize-cleanup succeeded, flow get status reports active:false, and workflow.flowIntegration is \"enable\" as a combined gate.",
+      "whyBlocking": "R3 is a must acceptance requirement and the current test can pass without covering the critical only-if execution condition."
+    },
+    {
+      "kind": "blocking",
+      "title": "R4 main-repo execution is uncovered",
+      "target": "specs/277-post-flow-board-candidates/tests/post-flow-board-candidates.test.js",
+      "issue": "The R4 test verifies .sdd-forge/last-finalized-spec and the issue-log-import command, but it does not verify that the command is run from the main repo side.",
+      "requiredChange": "Add an assertion for main-repo-side execution wording near the last-finalized-spec and issue-log-import guidance.",
+      "whyBlocking": "R4 explicitly requires running issue-log-import from the main repo, and that acceptance condition has no corresponding test coverage."
+    },
+    {
+      "kind": "blocking",
+      "title": "R5 one-import bounded candidate processing is incomplete",
+      "target": "specs/277-post-flow-board-candidates/tests/post-flow-board-candidates.test.js",
+      "issue": "The R5 test checks for data.candidates and bounded wording, but it does not assert that candidates come from exactly one issue-log-import invocation or that candidates are screened for board readiness before display/add.",
+      "requiredChange": "Add assertions that the guidance uses only the bounded data.candidates array returned by one issue-log-import invocation and screens candidates for board readiness before presenting or adding them.",
+      "whyBlocking": "R5 is a must requirement, and the current test would pass without covering two core constraints that prevent unbounded or duplicated post-flow board creation."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/277-post-flow-board-candidates/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "3338fa6b46b6e438a1f7d5b3e9501683c642b9cf4d52dfc6ea321652acf59e33"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "test-001-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R3 only-if gating is not actually covered",
+      "body": "The R3 test only checks that cleanup success, active:false, workflow.flowIntegration, and \"enable\" appear somewhere in the skill. It does not assert that post-flow guidance is gated to run only when all three conditions are satisfied, so wording that mentions these terms independently would pass.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R4 main-repo execution is uncovered",
+      "body": "The R4 test verifies .sdd-forge/last-finalized-spec and the issue-log-import command, but it does not verify that the command is run from the main repo side.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R5 one-import bounded candidate processing is incomplete",
+      "body": "The R5 test checks for data.candidates and bounded wording, but it does not assert that candidates come from exactly one issue-log-import invocation or that candidates are screened for board readiness before display/add.",
+      "category": "unknown"
+    }
+  ]
+}

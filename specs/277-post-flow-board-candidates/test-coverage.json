@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "src/flow/prompts/impl/finalize-cleanup.md must not contain the pre-cleanup workflow board integration section, nor instructions to run issue-log-import or workflow add before finalize-cleanup.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/post-flow-board-candidates.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "src/skills/sdd-forge.flow/SKILL.md must describe optional post-flow board registration candidate handling after the dispatcher loop exit, and the wording must state that the flow is complete and the processing is optional.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/post-flow-board-candidates.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "The post-flow guidance must run only when finalize-cleanup has succeeded, flow get status reports active:false, and .sdd-forge/config.json has workflow.flowIntegration equal to enable.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/post-flow-board-candidates.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "The post-flow guidance must use .sdd-forge/last-finalized-spec to locate the finalized spec on the main repo side and run sdd-forge workflow issue-log-import --spec <lastFinalizedSpec> from the main repo.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/post-flow-board-candidates.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "When post-flow candidates are present, the guidance must process only the bounded data.candidates array returned by one issue-log-import invocation, screen those candidates for board readiness, present target, problem, cause or evidence, improvement direction, and board reason for each displayed candidate, and call workflow add only for user-approved candidates.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/post-flow-board-candidates.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "Failures in post-flow issue-log import or board draft creation must be described as post-processing failures after flow completion and must not change the flow completion state.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/post-flow-board-candidates.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "Generated skill artifacts must be refreshed so .agents/skills/sdd-forge.flow/SKILL.md and .claude/skills/sdd-forge.flow/SKILL.md include the new post-flow guidance.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/post-flow-board-candidates.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/post-flow-board-candidates.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,111 @@
+{
+  "devType": "feature",
+  "goal": "flow 完了後に issue-log 由来のボード登録候補を任意の post-flow 処理として提示する。",
+  "analysis": {
+    "problem": "現在のボード登録候補提示は finalize-cleanup の前処理にあり、任意の board draft 登録判断が flow 完了前に挟まる。これにより、本筋の SDD flow 完了と、完了後に行う任意のボード登録判断が同じ finalize-cleanup 手順に混在している。",
+    "proposedApproach": "finalize-cleanup.md から pre-cleanup の workflow board integration を削除し、sdd-forge.flow skill の dispatcher loop exit 後に post-flow 処理として候補提示を追加する。post-flow 処理は cleanup 成功後、flow get status が active:false、workflow.flowIntegration が enable の場合だけ案内し、last-finalized-spec で main repo 側の finalized spec を参照する。",
+    "validation": "src/flow/prompts/impl/finalize-cleanup.md には issue-log-import と workflow add を使う pre-cleanup 指示が存在する。src/skills/sdd-forge.flow/SKILL.md の loop exit 後には同等の post-flow 候補提示がない。Issue #360 の修正方針はこの配置差を解消し、flow 完了状態と任意のボード登録処理を分離する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "workflow.flowIntegration は .sdd-forge/config.json で enable に設定されている。",
+      "src/flow/prompts/impl/finalize-cleanup.md は cleanup 前に issue-log-import を実行し、承認された候補に workflow add を呼ぶ指示を持つ。",
+      "src/skills/sdd-forge.flow/SKILL.md は cleanup 成功後に last-finalized-spec が書かれ、次の sdd-forge コマンドは main repository から実行されると説明している。",
+      "src/workflow/lib/commands/issue-log-import.js は候補生成のみを行い、board への書き込みは workflow add 側に委ねている。",
+      "src/skills/ を変更した場合は sdd-forge upgrade の実行が必要である。",
+      "Issue #360 は、post-flow の文言案として「番号指定で登録」「すべて登録」「登録しない」の 3 選択肢を示している。",
+      "Issue #360 は、issue-log-import や workflow add の失敗を flow 完了後の後処理失敗として扱い、flow 完了状態には影響させないと指定している。"
+    ],
+    "decisionPoints": [
+      "post-flow 候補提示を loop exit 後のどこに置くか。",
+      "cleanup 後に issue-log-import へ渡す spec path を last-finalized-spec からどう解決するか。",
+      "候補提示・workflow add の失敗を flow 完了後の非ブロッキング失敗としてどう表現するか。",
+      "既存の specs/270-workflow-flow-integration/tests/templates.test.js を新しい配置契約に合わせてどう更新するか。"
+    ],
+    "resolvedByProjectRules": [
+      "外部依存は追加しない。既存 CLI と skill/prompt テンプレートだけを変更対象にする。",
+      "src/ 以下に特定プロジェクト固有の値を入れない。",
+      "workflow add による新規 draft は Ideas として扱う既存 workflow skill ルールを維持する。",
+      "src/skills/ を変更したら sdd-forge upgrade を実行して生成済み skill artifact を更新する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "loop exit 後の post-flow 手順を sdd-forge.flow skill に追加する具体的な記述位置。",
+      "last-finalized-spec の読み取りと issue-log-import --spec への引き渡しを skill 手順としてどう表現するか。",
+      "finalize-cleanup.md から削除する範囲と、Required Sequence に残すべき cleanup/report/orphan recovery 指示。",
+      "テンプレートテストの期待文字列を pre-cleanup から post-flow に移す検証へ変更する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "src/flow/prompts/impl/finalize-cleanup.md の pre-cleanup workflow board integration 削除",
+      "src/skills/sdd-forge.flow/SKILL.md の loop exit 後 post-flow 候補提示追加",
+      "src/skills/ 変更に伴う sdd-forge upgrade 反映",
+      "post-flow 配置と flowIntegration 条件を検証する spec-local tests"
+    ],
+    "out": [
+      "issue-log-import コマンドの候補生成仕様変更",
+      "workflow add / publish / board GraphQL 実装の変更",
+      "workflow.flowIntegration の config schema 変更",
+      "finalize-cleanup コマンド本体の teardown / orphan recovery / report delivery 仕様変更"
+    ]
+  },
+  "impactOnExisting": [
+    "flowIntegration enable の flow では、候補登録判断が finalize-cleanup 前から flow 完了後へ移る。",
+    "flowIntegration unset または disable の flow では、post-flow 候補提示は案内されない。",
+    "finalize-cleanup は任意の board draft 登録判断を待たずに cleanup と report delivery に集中する。",
+    "既存の issue-start 連携は draft step 冒頭のまま維持される。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "Issue #360 の目的は、issue-log 由来のボード登録候補提示を finalize-cleanup 前処理から外し、flow 完了後の任意 post-flow 処理として提示することでよいですか。",
+      "answer": "[must] はい。Issue #360 の目的は、候補提示を finalize-cleanup 前処理から削除し、flow 完了後の任意 post-flow 処理へ移すことです。推奨根拠は既存コードパターンです。",
+      "evidence": "Issue #360 Fix Policy: remove Pre-cleanup workflow board integration from finalize-cleanup.md and add optional post-flow processing after the loop exit in sdd-forge.flow/SKILL.md.",
+      "why": "既存コードパターンとして、finalize-cleanup.md は cleanup/report/orphan recovery の完了処理を担い、sdd-forge.flow/SKILL.md は dispatcher loop と loop exit の進行を担う。Issue 本文も flow 完了後への移設を指定しているため。",
+      "considered": "finalize-cleanup 前処理に残す案は、Issue #360 の背景で問題として明示されているため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "post-flow の表示文言と選択肢は、Issue #360 の文言案である「番号指定で登録」「すべて登録」「登録しない」をそのまま採用してよいですか。",
+      "answer": "[must] はい。Issue #360 の文言案を採用し、flow 完了後であること、任意の後処理であること、登録方法の 3 選択肢を明示します。推奨根拠は guardrail 原則と既存コードパターンです。",
+      "evidence": "Issue #360 Suggested Wording includes the heading \"Board registration candidates\" and options [1] register by specifying numbers, [2] register all, [3] do not register.",
+      "why": "guardrail の unambiguous-requirements は検証可能な条件を求める。Issue 本文の具体的な文言案を使うと、既存の Choice Format パターンに沿って表示内容を検証できるため。",
+      "considered": "文言を新規に作り直す案は、Issue 本文の具体的な文言案から逸脱して検証対象を曖昧にするため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "post-flow のボード登録処理が失敗した場合は、flow 完了状態を変更せず、後処理失敗として短く通知するだけでよいですか。",
+      "answer": "[must] はい。post-flow のボード登録処理失敗は flow 完了状態に影響させず、後処理失敗として通知するだけにします。推奨根拠は guardrail 原則と既存コードパターンです。",
+      "evidence": "Issue #360 Fix Policy: treat failures in issue-log-import or workflow add as post-processing failures after flow completion, and do not let them affect the flow completion state.",
+      "why": "既存コードパターンでは issue-log-import は候補生成のみで board 書き込みを直接行わず、失敗時も本筋の flow 完了と分離できる。guardrail の impact-on-existing-features に沿い、flow 完了状態への影響なしを明示するため。",
+      "considered": "後処理失敗を finalize 失敗として扱う案は、Issue #360 の非ブロッキング方針に反するため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "issue-log-import の候補が 0 件だった場合は、ボード登録候補の選択肢を出さずに post-flow 処理を終了する振る舞いでよいですか。",
+      "answer": "[should] はい。候補が 0 件の場合は、登録対象がないため選択肢を出さずに post-flow 処理を終了します。推奨根拠は既存コードパターンです。",
+      "evidence": "Existing finalize-cleanup.md integration says if data.candidates is empty, skip the rest of the section; Issue #360 changes placement, not candidate-empty semantics.",
+      "why": "既存の finalize-cleanup.md integration は data.candidates が空なら残りを skip する。配置だけを変える本 spec では、この既存コードパターンを維持するのが最小変更であるため。",
+      "considered": "候補なし通知を常に出す案は、Issue #360 の文言案に含まれず、任意後処理のノイズを増やすため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-04T13:05:30.000Z",
+    "notes": "autoApprove: draft questions are answered from Issue #360 and coverage review PASSed."
+  }
+}
