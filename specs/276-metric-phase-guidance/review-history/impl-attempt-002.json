@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-04T12:50:04.737Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "title": "Acceptance coverage is still missing",
+      "failureMode": "missing_acceptance_requirement",
+      "requirementId": "R3",
+      "issue": "The touched file set still does not include specs/276-metric-phase-guidance/tests/metric-phase-guidance.test.js, while R3 maps only to that acceptance test artifact. The implementation updates SKILL.md guidance but does not add or update the required test coverage for metric phase guidance.",
+      "suggestion": "Update specs/276-metric-phase-guidance/tests/metric-phase-guidance.test.js to assert that direct Read-tool metric recording uses a CLI-accepted phase argument and does not use next-action step keys as phase arguments.",
+      "rationale": "R3 cannot be satisfied by the SKILL.md change alone because its mapped artifact is the acceptance test file. Without that test change, the required behavior is not locked by the acceptance suite."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/276-metric-phase-guidance/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "b33695a2ed83d5f68f16cd370924ef1413b94b9e786e51fc05e02bb9b898cebd"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "impl-002-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Acceptance coverage is still missing",
+      "body": "The touched file set still does not include specs/276-metric-phase-guidance/tests/metric-phase-guidance.test.js, while R3 maps only to that acceptance test artifact. The implementation updates SKILL.md guidance but does not add or update the required test coverage for metric phase guidance.",
+      "category": "missing_acceptance_requirement"
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-04T12:50:53.841Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "title": "Generated skill artifact is not included in the implementation",
+      "failureMode": "missing_acceptance_requirement",
+      "requirementId": "R2",
+      "issue": "R2 requires generated project skill artifacts to be refreshed after changing the skill source, but the touched file set and diff do not include the generated `sdd-forge.flow` artifact such as `.agents/skills/sdd-forge.flow/SKILL.md`. The implementation only shows the source skill change and tests.",
+      "suggestion": "Run `sdd-forge upgrade` and include the resulting generated `sdd-forge.flow` artifact update so the installed guidance contains the same corrected Metric Recording section as `src/skills/sdd-forge.flow/SKILL.md`.",
+      "rationale": "The source guidance is not the only user-facing artifact in scope. Without the generated artifact update, users of the installed/generated skill can still see stale metric phase guidance even though the source file and tests were updated."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/276-metric-phase-guidance/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "02661291a3c794b2ac7e59ec3d9a19c521b1aae9a88f849d769e843daf83feb1"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "impl-003-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Generated skill artifact is not included in the implementation",
+      "body": "R2 requires generated project skill artifacts to be refreshed after changing the skill source, but the touched file set and diff do not include the generated `sdd-forge.flow` artifact such as `.agents/skills/sdd-forge.flow/SKILL.md`. The implementation only shows the source skill change and tests.",
+      "category": "missing_acceptance_requirement"
+    }
+  ]
+}

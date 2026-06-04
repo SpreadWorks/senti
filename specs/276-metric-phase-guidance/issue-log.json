@@ -1,0 +1,75 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-04T10:55:54.950Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft approval is required: set approval.approved = true",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "No explicit section or statement lists impact on existing features, and there is no explicit declaration that no existing features are affected.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-04T11:01:51.964Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "impact-on-existing-features",
+          "where": {
+            "file": "spec.json",
+            "locator": "top-level spec content"
+          },
+          "observed": "No explicit section or statement lists impact on existing features, and there is no explicit declaration that no existing features are affected.",
+          "severity": "blocking",
+          "refs": [
+            "impact-on-existing-features"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "No explicit section or statement lists impact on existing features, and there is no explicit declaration that no existing features are affected."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: refreshed stale test-execute artifacts after acceptance test change",
+      "resolution": "reran test-execute and test-result-review so gate validates current test file and raw output",
+      "taskId": null,
+      "timestamp": "2026-06-04T12:52:32.578Z"
+    }
+  ]
+}

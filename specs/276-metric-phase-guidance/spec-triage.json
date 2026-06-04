@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "The blocking finding is valid and should be repaired by requiring guidance to avoid status-derived phase names that are not accepted metric phases.",
+  "items": [
+    {
+      "title": "Status-derived phases are not all valid metric phases",
+      "target": "R1 / Metric Recording guidance",
+      "decision": "apply",
+      "rationale": "The current spec can be satisfied by changing only the `draft` example while leaving text that tells users to use status/next-action phases such as `plan` or `finalize`, which are rejected by `flow set metric`.",
+      "evidence": "`src/lib/constants.js` includes `draft` but not `plan` or `finalize` in `VALID_PHASES`; spec.json requirement R1 and acceptance criteria do not yet require removing or mapping status-derived phase names."
+    }
+  ]
+}

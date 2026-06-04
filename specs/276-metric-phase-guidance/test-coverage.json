@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "`sdd-forge.flow` metric recording guidance for direct docs/src reads must use only `VALID_PHASES` values as `flow set metric` phase examples; for planning/draft work it must show `draft`, and it must not present status-derived phase names such as `plan` or `finalize` as metric phases.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/metric-phase-guidance.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "After changing the skill source, generated project skill artifacts must be refreshed so the installed `sdd-forge.flow` guidance contains the corrected metric phase guidance.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/metric-phase-guidance.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "`flow set metric` CLI phase validation must remain unchanged for this bugfix: `draft` is accepted for metric recording and `plan` remains rejected with `INVALID_PHASE`.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/metric-phase-guidance.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/metric-phase-guidance.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Expanded the metric guidance requirement and acceptance criteria to cover status-derived phase names that are not accepted metric phases.",
+  "items": [
+    {
+      "title": "Status-derived phases are not all valid metric phases",
+      "target": "R1 / Metric Recording guidance",
+      "decision": "applied",
+      "rationale": "Updated R1 and related acceptance/test text so implementation must avoid presenting non-VALID_PHASES status-derived names such as `plan` and `finalize` as metric phases.",
+      "evidence": "spec.json requirements[0].desc and acceptance_criteria now require guidance to use only `VALID_PHASES` metric phase examples and to avoid `plan`/`finalize` examples.",
+      "changedFields": [
+        "requirements[0].desc",
+        "acceptance_criteria[0]",
+        "acceptance_criteria[2]",
+        "tasks[0].acceptance",
+        "tasks[0].test_strategy"
+      ]
+    }
+  ]
+}

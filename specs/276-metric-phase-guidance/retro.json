@@ -1,0 +1,33 @@
+{
+  "spec": "specs/276-metric-phase-guidance/spec.json",
+  "date": "2026-06-04T12:53:20.183Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "`sdd-forge.flow` metric recording guidance for direct docs/src reads must use only `VALID_PHASES` values as `flow set metric` phase examples; for planning/draft work it must show `draft`, and it must not present status-derived phase names such as `plan` or `finalize` as metric phases.",
+      "status": "done",
+      "note": "R1: metric guidance uses draft and not status-derived invalid phase examples"
+    },
+    {
+      "desc": "After changing the skill source, generated project skill artifacts must be refreshed so the installed `sdd-forge.flow` guidance contains the corrected metric phase guidance.",
+      "status": "done",
+      "note": "R2: generated skill guidance is refreshed when present"
+    },
+    {
+      "desc": "`flow set metric` CLI phase validation must remain unchanged for this bugfix: `draft` is accepted for metric recording and `plan` remains rejected with `INVALID_PHASE`.",
+      "status": "done",
+      "note": "R3: metric CLI accepts draft and rejects plan"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 3,
+    "done": 3,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

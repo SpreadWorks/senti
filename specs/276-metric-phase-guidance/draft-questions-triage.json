@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "Both repair targets are valid: q1 and q2 include recommendation/rationale text and should be reduced to self-contained questions.",
+  "items": [
+    {
+      "title": "1. q1 includes rationale and recommendation",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "The draft question review criteria require pending questions to contain only the question text. q1 currently embeds a recommended answer and rationale.",
+      "evidence": "draft.json qa[0].question starts with `推奨:` and includes rationale about alpha policy and issue cause."
+    },
+    {
+      "title": "2. q2 includes recommendation and rationale",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "The draft question review criteria require pending questions to contain only the question text. q2 currently embeds a recommended answer and rationale.",
+      "evidence": "draft.json qa[1].question starts with `推奨:` and includes rationale about AGENTS.md."
+    }
+  ]
+}

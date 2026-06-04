@@ -1,0 +1,531 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".agents/skills/sdd-forge.flow/SKILL.md             | 533 ++++++++++++++\n .sdd-forge/output/analysis.json                    |   2 +-\n .../draft-coverage-repair.json                     |   8 +\n .../draft-coverage-triage.json                     |   8 +\n .../draft-questions-repair.json                    |  26 +\n .../draft-questions-triage.json                    |  22 +\n .../draft-review-coverage.json                     |  11 +\n .../draft-review-questions.json                    |  26 +\n specs/276-metric-phase-guidance/draft.json         |  77 ++\n specs/276-metric-phase-guidance/file-map.json      |  14 +\n specs/276-metric-phase-guidance/flow.json          | 819 +++++++++++++++++++++\n specs/276-metric-phase-guidance/impl-review.json   |  28 +\n specs/276-metric-phase-guidance/issue-log.json     |  75 ++\n .../review-history/draft-coverage-attempt-001.json |  14 +\n .../draft-questions-attempt-001.json               |  50 ++\n .../review-history/impl-attempt-001.json           |  51 ++\n .../review-history/impl-attempt-001.md             |  22 +\n .../review-history/impl-attempt-002.json           |  51 ++\n .../review-history/impl-attempt-002.md             |  22 +\n .../review-history/impl-attempt-003.json           |  51 ++\n .../review-history/impl-attempt-003.md             |  22 +\n .../review-history/impl-attempt-004.json           |  31 +\n .../review-history/impl-attempt-004.md             |  16 +\n .../review-history/spec-attempt-001.json           |  56 ++\n .../review-history/spec-attempt-001.md             |  19 +\n .../review-history/test-attempt-001.json           |  48 ++\n .../review-history/test-attempt-001.md             |  18 +\n .../review-history/test-attempt-002.json           |  28 +\n .../review-history/test-attempt-002.md             |  13 +\n specs/276-metric-phase-guidance/review.md          |  16 +\n specs/276-metric-phase-guidance/spec-repair.json   |  22 +\n specs/276-metric-phase-guidance/spec-review.json   |  32 +\n specs/276-metric-phase-guidance/spec-review.md     |  19 +\n specs/276-metric-phase-guidance/spec-triage.json   |  15 +\n specs/276-metric-phase-guidance/spec.json          | 148 ++++\n specs/276-metric-phase-guidance/spec.md            |  88 +++\n specs/276-metric-phase-guidance/tasks/T-1.md       |  20 +\n specs/276-metric-phase-guidance/test-coverage.json |  53 ++\n specs/276-metric-phase-guidance/test-review.json   |  25 +\n specs/276-metric-phase-guidance/test-review.md     |  13 +\n .../tests/metric-phase-guidance.test.js            | 112 +++\n src/skills/sdd-forge.flow/SKILL.md                 |   6 +-\n 42 files changed, 2726 insertions(+), 4 deletions(-)",
+      "commits": [
+        "fix: align metric phase guidance"
+      ]
+    },
+    "retro": {
+      "total": 3,
+      "done": 3,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "`sdd-forge.flow` metric recording guidance for direct docs/src reads must use only `VALID_PHASES` values as `flow set metric` phase examples; for planning/draft work it must show `draft`, and it must not present status-derived phase names such as `plan` or `finalize` as metric phases.",
+          "status": "done",
+          "note": "R1: metric guidance uses draft and not status-derived invalid phase examples"
+        },
+        {
+          "desc": "After changing the skill source, generated project skill artifacts must be refreshed so the installed `sdd-forge.flow` guidance contains the corrected metric phase guidance.",
+          "status": "done",
+          "note": "R2: generated skill guidance is refreshed when present"
+        },
+        {
+          "desc": "`flow set metric` CLI phase validation must remain unchanged for this bugfix: `draft` is accepted for metric recording and `plan` remains rejected with `INVALID_PHASE`.",
+          "status": "done",
+          "note": "R3: metric CLI accepts draft and rejects plan"
+        }
+      ]
+    },
+    "issueLog": {
+      "count": 3,
+      "fullLogPath": "specs/276-metric-phase-guidance/issue-log.json",
+      "importantTotal": 0,
+      "importantShown": 0,
+      "importantOmitted": 0,
+      "recentOtherTotal": 3,
+      "recentOtherShown": 3,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "No explicit section or statement lists impact on existing features, and there is no explicit declaration that no existing features are affected.",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: refreshed stale test-execute artifacts after acceptance test change",
+          "resolution": "reran test-execute and test-result-review so gate validates current test file and raw output"
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 680096,
+      "output": 23475,
+      "cacheRead": 919296,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 16,
+      "durationMs": 344726,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 9514
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 5903
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 8088
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 182599
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 21246
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 30599
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 59901
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 26876
+        }
+      ]
+    },
+    "tests": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/276-metric-phase-guidance/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "mixed-non-trigger",
+        "reason": "no trigger-relevant project files changed",
+        "classified_paths": [
+          {
+            "path": ".agents/skills/sdd-forge.flow/SKILL.md",
+            "category": "docs-only"
+          },
+          {
+            "path": ".sdd-forge/output/analysis.json",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/draft-coverage-repair.json",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/draft-coverage-triage.json",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/draft-questions-repair.json",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/draft-questions-triage.json",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/draft-review-coverage.json",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/draft-review-questions.json",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/draft.json",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/file-map.json",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/flow.json",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/impl-review.json",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/issue-log.json",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/review-history/draft-coverage-attempt-001.json",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/review-history/draft-questions-attempt-001.json",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/review-history/impl-attempt-001.json",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/review-history/impl-attempt-001.md",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/review-history/impl-attempt-002.json",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/review-history/impl-attempt-002.md",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/review-history/impl-attempt-003.json",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/review-history/impl-attempt-003.md",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/review-history/impl-attempt-004.json",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/review-history/impl-attempt-004.md",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/review-history/spec-attempt-001.json",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/review-history/spec-attempt-001.md",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/review-history/test-attempt-001.json",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/review-history/test-attempt-001.md",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/review-history/test-attempt-002.json",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/review-history/test-attempt-002.md",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/review.md",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/spec-repair.json",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/spec-review.json",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/spec-review.md",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/spec-triage.json",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/spec.json",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/spec.md",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/tasks/T-1.md",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/test-coverage.json",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/test-execute-result.json",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/test-result-review.json",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/test-result-review.md",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/test-review.json",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/test-review.md",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/tests/.raw/requirement-summary.json",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/tests/.raw/test-execution.log",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "specs/276-metric-phase-guidance/tests/metric-phase-guidance.test.js",
+            "category": "spec-artifact-only"
+          },
+          {
+            "path": "src/skills/sdd-forge.flow/SKILL.md",
+            "category": "docs-only"
+          }
+        ],
+        "trigger_relevant_changed_files": [],
+        "changed_files": [
+          {
+            "status": "added",
+            "path": ".agents/skills/sdd-forge.flow/SKILL.md"
+          },
+          {
+            "status": "modified",
+            "path": ".sdd-forge/output/analysis.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/draft-coverage-repair.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/draft-coverage-triage.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/draft-questions-repair.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/draft-questions-triage.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/draft-review-coverage.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/draft-review-questions.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/draft.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/file-map.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/flow.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/impl-review.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/issue-log.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/review-history/draft-coverage-attempt-001.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/review-history/draft-questions-attempt-001.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/review-history/impl-attempt-001.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/review-history/impl-attempt-001.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/review-history/impl-attempt-002.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/review-history/impl-attempt-002.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/276-metric-phase-guidance/review-history/impl-attempt-003.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/276-metric-phase-guidance/review-history/impl-attempt-003.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/276-metric-phase-guidance/review-history/impl-attempt-004.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/276-metric-phase-guidance/review-history/impl-attempt-004.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/review-history/spec-attempt-001.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/review-history/spec-attempt-001.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/review-history/test-attempt-001.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/review-history/test-attempt-001.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/review-history/test-attempt-002.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/review-history/test-attempt-002.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/review.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/spec-repair.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/spec-review.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/spec-review.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/spec-triage.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/spec.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/spec.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/tasks/T-1.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/test-coverage.json"
+          },
+          {
+            "status": "deleted",
+            "path": "specs/276-metric-phase-guidance/test-execute-result.json"
+          },
+          {
+            "status": "deleted",
+            "path": "specs/276-metric-phase-guidance/test-result-review.json"
+          },
+          {
+            "status": "deleted",
+            "path": "specs/276-metric-phase-guidance/test-result-review.md"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/test-review.json"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/test-review.md"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/276-metric-phase-guidance/tests/.raw/requirement-summary.json"
+          },
+          {
+            "status": "deleted",
+            "path": "specs/276-metric-phase-guidance/tests/.raw/test-execution.log"
+          },
+          {
+            "status": "added",
+            "path": "specs/276-metric-phase-guidance/tests/metric-phase-guidance.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/skills/sdd-forge.flow/SKILL.md"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/276-metric-phase-guidance/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    fix: align metric phase guidance\n    42 files changed, 2726 insertions(+), 4 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (3 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 1\n    agent calls ................. 16\n    input tokens ................ 680,096\n    output tokens ............... 23,475\n    cache-read tokens ........... 919,296\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 344.7s\n      draft-questions-review .... 9.5s\n      draft-coverage-review ..... 5.9s\n      draft-gate ................ 8.1s\n      spec-review ............... 182.6s\n      spec-gate ................. 21.2s\n      test-review ............... 30.6s\n      impl-review ............... 59.9s\n      impl-gate ................. 26.9s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 3  passed 3  failed 0 verdict=pass\n    raw_output: specs/276-metric-phase-guidance/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=mixed-non-trigger\n    Final regression: result=pass\n\n  Issue Log Summary (3 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/276-metric-phase-guidance/issue-log.json\n\n    Recent Other (3)\n    - [draft-gate] draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved\n    - [spec-gate] No explicit section or statement lists impact on existing features, and there is no explicit declaration that no existing features are affected.\n    - [impl-gate] fix: refreshed stale test-execute artifacts after acceptance test change"
+}

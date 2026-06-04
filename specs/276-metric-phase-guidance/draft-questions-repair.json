@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Repaired two draft questions by removing embedded recommendations and rationale from the question text.",
+  "items": [
+    {
+      "title": "1. q1 includes rationale and recommendation",
+      "target": "q1",
+      "rationale": "Removed the leading recommendation and rationale, leaving a self-contained scope question.",
+      "evidence": "draft.json qa[0].question now asks only whether the fix should update guidance without adding `plan` as an accepted CLI phase.",
+      "changedFieldPaths": [
+        "qa[0].question"
+      ]
+    },
+    {
+      "title": "2. q2 includes recommendation and rationale",
+      "target": "q2",
+      "rationale": "Removed the leading recommendation and rationale, leaving a self-contained scope question.",
+      "evidence": "draft.json qa[1].question now asks only whether generated skill updates from `sdd-forge upgrade` belong in scope.",
+      "changedFieldPaths": [
+        "qa[1].question"
+      ]
+    }
+  ]
+}

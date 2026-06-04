@@ -1,0 +1,77 @@
+{
+  "devType": "bugfix",
+  "goal": "SDD flow の metric recording 手順が、CLI の受け付ける phase identifier と一致するようにする。",
+  "analysis": {
+    "problem": "Issue #356 は、直接読んだ docs/src の metric を記録する手順例が `flow set metric plan srcRead` のように `plan` を使っている一方で、CLI の `flow set metric` は `draft` を planning-phase の有効 phase として受け付けるため、手順どおりに実行すると `INVALID_PHASE` になる問題を扱う。",
+    "proposedApproach": "metric recording の案内で planning/draft 中に使う例を `draft` に合わせ、docsRead と srcRead の例を同じ表記に統一する。CLI の accepted phase list は既に `draft` を含むため、CLI の phase enum は拡張しない。",
+    "validation": "`src/lib/constants.js` の `VALID_PHASES` は `draft` を含み、`src/flow/lib/set-metric.js` はこの配列で phase を検証する。`src/skills/sdd-forge.flow/SKILL.md` の metric recording 節は `<current-phase>` と例示の整合が必要で、`src/skills/` 変更後はプロジェクトルールにより `sdd-forge upgrade` で生成済み skill へ反映する必要がある。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #356 reports that `flow set metric plan srcRead` returns `INVALID_PHASE` while `draft` is accepted for planning-phase metric recording.",
+      "`src/lib/constants.js` defines `VALID_PHASES` and includes `draft` but not `plan`.",
+      "`src/flow/lib/set-metric.js` rejects any phase not present in `VALID_PHASES`.",
+      "`src/skills/sdd-forge.flow/SKILL.md` contains the user-facing metric recording guidance for direct file reads."
+    ],
+    "decisionPoints": [
+      "Whether the fix should change CLI accepted phases or update the procedure examples.",
+      "Which generated skill/config artifacts must be refreshed after changing `src/skills/`."
+    ],
+    "resolvedByProjectRules": [
+      "Alpha policy says not to add backward compatibility code for old or invalid command forms, so this bugfix should not add `plan` as a metric phase alias.",
+      "Project workflow says changes under `src/skills/` must be followed by `sdd-forge upgrade` so generated skills and settings reflect the source change.",
+      "Guardrail single-responsibility keeps this spec scoped to metric recording guidance, not broader phase enum redesign."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "The spec should define exact acceptance checks for the updated guidance and for preserving the CLI phase validation contract."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "Metric recording guidance for direct docs/src reads in the SDD flow skill source.",
+      "Generated skill/config artifacts that are normally refreshed from `src/skills/` changes.",
+      "Tests or static checks that verify guidance no longer recommends invalid `plan` metric phase examples."
+    ],
+    "out": [
+      "Adding `plan` to `VALID_PHASES` or creating a compatibility alias.",
+      "Changing metric storage shape, metrics aggregation, or existing metric counters.",
+      "Changing gate/review phase identifiers outside the metric recording guidance."
+    ]
+  },
+  "impactOnExisting": [
+    "`sdd-forge.flow` skill users will see corrected metric recording examples for direct file reads.",
+    "`flow set metric` CLI validation should remain unchanged: `draft` stays valid and `plan` stays invalid.",
+    "Generated installed skill files may change after `sdd-forge upgrade` reflects the skill source update."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "`plan` を CLI の accepted phase に追加せず、metric recording の手順例を `draft` に直すだけにする範囲でよいか。",
+      "answer": "`plan` は accepted phase に追加せず、手順例を `draft` に直す範囲にする。",
+      "evidence": "Issue #356 identifies the cause as guidance using `plan`; `src/lib/constants.js` includes `draft` in `VALID_PHASES` but not `plan`; AGENTS.md alpha policy says backward compatibility code for old/invalid forms should not be added.",
+      "why": "The root problem is an invalid procedure example, not a missing CLI capability. Adding `plan` would expand the CLI contract and contradict the alpha policy.",
+      "considered": "Adding `plan` as an alias was rejected because it would preserve an invalid command form for a documentation/procedure mismatch.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "`src/skills/sdd-forge.flow/SKILL.md` を修正した後、`sdd-forge upgrade` で生成済み skill に反映する更新も本 spec の範囲に含めてよいか。",
+      "answer": "含める。`src/skills/` の skill source を変更する場合は `sdd-forge upgrade` を実行し、生成済み skill への反映差分も扱う。",
+      "evidence": "AGENTS.md states that when changing `src/skills/` skill sources or `src/presets/` templates, `sdd-forge upgrade` must be run to reflect changes into project skills/settings.",
+      "why": "The user-facing guidance is consumed through generated/installed skills, so source-only changes would leave the operational procedure stale.",
+      "considered": "Source-only update was rejected because it would not update the generated skill artifacts used during flow execution.",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-04T10:54:35.000Z",
+    "notes": "Draft QA resolved from issue, source, and project rules; coverage review passed with no unresolved user decisions."
+  }
+}
