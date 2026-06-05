@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-05T01:02:11.630Z",
+  "analyzedAt": "2026-06-05T01:05:05.065Z",
   "package": {
     "entries": [
       {
@@ -2556,9 +2556,9 @@
       },
       {
         "file": "src/flow/commands/report.js",
-        "hash": "5aac3e50bea568482501625a93a4143b",
-        "lines": 511,
-        "mtime": "2026-05-31T08:08:58.960Z",
+        "hash": "3b5a0d23f06fa44abb91fd92c09fcd35",
+        "lines": 512,
+        "mtime": "2026-06-05T01:04:48.618Z",
         "className": "report",
         "methods": [
           "generateReport",
@@ -2595,25 +2595,23 @@
         "extends": null,
         "usedBy": null,
         "id": "5f80ffd2",
+        "summary": "Generates and persists a structured flow report from task state, artifacts, and issue-log data. It also renders a bounded text view designed for terminal-friendly review.",
+        "detail": "The module assembles report data by combining flow state, task results, metrics summaries, totals, and issue-log classifications. It applies presentation limits such as maximum row counts, field truncation, and capped issue-log sections so large specs remain readable. Helper functions normalize task step status, requirement coverage, artifact availability, and failure signals from multiple artifact shapes. The text formatter builds grouped sections, summary headings, and omission markers, then `saveReport` writes a normalized `report.json` into the spec directory.",
+        "chapter": "cli_commands",
+        "role": "Report generation and formatting for flow status artifacts",
         "enrich": {
-          "processedAt": "2026-06-03T03:11:07.310Z",
-          "attempts": 3
+          "processedAt": "2026-06-05T01:05:31.344Z",
+          "attempts": 1
         },
-        "summary": "Generates structured flow reports from task state, issue-log entries, and metrics summaries, persisting results as `report.json` in the spec directory.",
-        "detail": "Builds per-task report rows from step results and artifact availability using `taskStepResult` and `taskArtifactResult`. Classifies issue-log entries into `important` (matching failure signals or key terms) and `recent other` via the `IssueLogSummary` class, capping display counts at configurable maximums. Integrates `buildMetricsSummary` and `buildBoundedBroadModeHistory` for aggregate flow metrics. `saveReport` writes `report.json` into the spec directory using `fs.mkdirSync` with `recursive: true`.",
-        "chapter": "internal_design",
-        "role": "command",
         "keywords": [
           "flow report",
+          "report.json",
+          "task summary",
           "issue log",
-          "task state",
+          "artifact status",
+          "terminal output",
           "metrics summary",
-          "IssueLogSummary",
-          "failure signal",
-          "artifact availability",
-          "saveReport",
-          "broad mode history",
-          "report generation"
+          "status rendering"
         ]
       },
       {
@@ -4957,9 +4955,9 @@
       },
       {
         "file": "src/flow/lib/run-finalize.js",
-        "hash": "36ad9eb418b5366afa5dd2edf86bb6f5",
-        "lines": 344,
-        "mtime": "2026-06-03T03:08:33.362Z",
+        "hash": "543c80601e52a1ad818ed4f94151fe92",
+        "lines": 347,
+        "mtime": "2026-06-05T01:04:48.618Z",
         "className": "run-finalize",
         "methods": [
           "finalizeOnError",
@@ -4991,6 +4989,7 @@
           "../../lib/container.js",
           "./run-report-show.js",
           "./test-artifacts.js",
+          "./run-report.js",
           "./retro-artifacts.js"
         ],
         "exports": [
@@ -5015,25 +5014,23 @@
           "src/flow/lib/run-finalize-sync.js"
         ],
         "id": "c711309b",
-        "enrich": {
-          "processedAt": "2026-06-04T05:32:49.284Z",
-          "attempts": 3
-        },
-        "summary": "Orchestrates the finalize step of the SDD flow, handling git commit, merge metadata safety checks, preflight validation, and post-commit cleanup.",
-        "detail": "Exports `commitOrSkip` for conditionally invoking git commits when there are staged changes, and `runPreflightChecks` for validating worktree cleanliness and branch preconditions before a merge. Provides `assertGitWriteAccess` to verify write permissions on the git directory by writing and removing a temporary lock file. Handles finalize-merge metadata by walking git porcelain status output and committing only paths deemed safe via `commitFinalizeMergeMetadataIfSafe`. Writes a last-finalized spec pointer file consumed by `run-report-show`, and invokes an optional `finalize-migration.js` hook script from the spec's scripts directory.",
+        "summary": "Implements finalize-stage orchestration helpers for preflight checks, metadata safety, commit behavior, and cleanup-related side effects. It protects finalize operations against dirty state and missing Git write access.",
+        "detail": "The file provides small focused utilities for finalize error handling, last-finalized pointer updates, and optional commit execution when there is something to save. It computes which metadata paths may be merged safely, inspects porcelain status output, and distinguishes spec-local dirtiness from unrelated external changes before allowing metadata commits. Git preflight logic verifies the repository common directory and attempts a lock-file write to ensure finalize can modify Git state safely. The module also runs finalize migration hooks and post-commit checks around spec-local test artifacts, making finalize a guarded transition rather than a single command wrapper.",
         "chapter": "internal_design",
-        "role": "finalize-orchestrator",
+        "role": "Finalize workflow safety and Git-state coordination",
+        "enrich": {
+          "processedAt": "2026-06-05T01:05:31.344Z",
+          "attempts": 1
+        },
         "keywords": [
-          "finalize",
-          "git commit",
-          "merge metadata",
-          "preflight",
-          "worktree",
-          "spec pointer",
-          "migration hook",
-          "FlowCommand",
           "finalize flow",
-          "git write access"
+          "preflight checks",
+          "git write access",
+          "dirty worktree",
+          "metadata merge",
+          "post-commit hook",
+          "finalize migration",
+          "flow cleanup"
         ]
       },
       {
@@ -5481,11 +5478,12 @@
       },
       {
         "file": "src/flow/lib/run-report.js",
-        "hash": "f8b7e8f7526c1ac86509f4204e322252",
-        "lines": 78,
-        "mtime": "2026-06-03T03:08:33.363Z",
+        "hash": "ea3dccb72938cb49ab1bd6b56488ac62",
+        "lines": 99,
+        "mtime": "2026-06-05T01:04:48.619Z",
         "className": "run-report",
         "methods": [
+          "buildUpgradeReportDataFromArtifacts",
           "RunReportCommand"
         ],
         "imports": [
@@ -5499,29 +5497,32 @@
           "./retro-artifacts.js"
         ],
         "exports": [
+          "buildUpgradeReportDataFromArtifacts",
           "RunReportCommand",
           "default"
         ],
         "extends": "FlowCommand",
-        "usedBy": null,
+        "usedBy": [
+          "src/flow/lib/run-finalize.js"
+        ],
         "id": "43872d6b",
-        "enrich": {
-          "processedAt": "2026-06-04T10:48:04.185Z",
-          "attempts": 6
-        },
-        "summary": "Generates the flow report artifact by gathering repository, test, and retrospective context from the active spec directory. It acts as the reporting bridge between flow state and persisted report output.",
-        "detail": "The command requires an active flow with a configured base branch and resolves the spec directory from flow state. It inspects whether upstream test and retro artifacts exist so the report generator can include the right evidence set. Repository changes are summarized through git helpers and combined with issue-log history before calling the report generation logic. The result is saved as report.json in the spec-relative output area and returned as a changed-file artifact from the command.",
+        "summary": "Builds report inputs from stored artifacts and exposes the flow command that materializes report output. It bridges artifact validation with command-level report generation.",
+        "detail": "The module reads upgrade artifacts from the spec directory, validates their schema, and converts them into report-friendly data when present. `RunReportCommand` extends the base flow command abstraction and requires core state such as `baseBranch` and `state.spec` before proceeding. During execution it checks for optional test and retro artifacts, loads issue-log information, collects Git summary context, and delegates final report creation to `generateReport` and `saveReport`. Its returned change set is scoped to the spec-local `report.json`, which keeps report generation explicit within the flow command system.",
         "chapter": "cli_commands",
-        "role": "Flow report generation command",
+        "role": "Flow command adapter for report generation",
+        "enrich": {
+          "processedAt": "2026-06-05T01:05:31.344Z",
+          "attempts": 1
+        },
         "keywords": [
-          "report generation",
-          "flow report",
+          "run-report",
+          "flow command",
+          "artifact loading",
+          "upgrade result",
           "git summary",
-          "issue log",
-          "retro artifacts",
-          "test artifacts",
-          "spec directory",
-          "report.json"
+          "report command",
+          "spec artifacts",
+          "command orchestration"
         ]
       },
       {
@@ -6657,11 +6658,18 @@
       },
       {
         "file": "src/flow/lib/test-artifacts.js",
-        "hash": "f16b8bf70d8244c6aef5d3e2f91076b0",
-        "lines": 938,
-        "mtime": "2026-06-02T11:45:07.597Z",
+        "hash": "42d3ab0ad4f208dce77b21a0c1b866e2",
+        "lines": 1118,
+        "mtime": "2026-06-05T01:04:48.619Z",
         "className": "test-artifacts",
         "methods": [
+          "matchUpgradeRequiredSourcePaths",
+          "listUpgradeRequiredChangedPaths",
+          "upgradeResultPath",
+          "upgradeRawLogPath",
+          "validateUpgradeResultArtifact",
+          "writeUpgradeResultArtifact",
+          "validateUpgradeEvidenceForGate",
           "durableTestArtifactPathspecs",
           "implementationCommitExcludedTestArtifactPathspecs",
           "tempRequirementSummaryPath",
@@ -6685,6 +6693,11 @@
           "assertIntegrationRegressionEvidence",
           "validateIntegrationArtifactTrust",
           "testArtifactPathspecs",
+          "normalizeRepoPath",
+          "upgradeResultFailure",
+          "upgradeResultSuccess",
+          "validateUpgradeSummary",
+          "readUpgradeResultArtifact",
           "addCollectedArtifactPathspec",
           "assertFileSizeWithinLimit",
           "assertMaxItems",
@@ -6725,9 +6738,17 @@
           "string_decoder",
           "../../lib/config.js",
           "../../lib/glob.js",
+          "../../lib/git-helpers.js",
           "./test-regression.js"
         ],
         "exports": [
+          "matchUpgradeRequiredSourcePaths",
+          "listUpgradeRequiredChangedPaths",
+          "upgradeResultPath",
+          "upgradeRawLogPath",
+          "validateUpgradeResultArtifact",
+          "writeUpgradeResultArtifact",
+          "validateUpgradeEvidenceForGate",
           "durableTestArtifactPathspecs",
           "implementationCommitExcludedTestArtifactPathspecs",
           "tempRequirementSummaryPath",
@@ -6757,6 +6778,8 @@
           "IMPL_GATE_RESULT_FILE",
           "TESTS_RAW_DIR_RELATIVE",
           "RAW_OUTPUT_RELATIVE",
+          "UPGRADE_RESULT_FILE",
+          "UPGRADE_RAW_OUTPUT_RELATIVE",
           "FINAL_REGRESSION_RAW_OUTPUT_PATTERN",
           "TEMP_SUMMARY_RELATIVE",
           "FILE_MAP_RELATIVE",
@@ -6764,6 +6787,7 @@
           "SCENARIO_VALIDITY_RESULT_FILE",
           "SCENARIO_VALIDITY_RAW_OUTPUT_RELATIVE",
           "MAX_RAW_OUTPUT_BYTES",
+          "UPGRADE_REQUIRED_SOURCE_PATTERNS",
           "SCENARIO_VALIDITY_CLASSIFICATIONS"
         ],
         "extends": null,
@@ -6780,25 +6804,28 @@
           "src/flow/lib/run-scenario-validity.js",
           "src/flow/lib/run-test-execute.js",
           "src/flow/lib/run-test-result-review.js",
-          "src/flow/lib/set-step.js"
+          "src/flow/lib/set-step.js",
+          "src/upgrade.js"
         ],
         "id": "0b1b96b3",
-        "enrich": {
-          "processedAt": "2026-06-04T10:48:25.705Z",
-          "attempts": 6
-        },
-        "summary": "Centralizes test artifact file names, size limits, trust checks, and validation routines used across flow test phases. It is the main contract layer for test execution, review, regression, and scenario-validity artifacts.",
-        "detail": "The module declares artifact paths and hard limits for JSON size, raw log size, line counts, collected artifacts, and placeholder permissions, then provides bounded readers that enforce those constraints. It validates multiple artifact types including test execution results, review summaries, final regression results, scenario-validity outputs, and integration trust inputs. Several helpers resolve repo-safe paths, verify evidence ranges against raw logs, confirm referenced test names exist in source files, and detect stale changed-file snapshots. It also implements placeholder and sentinel scanning with explicit permission files so downstream gates can distinguish trustworthy artifacts from placeholders or incomplete fixtures.",
+        "summary": "Defines the test-artifact contract for the flow system, including file names, validation rules, trust checks, retention patterns, and upgrade evidence handling. It is the central integrity layer for persisted testing and regression artifacts.",
+        "detail": "The module declares the canonical artifact paths and many hard limits for JSON size, raw log size, line counts, summary counts, and glob collection volume. It validates upgrade, test execution, review, scenario-validity, regression, and file-map artifacts with strict schema and evidence checks, including raw output range verification and repository-relative path safety. Trust enforcement includes placeholder detection, placeholder-permission approval, required input existence, and integration artifact trust contracts represented as dedicated classes rather than loose tagged objects. It also provides utilities for collecting existing artifacts, pruning rebuildable outputs, computing upgrade-required source changes, and asserting that regression evidence still matches current repository state.",
         "chapter": "internal_design",
-        "role": "test artifact contract and validation layer",
+        "role": "Artifact schema, validation, trust, and lifecycle management",
+        "enrich": {
+          "processedAt": "2026-06-05T01:05:31.344Z",
+          "attempts": 1
+        },
         "keywords": [
           "test artifacts",
-          "artifact trust",
-          "raw output validation",
-          "scenario validity",
-          "regression validation",
+          "artifact validation",
+          "regression evidence",
           "placeholder detection",
-          "integration gate"
+          "trust contract",
+          "upgrade artifact",
+          "raw log bounds",
+          "scenario validity",
+          "file map"
         ]
       },
       {
@@ -7585,7 +7612,8 @@
           "src/lib/git-helpers.js",
           "src/metrics.js",
           "src/sdd-forge.js",
-          "src/spec.js"
+          "src/spec.js",
+          "src/upgrade.js"
         ],
         "id": "fc4eae43",
         "summary": "Lightweight dependency injection container that wires CLI primitives, config, agent, providers, scanners, and preset access into a single registry.",
@@ -12529,47 +12557,56 @@
       },
       {
         "file": "src/upgrade.js",
-        "hash": "eff1800134379ad2df2ed666cb3db31e",
-        "lines": 169,
-        "mtime": "2026-06-01T23:21:22.417Z",
+        "hash": "3f7c39df6e9ba1de6b7e6b829d1ef41b",
+        "lines": 274,
+        "mtime": "2026-06-05T01:04:48.619Z",
         "className": "upgrade",
         "methods": [
           "parseUpgradeArgs",
+          "resolveActiveUpgradeFlow",
+          "createUpgradeLogger",
+          "resultFromSummary",
+          "writeActiveUpgradeArtifact",
           "main"
         ],
         "imports": [
           "fs",
+          "path",
           "./lib/cli.js",
           "./lib/constants.js",
           "./lib/config.js",
+          "./lib/container.js",
           "./lib/agent-defaults.js",
           "./lib/i18n.js",
           "./lib/presets.js",
           "./lib/skills.js",
-          "./lib/preset-deploy.js"
+          "./lib/preset-deploy.js",
+          "./flow/lib/test-artifacts.js"
         ],
         "exports": [
+          "parseUpgradeArgs",
           "main"
         ],
         "extends": null,
         "usedBy": null,
         "id": "a631f658",
-        "enrich": {
-          "processedAt": "2026-06-04T12:58:47.869Z",
-          "attempts": 7
-        },
-        "summary": "Implements the upgrade command that refreshes project configuration and redeploys generated assets from package sources. It focuses on keeping skills, presets, and defaults synchronized with the current tool version.",
-        "detail": "The command parses upgrade arguments, loads the existing SDD configuration, validates preset chains, and merges agent defaults into the stored config. It logs deployment results for regenerated skills and uses preset deployment helpers to refresh copied template assets. The module rewrites `config.json` in normalized JSON form and exits with a shared error code if required state is missing or invalid. Its responsibilities make it the maintenance counterpart to initial setup for already-configured repositories.",
+        "summary": "Implements the `sdd-forge upgrade` CLI entrypoint, argument parsing, logging, config updates, and optional recording of upgrade artifacts for an active flow. It turns preset and skill deployment results into both user-visible output and machine-readable evidence.",
+        "detail": "The module parses CLI flags, resolves repository and active-flow context, and constructs a normalized command string for artifact recording. It keeps an in-memory upgrade logger so emitted lines can be preserved as raw output, then derives a high-level result status from exit code and whether files changed. When an active flow exists, it writes an `upgrade-result.json` artifact plus raw log content into the current spec directory through shared artifact helpers. The command also coordinates config loading, preset-chain validation, preset deployment, agent default merging, and localized error handling, making upgrade both an operational command and a flow-integrated evidence producer.",
         "chapter": "cli_commands",
-        "role": "Upgrade command for syncing config, skills, and preset-derived files.",
+        "role": "CLI implementation for upgrade execution and artifact capture",
+        "enrich": {
+          "processedAt": "2026-06-05T01:05:31.344Z",
+          "attempts": 1
+        },
         "keywords": [
           "upgrade command",
-          "config sync",
+          "CLI entrypoint",
           "preset deployment",
-          "skill refresh",
-          "agent defaults",
-          "maintenance command",
-          "project update"
+          "config migration",
+          "upgrade artifact",
+          "raw output log",
+          "active flow",
+          "argument parsing"
         ]
       },
       {
@@ -13312,9 +13349,9 @@
     ],
     "summary": {
       "total": 338,
-      "totalMethods": 1659
+      "totalMethods": 1676
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-05T01:02:25.488Z"
+  "enrichedAt": "2026-06-05T01:05:31.344Z"
 }
