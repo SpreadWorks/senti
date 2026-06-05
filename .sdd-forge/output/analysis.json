@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-05T01:05:05.065Z",
+  "analyzedAt": "2026-06-05T05:42:41.099Z",
   "package": {
     "entries": [
       {
@@ -5035,9 +5035,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "02b36f34ab4b33fd96ab80d47531c6bd",
-        "lines": 3263,
-        "mtime": "2026-06-02T11:45:07.597Z",
+        "hash": "36ee71cb218097cddbaf8911d00f1aac",
+        "lines": 3425,
+        "mtime": "2026-06-05T05:42:25.568Z",
         "className": "run-gate",
         "methods": [
           "executeGateSideEffects",
@@ -5070,6 +5070,10 @@
           "buildPassedGuardrails",
           "findPreviousPassedGuardrails",
           "applyFlipOverride",
+          "RequirementPromptExcerpt",
+          "RequirementGateBatch",
+          "buildRequirementGateBatches",
+          "planRequirementGateCalls",
           "reasonsFromEvaluations",
           "RunGateCommand",
           "appendIssueLogFromGateResult",
@@ -5125,6 +5129,9 @@
           "normalizeObservationFailurePairs",
           "observationsFromGateEvaluations",
           "priorGateImplObservations",
+          "normalizeRequirementPromptInput",
+          "renderRequirementPromptSection",
+          "requirementEvaluation",
           "buildImplCheckPrompt",
           "buildPerRequirementDiffs",
           "nextActionFromGateEvaluations",
@@ -5195,6 +5202,10 @@
           "buildPassedGuardrails",
           "findPreviousPassedGuardrails",
           "applyFlipOverride",
+          "RequirementPromptExcerpt",
+          "RequirementGateBatch",
+          "buildRequirementGateBatches",
+          "planRequirementGateCalls",
           "reasonsFromEvaluations",
           "RunGateCommand",
           "appendIssueLogFromGateResult",
@@ -5208,6 +5219,7 @@
           "validateDraftReviewArtifactSet",
           "buildGuardrailPrompt",
           "buildImplCheckPrompt",
+          "MAX_IMPL_REQUIREMENT_BATCH_CHARS",
           "checkGuardrail",
           "splitDiffByFile",
           "collectPerFileDiffsForGate",
@@ -5224,25 +5236,25 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "b4aa4dad",
+        "summary": "`run-gate.js` implements the flow gate engine that validates draft, spec, task-implementation, and integration phases. It combines artifact checks, diff analysis, AI guardrail evaluation, retry control, and gate result persistence behind the `RunGateCommand` entry point.",
+        "detail": "The module centralizes phase-based gate execution and maps flow levels to concrete validation paths such as draft review artifacts, spec integrity checks, requirement-level implementation diffs, and integration evidence. It builds prompts for guardrail and requirement evaluation, parses strict JSON-only AI responses, and raises schema errors when the response shape or allowed keys deviate from the contract. The implementation also tracks retry budgets, recovery baselines, repeated failures, and prior pass/fail memory so gate decisions can detect no-progress states and avoid regressions across retries. Supporting utilities reconcile file maps, collect committed and untracked diffs, validate lifecycle artifacts, and persist issue-log and gate-result artifacts, making the gate command both a validator and an operational state manager for the SDD flow.",
+        "chapter": "cli_commands",
+        "role": "Flow gate command and validation engine for SDD phases, with artifact auditing, AI-based guardrail checks, retry handling, and result persistence.",
         "enrich": {
-          "processedAt": "2026-06-04T10:48:04.185Z",
-          "attempts": 6
+          "processedAt": "2026-06-05T05:42:53.693Z",
+          "attempts": 1
         },
-        "summary": "Implements the flow gate engine that validates specs, drafts, implementation diffs, and integration state before workflow progress continues. It combines local artifact checks, git-based diff analysis, AI guardrail evaluation, retry handling, and result persistence.",
-        "detail": "This module is the central gate runner for SDD flow phases such as draft, spec, task implementation, and integration. It builds phase-specific prompts, filters applicable guardrails, parses strict JSON evaluation responses, and converts them into normalized gate reports and next actions. The code also performs substantial local validation without AI, including spec text and JSON checks, draft review artifact lifecycle checks, integration artifact presence checks, file-map reconciliation, and untracked diff collection. Retry budgets, repeated-failure detection, recovery baselines, issue-log updates, and prior-memory artifacts are used to prevent loops and preserve diagnostic context across attempts.",
-        "chapter": "internal_design",
-        "role": "Flow gate orchestration and validation engine",
         "keywords": [
-          "flow gate",
-          "guardrail evaluation",
-          "spec validation",
-          "draft lifecycle",
-          "implementation diff",
+          "gate runner",
+          "flow validation",
+          "spec gate",
+          "draft gate",
           "integration gate",
+          "guardrail evaluation",
+          "requirement diff",
           "retry budget",
           "issue log",
-          "JSON schema parsing",
-          "workflow enforcement"
+          "artifact validation"
         ]
       },
       {
@@ -13349,9 +13361,9 @@
     ],
     "summary": {
       "total": 338,
-      "totalMethods": 1676
+      "totalMethods": 1683
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-05T01:05:31.344Z"
+  "enrichedAt": "2026-06-05T05:42:53.693Z"
 }
