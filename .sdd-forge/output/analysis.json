@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-05T10:54:15.269Z",
+  "analyzedAt": "2026-06-05T10:54:55.828Z",
   "package": {
     "entries": [
       {
@@ -118,7 +118,8 @@
           "src/presets/cli/tests/acceptance/fixtures/src/cli.js",
           "src/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
           "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
-          "src/lib/flow-manager.js"
+          "src/lib/flow-manager.js",
+          "src/lib/hooks.js"
         ],
         "id": "1b9f6fe7",
         "summary": "This command validates `config.json` and reports schema or structure issues in text or JSON format. It is the dedicated configuration health check under `sdd-forge check config`.",
@@ -5348,9 +5349,9 @@
       },
       {
         "file": "src/flow/lib/run-prepare-spec.js",
-        "hash": "b60abdbfb8a50dfe634844f2a3b9f480",
-        "lines": 356,
-        "mtime": "2026-05-29T00:27:13.420Z",
+        "hash": "9e13bf3108982da1e58d213a57124c5f",
+        "lines": 358,
+        "mtime": "2026-06-05T10:54:40.638Z",
         "className": "run-prepare-spec",
         "methods": [
           "buildDraftTemplate",
@@ -5373,6 +5374,7 @@
           "../definition.js",
           "../../lib/git-helpers.js",
           "../../lib/spec-json.js",
+          "../../lib/hooks.js",
           "./base-command.js",
           "./issue-body-cache.js"
         ],
@@ -5384,23 +5386,23 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "59eeacc6",
-        "summary": "Implements the `prepare spec` flow command that creates a new spec workspace and initializes core spec artifacts. It also performs repository hygiene checks and analysis preconditions before state creation.",
-        "detail": "The command derives a slugged spec directory name, assigns the next numeric index, and can target either the current repo or an isolated worktree path. It validates base branch availability, blocks dirty worktrees (with scoped exceptions), and resolves branch defaults safely when branch detection fails. It runs a docs scan command and verifies that `analysis.json` exists and is valid JSON before proceeding. It writes initial files such as `spec.json`, `draft.json`, and `issue.md`, then persists flow state metadata and initial step structure for downstream SDD execution.",
+        "summary": "Prepares a new spec workspace by validating repository state, selecting a base branch, and creating the initial spec files. It also optionally provisions an isolated worktree and runs a docs scan to seed analysis data.",
+        "detail": "This module builds the `flow prepare spec` behavior around a command class that extends the flow command base. It computes the next spec index, slugifies the title into a directory name, ensures the base branch exists, and blocks execution when the current worktree is dirty unless a worktree-based flow is used. The implementation creates `spec.json`, `draft.json`, and `issue.md` stubs, writes flow state metadata, and triggers hooks such as post-worktree setup. It also runs `docs scan`, validates that `analysis.json` was produced and readable, and uses helper modules for git status, step lookup, spec stubs, and issue body caching.",
         "chapter": "cli_commands",
-        "role": "Spec preparation and initialization command",
+        "role": "Implements the flow command that initializes a new spec and optional worktree environment.",
         "enrich": {
-          "processedAt": "2026-05-29T01:19:55.355Z",
+          "processedAt": "2026-06-05T10:55:26.400Z",
           "attempts": 1
         },
         "keywords": [
-          "prepare spec",
+          "spec preparation",
+          "flow prepare",
           "worktree setup",
-          "branch validation",
+          "base branch detection",
+          "draft template",
+          "spec scaffolding",
           "docs scan",
-          "analysis.json",
-          "flow initialization",
-          "spec scaffold",
-          "slug generation"
+          "git status guard"
         ]
       },
       {
@@ -7098,6 +7100,78 @@
         ]
       },
       {
+        "file": "src/hook.js",
+        "hash": "cece2acf10b4a50d8ab52231b573718d",
+        "lines": 42,
+        "mtime": "2026-06-05T10:54:40.638Z",
+        "className": "hook",
+        "methods": [],
+        "imports": [
+          "./lib/constants.js",
+          "./lib/container.js",
+          "./lib/command-registry.js",
+          "./lib/dispatcher.js"
+        ],
+        "exports": [],
+        "extends": null,
+        "usedBy": null,
+        "id": "fa47a601",
+        "summary": "Acts as the entry point for hook-related CLI commands and delegates execution through the shared dispatcher. It initializes the dependency container, validates the requested subcommand, and exits with a standard error code on invalid usage.",
+        "detail": "The file reads raw CLI arguments, extracts the hook subcommand, and checks whether it exists in the registered hook command map. It uses the common container bootstrap so hook commands run under the same runtime wiring as the rest of the CLI. Invalid or missing subcommands cause an immediate process exit with the shared error constant. Successful invocations are forwarded to the central dispatcher, which keeps command execution consistent with other namespaces.",
+        "chapter": "project_structure",
+        "role": "Provides the namespace-level CLI bootstrap for the `hook` command group.",
+        "enrich": {
+          "processedAt": "2026-06-05T10:55:26.400Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "hook CLI",
+          "dispatcher entrypoint",
+          "subcommand routing",
+          "command bootstrap",
+          "dependency container",
+          "exit code handling",
+          "namespace script"
+        ]
+      },
+      {
+        "file": "src/hook/commands/list.js",
+        "hash": "e1bd71ae3b13e39cbc912e4c6cb26d66",
+        "lines": 32,
+        "mtime": "2026-06-05T10:54:40.639Z",
+        "className": "list",
+        "methods": [
+          "formatTable"
+        ],
+        "imports": [
+          "../../lib/command.js",
+          "../../lib/hooks.js"
+        ],
+        "exports": [
+          "default"
+        ],
+        "extends": "Command",
+        "usedBy": null,
+        "id": "3fb9692c",
+        "summary": "Implements the hook listing command and supports both JSON and human-readable table output. It queries the hook registry and formats the result according to the selected output mode.",
+        "detail": "This command extends the shared `Command` base and delegates hook discovery to `listHooks` from the hook library. A local formatter converts hook metadata into aligned table rows for terminal output. When JSON output is requested, it serializes the hook list directly with indentation; otherwise it prints the tabular view. The design keeps presentation logic lightweight while leaving hook state resolution to the lower-level library.",
+        "chapter": "cli_commands",
+        "role": "Lists configured hooks for users in machine-readable or terminal-friendly form.",
+        "enrich": {
+          "processedAt": "2026-06-05T10:55:26.400Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "list hooks",
+          "table formatter",
+          "JSON output",
+          "command class",
+          "hook registry",
+          "CLI display",
+          "terminal formatting"
+        ]
+      },
+      {
         "file": "src/lib/active-flow-registry.js",
         "hash": "9255db7ed7574833ca675f43f0ab9070",
         "lines": 134,
@@ -7356,7 +7430,8 @@
           "src/sdd-forge.js",
           "src/setup.js",
           "src/upgrade.js",
-          "src/lib/preset-deploy.js"
+          "src/lib/preset-deploy.js",
+          "src/lib/hooks.js"
         ],
         "id": "f351ecc4",
         "summary": "Defines core CLI utilities for repository path resolution, argument parsing, and utility formatting. It handles worktree detection and version/timestamp helpers.",
@@ -7378,9 +7453,9 @@
       },
       {
         "file": "src/lib/command-registry.js",
-        "hash": "84710899d91d4520500e55a1af7d4941",
-        "lines": 112,
-        "mtime": "2026-05-29T02:07:29.354Z",
+        "hash": "9ab67fd302066c9fefc179fab57081f9",
+        "lines": 133,
+        "mtime": "2026-06-05T10:54:40.639Z",
         "className": "command-registry",
         "methods": [
           "decorateFlowEntry",
@@ -7395,6 +7470,7 @@
           "checkCommands",
           "metricsCommands",
           "specCommands",
+          "hookCommands",
           "allCommands"
         ],
         "extends": null,
@@ -7402,26 +7478,28 @@
           "src/check.js",
           "src/docs.js",
           "src/flow.js",
+          "src/hook.js",
           "src/metrics.js",
           "src/spec.js",
           "src/workflow/index.js"
         ],
         "id": "0d680f4f",
-        "summary": "Builds the top-level command registry by composing flow, docs, check, metrics, and spec command groups. It decorates flow entries with envelope output behavior.",
-        "detail": "The module imports flow command definitions and applies a transformation that sets standardized output mode metadata. It provides lightweight helpers for raw command entries that point to module paths without extra wrapping. Exported registries keep each command family separated while also exposing a merged `allCommands` object. This keeps command discovery and dispatch wiring centralized and predictable. The design favors simple declarative mapping over runtime mutation-heavy registration.",
+        "summary": "Defines the central command registry for all CLI namespaces, including flow, docs, check, metrics, spec, and hook commands. It also decorates flow commands with a default envelope output mode and exposes a combined registry.",
+        "detail": "The module imports the flow registry and wraps each flow command entry so flow responses default to structured envelope output. It constructs command maps for each namespace by pairing command names with module paths or imported entries, then exports a merged `allCommands` object for the dispatcher layer. A helper for raw entries standardizes how module-backed commands are represented. This file is effectively the routing catalog that connects namespace scripts to implementation modules.",
         "chapter": "project_structure",
-        "role": "Global CLI command map composer",
+        "role": "Registers and organizes all command namespaces for the CLI dispatcher.",
         "enrich": {
-          "processedAt": "2026-05-29T02:08:40.284Z",
+          "processedAt": "2026-06-05T10:55:26.400Z",
           "attempts": 1
         },
         "keywords": [
-          "command map",
-          "cli dispatch",
-          "flow command decoration",
-          "output mode",
-          "module routing",
-          "registry composition"
+          "command registry",
+          "CLI routing",
+          "namespace commands",
+          "flow commands",
+          "dispatcher map",
+          "module path entries",
+          "output envelope"
         ]
       },
       {
@@ -7460,9 +7538,9 @@
       },
       {
         "file": "src/lib/config.js",
-        "hash": "481b50fe48f2800547da8c725338fc8c",
-        "lines": 410,
-        "mtime": "2026-06-01T12:00:23.193Z",
+        "hash": "3cda5b72923fab4afbd8ba5532507726",
+        "lines": 414,
+        "mtime": "2026-06-05T10:54:40.639Z",
         "className": "config",
         "methods": [
           "resolveConcurrency",
@@ -7507,6 +7585,7 @@
           "src/lib/flow-manager.js",
           "src/lib/flow-store.js",
           "src/lib/guardrail.js",
+          "src/lib/hooks.js",
           "src/lib/i18n.js",
           "src/lib/preparing-flow-store.js",
           "src/presets/base/tests/acceptance/fixtures/src/index.js",
@@ -7518,22 +7597,23 @@
           "src/workflow/index.js"
         ],
         "id": "dff6e5b4",
-        "enrich": {
-          "processedAt": "2026-06-04T10:48:25.705Z",
-          "attempts": 7
-        },
-        "summary": "Implements configuration loading, schema validation, and key path resolvers for `.sdd-forge` directories. It also enforces constraints on test commands and project test paths.",
-        "detail": "The module defines default values such as concurrency and language, then provides small helpers to derive the config path, output directory, and work directory relative to the repository root. It loads JSON from disk defensively, exposing helpers for reading package fields and current language while tolerating missing config files where appropriate. A schema object and validation wrapper feed into `validateSchema`, producing aggregated configuration errors with readable messages. Additional checks reject unsafe test command patterns and require project test paths to remain root-relative, keeping execution and file references constrained.",
+        "summary": "Provides configuration loading, path resolution, and schema validation for sdd-forge. It defines default values, resolves key `.sdd-forge` paths, and enforces constraints on flow and test-related settings.",
+        "detail": "This module centralizes config concerns such as concurrency defaults, language defaults, and lookup of package fields and JSON files. It exposes helpers for deriving paths like the config file, output directory, and effective work directory under the `.sdd-forge` root. Validation is schema-driven and augmented with custom checks, including restrictions on unsafe test command syntax and project test path shape. The result is a validated config object used across the application, along with utility checks such as whether flow integration is enabled.",
         "chapter": "configuration",
-        "role": "configuration loader and validator",
+        "role": "Loads and validates project configuration while exposing canonical config and output paths.",
+        "enrich": {
+          "processedAt": "2026-06-05T10:55:26.400Z",
+          "attempts": 1
+        },
         "keywords": [
           "config loader",
           "schema validation",
-          "work directory",
+          "default concurrency",
           "language setting",
-          "concurrency",
+          "work directory resolution",
+          "output directory",
           "test command validation",
-          "project test path"
+          "flow integration"
         ]
       },
       {
@@ -7573,7 +7653,8 @@
           "src/sdd-forge.js",
           "src/setup.js",
           "src/spec.js",
-          "src/upgrade.js"
+          "src/upgrade.js",
+          "src/hook.js"
         ],
         "id": "74b5e1c3",
         "summary": "Provides immutable constant sets for phases, statuses, categories, and operational flags across the flow system. It acts as a shared contract to keep command behavior consistent.",
@@ -7638,7 +7719,8 @@
           "src/metrics.js",
           "src/sdd-forge.js",
           "src/spec.js",
-          "src/upgrade.js"
+          "src/upgrade.js",
+          "src/hook.js"
         ],
         "id": "fc4eae43",
         "summary": "Lightweight dependency injection container that wires CLI primitives, config, agent, providers, scanners, and preset access into a single registry.",
@@ -7700,7 +7782,8 @@
           "src/docs.js",
           "src/flow.js",
           "src/metrics.js",
-          "src/spec.js"
+          "src/spec.js",
+          "src/hook.js"
         ],
         "id": "18d5f63b",
         "summary": "Provides the central CLI dispatcher that parses entry arguments, executes command lifecycle hooks, and normalizes output/error behavior. It supports envelope-based reporting and runtime log attachment across command modes.",
@@ -8272,6 +8355,56 @@
           "lint regex",
           "acknowledged exception",
           "hydration"
+        ]
+      },
+      {
+        "file": "src/lib/hooks.js",
+        "hash": "d7f3e3356a339d72c1f1047a7f35ac1d",
+        "lines": 86,
+        "mtime": "2026-06-05T10:54:40.639Z",
+        "className": "hooks",
+        "methods": [
+          "replaceHookPlaceholders",
+          "onHook",
+          "listHooks",
+          "hookDefinition",
+          "hookConfigFor",
+          "warn",
+          "successfulNoop",
+          "normalizeOutput"
+        ],
+        "imports": [
+          "node:child_process",
+          "./config.js",
+          "./cli.js"
+        ],
+        "exports": [
+          "replaceHookPlaceholders",
+          "onHook",
+          "listHooks",
+          "HOOK_TIMEOUT_MS",
+          "HOOKS"
+        ],
+        "extends": null,
+        "usedBy": null,
+        "id": "566ad346",
+        "summary": "Implements the hook execution subsystem, including hook definitions, placeholder substitution, config lookup, and process invocation envelopes. It supports listing hooks and running configured commands with normalized output and timeout control.",
+        "detail": "The module defines the supported hook names as immutable metadata and resolves per-project hook configuration through the main config loader. It replaces placeholders in configured hook commands using execution context, tracks missing tokens, and emits warnings when configuration is incomplete. Hook execution returns a normalized envelope containing success state, output, stderr, and status, with a shared timeout constant governing child process execution. It also exposes a listing helper so CLI commands can show which hooks exist and how they are configured.",
+        "chapter": "internal_design",
+        "role": "Supplies the internal runtime for declarative flow hooks and their command execution.",
+        "enrich": {
+          "processedAt": "2026-06-05T10:55:26.400Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "hook execution",
+          "placeholder replacement",
+          "child process hook",
+          "timeout control",
+          "hook configuration",
+          "execution envelope",
+          "output normalization",
+          "lifecycle hooks"
         ]
       },
       {
@@ -9620,7 +9753,8 @@
           "src/presets/cli/tests/acceptance/fixtures/src/cli.js",
           "src/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
           "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
-          "src/lib/flow-manager.js"
+          "src/lib/flow-manager.js",
+          "src/lib/hooks.js"
         ],
         "id": "4cbf369b"
       },
@@ -9750,7 +9884,8 @@
           "src/presets/cli/tests/acceptance/fixtures/src/cli.js",
           "src/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
           "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
-          "src/lib/flow-manager.js"
+          "src/lib/flow-manager.js",
+          "src/lib/hooks.js"
         ],
         "id": "447924de"
       },
@@ -10115,7 +10250,8 @@
           "src/lib/dispatcher.js",
           "src/lib/i18n.js",
           "src/lib/skills.js",
-          "src/lib/preset-deploy.js"
+          "src/lib/preset-deploy.js",
+          "src/lib/hooks.js"
         ],
         "id": "1c8c8717"
       },
@@ -10255,7 +10391,8 @@
           "src/presets/cli/tests/acceptance/fixtures/src/cli.js",
           "src/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
           "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
-          "src/lib/flow-manager.js"
+          "src/lib/flow-manager.js",
+          "src/lib/hooks.js"
         ],
         "id": "6a9e614f"
       },
@@ -10716,7 +10853,8 @@
           "src/presets/cli/tests/acceptance/fixtures/src/cli.js",
           "src/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
           "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
-          "src/lib/flow-manager.js"
+          "src/lib/flow-manager.js",
+          "src/lib/hooks.js"
         ],
         "id": "b881aa88"
       },
@@ -10844,7 +10982,8 @@
           "src/presets/cli/tests/acceptance/fixtures/src/cli.js",
           "src/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
           "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
-          "src/lib/flow-manager.js"
+          "src/lib/flow-manager.js",
+          "src/lib/hooks.js"
         ],
         "id": "ace46527"
       },
@@ -11531,7 +11670,8 @@
           "src/lib/dispatcher.js",
           "src/lib/i18n.js",
           "src/lib/skills.js",
-          "src/lib/preset-deploy.js"
+          "src/lib/preset-deploy.js",
+          "src/lib/hooks.js"
         ],
         "id": "0c4cfb73"
       },
@@ -11671,7 +11811,8 @@
           "src/presets/cli/tests/acceptance/fixtures/src/cli.js",
           "src/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
           "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
-          "src/lib/flow-manager.js"
+          "src/lib/flow-manager.js",
+          "src/lib/hooks.js"
         ],
         "id": "b96d9baa"
       },
@@ -11944,7 +12085,8 @@
           "src/presets/cli/tests/acceptance/fixtures/src/cli.js",
           "src/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
           "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
-          "src/lib/flow-manager.js"
+          "src/lib/flow-manager.js",
+          "src/lib/hooks.js"
         ],
         "id": "f27da358"
       },
@@ -12394,9 +12536,9 @@
       },
       {
         "file": "src/sdd-forge.js",
-        "hash": "aa831ef2357c503bbaf12fa878a45145",
-        "lines": 104,
-        "mtime": "2026-05-29T12:02:35.117Z",
+        "hash": "840126fbf93f9d65664d6b07d7da5188",
+        "lines": 106,
+        "mtime": "2026-06-05T10:54:40.639Z",
         "className": "sdd-forge",
         "methods": [],
         "imports": [
@@ -12410,22 +12552,23 @@
         "extends": null,
         "usedBy": null,
         "id": "a8608997",
+        "summary": "Serves as the top-level executable that dispatches `sdd-forge` subcommands to namespace scripts or standalone command modules. It handles help/version style entry behavior and standardizes failure exits.",
+        "detail": "The script parses the initial CLI arguments, then distinguishes between namespace-based commands and independent commands. For namespace commands it rewrites `process.argv` and dynamically imports the corresponding dispatcher script, while independent commands are loaded as standalone modules and invoked through their exported `main` function. It uses `PKG_DIR` and file URLs to resolve implementation files relative to the package installation. Unknown commands and runtime failures terminate with the shared error exit code, making this file the root of command dispatch.",
+        "chapter": "project_structure",
+        "role": "Acts as the main CLI launcher and first-stage dispatcher for all sdd-forge commands.",
         "enrich": {
-          "processedAt": "2026-06-04T12:58:47.869Z",
-          "attempts": 10
+          "processedAt": "2026-06-05T10:55:26.400Z",
+          "attempts": 1
         },
-        "summary": "Implements the top-level CLI entrypoint that dispatches subcommands to namespace scripts or standalone command modules. It rewrites `process.argv`, loads the correct script dynamically, and standardizes error exits.",
-        "detail": "The entry module parses raw command-line arguments and handles special cases such as help or namespace-based commands. It maintains lookup tables for namespaced dispatchers and independent commands, then computes a target script path under the package directory. For dynamic commands it uses `pathToFileURL` and `import()` so the selected module runs as the effective entrypoint. It also initializes shared infrastructure where needed and exits with a common error code when command resolution or execution fails.",
-        "chapter": "cli_commands",
-        "role": "Primary CLI dispatcher for `sdd-forge` commands.",
         "keywords": [
-          "CLI entrypoint",
-          "command dispatcher",
+          "main entrypoint",
+          "CLI launcher",
           "dynamic import",
-          "process.argv",
-          "subcommand routing",
-          "namespace scripts",
-          "exit codes"
+          "subcommand dispatch",
+          "namespace script",
+          "process argv rewrite",
+          "exit error",
+          "command bootstrap"
         ]
       },
       {
@@ -13182,7 +13325,8 @@
           "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
           "src/setup.js",
           "src/upgrade.js",
-          "src/workflow/index.js"
+          "src/workflow/index.js",
+          "src/lib/hooks.js"
         ],
         "id": "60bcd438",
         "enrich": {
@@ -13373,10 +13517,10 @@
       }
     ],
     "summary": {
-      "total": 338,
-      "totalMethods": 1687
+      "total": 341,
+      "totalMethods": 1696
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-05T10:54:38.374Z"
+  "enrichedAt": "2026-06-05T10:55:26.400Z"
 }
