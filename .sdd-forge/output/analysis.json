@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-05T05:27:41.549Z",
+  "analyzedAt": "2026-06-05T10:54:15.269Z",
   "package": {
     "entries": [
       {
@@ -2616,9 +2616,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "47542fb10f41eb8371ca169e30c02d76",
+        "hash": "05930315426cb4929faa65b877be05ba",
         "lines": 3326,
-        "mtime": "2026-06-04T05:46:28.175Z",
+        "mtime": "2026-06-05T05:56:53.744Z",
         "className": "review",
         "methods": [
           "writeReviewAttemptHistory",
@@ -2822,25 +2822,25 @@
         "extends": "Error",
         "usedBy": null,
         "id": "331cf497",
-        "enrich": {
-          "processedAt": "2026-06-04T10:47:55.713Z",
-          "attempts": 3
-        },
-        "summary": "This module implements the `flow review` command suite, covering draft, spec, implementation, and test review phases in the SDD workflow. It orchestrates diff collection, prompt construction, AI-agent calls, schema validation, artifact persistence, and retry-oriented review loops.",
-        "detail": "The module is structured around phase-specific pipelines that load spec context, resolve touched files and merge bases, and build prompts tailored to draft QA, spec quality, implementation findings, or test coverage analysis. It uses explicit artifact classes and JSON schemas to normalize AI output, repair malformed JSON when possible, and preserve review history in reproducible files such as `review.md`, `impl-review.json`, `test-review.json`, and phase attempt logs. Several helper layers constrain scope by filtering findings to touched files, requirement IDs, and review stage classifications, while also enforcing limits on prompt size, field length, and loop retries. The command integrates guardrails, rationale summaries, git diff inspection, and optional automated fix application for test review outputs, making it a central orchestration module for review automation in the flow subsystem.",
+        "summary": "Implements the `flow review` command and its phase-specific review workflows for specs, implementation, tests, and draft artifacts. It orchestrates AI prompts, diff collection, artifact persistence, retry handling, and review result normalization across the flow lifecycle.",
+        "detail": "This module combines CLI parsing, git-based scope detection, spec loading, and prompt construction to run multiple review modes such as implementation review, test review, spec review, and draft QA review. It defines schema-backed artifact classes and parsing helpers that repair malformed JSON, validate response shapes, normalize findings, and persist both markdown and JSON outputs with review history snapshots. The review pipeline limits scope by touched files, requirement IDs, and excluded paths, and it supports looped per-file or grouped diff review when changes exceed a threshold. It also includes retry and failure classification logic, prompt size guards, tooling-failure fallbacks, and utilities to transform review findings into stable history records for downstream flow state handling.",
         "chapter": "cli_commands",
-        "role": "SDD flow review orchestrator",
+        "role": "Flow review command orchestrator and review artifact processor",
+        "enrich": {
+          "processedAt": "2026-06-05T10:54:38.374Z",
+          "attempts": 1
+        },
         "keywords": [
           "flow review",
+          "code review command",
           "spec review",
           "implementation review",
           "test review",
-          "AI agent orchestration",
-          "prompt builder",
-          "schema validation",
-          "review artifacts",
-          "git diff analysis",
-          "retry loop"
+          "draft QA",
+          "AI prompt orchestration",
+          "artifact history",
+          "diff analysis",
+          "schema validation"
         ]
       },
       {
@@ -3918,9 +3918,9 @@
       },
       {
         "file": "src/flow/lib/get-status.js",
-        "hash": "4100a3a699d14aa086c48d4f87772dfd",
-        "lines": 271,
-        "mtime": "2026-05-31T08:08:58.962Z",
+        "hash": "3739e4a76d127710332ebcc35404dc0d",
+        "lines": 287,
+        "mtime": "2026-06-05T10:54:09.149Z",
         "className": "get-status",
         "methods": [
           "buildMetricsSummary",
@@ -3933,6 +3933,7 @@
           "buildStatusReviewViews",
           "buildStatusRetryRecoveryView",
           "buildStatusGateViews",
+          "validateRunId",
           "buildStatusOutput"
         ],
         "imports": [
@@ -3960,25 +3961,25 @@
           "src/flow/lib/get-qa-count.js"
         ],
         "id": "9aca938f",
-        "enrich": {
-          "processedAt": "2026-06-03T11:49:57.400Z",
-          "attempts": 4
-        },
-        "summary": "Implements GetStatusCommand, aggregating token metrics, activity counters, and review/gate views into a unified flow status output.",
-        "detail": "buildMetricsSummary iterates metric entries to accumulate token buckets (input, output, cacheRead, cacheCreation) and activity counters per phase and provider. buildStatusOutput consolidates active step info, requirements, metrics summary, review stop views, and retry recovery into a single status object. buildStatusReviewViews and buildStatusGateViews delegate to reviewPhaseForStepId and resolveGateRecoveryDisplayPhase respectively. Supports both run-ID lookup and current-state access via the Envelope pattern. resolveActiveStepMaxAttempts derives the attempt limit from the flow definition for the current active node.",
+        "summary": "Builds structured status output for active or historical flow runs, including metrics, retries, gate views, and review-stop recovery hints. It serves as the status aggregation layer behind flow status reporting.",
+        "detail": "The module summarizes agent and activity metrics by phase and provider, producing zero-initialized token and activity buckets before folding entries into report totals. It derives retry and recovery views for active steps, review failures, and gate stops by combining flow state with definitions from the flow graph and recovery helpers. Status output includes active-step metadata, attempt limits, bounded broad-mode history, requirement context, and display-oriented recovery information. The command class validates run identifiers, loads the appropriate flow state, and returns a normalized status object whether the user requests the current run or a specific stored run.",
         "chapter": "internal_design",
-        "role": "command",
+        "role": "Flow status aggregation and reporting service",
+        "enrich": {
+          "processedAt": "2026-06-05T10:54:38.374Z",
+          "attempts": 1
+        },
         "keywords": [
           "flow status",
-          "token metrics",
-          "activity counters",
-          "review views",
-          "gate views",
-          "retry recovery",
-          "Envelope",
-          "GetStatusCommand",
+          "run state",
           "metrics summary",
-          "flow state"
+          "retry recovery",
+          "gate recovery",
+          "review stop",
+          "status output",
+          "phase tracking",
+          "token usage",
+          "activity counters"
         ]
       },
       {
@@ -4778,12 +4779,14 @@
       },
       {
         "file": "src/flow/lib/run-finalize-cleanup.js",
-        "hash": "cf860b4e73556d9665d3ee9722dab232",
-        "lines": 725,
-        "mtime": "2026-05-29T01:18:50.614Z",
+        "hash": "bba38acae987e6f2b2358f741a5fcb4d",
+        "lines": 834,
+        "mtime": "2026-06-05T10:47:31.720Z",
         "className": "run-finalize-cleanup",
         "methods": [
           "RunFinalizeCleanupCommand",
+          "syncMetadataFromWorktreeToMain",
+          "validateTeardown",
           "buildReportField",
           "attachReport",
           "listMainRepoDirtyFiles",
@@ -4795,6 +4798,7 @@
           "runAutoRescue",
           "cherryPickRange",
           "runTeardown",
+          "flattenSteps",
           "runForcedTeardown"
         ],
         "imports": [
@@ -4811,27 +4815,33 @@
         ],
         "exports": [
           "RunFinalizeCleanupCommand",
-          "default"
+          "syncMetadataFromWorktreeToMain",
+          "validateTeardown",
+          "default",
+          "runTeardown"
         ],
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "40e4daa5",
+        "summary": "Handles finalize cleanup for SDD flow worktrees, including teardown, rescue recovery, metadata synchronization, and audit logging. It ensures the main repository is left in a consistent state after flow completion or failure.",
+        "detail": "This module inspects dirty state, orphan commits, branch references, and report artifacts to decide whether cleanup can proceed normally or requires recovery options such as cherry-pick rescue or forced continuation. It appends and restores issue-log snapshots around risky operations, copies flow metadata from the worktree back to the main repository, and persists pointers to finalized reports. The teardown path removes worktrees, deletes feature branches, commits synchronized metadata when needed, and validates that cleanup actually succeeded. Failure handling is formalized through `Envelope` responses and categorized recovery options so callers can present explicit remediation paths instead of leaving partial repository state ambiguous.",
+        "chapter": "internal_design",
+        "role": "Finalize cleanup and worktree teardown coordinator",
         "enrich": {
-          "processedAt": "2026-05-29T02:08:40.284Z",
-          "attempts": 3
+          "processedAt": "2026-06-05T10:54:38.374Z",
+          "attempts": 1
         },
-        "summary": "Implements finalize cleanup with teardown, rescue, and recovery workflows for flow worktrees. It coordinates git-based recovery, report attachment, and issue-log safety during cleanup.",
-        "detail": "The module defines recovery option sets and attempts auto-rescue paths like cherry-picking orphan commits into the main repository under guarded conditions. It checks dirty-state and lock conditions before risky operations, and classifies failure modes with explicit envelope codes. Cleanup paths include normal teardown and forced teardown, each with audit-log append/rollback handling. Report metadata from finalize outputs is attached to response envelopes to preserve operator context. The implementation emphasizes reversible operations and clear operational diagnostics for post-mortem troubleshooting.",
-        "chapter": "cli_commands",
-        "role": "Finalize cleanup and recovery command",
         "keywords": [
           "finalize cleanup",
           "worktree teardown",
-          "auto rescue",
-          "cherry-pick recovery",
-          "dirty tree detection",
-          "issue log rollback",
-          "flow finalize"
+          "rescue recovery",
+          "cherry-pick",
+          "metadata sync",
+          "issue log",
+          "branch cleanup",
+          "orphan commits",
+          "repository state",
+          "flow finalization"
         ]
       },
       {
@@ -5035,9 +5045,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "02b36f34ab4b33fd96ab80d47531c6bd",
-        "lines": 3263,
-        "mtime": "2026-06-02T11:45:07.597Z",
+        "hash": "36ee71cb218097cddbaf8911d00f1aac",
+        "lines": 3425,
+        "mtime": "2026-06-05T05:42:25.568Z",
         "className": "run-gate",
         "methods": [
           "executeGateSideEffects",
@@ -5070,6 +5080,10 @@
           "buildPassedGuardrails",
           "findPreviousPassedGuardrails",
           "applyFlipOverride",
+          "RequirementPromptExcerpt",
+          "RequirementGateBatch",
+          "buildRequirementGateBatches",
+          "planRequirementGateCalls",
           "reasonsFromEvaluations",
           "RunGateCommand",
           "appendIssueLogFromGateResult",
@@ -5125,6 +5139,9 @@
           "normalizeObservationFailurePairs",
           "observationsFromGateEvaluations",
           "priorGateImplObservations",
+          "normalizeRequirementPromptInput",
+          "renderRequirementPromptSection",
+          "requirementEvaluation",
           "buildImplCheckPrompt",
           "buildPerRequirementDiffs",
           "nextActionFromGateEvaluations",
@@ -5195,6 +5212,10 @@
           "buildPassedGuardrails",
           "findPreviousPassedGuardrails",
           "applyFlipOverride",
+          "RequirementPromptExcerpt",
+          "RequirementGateBatch",
+          "buildRequirementGateBatches",
+          "planRequirementGateCalls",
           "reasonsFromEvaluations",
           "RunGateCommand",
           "appendIssueLogFromGateResult",
@@ -5208,6 +5229,7 @@
           "validateDraftReviewArtifactSet",
           "buildGuardrailPrompt",
           "buildImplCheckPrompt",
+          "MAX_IMPL_REQUIREMENT_BATCH_CHARS",
           "checkGuardrail",
           "splitDiffByFile",
           "collectPerFileDiffsForGate",
@@ -5224,25 +5246,25 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "b4aa4dad",
-        "enrich": {
-          "processedAt": "2026-06-04T10:48:04.185Z",
-          "attempts": 6
-        },
-        "summary": "Implements the flow gate engine that validates specs, drafts, implementation diffs, and integration state before workflow progress continues. It combines local artifact checks, git-based diff analysis, AI guardrail evaluation, retry handling, and result persistence.",
-        "detail": "This module is the central gate runner for SDD flow phases such as draft, spec, task implementation, and integration. It builds phase-specific prompts, filters applicable guardrails, parses strict JSON evaluation responses, and converts them into normalized gate reports and next actions. The code also performs substantial local validation without AI, including spec text and JSON checks, draft review artifact lifecycle checks, integration artifact presence checks, file-map reconciliation, and untracked diff collection. Retry budgets, repeated-failure detection, recovery baselines, issue-log updates, and prior-memory artifacts are used to prevent loops and preserve diagnostic context across attempts.",
+        "summary": "`run-gate.js` implements the core gate execution pipeline for flow phases such as draft, spec, task implementation, and integration. It validates artifacts, evaluates guardrails, manages retry state, and persists gate results and recovery data.",
+        "detail": "The module centralizes phase-to-level validation, diff collection, artifact inspection, and gate result construction for multiple flow stages. It mixes deterministic checks, such as JSON/schema-like validation and file-map reconciliation, with AI-oriented evaluation prompt building and strict JSON response parsing for guardrail and requirement reviews. It also tracks retry counts, prior failures, passed guardrails, and implementation memory artifacts so repeated failures and no-progress situations can be detected and escalated consistently. The `RunGateCommand` class dispatches phase-specific gate logic, writes issue-log and integration artifacts, and returns normalized pass or fail envelopes for the wider flow runtime.",
         "chapter": "internal_design",
-        "role": "Flow gate orchestration and validation engine",
+        "role": "Core gate engine for flow validation, guardrail enforcement, retry recovery, and result artifact persistence.",
+        "enrich": {
+          "processedAt": "2026-06-05T10:54:30.868Z",
+          "attempts": 1
+        },
         "keywords": [
-          "flow gate",
+          "gate execution",
+          "flow validation",
           "guardrail evaluation",
-          "spec validation",
-          "draft lifecycle",
-          "implementation diff",
-          "integration gate",
-          "retry budget",
+          "requirement checks",
+          "retry recovery",
           "issue log",
-          "JSON schema parsing",
-          "workflow enforcement"
+          "diff analysis",
+          "artifact validation",
+          "integration gate",
+          "prompt parsing"
         ]
       },
       {
@@ -6976,9 +6998,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "0109c6d7a810218d8675f9698ca26666",
-        "lines": 1104,
-        "mtime": "2026-06-04T05:44:48.597Z",
+        "hash": "53c4091a3b3ef30ee7d8d7394873e620",
+        "lines": 1108,
+        "mtime": "2026-06-05T10:54:09.149Z",
         "className": "registry",
         "methods": [
           "assertDraftReviewRegistryHookBoundary",
@@ -7016,22 +7038,25 @@
           "src/workflow/index.js"
         ],
         "id": "d64f4095",
-        "enrich": {
-          "processedAt": "2026-06-04T10:48:25.705Z",
-          "attempts": 2
-        },
-        "summary": "Registers flow commands and hook behavior for retries, review routes, gate phases, and finalize handling. It coordinates runtime step mapping and artifact checks across the flow lifecycle.",
-        "detail": "The registry defines constant sets for finalize success states, retry-help phase coverage, and valid draft-review verdicts, making command routing deterministic. It contains helpers that derive the active phase, locate the runtime step that should receive logs, and safely attempt step-status or issue-log updates without crashing the caller on absent active flows. For draft review flows it can prewrite empty triage and repair artifacts so downstream consumers always find expected files. It also performs artifact validation for key steps such as test review and final regression before allowing later flow actions to proceed.",
+        "summary": "`registry.js` defines the flow command registry and runtime hooks that connect gate, review, finalize, and issue-log behavior across the SDD workflow. It coordinates step status updates, route-specific draft review handling, and post-command side effects.",
+        "detail": "The module maps flow commands to help text, runtime options, and hook behavior while deriving active phases and resolving gate-related step identifiers. It contains helper logic for safe step-status mutation, finalize success detection, downstream step resetting, and fallback logging when registry side effects cannot be applied. Draft review lifecycle support is embedded through route resolution, verdict checks, and creation of empty triage or repair artifacts when needed. The registry also integrates with gate execution by updating retry counters, invoking gate side effects, validating finalize-related result artifacts, and enforcing responsibility boundaries between review and gate stages.",
         "chapter": "cli_commands",
-        "role": "flow command registry and hook coordinator",
+        "role": "Flow command registry and orchestration layer for runtime hooks, step transitions, and finalize-side validations.",
+        "enrich": {
+          "processedAt": "2026-06-05T10:54:30.868Z",
+          "attempts": 1
+        },
         "keywords": [
-          "flow registry",
-          "command routing",
-          "draft review",
+          "command registry",
+          "flow orchestration",
+          "step status",
           "finalize hooks",
-          "runtime logging",
-          "retry phases",
-          "artifact enforcement"
+          "draft review routes",
+          "runtime options",
+          "issue log",
+          "phase resolution",
+          "workflow registry",
+          "command lifecycle"
         ]
       },
       {
@@ -13349,9 +13374,9 @@
     ],
     "summary": {
       "total": 338,
-      "totalMethods": 1676
+      "totalMethods": 1687
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-05T01:05:31.344Z"
+  "enrichedAt": "2026-06-05T10:54:38.374Z"
 }
