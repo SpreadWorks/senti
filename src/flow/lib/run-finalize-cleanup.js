@@ -603,10 +603,20 @@ async function runTeardown(ctx, { worktreePath, mainRepoPath, reportRoot, specId
   const state = ctx.flowState;
   const { featureBranch, worktree, baseBranch } = state;
 
-  // (i) finalize-cleanup → 'done' so the snapshot we are about to commit
-  // contains the terminal state.
+  // (i) metadata sync + finalize-cleanup → 'done'.
   const targetRoot = (worktree && mainRepoPath) ? mainRepoPath : ctx.root;
   const targetFm = (worktree && mainRepoPath) ? ctx.flowManager.forRoot(mainRepoPath) : ctx.flowManager;
+
+  // Spec 272: sync unreflected flow metadata (e.g. retry success logs) from
+  // worktree to main before teardown.
+  if (worktree && mainRepoPath && ctx.root !== mainRepoPath) {
+    try {
+      syncMetadataFromWorktreeToMain(ctx.root, mainRepoPath, specId);
+    } catch (err) {
+      process.stderr.write(`[sdd-forge] cleanup: metadata sync warning: ${err.message}\n`);
+    }
+  }
+
   const flowJsonRel = `specs/${specId}/flow.json`;
   targetFm.updateStepStatus("finalize-cleanup", "done", { specId });
 
@@ -643,11 +653,37 @@ async function runTeardown(ctx, { worktreePath, mainRepoPath, reportRoot, specId
   if (worktree && mainRepoPath) {
     const wtPath = worktreePath || ctx.root;
     if (fs.existsSync(wtPath)) {
-      runGit(["-C", mainRepoPath, "worktree", "remove", wtPath]);
+      const removeRes = runGit(["-C", mainRepoPath, "worktree", "remove", wtPath]);
+      if (!removeRes.ok) {
+        return Envelope.fail("run", "finalize-cleanup", "WORKTREE_REMOVE_FAILED", [
+          `git worktree remove failed: ${removeRes.stderr || removeRes.stdout || "unknown"}`,
+          "Common cause: untracked files or uncommitted changes in the worktree.",
+          "Resolve the dirty state and retry cleanup.",
+        ]);
+      }
     }
-    runGit(["-C", mainRepoPath, "branch", "-D", featureBranch]);
+    const branchRes = runGit(["-C", mainRepoPath, "branch", "-D", featureBranch]);
+    if (!branchRes.ok && !branchRes.stderr.includes("not found")) {
+      return Envelope.fail("run", "finalize-cleanup", "BRANCH_DELETE_FAILED", [
+        `git branch -D ${featureBranch} failed: ${branchRes.stderr || branchRes.stdout || "unknown"}`,
+      ]);
+    }
   } else {
-    runGit(["branch", "-D", featureBranch], { cwd: targetRoot });
+    const branchRes = runGit(["branch", "-D", featureBranch], { cwd: targetRoot });
+    if (!branchRes.ok && !branchRes.stderr.includes("not found")) {
+      return Envelope.fail("run", "finalize-cleanup", "BRANCH_DELETE_FAILED", [
+        `git branch -D ${featureBranch} failed: ${branchRes.stderr || branchRes.stdout || "unknown"}`,
+      ]);
+    }
+  }
+
+  // (v) strict post-teardown validation.
+  const validation = validateTeardown({ worktreePath, mainRepoPath, featureBranch, specId });
+  if (!validation.ok) {
+    return Envelope.fail("run", "finalize-cleanup", "TEARDOWN_VALIDATION_FAILED", [
+      "Teardown appeared to succeed but resources remain:",
+      ...validation.reasons.map((r) => `- ${r}`),
+    ]);
   }
 
   const env = attachReport(
@@ -659,6 +695,79 @@ async function runTeardown(ctx, { worktreePath, mainRepoPath, reportRoot, specId
   }
   return env;
 }
+
+/**
+ * Spec 272: Sync unreflected SDD metadata (runtimeLog only) from worktree to main.
+ * Status and other fields are already handled by the post-hook authoritative
+ * updates or squash-merge. We only pick up logs from previous successful retries
+ * that might have only landed in the worktree's flow.json.
+ */
+export function syncMetadataFromWorktreeToMain(worktreeRoot, mainRoot, specId) {
+  const wtPath = path.join(worktreeRoot, "specs", specId, "flow.json");
+  const mainPath = path.join(mainRoot, "specs", specId, "flow.json");
+  if (!fs.existsSync(wtPath) || !fs.existsSync(mainPath)) return;
+
+  const wtState = JSON.parse(fs.readFileSync(wtPath, "utf8"));
+  const mainState = JSON.parse(fs.readFileSync(mainPath, "utf8"));
+
+  let mutated = false;
+  const wtSteps = flattenSteps(wtState.steps || []);
+  const mainSteps = flattenSteps(mainState.steps || []);
+
+  for (const wtStep of wtSteps) {
+    if (!wtStep.runtimeLog) continue;
+    const mainStep = mainSteps.find((s) => s.id === wtStep.id);
+    if (!mainStep) continue;
+
+    // Adopt the worktree log if the main one is missing or has a different sequence.
+    if (!mainStep.runtimeLog || mainStep.runtimeLog.sequence !== wtStep.runtimeLog.sequence) {
+      mainStep.runtimeLog = { ...wtStep.runtimeLog };
+      mutated = true;
+    }
+  }
+
+  if (mutated) {
+    fs.writeFileSync(mainPath, JSON.stringify(mainState, null, 2) + "\n", "utf8");
+  }
+}
+
+export function validateTeardown({ worktreePath, mainRepoPath, featureBranch, specId }) {
+  const reasons = [];
+
+  if (mainRepoPath) {
+    const wtListRes = runGit(["-C", mainRepoPath, "worktree", "list", "--porcelain"]);
+    if (wtListRes.ok && worktreePath) {
+      const absPath = path.resolve(worktreePath);
+      if (wtListRes.stdout.split("\n").some((line) => line === `worktree ${absPath}`)) {
+        reasons.push(`Worktree registration remains for ${absPath}`);
+      }
+    }
+
+    if (worktreePath && fs.existsSync(worktreePath)) {
+      reasons.push(`Physical worktree directory remains: ${worktreePath}`);
+    }
+
+    const branchRes = runGit(["-C", mainRepoPath, "branch", "--list", featureBranch]);
+    if (branchRes.ok && branchRes.stdout.trim()) {
+      reasons.push(`Feature branch remains: ${featureBranch}`);
+    }
+  }
+
+  return { ok: reasons.length === 0, reasons };
+}
+
+function flattenSteps(steps) {
+  const flat = [];
+  for (const s of steps) {
+    flat.push(s);
+    if (Array.isArray(s.children)) {
+      flat.push(...flattenSteps(s.children));
+    }
+  }
+  return flat;
+}
+
+export { runTeardown };
 
 /**
  * --force teardown variant: persist a FORCED_ORPHAN_DROP audit entry to the

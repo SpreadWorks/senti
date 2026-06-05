@@ -788,6 +788,7 @@ export const FLOW_COMMANDS = {
         // by execute()). The worktree's flow.json is left alone; from this
         // point on it is no longer the authoritative copy.
         const targetFm = resolveMainRepoFlowManager(ctx);
+        ctx.flowManager = targetFm; // Switch authority for the dispatcher's runtime-log persistence
         const opts = { specId: ctx.specId };
         tryUpdateStepStatus(targetFm, "finalize-merge", "done", opts);
         // Spec 253 R16/R17: persist squash baseline + merge route on main repo
@@ -836,6 +837,7 @@ export const FLOW_COMMANDS = {
         if (!isFinalizeSuccess(result)) return;
         // R2: post-merge authority is the main repo flow.json.
         const targetFm = resolveMainRepoFlowManager(ctx);
+        ctx.flowManager = targetFm; // Switch authority for the dispatcher's runtime-log persistence
         tryUpdateStepStatus(targetFm, "finalize-sync", "done", { specId: ctx.specId });
       },
       async onError(ctx, err) {
@@ -871,6 +873,7 @@ export const FLOW_COMMANDS = {
         // dispatcher still ran post for some unforeseen reason.
         if (!isFinalizeSuccess(result)) return;
         const targetFm = resolveMainRepoFlowManager(ctx);
+        ctx.flowManager = targetFm; // Switch authority for the dispatcher's runtime-log persistence
         tryUpdateStepStatus(targetFm, "finalize-cleanup", "done", { specId: ctx.specId });
       },
       async onError(ctx, err) {
