@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-05T01:11:33.764Z",
+  "verdict": "ADVISORY",
+  "summary": {
+    "blocking": 0,
+    "nonBlocking": 1,
+    "total": 1
+  },
+  "blockingFindings": [],
+  "nonBlockingImprovements": [
+    {
+      "title": "run-report.js does not re-export buildUpgradeEvidenceReportSummary, failing the spec-local R9 test",
+      "failureMode": "test_false_positive",
+      "file": "src/flow/lib/run-report.js",
+      "issue": "run-report.js imports buildUpgradeEvidenceReportSummary from test-artifacts.js for internal use (line 23/57) but does not re-export it. The spec-local test specs/278-upgrade-evidence-artifact/tests/upgrade-evidence-artifacts.test.js (R9) resolves the symbol from run-report.js via loadReportModule(), so the destructured binding is undefined and the test fails with 'buildUpgradeEvidenceReportSummary is not a function'. Running `node --test` on the file yields 10 pass / 1 fail. Production report generation itself is correct; only the test wiring is broken.",
+      "suggestion": "Add `export { buildUpgradeEvidenceReportSummary } from \"./test-artifacts.js\";` to run-report.js (or otherwise re-export it) so the R9 spec-local test resolves the function from the module it imports from. Alternatively the test could import it from test-artifacts.js, but that test file is outside the touched set; re-exporting from run-report.js is the touched-file fix.",
+      "rationale": "R9's acceptance criterion ('a test can assert report.json includes the upgradeEvidence summary fields') is backed by a test that currently fails due to an import-resolution mismatch, not a production defect. Re-exporting makes the green test reflect the working production behavior."
+    }
+  ],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/278-upgrade-evidence-artifact/impl-review.json",
+    "verdict": "ADVISORY",
+    "result": "ADVISORY",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": "impl-gate",
+    "completionKind": "normal",
+    "progressSignature": "524a85b5e33b5b7fb84fb5a23fcd663cd47c931982061731cf556ad33541fed3"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "impl-001-non-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "run-report.js does not re-export buildUpgradeEvidenceReportSummary, failing the spec-local R9 test",
+      "body": "run-report.js imports buildUpgradeEvidenceReportSummary from test-artifacts.js for internal use (line 23/57) but does not re-export it. The spec-local test specs/278-upgrade-evidence-artifact/tests/upgrade-evidence-artifacts.test.js (R9) resolves the symbol from run-report.js via loadReportModule(), so the destructured binding is undefined and the test fails with 'buildUpgradeEvidenceReportSummary is not a function'. Running `node --test` on the file yields 10 pass / 1 fail. Production report generation itself is correct; only the test wiring is broken.",
+      "category": "test_false_positive"
+    }
+  ]
+}

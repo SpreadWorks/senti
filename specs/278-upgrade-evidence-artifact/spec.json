@@ -1,0 +1,337 @@
+{
+  "goal": "src/skills/** or src/presets/** を変更する SDD flow で、sdd-forge upgrade の実行結果を spec 配下の標準 artifact として保存し、integration gate と finalize/report から検証・参照できるようにする。",
+  "scope": {
+    "in": [
+      "sdd-forge upgrade の flow-managed 実行結果を specs/<spec>/upgrade-result.json と specs/<spec>/tests/.raw/upgrade.log に保存する artifact contract",
+      "src/skills/** または src/presets/** の変更がある integration gate での upgrade evidence 検証",
+      "upgrade 実行済み、変更なし、更新あり、失敗を区別できる machine-readable evidence",
+      "finalize 後も upgrade-result.json と tests/.raw/upgrade.log を durable artifact として保持し、report.json に要約を含めること",
+      "spec-local tests と必要な shared regression tests による artifact contract、gate、report/finalize の検証"
+    ],
+    "out": [
+      "sdd-forge upgrade の配布・migration 処理全体の再設計",
+      "test-execute-result.json または test-result-review.json への upgrade evidence 混入",
+      "npm publish、npm dist-tag、release 操作",
+      "src/skills/** または src/presets/** の個別内容改善",
+      "生成先の .agents/skills/**、.claude/skills/**、AGENTS.md SDD section、preset-derived copies を upgrade 必須判定の trigger path に含めること"
+    ]
+  },
+  "constraints": [
+    "外部依存を追加しない。Node.js built-in modules と既存 CLI/flow infrastructure のみを使う。",
+    "src/ 以下に特定プロジェクト固有の値、spec id、issue id、repository 固有 path を hardcode しない。",
+    "既存の `sdd-forge upgrade [--dry-run]` CLI は stdout summary と exit code contract を維持する。成功は exit code 0、preset chain validation failure または deploySkills failure は既存通り non-zero とする。",
+    "upgrade evidence は test-execute artifact とは別契約にする。test-execute-result.json、test-result-review.json、file-map.json、tests/.raw/test-execution.log の schema と意味は変更しない。",
+    "bounded-resource-usage: upgrade artifact validation は bounded file size と bounded array validation を持つ。raw log は既存 raw output limit と同等以下の上限で読み取る。",
+    "backward-compatible-cli-interface: 既存 upgrade command の user-facing option は削除・意味変更しない。flow evidence のための新しい user-facing option は追加しない。",
+    "validate-user-input-at-entry-point: `sdd-forge upgrade` の user-facing arguments は `--dry-run` と `--help` の boolean flags のみ。どちらも値を受け取らず、format/range validation は不要で、未知 option は既存 parseArgs の entry-point validation で拒否する。",
+    "src/skills/** または src/presets/** を変更した後は sdd-forge upgrade を実行し、生成済み skill/preset artifacts に反映する。"
+  ],
+  "design_principles": [
+    "Upgrade evidence is a first-class flow artifact, not a note in conversation history or issue-log.",
+    "Keep test execution evidence and upgrade execution evidence separate so each artifact has a narrow validation contract.",
+    "Make the gate decision depend on source changes that require upgrade, not on generated files produced by upgrade itself.",
+    "Reuse the existing artifact pathspec and report/finalize collection patterns instead of adding a parallel persistence mechanism."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/upgrade.js`: owns the existing `sdd-forge upgrade` command. It currently deploys skills, removes obsolete skills, deploys preset copies, migrates config, and prints stdout summary."
+      },
+      {
+        "text": "`src/flow/lib/test-artifacts.js`: owns integration trust input validation and durable artifact pathspecs. It is the target module for upgrade artifact constants, schema validation, and durable pathspec inclusion."
+      },
+      {
+        "text": "`src/flow/lib/run-gate.js`: runs task-impl and integration gates against git diff and artifact trust validation. It is the target integration point for requiring upgrade evidence when changed files include src/skills/** or src/presets/**."
+      },
+      {
+        "text": "`src/flow/lib/run-report.js`: writes report.json from persisted flow artifacts and git summary. It is the target module for adding upgrade evidence summary fields."
+      },
+      {
+        "text": "`src/flow/lib/run-finalize.js`: collects durable artifact pathspecs during finalize. It must continue using the shared durable artifact list after upgrade artifacts are added."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "A flow changes files -> integration gate computes committed, uncommitted, and untracked diff -> changed paths are checked for src/skills/** or src/presets/**."
+      },
+      {
+        "text": "When upgrade-required source paths are present, the flow-managed upgrade execution writes specs/<spec>/tests/.raw/upgrade.log and specs/<spec>/upgrade-result.json."
+      },
+      {
+        "text": "integration gate validates upgrade-result.json and raw log path only for flows with src/skills/** or src/presets/** changes. Other flows keep the existing trust input contract."
+      },
+      {
+        "text": "finalize/report collect upgrade-result.json and tests/.raw/upgrade.log as durable artifacts and report.json includes a compact upgradeEvidence summary."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] Checked current upgrade behavior: `sdd-forge upgrade` writes stdout summary and exits through existing success/failure paths, but does not emit a spec-local JSON artifact.",
+        "evidence": "`src/upgrade.js` calls `deploySkills`, `cleanupObsoleteSkills`, `deployPresetCopies`, config migration logic, and `console.log` summary lines. No `upgrade-result.json` or spec directory write exists."
+      },
+      {
+        "text": "[VERIFY] Checked artifact contract location: integration trust inputs and durable artifact patterns are centralized in `test-artifacts.js`.",
+        "evidence": "`src/flow/lib/test-artifacts.js` defines `INTEGRATION_TRUST_INPUTS`, `DURABLE_TEST_ARTIFACT_RELATIVE_PATTERNS`, `durableTestArtifactPathspecs()`, and `validateIntegrationArtifactTrust()`."
+      },
+      {
+        "text": "[VERIFY] Checked finalize/report usage: report writes report.json and finalize commits durable pathspecs derived from `durableTestArtifactPathspecs()`.",
+        "evidence": "`src/flow/lib/run-report.js` writes `report.json`; `src/flow/lib/run-finalize.js` imports `durableTestArtifactPathspecs()` and uses it to collect durable artifacts."
+      },
+      {
+        "text": "Trigger path decision: upgrade evidence is required only when changed paths include `src/skills/**` or `src/presets/**`.",
+        "evidence": "Draft q1 and project rules identify source skill/preset changes as the upgrade-required condition. Generated targets are excluded to avoid circular trigger/result coupling."
+      },
+      {
+        "text": "Artifact shape decision: `upgrade-result.json` has fixed required fields so gate and report read the same contract.",
+        "evidence": "Draft q5 fixes version, command, dryRun, exitCode, result, skills.updated, skills.unchanged, skills.removed, configMigration.changed, checkedPaths, rawLogPath."
+      },
+      {
+        "text": "Failure handling decision: failed upgrade execution still writes artifact and raw log, and integration gate fails when exitCode is non-zero or result is failed.",
+        "evidence": "Draft q6 states failure evidence is required so failed execution is distinguishable from missing execution."
+      },
+      {
+        "text": "Impact on existing features: existing test trust inputs, normal upgrade stdout, and flows without src/skills/** or src/presets/** changes remain compatible.",
+        "evidence": "Scope and constraints preserve existing test artifact paths and require upgrade validation only for source paths that require upgrade."
+      },
+      {
+        "text": "Manual retry reset note: draft-gate retry was reset manually only after the final gate finding was fixed and user approved retry recovery.",
+        "evidence": "specs/278-upgrade-evidence-artifact/issue-log.json records the retry exhaustion and manual reset reason; this is flow recovery evidence, not product behavior."
+      }
+    ]
+  },
+  "background": "Issue #362 targets a gap in SDD flow evidence. `sdd-forge upgrade` is required after src/skills/** or src/presets/** changes, but the current command only prints a stdout summary. The integration gate already validates machine-readable test trust inputs under the spec directory, and finalize/report already preserve durable test/report artifacts. Upgrade execution has no equivalent artifact contract, so skill/preset flows can depend on terminal history or manual issue-log entries to prove upgrade was run. This spec adds a dedicated upgrade evidence artifact while preserving the existing test artifact contract and normal upgrade CLI behavior.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "When flow-managed upgrade evidence is written, `specs/<spec>/upgrade-result.json` must be a JSON object with version, command, dryRun, exitCode, result, skills.updated, skills.unchanged, skills.removed, configMigration.changed, checkedPaths, and rawLogPath fields.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "`upgrade-result.json.result` must be one of `no_changes`, `updated`, or `failed`; `no_changes` is used when exitCode is 0 and no skill removal, skill update, preset/config migration, or other tracked update occurred.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "When flow-managed `sdd-forge upgrade` runs, stdout and stderr from that execution must be saved to `specs/<spec>/tests/.raw/upgrade.log`; the raw log is valid only when that file exists, is non-empty, is no larger than MAX_RAW_OUTPUT_BYTES, and `upgrade-result.json.rawLogPath` equals `tests/.raw/upgrade.log`.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "When the integration gate runs and the changed file list contains at least one path matching `src/skills/**` or `src/presets/**`, the gate must require a valid upgrade-result.json and a valid raw log before it can PASS; valid raw log means the file at rawLogPath exists under the spec directory, is non-empty, and is no larger than MAX_RAW_OUTPUT_BYTES.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "When the integration gate runs and no changed file path matches `src/skills/**` or `src/presets/**`, upgrade-result.json must not be required; the existing trust inputs remain test-execute-result.json, test-result-review.json, file-map.json, and tests/.raw/test-execution.log.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "When upgrade-result.json has exitCode other than 0 or result `failed`, integration gate must FAIL for flows with `src/skills/**` or `src/presets/**` changes and the gate artifact trust failure message must include `upgrade-result.json exitCode=<value> result=<value>`.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "desc": "When flow-managed upgrade execution completes with no updated, removed, or config migration changes, upgrade-result.json must still be written with result `no_changes`, exitCode 0, checkedPaths containing `src/skills` and `src/presets`, and a raw log reference.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R8",
+      "desc": "When finalize collects durable artifacts for the spec, `specs/<spec>/upgrade-result.json` and `specs/<spec>/tests/.raw/upgrade.log` must be included in durable artifact pathspec collection without removing existing durable test/report pathspecs.",
+      "priority": "should",
+      "status": "done"
+    },
+    {
+      "id": "R9",
+      "desc": "When report.json is written and upgrade-result.json exists, report.json must include an `upgradeEvidence` summary with artifactPath, rawLogPath, exitCode, result, updatedCount, unchangedCount, removedCount, and configMigrationChanged.",
+      "priority": "should",
+      "status": "done"
+    },
+    {
+      "id": "R10",
+      "desc": "When `sdd-forge upgrade` is run by a user, the command must keep the existing user-facing arguments `--dry-run` and `--help` as boolean flags that take no value; it must add no new user-facing option, and normal execution must keep the existing stdout summary behavior.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R11",
+      "desc": "Spec-local tests under `specs/278-upgrade-evidence-artifact/tests/` must include `// spec: R<N>` headers covering upgrade artifact writing, integration gate validation, durable artifact collection, and report summary behavior.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "A spec-local test can run flow-managed upgrade evidence generation and assert that upgrade-result.json contains the required fields from R1.",
+    "A spec-local test can simulate no-change upgrade output and assert result `no_changes`, exitCode 0, checkedPaths, and rawLogPath.",
+    "A spec-local test can simulate failed upgrade execution and assert integration gate artifact trust validation rejects it with a message containing `upgrade-result.json exitCode=<value> result=<value>` when src/skills/** or src/presets/** changed.",
+    "A spec-local test can assert raw log validation rejects a missing, empty, or oversized tests/.raw/upgrade.log for src/skills/** or src/presets/** changes.",
+    "A spec-local or shared regression test can assert that integration gate does not require upgrade-result.json when only non-skill and non-preset source paths changed.",
+    "A test can assert durable artifact pathspecs include upgrade-result.json and tests/.raw/upgrade.log while retaining the existing durable test/report artifacts.",
+    "A test can assert report.json includes the `upgradeEvidence` summary fields when upgrade-result.json exists.",
+    "Existing `sdd-forge upgrade --dry-run` and normal `sdd-forge upgrade` behavior remains compatible from the user's perspective."
+  ],
+  "clarifications": [
+    {
+      "q": "Which changed paths require upgrade evidence?",
+      "a": "Only source paths under `src/skills/**` and `src/presets/**`. Generated skill copies, AGENTS.md sections, and preset-derived output paths are not trigger paths for this spec."
+    },
+    {
+      "q": "Should no-change upgrade runs write evidence?",
+      "a": "Yes. No-change execution is required evidence because it distinguishes a completed upgrade run from a missing upgrade run."
+    },
+    {
+      "q": "Should failed upgrade runs write evidence?",
+      "a": "Yes. The artifact and raw log are written for failure diagnosis, and the integration gate fails when the artifact reports non-zero exitCode or result `failed`."
+    },
+    {
+      "q": "Does this change the normal upgrade CLI contract?",
+      "a": "No. Existing stdout summary and `--dry-run` semantics remain. Flow evidence is an added contract for flow-managed execution."
+    },
+    {
+      "q": "What user-facing arguments does the modified `sdd-forge upgrade` command accept?",
+      "a": "`--dry-run` and `--help` only. Both are boolean flags that take no value and have no range. Flow evidence controls are internal automation behavior, not user-facing CLI options."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Store upgrade execution only in issue-log.json",
+      "reason": "Rejected because Issue #362 explicitly seeks a standard artifact that avoids manual issue-log or conversation-history dependence."
+    },
+    {
+      "option": "Embed upgrade execution evidence into test-execute-result.json",
+      "reason": "Rejected because upgrade execution is not test execution and mixing the contracts would make integration gate trust validation harder to reason about."
+    },
+    {
+      "option": "Require upgrade evidence for generated skill/preset output paths as well as src/skills/** and src/presets/**",
+      "reason": "Rejected because generated paths can be changed by upgrade itself, creating circular trigger/result coupling. Source paths define the upgrade-required condition."
+    },
+    {
+      "option": "Write upgrade-result.json only when upgrade changes files",
+      "reason": "Rejected because no-change execution must be distinguishable from missing execution."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "upgrade-result",
+    "upgrade evidence",
+    "sdd-forge upgrade",
+    "integration gate",
+    "artifact trust",
+    "durable artifacts",
+    "test-artifacts",
+    "run-gate",
+    "run-report",
+    "run-finalize",
+    "src/skills",
+    "src/presets"
+  ],
+  "implementationTargets": [
+    "src/upgrade.js",
+    "src/flow/lib/test-artifacts.js",
+    "src/flow/lib/run-gate.js",
+    "src/flow/lib/run-report.js",
+    "src/flow/lib/run-finalize.js",
+    "specs/278-upgrade-evidence-artifact/tests/"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Define upgrade artifact contract",
+      "goal": "Add shared constants, paths, schema validation, and bounded raw-log handling for upgrade-result.json and tests/.raw/upgrade.log.",
+      "acceptance": [
+        "Required upgrade-result.json fields from R1 are validated.",
+        "result values are limited to no_changes, updated, and failed.",
+        "rawLogPath must point to tests/.raw/upgrade.log.",
+        "Raw log validation rejects missing, empty, or oversized upgrade.log files.",
+        "Artifact validation has bounded file size and bounded array checks."
+      ],
+      "implementation_notes": "Prefer a dedicated value class or cohesive helper functions near existing artifact classes/helpers in test-artifacts.js. Keep upgrade evidence separate from test-execute schema.",
+      "test_strategy": "Spec-local unit tests with `// spec: R1 R2 R3 R6` validate accepted and rejected upgrade artifact shapes, raw log validity, and failure reason content.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Capture upgrade execution evidence",
+      "goal": "Connect flow-managed upgrade execution to artifact writing without changing default user-facing upgrade behavior.",
+      "acceptance": [
+        "Flow-managed upgrade writes upgrade-result.json and tests/.raw/upgrade.log.",
+        "No-change execution writes result no_changes with exitCode 0.",
+        "Failed execution writes result failed with non-zero exitCode and raw log.",
+        "Normal `sdd-forge upgrade` stdout and `--dry-run` behavior remain compatible."
+      ],
+      "implementation_notes": "Use an internal helper or flow automation path for evidence capture rather than a new user-facing CLI option. Existing user invocation must keep current behavior. Capture stdout/stderr from the actual upgrade execution path.",
+      "test_strategy": "Spec-local tests with `// spec: R3 R7 R10` exercise no-change and failure evidence generation through the chosen flow-managed entry point.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-3",
+      "title": "Validate integration upgrade evidence",
+      "goal": "Make integration gate require upgrade evidence only when changed source paths require upgrade.",
+      "acceptance": [
+        "src/skills/** changes require valid upgrade evidence.",
+        "src/presets/** changes require valid upgrade evidence.",
+        "Other changed paths do not require upgrade evidence.",
+        "Failed or malformed upgrade evidence blocks integration gate with a message containing `upgrade-result.json exitCode=<value> result=<value>` for failed artifacts."
+      ],
+      "implementation_notes": "Reuse existing git diff changed-file collection and artifact trust failure reporting. Keep existing required test trust inputs unchanged.",
+      "test_strategy": "Spec-local tests with `// spec: R4 R5 R6` simulate changed path sets and artifact states, then assert gate trust validation outcomes.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-4",
+      "title": "Publish durable upgrade evidence",
+      "goal": "Include upgrade evidence in durable artifact collection and final report summaries.",
+      "acceptance": [
+        "durable artifact pathspecs include upgrade-result.json.",
+        "durable artifact pathspecs include tests/.raw/upgrade.log.",
+        "Existing durable test/report pathspecs remain present.",
+        "report.json includes upgradeEvidence summary fields when upgrade-result.json exists."
+      ],
+      "implementation_notes": "Prefer extending the existing durable artifact pattern list and report aggregation path rather than adding a separate finalize collector.",
+      "test_strategy": "Spec-local tests with `// spec: R8 R9` verify durable pathspec output and report summary mapping.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-5",
+      "title": "Add regression coverage",
+      "goal": "Add focused spec-local tests and update shared regression tests where existing artifact contracts change.",
+      "acceptance": [
+        "Every spec-local test file includes a `// spec: R<N>` header.",
+        "Coverage includes artifact writing, gate validation, durable collection, and report summary behavior.",
+        "Shared tests that assert durable artifact lists or trust inputs are updated to the new contract.",
+        "Project test command passes after implementation."
+      ],
+      "implementation_notes": "Do not edit tests to weaken existing expectations. Update shared tests only where the production contract intentionally adds upgrade artifacts.",
+      "test_strategy": "Run spec-local tests for this spec, targeted affected shared tests, and the project test command required by the flow.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-06-05T00:49:59.785Z",
+    "notes": "autoApprove: gate-passed spec approved after spec review advisory and spec-gate PASS."
+  }
+}

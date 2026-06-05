@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-05T05:33:31.258Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 2,
+    "nonBlocking": 0,
+    "total": 2
+  },
+  "blockingFindings": [
+    {
+      "title": "Integration gate can use stale changed_files and skip required upgrade evidence",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "src/flow/lib/test-artifacts.js",
+      "requirementId": "R4",
+      "issue": "validateIntegrationArtifactTrust decides whether upgrade evidence is required from result.regression.changed_files in test-execute-result.json. For regression.required=false artifacts, assertIntegrationRegressionEvidence does not recompute or compare the current git changed file list, so a skill or preset change made after test-execute can reach integration gate with a stale artifact that does not mention src/skills/** or src/presets/** and no upgrade-result.json will be required.",
+      "suggestion": "In validateIntegrationArtifactTrust, derive the upgrade-evidence trigger from the current gate changed file list, for example by calling listRegressionChangedFiles({ root, state }) or by accepting the gate's current changed files as an argument, and pass that list to validateUpgradeEvidenceForChangedFiles. Keep the artifact snapshot validation separate so stale test-execute data cannot suppress R4.",
+      "rationale": "R4 requires the integration gate itself to require upgrade evidence when the changed file list contains src/skills/** or src/presets/**. Basing the decision only on a persisted test artifact allows the gate to PASS without the required evidence after relevant files change."
+    },
+    {
+      "title": "Preset deployment updates are not reflected in upgrade-result result",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "src/upgrade.js",
+      "requirementId": "R2",
+      "issue": "UpgradeEvidenceRecorder.write computes result=updated only from skillResults, removedSkills, and configChanged. deployPresetCopies(root, ...) is executed but its returned paths are ignored, so a run that updates preset-derived files can still write result=no_changes when no skills or config migrations changed.",
+      "suggestion": "Track deployPresetCopies in main, make the preset deployment branch report whether it changed outputs, and include that preset update signal in the result calculation passed to UpgradeEvidenceRecorder.write.",
+      "rationale": "R2 says no_changes is used only when exitCode is 0 and no skill removal, skill update, preset/config migration, or other tracked update occurred. Ignoring preset deployment changes makes the machine-readable evidence contradict the actual upgrade outcome."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/278-upgrade-evidence-artifact/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "f182ba2cabefff940f579eb025d7007da1dd7290477f35f7c38a26365bb5c832"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "impl-004-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Integration gate can use stale changed_files and skip required upgrade evidence",
+      "body": "validateIntegrationArtifactTrust decides whether upgrade evidence is required from result.regression.changed_files in test-execute-result.json. For regression.required=false artifacts, assertIntegrationRegressionEvidence does not recompute or compare the current git changed file list, so a skill or preset change made after test-execute can reach integration gate with a stale artifact that does not mention src/skills/** or src/presets/** and no upgrade-result.json will be required.",
+      "category": "spec_behavior_contradiction"
+    },
+    {
+      "id": "impl-004-blocking-002",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Preset deployment updates are not reflected in upgrade-result result",
+      "body": "UpgradeEvidenceRecorder.write computes result=updated only from skillResults, removedSkills, and configChanged. deployPresetCopies(root, ...) is executed but its returned paths are ignored, so a run that updates preset-derived files can still write result=no_changes when no skills or config migrations changed.",
+      "category": "spec_behavior_contradiction"
+    }
+  ]
+}

@@ -1,0 +1,677 @@
+{
+  "entries": [
+    {
+      "step": "draft-questions-review",
+      "reason": "Codex provider usage limit caused draft question review provider_failure before the review artifact was produced.",
+      "trigger": "flow run review --phase draft returned PROVIDER_FAILURE twice with codex/gpt-5.5 and zero response characters.",
+      "resolution": "Retried the same review command with SDD_FORGE_PROFILE=claude-only, which produced draft-review-questions.json with PASS.",
+      "guardrailCandidate": "When provider failure is due to usage limit, retry once with an available configured provider profile and record the profile override.",
+      "taskId": null,
+      "timestamp": "2026-06-04T14:58:22.085Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "qa[2]: invalid category \"consumer-contracts\"",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-04T15:00:32.930Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[2]: invalid category \"consumer-contracts\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate rejected draft.json because one QA entry used a category outside the allowed Draft QA Rules enum.",
+      "trigger": "sdd-forge flow run gate --phase draft reported qa[2]: invalid category consumer-contracts.",
+      "resolution": "Changed q3 category to dependency-integration-boundary, which is part of the allowed draft QA category enum.",
+      "guardrailCandidate": "When adding draft QA entries, validate category values against Draft QA Rules before running draft-gate.",
+      "taskId": null,
+      "timestamp": "2026-06-04T15:00:52.195Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "4件の要件項目（sdd-forge upgrade stdout 維持、integration gate 契約維持、finalize/report artifacts 維持、skill/preset flow 改善）がすべて「必要がある」表現で並列列挙されており、must / should / nice-to-have の優先度が付与されていない。; 4件のスコープ内要件項目（artifact 保存契約、integration gate 検証、durable artifact 連携、状態区別証跡）が must / should / nice-to-have の優先度なしに列挙されている。; 「final report には upgrade evidence の要約を表示する」と記述されているが、要約に含めるべき最低限の情報（状態種別、件数、参照先 path など）が定義されておらず、2人の独立したレビュアーが実装の適合性を一致して判断できない。; 「report には upgrade evidence の有無と結果を要約し、詳細は durable artifact を参照させる」という記述は、要約の具体的な内容基準を定めていないため、2人の独立したレビュアーが report 実装の適合性について一致した判断を下せない。; 「少なくとも src/skills と src/presets を含める」という記述は検出対象の完全な集合を規定しておらず、それ以外のソースパスを含めるか否かについて 2人の独立したレビュアーが実装の適合性を一致して判断できない。; 「少なくとも src/skills と src/presets を検出対象にする」は「少なくとも」によって検出対象の全体が未定義のままであり、実装が要件を満たすかどうかを検証できる条件として成立していない。; 「upgrade-result.json に含める fields は Issue 記載の version、command、dryRun、exitCode、skill results、config migration、checked paths、raw log path を最低限とするか」という問いに対応する qa エントリが存在せず、推奨回答と根拠が示されていない。deferredToSpec への委譲のみで終わっている。; 「upgrade 失敗時の artifact を gate がどのように扱うか」という問いに対応する qa エントリも deferredToSpec エントリも存在せず、推奨回答と根拠が一切示されていない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-04T15:05:10.035Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "impactOnExisting"
+          },
+          "observed": "4件の要件項目（sdd-forge upgrade stdout 維持、integration gate 契約維持、finalize/report artifacts 維持、skill/preset flow 改善）がすべて「必要がある」表現で並列列挙されており、must / should / nice-to-have の優先度が付与されていない。",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in"
+          },
+          "observed": "4件のスコープ内要件項目（artifact 保存契約、integration gate 検証、durable artifact 連携、状態区別証跡）が must / should / nice-to-have の優先度なしに列挙されている。",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "qa[3].answer"
+          },
+          "observed": "「final report には upgrade evidence の要約を表示する」と記述されているが、要約に含めるべき最低限の情報（状態種別、件数、参照先 path など）が定義されておらず、2人の独立したレビュアーが実装の適合性を一致して判断できない。",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "decisionMap.knownFacts[9]"
+          },
+          "observed": "「report には upgrade evidence の有無と結果を要約し、詳細は durable artifact を参照させる」という記述は、要約の具体的な内容基準を定めていないため、2人の独立したレビュアーが report 実装の適合性について一致した判断を下せない。",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "decisionMap.knownFacts[6]"
+          },
+          "observed": "「少なくとも src/skills と src/presets を含める」という記述は検出対象の完全な集合を規定しておらず、それ以外のソースパスを含めるか否かについて 2人の独立したレビュアーが実装の適合性を一致して判断できない。",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "qa[0].answer"
+          },
+          "observed": "「少なくとも src/skills と src/presets を検出対象にする」は「少なくとも」によって検出対象の全体が未定義のままであり、実装が要件を満たすかどうかを検証できる条件として成立していない。",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "spec.json",
+            "locator": "decisionMap.decisionPoints[0]"
+          },
+          "observed": "「upgrade-result.json に含める fields は Issue 記載の version、command、dryRun、exitCode、skill results、config migration、checked paths、raw log path を最低限とするか」という問いに対応する qa エントリが存在せず、推奨回答と根拠が示されていない。deferredToSpec への委譲のみで終わっている。",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "spec.json",
+            "locator": "decisionMap.decisionPoints[3]"
+          },
+          "observed": "「upgrade 失敗時の artifact を gate がどのように扱うか」という問いに対応する qa エントリも deferredToSpec エントリも存在せず、推奨回答と根拠が一切示されていない。",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "4件の要件項目（sdd-forge upgrade stdout 維持、integration gate 契約維持、finalize/report artifacts 維持、skill/preset flow 改善）がすべて「必要がある」表現で並列列挙されており、must / should / nice-to-have の優先度が付与されていない。"
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "4件のスコープ内要件項目（artifact 保存契約、integration gate 検証、durable artifact 連携、状態区別証跡）が must / should / nice-to-have の優先度なしに列挙されている。"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "「final report には upgrade evidence の要約を表示する」と記述されているが、要約に含めるべき最低限の情報（状態種別、件数、参照先 path など）が定義されておらず、2人の独立したレビュアーが実装の適合性を一致して判断できない。"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "「report には upgrade evidence の有無と結果を要約し、詳細は durable artifact を参照させる」という記述は、要約の具体的な内容基準を定めていないため、2人の独立したレビュアーが report 実装の適合性について一致した判断を下せない。"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "「少なくとも src/skills と src/presets を含める」という記述は検出対象の完全な集合を規定しておらず、それ以外のソースパスを含めるか否かについて 2人の独立したレビュアーが実装の適合性を一致して判断できない。"
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "「少なくとも src/skills と src/presets を検出対象にする」は「少なくとも」によって検出対象の全体が未定義のままであり、実装が要件を満たすかどうかを検証できる条件として成立していない。"
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "「upgrade-result.json に含める fields は Issue 記載の version、command、dryRun、exitCode、skill results、config migration、checked paths、raw log path を最低限とするか」という問いに対応する qa エントリが存在せず、推奨回答と根拠が示されていない。deferredToSpec への委譲のみで終わっている。"
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "「upgrade 失敗時の artifact を gate がどのように扱うか」という問いに対応する qa エントリも deferredToSpec エントリも存在せず、推奨回答と根拠が一切示されていない。"
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate found missing priorities and ambiguous draft requirements after the category fix.",
+      "trigger": "draft-gate reported prioritize-requirements, complete-context, unambiguous-requirements, and draft-recommend-with-reasoning violations.",
+      "resolution": "Added must/should priorities, fixed trigger paths to src/skills/** and src/presets/**, defined report summary fields, and added answered QA entries for artifact fields and failure handling.",
+      "guardrailCandidate": "Before rerunning draft-gate, scan all draft prose fields for vague path scopes, unprioritized requirement lists, and deferred decisions that need answered QA entries.",
+      "taskId": null,
+      "timestamp": "2026-06-04T15:06:38.927Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The requirement '[should] upgrade evidence を finalize/report 後も参照可能にする durable artifact 連携。' uses the vague adjective '参照可能' (accessible/referable) without stating a verifiable condition. It does not specify what 'accessible after finalize/report' means concretely — e.g., 'upgrade-result.json shall persist at a known path under the spec directory after finalize completes' or 'report.json shall include the upgrade artifact path field'. The detail in Q4 disambiguates intent but is not referenced from the requirement itself.; The requirement '[should] upgrade evidence を finalize/report 後も参照可能にする durable artifact 連携。' is not specific enough for two independent reviewers to agree on satisfaction. One reviewer reading this requirement in isolation would accept an implementation where the artifact file simply persists on disk; another would require that the report.json surface the artifact path as a field. The disambiguating specification (Q4: 'report.json に artifact path、raw log path、exitCode 等を含む要約を表示') is located only in the Q&A section and is not stated within the requirement itself.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-04T15:10:05.160Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[3]"
+          },
+          "observed": "The requirement '[should] upgrade evidence を finalize/report 後も参照可能にする durable artifact 連携。' uses the vague adjective '参照可能' (accessible/referable) without stating a verifiable condition. It does not specify what 'accessible after finalize/report' means concretely — e.g., 'upgrade-result.json shall persist at a known path under the spec directory after finalize completes' or 'report.json shall include the upgrade artifact path field'. The detail in Q4 disambiguates intent but is not referenced from the requirement itself.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[3]"
+          },
+          "observed": "The requirement '[should] upgrade evidence を finalize/report 後も参照可能にする durable artifact 連携。' is not specific enough for two independent reviewers to agree on satisfaction. One reviewer reading this requirement in isolation would accept an implementation where the artifact file simply persists on disk; another would require that the report.json surface the artifact path as a field. The disambiguating specification (Q4: 'report.json に artifact path、raw log path、exitCode 等を含む要約を表示') is located only in the Q&A section and is not stated within the requirement itself.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The requirement '[should] upgrade evidence を finalize/report 後も参照可能にする durable artifact 連携。' uses the vague adjective '参照可能' (accessible/referable) without stating a verifiable condition. It does not specify what 'accessible after finalize/report' means concretely — e.g., 'upgrade-result.json shall persist at a known path under the spec directory after finalize completes' or 'report.json shall include the upgrade artifact path field'. The detail in Q4 disambiguates intent but is not referenced from the requirement itself."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The requirement '[should] upgrade evidence を finalize/report 後も参照可能にする durable artifact 連携。' is not specific enough for two independent reviewers to agree on satisfaction. One reviewer reading this requirement in isolation would accept an implementation where the artifact file simply persists on disk; another would require that the report.json surface the artifact path as a field. The disambiguating specification (Q4: 'report.json に artifact path、raw log path、exitCode 等を含む要約を表示') is located only in the Q&A section and is not stated within the requirement itself."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate still found an ambiguous durable artifact requirement after the broader draft cleanup.",
+      "trigger": "draft-gate reported unambiguous-requirements and complete-context violations for scopeVerification.in[3].",
+      "resolution": "Replaced the vague referable wording with explicit durable paths and report.json summary fields.",
+      "guardrailCandidate": "When using durable artifact requirements, state exact artifact paths and report fields in the requirement text itself, not only in QA rationale.",
+      "taskId": null,
+      "timestamp": "2026-06-04T15:10:24.272Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "「finalize/report は既存の test/report artifacts を壊さず」の「壊さず」は検証可能な条件を示していない。どの artifact が、どの性質（継続生成・フォーマット維持・出力パスの不変性等）を保てば合格とみなされるかが未定義であり、実装者によって解釈が異なりうる。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-04T15:12:26.685Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "impactOnExisting[2]"
+          },
+          "observed": "「finalize/report は既存の test/report artifacts を壊さず」の「壊さず」は検証可能な条件を示していない。どの artifact が、どの性質（継続生成・フォーマット維持・出力パスの不変性等）を保てば合格とみなされるかが未定義であり、実装者によって解釈が異なりうる。",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "「finalize/report は既存の test/report artifacts を壊さず」の「壊さず」は検証可能な条件を示していない。どの artifact が、どの性質（継続生成・フォーマット維持・出力パスの不変性等）を保てば合格とみなされるかが未定義であり、実装者によって解釈が異なりうる。"
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate found one remaining ambiguous phrase in impactOnExisting after durable path clarification.",
+      "trigger": "draft-gate reported unambiguous-requirements violation for impactOnExisting[2] phrase '壊さず'.",
+      "resolution": "Replaced the phrase with explicit existing durable artifact pathspecs whose generation and collection must be maintained.",
+      "guardrailCandidate": "Avoid vague preservation verbs in impact statements; list the concrete artifacts or contracts that must continue unchanged.",
+      "taskId": null,
+      "timestamp": "2026-06-04T15:12:41.532Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "「upgrade-result.json の必須 fields は version、command、dryRun、exitCode、result、skills.updated、skills.unchanged、skills.removed、configMigration.changed、checkedPaths、rawLogPath とする。」は実装を拘束する要件として記述されているが、must / should / nice-to-have のいずれの優先度ラベルも付与されていない。decisionPoints 全体で要件が 3 件を超えるため、各要件に優先度を付与する必要がある。; 「upgrade 必須変更の判定対象は src/skills/** と src/presets/** に限定する。」は実装を拘束する要件として記述されているが、must / should / nice-to-have の優先度ラベルが付与されていない。; 「upgrade 実行に変更がなかった場合も artifact を必須にする。」は実装を拘束する要件として記述されているが、must / should / nice-to-have の優先度ラベルが付与されていない。; 「upgrade 失敗時も artifact と raw log を残し、gate は exitCode が 0 でない artifact を FAIL として扱う。」は実装を拘束する要件として記述されているが、must / should / nice-to-have の優先度ラベルが付与されていない。; 「report に upgrade evidence の要約を表示する。」は実装を拘束する要件として記述されているが、must / should / nice-to-have の優先度ラベルが付与されていない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-04T15:15:19.021Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "decisionMap.decisionPoints[0]"
+          },
+          "observed": "「upgrade-result.json の必須 fields は version、command、dryRun、exitCode、result、skills.updated、skills.unchanged、skills.removed、configMigration.changed、checkedPaths、rawLogPath とする。」は実装を拘束する要件として記述されているが、must / should / nice-to-have のいずれの優先度ラベルも付与されていない。decisionPoints 全体で要件が 3 件を超えるため、各要件に優先度を付与する必要がある。",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "decisionMap.decisionPoints[1]"
+          },
+          "observed": "「upgrade 必須変更の判定対象は src/skills/** と src/presets/** に限定する。」は実装を拘束する要件として記述されているが、must / should / nice-to-have の優先度ラベルが付与されていない。",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "decisionMap.decisionPoints[2]"
+          },
+          "observed": "「upgrade 実行に変更がなかった場合も artifact を必須にする。」は実装を拘束する要件として記述されているが、must / should / nice-to-have の優先度ラベルが付与されていない。",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "decisionMap.decisionPoints[3]"
+          },
+          "observed": "「upgrade 失敗時も artifact と raw log を残し、gate は exitCode が 0 でない artifact を FAIL として扱う。」は実装を拘束する要件として記述されているが、must / should / nice-to-have の優先度ラベルが付与されていない。",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "decisionMap.decisionPoints[4]"
+          },
+          "observed": "「report に upgrade evidence の要約を表示する。」は実装を拘束する要件として記述されているが、must / should / nice-to-have の優先度ラベルが付与されていない。",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "「upgrade-result.json の必須 fields は version、command、dryRun、exitCode、result、skills.updated、skills.unchanged、skills.removed、configMigration.changed、checkedPaths、rawLogPath とする。」は実装を拘束する要件として記述されているが、must / should / nice-to-have のいずれの優先度ラベルも付与されていない。decisionPoints 全体で要件が 3 件を超えるため、各要件に優先度を付与する必要がある。"
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "「upgrade 必須変更の判定対象は src/skills/** と src/presets/** に限定する。」は実装を拘束する要件として記述されているが、must / should / nice-to-have の優先度ラベルが付与されていない。"
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "「upgrade 実行に変更がなかった場合も artifact を必須にする。」は実装を拘束する要件として記述されているが、must / should / nice-to-have の優先度ラベルが付与されていない。"
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "「upgrade 失敗時も artifact と raw log を残し、gate は exitCode が 0 でない artifact を FAIL として扱う。」は実装を拘束する要件として記述されているが、must / should / nice-to-have の優先度ラベルが付与されていない。"
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "「report に upgrade evidence の要約を表示する。」は実装を拘束する要件として記述されているが、must / should / nice-to-have の優先度ラベルが付与されていない。"
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate exhausted retry budget and then next-action identified missing priority markers in decisionMap.decisionPoints.",
+      "trigger": "Last draft-gate FAIL reported prioritize-requirements violations for every decisionMap.decisionPoints entry.",
+      "resolution": "Added must/should priority markers to every decisionMap.decisionPoints requirement-like entry after the user instructed to continue.",
+      "guardrailCandidate": "Before draft-gate, scan decisionMap.decisionPoints for requirement-like entries and add must/should/nice-to-have markers.",
+      "taskId": null,
+      "timestamp": "2026-06-05T00:25:04.373Z"
+    },
+    {
+      "step": "draft-gate",
+      "phase": "draft",
+      "reason": "gate retry limit exhausted: 5/5 FAIL attempts recorded for phase \"draft\".\nCounter breakdown: AI-FAIL=5\nPrevious FAIL reasons:\n  attempt 1: qa[2]: invalid category \"consumer-contracts\"\n  attempt 2: 4件の要件項目（sdd-forge upgrade stdout 維持、integration gate 契約維持、finalize/report artifacts 維持、skill/preset flow 改善）がすべて「必要がある」表現で並列列挙されており、must / should / nice-to-have の優先度が付与されていない。; 4件のスコープ内要件項目（artifact 保存契約、integration gate 検証、durable artifact 連携、状態区別証跡）が must / should / nice-to-have の優先度なしに列挙されている。; 「final report には upgrade evidence の要約を表示する」と記述されているが、要約に含めるべき最低限の情報（状態種別、件数、参照先 path など）が定義されておらず、2人の独立したレビュアーが実装の適合性を一致して判断できない。; 「report には upgrade evidence の有無と結果を要約し、詳細は durable artifact を参照させる」という記述は、要約の具体的な内容基準を定めていないため、2人の独立したレビュアーが report 実装の適合性について一致した判断を下せない。; 「少なくとも src/skills と src/presets を含める」という記述は検出対象の完全な集合を規定しておらず、それ以外のソースパスを含めるか否かについて 2人の独立したレビュアーが実装の適合性を一致して判断できない。; 「少なくとも src/skills と src/presets を検出対象にする」は「少なくとも」によって検出対象の全体が未定義のままであり、実装が要件を満たすかどうかを検証できる条件として成立していない。; 「upgrade-result.json に含める fields は Issue 記載の version、command、dryRun、exitCode、skill results、config migration、checked paths、raw log path を最低限とするか」という問いに対応する qa エントリが存在せず、推奨回答と根拠が示されていない。deferredToSpec への委譲のみで終わっている。; 「upgrade 失敗時の artifact を gate がどのように扱うか」という問いに対応する qa エントリも deferredToSpec エントリも存在せず、推奨回答と根拠が一切示されていない。\n  attempt 3: The requirement '[should] upgrade evidence を finalize/report 後も参照可能にする durable artifact 連携。' uses the vague adjective '参照可能' (accessible/referable) without stating a verifiable condition. It does not specify what 'accessible after finalize/report' means concretely — e.g., 'upgrade-result.json shall persist at a known path under the spec directory after finalize completes' or 'report.json shall include the upgrade artifact path field'. The detail in Q4 disambiguates intent but is not referenced from the requirement itself.; The requirement '[should] upgrade evidence を finalize/report 後も参照可能にする durable artifact 連携。' is not specific enough for two independent reviewers to agree on satisfaction. One reviewer reading this requirement in isolation would accept an implementation where the artifact file simply persists on disk; another would require that the report.json surface the artifact path as a field. The disambiguating specification (Q4: 'report.json に artifact path、raw log path、exitCode 等を含む要約を表示') is located only in the Q&A section and is not stated within the requirement itself.\n  attempt 4: 「finalize/report は既存の test/report artifacts を壊さず」の「壊さず」は検証可能な条件を示していない。どの artifact が、どの性質（継続生成・フォーマット維持・出力パスの不変性等）を保てば合格とみなされるかが未定義であり、実装者によって解釈が異なりうる。\n  attempt 5: 「upgrade-result.json の必須 fields は version、command、dryRun、exitCode、result、skills.updated、skills.unchanged、skills.removed、configMigration.changed、checkedPaths、rawLogPath とする。」は実装を拘束する要件として記述されているが、must / should / nice-to-have のいずれの優先度ラベルも付与されていない。decisionPoints 全体で要件が 3 件を超えるため、各要件に優先度を付与する必要がある。; 「upgrade 必須変更の判定対象は src/skills/** と src/presets/** に限定する。」は実装を拘束する要件として記述されているが、must / should / nice-to-have の優先度ラベルが付与されていない。; 「upgrade 実行に変更がなかった場合も artifact を必須にする。」は実装を拘束する要件として記述されているが、must / should / nice-to-have の優先度ラベルが付与されていない。; 「upgrade 失敗時も artifact と raw log を残し、gate は exitCode が 0 でない artifact を FAIL として扱う。」は実装を拘束する要件として記述されているが、must / should / nice-to-have の優先度ラベルが付与されていない。; 「report に upgrade evidence の要約を表示する。」は実装を拘束する要件として記述されているが、must / should / nice-to-have の優先度ラベルが付与されていない。\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-05T00:25:09.327Z"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "User approved manual retry reset after confirming the prior draft-gate finding was valid.",
+      "trigger": "Draft-gate retry was exhausted, but the final finding had already been fixed and the CLI does not support reset for plan draft-gate.",
+      "resolution": "Removed only draft gateRetry metric entries from flow.json, preserving draft content and historical issue-log evidence, then continued with gate rerun.",
+      "guardrailCandidate": "Provide a supported retry reset path for draft-gate when changed evidence is present after max attempts.",
+      "taskId": null,
+      "timestamp": "2026-06-05T00:28:45.468Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "R4 states 'the gate must require a valid upgrade-result.json and raw log before it can PASS' but does not define what constitutes a valid raw log. The spec defines JSON validity through R1/R2 but provides no criteria for the raw log (file existence, non-empty, specific content structure). Two independent reviewers would not agree on whether a gate implementation that only checks file existence at the rawLogPath satisfies 'require a valid ... raw log'.; R6 states integration gate must 'include the artifact failure reason in the gate artifact trust failure output' but does not define what information constitutes the 'artifact failure reason' (e.g., exitCode value, result field, full artifact dump), the field name or format it appears under in the output, or the minimum content required. Two independent reviewers would produce different implementations that cannot both be confirmed correct from diff and test output alone.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-05T00:42:28.511Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[3] (R4)"
+          },
+          "observed": "R4 states 'the gate must require a valid upgrade-result.json and raw log before it can PASS' but does not define what constitutes a valid raw log. The spec defines JSON validity through R1/R2 but provides no criteria for the raw log (file existence, non-empty, specific content structure). Two independent reviewers would not agree on whether a gate implementation that only checks file existence at the rawLogPath satisfies 'require a valid ... raw log'.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[5] (R6)"
+          },
+          "observed": "R6 states integration gate must 'include the artifact failure reason in the gate artifact trust failure output' but does not define what information constitutes the 'artifact failure reason' (e.g., exitCode value, result field, full artifact dump), the field name or format it appears under in the output, or the minimum content required. Two independent reviewers would produce different implementations that cannot both be confirmed correct from diff and test output alone.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "R4 states 'the gate must require a valid upgrade-result.json and raw log before it can PASS' but does not define what constitutes a valid raw log. The spec defines JSON validity through R1/R2 but provides no criteria for the raw log (file existence, non-empty, specific content structure). Two independent reviewers would not agree on whether a gate implementation that only checks file existence at the rawLogPath satisfies 'require a valid ... raw log'."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "R6 states integration gate must 'include the artifact failure reason in the gate artifact trust failure output' but does not define what information constitutes the 'artifact failure reason' (e.g., exitCode value, result field, full artifact dump), the field name or format it appears under in the output, or the minimum content required. Two independent reviewers would produce different implementations that cannot both be confirmed correct from diff and test output alone."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "Spec gate found incomplete context for raw log validity and upgrade artifact failure reason output.",
+      "trigger": "spec-gate FAIL reported R4 did not define valid raw log criteria and R6 did not define minimum artifact failure reason content.",
+      "resolution": "Clarify raw log validity as existing file at rawLogPath, non-empty, bounded by MAX_RAW_OUTPUT_BYTES, and clarify failure output must include upgrade-result.json exitCode=<value> result=<value>.",
+      "guardrailCandidate": "When spec requirements mention valid artifacts or failure reasons, define the minimum observable fields and file validity criteria in the requirement itself.",
+      "taskId": null,
+      "timestamp": "2026-06-05T00:42:39.298Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "R10 states the modified `sdd-forge upgrade` command must keep its existing `--dry-run` option semantics, but the spec does not list `--dry-run` with its type, format, or range validation requirements as required when modifying a CLI command.; T-2 implementation_notes describes adding 'an internal flow evidence option or helper' to the upgrade command invocation path but does not formally mark it as internal in a dedicated argument listing, as required for arguments used only by internal automation.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-05T00:45:07.889Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "validate-user-input-at-entry-point",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.requirements[9]"
+          },
+          "observed": "R10 states the modified `sdd-forge upgrade` command must keep its existing `--dry-run` option semantics, but the spec does not list `--dry-run` with its type, format, or range validation requirements as required when modifying a CLI command.",
+          "severity": "blocking",
+          "refs": [
+            "validate-user-input-at-entry-point"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "validate-user-input-at-entry-point",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.tasks[1].implementation_notes"
+          },
+          "observed": "T-2 implementation_notes describes adding 'an internal flow evidence option or helper' to the upgrade command invocation path but does not formally mark it as internal in a dedicated argument listing, as required for arguments used only by internal automation.",
+          "severity": "blocking",
+          "refs": [
+            "validate-user-input-at-entry-point"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "validate-user-input-at-entry-point",
+          "reason": "R10 states the modified `sdd-forge upgrade` command must keep its existing `--dry-run` option semantics, but the spec does not list `--dry-run` with its type, format, or range validation requirements as required when modifying a CLI command."
+        },
+        {
+          "guardrail_id": "validate-user-input-at-entry-point",
+          "reason": "T-2 implementation_notes describes adding 'an internal flow evidence option or helper' to the upgrade command invocation path but does not formally mark it as internal in a dedicated argument listing, as required for arguments used only by internal automation."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "Spec gate found missing CLI argument validation details for modified upgrade command behavior.",
+      "trigger": "spec-gate FAIL reported R10 did not list --dry-run validation and T-2 mentioned an internal flow evidence option without marking it internal.",
+      "resolution": "Clarify user-facing upgrade args as --dry-run and --help boolean flags, require no new user-facing options, and reword T-2 to use internal helper/automation path rather than an option.",
+      "guardrailCandidate": "When a spec modifies a CLI command, include an explicit user-facing argument validation clarification and mark internal automation controls as non-user-facing.",
+      "taskId": null,
+      "timestamp": "2026-06-05T00:45:18.041Z"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "scenario-validity preflight saw implementation-target changes because local main was ahead of the feature branch with prior finalized src changes.",
+      "trigger": "flow run scenario-validity reported src/flow/prompts/partials/draft-qa-rules.md, src/flow/prompts/plan/draft-gate.md, and src/skills/sdd-forge.flow/SKILL.md even though git status had no src changes in this worktree.",
+      "resolution": "Rebase the active feature worktree onto main so scenario-validity compares against the current base instead of treating prior finalized main changes as this spec's implementation.",
+      "guardrailCandidate": "Before scenario-validity, if git status has no implementation-target changes but git diff baseBranch -- src reports files, check whether baseBranch is ahead and rebase the worktree onto baseBranch before running the pre-implementation test validity check.",
+      "taskId": null,
+      "timestamp": "2026-06-05T00:53:10.292Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Test review found two blocking anti-patterns in spec-local tests.",
+      "trigger": "R11 used an environment-specific repoRoot.endsWith assertion, and R10 only checked declarative metadata instead of the real upgrade argument parser.",
+      "resolution": "Removed the environment-specific R11 assertion, changed R10 to exercise parseUpgradeArgs for --dry-run and --help, and added a rawLogPath mismatch negative case.",
+      "guardrailCandidate": "Spec-local compatibility tests for CLI arguments should exercise the real parser or assert parser/metadata coupling, not only a copied metadata array.",
+      "taskId": null,
+      "timestamp": "2026-06-05T00:57:24.147Z"
+    },
+    {
+      "step": "impl-gate",
+      "phase": "integration",
+      "reason": "provider=claude | profile=claude/sonnet | exit=1 | stdoutPreview={\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":626,\"duration_api_ms\":0,\"num_turns\":1,\"result\":\"You've hit your session limit · resets 5:20am (UTC)\",\"stop_rea",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-05T01:27:07.363Z"
+    },
+    {
+      "step": "impl-gate",
+      "phase": "integration",
+      "reason": "provider=codex | profile=codex/gpt-5.3-spark | exit=1 | Reading additional input from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019e9565-bd2f-7470-a967-3ea5cf811398\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"You've hit your usage limit for GPT-5.3-Codex-Spark. Switch to another m",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-05T01:28:57.169Z"
+    },
+    {
+      "step": "impl-gate",
+      "phase": "integration",
+      "reason": "provider=claude | profile=claude/sonnet | exit=1 | stdoutPreview={\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":1101,\"duration_api_ms\":0,\"num_turns\":1,\"result\":\"You've hit your session limit · resets 5:20am (UTC)\",\"stop_re",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-05T01:29:44.178Z"
+    },
+    {
+      "step": "impl-gate",
+      "phase": "integration",
+      "reason": "provider=codex | profile=codex/gpt-5.3-spark | exit=1 | Reading additional input from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019e9568-2b38-7142-9509-c27eebd5371d\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"You've hit your usage limit. Visit https://chatgpt.com/codex/settings/us",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-05T01:31:36.045Z"
+    },
+    {
+      "step": "impl-gate",
+      "phase": "integration",
+      "reason": "provider=claude | profile=claude/sonnet | exit=1 | stdoutPreview={\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":692,\"duration_api_ms\":0,\"num_turns\":1,\"result\":\"You've hit your session limit · resets 5:20am (UTC)\",\"stop_rea",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-05T01:32:26.960Z"
+    },
+    {
+      "step": "impl-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "`upgrade-result.json` validation now restricts `result` to `no_changes|updated|failed`, but the diff does not show any logic ensuring `no_changes` is emitted only when `exitCode===0` and there are no tracked changes (`skills.*` or `configMigration`).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-05T05:26:24.661Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R2",
+          "where": null,
+          "observed": "`upgrade-result.json` validation now restricts `result` to `no_changes|updated|failed`, but the diff does not show any logic ensuring `no_changes` is emitted only when `exitCode===0` and there are no tracked changes (`skills.*` or `configMigration`).",
+          "severity": "blocking",
+          "refs": [
+            "R2"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R11"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R2",
+          "reason": "`upgrade-result.json` validation now restricts `result` to `no_changes|updated|failed`, but the diff does not show any logic ensuring `no_changes` is emitted only when `exitCode===0` and there are no tracked changes (`skills.*` or `configMigration`)."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: enforce upgrade-result result semantics for R2",
+      "resolution": "validateUpgradeResultArtifact now rejects inconsistent result values: non-zero exitCode must be failed, successful tracked changes must be updated, and successful no-change executions must be no_changes; spec-local R2 coverage was expanded.",
+      "taskId": null,
+      "timestamp": "2026-06-05T05:27:35.420Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "fix: address stale upgrade-evidence trigger and preset update result",
+      "resolution": "integration trust now derives upgrade evidence requirement from current gate changed files, and preset deployment reports updated/unchanged status so sdd-forge upgrade can include preset changes in result=updated; R2 tests cover the preset signal.",
+      "taskId": null,
+      "timestamp": "2026-06-05T05:35:24.392Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "fix: preserve non-git unit test compatibility for current changed file lookup",
+      "resolution": "integration trust uses current git changed files in real worktrees and falls back to test-execute changed_files only when the validation root is not a git repository; the failing gate-deferred-regression unit test now passes.",
+      "taskId": null,
+      "timestamp": "2026-06-05T05:42:30.620Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "fix: add presetDeployment evidence for preset-only upgrade results",
+      "resolution": "upgrade-result.json now records presetDeployment.changed, and validateUpgradeResultArtifact includes that field when deciding whether result=updated is consistent; R2 covers preset-only updated evidence.",
+      "taskId": null,
+      "timestamp": "2026-06-05T05:46:33.249Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase detected conflicts in .sdd-forge/output/analysis.json. Worktree has been restored. Run 'git rebase main' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'sdd-forge flow run finalize'.",
+      "timestamp": "2026-06-05T05:54:13.577Z"
+    }
+  ]
+}

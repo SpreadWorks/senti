@@ -1,0 +1,73 @@
+{
+  "spec": "specs/278-upgrade-evidence-artifact/spec.json",
+  "date": "2026-06-05T05:50:46.372Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "When flow-managed upgrade evidence is written, `specs/<spec>/upgrade-result.json` must be a JSON object with version, command, dryRun, exitCode, result, skills.updated, skills.unchanged, skills.removed, configMigration.changed, checkedPaths, and rawLogPath fields.",
+      "status": "done",
+      "note": "R1: upgrade-result.json validator requires the machine-readable artifact fields"
+    },
+    {
+      "desc": "`upgrade-result.json.result` must be one of `no_changes`, `updated`, or `failed`; `no_changes` is used when exitCode is 0 and no skill removal, skill update, preset/config migration, or other tracked update occurred.",
+      "status": "done",
+      "note": "R2: upgrade-result.json result is constrained to the execution outcome"
+    },
+    {
+      "desc": "When flow-managed `sdd-forge upgrade` runs, stdout and stderr from that execution must be saved to `specs/<spec>/tests/.raw/upgrade.log`; the raw log is valid only when that file exists, is non-empty, is no larger than MAX_RAW_OUTPUT_BYTES, and `upgrade-result.json.rawLogPath` equals `tests/.raw/upgrade.log`.",
+      "status": "done",
+      "note": "R3: raw upgrade log must exist, be non-empty, stay bounded, and match rawLogPath"
+    },
+    {
+      "desc": "When the integration gate runs and the changed file list contains at least one path matching `src/skills/**` or `src/presets/**`, the gate must require a valid upgrade-result.json and a valid raw log before it can PASS; valid raw log means the file at rawLogPath exists under the spec directory, is non-empty, and is no larger than MAX_RAW_OUTPUT_BYTES.",
+      "status": "done",
+      "note": "R4: integration trust requires upgrade evidence for src/skills and src/presets changes"
+    },
+    {
+      "desc": "When the integration gate runs and no changed file path matches `src/skills/**` or `src/presets/**`, upgrade-result.json must not be required; the existing trust inputs remain test-execute-result.json, test-result-review.json, file-map.json, and tests/.raw/test-execution.log.",
+      "status": "done",
+      "note": "R5: integration trust does not require upgrade evidence for unrelated changed paths"
+    },
+    {
+      "desc": "When upgrade-result.json has exitCode other than 0 or result `failed`, integration gate must FAIL for flows with `src/skills/**` or `src/presets/**` changes and the gate artifact trust failure message must include `upgrade-result.json exitCode=<value> result=<value>`.",
+      "status": "done",
+      "note": "R6: failed upgrade artifacts block gate trust with exitCode and result in the message"
+    },
+    {
+      "desc": "When flow-managed upgrade execution completes with no updated, removed, or config migration changes, upgrade-result.json must still be written with result `no_changes`, exitCode 0, checkedPaths containing `src/skills` and `src/presets`, and a raw log reference.",
+      "status": "done",
+      "note": "R7: no-change upgrade evidence is valid and distinguishes execution from missing execution"
+    },
+    {
+      "desc": "When finalize collects durable artifacts for the spec, `specs/<spec>/upgrade-result.json` and `specs/<spec>/tests/.raw/upgrade.log` must be included in durable artifact pathspec collection without removing existing durable test/report pathspecs.",
+      "status": "done",
+      "note": "R8: durable artifact pathspecs include upgrade evidence without dropping existing artifacts"
+    },
+    {
+      "desc": "When report.json is written and upgrade-result.json exists, report.json must include an `upgradeEvidence` summary with artifactPath, rawLogPath, exitCode, result, updatedCount, unchangedCount, removedCount, and configMigrationChanged.",
+      "status": "done",
+      "note": "R9: report summary maps upgrade evidence into upgradeEvidence fields"
+    },
+    {
+      "desc": "When `sdd-forge upgrade` is run by a user, the command must keep the existing user-facing arguments `--dry-run` and `--help` as boolean flags that take no value; it must add no new user-facing option, and normal execution must keep the existing stdout summary behavior.",
+      "status": "done",
+      "note": "R10: upgrade command user-facing argument metadata remains --dry-run and --help only"
+    },
+    {
+      "desc": "Spec-local tests under `specs/278-upgrade-evidence-artifact/tests/` must include `// spec: R<N>` headers covering upgrade artifact writing, integration gate validation, durable artifact collection, and report summary behavior.",
+      "status": "done",
+      "note": "R11: this spec-local test file declares and names every testable requirement"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 11,
+    "done": 11,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

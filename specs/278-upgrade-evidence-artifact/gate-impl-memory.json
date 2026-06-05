@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "phase": "integration",
+      "round": 1,
+      "status": "blocking",
+      "statusReason": "`upgrade-result.json` validation now restricts `result` to `no_changes|updated|failed`, but the diff does not show any logic ensuring `no_changes` is emitted only when `exitCode===0` and there are no tracked changes (`skills.*` or `configMigration`).",
+      "updatedAt": "2026-06-05T05:26:24.670Z",
+      "headSha": null,
+      "worktreeHash": null,
+      "passedGuardrails": [
+        "R1",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R11"
+      ],
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R2",
+          "where": null,
+          "observed": "`upgrade-result.json` validation now restricts `result` to `no_changes|updated|failed`, but the diff does not show any logic ensuring `no_changes` is emitted only when `exitCode===0` and there are no tracked changes (`skills.*` or `configMigration`).",
+          "severity": "blocking",
+          "refs": [
+            "R2"
+          ]
+        }
+      ]
+    }
+  ]
+}

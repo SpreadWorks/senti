@@ -1,0 +1,335 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".sdd-forge/output/analysis.json                    |    2 +-\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-questions-repair.json                    |    8 +\n .../draft-questions-triage.json                    |    8 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   11 +\n specs/278-upgrade-evidence-artifact/draft.json     |  139 ++\n specs/278-upgrade-evidence-artifact/file-map.json  |   52 +\n specs/278-upgrade-evidence-artifact/flow.json      | 1549 ++++++++++++++++++++\n .../gate-impl-memory.json                          |   39 +\n .../278-upgrade-evidence-artifact/impl-review.json |   28 +\n specs/278-upgrade-evidence-artifact/issue-log.json |  672 +++++++++\n specs/278-upgrade-evidence-artifact/issue.md       |   42 +\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |   14 +\n .../review-history/impl-attempt-001.json           |   51 +\n .../review-history/impl-attempt-001.md             |   22 +\n .../review-history/impl-attempt-002.json           |   31 +\n .../review-history/impl-attempt-002.md             |   16 +\n .../review-history/impl-attempt-003.json           |   31 +\n .../review-history/impl-attempt-003.md             |   16 +\n .../review-history/impl-attempt-004.json           |   71 +\n .../review-history/impl-attempt-004.md             |   31 +\n .../review-history/impl-attempt-005.json           |   52 +\n .../review-history/impl-attempt-005.md             |   23 +\n .../review-history/impl-attempt-006.json           |   31 +\n .../review-history/impl-attempt-006.md             |   16 +\n .../review-history/spec-attempt-001.json           |  108 ++\n .../review-history/spec-attempt-001.md             |   34 +\n .../review-history/test-attempt-001.json           |  118 ++\n .../review-history/test-attempt-001.md             |   37 +\n .../review-history/test-attempt-002.json           |  115 ++\n .../review-history/test-attempt-002.md             |   36 +\n specs/278-upgrade-evidence-artifact/review.md      |   16 +\n .../278-upgrade-evidence-artifact/spec-review.json |   54 +\n specs/278-upgrade-evidence-artifact/spec-review.md |   34 +\n specs/278-upgrade-evidence-artifact/spec.json      |  337 +++++\n specs/278-upgrade-evidence-artifact/spec.md        |  141 ++\n specs/278-upgrade-evidence-artifact/tasks/T-1.md   |   22 +\n specs/278-upgrade-evidence-artifact/tasks/T-2.md   |   21 +\n specs/278-upgrade-evidence-artifact/tasks/T-3.md   |   21 +\n specs/278-upgrade-evidence-artifact/tasks/T-4.md   |   21 +\n specs/278-upgrade-evidence-artifact/tasks/T-5.md   |   21 +\n .../test-coverage.json                             |  141 ++\n .../278-upgrade-evidence-artifact/test-review.json |   61 +\n specs/278-upgrade-evidence-artifact/test-review.md |   36 +\n .../tests/upgrade-evidence-artifacts.test.js       |  269 ++++\n src/flow/commands/report.js                        |   13 +\n src/flow/lib/run-report.js                         |   16 +-\n src/flow/lib/test-artifacts.js                     |  180 +++\n src/lib/preset-deploy.js                           |   22 +-\n src/upgrade.js                                     |  118 +-\n .../flow/run-finalize-retro-commit-scope.test.js   |    2 +\n 54 files changed, 4966 insertions(+), 24 deletions(-)",
+      "commits": [
+        "feat: feature/278-upgrade-evidence-artifact"
+      ]
+    },
+    "retro": {
+      "total": 11,
+      "done": 11,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "When flow-managed upgrade evidence is written, `specs/<spec>/upgrade-result.json` must be a JSON object with version, command, dryRun, exitCode, result, skills.updated, skills.unchanged, skills.removed, configMigration.changed, checkedPaths, and rawLogPath fields.",
+          "status": "done",
+          "note": "R1: upgrade-result.json validator requires the machine-readable artifact fields"
+        },
+        {
+          "desc": "`upgrade-result.json.result` must be one of `no_changes`, `updated`, or `failed`; `no_changes` is used when exitCode is 0 and no skill removal, skill update, preset/config migration, or other tracked update occurred.",
+          "status": "done",
+          "note": "R2: upgrade-result.json result is constrained to the execution outcome"
+        },
+        {
+          "desc": "When flow-managed `sdd-forge upgrade` runs, stdout and stderr from that execution must be saved to `specs/<spec>/tests/.raw/upgrade.log`; the raw log is valid only when that file exists, is non-empty, is no larger than MAX_RAW_OUTPUT_BYTES, and `upgrade-result.json.rawLogPath` equals `tests/.raw/upgrade.log`.",
+          "status": "done",
+          "note": "R3: raw upgrade log must exist, be non-empty, stay bounded, and match rawLogPath"
+        },
+        {
+          "desc": "When the integration gate runs and the changed file list contains at least one path matching `src/skills/**` or `src/presets/**`, the gate must require a valid upgrade-result.json and a valid raw log before it can PASS; valid raw log means the file at rawLogPath exists under the spec directory, is non-empty, and is no larger than MAX_RAW_OUTPUT_BYTES.",
+          "status": "done",
+          "note": "R4: integration trust requires upgrade evidence for src/skills and src/presets changes"
+        },
+        {
+          "desc": "When the integration gate runs and no changed file path matches `src/skills/**` or `src/presets/**`, upgrade-result.json must not be required; the existing trust inputs remain test-execute-result.json, test-result-review.json, file-map.json, and tests/.raw/test-execution.log.",
+          "status": "done",
+          "note": "R5: integration trust does not require upgrade evidence for unrelated changed paths"
+        },
+        {
+          "desc": "When upgrade-result.json has exitCode other than 0 or result `failed`, integration gate must FAIL for flows with `src/skills/**` or `src/presets/**` changes and the gate artifact trust failure message must include `upgrade-result.json exitCode=<value> result=<value>`.",
+          "status": "done",
+          "note": "R6: failed upgrade artifacts block gate trust with exitCode and result in the message"
+        },
+        {
+          "desc": "When flow-managed upgrade execution completes with no updated, removed, or config migration changes, upgrade-result.json must still be written with result `no_changes`, exitCode 0, checkedPaths containing `src/skills` and `src/presets`, and a raw log reference.",
+          "status": "done",
+          "note": "R7: no-change upgrade evidence is valid and distinguishes execution from missing execution"
+        },
+        {
+          "desc": "When finalize collects durable artifacts for the spec, `specs/<spec>/upgrade-result.json` and `specs/<spec>/tests/.raw/upgrade.log` must be included in durable artifact pathspec collection without removing existing durable test/report pathspecs.",
+          "status": "done",
+          "note": "R8: durable artifact pathspecs include upgrade evidence without dropping existing artifacts"
+        },
+        {
+          "desc": "When report.json is written and upgrade-result.json exists, report.json must include an `upgradeEvidence` summary with artifactPath, rawLogPath, exitCode, result, updatedCount, unchangedCount, removedCount, and configMigrationChanged.",
+          "status": "done",
+          "note": "R9: report summary maps upgrade evidence into upgradeEvidence fields"
+        },
+        {
+          "desc": "When `sdd-forge upgrade` is run by a user, the command must keep the existing user-facing arguments `--dry-run` and `--help` as boolean flags that take no value; it must add no new user-facing option, and normal execution must keep the existing stdout summary behavior.",
+          "status": "done",
+          "note": "R10: upgrade command user-facing argument metadata remains --dry-run and --help only"
+        },
+        {
+          "desc": "Spec-local tests under `specs/278-upgrade-evidence-artifact/tests/` must include `// spec: R<N>` headers covering upgrade artifact writing, integration gate validation, durable artifact collection, and report summary behavior.",
+          "status": "done",
+          "note": "R11: this spec-local test file declares and names every testable requirement"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 29,
+      "fullLogPath": "specs/278-upgrade-evidence-artifact/issue-log.json",
+      "importantTotal": 16,
+      "importantShown": 10,
+      "importantOmitted": 6,
+      "recentOtherTotal": 13,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 8,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft-questions-review",
+          "reason": "Codex provider usage limit caused draft question review provider_failure before the review artifact was produced.",
+          "resolution": "Retried the same review command with SDD_FORGE_PROFILE=claude-only, which produced draft-review-questions.json with PASS."
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "Draft gate found missing priorities and ambiguous draft requirements after the category fix.",
+          "resolution": "Added must/should priorities, fixed trigger paths to src/skills/** and src/presets/**, defined report summary fields, and added answered QA entries for artifact fields and failure handling."
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "「upgrade-result.json の必須 fields は version、command、dryRun、exitCode、result、skills.updated、skills.unchanged、skills.removed、configMigration.changed、checkedPaths、rawLogPath とする。」は実装を拘束する要件として記述されているが、must / should / nice-to-have のいずれの優先度ラベルも付...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "Draft gate exhausted retry budget and then next-action identified missing priority markers in decisionMap.decisionPoints.",
+          "resolution": "Added must/should priority markers to every decisionMap.decisionPoints requirement-like entry after the user instructed to continue."
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "gate retry limit exhausted: 5/5 FAIL attempts recorded for phase \"draft\".\nCounter breakdown: AI-FAIL=5\nPrevious FAIL reasons:\n  attempt 1: qa[2]: invalid category \"consumer-contracts\"\n  attempt 2: 4件の要件項目（sdd-forge upgrade stdout 維持、inte...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "R4 states 'the gate must require a valid upgrade-result.json and raw log before it can PASS' but does not define what constitutes a valid raw log. The spec defines JSON validity through R1/R2 but provides no criteria for the raw log (fil...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "Spec gate found incomplete context for raw log validity and upgrade artifact failure reason output.",
+          "resolution": "Clarify raw log validity as existing file at rawLogPath, non-empty, bounded by MAX_RAW_OUTPUT_BYTES, and clarify failure output must include upgrade-result.json exitCode=<value> result=<value>."
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "Spec gate found missing CLI argument validation details for modified upgrade command behavior.",
+          "resolution": "Clarify user-facing upgrade args as --dry-run and --help boolean flags, require no new user-facing options, and reword T-2 to use internal helper/automation path rather than an option."
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "provider=claude | profile=claude/sonnet | exit=1 | stdoutPreview={\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":626,\"duration_api_ms\":0,\"num_turns\":1,\"result\":\"You've hit your session limit · re...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "provider=codex | profile=codex/gpt-5.3-spark | exit=1 | Reading additional input from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019e9565-bd2f-7470-a967-3ea5cf811398\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\"...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "R10 states the modified `sdd-forge upgrade` command must keep its existing `--dry-run` option semantics, but the spec does not list `--dry-run` with its type, format, or range validation requirements as required when modifying a CLI comm...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "scenario-validity",
+          "reason": "scenario-validity preflight saw implementation-target changes because local main was ahead of the feature branch with prior finalized src changes.",
+          "resolution": "Rebase the active feature worktree onto main so scenario-validity compares against the current base instead of treating prior finalized main changes as this spec's implementation."
+        },
+        {
+          "classification": "recent-other",
+          "step": "test-review",
+          "reason": "Test review found two blocking anti-patterns in spec-local tests.",
+          "resolution": "Removed the environment-specific R11 assertion, changed R10 to exercise parseUpgradeArgs for --dry-run and --help, and added a rawLogPath mismatch negative case."
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-review",
+          "reason": "fix: address stale upgrade-evidence trigger and preset update result",
+          "resolution": "integration trust now derives upgrade evidence requirement from current gate changed files, and preset deployment reports updated/unchanged status so sdd-forge upgrade can include preset changes in result=updated; R2 tests cover the pres..."
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-review",
+          "reason": "fix: add presetDeployment evidence for preset-only upgrade results",
+          "resolution": "upgrade-result.json now records presetDeployment.changed, and validateUpgradeResultArtifact includes that field when deciding whether result=updated is consistent; R2 covers preset-only updated evidence."
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 2,
+      "srcRead": 4,
+      "question": 0,
+      "issueLog": 15
+    },
+    "tokenMetrics": {
+      "input": 356352,
+      "output": 176772,
+      "cacheRead": 3402215,
+      "cacheCreation": 650123,
+      "cost": 8.52037775,
+      "callCount": 43,
+      "durationMs": 2911924,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 56418
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 35229
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 864197
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 215738
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 534903
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 365989
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 173778
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 665672
+        }
+      ]
+    },
+    "tests": {
+      "total": 11,
+      "passed": 11,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/278-upgrade-evidence-artifact/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 92,
+          "end_line": 10062
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/278-upgrade-evidence-artifact/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/report.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-report.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-artifacts.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/preset-deploy.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/upgrade.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/run-finalize-retro-commit-scope.test.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/278-upgrade-evidence-artifact/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/report.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-report.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-artifacts.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/preset-deploy.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/upgrade.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/run-finalize-retro-commit-scope.test.js"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/278-upgrade-evidence-artifact/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/278-upgrade-evidence-artifact\n    54 files changed, 4966 insertions(+), 24 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (11 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 4\n    Q&A ......................... 0\n    issue-log ................... 15\n    agent calls ................. 43\n    input tokens ................ 356,352\n    output tokens ............... 176,772\n    cache-read tokens ........... 3,402,215\n    cache-create tokens ......... 650,123\n    cost ........................ $8.5204\n    duration (total) ............ 2911.9s\n      draft-questions-review .... 56.4s\n      draft-coverage-review ..... 35.2s\n      draft-gate ................ 864.2s\n      spec-review ............... 215.7s\n      spec-gate ................. 534.9s\n      test-review ............... 366.0s\n      impl-review ............... 173.8s\n      impl-gate ................. 665.7s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 11  passed 11  failed 0 verdict=pass\n    raw_output: specs/278-upgrade-evidence-artifact/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (29 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/278-upgrade-evidence-artifact/issue-log.json\n\n    Important (10 of 16)\n    - [draft-questions-review] Codex provider usage limit caused draft question review provider_failure before the review artifact was produced.\n    - [draft-gate] Draft gate found missing priorities and ambiguous draft requirements after the category fix.\n    - [draft-gate] 「upgrade-result.json の必須 fields は version、command、dryRun、exitCode、result、skills.updated、skills.unchanged、skills.removed、configMigration.changed、checkedPaths、rawLogPath とする。」は実装を拘束する要件として記述されているが、must / should / nice-to-have のいずれの優先度ラベルも付...\n    - [draft-gate] Draft gate exhausted retry budget and then next-action identified missing priority markers in decisionMap.decisionPoints.\n    - [draft-gate] gate retry limit exhausted: 5/5 FAIL attempts recorded for phase \"draft\".\nCounter breakdown: AI-FAIL=5\nPrevious FAIL reasons:\n  attempt 1: qa[2]: invalid category \"consumer-contracts\"\n  attempt 2: 4件の要件項目（sdd-forge upgrade stdout 維持、inte...\n    - [spec-gate] R4 states 'the gate must require a valid upgrade-result.json and raw log before it can PASS' but does not define what constitutes a valid raw log. The spec defines JSON validity through R1/R2 but provides no criteria for the raw log (fil...\n    - [spec-gate] Spec gate found incomplete context for raw log validity and upgrade artifact failure reason output.\n    - [spec-gate] Spec gate found missing CLI argument validation details for modified upgrade command behavior.\n    - [impl-gate] provider=claude | profile=claude/sonnet | exit=1 | stdoutPreview={\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":626,\"duration_api_ms\":0,\"num_turns\":1,\"result\":\"You've hit your session limit · re...\n    - [impl-gate] provider=codex | profile=codex/gpt-5.3-spark | exit=1 | Reading additional input from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019e9565-bd2f-7470-a967-3ea5cf811398\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\"...\n    ... 6 important issue-log entries omitted\n\n    Recent Other (5 of 13)\n    - [spec-gate] R10 states the modified `sdd-forge upgrade` command must keep its existing `--dry-run` option semantics, but the spec does not list `--dry-run` with its type, format, or range validation requirements as required when modifying a CLI comm...\n    - [scenario-validity] scenario-validity preflight saw implementation-target changes because local main was ahead of the feature branch with prior finalized src changes.\n    - [test-review] Test review found two blocking anti-patterns in spec-local tests.\n    - [impl-review] fix: address stale upgrade-evidence trigger and preset update result\n    - [impl-review] fix: add presetDeployment evidence for preset-only upgrade results\n    ... 8 other issue-log entries omitted"
+}

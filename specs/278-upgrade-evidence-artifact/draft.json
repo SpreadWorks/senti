@@ -1,0 +1,139 @@
+{
+  "devType": "feature",
+  "goal": "src/skills/** または src/presets/** を変更する flow で、sdd-forge upgrade の実行結果を spec 配下の標準 artifact として残し、integration gate と finalize/report から検証・参照できるようにする。",
+  "analysis": {
+    "problem": "sdd-forge upgrade は現状 stdout に結果を出すだけで、spec 配下に機械可読な実行証跡を残さない。integration gate は test-execute-result.json、test-result-review.json、file-map.json、raw log を trust input として検証するが、upgrade 実行結果は同じ契約に入っていないため、skill/preset 変更時の upgrade 実行有無が会話履歴や手動 issue-log に依存する。",
+    "proposedApproach": "upgrade 実行証跡を test-execute へ混ぜず、専用の upgrade-result.json と raw log を spec 配下に保存する。src/skills/** または src/presets/** が変更された場合だけ integration gate がこの artifact を検証し、finalize/report の durable artifact としても保持する。",
+    "validation": "既存の test-artifacts.js は integration gate の trust input と durable artifact 一覧を集中管理している。run-report.js と run-finalize.js は persisted test/report artifacts を読み取り、durableTestArtifactPathspecs 経由で成果物をコミットする。upgrade.js は deploySkills、obsolete skill cleanup、preset copy、config migration を実行して stdout summary を出すが、spec-local artifact には接続されていない。したがって専用 artifact 契約を追加すれば、Issue の根本問題である標準証跡の欠落を解消できる。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #362 は flow integration gate / finalize / report と sdd-forge upgrade の実行証跡を対象にしている。",
+      "src/upgrade.js は deploySkills、cleanupObsoleteSkills、deployPresetCopies、config migration を実行し、結果を stdout に出力する。",
+      "src/flow/lib/test-artifacts.js は INTEGRATION_TRUST_INPUTS と DURABLE_TEST_ARTIFACT_RELATIVE_PATTERNS を定義し、integration gate の artifact trust validation を担っている。",
+      "src/flow/lib/run-report.js は persisted test artifacts と retro/report 情報をまとめて report.json を生成する。",
+      "src/flow/lib/run-finalize.js は durableTestArtifactPathspecs で収集した durable artifacts を finalize 後のコミット対象にする。",
+      ".sdd-forge/config.json の workflow.flowIntegration は enable で、Issue #362 は board item として In Progress に紐付いている。",
+      "upgrade 必須変更の検出対象は src/skills/** と src/presets/** の変更に限定する。",
+      "upgrade-result.json は no changes、updated、removed、config migration、failed の各状態を区別する。",
+      "flow 内の upgrade 実行では raw log を保存し、upgrade-result.json から相対 path で参照できるようにする。",
+      "report の upgrade evidence 要約には artifact path、raw log path、exitCode、result、updated count、unchanged count、removed count、configMigration changed flag を含める。"
+    ],
+    "decisionPoints": [
+      "[must] upgrade-result.json の必須 fields は version、command、dryRun、exitCode、result、skills.updated、skills.unchanged、skills.removed、configMigration.changed、checkedPaths、rawLogPath とする。",
+      "[must] upgrade 必須変更の判定対象は src/skills/** と src/presets/** に限定する。",
+      "[must] upgrade 実行に変更がなかった場合も artifact を必須にする。",
+      "[must] upgrade 失敗時も artifact と raw log を残し、gate は exitCode が 0 でない artifact を FAIL として扱う。",
+      "[should] report に upgrade evidence の要約を表示する。"
+    ],
+    "resolvedByProjectRules": [
+      "Issue は 1 つの concern として扱い、AI 側で spec 分割を提案しない。",
+      "src/skills または src/presets を変更した flow は sdd-forge upgrade を実行する。",
+      "外部依存は追加しない。Node.js 組み込みモジュールのみを使う。",
+      "test-execute に upgrade evidence を混ぜない。Issue の改善方針に従い専用 artifact として扱う。",
+      "既存 CLI の意味を壊す変更は避ける。既存の sdd-forge upgrade は通常実行として維持し、flow 内証跡は追加契約として扱う。"
+    ],
+    "requiresUserJudgment": [
+      "なし。Issue 本文、プロジェクトルール、既存 artifact 契約から spec 作成に必要な判断は解決済み。"
+    ],
+    "deferredToSpec": [
+      "integration gate の changed file 判定方式。",
+      "finalize/report での durable artifact 収集対象の追加方法。",
+      "unit/e2e テストの具体的な fixture と検証コマンド。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] sdd-forge upgrade の実行結果を spec 配下の upgrade-result.json と raw log として保存する契約。",
+      "[must] src/skills/** または src/presets/** の変更がある場合の integration gate 検証。",
+      "[must] upgrade 実行済み、変更なし、更新あり、失敗を区別できる証跡。",
+      "[should] finalize 後も specs/<spec>/upgrade-result.json と specs/<spec>/tests/.raw/upgrade.log を durable artifact として保持し、report.json に artifact path、raw log path、exitCode、result、updated count、unchanged count、removed count、configMigration changed flag を含める。"
+    ],
+    "out": [
+      "sdd-forge upgrade の本来の配布・マイグレーション処理の全面再設計。",
+      "test-execute-result.json への upgrade evidence 混入。",
+      "npm publish や release 操作。",
+      "src/skills や src/presets の個別内容改善。"
+    ]
+  },
+  "impactOnExisting": [
+    "[must] sdd-forge upgrade は既存 CLI として引き続き stdout summary を出す。",
+    "[must] integration gate は src/skills/** または src/presets/** の変更がない flow では既存の trust input 契約を維持する。",
+    "[should] finalize/report は既存の durable artifact pathspecs（test-execute-result.json、test-result-review.json、test-result-review.md、impl-gate-result.json、final-regression-result.json、retro.json、report.json、tests/.raw/test-execution.log、tests/.raw/final-regression-attempt-*.log）の生成・収集を維持し、upgrade-result.json と tests/.raw/upgrade.log を durable artifact として追加する。",
+    "[should] skill/preset 変更を伴う flow では、手動 issue-log ではなく artifact の有無と内容で upgrade 実行を判断できるようにする。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "upgrade 必須変更として gate が検出すべき path 集合を src/skills/** と src/presets/** に限定しますか。それとも生成先の .agents/skills、.claude/skills、preset-derived copies、AGENTS.md SDD section も判定対象に含めますか。",
+      "answer": "検出対象は src/skills/** と src/presets/** に限定する。生成先の .agents/skills、.claude/skills、AGENTS.md SDD section、preset-derived copies は、今回の gate 必須判定トリガーには含めない。",
+      "evidence": "Issue #362 Improvement Direction: changes that require upgrade, such as changes under src/skills or src/presets. AGENTS.md project rule: src/skills/ または src/presets/ を変更した場合は sdd-forge upgrade を実行する。",
+      "why": "upgrade は source から配布先を更新するコマンドなので、gate の必須判定は src/skills/** と src/presets/** の source 変更に限定する方が、生成済み配布先の二次差分や既存環境差分に引きずられにくい。",
+      "considered": "生成先の .agents/skills や .claude/skills も直接トリガーに含める案は、upgrade 実行結果そのものが生成先を変えるため、必須判定と結果判定が循環しやすいので主要条件にしない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "upgrade-result.json は sdd-forge upgrade が no changes の場合も必須 artifact として残すべきですか。それとも updated/removed/config migration が発生した場合だけ必須にしますか。",
+      "answer": "no changes の場合も必須 artifact として残す。artifact は実行済み、変更なし、更新あり、失敗を区別する。",
+      "evidence": "Issue #362 Completion Criteria: it should be possible to track whether upgrade was run, whether there were no changes, whether updates occurred, or whether it failed.",
+      "why": "no changes も「upgrade を実行した」という重要な証跡であり、artifact がなければ未実行と区別できない。",
+      "considered": "更新が発生した場合だけ artifact を残す案は、no changes と未実行の判別を失うため Issue の完了条件を満たさない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "raw log は upgrade-result.json と同時に常に保存しますか。それとも失敗時や verbose 相当の詳細確認が必要な場合だけ保存しますか。",
+      "answer": "flow 内で upgrade を実行した場合は raw log を保存し、upgrade-result.json から相対 path で参照する。",
+      "evidence": "Issue #362 Improvement Direction: save a dedicated upgrade-result.json, and a raw log if needed, under the spec directory. Existing test artifact contract stores tests/.raw/test-execution.log and validates raw output paths.",
+      "why": "upgrade は現在 stdout summary しか持たないため、raw log を保存しないと詳細確認や失敗時の原因追跡が再び会話履歴や端末出力に依存する。",
+      "considered": "失敗時だけ raw log を保存する案は成功時の stdout 証跡を欠き、updated/no changes の確認材料が弱くなるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "final report に upgrade evidence の要約を表示しますか。それとも artifact の durable 保存と gate 検証だけを完了条件にしますか。",
+      "answer": "final report には upgrade evidence の要約を表示する。要約には artifact path、raw log path、exitCode、result、updated count、unchanged count、removed count、configMigration changed flag を含める。詳細は durable artifact の upgrade-result.json と raw log を参照させる。",
+      "evidence": "Issue #362 Scope includes finalize / report. Issue #362 Completion Criteria says evidence remains available after finalize/report.",
+      "why": "report に要約がないと、finalize 後に upgrade evidence が保存されても、人間が作業報告から実行結果を把握しにくい。",
+      "considered": "artifact 保持だけに留める案は gate 検証を満たすが、report scope の利用者向け確認性が不足する。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "upgrade-result.json に含める必須 fields は何ですか。",
+      "answer": "必須 fields は version、command、dryRun、exitCode、result、skills.updated、skills.unchanged、skills.removed、configMigration.changed、checkedPaths、rawLogPath とする。result は no_changes、updated、failed のいずれかを表す。",
+      "evidence": "Issue #362 Improvement Direction lists version, command, dryRun, exitCode, skill results for updated/unchanged/removed, config migration, paths checked, and raw log path.",
+      "why": "Issue が求める追跡対象を field として固定すると、gate と report が同じ機械可読契約を参照できる。",
+      "considered": "field 名や型を spec へ完全に委譲する案は、draft 段階で検証対象が曖昧になるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q6",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "upgrade が失敗した場合、artifact と gate はどのように扱いますか。",
+      "answer": "upgrade が失敗した場合も upgrade-result.json と raw log を残す。upgrade-result.json の exitCode が 0 でない場合、または result が failed の場合、src/skills/** または src/presets/** の変更を伴う integration gate は FAIL として扱う。",
+      "evidence": "Issue #362 Completion Criteria requires tracking whether upgrade failed. Existing gate artifact trust validation treats missing or invalid trust inputs as blocking failures.",
+      "why": "失敗時 artifact を残すことで原因追跡が可能になり、gate は成功した upgrade 実行と失敗した実行を機械的に区別できる。",
+      "considered": "失敗時に artifact を残さない案は、失敗と未実行の区別を失うため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-04T14:59:55.000Z",
+    "notes": "autoApprove flow: all initial QA entries were resolved from Issue #362, project rules, docs, and source context; no unresolved user decision remains."
+  }
+}
