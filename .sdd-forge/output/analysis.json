@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-05T05:42:41.099Z",
+  "analyzedAt": "2026-06-05T05:57:05.982Z",
   "package": {
     "entries": [
       {
@@ -2616,9 +2616,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "47542fb10f41eb8371ca169e30c02d76",
+        "hash": "05930315426cb4929faa65b877be05ba",
         "lines": 3326,
-        "mtime": "2026-06-04T05:46:28.175Z",
+        "mtime": "2026-06-05T05:56:53.744Z",
         "className": "review",
         "methods": [
           "writeReviewAttemptHistory",
@@ -2822,25 +2822,25 @@
         "extends": "Error",
         "usedBy": null,
         "id": "331cf497",
-        "enrich": {
-          "processedAt": "2026-06-04T10:47:55.713Z",
-          "attempts": 3
-        },
-        "summary": "This module implements the `flow review` command suite, covering draft, spec, implementation, and test review phases in the SDD workflow. It orchestrates diff collection, prompt construction, AI-agent calls, schema validation, artifact persistence, and retry-oriented review loops.",
-        "detail": "The module is structured around phase-specific pipelines that load spec context, resolve touched files and merge bases, and build prompts tailored to draft QA, spec quality, implementation findings, or test coverage analysis. It uses explicit artifact classes and JSON schemas to normalize AI output, repair malformed JSON when possible, and preserve review history in reproducible files such as `review.md`, `impl-review.json`, `test-review.json`, and phase attempt logs. Several helper layers constrain scope by filtering findings to touched files, requirement IDs, and review stage classifications, while also enforcing limits on prompt size, field length, and loop retries. The command integrates guardrails, rationale summaries, git diff inspection, and optional automated fix application for test review outputs, making it a central orchestration module for review automation in the flow subsystem.",
+        "summary": "Implements the `flow review` command and orchestrates multi-phase AI-assisted reviews for draft, spec, implementation, and test artifacts. It gathers repository context, builds prompts, validates structured outputs, and persists review history and artifacts.",
+        "detail": "This module is the central review controller for the flow subsystem, combining CLI argument parsing, phase routing, git diff collection, spec loading, and AI agent invocation. It defines dedicated schemas, artifact classes, prompt builders, and parsing routines for several review modes, including implementation review, test coverage review, spec review, and draft QA review. The code repeatedly constrains scope by touched files, requirement IDs, review stages, and guarded path filters so findings stay aligned with the active spec and changed code. It also writes normalized JSON and Markdown outputs, stores per-attempt review history, repairs malformed model JSON when possible, and classifies failures into recoverable review-specific error types.",
         "chapter": "cli_commands",
-        "role": "SDD flow review orchestrator",
+        "role": "Multi-phase review command orchestrator for the Spec-Driven Development flow, including prompt generation, AI response validation, scoped diff analysis, and review artifact persistence.",
+        "enrich": {
+          "processedAt": "2026-06-05T05:57:23.365Z",
+          "attempts": 1
+        },
         "keywords": [
-          "flow review",
+          "flow review command",
+          "AI review orchestration",
           "spec review",
           "implementation review",
-          "test review",
-          "AI agent orchestration",
+          "test coverage analysis",
+          "draft QA review",
+          "git diff filtering",
           "prompt builder",
-          "schema validation",
-          "review artifacts",
-          "git diff analysis",
-          "retry loop"
+          "JSON schema validation",
+          "review artifact history"
         ]
       },
       {
@@ -13365,5 +13365,5 @@
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-05T05:42:53.693Z"
+  "enrichedAt": "2026-06-05T05:57:23.365Z"
 }
