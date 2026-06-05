@@ -193,6 +193,7 @@ function runGitDiff(args, errorMessage, cwd) {
 const UNTRACKED_DEFAULT_MAX_FILES = 500;
 const UNTRACKED_DEFAULT_MAX_FILE_SIZE = 1024 * 1024; // 1 MiB
 const TASK_IMPL_GATE_DIFF_MAX_BYTES = 1024 * 1024; // 1 MiB
+const MAX_IMPL_REQUIREMENT_BATCH_CHARS = 120000;
 
 /**
  * Synthesize a unified diff for every untracked file in `root` and return the
@@ -2303,7 +2304,191 @@ export function applyFlipOverride({ evaluations, previousEntry, currentState, ph
 // ---------------------------------------------------------------------------
 
 
-function buildImplCheckPrompt(specText, diff, knownIds) {
+export class RequirementPromptExcerpt {
+  constructor(requirement) {
+    if (!requirement || typeof requirement !== "object" || Array.isArray(requirement)) {
+      throw new Error("requirement must be an object");
+    }
+    if (typeof requirement.id !== "string" || requirement.id.trim() === "") {
+      throw new Error("requirement.id must be a non-empty string");
+    }
+    if (typeof requirement.desc !== "string" || requirement.desc.trim() === "") {
+      throw new Error("requirement.desc must be a non-empty string");
+    }
+    this.id = requirement.id.trim();
+    this.desc = requirement.desc.trim();
+    this.priority = typeof requirement.priority === "string" && requirement.priority.trim() !== ""
+      ? requirement.priority.trim()
+      : null;
+    this.testable = requirement.testable;
+    Object.freeze(this);
+  }
+
+  toPromptText() {
+    return [
+      `- ${this.id}: ${this.desc}`,
+      ...(this.priority ? [`  priority: ${this.priority}`] : []),
+      ...(this.testable === false ? ["  testing not required"] : []),
+    ].join("\n");
+  }
+}
+
+function normalizeRequirementPromptInput(input) {
+  if (input instanceof RequirementPromptExcerpt) return input;
+  return new RequirementPromptExcerpt(input);
+}
+
+function renderRequirementPromptSection(requirements) {
+  return requirements.map((requirement) => normalizeRequirementPromptInput(requirement).toPromptText()).join("\n");
+}
+
+export class RequirementGateBatch {
+  constructor({ requirements, diff, maxChars = MAX_IMPL_REQUIREMENT_BATCH_CHARS, usesFullSpec = false, fullSpecText = null }) {
+    if (!Array.isArray(requirements) || requirements.length === 0) {
+      throw new Error("requirements must be a non-empty array");
+    }
+    if (typeof diff !== "string") throw new Error("diff must be a string");
+    if (!Number.isInteger(maxChars) || maxChars <= 0) throw new Error("maxChars must be a positive integer");
+    if (fullSpecText !== null && typeof fullSpecText !== "string") throw new Error("fullSpecText must be a string or null");
+    this.requirements = Object.freeze(requirements.map(normalizeRequirementPromptInput));
+    this.diff = diff;
+    this.maxChars = maxChars;
+    this.usesFullSpec = Boolean(usesFullSpec);
+    this.fullSpecText = fullSpecText;
+    this.requirementIds = Object.freeze(this.requirements.map((requirement) => requirement.id));
+    this.category = "requirements";
+    this.requirementPromptText = this.usesFullSpec ? this.fullSpecText : renderRequirementPromptSection(this.requirements);
+    this.promptCharCount = this.requirementPromptText.length + this.diff.length;
+    this.overflow = this.requirements.length === 1 && !this.usesFullSpec && this.promptCharCount > this.maxChars;
+    Object.freeze(this);
+  }
+
+  fitsWith(requirement) {
+    const requirements = [...this.requirements, normalizeRequirementPromptInput(requirement)];
+    const promptCharCount = renderRequirementPromptSection(requirements).length + this.diff.length;
+    return promptCharCount <= this.maxChars;
+  }
+
+  withRequirement(requirement) {
+    return new RequirementGateBatch({
+      requirements: [...this.requirements, normalizeRequirementPromptInput(requirement)],
+      diff: this.diff,
+      maxChars: this.maxChars,
+    });
+  }
+
+  buildPrompt() {
+    return buildImplCheckPrompt({
+      requirements: this.usesFullSpec ? this.fullSpecText : this.requirements,
+      diff: this.diff,
+      knownIds: this.requirementIds,
+    });
+  }
+}
+
+class RequirementGatePlan {
+  constructor({ calls, evaluations }) {
+    if (!Array.isArray(calls)) throw new Error("calls must be an array");
+    if (!Array.isArray(evaluations)) throw new Error("evaluations must be an array");
+    this.calls = Object.freeze(calls);
+    this.evaluations = Object.freeze(evaluations);
+    Object.freeze(this);
+  }
+}
+
+function requirementEvaluation(reqId, result, reason) {
+  return {
+    guardrail_id: reqId,
+    result,
+    reason,
+    title: reqId,
+    category: "requirements",
+  };
+}
+
+export function buildRequirementGateBatches({ requirements, relatedDiffs, maxChars = MAX_IMPL_REQUIREMENT_BATCH_CHARS }) {
+  if (!Array.isArray(requirements)) throw new Error("requirements must be an array");
+  if (!(relatedDiffs instanceof Map)) throw new Error("relatedDiffs must be a Map");
+  const groups = new Map();
+  for (const requirementInput of requirements) {
+    const requirement = normalizeRequirementPromptInput(requirementInput);
+    const diff = relatedDiffs.get(requirement.id) || "";
+    if (!groups.has(diff)) groups.set(diff, []);
+    groups.get(diff).push(requirement);
+  }
+
+  const batches = [];
+  for (const [diff, group] of groups) {
+    let current = null;
+    for (const requirement of group) {
+      if (!current) {
+        current = new RequirementGateBatch({ requirements: [requirement], diff, maxChars });
+        continue;
+      }
+      if (current.fitsWith(requirement)) {
+        current = current.withRequirement(requirement);
+        continue;
+      }
+      batches.push(current);
+      current = new RequirementGateBatch({ requirements: [requirement], diff, maxChars });
+    }
+    if (current) batches.push(current);
+  }
+  return batches;
+}
+
+export function planRequirementGateCalls({
+  requirements,
+  relatedDiffs,
+  previouslyPassed = new Set(),
+  fullSpecText = "",
+  fullDiff = "",
+  phase = "task-impl",
+  maxChars = MAX_IMPL_REQUIREMENT_BATCH_CHARS,
+}) {
+  const requirementExcerpts = requirements.map(normalizeRequirementPromptInput);
+  if (relatedDiffs == null) {
+    if (phase === "integration") throw new Error("file-map trust input is required for integration gate");
+    return new RequirementGatePlan({
+      calls: [new RequirementGateBatch({
+        requirements: requirementExcerpts,
+        diff: fullDiff,
+        maxChars,
+        usesFullSpec: true,
+        fullSpecText,
+      })],
+      evaluations: [],
+    });
+  }
+  if (!(relatedDiffs instanceof Map)) throw new Error("relatedDiffs must be a Map or null");
+  const previousSet = previouslyPassed instanceof Set ? previouslyPassed : new Set(previouslyPassed || []);
+  const callRequirements = [];
+  const evaluations = [];
+  for (const requirement of requirementExcerpts) {
+    if (previousSet.has(requirement.id)) {
+      evaluations.push(requirementEvaluation(requirement.id, "pass", "previously passed (skipped on retry)"));
+      continue;
+    }
+    const reqDiff = relatedDiffs.get(requirement.id) || "";
+    if (!reqDiff.trim()) {
+      evaluations.push(requirementEvaluation(requirement.id, "skip", "no related diff found"));
+      continue;
+    }
+    callRequirements.push(requirement);
+  }
+  return new RequirementGatePlan({
+    calls: buildRequirementGateBatches({ requirements: callRequirements, relatedDiffs, maxChars }),
+    evaluations,
+  });
+}
+
+function buildImplCheckPrompt(specTextOrOptions, diffArg, knownIdsArg) {
+  const options = typeof specTextOrOptions === "object" && specTextOrOptions !== null && !Array.isArray(specTextOrOptions)
+    ? specTextOrOptions
+    : { requirements: specTextOrOptions, diff: diffArg, knownIds: knownIdsArg };
+  const requirements = options.requirements;
+  const diff = options.diff || "";
+  const knownIds = options.knownIds || [];
   const pb = new PromptBuilder();
   pb.setRole("You are an implementation compliance checker.\nCheck whether each spec requirement has been implemented in the diff.");
 
@@ -2317,7 +2502,11 @@ function buildImplCheckPrompt(specText, diff, knownIds) {
   pb.setFmtFallback(IMPL_REQUIREMENT_FMT_FALLBACK);
 
   pb.addUserPrompt("## Requirement IDs", knownIds.map((id) => `- ${id}`).join("\n"));
-  pb.addUserPrompt("## Spec", specText);
+  if (Array.isArray(requirements)) {
+    pb.addUserPrompt("## Requirements", renderRequirementPromptSection(requirements));
+  } else {
+    pb.addUserPrompt("## Spec", requirements || "");
+  }
   pb.addUserPrompt("## Git Diff", diff);
 
   return pb;
@@ -2965,6 +3154,9 @@ export class RunGateCommand extends FlowCommand {
     if (reqIds.length === 0) {
       return finish(gateFail(level, phase, specPath, [], ["spec.json has no requirements with usable ids"]));
     }
+    const requirements = parentSpecForRationale.requirements
+      .filter((requirement) => reqIds.includes(requirement.id))
+      .map((requirement) => new RequirementPromptExcerpt(requirement));
 
     const committed = runGitDiff([`${state.baseBranch}...HEAD`], "failed to get git diff", root);
     const uncommitted = runGitDiff(["HEAD"], "failed to get uncommitted git diff", root);
@@ -3003,8 +3195,18 @@ export class RunGateCommand extends FlowCommand {
       phase,
     });
 
-    if (!perReqDiffs) {
-      const reqPb = buildImplCheckPrompt(specText, diff, reqIds);
+    const requirementPlan = planRequirementGateCalls({
+      requirements,
+      relatedDiffs: perReqDiffs,
+      previouslyPassed: new Set(previousResult?.passedGuardrails || []),
+      fullSpecText: specText,
+      fullDiff: diff,
+      phase,
+      maxChars: MAX_IMPL_REQUIREMENT_BATCH_CHARS,
+    });
+    reqEvaluations = [...requirementPlan.evaluations];
+    for (const batch of requirementPlan.calls) {
+      const reqPb = batch.buildPrompt();
       const reqBuilt = reqPb.build();
       const reqResponse = await agent.call(reqBuilt.userPrompt, {
         commandId: "flow.spec.gate",
@@ -3012,53 +3214,12 @@ export class RunGateCommand extends FlowCommand {
         jsonSchema: reqBuilt.jsonSchema,
         fmtFallback: reqBuilt.fmtFallback,
       });
-      const reqResults = parseImplRequirementEvaluation(reqResponse, reqIds);
-      reqEvaluations = reqResults.map((r) => ({
+      const reqResults = parseImplRequirementEvaluation(reqResponse, batch.requirementIds);
+      reqEvaluations.push(...reqResults.map((r) => ({
         ...r,
         title: r.guardrail_id,
         category: "requirements",
-      }));
-    } else {
-      const previouslyPassed = new Set(previousResult?.passedGuardrails || []);
-
-      reqEvaluations = [];
-      for (const reqId of reqIds) {
-        if (previouslyPassed.has(reqId)) {
-          reqEvaluations.push({
-            guardrail_id: reqId,
-            result: "pass",
-            reason: "previously passed (skipped on retry)",
-            title: reqId,
-            category: "requirements",
-          });
-          continue;
-        }
-        const reqDiff = perReqDiffs.get(reqId) || "";
-        if (!reqDiff.trim()) {
-          reqEvaluations.push({
-            guardrail_id: reqId,
-            result: "skip",
-            reason: "no related diff found",
-            title: reqId,
-            category: "requirements",
-          });
-          continue;
-        }
-        const reqPb = buildImplCheckPrompt(specText, reqDiff, [reqId]);
-        const reqBuilt = reqPb.build();
-        const reqResponse = await agent.call(reqBuilt.userPrompt, {
-          commandId: "flow.spec.gate",
-          systemPrompt: reqBuilt.systemPrompt,
-          jsonSchema: reqBuilt.jsonSchema,
-          fmtFallback: reqBuilt.fmtFallback,
-        });
-        const reqResults = parseImplRequirementEvaluation(reqResponse, [reqId]);
-        reqEvaluations.push(...reqResults.map((r) => ({
-          ...r,
-          title: r.guardrail_id,
-          category: "requirements",
-        })));
-      }
+      })));
     }
 
     const reqPassed = reqEvaluations.every(
@@ -3186,6 +3347,7 @@ export {
   validateDraftReviewArtifactSet,
   buildGuardrailPrompt,
   buildImplCheckPrompt,
+  MAX_IMPL_REQUIREMENT_BATCH_CHARS,
   checkGuardrail,
   splitDiffByFile,
   collectPerFileDiffsForGate,

@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-05T01:14:10.388Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/279-reduce-gate-impl-prompt-size/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Missing split coverage for oversized same-context multi-requirement groups",
+      "target": "specs/279-reduce-gate-impl-prompt-size/tests/gate-impl-prompt-batches.test.js",
+      "issue": "R2 and R6 require coverage that a same-related-diff multi-requirement group exceeding MAX_IMPL_REQUIREMENT_BATCH_CHARS is split into multiple batches whose non-overflow promptCharCount values stay within 120000. The current R2 tests cover only an in-limit two-requirement batch and a single-requirement overflow batch.",
+      "requiredChange": "Add a spec-local test that creates multiple requirements sharing one related diff context whose combined excerpt-plus-diff prompt section exceeds 120000, then asserts the planner returns multiple non-overflow batches and each multi-requirement batch stays within the limit.",
+      "whyBlocking": "An acceptance requirement has no corresponding spec-local test coverage, while the coverage artifact marks R2/R6 as covered."
+    },
+    {
+      "kind": "blocking",
+      "title": "Prompt-volume assertion measures the wrong surface and is likely infeasible",
+      "target": "specs/279-reduce-gate-impl-prompt-size/tests/gate-impl-prompt-batches.test.js: R6 test",
+      "issue": "R6 requires verifying target requirement prompt content is less than 50% of the full spec fixture character count, but the test compares the entire built userPrompt length, including prompt instructions and diff, against half of a very small FULL_SPEC_TEXT fixture. This encodes an implementation premise that prompt boilerplate and diff must also fit under that threshold, which is not the stated requirement.",
+      "requiredChange": "Change the test to measure only the rendered requirement excerpt section, or use an exported prompt/batch property that represents that section, and compare it against a full spec fixture large enough to make the requirement meaningful.",
+      "whyBlocking": "The test clearly contradicts the target behavior surface and can fail without indicating a product defect."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/279-reduce-gate-impl-prompt-size/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "ebd6fde1678679dbe2b071d69abf6d678f0f7b10e1897f379b59cf8697d1dbe1"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "test-001-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Missing split coverage for oversized same-context multi-requirement groups",
+      "body": "R2 and R6 require coverage that a same-related-diff multi-requirement group exceeding MAX_IMPL_REQUIREMENT_BATCH_CHARS is split into multiple batches whose non-overflow promptCharCount values stay within 120000. The current R2 tests cover only an in-limit two-requirement batch and a single-requirement overflow batch.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Prompt-volume assertion measures the wrong surface and is likely infeasible",
+      "body": "R6 requires verifying target requirement prompt content is less than 50% of the full spec fixture character count, but the test compares the entire built userPrompt length, including prompt instructions and diff, against half of a very small FULL_SPEC_TEXT fixture. This encodes an implementation premise that prompt boilerplate and diff must also fit under that threshold, which is not the stated requirement.",
+      "category": "unknown"
+    }
+  ]
+}

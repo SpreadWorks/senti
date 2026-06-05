@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "2 blocking findings are valid and should be repaired in spec.json.",
+  "items": [
+    {
+      "title": "Oversized single-diff batches are undefined",
+      "target": "R2 / Acceptance Criteria",
+      "decision": "apply",
+      "rationale": "The current 120000 character invariant cannot be satisfied when one indivisible requirement diff already exceeds the batch limit, so the spec must define that overflow behavior.",
+      "evidence": "spec.json requirements[1].desc and acceptance_criteria[3] require every batch to stay within 120000 characters without a single-item overflow rule."
+    },
+    {
+      "title": "No-file-map fallback conflicts with integration artifact trust",
+      "target": "R4 / Acceptance Criteria",
+      "decision": "apply",
+      "rationale": "The no-file-map fallback must be scoped so it does not weaken integration gate artifact trust checks that run before requirement evaluation.",
+      "evidence": "spec.json requirements[3].desc and acceptance_criteria[6] require a no-file-map bulk agent call without qualifying the integration gate trust-input failure path."
+    }
+  ]
+}

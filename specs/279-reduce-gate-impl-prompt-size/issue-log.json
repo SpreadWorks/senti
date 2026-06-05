@@ -1,0 +1,85 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "qa[1]: invalid category \"edge-cases\"",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-05T00:56:19.576Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[1]: invalid category \"edge-cases\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "No explicit impact section exists; the spec does not clearly list which existing features are affected or explicitly state that no existing features are affected, only describing excluded items and preserved behaviors.; There is no explicit requirement that each spec-local test file under specs/<specid>/tests/ includes a `// spec: R<N> ...` header as required by the guardrail.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-05T01:04:51.917Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "impact-on-existing-features",
+          "where": {
+            "file": "spec.json",
+            "locator": "constraints + scope section"
+          },
+          "observed": "No explicit impact section exists; the spec does not clearly list which existing features are affected or explicitly state that no existing features are affected, only describing excluded items and preserved behaviors.",
+          "severity": "blocking",
+          "refs": [
+            "impact-on-existing-features"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements/acceptance_criteria"
+          },
+          "observed": "There is no explicit requirement that each spec-local test file under specs/<specid>/tests/ includes a `// spec: R<N> ...` header as required by the guardrail.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "No explicit impact section exists; the spec does not clearly list which existing features are affected or explicitly state that no existing features are affected, only describing excluded items and preserved behaviors."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "There is no explicit requirement that each spec-local test file under specs/<specid>/tests/ includes a `// spec: R<N> ...` header as required by the guardrail."
+        }
+      ]
+    },
+    {
+      "step": "test-review",
+      "phase": "test",
+      "failureKind": "tooling_failure",
+      "reason": "test-review tooling failure: agent_error",
+      "trigger": "test-review post hook (auto)",
+      "resolution": "Recover the tooling failure or record an explicit evidence-based override before proceeding.",
+      "artifact": "specs/279-reduce-gate-impl-prompt-size/test-review.md",
+      "timestamp": "2026-06-05T01:17:51.705Z"
+    }
+  ]
+}

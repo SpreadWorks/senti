@@ -1,0 +1,198 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".../completion-overrides.json                      |  19 +\n .../draft-coverage-repair.json                     |   8 +\n .../draft-coverage-triage.json                     |   8 +\n .../draft-questions-repair.json                    |  26 +\n .../draft-questions-triage.json                    |  22 +\n .../draft-review-coverage.json                     |  11 +\n .../draft-review-questions.json                    |  26 +\n specs/279-reduce-gate-impl-prompt-size/draft.json  |  87 ++\n .../279-reduce-gate-impl-prompt-size/file-map.json |  26 +\n specs/279-reduce-gate-impl-prompt-size/flow.json   | 913 +++++++++++++++++++++\n .../impl-review.json                               |  28 +\n .../issue-log.json                                 |  85 ++\n .../review-history/draft-coverage-attempt-001.json |  14 +\n .../draft-questions-attempt-001.json               |  50 ++\n .../review-history/impl-attempt-001.json           |  31 +\n .../review-history/impl-attempt-001.md             |  16 +\n .../review-history/spec-attempt-001.json           |  75 ++\n .../review-history/spec-attempt-001.md             |  25 +\n .../review-history/test-attempt-001.json           |  66 ++\n .../review-history/test-attempt-001.md             |  24 +\n .../review-history/test-attempt-002.json           |  84 ++\n .../review-history/test-attempt-002.md             |  27 +\n .../review-history/test-attempt-003.json           |  66 ++\n .../review-history/test-attempt-003.md             |  24 +\n .../review-history/test-attempt-004.json           |  33 +\n .../review-history/test-attempt-004.md             |  21 +\n specs/279-reduce-gate-impl-prompt-size/review.md   |  16 +\n .../spec-repair.json                               |  44 +\n .../spec-review.json                               |  41 +\n .../spec-review.md                                 |  25 +\n .../spec-triage.json                               |  22 +\n specs/279-reduce-gate-impl-prompt-size/spec.json   | 249 ++++++\n specs/279-reduce-gate-impl-prompt-size/spec.md     | 119 +++\n .../279-reduce-gate-impl-prompt-size/tasks/T-1.md  |  19 +\n .../279-reduce-gate-impl-prompt-size/tasks/T-2.md  |  22 +\n .../279-reduce-gate-impl-prompt-size/tasks/T-3.md  |  23 +\n .../test-coverage.json                             |  86 ++\n .../test-review.json                               |  30 +\n .../test-review.md                                 |  21 +\n .../tests/gate-impl-prompt-batches.test.js         | 261 ++++++\n src/flow/lib/run-gate.js                           | 258 ++++--\n 41 files changed, 3003 insertions(+), 48 deletions(-)",
+      "commits": [
+        "Reduce gate impl requirement prompt volume"
+      ]
+    },
+    "retro": {
+      "total": 6,
+      "done": 6,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "When a file-map exists, gate-impl requirement checks build the requirement prompt from only the target requirement excerpts instead of the full specJsonToPromptText output. Each excerpt includes the requirement id, desc, priority when present, and an explicit testing-not-required marker only when testable is false.",
+          "status": "done",
+          "note": "R1: file-map requirement prompts include only target requirement excerpts"
+        },
+        {
+          "desc": "When a file-map exists, requirements that share the same related diff context are grouped into RequirementGateBatch instances. Multi-requirement batch prompts stay within MAX_IMPL_REQUIREMENT_BATCH_CHARS = 120000 characters for the rendered requirement excerpt section plus related diff section. If a same-context group exceeds the limit, it is split into multiple batches. If one requirement's indivisible related diff plus excerpt exceeds 120000 characters, it is sent as a single-requirement overflow batch and remains bounded by the existing TASK_IMPL_GATE_DIFF_MAX_BYTES = 1048576 diff cap.",
+          "status": "done",
+          "note": "R2: identical diff contexts are batched within the multi-requirement limit"
+        },
+        {
+          "desc": "The file-map gate-impl path preserves pre-call skips: requirements listed in previous passed guardrails are emitted as pass with reason `previously passed (skipped on retry)`, and requirements whose related diff is empty are emitted as skip with reason `no related diff found`; neither case invokes agent.call.",
+          "status": "done",
+          "note": "R3: previous-pass and empty-diff requirements are skipped before agent planning"
+        },
+        {
+          "desc": "When no file-map exists in a gate phase that permits requirement checking without file-map trust input, gate-impl keeps the existing bulk requirement check behavior: build one requirement prompt from the full spec text and full diff, call agent.call once, and parse evaluations for all usable requirement ids. Integration gate preserves the existing file-map.json trust-input validation and fails structurally before requirement agent calls when that trust input is missing.",
+          "status": "done",
+          "note": "R4: no-file-map fallback is limited to non-integration requirement checks"
+        },
+        {
+          "desc": "The external gate result shape is unchanged. gatePass/gateFail artifacts still expose requirement evaluations with guardrail_id, result, reason, title, and category fields, and no new required top-level artifact fields are added for callers.",
+          "status": "done",
+          "note": "R5: planned skip and batch results preserve gate evaluation shape"
+        },
+        {
+          "desc": "Spec-local tests under specs/279-reduce-gate-impl-prompt-size/tests/ verify prompt-volume behavior without live AI providers. Each spec-local test file includes a `// spec: R<N> ...` header. Coverage verifies file-map prompts omit unrelated full spec text, target requirement prompt content is less than 50% of the full spec fixture character count, batching reduces or maintains agent call count relative to checked requirements, multi-requirement batch splitting obeys the 120000 character limit, single-requirement overflow is explicit, and integration missing-file-map trust failure remains before requirement agent calls.",
+          "status": "done",
+          "note": "R6: excerpt prompt content is less than half the full spec fixture size"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 3,
+      "fullLogPath": "specs/279-reduce-gate-impl-prompt-size/issue-log.json",
+      "importantTotal": 1,
+      "importantShown": 1,
+      "importantOmitted": 0,
+      "recentOtherTotal": 2,
+      "recentOtherShown": 2,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test-review tooling failure: agent_error",
+          "resolution": "Recover the tooling failure or record an explicit evidence-based override before proceeding."
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "qa[1]: invalid category \"edge-cases\"",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "No explicit impact section exists; the spec does not clearly list which existing features are affected or explicitly state that no existing features are affected, only describing excluded items and preserved behaviors.; There is no expli...",
+          "resolution": null
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 2,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 358161,
+      "output": 43338,
+      "cacheRead": 943232,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 20,
+      "durationMs": 427702,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 11214
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 7700
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 20738
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 165495
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 49906
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 87554
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 15195
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 69900
+        }
+      ]
+    },
+    "tests": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/279-reduce-gate-impl-prompt-size/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 76,
+          "end_line": 5249
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/279-reduce-gate-impl-prompt-size/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/279-reduce-gate-impl-prompt-size/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/279-reduce-gate-impl-prompt-size/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    Reduce gate impl requirement prompt volume\n    41 files changed, 3003 insertions(+), 48 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (6 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 0\n    agent calls ................. 20\n    input tokens ................ 358,161\n    output tokens ............... 43,338\n    cache-read tokens ........... 943,232\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 427.7s\n      draft-questions-review .... 11.2s\n      draft-coverage-review ..... 7.7s\n      draft-gate ................ 20.7s\n      spec-review ............... 165.5s\n      spec-gate ................. 49.9s\n      test-review ............... 87.6s\n      impl-review ............... 15.2s\n      impl-gate ................. 69.9s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 6  passed 6  failed 0 verdict=pass\n    raw_output: specs/279-reduce-gate-impl-prompt-size/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (3 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/279-reduce-gate-impl-prompt-size/issue-log.json\n\n    Important (1)\n    - [test-review] test-review tooling failure: agent_error\n\n    Recent Other (2)\n    - [draft-gate] qa[1]: invalid category \"edge-cases\"\n    - [spec-gate] No explicit impact section exists; the spec does not clearly list which existing features are affected or explicitly state that no existing features are affected, only describing excluded items and preserved behaviors.; There is no expli..."
+}

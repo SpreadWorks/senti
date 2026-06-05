@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "phase": "draft-questions-review",
+  "sourceDraft": "draft.json",
+  "generatedAt": "2026-06-05T00:53:25.168Z",
+  "verdict": "ADVISORY",
+  "summary": "0 blocking, 0 advisory, 2 repair target finding(s) recorded.",
+  "blockingFindings": [],
+  "advisoryFindings": [],
+  "repairTargets": [
+    {
+      "title": "1. q1 includes rationale and recommendation",
+      "target": "q1",
+      "rationale": "acceptance に prompt 量削減の測定条件を含めるか。",
+      "evidence": "A shown pending question appears to include an answer/rationale instead of only the question text.",
+      "classification": "repair_target"
+    },
+    {
+      "title": "2. q2 includes rationale and recommendation",
+      "target": "q2",
+      "rationale": "同じ diff context を共有する requirement 群が batch 文字数上限を超えた場合、複数 batch に分割して処理する挙動を acceptance に含めるか。",
+      "evidence": "A shown pending question appears to include an answer/rationale instead of only the question text.",
+      "classification": "repair_target"
+    }
+  ]
+}

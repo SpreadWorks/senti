@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Removed recommendation and rationale text from 2 pending questions.",
+  "items": [
+    {
+      "title": "1. q1 includes rationale and recommendation",
+      "target": "q1",
+      "rationale": "The pending question now contains only the user decision being asked.",
+      "evidence": "draft.json qa[0].question is now a single question without embedded recommendation or rationale.",
+      "changedFieldPaths": [
+        "qa[0].question"
+      ]
+    },
+    {
+      "title": "2. q2 includes rationale and recommendation",
+      "target": "q2",
+      "rationale": "The pending question now contains only the user decision being asked.",
+      "evidence": "draft.json qa[1].question is now a single question without embedded recommendation or rationale.",
+      "changedFieldPaths": [
+        "qa[1].question"
+      ]
+    }
+  ]
+}

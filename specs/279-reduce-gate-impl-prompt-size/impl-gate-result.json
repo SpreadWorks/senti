@@ -1,0 +1,140 @@
+{
+  "verdict": "pass",
+  "issues": [],
+  "nextAction": {
+    "diagnosis": {
+      "summary": "No blocking observations.",
+      "observations": []
+    },
+    "prescription": "retro"
+  },
+  "level": "integration",
+  "phase": "integration",
+  "evaluations": [
+    {
+      "guardrail_id": "R1",
+      "result": "pass",
+      "reason": "When related-diff map exists, prompt building now uses RequirementPromptExcerpt array via RequirementGateBatch/buildImplCheckPrompt \"Requirements\" rendering, not full spec text; excerpts include id+desc, optional priority, and add \"testing not required\" only when testable is false.",
+      "title": "R1",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R2",
+      "result": "pass",
+      "reason": "Requirements are grouped by related-diff context into RequirementGateBatch instances and packed/split by character budget via MAX_IMPL_REQUIREMENT_BATCH_CHARS, with single-requirement overflow batches explicitly represented.",
+      "title": "R2",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R3",
+      "result": "pass",
+      "reason": "File-map path now centralizes pre-call skips in `planRequirementGateCalls`: requirements in `previouslyPassed` are emitted as `{guardrail_id, result:'pass', reason:'previously passed (skipped on retry)'}`, empty-related-diff requirements as `{guardrail_id, result:'skip', reason:'no related diff found'}`, and only non-skipped requirements are included in `calls` processed by `agent.call`.",
+      "title": "R3",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R4",
+      "result": "pass",
+      "reason": "No-file-map task-impl path now routes to a single full-spec/full-diff RequirementGateBatch and one call flow, while integration with missing file-map trust input throws before any requirement call.",
+      "title": "R4",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R5",
+      "result": "pass",
+      "reason": "Requirement-evaluation objects continue to be produced with guardrail_id, result, reason, title, and category, and the diff shows no change to gatePass/gateFail artifact structure or added top-level required fields.",
+      "title": "R5",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R6",
+      "result": "skip",
+      "reason": "The diff adds R6-identified tests with the required spec header and coverage assertions for prompt-volume behavior, but test execution outcomes (node --test and npm test) are not provided, so this requirement cannot be confirmed from diff alone.",
+      "title": "R6",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": []
+    },
+    {
+      "guardrail_id": "no-overengineering",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "code-quality",
+      "title": "Avoid Overengineering",
+      "observations": []
+    }
+  ],
+  "reasons": [
+    {
+      "verdict": "PASS",
+      "detail": "R1 — When related-diff map exists, prompt building now uses RequirementPromptExcerpt array via RequirementGateBatch/buildImplCheckPrompt \"Requirements\" rendering, not full spec text; excerpts include id+desc, optional priority, and add \"testing not required\" only when testable is false.",
+      "guardrail_id": "R1",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R2 — Requirements are grouped by related-diff context into RequirementGateBatch instances and packed/split by character budget via MAX_IMPL_REQUIREMENT_BATCH_CHARS, with single-requirement overflow batches explicitly represented.",
+      "guardrail_id": "R2",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R3 — File-map path now centralizes pre-call skips in `planRequirementGateCalls`: requirements in `previouslyPassed` are emitted as `{guardrail_id, result:'pass', reason:'previously passed (skipped on retry)'}`, empty-related-diff requirements as `{guardrail_id, result:'skip', reason:'no related diff found'}`, and only non-skipped requirements are included in `calls` processed by `agent.call`.",
+      "guardrail_id": "R3",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R4 — No-file-map task-impl path now routes to a single full-spec/full-diff RequirementGateBatch and one call flow, while integration with missing file-map trust input throws before any requirement call.",
+      "guardrail_id": "R4",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R5 — Requirement-evaluation objects continue to be produced with guardrail_id, result, reason, title, and category, and the diff shows no change to gatePass/gateFail artifact structure or added top-level required fields.",
+      "guardrail_id": "R5",
+      "category": "requirements"
+    },
+    {
+      "verdict": "SKIP",
+      "detail": "R6 — The diff adds R6-identified tests with the required spec header and coverage assertions for prompt-volume behavior, but test execution outcomes (node --test and npm test) are not provided, so this requirement cannot be confirmed from diff alone.",
+      "guardrail_id": "R6",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Spec Test Coverage — no observations emitted",
+      "guardrail_id": "spec-test-coverage",
+      "category": "testing"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Avoid Overengineering — no observations emitted",
+      "guardrail_id": "no-overengineering",
+      "category": "code-quality"
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "impl-gate",
+    "artifactPath": "specs/279-reduce-gate-impl-prompt-size/impl-gate-result.json",
+    "verdict": "pass",
+    "result": "pass",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": {
+      "diagnosis": {
+        "summary": "No blocking observations.",
+        "observations": []
+      },
+      "prescription": "retro"
+    },
+    "completionKind": "normal",
+    "progressSignature": "11d36b0eb24e43fd0417c0e9dc66e8e09b53edf16d092415eac02dbb8e1d155d"
+  }
+}

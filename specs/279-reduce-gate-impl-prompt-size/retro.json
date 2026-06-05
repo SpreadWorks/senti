@@ -1,0 +1,48 @@
+{
+  "spec": "specs/279-reduce-gate-impl-prompt-size/spec.json",
+  "date": "2026-06-05T05:38:35.793Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "When a file-map exists, gate-impl requirement checks build the requirement prompt from only the target requirement excerpts instead of the full specJsonToPromptText output. Each excerpt includes the requirement id, desc, priority when present, and an explicit testing-not-required marker only when testable is false.",
+      "status": "done",
+      "note": "R1: file-map requirement prompts include only target requirement excerpts"
+    },
+    {
+      "desc": "When a file-map exists, requirements that share the same related diff context are grouped into RequirementGateBatch instances. Multi-requirement batch prompts stay within MAX_IMPL_REQUIREMENT_BATCH_CHARS = 120000 characters for the rendered requirement excerpt section plus related diff section. If a same-context group exceeds the limit, it is split into multiple batches. If one requirement's indivisible related diff plus excerpt exceeds 120000 characters, it is sent as a single-requirement overflow batch and remains bounded by the existing TASK_IMPL_GATE_DIFF_MAX_BYTES = 1048576 diff cap.",
+      "status": "done",
+      "note": "R2: identical diff contexts are batched within the multi-requirement limit"
+    },
+    {
+      "desc": "The file-map gate-impl path preserves pre-call skips: requirements listed in previous passed guardrails are emitted as pass with reason `previously passed (skipped on retry)`, and requirements whose related diff is empty are emitted as skip with reason `no related diff found`; neither case invokes agent.call.",
+      "status": "done",
+      "note": "R3: previous-pass and empty-diff requirements are skipped before agent planning"
+    },
+    {
+      "desc": "When no file-map exists in a gate phase that permits requirement checking without file-map trust input, gate-impl keeps the existing bulk requirement check behavior: build one requirement prompt from the full spec text and full diff, call agent.call once, and parse evaluations for all usable requirement ids. Integration gate preserves the existing file-map.json trust-input validation and fails structurally before requirement agent calls when that trust input is missing.",
+      "status": "done",
+      "note": "R4: no-file-map fallback is limited to non-integration requirement checks"
+    },
+    {
+      "desc": "The external gate result shape is unchanged. gatePass/gateFail artifacts still expose requirement evaluations with guardrail_id, result, reason, title, and category fields, and no new required top-level artifact fields are added for callers.",
+      "status": "done",
+      "note": "R5: planned skip and batch results preserve gate evaluation shape"
+    },
+    {
+      "desc": "Spec-local tests under specs/279-reduce-gate-impl-prompt-size/tests/ verify prompt-volume behavior without live AI providers. Each spec-local test file includes a `// spec: R<N> ...` header. Coverage verifies file-map prompts omit unrelated full spec text, target requirement prompt content is less than 50% of the full spec fixture character count, batching reduces or maintains agent call count relative to checked requirements, multi-requirement batch splitting obeys the 120000 character limit, single-requirement overflow is explicit, and integration missing-file-map trust failure remains before requirement agent calls.",
+      "status": "done",
+      "note": "R6: excerpt prompt content is less than half the full spec fixture size"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 6,
+    "done": 6,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

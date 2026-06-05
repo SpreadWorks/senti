@@ -1,0 +1,87 @@
+{
+  "devType": "feature",
+  "goal": "gate-impl の requirement 実装判定で、file-map がある場合の prompt 量を削減する。対象 requirement の抜粋だけを送信し、同じ diff context を共有する requirement は上限内でまとめる。",
+  "analysis": {
+    "problem": "gate-impl は file-map によって diff を requirement 単位へ絞っているが、各 AI call に spec 全文を送っている。Issue #365 の計測では Spec 部分だけで 28,735,082 chars が再送され、gate-impl が最大の prompt 消費 phase になっている。",
+    "proposedApproach": "file-map がある requirement 判定では spec 全文ではなく対象 requirement の抜粋を prompt に含める。同じ diff context を共有する requirement は文字数上限内で batch 化する。file-map がない場合は既存の一括判定を維持する。",
+    "validation": "src/flow/lib/run-gate.js では buildPerRequirementDiffs が requirement ごとに diff を絞る一方、buildImplCheckPrompt は specText 全体を受け取っている。Issue #365 の受け入れ条件は、この構造上の再送を減らす内容と一致している。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #365 は gate-impl requirement 実装判定を対象にする。対象ファイルとして src/flow/lib/run-gate.js の buildImplCheckPrompt、buildPerRequirementDiffs、executeDiffBasedGate が挙げられている。",
+      "must: 現行の file-map あり経路は requirement ごとに diff を絞るが、各 call で specJsonToPromptText による spec 全文を buildImplCheckPrompt に渡す。",
+      "must: 前回 PASS 済み requirement と関連 diff が空の requirement は、現行どおり AI call を発生させない。",
+      "should: Issue #365 の計測では、対象 requirement 抜粋により Spec 部分の prompt 量を大幅に削減できる見込みが示されている。",
+      "should: acceptance には prompt 量削減の測定条件を含める。",
+      "should: batch 文字数上限を超える同一 diff context の requirement 群は、複数 batch に分割して処理する挙動を acceptance に含める。"
+    ],
+    "decisionPoints": [
+      "must: file-map ありの requirement 判定 prompt は、spec 全文ではなく対象 requirement の情報だけを含める。",
+      "must: 同じ diff context を共有する複数 requirement は、文字数上限内で batch 化する。",
+      "must: file-map がない場合は既存の一括判定へ fallback する。",
+      "should: prompt 量削減の検証方法を acceptance に含める。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 外部依存は追加しない。Node.js 組み込みモジュールだけを使う。",
+      "must: 新しい意味のある値や batch 表現を導入する場合、オブジェクトリテラルではなく専用クラスで invariant と振る舞いを表現する。",
+      "must: gatePass/gateFail の外部返却形は変更しない。CLI の既存契約を維持する。",
+      "must: Issue #365 を単一 spec として扱い、勝手に分割しない。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: requirement 抜粋に含めるフィールド、batch の上限、diff context の同一性判定、テスト観点は spec で具体化する。",
+      "must: 実装対象 task の分解は spec step で扱う。draft では Issue #365 の requirement 境界を確認する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: gate-impl の requirement 実装判定 prompt を、file-map ありの場合に対象 requirement 抜粋へ変更する。",
+      "must: 同じ diff context を持つ requirement の batch 化を追加する。",
+      "must: 前回 PASS 済み requirement と関連 diff 空 requirement の skip 挙動を維持する。",
+      "must: file-map なしの場合の一括判定 fallback を維持する。",
+      "must: gatePass/gateFail の返却形を維持する。"
+    ],
+    "out": [
+      "must: gate-impl 以外の phase の prompt 最適化は対象外。",
+      "must: guardrail 判定 prompt 全体の再設計は対象外。",
+      "must: AI provider 設定、agent 実行方式、prompt log 集計機能の変更は対象外。",
+      "must: npm publish や dist-tag 操作は対象外。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: gate-impl の requirement 判定 prompt 内容と AI call 単位が変わる。",
+    "must: file-map なしの gate-impl requirement 判定は既存の一括判定を維持する。",
+    "must: gatePass/gateFail の外部返却形、requirement 評価の guardrail_id/result/reason の契約は維持する。",
+    "should: prompt log 上の Spec 部分文字数と call 数に改善が見えるようにする。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "should: acceptance に prompt 量削減の測定条件を含めるか。",
+      "answer": "should: 含める。prompt log または prompt builder 出力で、file-map ありの requirement 判定 prompt が spec 全文ではなく対象 requirement 抜粋を含むことと、Spec 部分文字数が削減されることを検証対象にする。",
+      "evidence": "Issue #365: prompt chars の実測値と、効果は文字数で検証できるという説明。Guardrail complete-context / unambiguous-requirements: 検証可能な条件が必要。",
+      "why": "Issue の目的は prompt 量削減であり、実装の有無だけでは効果が確認できない。acceptance に測定条件を含めると、改善が文字数で検証できる。",
+      "considered": "測定条件を spec に入れず実装差分だけ確認する案は、Issue #365 の主要根拠である prompt chars 削減を acceptance で確認できないため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "should: 同じ diff context を共有する requirement 群が batch 文字数上限を超えた場合、複数 batch に分割して処理する挙動を acceptance に含めるか。",
+      "answer": "should: 含める。batch 化は文字数上限内で行い、同じ diff context の requirement 群が上限を超える場合は複数 batch に分割して処理する。",
+      "evidence": "Issue #365: 同じ diff context の requirement を MAX_IMPL_REQUIREMENT_BATCH_CHARS の範囲でまとめる改善方向。Guardrail complete-context: 境界条件を明確にする必要がある。",
+      "why": "batch 化の上限超過時の挙動を明示しないと、call 数削減と prompt 上限遵守のどちらを優先するかが曖昧になる。",
+      "considered": "上限超過時の挙動を実装判断へ委ねる案は、境界条件の期待結果が reviewer 間で割れるため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-05T00:55:55.000Z",
+    "notes": "Coverage review passed and all draft QA entries are answered from Issue #365 and guardrail evidence."
+  }
+}
