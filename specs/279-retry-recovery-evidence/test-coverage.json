@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "For review impl retry recovery, the phase evidence source must include the active spec.json file in addition to src, so a spec.json acknowledgement change can produce changed evidence without an unrelated src change.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/retry-recovery-evidence.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "For gate task-impl retry-exhausted recovery, the phase evidence source must include the active spec.json file in addition to src, so a spec.json acknowledgement change can produce changed evidence without an unrelated src change.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/retry-recovery-evidence.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "For review impl and gate task-impl, issue-log.json must not be part of the phase evidence source, so an issue-log-only append does not satisfy changed evidence for those phases.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/retry-recovery-evidence.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "Spec-local tests under specs/279-retry-recovery-evidence/tests/ must cover R1, R2, and R3 through recovery evidence source and eligibility behavior.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/retry-recovery-evidence.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/retry-recovery-evidence.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ]
+    }
+  ]
+}

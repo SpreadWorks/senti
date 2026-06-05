@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Applied 1 repair. Added one bounded pending QA item so the initial QA list is not empty.",
+  "items": [
+    {
+      "title": "1. Empty initial QA list",
+      "target": "qa[]",
+      "rationale": "Added one self-contained pending goal-confirmation item. Because autoApprove is enabled, the entry contains only the question text and leaves answer, evidence, why, considered, and droppedReason empty as required for pending QA.",
+      "evidence": "draft.json qa[0].question now summarizes the Issue #364 scope and recovery evidence boundary.",
+      "changedFieldPaths": [
+        "qa[0]"
+      ]
+    }
+  ]
+}

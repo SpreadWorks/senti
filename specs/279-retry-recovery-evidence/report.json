@@ -1,0 +1,168 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".sdd-forge/output/analysis.json                    |   2 +-\n .../draft-coverage-repair.json                     |   8 +\n .../draft-coverage-triage.json                     |   8 +\n .../draft-questions-repair.json                    |  17 +\n .../draft-questions-triage.json                    |  15 +\n .../draft-review-coverage.json                     |  11 +\n .../draft-review-questions.json                    |  19 +\n specs/279-retry-recovery-evidence/draft.json       |  73 +++\n specs/279-retry-recovery-evidence/file-map.json    |  17 +\n specs/279-retry-recovery-evidence/flow.json        | 727 +++++++++++++++++++++\n specs/279-retry-recovery-evidence/impl-review.json |  28 +\n specs/279-retry-recovery-evidence/issue.md         |  58 ++\n .../review-history/draft-coverage-attempt-001.json |  14 +\n .../draft-questions-attempt-001.json               |  33 +\n .../review-history/impl-attempt-001.json           |  31 +\n .../review-history/impl-attempt-001.md             |  16 +\n .../review-history/spec-attempt-001.json           |  36 +\n .../review-history/spec-attempt-001.md             |  14 +\n .../review-history/test-attempt-001.json           |  48 ++\n .../review-history/test-attempt-001.md             |  18 +\n .../review-history/test-attempt-002.json           |  47 ++\n .../review-history/test-attempt-002.md             |  16 +\n specs/279-retry-recovery-evidence/review.md        |  16 +\n specs/279-retry-recovery-evidence/spec-review.json |  22 +\n specs/279-retry-recovery-evidence/spec-review.md   |  14 +\n specs/279-retry-recovery-evidence/spec.json        | 181 +++++\n specs/279-retry-recovery-evidence/spec.md          | 100 +++\n specs/279-retry-recovery-evidence/tasks/T-1.md     |  21 +\n .../279-retry-recovery-evidence/test-coverage.json |  64 ++\n specs/279-retry-recovery-evidence/test-review.json |  33 +\n specs/279-retry-recovery-evidence/test-review.md   |  16 +\n .../tests/retry-recovery-evidence.test.js          | 169 +++++\n src/flow/lib/retry-recovery.js                     |   4 +-\n 33 files changed, 1893 insertions(+), 3 deletions(-)",
+      "commits": [
+        "Fix retry recovery evidence sources"
+      ]
+    },
+    "retro": {
+      "total": 4,
+      "done": 4,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "For review impl retry recovery, the phase evidence source must include the active spec.json file in addition to src, so a spec.json acknowledgement change can produce changed evidence without an unrelated src change.",
+          "status": "done",
+          "note": "R1: review impl evidence source includes src and active spec.json"
+        },
+        {
+          "desc": "For gate task-impl retry-exhausted recovery, the phase evidence source must include the active spec.json file in addition to src, so a spec.json acknowledgement change can produce changed evidence without an unrelated src change.",
+          "status": "done",
+          "note": "R2: gate task-impl evidence source includes src and active spec.json"
+        },
+        {
+          "desc": "For review impl and gate task-impl, issue-log.json must not be part of the phase evidence source, so an issue-log-only append does not satisfy changed evidence for those phases.",
+          "status": "done",
+          "note": "R3: R4: issue-log-only changes do not produce changed evidence"
+        },
+        {
+          "desc": "Spec-local tests under specs/279-retry-recovery-evidence/tests/ must cover R1, R2, and R3 through recovery evidence source and eligibility behavior.",
+          "status": "done",
+          "note": "R4: spec-local coverage declares all recovery evidence requirements"
+        }
+      ]
+    },
+    "issueLog": {
+      "count": 0,
+      "fullLogPath": "specs/279-retry-recovery-evidence/issue-log.json",
+      "importantTotal": 0,
+      "importantShown": 0,
+      "importantOmitted": 0,
+      "recentOtherTotal": 0,
+      "recentOtherShown": 0,
+      "recentOtherOmitted": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 168320,
+      "output": 13147,
+      "cacheRead": 196736,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 13,
+      "durationMs": 196957,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 8828
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 7238
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 7045
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 66970
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 7892
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 52361
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 11779
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 34844
+        }
+      ]
+    },
+    "tests": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/279-retry-recovery-evidence/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 56,
+          "end_line": 5233
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/279-retry-recovery-evidence/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/retry-recovery.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/279-retry-recovery-evidence/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/retry-recovery.js"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/279-retry-recovery-evidence/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    Fix retry recovery evidence sources\n    33 files changed, 1893 insertions(+), 3 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (4 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 0\n    agent calls ................. 13\n    input tokens ................ 168,320\n    output tokens ............... 13,147\n    cache-read tokens ........... 196,736\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 197.0s\n      draft-questions-review .... 8.8s\n      draft-coverage-review ..... 7.2s\n      draft-gate ................ 7.0s\n      spec-review ............... 67.0s\n      spec-gate ................. 7.9s\n      test-review ............... 52.4s\n      impl-review ............... 11.8s\n      impl-gate ................. 34.8s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 4  passed 4  failed 0 verdict=pass\n    raw_output: specs/279-retry-recovery-evidence/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass"
+}

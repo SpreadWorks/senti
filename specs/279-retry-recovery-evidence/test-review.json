@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-05T00:52:48.127Z",
+  "verdict": "ADVISORY",
+  "counts": {
+    "blocking": 0,
+    "advisory": 1,
+    "total": 1
+  },
+  "coverageArtifact": "specs/279-retry-recovery-evidence/test-coverage.json",
+  "blockingFindings": [],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Avoid order-coupled evidence source assertions",
+      "target": "specs/279-retry-recovery-evidence/tests/retry-recovery-evidence.test.js",
+      "improvement": "The R1 and R2 tests use assert.deepEqual(source.paths, [\"src\", specPath]), which also asserts path ordering. Prefer order-insensitive coverage checks unless resolveRecoveryEvidenceSource intentionally guarantees this order.",
+      "whyNonBlocking": "The tests still exercise the required production behavior: src and the active spec.json are included, and issue-log.json is excluded. This is a brittleness concern rather than a coverage blocker."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/279-retry-recovery-evidence/test-review.json",
+    "verdict": "ADVISORY",
+    "result": "ADVISORY",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": "implement",
+    "completionKind": "normal",
+    "progressSignature": "d1d663da04c11c7a69db9b6335c6616094eb092c89bbbd9109b201581110951b"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "1 repair target triaged. qa[] is empty, so add a bounded pending confirmation item in the repair step.",
+  "items": [
+    {
+      "title": "1. Empty initial QA list",
+      "target": "qa[]",
+      "decision": "apply",
+      "rationale": "draft question review treats an empty qa[] before any answer exists as a structural repair target. The fix is small and does not require new user input because autoApprove is enabled; add a pending self-contained confirmation item without answer/rationale fields.",
+      "evidence": "draft-review-questions.json repairTargets[0].evidence says qa[] is empty before any answer exists; draft.json currently has qa: []."
+    }
+  ]
+}

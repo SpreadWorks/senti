@@ -1,0 +1,73 @@
+{
+  "devType": "bugfix",
+  "goal": "retry exhausted 後の recovery evidence 判定を、impl-review / impl-gate が実際に修正先として扱う spec.json acknowledgement と一致させる。",
+  "analysis": {
+    "problem": "impl-review と impl-gate の prompt は guardrail exception の回復策として spec.json の acknowledgement surface への記録を指示している。しかし retry recovery の evidence source は review impl と gate task-impl で src のみを対象にしているため、指示どおり spec.json を修正しても unchanged-evidence と判定され得る。",
+    "proposedApproach": "must: recovery evidence source を phase ごとに見直し、review impl と gate task-impl で spec.json acknowledgement の変更を changed evidence として扱えるようにする。issue-log.json は単純追記で retry reset を通す抜け道にならないよう、無条件 evidence にはしない。",
+    "validation": "src/flow/lib/retry-recovery.js の resolveRecoveryEvidenceSource は現状 review impl と gate task-impl で src のみを返す。src/flow/prompts/impl/impl-review.md と impl-gate.md は spec.json constraints / clarifications / alternatives_considered への acknowledgement を修正先として明記しており、Issue #364 の問題設定と一致する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "src/flow/lib/retry-recovery.js の resolveRecoveryEvidenceSource は gate task-impl を implementation-diff paths=[src] として扱う。",
+      "src/flow/lib/retry-recovery.js の resolveRecoveryEvidenceSource は review impl を implementation-diff paths=[src] として扱う。",
+      "src/flow/prompts/impl/impl-review.md は intentional guardrail exception の remediation として spec.json constraints / clarifications / alternatives_considered への記録を指示する。",
+      "src/flow/prompts/impl/impl-gate.md も FAIL が intentional exception の場合に spec.json の同じ acknowledgement surface へ記録するよう指示する。",
+      "Issue #364 は、spec.json acknowledgement 変更を recovery evidence に含め、issue-log.json の単純追記だけでは意図しない retry reset を通さない範囲として定義されている。"
+    ],
+    "decisionPoints": [
+      "must: review impl の recovery evidence に spec.json acknowledgement 変更を含める。",
+      "must: gate task-impl の retry exhausted recovery evidence に spec.json acknowledgement 変更を含める。",
+      "must: issue-log.json の単純な追記だけで意図しない phase の retry reset が通らない境界を維持する。",
+      "should: 既存 phase の evidence source の意味を壊さず、phase ごとの入力 artifact と prompt の修正先を対応させる。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 外部依存は追加しない。実装は Node.js 組み込みモジュールと既存 helper に限定する。",
+      "must: 同種の recovery evidence 判定を 2 箇所以上に重複実装せず、既存の RecoveryEvidenceSource / fingerprint 経路に集約する。",
+      "must: issue-log.json は監査ログであり、単純追記を recovery の十分条件にしない。これは retry reset の抜け道を防ぐための安全境界である。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "should: spec で、spec.json 全体を evidence に含めるか acknowledgement fields に限定するかを検証可能な要件として確定する。",
+      "should: spec で、issue-log.json をどの phase でも evidence に含めないのか、入力 artifact として意味がある phase に限るのかを明文化する。",
+      "should: spec で、buildRecoveryEligibilityForState と resolveRecoveryEvidenceSource の単体テスト範囲を requirement ごとに割り当てる。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: src/flow/lib/retry-recovery.js の phase 別 recovery evidence source を修正する。",
+      "must: review impl と gate task-impl の spec.json acknowledgement 変更が changed evidence になることを検証する。",
+      "must: issue-log.json の単純追記だけでは意図しない phase の retry reset が通らないことを検証する。",
+      "should: 必要に応じて prompt 文言を、実装後の evidence source と矛盾しない表現に調整する。"
+    ],
+    "out": [
+      "must: retry counter の最大回数、reset grant 数、CLI コマンド名は変更しない。",
+      "must: draft / spec / test review など、Issue #364 が対象にしていない phase の recovery policy は不要に変更しない。",
+      "must: issue-log-import や workflow board 操作の仕様は変更しない。",
+      "must: src 以外の package 配布対象にプロジェクト固有情報を追加しない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: retry exhausted 後に spec.json acknowledgement のみを修正した recovery が可能になり、不要な src 変更を要求しない。",
+    "must: issue-log.json の単純追記だけで retry recovery が成立する挙動は導入しない。",
+    "should: 既存の integration / spec / test recovery evidence 判定は、Issue #364 の対象外として現状の意味を維持する。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "Issue #364 の範囲は、retry exhausted 後の recovery evidence 判定で spec.json acknowledgement 変更を正当な再評価根拠に含め、issue-log.json の単純追記だけでは意図しない retry reset を通さない、という理解で進めてよいですか。",
+      "answer": "must: Issue #364 の範囲として、review impl と gate task-impl で spec.json acknowledgement 変更を changed evidence として扱い、issue-log.json の単純追記だけでは意図しない retry reset を許可しない。",
+      "evidence": "Issue #364 Completion Criteria: spec.json acknowledgement の修正だけで impl-review / impl-gate recovery できること、issue-log.json の単純な追記だけでは意図しない phase の retry reset を通せないこと。",
+      "why": "Issue 本文が対象・問題・改善方針・完了条件を明示しており、追加のユーザー判断なしに仕様化できるため。",
+      "considered": "issue-log.json を無条件 evidence に含める案は、監査ログ追記だけで retry reset を通す抜け道になるため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-05T00:00:00.000Z",
+    "notes": "autoApprove=true。Issue #364 は対象、問題、改善方針、完了条件が明確で、追加のユーザー判断なしに draft を作成した。"
+  }
+}

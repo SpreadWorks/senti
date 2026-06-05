@@ -319,7 +319,7 @@ export class RecoveryEvidenceSource {
 export function resolveRecoveryEvidenceSource({ kind, canonicalPhase, specDir }) {
   const dir = normalizeRelPath(specDir || ".");
   if (kind === "gate" && canonicalPhase === "task-impl") {
-    return new RecoveryEvidenceSource({ sourceKind: "implementation-diff", paths: ["src"] });
+    return new RecoveryEvidenceSource({ sourceKind: "implementation-diff", paths: ["src", `${dir}/spec.json`] });
   }
   if (kind === "gate" && canonicalPhase === "integration") {
     return new RecoveryEvidenceSource({
@@ -337,7 +337,7 @@ export function resolveRecoveryEvidenceSource({ kind, canonicalPhase, specDir })
     return new RecoveryEvidenceSource({ sourceKind: "spec-tests", paths: [`${dir}/tests`] });
   }
   if (kind === "review" && canonicalPhase === "impl") {
-    return new RecoveryEvidenceSource({ sourceKind: "implementation-diff", paths: ["src"] });
+    return new RecoveryEvidenceSource({ sourceKind: "implementation-diff", paths: ["src", `${dir}/spec.json`] });
   }
   return new RecoveryEvidenceSource({ sourceKind: "unknown", paths: [] });
 }
