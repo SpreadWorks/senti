@@ -14,6 +14,16 @@
      - `ADVISORY`: non-blocking findings were recorded, but implementation may proceed. The post hook marks `test-review` done.
      - `FAIL`: blocking findings exist. Fix the tests and run `sdd-forge flow run review --phase test` again only after the test design premise changes.
      - `TOOLING_FAILURE`: subprocess/parser/coverage-artifact failure. Do not treat this as test quality failure; recover the tooling issue or record explicit evidence before proceeding.
+   - **TOOLING_FAILURE completion override recovery:**
+     - `TOOLING_FAILURE` is not a test-quality failure and does not complete `test-review` by itself.
+     - Prefer fixing the tooling failure and rerunning `sdd-forge flow run review --phase test`.
+     - If proceeding with accepted risk, write structured override evidence to `specs/<id>/completion-overrides.json` under `entries.test-review`.
+     - `entries.test-review` must include `userApproval=true`, `reason`, `approvedAt`, `approvedBy`, and `findings[]`.
+     - `findings[]` must be non-empty. Each entry must include `findingId`, `disposition`, `successorOwner`, and `acceptedRisk`.
+     - Allowed `disposition` values are `out_of_scope`, `transferred_to_successor`, `accepted_risk`, and `false_positive`.
+     - When a TOOLING_FAILURE artifact has no parsed review finding, use a stable synthetic `findingId` such as `test-review:tooling_failure:<toolingFailure>`; for example, `test-review:tooling_failure:parser_error`.
+     - For `accepted_risk`, keep an audit or task trail by referencing the issue-log TOOLING_FAILURE entry or an explicit related task reference in `reason` or `acceptedRisk`.
+     - Free-text issue-log alone is not completion override evidence. The structured `completion-overrides.json` entry is still required before marking `test-review` done.
    - `test-review` does not auto-fix tests and does not run an internal PASS-seeking loop.
    - Re-run `test-review` only when requirements, acceptance criteria, target API, spec-local tests, or the requirement-to-test coverage artifact changed.
    - **REVIEW_MAX_ATTEMPTS_EXCEEDED received:** STOP and return control to the user. Do not set step done. To recover after changed evidence, the user can run `sdd-forge flow set retry reset <gate|review> <phase> --reason <text> --yes` (for this phase: `sdd-forge flow set retry reset review test --reason <text> --yes`) and then run exactly one re-review attempt.

@@ -1866,7 +1866,7 @@ function buildToolingFailureReview({ kind, err, coverageRelPath }) {
   const toolingFailure = new TestReviewToolingFailure({
     kind,
     message,
-    recovery: "Fix the test-review tooling failure, then rerun test-review. If the tests are already adequate, record an explicit evidence-based override before proceeding.",
+    recovery: "Fix the test-review tooling failure, then rerun test-review. If proceeding with accepted risk, record structured evidence in completion-overrides.json entries.test-review; issue-log alone is audit context, not override evidence.",
   });
   return new TestReviewArtifact({
     verdict: "TOOLING_FAILURE",

@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-05T05:42:01.129Z",
+  "verdict": "ADVISORY",
+  "counts": {
+    "blocking": 0,
+    "advisory": 1,
+    "total": 1
+  },
+  "coverageArtifact": "specs/280-issue-359-test-review-completion-override/test-coverage.json",
+  "blockingFindings": [],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Constrain field assertions to the override guidance block",
+      "target": "specs/280-issue-359-test-review-completion-override/tests/test-review-completion-override-guidance.test.js",
+      "improvement": "Consider asserting that required fields such as reason, approvedAt, approvedBy, findings[], findingId, disposition, successorOwner, and acceptedRisk appear within the documented entries.test-review / findings[] override guidance section instead of only matching each token somewhere in the prompt.",
+      "whyNonBlocking": "The current test does exercise the production prompt and covers the required tokens, so it provides spec-local coverage for R5. Tighter locality checks would reduce false positives but are not required before implementation."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/280-issue-359-test-review-completion-override/test-review.json",
+    "verdict": "ADVISORY",
+    "result": "ADVISORY",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": "implement",
+    "completionKind": "normal",
+    "progressSignature": "5788b91e7cd5dfc5a0285e27b3cef22a4eacfecad0f98a9909e7e3520a348783"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "test-002-non-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "Constrain field assertions to the override guidance block",
+      "body": "Constrain field assertions to the override guidance block",
+      "category": "unknown"
+    }
+  ]
+}

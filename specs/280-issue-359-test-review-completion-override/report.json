@@ -1,0 +1,154 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".sdd-forge/output/analysis.json                    |   2 +-\n .../draft-coverage-repair.json                     |   8 +\n .../draft-coverage-triage.json                     |   8 +\n .../draft-questions-repair.json                    |   8 +\n .../draft-questions-triage.json                    |   8 +\n .../draft-review-coverage.json                     |  11 +\n .../draft-review-questions.json                    |  11 +\n .../draft.json                                     |  83 +++\n .../file-map.json                                  |   7 +\n .../flow.json                                      | 692 +++++++++++++++++++++\n .../impl-review.json                               |  28 +\n .../review-history/draft-coverage-attempt-001.json |  14 +\n .../draft-questions-attempt-001.json               |  14 +\n .../review-history/impl-attempt-001.json           |  31 +\n .../review-history/impl-attempt-001.md             |  16 +\n .../review-history/spec-attempt-001.json           |  75 +++\n .../review-history/spec-attempt-001.md             |  25 +\n .../review-history/test-attempt-001.json           |  66 ++\n .../review-history/test-attempt-001.md             |  24 +\n .../review-history/test-attempt-002.json           |  47 ++\n .../review-history/test-attempt-002.md             |  16 +\n .../review.md                                      |  16 +\n .../spec-repair.json                               |  37 ++\n .../spec-review.json                               |  41 ++\n .../spec-review.md                                 |  25 +\n .../spec-triage.json                               |  22 +\n .../spec.json                                      | 203 ++++++\n .../spec.md                                        | 108 ++++\n .../tasks/T-1.md                                   |  22 +\n .../test-coverage.json                             |  59 ++\n .../test-review.json                               |  33 +\n .../test-review.md                                 |  16 +\n ...est-review-completion-override-guidance.test.js |  51 ++\n src/flow/commands/review.js                        |   2 +-\n src/flow/prompts/plan/test-review.md               |  10 +\n 35 files changed, 1837 insertions(+), 2 deletions(-)",
+      "commits": [
+        "Clarify test-review tooling failure override guidance"
+      ]
+    },
+    "retro": {
+      "total": 1,
+      "done": 1,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 4,
+      "not_testable_count": 4,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "Spec-local tests must verify that the updated guidance includes the required override artifact fields, allowed disposition values, accepted_risk audit/task guidance, and the free-text issue-log boundary.",
+          "status": "done",
+          "note": "R5: documents TOOLING_FAILURE override evidence fields and boundaries"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 0,
+      "fullLogPath": "specs/280-issue-359-test-review-completion-override/issue-log.json",
+      "importantTotal": 0,
+      "importantShown": 0,
+      "importantOmitted": 0,
+      "recentOtherTotal": 0,
+      "recentOtherShown": 0,
+      "recentOtherOmitted": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 189839,
+      "output": 18300,
+      "cacheRead": 332544,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 11,
+      "durationMs": 296733,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 14829
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 9659
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 12407
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 152814
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 9189
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 43861
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 29529
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 24445
+        }
+      ]
+    },
+    "tests": {
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/280-issue-359-test-review-completion-override/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 29,
+          "end_line": 5192
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/280-issue-359-test-review-completion-override/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/review.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/280-issue-359-test-review-completion-override/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/review.js"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/280-issue-359-test-review-completion-override/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    Clarify test-review tooling failure override guidance\n    35 files changed, 1837 insertions(+), 2 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (1 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 0\n    agent calls ................. 11\n    input tokens ................ 189,839\n    output tokens ............... 18,300\n    cache-read tokens ........... 332,544\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 296.7s\n      draft-questions-review .... 14.8s\n      draft-coverage-review ..... 9.7s\n      draft-gate ................ 12.4s\n      spec-review ............... 152.8s\n      spec-gate ................. 9.2s\n      test-review ............... 43.9s\n      impl-review ............... 29.5s\n      impl-gate ................. 24.4s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 1  passed 1  failed 0 verdict=pass\n    raw_output: specs/280-issue-359-test-review-completion-override/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass"
+}

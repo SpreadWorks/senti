@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "Apply both blocking findings: define a stable TOOLING_FAILURE findingId convention and move required guidance/test targets to the next-action prompt source instead of the thin dispatcher skill.",
+  "items": [
+    {
+      "title": "TOOLING_FAILURE overrides have no findingId source",
+      "target": "R3 / R4 / Acceptance Criteria",
+      "decision": "apply",
+      "rationale": "The finding identifies a real missing data path: TOOLING_FAILURE artifacts may have no review findings, while OverrideCompletionEvidence still requires a non-empty findings array with findingId.",
+      "evidence": "spec.json R3/R4 require finding fields and accepted_risk guidance but do not define how to populate findingId for parser_error or coverage_error TOOLING_FAILURE cases with zero blocking findings."
+    },
+    {
+      "title": "Test target conflicts with thin dispatcher skill architecture",
+      "target": "T-1 test_strategy / Overview Modules: src/skills/sdd-forge.flow/SKILL.md",
+      "decision": "apply",
+      "rationale": "The finding matches verified architecture: sdd-forge.flow is a thin dispatcher and per-step procedures belong to next-action prompt files.",
+      "evidence": "src/skills/sdd-forge.flow/SKILL.md says per-step procedures live in sdd-forge flow get next-action, while src/flow/prompts/plan/test-review.md owns the test-review step instructions."
+    }
+  ]
+}

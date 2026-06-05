@@ -1,0 +1,83 @@
+{
+  "devType": "bugfix",
+  "goal": "test-review が TOOLING_FAILURE で停止した後、accepted risk として進める場合に必要な completion override 手順を明確化する。",
+  "analysis": {
+    "problem": "Issue #359 は、repeated parser_error 後に test-review を done にしようとして completion-overrides.json が無いため validation に失敗した問題を扱う。現行実装では test-review の通常完了は PASS / ADVISORY のみで、TOOLING_FAILURE は issue-log を記録して step を未完了のままにする。override evidence は存在するが、test-review の非 normal completion 手順から required fields、disposition、関連 task 記録が読み取れない。",
+    "proposedApproach": "test-review の非 normal completion procedure に、must: completion-overrides.json の entries.test-review に必要な field、finding disposition の allowed values、accepted_risk を使う条件、関連 task を issue-log へ記録する手順を追加する。必要に応じて skill/prompt の生成元も更新し、upgrade で配布先へ反映する。",
+    "validation": "根本原因は override evidence の仕様不足ではなく、TOOLING_FAILURE recovery procedure の説明不足である。src/flow/lib/flow-judgment-contract.js は OverrideCompletionEvidence と FindingDisposition を既に定義し、src/flow/prompts/plan/test-review.md は explicit evidence の必要性だけを述べているため、手順文書を具体化すれば同じ失敗を防げる。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: test-review の completion policy は PASS / ADVISORY のみ通常完了を許可する。",
+      "must: TOOLING_FAILURE の post hook は test-review を done にせず、issue-log に tooling_failure entry を追加する。",
+      "must: completion override file は specs/<id>/completion-overrides.json で、entries.<stepId> から override evidence を読む。",
+      "must: OverrideCompletionEvidence は stepId、userApproval=true、reason、approvedAt、approvedBy、findings[] を要求する。",
+      "must: FindingDisposition は findingId、disposition、successorOwner、acceptedRisk を要求し、disposition は out_of_scope / transferred_to_successor / accepted_risk / false_positive のいずれかである。"
+    ],
+    "decisionPoints": [
+      "must: recovery procedure の範囲は test-review の TOOLING_FAILURE 後の非 normal completion に限定する。",
+      "must: accepted_risk で進める場合、completion override evidence と issue-log による関連 task 記録を手順上の必須 evidence とする。"
+    ],
+    "resolvedByProjectRules": [
+      "must: Issue #359 は 1 つの concern として扱い、AI 側で spec 分割を提案しない。",
+      "must: src/ 以下にプロジェクト固有情報を入れない。手順文は generic な test-review recovery として記述する。",
+      "must: src/skills または src/presets を変更した場合は sdd-forge upgrade を実行する。",
+      "must: docs は src より古いため、source を正として扱う。必要なら sdd-forge build で docs 更新を提案する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: 変更対象ファイルと配置 contract は spec で確定する。",
+      "should: regression test は prompt/skill の文言契約と completion override schema の手順例を検査する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: test-review TOOLING_FAILURE 後に accepted risk として進める recovery procedure の明確化。",
+      "must: completion-overrides.json の entries.test-review に必要な required fields の明記。",
+      "must: disposition の allowed values と accepted_risk を使う条件の明記。",
+      "must: 関連 task または issue-log 記録の扱いの明記。",
+      "should: 生成元 skill/prompt と配布済み skill の同期確認。"
+    ],
+    "out": [
+      "must: test-review の PASS / ADVISORY / FAIL 判定ロジック変更は範囲外。",
+      "must: completion override validation schema の緩和は範囲外。",
+      "must: AI review parser や retry 上限の変更は範囲外。",
+      "should: docs/ の全面再生成は本 issue の必須成果物ではない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: test-review recovery instructions を読む利用者が、free-text issue-log だけで step completion を試みる失敗を避けられる。",
+    "must: 既存の normal completion behavior、test-review artifact format、post hook behavior は変更しない。",
+    "should: src/skills を変更する場合、upgrade 後の .agents/.claude skill 差分も確認する。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "Issue #359 の scope は、must: test-review TOOLING_FAILURE 後の recovery procedure を明文化することに限定し、CLI helper や validation 変更は追加しない、でよいですか。",
+      "answer": "must: はい。Issue #359 の improvement direction は required fields、disposition、関連 task 記録方法を test-review の非 normal completion procedure に追加することであり、CLI helper や validation 変更は範囲外とする。",
+      "evidence": "Issue #359 body: Improvement Direction は override artifact の required fields、disposition、related task recording を non-normal completion procedure for test-review に追加すること。src/flow/lib/flow-judgment-contract.js は OverrideCompletionEvidence と validateStepCompletionTransition を既に提供している。",
+      "why": "既存 validator は completion-overrides.json を読んで override completion を許可するため、今回の根本原因は機能不足ではなく手順不足である。",
+      "considered": "CLI helper 追加は検討したが、Issue が求める reusable recovery procedure の明文化を超え、既存 validation surface を広げるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "accepted risk として進める場合、must: completion-overrides.json の required fields、accepted_risk disposition、issue-log または関連 task 記録の手順が test-review の非 normal completion procedure から直接分かる状態を acceptance としてよいですか。",
+      "answer": "must: はい。acceptance は、test-review TOOLING_FAILURE 後に completion-overrides.json の entries.test-review をどう書くか、accepted_risk disposition をどう選ぶか、関連 task または issue-log evidence をどう残すかが procedure から直接分かることとする。",
+      "evidence": "src/flow/lib/flow-judgment-contract.js は entries.<stepId> から OverrideCompletionEvidence を読み、FindingDisposition の disposition を out_of_scope / transferred_to_successor / accepted_risk / false_positive に制限する。src/flow/lib/run-review.js は TOOLING_FAILURE 時に issue-log へ recovery instruction を記録する。",
+      "why": "completion validation は structured override evidence を要求するため、free-text issue-log だけでは step done へ進めない。required fields と disposition を手順化する必要がある。",
+      "considered": "issue-log だけを acceptance とする案は、completion override validator が entries.test-review を要求する現行契約を満たさないため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-05T05:31:45.000Z",
+    "notes": "All draft QA entries are answered from Issue #359, project rules, and source context; no unresolved user decision remains."
+  }
+}

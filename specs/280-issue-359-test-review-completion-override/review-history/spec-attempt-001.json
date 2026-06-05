@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "generatedAt": "2026-06-05T05:36:24.091Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "nonBlocking": 1,
+    "total": 3
+  },
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "TOOLING_FAILURE overrides have no findingId source",
+      "target": "R3 / R4 / Acceptance Criteria",
+      "body": "**Target:** R3 / R4 / Acceptance Criteria\n**Issue:** The existing TOOLING_FAILURE artifact path creates test-review artifacts with no blocking findings, but OverrideCompletionEvidence still requires a non-empty findings array and each FindingDisposition requires findingId. The spec requires documenting finding fields, but does not say what findingId should be used when the only item being accepted is the tooling failure itself rather than a parsed review finding.\n**Required change:** Add the smallest procedure requirement that defines how to populate the required findings[] entry for a TOOLING_FAILURE with no review findings, including the expected findingId source or stable synthetic findingId convention.\n**Why blocking:** Without this data path, operators cannot reliably write valid copyable override evidence for the parser_error scenario in Issue #359, and tests cannot determine whether the documented recovery procedure gives a valid value for the schema-required findingId field.",
+      "issue": "The existing TOOLING_FAILURE artifact path creates test-review artifacts with no blocking findings, but OverrideCompletionEvidence still requires a non-empty findings array and each FindingDisposition requires findingId. The spec requires documenting finding fields, but does not say what findingId should be used when the only item being accepted is the tooling failure itself rather than a parsed review finding.",
+      "requiredChange": "Add the smallest procedure requirement that defines how to populate the required findings[] entry for a TOOLING_FAILURE with no review findings, including the expected findingId source or stable synthetic findingId convention.",
+      "whyBlocking": "Without this data path, operators cannot reliably write valid copyable override evidence for the parser_error scenario in Issue #359, and tests cannot determine whether the documented recovery procedure gives a valid value for the schema-required findingId field."
+    },
+    {
+      "kind": "blocking",
+      "title": "Test target conflicts with thin dispatcher skill architecture",
+      "target": "T-1 test_strategy / Overview Modules: src/skills/sdd-forge.flow/SKILL.md",
+      "body": "**Target:** T-1 test_strategy / Overview Modules: src/skills/sdd-forge.flow/SKILL.md\n**Issue:** The spec says spec-local tests should read the updated guidance source and deployed skill text, and lists src/skills/sdd-forge.flow/SKILL.md as exposing test-review operational guidance. Current code explicitly makes that skill a thin dispatcher: per-step procedures come from sdd-forge flow get next-action, backed by src/flow/prompts/plan/test-review.md. Forcing the detailed TOOLING_FAILURE procedure into the skill would duplicate per-step guidance and contradict the placement contract in the skill itself.\n**Required change:** Change the spec target/test strategy so required guidance assertions are against the next-action prompt source that owns test-review instructions, and only require skill upgrade/synchronization if src/skills content is intentionally changed for a separate dispatcher-level reason.\n**Why blocking:** Leaving the deployed skill as a required assertion target makes the implementation choose between failing the spec-local test and placing per-step recovery instructions in a file whose verified role is to avoid encoding per-step procedures.",
+      "issue": "The spec says spec-local tests should read the updated guidance source and deployed skill text, and lists src/skills/sdd-forge.flow/SKILL.md as exposing test-review operational guidance. Current code explicitly makes that skill a thin dispatcher: per-step procedures come from sdd-forge flow get next-action, backed by src/flow/prompts/plan/test-review.md. Forcing the detailed TOOLING_FAILURE procedure into the skill would duplicate per-step guidance and contradict the placement contract in the skill itself.",
+      "requiredChange": "Change the spec target/test strategy so required guidance assertions are against the next-action prompt source that owns test-review instructions, and only require skill upgrade/synchronization if src/skills content is intentionally changed for a separate dispatcher-level reason.",
+      "whyBlocking": "Leaving the deployed skill as a required assertion target makes the implementation choose between failing the spec-local test and placing per-step recovery instructions in a file whose verified role is to avoid encoding per-step procedures."
+    }
+  ],
+  "nonBlockingImprovements": [
+    {
+      "kind": "improvement",
+      "title": "Mention artifact recovery text as related guidance",
+      "target": "Codebase Context / Modules",
+      "body": "**Target:** Codebase Context / Modules\n**Improvement:** Consider listing src/flow/commands/review.js as a related operator-facing text source because buildToolingFailureReview currently emits the vague recovery string about recording an explicit evidence-based override.\n**Why non-blocking:** The main implementation can still satisfy the requested procedure by updating src/flow/prompts/plan/test-review.md, but mentioning the artifact text would help keep all user-facing recovery wording consistent.",
+      "improvement": "Consider listing src/flow/commands/review.js as a related operator-facing text source because buildToolingFailureReview currently emits the vague recovery string about recording an explicit evidence-based override.",
+      "whyNonBlocking": "The main implementation can still satisfy the requested procedure by updating src/flow/prompts/plan/test-review.md, but mentioning the artifact text would help keep all user-facing recovery wording consistent."
+    }
+  ],
+  "sourceArtifact": "spec-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "spec-001-blocking-001",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "TOOLING_FAILURE overrides have no findingId source",
+      "body": "**Target:** R3 / R4 / Acceptance Criteria\n**Issue:** The existing TOOLING_FAILURE artifact path creates test-review artifacts with no blocking findings, but OverrideCompletionEvidence still requires a non-empty findings array and each FindingDisposition requires findingId. The spec requires documenting finding fields, but does not say what findingId should be used when the only item being accepted is the tooling failure itself rather than a parsed review finding.\n**Required change:** Add the smallest procedure requirement that defines how to populate the required findings[] entry for a TOOLING_FAILURE with no review findings, including the expected findingId source or stable synthetic findingId convention.\n**Why blocking:** Without this data path, operators cannot reliably write valid copyable override evidence for the parser_error scenario in Issue #359, and tests cannot determine whether the documented recovery procedure gives a valid value for the schema-required findingId field.",
+      "category": "unknown"
+    },
+    {
+      "id": "spec-001-blocking-002",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Test target conflicts with thin dispatcher skill architecture",
+      "body": "**Target:** T-1 test_strategy / Overview Modules: src/skills/sdd-forge.flow/SKILL.md\n**Issue:** The spec says spec-local tests should read the updated guidance source and deployed skill text, and lists src/skills/sdd-forge.flow/SKILL.md as exposing test-review operational guidance. Current code explicitly makes that skill a thin dispatcher: per-step procedures come from sdd-forge flow get next-action, backed by src/flow/prompts/plan/test-review.md. Forcing the detailed TOOLING_FAILURE procedure into the skill would duplicate per-step guidance and contradict the placement contract in the skill itself.\n**Required change:** Change the spec target/test strategy so required guidance assertions are against the next-action prompt source that owns test-review instructions, and only require skill upgrade/synchronization if src/skills content is intentionally changed for a separate dispatcher-level reason.\n**Why blocking:** Leaving the deployed skill as a required assertion target makes the implementation choose between failing the spec-local test and placing per-step recovery instructions in a file whose verified role is to avoid encoding per-step procedures.",
+      "category": "unknown"
+    },
+    {
+      "id": "spec-001-non-blocking-003",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "Mention artifact recovery text as related guidance",
+      "body": "**Target:** Codebase Context / Modules\n**Improvement:** Consider listing src/flow/commands/review.js as a related operator-facing text source because buildToolingFailureReview currently emits the vague recovery string about recording an explicit evidence-based override.\n**Why non-blocking:** The main implementation can still satisfy the requested procedure by updating src/flow/prompts/plan/test-review.md, but mentioning the artifact text would help keep all user-facing recovery wording consistent.",
+      "category": "unknown"
+    }
+  ]
+}

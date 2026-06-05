@@ -1,0 +1,203 @@
+{
+  "goal": "Clarify the test-review TOOLING_FAILURE recovery procedure so operators can complete the step with structured completion override evidence when they intentionally proceed with accepted risk.",
+  "scope": {
+    "in": [
+      "test-review non-normal completion guidance after TOOLING_FAILURE",
+      "completion-overrides.json entries.test-review required fields",
+      "Finding disposition values and accepted_risk usage",
+      "Related task or issue-log evidence recording for accepted-risk recovery",
+      "Next-action prompt source for plan-phase test-review instructions"
+    ],
+    "out": [
+      "Changing PASS, ADVISORY, FAIL, or TOOLING_FAILURE verdict routing",
+      "Relaxing completion override validation or changing the override schema",
+      "Changing AI review parser behavior or retry limits",
+      "Adding a new CLI helper for writing completion overrides",
+      "Regenerating the full docs/ tree as a required deliverable"
+    ]
+  },
+  "constraints": [
+    "No external dependencies may be added; implementation and tests must use Node.js built-ins and existing local helpers.",
+    "The existing completion validation contract must remain unchanged: test-review normal completion is limited to PASS and ADVISORY, while non-normal completion requires valid override evidence.",
+    "The procedure text must remain generic and must not include project-specific values under src/.",
+    "Detailed per-step recovery procedure must live in the next-action prompt source, not in the thin dispatcher skill.",
+    "Source is newer than docs in this worktree, so implementation decisions must treat source code as authoritative."
+  ],
+  "design_principles": [
+    "Document the existing recovery contract instead of expanding the CLI surface.",
+    "Make the recovery evidence shape copyable and verifiable from the procedure text.",
+    "Keep issue-log as audit context and completion-overrides.json as the structured unlock evidence.",
+    "Preserve current test-review verdict semantics."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/flow/prompts/plan/test-review.md` owns operator-facing plan-phase test-review instructions."
+      },
+      {
+        "text": "`src/flow/lib/flow-judgment-contract.js` owns completion override validation and the required evidence shape."
+      },
+      {
+        "text": "`src/flow/lib/run-review.js` records issue-log audit entries when test-review returns TOOLING_FAILURE and emits related recovery text in tooling-failure artifacts."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "When test-review returns PASS or ADVISORY, the registry hook marks test-review done. When it returns TOOLING_FAILURE, the hook leaves test-review open and records issue-log audit evidence."
+      },
+      {
+        "text": "A later attempt to set test-review done loads specs/<id>/completion-overrides.json, reads entries.test-review, validates OverrideCompletionEvidence, and allows completion only when that structured evidence is valid."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] test-review normal completion is PASS or ADVISORY only.",
+        "evidence": "src/flow/lib/flow-judgment-contract.js StepCompletionPolicy.defaultPolicies defines test-review allowedVerdicts as [\"PASS\", \"ADVISORY\"]. src/flow/registry.js marks test-review done only for PASS or ADVISORY in review phase test."
+      },
+      {
+        "text": "[VERIFY] TOOLING_FAILURE records audit evidence but does not complete test-review.",
+        "evidence": "src/flow/registry.js routes test-review TOOLING_FAILURE to appendIssueLogFromTestReviewToolingFailure. src/flow/lib/run-review.js writes step=test-review, phase=test, failureKind=tooling_failure, reason, resolution, artifact, and timestamp."
+      },
+      {
+        "text": "[VERIFY] completion override evidence already has a strict schema.",
+        "evidence": "src/flow/lib/flow-judgment-contract.js OverrideCompletionEvidence requires userApproval=true, reason, approvedAt, approvedBy, and non-empty findings[]. FindingDisposition requires findingId, disposition, successorOwner, and acceptedRisk."
+      },
+      {
+        "text": "[VERIFY] sdd-forge.flow is a thin dispatcher, so detailed test-review procedure belongs in next-action prompt content.",
+        "evidence": "src/skills/sdd-forge.flow/SKILL.md says per-step procedures live in sdd-forge flow get next-action and the skill itself does not encode per-step sequencing."
+      },
+      {
+        "text": "Limit this spec to procedure clarity, not CLI automation.",
+        "evidence": "Issue #359 asks to add required fields, disposition, and related task recording to the non-normal completion procedure. The source already validates completion override evidence.",
+        "consideredAlternatives": "A CLI helper for writing completion-overrides.json was rejected because it expands behavior beyond the issue and is not required to prevent the documented failure."
+      },
+      {
+        "text": "Require both structured override evidence and an audit/task trail in the procedure.",
+        "evidence": "completion-overrides.json is required by validateStepCompletionTransition; issue-log entries are already written for TOOLING_FAILURE and provide the recovery audit trail."
+      }
+    ]
+  },
+  "background": "Issue #359 reports that after repeated test-review parser_error failures, an attempt to mark test-review done failed because completion-overrides.json did not exist. The implementation already supports structured completion override evidence, but the test-review non-normal completion procedure only says to record explicit evidence. It does not state the required override artifact fields, allowed disposition values, or how to keep the related recovery task/audit trail discoverable.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "The test-review non-normal completion procedure must state that TOOLING_FAILURE is not a test-quality failure, does not complete test-review by itself, and requires either tooling recovery or structured completion override evidence before proceeding.",
+      "priority": "must",
+      "testable": false,
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "The procedure must document the completion-overrides.json location and entries.test-review required fields: userApproval=true, reason, approvedAt, approvedBy, and a non-empty findings array.",
+      "priority": "must",
+      "testable": false,
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "The procedure must document each finding entry field: findingId, disposition, successorOwner, and acceptedRisk; must list the allowed disposition values out_of_scope, transferred_to_successor, accepted_risk, and false_positive; and must define a stable synthetic findingId convention for TOOLING_FAILURE cases with no parsed review finding, such as test-review:tooling_failure:<toolingFailure>.",
+      "priority": "must",
+      "testable": false,
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "The procedure must state that accepted_risk recovery needs an audit or task trail, using the existing issue-log TOOLING_FAILURE entry or an explicit related task reference, and that free-text issue-log alone is not completion override evidence.",
+      "priority": "must",
+      "testable": false,
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "Spec-local tests must verify that the updated guidance includes the required override artifact fields, allowed disposition values, accepted_risk audit/task guidance, and the free-text issue-log boundary.",
+      "priority": "should",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "test-review guidance contains a TOOLING_FAILURE recovery subsection or equivalent text that distinguishes tooling failure from test-quality failure.",
+    "The guidance names specs/<id>/completion-overrides.json and entries.test-review as the structured evidence location for test-review override completion.",
+    "The guidance lists userApproval=true, reason, approvedAt, approvedBy, and findings[] as required override fields.",
+    "The guidance lists findingId, disposition, successorOwner, and acceptedRisk as required finding fields.",
+    "The guidance defines a stable synthetic findingId convention for TOOLING_FAILURE artifacts with no parsed review finding, including parser_error cases.",
+    "The guidance lists out_of_scope, transferred_to_successor, accepted_risk, and false_positive as allowed disposition values.",
+    "The guidance states that accepted_risk must be tied to an issue-log entry or related task reference and that free-text issue-log alone does not satisfy completion override validation.",
+    "Spec-local tests under specs/280-issue-359-test-review-completion-override/tests/ include a `// spec: R1 R2 R3 R4 R5` header and fail before the guidance is updated."
+  ],
+  "clarifications": [
+    {
+      "q": "Should this change add a CLI helper to create completion-overrides.json?",
+      "a": "No. Issue #359 targets unclear recovery procedure text. The existing validator already consumes completion-overrides.json, so this spec documents that contract instead of adding behavior."
+    },
+    {
+      "q": "Does accepted_risk mean issue-log alone can complete test-review?",
+      "a": "No. issue-log is audit context. completion-overrides.json remains the structured evidence required by completion validation."
+    },
+    {
+      "q": "Does this change alter test-review verdict routing?",
+      "a": "No. PASS and ADVISORY remain normal completion, FAIL remains a test-design blocker, and TOOLING_FAILURE remains a tooling recovery path."
+    },
+    {
+      "q": "Where should detailed recovery procedure be tested?",
+      "a": "Against src/flow/prompts/plan/test-review.md, the next-action prompt source for the plan/test-review step. The thin dispatcher skill should not duplicate per-step recovery instructions."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Add a CLI helper to write completion override evidence",
+      "reason": "Rejected because the issue asks for reusable recovery procedure clarity, and adding a command would expand the behavioral surface."
+    },
+    {
+      "option": "Relax completion validation when issue-log has a tooling_failure entry",
+      "reason": "Rejected because free-text issue-log is not structured override evidence and would weaken the completion contract."
+    },
+    {
+      "option": "Document only the existence of completion-overrides.json",
+      "reason": "Rejected because the reported failure came from missing operational details: required fields, disposition, and related task recording."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "test-review",
+    "TOOLING_FAILURE",
+    "completion-overrides.json",
+    "OverrideCompletionEvidence",
+    "FindingDisposition",
+    "accepted_risk",
+    "issue-log",
+    "flow-judgment-contract",
+    "test-review.md",
+    "sdd-forge.flow",
+    "non-normal completion"
+  ],
+  "implementationTargets": [
+    "src/flow/prompts/plan/test-review.md",
+    "src/flow/commands/review.js",
+    "specs/280-issue-359-test-review-completion-override/tests/"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Clarify recovery guidance",
+      "goal": "Update test-review recovery guidance so operators can write valid completion override evidence and keep an accepted-risk audit trail after TOOLING_FAILURE.",
+      "acceptance": [
+        "test-review guidance describes TOOLING_FAILURE non-normal completion recovery.",
+        "completion-overrides.json entries.test-review required fields are documented.",
+        "finding disposition fields, allowed values, and the synthetic findingId convention are documented.",
+        "accepted_risk guidance explains the issue-log or related task trail and the free-text issue-log boundary.",
+        "spec-local tests verify the required guidance text."
+      ],
+      "implementation_notes": "Prefer editing the next-action prompt source for test-review instructions. Update src/flow/commands/review.js only if the tooling-failure artifact recovery text needs to stay consistent. Keep the thin dispatcher skill and completion validator behavior unchanged.",
+      "test_strategy": "Add a Node.js spec-local test that reads src/flow/prompts/plan/test-review.md and, if touched, related recovery text in src/flow/commands/review.js. Check required field names, disposition values, synthetic findingId convention, accepted_risk audit/task guidance, and the statement that issue-log alone is not override evidence.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-06-05T05:39:07.105Z",
+    "notes": "User approved gate-passed spec via option 1."
+  }
+}

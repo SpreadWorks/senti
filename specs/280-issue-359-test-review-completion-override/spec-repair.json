@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied both spec-review repairs: added TOOLING_FAILURE synthetic findingId guidance and moved detailed procedure/test targets to the next-action prompt source.",
+  "items": [
+    {
+      "title": "TOOLING_FAILURE overrides have no findingId source",
+      "target": "R3 / R4 / Acceptance Criteria",
+      "decision": "applied",
+      "rationale": "R3 and acceptance criteria now require a stable synthetic findingId convention for TOOLING_FAILURE artifacts with no parsed review finding.",
+      "evidence": "spec.json requirements[R3].desc and acceptance_criteria now cover test-review:tooling_failure:<toolingFailure> style synthetic ids for parser_error cases.",
+      "changedFields": [
+        "requirements[2].desc",
+        "acceptance_criteria[4]"
+      ]
+    },
+    {
+      "title": "Test target conflicts with thin dispatcher skill architecture",
+      "target": "T-1 test_strategy / Overview Modules: src/skills/sdd-forge.flow/SKILL.md",
+      "decision": "applied",
+      "rationale": "The spec no longer requires detailed test-review guidance or assertions in the thin dispatcher skill; implementation and test targets now focus on the next-action prompt source.",
+      "evidence": "spec.json overview.modules, constraints, implementationTargets, clarifications, and tasks[0] now target src/flow/prompts/plan/test-review.md and keep the thin dispatcher unchanged.",
+      "changedFields": [
+        "scope.in",
+        "constraints",
+        "overview.modules",
+        "overview.decisions",
+        "clarifications",
+        "implementationTargets",
+        "tasks[0].acceptance",
+        "tasks[0].implementation_notes",
+        "tasks[0].test_strategy"
+      ]
+    }
+  ]
+}
