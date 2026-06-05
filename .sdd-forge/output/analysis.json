@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-05T00:36:45.301Z",
+  "analyzedAt": "2026-06-05T01:02:11.630Z",
   "package": {
     "entries": [
       {
@@ -4446,9 +4446,9 @@
       },
       {
         "file": "src/flow/lib/retry-recovery.js",
-        "hash": "ccaa1506d6a95645d2cde6f95af6a610",
+        "hash": "cdb4908c509bc5d0e71f6c3eb39f5bea",
         "lines": 774,
-        "mtime": "2026-05-31T08:08:58.963Z",
+        "mtime": "2026-06-05T01:02:00.889Z",
         "className": "retry-recovery",
         "methods": [
           "resolveRecoveryMaxAttempts",
@@ -4538,25 +4538,25 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "3de0db3f",
-        "enrich": {
-          "processedAt": "2026-06-04T05:32:49.284Z",
-          "attempts": 5
-        },
-        "summary": "Implements the full retry-recovery system for failed gate and review flow steps, including evidence fingerprinting, eligibility evaluation, and baseline persistence.",
-        "detail": "Defines class hierarchies for recovery inputs (`RetryRecoveryInput`), targets (`RecoveryTarget`), evidence sources (`RecoveryEvidenceSource`), fingerprints (`EvidenceFingerprint`), and baselines (`ReviewRecoveryBaseline`, `RetryRecoveryEntry`). Evaluates recovery eligibility by computing SHA-256 fingerprints over relevant files and comparing them against persisted baselines to detect unchanged evidence. Persists recovery state in `retry-recovery.json` alongside the spec file. Supports both gate (task-impl, integration) and review (impl, integration, e2e) recovery kinds with configurable maximum attempt counts enforced via `resolveRecoveryMaxAttempts`.",
+        "summary": "Implements retry-recovery tracking for flow gate and review phases by deciding whether a reset-based retry is allowed and persisting the supporting evidence. It combines validation, evidence fingerprinting, retry-budget checks, and artifact storage into a single recovery subsystem.",
+        "detail": "The module defines strict recovery constants, allowed actions and phase sets, then normalizes phases, paths, and counters so gate and review retries follow a consistent internal model. It uses small domain classes such as `RetryRecoveryInput`, `RecoveryTarget`, `RecoveryEvidenceSource`, `EvidenceFingerprint`, and recovery entry/baseline objects to enforce invariants and serialize recovery state cleanly. Recovery eligibility is computed from retry counts and file-based evidence fingerprints derived from changed paths, tracked source locations, and SHA-256 hashes, allowing the system to distinguish unchanged retries from meaningful follow-up attempts. State is persisted through JSON artifacts near the spec directory and updates both recovery metadata and flow state files when a retry grant is applied. The module also exposes view builders and helper functions so CLI-facing code can present retry limits, reasons, and recovery metrics without duplicating the underlying decision logic.",
         "chapter": "internal_design",
-        "role": "recovery-manager",
+        "role": "Provides the internal retry-recovery engine for SDD flow operations, including validation, evidence comparison, persistence, and eligibility decisions for retry resets.",
+        "enrich": {
+          "processedAt": "2026-06-05T01:02:25.488Z",
+          "attempts": 1
+        },
         "keywords": [
-          "retry",
-          "recovery",
-          "gate",
-          "review",
+          "retry recovery",
+          "flow retry",
+          "reset retry",
+          "eligibility check",
           "evidence fingerprint",
-          "baseline",
-          "eligibility",
-          "retry-recovery.json",
-          "SHA256",
-          "flow recovery"
+          "SHA-256 hash",
+          "changed files",
+          "review baseline",
+          "gate retry",
+          "state persistence"
         ]
       },
       {
@@ -13316,5 +13316,5 @@
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-04T12:58:47.869Z"
+  "enrichedAt": "2026-06-05T01:02:25.488Z"
 }
