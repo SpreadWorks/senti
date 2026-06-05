@@ -67,6 +67,10 @@ auto モードは AI が確認なしに進行できるため、誤動作時の�
 - Use `sdd-forge flow get runtime-log` to inspect the latest flow command output after failures.
 - Do not wrap flow commands with environment-variable prefixes or shell redirection just to capture logs; keep the command prefix as `sdd-forge flow ...` so approval-prefix rules can match it.
 
+### Prompt guidance placement contract
+
+When implementing prompt guidance movement between flow skill files or flow prompt files, inspect related shared regression tests and update their placement-contract assertions. The checks must cover old-placement removal assertions and new-placement presence assertions. This rule applies to general prompt guidance movement, not a single guidance topic.
+
 ## Flow Progress Tracking
 
 **MUST: Run `sdd-forge flow set step <id> <val>` upon completion of each step to record flow progress.**

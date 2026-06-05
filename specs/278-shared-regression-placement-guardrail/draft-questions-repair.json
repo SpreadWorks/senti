@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Applied 3 question repairs. Pending QA questions now contain only the question text.",
+  "items": [
+    {
+      "title": "1. q1 includes recommendation and rationale",
+      "target": "q1",
+      "rationale": "Removed the embedded recommendation and rationale from the pending question.",
+      "evidence": "draft.json qa[0].question is now only '再発防止の主な置き場所はどこにしますか。'",
+      "changedFieldPaths": [
+        "qa[0].question"
+      ]
+    },
+    {
+      "title": "2. q2 includes recommendation and rationale",
+      "target": "q2",
+      "rationale": "Removed the embedded recommendation, rationale, and test evidence from the pending question.",
+      "evidence": "draft.json qa[1].question is now only '完了条件に、旧配置からの削除確認と新配置への存在確認の両方を含めますか。'",
+      "changedFieldPaths": [
+        "qa[1].question"
+      ]
+    },
+    {
+      "title": "3. q3 includes recommendation and rationale",
+      "target": "q3",
+      "rationale": "Removed the embedded recommended scope and rationale from the pending question.",
+      "evidence": "draft.json qa[2].question is now only '対象範囲は prompt guidance の配置変更全般に広げますか。'",
+      "changedFieldPaths": [
+        "qa[2].question"
+      ]
+    }
+  ]
+}

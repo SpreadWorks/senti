@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "One blocking finding is valid and will be repaired by making R1-R3 testable so spec-local test headers can cover them.",
+  "items": [
+    {
+      "title": "Test headers cannot cover requirements marked non-testable",
+      "target": "Requirements R1-R3 and Acceptance Criteria",
+      "decision": "apply",
+      "rationale": "R1-R3 are static prompt/source text requirements that spec-local tests can verify by reading the SDD flow skill source. Marking them non-testable conflicts with the acceptance criterion requiring R1-R4 header coverage.",
+      "evidence": "spec.json requirements[0..2].testable are false while acceptance_criteria[3] requires spec-local tests to verify R1 through R4 with `// spec: R<N>` headers."
+    }
+  ]
+}

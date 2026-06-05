@@ -1,0 +1,43 @@
+{
+  "spec": "specs/278-shared-regression-placement-guardrail/spec.json",
+  "date": "2026-06-04T15:05:31.426Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "When SDD flow procedure text describes implementation work involving prompt guidance moved between flow skill or flow prompt files, it shall require checking related shared regression tests for placement-contract assertions.",
+      "status": "done",
+      "note": "R1: requires checking related shared regression tests when prompt guidance moves"
+    },
+    {
+      "desc": "The procedure text shall explicitly require both old-placement removal assertions and new-placement presence assertions for moved prompt guidance.",
+      "status": "done",
+      "note": "R2: requires both old-placement removal and new-placement presence assertions"
+    },
+    {
+      "desc": "The procedure text shall apply to prompt guidance movement in general and shall not limit the rule to workflow board guidance only.",
+      "status": "done",
+      "note": "R3: applies to prompt guidance moves in general"
+    },
+    {
+      "desc": "Spec-local tests shall verify the SDD flow skill source contains the prompt-guidance movement regression-test instruction and the two placement assertion requirements.",
+      "status": "done",
+      "note": "R4: verifies the SDD flow skill source contains the full instruction contract"
+    },
+    {
+      "desc": "If the implementation changes `src/skills/`, generated agent skills shall be updated by running `sdd-forge upgrade`.",
+      "status": "done",
+      "note": "R5: verifies generated agent skill contains the same instruction contract"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 5,
+    "done": 5,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

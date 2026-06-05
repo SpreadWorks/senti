@@ -11,6 +11,10 @@ This skill drives a full Spec-Driven Development flow from a feature / fix reque
 
 <!-- include("@skills/partials/core-principle.md") -->
 
+### Prompt guidance placement contract
+
+When implementing prompt guidance movement between flow skill files or flow prompt files, inspect related shared regression tests and update their placement-contract assertions. The checks must cover old-placement removal assertions and new-placement presence assertions. This rule applies to general prompt guidance movement, not a single guidance topic.
+
 ## Flow Progress Tracking
 
 <!-- include("@skills/partials/flow-tracking.md") -->

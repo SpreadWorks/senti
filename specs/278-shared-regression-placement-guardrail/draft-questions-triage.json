@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "All 3 repair targets are valid. Pending draft questions should contain only the question text; recommendation and rationale will be presented during the Q&A turn.",
+  "items": [
+    {
+      "title": "1. q1 includes recommendation and rationale",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "The pending QA schema requires unanswered questions to leave answer, evidence, why, and considered empty. The question text should not embed the recommended answer or its rationale.",
+      "evidence": "draft.json qa[0].question includes the question plus '推奨は SDD flow skill の手順強化です' and rationale text."
+    },
+    {
+      "title": "2. q2 includes recommendation and rationale",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "The pending QA entry should ask only for the decision. The recommendation and supporting test evidence belong in the user-facing choice presentation or answered QA fields after the user decision.",
+      "evidence": "draft.json qa[1].question includes the question plus '推奨は両方を含めることです' and current test evidence."
+    },
+    {
+      "title": "3. q3 includes recommendation and rationale",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "The pending QA entry should stay self-contained without embedding the answer. The scope recommendation can be shown when asking the user.",
+      "evidence": "draft.json qa[2].question includes the question plus a recommended scope and rationale."
+    }
+  ]
+}

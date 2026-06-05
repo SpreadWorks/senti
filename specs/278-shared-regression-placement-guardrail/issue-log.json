@@ -1,0 +1,129 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-04T14:32:08.517Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft approval is required: set approval.approved = true",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "\"再発リスクを減らす\" is a vague outcome target without a measurable criterion (e.g., exact test-condition coverage or pass/fail threshold).; \"同種の再発を防ぐ要件\" is subjective and does not define explicit, reviewable acceptance conditions.; The in-scope requirements are listed as a multi-item set but none are assigned must/should/nice-to-have priorities.; The out-of-scope items are requirements-like items without any must/should/nice-to-have assignment despite the requirement list exceeding three total items overall.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-04T14:32:45.450Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "draft.json",
+            "locator": "goal"
+          },
+          "observed": "\"再発リスクを減らす\" is a vague outcome target without a measurable criterion (e.g., exact test-condition coverage or pass/fail threshold).",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "draft.json",
+            "locator": "scopeVerification.in[2]"
+          },
+          "observed": "\"同種の再発を防ぐ要件\" is subjective and does not define explicit, reviewable acceptance conditions.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "draft.json",
+            "locator": "scopeVerification.in"
+          },
+          "observed": "The in-scope requirements are listed as a multi-item set but none are assigned must/should/nice-to-have priorities.",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "draft.json",
+            "locator": "scopeVerification.out"
+          },
+          "observed": "The out-of-scope items are requirements-like items without any must/should/nice-to-have assignment despite the requirement list exceeding three total items overall.",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "\"再発リスクを減らす\" is a vague outcome target without a measurable criterion (e.g., exact test-condition coverage or pass/fail threshold)."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "\"同種の再発を防ぐ要件\" is subjective and does not define explicit, reviewable acceptance conditions."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "The in-scope requirements are listed as a multi-item set but none are assigned must/should/nice-to-have priorities."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "The out-of-scope items are requirements-like items without any must/should/nice-to-have assignment despite the requirement list exceeding three total items overall."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: corrected spec-local contract section extraction",
+      "resolution": "Removed multiline end-of-line matching so the test reads the Prompt guidance placement contract body before validating regenerated artifacts.",
+      "taskId": null,
+      "timestamp": "2026-06-04T15:04:34.561Z"
+    }
+  ]
+}

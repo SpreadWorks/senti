@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied the blocking review repair by making R1-R3 testable so spec-local headers can cover R1 through R4.",
+  "items": [
+    {
+      "title": "Test headers cannot cover requirements marked non-testable",
+      "target": "Requirements R1-R3 and Acceptance Criteria",
+      "decision": "applied",
+      "rationale": "Removed `testable:false` from R1-R3 because these requirements are static source-text expectations that spec-local tests can verify.",
+      "evidence": "spec.json requirements[0], requirements[1], and requirements[2] no longer contain `testable:false`; acceptance_criteria[3] can now be satisfied by spec-local headers for R1-R4.",
+      "changedFields": [
+        "requirements[0].testable",
+        "requirements[1].testable",
+        "requirements[2].testable"
+      ]
+    }
+  ]
+}

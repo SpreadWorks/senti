@@ -1,0 +1,184 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".agents/skills/sdd-forge.flow/SKILL.md             |   4 +\n .../draft-coverage-repair.json                     |   8 +\n .../draft-coverage-triage.json                     |   8 +\n .../draft-questions-repair.json                    |  35 +\n .../draft-questions-triage.json                    |  29 +\n .../draft-review-coverage.json                     |  11 +\n .../draft-review-questions.json                    |  33 +\n .../draft.json                                     |  96 +++\n .../file-map.json                                  |  21 +\n .../flow.json                                      | 916 +++++++++++++++++++++\n .../impl-review.json                               |  28 +\n .../issue-log.json                                 | 129 +++\n .../review-history/draft-coverage-attempt-001.json |  14 +\n .../draft-questions-attempt-001.json               |  67 ++\n .../review-history/impl-attempt-001.json           |  31 +\n .../review-history/impl-attempt-001.md             |  16 +\n .../review-history/impl-attempt-002.json           |  31 +\n .../review-history/impl-attempt-002.md             |  16 +\n .../review-history/spec-attempt-001.json           |  56 ++\n .../review-history/spec-attempt-001.md             |  19 +\n .../review-history/test-attempt-001.json           |  66 ++\n .../review-history/test-attempt-001.md             |  24 +\n .../review-history/test-attempt-002.json           |  28 +\n .../review-history/test-attempt-002.md             |  13 +\n .../review.md                                      |  16 +\n .../spec-repair.json                               |  20 +\n .../spec-review.json                               |  32 +\n .../spec-review.md                                 |  19 +\n .../spec-triage.json                               |  15 +\n .../spec.json                                      | 184 +++++\n .../spec.md                                        |  95 +++\n .../tasks/T-1.md                                   |  21 +\n .../tasks/T-2.md                                   |  19 +\n .../test-coverage.json                             |  75 ++\n .../test-review.json                               |  25 +\n .../test-review.md                                 |  13 +\n .../prompt-guidance-placement-procedure.test.js    |  70 ++\n src/skills/sdd-forge.flow/SKILL.md                 |   4 +\n 38 files changed, 2307 insertions(+)",
+      "commits": [
+        "Add prompt guidance placement guardrail"
+      ]
+    },
+    "retro": {
+      "total": 5,
+      "done": 5,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "When SDD flow procedure text describes implementation work involving prompt guidance moved between flow skill or flow prompt files, it shall require checking related shared regression tests for placement-contract assertions.",
+          "status": "done",
+          "note": "R1: requires checking related shared regression tests when prompt guidance moves"
+        },
+        {
+          "desc": "The procedure text shall explicitly require both old-placement removal assertions and new-placement presence assertions for moved prompt guidance.",
+          "status": "done",
+          "note": "R2: requires both old-placement removal and new-placement presence assertions"
+        },
+        {
+          "desc": "The procedure text shall apply to prompt guidance movement in general and shall not limit the rule to workflow board guidance only.",
+          "status": "done",
+          "note": "R3: applies to prompt guidance moves in general"
+        },
+        {
+          "desc": "Spec-local tests shall verify the SDD flow skill source contains the prompt-guidance movement regression-test instruction and the two placement assertion requirements.",
+          "status": "done",
+          "note": "R4: verifies the SDD flow skill source contains the full instruction contract"
+        },
+        {
+          "desc": "If the implementation changes `src/skills/`, generated agent skills shall be updated by running `sdd-forge upgrade`.",
+          "status": "done",
+          "note": "R5: verifies generated agent skill contains the same instruction contract"
+        }
+      ]
+    },
+    "issueLog": {
+      "count": 3,
+      "fullLogPath": "specs/278-shared-regression-placement-guardrail/issue-log.json",
+      "importantTotal": 1,
+      "importantShown": 1,
+      "importantOmitted": 0,
+      "recentOtherTotal": 2,
+      "recentOtherShown": 2,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "\"再発リスクを減らす\" is a vague outcome target without a measurable criterion (e.g., exact test-condition coverage or pass/fail threshold).; \"同種の再発を防ぐ要件\" is subjective and does not define explicit, reviewable acceptance conditions.; The in-scope ...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: corrected spec-local contract section extraction",
+          "resolution": "Removed multiline end-of-line matching so the test reads the Prompt guidance placement contract body before validating regenerated artifacts."
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 192457,
+      "output": 26425,
+      "cacheRead": 470247,
+      "cacheCreation": 27655,
+      "cost": 0.37305124999999995,
+      "callCount": 19,
+      "durationMs": 385801,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 11945
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 7723
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 17729
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 125030
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 9999
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 37638
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 88885
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 86852
+        }
+      ]
+    },
+    "tests": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/278-shared-regression-placement-guardrail/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 57,
+          "end_line": 5224
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/278-shared-regression-placement-guardrail/"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/278-shared-regression-placement-guardrail/"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/278-shared-regression-placement-guardrail/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    Add prompt guidance placement guardrail\n    38 files changed, 2307 insertions(+)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (5 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 1\n    agent calls ................. 19\n    input tokens ................ 192,457\n    output tokens ............... 26,425\n    cache-read tokens ........... 470,247\n    cache-create tokens ......... 27,655\n    cost ........................ $0.3731\n    duration (total) ............ 385.8s\n      draft-questions-review .... 11.9s\n      draft-coverage-review ..... 7.7s\n      draft-gate ................ 17.7s\n      spec-review ............... 125.0s\n      spec-gate ................. 10.0s\n      test-review ............... 37.6s\n      impl-review ............... 88.9s\n      impl-gate ................. 86.9s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 5  passed 5  failed 0 verdict=pass\n    raw_output: specs/278-shared-regression-placement-guardrail/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (3 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/278-shared-regression-placement-guardrail/issue-log.json\n\n    Important (1)\n    - [draft-gate] \"再発リスクを減らす\" is a vague outcome target without a measurable criterion (e.g., exact test-condition coverage or pass/fail threshold).; \"同種の再発を防ぐ要件\" is subjective and does not define explicit, reviewable acceptance conditions.; The in-scope ...\n\n    Recent Other (2)\n    - [draft-gate] draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved\n    - [impl-gate] fix: corrected spec-local contract section extraction"
+}

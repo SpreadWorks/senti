@@ -1,0 +1,96 @@
+{
+  "devType": "bugfix",
+  "goal": "prompt guidance の配置変更時に、SDD flow skill 手順が関連 shared regression test の旧配置 assert と新配置 assert の両方を確認するよう要求する。",
+  "analysis": {
+    "problem": "Issue #361 は、finalize-cleanup から post-flow skill へ workflow board guidance を移動した際に、共有 unit test が旧 finalize-cleanup 配置を assert したまま残り、project regression が失敗した事例を扱う。単発の test 修正ではなく、prompt guidance の移動時に関連 regression test の契約更新が漏れる手順上のリスクが根本問題である。",
+    "proposedApproach": "prompt guidance を別ファイルまたは別フェーズへ移動する変更で、関連する共有 regression test が旧配置を前提にしていないか確認し、移動後の配置契約と旧配置からの削除の両方を検証する手順または guardrail を追加する。",
+    "validation": "Issue 本文は test-execute の full regression と isolated unit regression で旧配置 assert が原因と確認されたとしている。現行の `tests/unit/workflow-board-candidate-guidance.test.js` は finalize-cleanup からの削除と `src/skills/sdd-forge.flow/SKILL.md` の post-flow guidance 追加を assert している。SDD flow skill 手順が prompt guidance 移動時に関連 shared regression test の旧配置 assert と新配置 assert の両方を確認するよう要求すれば、Issue #361 の原因となった確認漏れに直接対応する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #361 は step: test-execute の bug として登録されている。",
+      "Issue #361 の原因は、prompt guidance 移動後も共有 regression test が旧 finalize-cleanup 配置を assert していたこと。",
+      "`tests/unit/workflow-board-candidate-guidance.test.js` は現在、finalize-cleanup から旧 guidance が消えていることと post-flow skill に guidance が存在することを assert している。",
+      "`src/flow/prompts/impl/finalize-cleanup.md` は cleanup 手順のみを扱い、workflow board candidate guidance を含まない。",
+      "`src/skills/sdd-forge.flow/SKILL.md` は Post-flow workflow board integration を含み、finalize-cleanup 成功後かつ flow inactive 後の処理として guidance を持つ。"
+    ],
+    "decisionPoints": [
+      "再発防止をどの運用面に置くか: SDD flow skill の実装・テスト手順、guardrail、または workflow board 候補化手順。",
+      "検出対象を prompt guidance の配置変更全般に広げるか、workflow board guidance の移動に限定するか。",
+      "実装完了条件に、旧配置からの削除 assert と新配置への存在 assert の両方を含めるか。"
+    ],
+    "resolvedByProjectRules": [
+      "Issue はユーザーが定義した 1 concern として扱い、勝手に分割しない。",
+      "src/ 配下へ追加する固定文言はプロジェクト固有の情報を含めない。",
+      "src/skills/ または src/presets/ を変更した場合は `sdd-forge upgrade` を実行する。",
+      "外部依存は追加しない。Node.js built-in modules のみ使用する。",
+      "テスト失敗時は妥当なテストを改変して通すのではなく、product code または手順側の契約を修正する。"
+    ],
+    "requiresUserJudgment": [
+      "再発防止の主な置き場所を、flow skill の手順強化にするか、guardrail 追加にするか、既存 unit test の強化に限定するか。",
+      "対象範囲を prompt guidance 移動全般にするか、workflow board guidance のような flow skill / prompt 間移動に限定するか。"
+    ],
+    "deferredToSpec": [
+      "具体的な変更ファイルと文言は spec 作成時に既存の prompt / skill / guardrail 構造へ合わせて決める。",
+      "spec-local test の配置と assertion 内容は plan/test step で決める。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: prompt guidance を別ファイルまたは別フェーズへ移動する場合、SDD flow skill 手順に関連 shared regression test の配置契約確認を明文化する。",
+      "must: 配置契約確認は、新配置に必要な guidance が存在する assert と旧配置から移動済み guidance が削除された assert の両方を要求する。",
+      "should: 既存の workflow board candidate guidance 回帰テストを、prompt guidance 移動時に確認すべき assert パターンの例として参照できるようにする。"
+    ],
+    "out": [
+      "must: Issue #360 の実装修正そのものを再実装しない。",
+      "must: workflow board candidate guidance の機能内容を変更しない。",
+      "must: GitHub Projects / workflow board の運用方法論そのものを確定しない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: SDD flow の実装またはレビュー手順に、prompt guidance 移動時の shared regression test 契約確認を追加する。",
+    "must: prompt / skill source を変更する場合、generated skill へ反映するため `sdd-forge upgrade` を実行する。",
+    "should: 既存の workflow board candidate guidance unit test を、今回の要件の回帰例として扱う。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "再発防止の主な置き場所はどこにしますか。",
+      "answer": "SDD flow skill の手順強化を主な置き場所にする。",
+      "evidence": "User selected option [1] during draft-refine. Issue #361 states the failure was caused by an old placement contract remaining in a shared regression test after prompt guidance moved.",
+      "why": "The recurring risk appears during prompt guidance movement work, so the procedure read by the implementer is the closest control point.",
+      "considered": "Guardrail addition was considered but is less directly tied to the movement workflow. Existing unit test strengthening only was considered but is narrower than the recurrence risk described in the issue.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "完了条件に、旧配置からの削除確認と新配置への存在確認の両方を含めますか。",
+      "answer": "完了条件に、旧配置からの削除確認と新配置への存在確認の両方を含める。",
+      "evidence": "User selected option [1] during draft-refine. `tests/unit/workflow-board-candidate-guidance.test.js` asserts both absence from `src/flow/prompts/impl/finalize-cleanup.md` and presence in `src/skills/sdd-forge.flow/SKILL.md`.",
+      "why": "Issue #361 was caused by a stale old-placement contract, so checking both sides catches missing removal and missing destination guidance.",
+      "considered": "New-placement-only verification was considered but would miss stale old placement. Old-placement-removal-only verification was considered but would miss missing guidance at the destination.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "対象範囲は prompt guidance の配置変更全般に広げますか。",
+      "answer": "対象範囲は prompt guidance の配置変更全般に広げる。workflow board guidance だけには限定しない。",
+      "evidence": "User selected option [1] during draft-refine. Issue #361 frames the improvement direction as checking shared regression tests when prompt guidance moves to another file or phase.",
+      "why": "The recurring failure pattern is stale regression-test placement contracts after prompt guidance movement, not only the specific workflow board guidance example.",
+      "considered": "Workflow board guidance only was considered but would not prevent the same failure for other guidance moves. Shared regression contract generalization beyond prompt guidance was considered but would exceed the issue scope.",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-04T14:32:18Z",
+    "notes": "All draft QA entries are answered and draft coverage review passed."
+  }
+}

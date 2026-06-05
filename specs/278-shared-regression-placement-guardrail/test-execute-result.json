@@ -1,0 +1,102 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/278-shared-regression-placement-guardrail/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/278-shared-regression-placement-guardrail/tests/prompt-guidance-placement-procedure.test.js",
+        "test_name": "R1: requires checking related shared regression tests when prompt guidance moves",
+        "command": "node --test specs/278-shared-regression-placement-guardrail/tests/prompt-guidance-placement-procedure.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 56
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/278-shared-regression-placement-guardrail/tests/prompt-guidance-placement-procedure.test.js",
+        "test_name": "R2: requires both old-placement removal and new-placement presence assertions",
+        "command": "node --test specs/278-shared-regression-placement-guardrail/tests/prompt-guidance-placement-procedure.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 56
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/278-shared-regression-placement-guardrail/tests/prompt-guidance-placement-procedure.test.js",
+        "test_name": "R3: applies to prompt guidance moves in general",
+        "command": "node --test specs/278-shared-regression-placement-guardrail/tests/prompt-guidance-placement-procedure.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 56
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/278-shared-regression-placement-guardrail/tests/prompt-guidance-placement-procedure.test.js",
+        "test_name": "R4: verifies the SDD flow skill source contains the full instruction contract",
+        "command": "node --test specs/278-shared-regression-placement-guardrail/tests/prompt-guidance-placement-procedure.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 56
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/278-shared-regression-placement-guardrail/tests/prompt-guidance-placement-procedure.test.js",
+        "test_name": "R5: verifies generated agent skill contains the same instruction contract",
+        "command": "node --test specs/278-shared-regression-placement-guardrail/tests/prompt-guidance-placement-procedure.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 56
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": true,
+    "mode": "full",
+    "root_test_command": "node tests/run.js",
+    "root_test_command_source": "test.command",
+    "command": "node tests/run.js",
+    "result": "pass",
+    "raw_output_lines": {
+      "start_line": 57,
+      "end_line": 5224
+    },
+    "trigger_relevant_changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/278-shared-regression-placement-guardrail/"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/278-shared-regression-placement-guardrail/"
+      }
+    ],
+    "process": {
+      "started": true,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "spawnError": null
+    }
+  }
+}
