@@ -221,6 +221,7 @@ export function generateReport(input) {
   const data = {
     implementation,
     retro,
+    upgrade: results.upgrade || null,
     issueLog: issueLogData,
     metrics,
     tokenMetrics,

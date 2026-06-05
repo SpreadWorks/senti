@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "One blocking finding is valid and should be repaired by making the upgrade-required path set and checkedPaths comparison semantics explicit.",
+  "items": [
+    {
+      "title": "Upgrade-required source set is not concrete enough for gate validation",
+      "target": "R3/R4",
+      "decision": "apply",
+      "rationale": "The current spec names src/skills and src/presets but leaves generic upgrade source inputs open-ended, so gate implementation and tests cannot determine the required evidence set consistently.",
+      "evidence": "requirements[2].desc says generic template/config sources read by upgrade without enumerating them; src/upgrade.js imports deploySkills from src/lib/skills.js, deployPresetCopies from src/lib/preset-deploy.js, validatePresetChain from src/lib/presets.js, and mergeAgentDefaults from src/lib/agent-defaults.js. requirements[3].desc also says checkedPaths covers current upgrade-required changes without defining whether checkedPaths stores changed file paths, roots, or patterns."
+    }
+  ]
+}

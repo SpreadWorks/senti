@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-05T00:28:23.403Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/278-upgrade-result-artifact/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R8 CLI entry-point validation is only partially exercised",
+      "target": "specs/278-upgrade-result-artifact/tests/upgrade-result-artifact.test.js",
+      "issue": "The test verifies parseUpgradeArgs rejects value-bearing options and positional arguments, but the actual `sdd-forge upgrade` entry point is exercised only for one unknown option case. An implementation could pass these tests while the CLI still accepts `--dry-run=true` or positional arguments, contradicting R8's user-facing entry-point requirement.",
+      "requiredChange": "Add CLI-level assertions that `sdd-forge upgrade --dry-run=true` and `sdd-forge upgrade extra` fail with the existing parseArgs validation error behavior.",
+      "whyBlocking": "R8 is a must requirement about the user-facing CLI entry point, and the current spec-local test coverage does not fully cover the required rejection behavior at that boundary."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/278-upgrade-result-artifact/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "f63159b440867756717ffd4f2bc5fe592512c471ffd30936332402acabb3f237"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "test-002-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R8 CLI entry-point validation is only partially exercised",
+      "body": "The test verifies parseUpgradeArgs rejects value-bearing options and positional arguments, but the actual `sdd-forge upgrade` entry point is exercised only for one unknown option case. An implementation could pass these tests while the CLI still accepts `--dry-run=true` or positional arguments, contradicting R8's user-facing entry-point requirement.",
+      "category": "unknown"
+    }
+  ]
+}

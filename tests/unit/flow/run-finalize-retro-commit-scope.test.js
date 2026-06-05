@@ -58,6 +58,7 @@ describe("test-artifacts", () => {
     const pathspecs = durableTestArtifactPathspecs("001");
 
     assert.deepEqual(pathspecs, [
+      "specs/001/upgrade-result.json",
       "specs/001/scenario-validity-result.json",
       "specs/001/test-execute-result.json",
       "specs/001/test-result-review.json",
@@ -66,6 +67,7 @@ describe("test-artifacts", () => {
       "specs/001/final-regression-result.json",
       "specs/001/retro.json",
       "specs/001/report.json",
+      "specs/001/tests/.raw/upgrade.log",
       "specs/001/tests/.raw/scenario-validity.log",
       "specs/001/tests/.raw/test-execution.log",
       "specs/001/tests/.raw/final-regression-attempt-*.log",

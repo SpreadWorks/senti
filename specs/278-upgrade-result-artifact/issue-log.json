@@ -1,0 +1,123 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "`scopeVerification.in` に5件の実装対象が並ぶが、各要件に must/should/nice-to-have の優先度が付与されていない。; `artifact schema の正確な field 名` や `gate が artifact を要求するための changed-file 判定ロジック` など、実装判断に必要な要件が `deferredToSpec` のままで、レビュー時に合否を独立に判定するための十分に具体的な条件が不足している。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-04T14:45:02.030Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "content",
+            "locator": "scopeVerification.in"
+          },
+          "observed": "`scopeVerification.in` に5件の実装対象が並ぶが、各要件に must/should/nice-to-have の優先度が付与されていない。",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content",
+            "locator": "decisionMap.deferredToSpec"
+          },
+          "observed": "`artifact schema の正確な field 名` や `gate が artifact を要求するための changed-file 判定ロジック` など、実装判断に必要な要件が `deferredToSpec` のままで、レビュー時に合否を独立に判定するための十分に具体的な条件が不足している。",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "`scopeVerification.in` に5件の実装対象が並ぶが、各要件に must/should/nice-to-have の優先度が付与されていない。"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "`artifact schema の正確な field 名` や `gate が artifact を要求するための changed-file 判定ロジック` など、実装判断に必要な要件が `deferredToSpec` のままで、レビュー時に合否を独立に判定するための十分に具体的な条件が不足している。"
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "No requirement states that spec behavior coverage must be added under specs/<specid>/tests/ with a `// spec: R<N> ...` header per file.; For the modified `sdd-forge upgrade` command, the spec does not list each user-facing argument and its validation requirements (type/format/range), and does not document validation at the entry point.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-04T14:54:03.103Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks and acceptance criteria"
+          },
+          "observed": "No requirement states that spec behavior coverage must be added under specs/<specid>/tests/ with a `// spec: R<N> ...` header per file.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "validate-user-input-at-entry-point",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements and constraints"
+          },
+          "observed": "For the modified `sdd-forge upgrade` command, the spec does not list each user-facing argument and its validation requirements (type/format/range), and does not document validation at the entry point.",
+          "severity": "blocking",
+          "refs": [
+            "validate-user-input-at-entry-point"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "No requirement states that spec behavior coverage must be added under specs/<specid>/tests/ with a `// spec: R<N> ...` header per file."
+        },
+        {
+          "guardrail_id": "validate-user-input-at-entry-point",
+          "reason": "For the modified `sdd-forge upgrade` command, the spec does not list each user-facing argument and its validation requirements (type/format/range), and does not document validation at the entry point."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: recorded requirement-to-file map",
+      "resolution": "Added file-map entries for each requirement so integration gate can validate test evidence coverage instead of failing on missing file-map.json.",
+      "taskId": null,
+      "timestamp": "2026-06-05T00:43:42.832Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: removed non-testable requirement from file-map",
+      "resolution": "R6 is marked testable=false, so file-map should only include testable requirements validated by the integration gate.",
+      "taskId": null,
+      "timestamp": "2026-06-05T00:44:07.880Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: refreshed regression evidence after unit test alignment",
+      "resolution": "Updated affected unit expectations for the new upgrade artifact contract and regenerated test-execute/test-result-review artifacts with project regression passing.",
+      "taskId": null,
+      "timestamp": "2026-06-05T00:56:11.425Z"
+    }
+  ]
+}

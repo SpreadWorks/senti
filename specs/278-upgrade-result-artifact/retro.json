@@ -1,0 +1,53 @@
+{
+  "spec": "specs/278-upgrade-result-artifact/spec.json",
+  "date": "2026-06-05T00:57:55.102Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "active flow 中の `sdd-forge upgrade` は `specs/<spec>/upgrade-result.json` version 1 を保存する。artifact は command、dryRun、exitCode、result、summary、checkedPaths、rawLogPath を含み、result は success-no-change、success-updated、failed のいずれかである。checkedPaths は artifact 作成時点の baseBranch...HEAD 差分で UPGRADE_REQUIRED_SOURCE_PATTERNS に一致した repo-relative file paths の sorted unique array である。",
+      "status": "done",
+      "note": "R1: upgrade artifact writer stores versioned result and checked paths"
+    },
+    {
+      "desc": "upgrade-result.json の rawLogPath は spec ディレクトリ配下の raw log を指す。raw log は upgrade の user-facing output と失敗 message を含み、artifact validator は rawLogPath が spec ディレクトリ外を指す場合に失敗する。",
+      "status": "done",
+      "note": "R2: upgrade artifact raw log preserves output and rejects outside paths"
+    },
+    {
+      "desc": "integration gate は baseBranch...HEAD 差分に UPGRADE_REQUIRED_SOURCE_PATTERNS (`src/upgrade.js`, `src/skills/**`, `src/presets/**`, `src/lib/skills.js`, `src/lib/include.js`, `src/lib/skill-rules.js`, `src/docs/lib/directive-parser.js`, `src/lib/preset-deploy.js`, `src/lib/presets.js`, `src/lib/agent-defaults.js`, `src/lib/config.js`) のいずれかに一致する file path が含まれる場合、upgrade-result.json を必須 trust input として検証する。",
+      "status": "done",
+      "note": "R3: upgrade-required source paths include skill, preset, and generic upgrade sources"
+    },
+    {
+      "desc": "integration gate は upgrade-result.json が missing、schema invalid、raw log missing、result=failed、または checkedPaths が現在の baseBranch...HEAD 差分から再計算した UPGRADE_REQUIRED_SOURCE_PATTERNS matched paths と完全一致しない場合に FAIL する。upgrade 必須変更がない場合は upgrade-result.json を要求しない。",
+      "status": "done",
+      "note": "R4: gate upgrade evidence fails invalid artifacts and skips when no upgrade paths changed"
+    },
+    {
+      "desc": "finalize/report は upgrade-result.json と raw log を durable artifact として保持し、report の machine-readable data から upgrade result と summary を参照できる。",
+      "status": "done",
+      "note": "R5: durable artifacts and report data include upgrade result and raw log"
+    },
+    {
+      "desc": "spec behavior coverage は `specs/278-upgrade-result-artifact/tests/` 配下に追加する。各 test file は対象 requirement を示す `// spec: R<N> ...` header で始め、upgrade artifact writer/validator、gate の upgrade evidence 判定、finalize/report の durable artifact 参照を coverage する。",
+      "status": "done",
+      "note": "R7: this spec-local test file declares and names every testable requirement"
+    },
+    {
+      "desc": "`sdd-forge upgrade` の entry point は user-facing arguments を parseUpgradeArgs で検証する。許可される入力は `--dry-run` boolean flag、`--help` boolean flag、`-h` alias のみで、type は presence-based boolean、format/range は値なし・範囲なしである。値付き option、positional argument、未知の option は既存 parseArgs の validation error として拒否する。",
+      "status": "done",
+      "note": "R8: upgrade CLI argument parser accepts only documented boolean flags"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 7,
+    "done": 7,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 1,
+    "not_testable_count": 1,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

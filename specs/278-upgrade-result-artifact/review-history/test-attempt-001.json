@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-05T00:26:53.026Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 5,
+    "advisory": 0,
+    "total": 5
+  },
+  "coverageArtifact": "specs/278-upgrade-result-artifact/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R1 artifact schema fields are not fully asserted",
+      "target": "specs/278-upgrade-result-artifact/tests/upgrade-result-artifact.test.js R1 test",
+      "issue": "The R1 test only asserts version, result, checkedPaths, and file existence. It does not verify that the persisted upgrade-result.json includes command, dryRun, exitCode, summary, and rawLogPath with the required values, even though those fields are mandatory acceptance requirements.",
+      "requiredChange": "Extend the R1 test to read the written upgrade-result.json and assert all required artifact fields: command, dryRun, exitCode, result, summary, checkedPaths, and rawLogPath.",
+      "whyBlocking": "An acceptance requirement has no corresponding spec-local test coverage, so implementation could omit required fields while the test still passes."
+    },
+    {
+      "kind": "blocking",
+      "title": "R2 raw log content requirement is not covered",
+      "target": "specs/278-upgrade-result-artifact/tests/upgrade-result-artifact.test.js R1/R2 tests",
+      "issue": "R2 requires the raw log to contain upgrade user-facing output and failure messages. The tests only check that a raw log file exists and that validators reject paths outside the spec directory; they do not assert raw log content for success output or failure message preservation.",
+      "requiredChange": "Add assertions that the raw log written by the artifact writer contains the supplied user-facing output, including a failing upgrade message case.",
+      "whyBlocking": "A critical acceptance behavior for durable failure evidence could be missing while all current tests pass."
+    },
+    {
+      "kind": "blocking",
+      "title": "R3 gate diff-based requirement trigger is not exercised",
+      "target": "specs/278-upgrade-result-artifact/tests/upgrade-result-artifact.test.js R3/R4 tests",
+      "issue": "R3 requires the integration gate to inspect baseBranch...HEAD and require upgrade-result.json when changed files match UPGRADE_REQUIRED_SOURCE_PATTERNS. The current tests only exercise path matching and a validator call with precomputed currentRequiredPaths, so they do not prove the gate performs the diff-based trust-input decision.",
+      "requiredChange": "Add a gate-level test that creates or simulates a baseBranch...HEAD diff containing an upgrade-required path and verifies the gate requires and validates upgrade-result.json.",
+      "whyBlocking": "The requirement coverage artifact claims gate behavior coverage, but the executable test only covers helper-level matching and can pass without exercising the production gate decision."
+    },
+    {
+      "kind": "blocking",
+      "title": "R4 failure modes and no-requirement branch are incomplete",
+      "target": "specs/278-upgrade-result-artifact/tests/upgrade-result-artifact.test.js R4 test",
+      "issue": "R4 requires FAIL for missing artifact, schema invalid, raw log missing, result=failed, and checkedPaths mismatch, and requires no upgrade-result.json when no upgrade-required changes exist. The current test covers missing, failed, and stale checkedPaths only.",
+      "requiredChange": "Extend R4 coverage to assert schema-invalid artifacts fail, missing raw logs fail, and empty currentRequiredPaths passes without requiring upgrade-result.json.",
+      "whyBlocking": "Multiple explicit acceptance cases have no regression coverage, including the important branch where upgrade evidence must not be required."
+    },
+    {
+      "kind": "blocking",
+      "title": "R8 does not prove the CLI entry point uses parseUpgradeArgs",
+      "target": "specs/278-upgrade-result-artifact/tests/upgrade-result-artifact.test.js R8 test",
+      "issue": "R8 requires the sdd-forge upgrade entry point to validate user-facing arguments via parseUpgradeArgs. The test imports parseUpgradeArgs directly, but does not exercise the actual CLI entry point, so the entry point could bypass the parser while the test still passes.",
+      "requiredChange": "Add an entry-point-level assertion, such as invoking the upgrade command with an invalid argument and verifying the existing parseArgs validation error path is used.",
+      "whyBlocking": "The test encodes coverage of the helper API but not the required production entry point behavior."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/278-upgrade-result-artifact/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 5,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "30c847b999bdc9af48142bf3ad34641e2c325bc0efa69ef869d06b74e8d7464c"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "test-001-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R1 artifact schema fields are not fully asserted",
+      "body": "The R1 test only asserts version, result, checkedPaths, and file existence. It does not verify that the persisted upgrade-result.json includes command, dryRun, exitCode, summary, and rawLogPath with the required values, even though those fields are mandatory acceptance requirements.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R2 raw log content requirement is not covered",
+      "body": "R2 requires the raw log to contain upgrade user-facing output and failure messages. The tests only check that a raw log file exists and that validators reject paths outside the spec directory; they do not assert raw log content for success output or failure message preservation.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R3 gate diff-based requirement trigger is not exercised",
+      "body": "R3 requires the integration gate to inspect baseBranch...HEAD and require upgrade-result.json when changed files match UPGRADE_REQUIRED_SOURCE_PATTERNS. The current tests only exercise path matching and a validator call with precomputed currentRequiredPaths, so they do not prove the gate performs the diff-based trust-input decision.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R4 failure modes and no-requirement branch are incomplete",
+      "body": "R4 requires FAIL for missing artifact, schema invalid, raw log missing, result=failed, and checkedPaths mismatch, and requires no upgrade-result.json when no upgrade-required changes exist. The current test covers missing, failed, and stale checkedPaths only.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-005",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R8 does not prove the CLI entry point uses parseUpgradeArgs",
+      "body": "R8 requires the sdd-forge upgrade entry point to validate user-facing arguments via parseUpgradeArgs. The test imports parseUpgradeArgs directly, but does not exercise the actual CLI entry point, so the entry point could bypass the parser while the test still passes.",
+      "category": "unknown"
+    }
+  ]
+}

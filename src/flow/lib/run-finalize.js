@@ -25,6 +25,7 @@ import {
   collectExistingArtifactPathspecs,
   durableTestArtifactPathspecs,
 } from "./test-artifacts.js";
+import { buildUpgradeReportDataFromArtifacts } from "./run-report.js";
 import { readRetroResultIfExists } from "./retro-artifacts.js";
 
 export function finalizeOnError(stepName, trigger) {
@@ -292,6 +293,8 @@ export async function executeCommitPost(ctx) {
   if (fs.existsSync(testExecutePath) || fs.existsSync(testResultReviewPath)) {
     Object.assign(results, buildTestResultsFromArtifacts(specAbsDir));
   }
+  const upgrade = buildUpgradeReportDataFromArtifacts(specAbsDir);
+  if (upgrade) results.upgrade = upgrade;
 
   let issueLog = { entries: [] };
   try {

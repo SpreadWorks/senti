@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied the triaged repair by defining the exact upgrade-required source path set and checkedPaths comparison semantics in the spec.",
+  "items": [
+    {
+      "title": "Upgrade-required source set is not concrete enough for gate validation",
+      "target": "R3/R4",
+      "decision": "applied",
+      "rationale": "The spec now names UPGRADE_REQUIRED_SOURCE_PATTERNS explicitly and defines checkedPaths as the sorted unique matched file paths from the baseBranch...HEAD diff, which lets gate and tests compute the same stale-artifact comparison.",
+      "evidence": "spec.json requirements[0].desc defines checkedPaths semantics, requirements[2].desc names the full UPGRADE_REQUIRED_SOURCE_PATTERNS set, requirements[3].desc requires exact set equality, and overview.decisions documents both the source set and checkedPaths meaning.",
+      "changedFields": [
+        "overview.data_flow[1].text",
+        "overview.decisions[5]",
+        "overview.decisions[6]",
+        "requirements[0].desc",
+        "requirements[2].desc",
+        "requirements[3].desc",
+        "acceptance_criteria[2]",
+        "acceptance_criteria[5]",
+        "tasks[1].acceptance[2]",
+        "tasks[1].implementation_notes"
+      ]
+    }
+  ]
+}

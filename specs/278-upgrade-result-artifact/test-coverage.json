@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "active flow 中の `sdd-forge upgrade` は `specs/<spec>/upgrade-result.json` version 1 を保存する。artifact は command、dryRun、exitCode、result、summary、checkedPaths、rawLogPath を含み、result は success-no-change、success-updated、failed のいずれかである。checkedPaths は artifact 作成時点の baseBranch...HEAD 差分で UPGRADE_REQUIRED_SOURCE_PATTERNS に一致した repo-relative file paths の sorted unique array である。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/upgrade-result-artifact.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "upgrade-result.json の rawLogPath は spec ディレクトリ配下の raw log を指す。raw log は upgrade の user-facing output と失敗 message を含み、artifact validator は rawLogPath が spec ディレクトリ外を指す場合に失敗する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/upgrade-result-artifact.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "integration gate は baseBranch...HEAD 差分に UPGRADE_REQUIRED_SOURCE_PATTERNS (`src/upgrade.js`, `src/skills/**`, `src/presets/**`, `src/lib/skills.js`, `src/lib/include.js`, `src/lib/skill-rules.js`, `src/docs/lib/directive-parser.js`, `src/lib/preset-deploy.js`, `src/lib/presets.js`, `src/lib/agent-defaults.js`, `src/lib/config.js`) のいずれかに一致する file path が含まれる場合、upgrade-result.json を必須 trust input として検証する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/upgrade-result-artifact.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "integration gate は upgrade-result.json が missing、schema invalid、raw log missing、result=failed、または checkedPaths が現在の baseBranch...HEAD 差分から再計算した UPGRADE_REQUIRED_SOURCE_PATTERNS matched paths と完全一致しない場合に FAIL する。upgrade 必須変更がない場合は upgrade-result.json を要求しない。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/upgrade-result-artifact.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "finalize/report は upgrade-result.json と raw log を durable artifact として保持し、report の machine-readable data から upgrade result と summary を参照できる。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/upgrade-result-artifact.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "flow skill / prompt は、src/skills または src/presets 等を変更した場合に `sdd-forge upgrade` を実行し、upgrade artifact が gate 入力になることを明記する。",
+      "testable": false,
+      "status": "not_testable",
+      "files": []
+    },
+    {
+      "id": "R7",
+      "desc": "spec behavior coverage は `specs/278-upgrade-result-artifact/tests/` 配下に追加する。各 test file は対象 requirement を示す `// spec: R<N> ...` header で始め、upgrade artifact writer/validator、gate の upgrade evidence 判定、finalize/report の durable artifact 参照を coverage する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/upgrade-result-artifact.test.js"
+      ]
+    },
+    {
+      "id": "R8",
+      "desc": "`sdd-forge upgrade` の entry point は user-facing arguments を parseUpgradeArgs で検証する。許可される入力は `--dry-run` boolean flag、`--help` boolean flag、`-h` alias のみで、type は presence-based boolean、format/range は値なし・範囲なしである。値付き option、positional argument、未知の option は既存 parseArgs の validation error として拒否する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/upgrade-result-artifact.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/upgrade-result-artifact.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R7",
+        "R8"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R7",
+        "R8"
+      ]
+    }
+  ]
+}

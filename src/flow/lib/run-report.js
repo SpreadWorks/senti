@@ -17,8 +17,27 @@ import { collectGitSummary } from "../../lib/git-helpers.js";
 import { generateReport, saveReport } from "../commands/report.js";
 import { loadIssueLog } from "./set-issue-log.js";
 import { FlowCommand } from "./base-command.js";
-import { buildTestResultsFromArtifacts } from "./test-artifacts.js";
+import {
+  UPGRADE_RESULT_FILE,
+  buildTestResultsFromArtifacts,
+  validateUpgradeResultArtifact,
+} from "./test-artifacts.js";
 import { readRetroResultIfExists } from "./retro-artifacts.js";
+
+export function buildUpgradeReportDataFromArtifacts(specDir) {
+  const resultPath = path.join(specDir, UPGRADE_RESULT_FILE);
+  if (!fs.existsSync(resultPath)) return null;
+  const artifact = JSON.parse(fs.readFileSync(resultPath, "utf8"));
+  const validation = validateUpgradeResultArtifact(specDir, artifact);
+  if (!validation.ok) {
+    throw new Error(`upgrade artifact invalid: ${validation.reason}`);
+  }
+  return {
+    result: artifact.result,
+    summary: artifact.summary,
+    rawLogPath: artifact.rawLogPath,
+  };
+}
 
 export class RunReportCommand extends FlowCommand {
   async execute(ctx) {
@@ -47,6 +66,8 @@ export class RunReportCommand extends FlowCommand {
     if (hasTestExecuteResult || hasTestResultReview) {
       Object.assign(results, buildTestResultsFromArtifacts(specDir));
     }
+    const upgrade = buildUpgradeReportDataFromArtifacts(specDir);
+    if (upgrade) results.upgrade = upgrade;
 
     const report = generateReport({
       state,

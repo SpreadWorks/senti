@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "3 repair targets triaged: simplify q1, simplify q3, and drop q4 because the artifact generation entry point is an internal implementation-policy choice.",
+  "items": [
+    {
+      "title": "`sdd-forge.flow` skill が明示されているため、該当手順だけ確認して、この依頼がフロー操作ではなく QA 構造チェックである前提で進めます。指定されたローカル skill パスがこの worktree には存在しないようです。依頼内容自体は有限な構造レビューなので、提示された QA だけを対象に判定します。### 1. q1 includes rationale",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "q1 is still a valid goal-confirmation question, but the current text includes explanatory rationale about test-execute-result.json. The repair step can keep the decision point and remove the rationale.",
+      "evidence": "draft.json qa[0].question contains a second sentence explaining the existing test-execute contract."
+    },
+    {
+      "title": "2. q3 includes a proposed answer shape",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "q3 is still a valid acceptance-criteria question, but it currently embeds a proposed raw-log and summary-count shape. The repair step can ask only what states must be distinguishable.",
+      "evidence": "draft.json qa[2].question proposes raw log path and summary counts inside the pending question."
+    },
+    {
+      "title": "3. q4 asks internal implementation details and includes rationale",
+      "target": "q4",
+      "decision": "apply",
+      "rationale": "The artifact generation entry point is an internal implementation-policy detail that should be resolved from existing CLI and flow patterns during spec writing, not asked as a user-facing draft question.",
+      "evidence": "draft.json qa[3].question asks whether to implement artifact generation in sdd-forge upgrade itself or in a flow-specific command."
+    }
+  ]
+}

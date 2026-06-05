@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Applied 3 draft question repairs: simplified q1, simplified q3, and removed q4.",
+  "items": [
+    {
+      "title": "`sdd-forge.flow` skill が明示されているため、該当手順だけ確認して、この依頼がフロー操作ではなく QA 構造チェックである前提で進めます。指定されたローカル skill パスがこの worktree には存在しないようです。依頼内容自体は有限な構造レビューなので、提示された QA だけを対象に判定します。### 1. q1 includes rationale",
+      "target": "q1",
+      "rationale": "Removed the explanatory second sentence so q1 asks only for the goal-confirmation decision.",
+      "evidence": "draft.json qa[0].question now asks only whether upgrade evidence should use a dedicated upgrade-result.json.",
+      "changedFieldPaths": [
+        "qa[0].question"
+      ]
+    },
+    {
+      "title": "2. q3 includes a proposed answer shape",
+      "target": "q3",
+      "rationale": "Removed the proposed raw-log and summary-count shape so q3 asks only which result states must be distinguishable.",
+      "evidence": "draft.json qa[2].question now asks only whether success, no-change, updated, and failure states are sufficient.",
+      "changedFieldPaths": [
+        "qa[2].question"
+      ]
+    },
+    {
+      "title": "3. q4 asks internal implementation details and includes rationale",
+      "target": "q4",
+      "rationale": "Removed q4 from the draft QA list because the artifact generation entry point is an implementation-policy detail for spec writing.",
+      "evidence": "draft.json qa[] no longer includes the question asking whether artifact generation belongs in sdd-forge upgrade or a flow-specific command.",
+      "changedFieldPaths": [
+        "qa[3]"
+      ]
+    }
+  ]
+}

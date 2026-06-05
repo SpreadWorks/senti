@@ -1,0 +1,279 @@
+{
+  "goal": "sdd-forge upgrade の実行結果を spec 配下の専用 artifact として保存し、upgrade 必須変更がある flow で integration gate / finalize / report がその証跡を参照できるようにする。",
+  "scope": {
+    "in": [
+      "must: upgrade-result.json の schema と validator",
+      "must: active flow 中に sdd-forge upgrade 実行結果を spec 配下へ保存する仕組み",
+      "must: upgrade 必須変更がある場合の integration gate 検証",
+      "must: finalize/report の durable artifact 対象への追加",
+      "should: flow skill / prompt への upgrade artifact 手順反映と sdd-forge upgrade による派生スキル更新"
+    ],
+    "out": [
+      "test-execute-result.json v2 の runtime test contract 変更",
+      "sdd-forge upgrade の公開 CLI オプション削除や意味変更",
+      "npm publish や dist-tag 操作",
+      "workflow board の運用ルール変更",
+      "upgrade 失敗時の issue-log 自動記録"
+    ]
+  },
+  "constraints": [
+    "外部依存は追加しない。Node.js 組み込みモジュールのみで実装する。",
+    "sdd-forge upgrade の既存公開 CLI 形式 `sdd-forge upgrade [--dry-run]` は維持する。新しい必須ユーザー引数は追加しない。",
+    "sdd-forge upgrade の user-facing input は entry point の parseUpgradeArgs で検証する。許可する引数は `--dry-run` boolean flag、`--help` boolean flag、`-h` alias のみで、値付き option、positional argument、未知の option は受け付けない。",
+    "src/ 以下にプロジェクト固有情報を含めない。upgrade 必須判定は汎用パスと既存設定に基づく。",
+    "upgrade artifact は test-execute-result.json へ混ぜず、専用の upgrade-result.json と raw log に分離する。",
+    "upgrade command の既存失敗条件は非ゼロ exit code のまま維持する。artifact 書き込み失敗は active flow 中の upgrade 失敗として非ゼロにする。"
+  ],
+  "design_principles": [
+    "既存の test artifact contract と upgrade artifact contract を分離する。",
+    "gate が必要とする判断は machine-readable field から行い、stdout や会話履歴に依存しない。",
+    "artifact path と raw log path は spec ディレクトリ配下に閉じる。"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/upgrade.js`: upgrade 実行結果を構造化し、active flow 中だけ spec artifact と raw log を保存する。"
+      },
+      {
+        "text": "`src/flow/lib/test-artifacts.js`: upgrade artifact のファイル名、durable pathspec、validator、gate 用判定 helper を持つ。"
+      },
+      {
+        "text": "`src/flow/lib/run-gate.js`: integration gate 前に upgrade 必須変更を検出し、必要時に upgrade-result.json を検証する。"
+      },
+      {
+        "text": "`src/flow/lib/run-finalize.js` / report 周辺: upgrade artifact を durable artifact と report 入力に含める。"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "active flow 中に `sdd-forge upgrade` を実行すると、stdout と同等の raw log を `specs/<spec>/tests/.raw/upgrade.log` に保存し、summary を `specs/<spec>/upgrade-result.json` に保存する。"
+      },
+      {
+        "text": "integration gate は baseBranch との差分から UPGRADE_REQUIRED_SOURCE_PATTERNS に一致する repo-relative file path を抽出する。対象変更がある場合、upgrade-result.json を読み、schema、rawLogPath、result、checkedPaths、summary を検証する。"
+      },
+      {
+        "text": "finalize/report は upgrade-result.json と raw log を durable artifact として保持し、report で upgrade status を表示できる。"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] upgrade は stdout summary のみを出し、spec artifact を書かない。",
+        "evidence": "src/upgrade.js は deploySkills / cleanupObsoleteSkills / deployPresetCopies / config migration を実行し、console.log で summary を出す。artifact 書き込み処理は存在しない。"
+      },
+      {
+        "text": "[VERIFY] integration gate の現行 trust input は test/regression artifact に限定されている。",
+        "evidence": "src/flow/lib/test-artifacts.js の INTEGRATION_TRUST_INPUTS は test-execute-result.json、test-result-review.json、file-map.json、tests/.raw/test-execution.log を含む。"
+      },
+      {
+        "text": "[VERIFY] durable artifact pathspec に upgrade-result.json は含まれていない。",
+        "evidence": "src/flow/lib/test-artifacts.js の DURABLE_TEST_ARTIFACT_RELATIVE_PATTERNS は scenario-validity、test-execute、test-result-review、impl-gate、final-regression、retro、report を列挙している。"
+      },
+      {
+        "text": "upgrade 証跡は test-execute-result.json に混ぜず、専用 upgrade-result.json と raw log に分離する。",
+        "evidence": "Issue #362 は dedicated upgrade-result.json を求めている。test-execute-result.json は runtime test/regression の既存 contract である。",
+        "consideredAlternatives": "test-execute-result.json に upgrade 証跡を追加する案は、runtime test の責務と maintenance command の証跡が混ざるため採用しない。"
+      },
+      {
+        "text": "upgrade 失敗は upgrade-result.json result=failed で gate が block できればよく、issue-log 自動記録は範囲外にする。",
+        "evidence": "Issue #362 は手動 issue-log なしで upgrade の実行/変更なし/更新/失敗を追跡できることを求めている。",
+        "consideredAlternatives": "issue-log 自動記録は監査情報を増やすが、今回の concern は標準 artifact 化であり運用変更を広げるため採用しない。"
+      },
+      {
+        "text": "upgrade 必須変更の検出は固定の UPGRADE_REQUIRED_SOURCE_PATTERNS で行う: `src/upgrade.js`, `src/skills/**`, `src/presets/**`, `src/lib/skills.js`, `src/lib/include.js`, `src/lib/skill-rules.js`, `src/docs/lib/directive-parser.js`, `src/lib/preset-deploy.js`, `src/lib/presets.js`, `src/lib/agent-defaults.js`, `src/lib/config.js`。",
+        "evidence": "src/upgrade.js は skill 展開、obsolete skill cleanup、preset copy、preset chain validation、config migration、agent defaults merge を実行する。これらの出力を変える source path は gate の upgrade 証跡要求対象に含める。"
+      },
+      {
+        "text": "`checkedPaths` は artifact 作成時点の baseBranch...HEAD 差分のうち UPGRADE_REQUIRED_SOURCE_PATTERNS に一致した repo-relative file paths の sorted unique array とする。source roots や glob pattern の一覧ではない。",
+        "evidence": "gate は現在の diff から同じ matched path set を再計算し、upgrade-result.json の checkedPaths と完全一致するかを stale 判定に使う。"
+      }
+    ]
+  },
+  "background": "スキルやプリセットのソースを変更した場合、プロジェクトルール上 `sdd-forge upgrade` の実行が必要になる。現状の upgrade は結果を stdout に出すだけで、flow の spec ディレクトリに機械可読な証跡を残さない。一方、integration gate は test-execute-result.json などの標準 artifact を検証してから進む設計である。upgrade 実行結果を同じ flow artifact 体系に載せることで、gate 再試行時の手動説明や会話履歴依存を減らす。",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "active flow 中の `sdd-forge upgrade` は `specs/<spec>/upgrade-result.json` version 1 を保存する。artifact は command、dryRun、exitCode、result、summary、checkedPaths、rawLogPath を含み、result は success-no-change、success-updated、failed のいずれかである。checkedPaths は artifact 作成時点の baseBranch...HEAD 差分で UPGRADE_REQUIRED_SOURCE_PATTERNS に一致した repo-relative file paths の sorted unique array である。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "upgrade-result.json の rawLogPath は spec ディレクトリ配下の raw log を指す。raw log は upgrade の user-facing output と失敗 message を含み、artifact validator は rawLogPath が spec ディレクトリ外を指す場合に失敗する。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "integration gate は baseBranch...HEAD 差分に UPGRADE_REQUIRED_SOURCE_PATTERNS (`src/upgrade.js`, `src/skills/**`, `src/presets/**`, `src/lib/skills.js`, `src/lib/include.js`, `src/lib/skill-rules.js`, `src/docs/lib/directive-parser.js`, `src/lib/preset-deploy.js`, `src/lib/presets.js`, `src/lib/agent-defaults.js`, `src/lib/config.js`) のいずれかに一致する file path が含まれる場合、upgrade-result.json を必須 trust input として検証する。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "integration gate は upgrade-result.json が missing、schema invalid、raw log missing、result=failed、または checkedPaths が現在の baseBranch...HEAD 差分から再計算した UPGRADE_REQUIRED_SOURCE_PATTERNS matched paths と完全一致しない場合に FAIL する。upgrade 必須変更がない場合は upgrade-result.json を要求しない。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "finalize/report は upgrade-result.json と raw log を durable artifact として保持し、report の machine-readable data から upgrade result と summary を参照できる。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "flow skill / prompt は、src/skills または src/presets 等を変更した場合に `sdd-forge upgrade` を実行し、upgrade artifact が gate 入力になることを明記する。",
+      "priority": "should",
+      "status": "done",
+      "testable": false
+    },
+    {
+      "id": "R7",
+      "desc": "spec behavior coverage は `specs/278-upgrade-result-artifact/tests/` 配下に追加する。各 test file は対象 requirement を示す `// spec: R<N> ...` header で始め、upgrade artifact writer/validator、gate の upgrade evidence 判定、finalize/report の durable artifact 参照を coverage する。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R8",
+      "desc": "`sdd-forge upgrade` の entry point は user-facing arguments を parseUpgradeArgs で検証する。許可される入力は `--dry-run` boolean flag、`--help` boolean flag、`-h` alias のみで、type は presence-based boolean、format/range は値なし・範囲なしである。値付き option、positional argument、未知の option は既存 parseArgs の validation error として拒否する。",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "active flow 中に `sdd-forge upgrade --dry-run` または `sdd-forge upgrade` を実行すると、spec ディレクトリ配下に upgrade-result.json と raw log が作成される。",
+    "upgrade-result.json は version=1、command、dryRun、exitCode、result、summary、checkedPaths、rawLogPath を持つ。",
+    "checkedPaths は source root や glob pattern ではなく、baseBranch...HEAD 差分中で UPGRADE_REQUIRED_SOURCE_PATTERNS に一致した repo-relative file paths の sorted unique array である。",
+    "upgrade 必須変更がある状態で upgrade-result.json が存在しない場合、integration gate は upgrade artifact missing を示して FAIL する。",
+    "upgrade 必須変更がある状態で upgrade-result.json result=failed の場合、integration gate は FAIL する。",
+    "upgrade 必須変更がある状態で checkedPaths が現在の matched path set と一致しない場合、integration gate は stale upgrade artifact を示して FAIL する。",
+    "upgrade 必須変更がない状態では、integration gate は upgrade-result.json の有無だけでは FAIL しない。",
+    "finalize/report の durable artifact 対象に upgrade-result.json と raw log が含まれる。",
+    "`sdd-forge upgrade --dry-run`、`sdd-forge upgrade --help`、`sdd-forge upgrade -h` は許可され、値付き option、positional argument、未知の option は entry point validation で拒否される。",
+    "`specs/278-upgrade-result-artifact/tests/` 配下の spec tests は各 file 先頭に `// spec: R<N> ...` header を持つ。",
+    "既存の test-execute-result.json v2 schema と test-result-review schema は変更されない。"
+  ],
+  "clarifications": [
+    {
+      "q": "upgrade artifact は test-execute-result.json に含めるか。",
+      "a": "含めない。test-execute-result.json は runtime test/regression の contract として維持し、upgrade-result.json を専用 artifact とする。"
+    },
+    {
+      "q": "upgrade 失敗時に issue-log を自動記録するか。",
+      "a": "しない。今回の必須範囲は upgrade-result.json と raw log による追跡、および gate block までである。"
+    },
+    {
+      "q": "公開 CLI の引数は変更するか。",
+      "a": "変更しない。`sdd-forge upgrade [--dry-run]` の既存 interface を維持し、active flow の有無から artifact 書き込みを制御する。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "test-execute-result.json に upgrade 証跡を追加する",
+      "reason": "test-execute-result.json は runtime test/regression の証跡であり、upgrade の maintenance 証跡を混ぜると既存 consumer の意味が曖昧になるため採用しない。"
+    },
+    {
+      "option": "issue-log だけで upgrade 失敗を追跡する",
+      "reason": "Issue #362 は手動 issue-log 依存を減らすことを求めている。gate が読める標準 artifact にならないため採用しない。"
+    },
+    {
+      "option": "sdd-forge upgrade に必須の新規ユーザー引数を追加する",
+      "reason": "既存 CLI interface を変える必要がなく、active flow context から spec artifact path を解決できるため採用しない。"
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "upgrade-result",
+    "upgrade artifact",
+    "sdd-forge upgrade",
+    "integration gate",
+    "durable artifact",
+    "test-artifacts",
+    "run-gate",
+    "run-finalize",
+    "run-report",
+    "src/skills",
+    "src/presets"
+  ],
+  "implementationTargets": [
+    "src/upgrade.js",
+    "src/flow/lib/test-artifacts.js",
+    "src/flow/lib/run-gate.js",
+    "src/flow/lib/run-finalize.js",
+    "src/flow/lib/run-report.js",
+    "src/skills/sdd-forge.flow/SKILL.md"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Add upgrade artifact contract",
+      "goal": "Define upgrade-result.json version 1, write it during active-flow upgrade execution, and validate raw log paths inside the spec directory.",
+      "acceptance": [
+        "active flow upgrade writes upgrade-result.json and raw log under the current spec directory",
+        "artifact distinguishes success-no-change, success-updated, and failed",
+        "validator rejects malformed artifact and rawLogPath outside the spec directory",
+        "upgrade entry point accepts only --dry-run, --help, and -h, and rejects positional arguments, value-taking options, and unknown options"
+      ],
+      "implementation_notes": "Focus on src/upgrade.js and src/flow/lib/test-artifacts.js. Keep public upgrade CLI arguments unchanged.",
+      "test_strategy": "Spec tests under specs/278-upgrade-result-artifact/tests/ with // spec: R<N> headers for artifact writer/validator, active-flow upgrade command behavior, and CLI argument validation in a temp repository.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Gate upgrade evidence",
+      "goal": "Make integration gate require and validate upgrade-result.json only when the diff includes upgrade-required source paths.",
+      "acceptance": [
+        "gate fails when upgrade-required changes exist and artifact is missing",
+        "gate fails when artifact result is failed",
+        "gate fails when checkedPaths does not exactly match the current sorted unique matched paths from UPGRADE_REQUIRED_SOURCE_PATTERNS",
+        "gate passes the upgrade check when no upgrade-required changes exist"
+      ],
+      "implementation_notes": "Focus on src/flow/lib/run-gate.js and helper logic in src/flow/lib/test-artifacts.js. Detection must use baseBranch...HEAD diff and the exact UPGRADE_REQUIRED_SOURCE_PATTERNS path set from requirements R3/R4.",
+      "test_strategy": "Spec tests under specs/278-upgrade-result-artifact/tests/ with // spec: R<N> headers around the gate precheck helper using temp specs and synthetic changed-file lists.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-3",
+      "title": "Persist upgrade reporting",
+      "goal": "Include upgrade-result.json and its raw log in durable finalize artifacts and expose upgrade status in report data.",
+      "acceptance": [
+        "durable artifact pathspecs include upgrade-result.json and upgrade raw log",
+        "report data includes upgrade result and summary when the artifact exists",
+        "existing test artifact reporting remains unchanged"
+      ],
+      "implementation_notes": "Focus on durable artifact pathspecs and report aggregation. Do not change test-execute-result.json or test-result-review schemas.",
+      "test_strategy": "Spec tests under specs/278-upgrade-result-artifact/tests/ with // spec: R<N> headers for durable pathspecs and report generation with and without upgrade-result.json.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-4",
+      "title": "Document flow usage",
+      "goal": "Update flow skill/prompt guidance so agents run sdd-forge upgrade after skill or preset source changes and understand that upgrade-result.json is a gate artifact.",
+      "acceptance": [
+        "flow guidance names upgrade-result.json as the upgrade evidence artifact",
+        "guidance keeps existing instruction to run sdd-forge upgrade after src/skills or src/presets changes",
+        "sdd-forge upgrade is run after changing skill source so generated skill files are refreshed"
+      ],
+      "implementation_notes": "Focus on src/skills/sdd-forge.flow/SKILL.md or relevant prompt source. Generated .agents/.claude files are refreshed via upgrade, not edited independently.",
+      "test_strategy": "Prompt/skill source assertions plus sdd-forge upgrade dry-run or execution evidence.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-06-05T00:22:44.383Z",
+    "notes": "User approved gate-passed spec via choice 1."
+  }
+}

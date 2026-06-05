@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-05T00:56:04.557Z",
+  "verdict": "ADVISORY",
+  "summary": {
+    "blocking": 0,
+    "nonBlocking": 1,
+    "total": 1
+  },
+  "blockingFindings": [],
+  "nonBlockingImprovements": [
+    {
+      "title": "Preset copies do not affect upgrade result",
+      "failureMode": "artifact_field_accuracy",
+      "file": "src/upgrade.js",
+      "issue": "In `main()`, `summary.presets.copied` is populated from `deployPresetCopies()`, but `hasChanges` only considers skill updates, removed skills, and config migration. A run that only copies preset files can still emit `result: \"success-no-change\"`.",
+      "suggestion": "In `main()`, include `summary.presets.copied > 0` in the `hasChanges` calculation before calling `resultFromSummary(0, hasChanges)`.",
+      "rationale": "The upgrade artifact should accurately report when upgrade wrote preset artifacts, even though this does not block the acceptance requirement for producing and validating upgrade evidence."
+    }
+  ],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/278-upgrade-result-artifact/impl-review.json",
+    "verdict": "ADVISORY",
+    "result": "ADVISORY",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": "impl-gate",
+    "completionKind": "normal",
+    "progressSignature": "ece2b535db6b0a01f87b9911122391c870f1e60495db62231841ede52f9787a3"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "impl-004-non-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 4,
+      "severity": "non-blocking",
+      "title": "Preset copies do not affect upgrade result",
+      "body": "In `main()`, `summary.presets.copied` is populated from `deployPresetCopies()`, but `hasChanges` only considers skill updates, removed skills, and config migration. A run that only copies preset files can still emit `result: \"success-no-change\"`.",
+      "category": "artifact_field_accuracy"
+    }
+  ]
+}

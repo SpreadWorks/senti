@@ -4,6 +4,7 @@ import crypto from "crypto";
 import { StringDecoder } from "string_decoder";
 import { sddOutputDir } from "../../lib/config.js";
 import { globToRegex } from "../../lib/glob.js";
+import { runGit } from "../../lib/git-helpers.js";
 import { classifyRegression, listRegressionChangedFiles } from "./test-regression.js";
 
 export const TEST_EXECUTE_RESULT_FILE = "test-execute-result.json";
@@ -13,6 +14,8 @@ export const FINAL_REGRESSION_RESULT_FILE = "final-regression-result.json";
 export const IMPL_GATE_RESULT_FILE = "impl-gate-result.json";
 export const TESTS_RAW_DIR_RELATIVE = "tests/.raw";
 export const RAW_OUTPUT_RELATIVE = `${TESTS_RAW_DIR_RELATIVE}/test-execution.log`;
+export const UPGRADE_RESULT_FILE = "upgrade-result.json";
+export const UPGRADE_RAW_OUTPUT_RELATIVE = `${TESTS_RAW_DIR_RELATIVE}/upgrade.log`;
 // Public durable path pattern: tests/.raw/final-regression-attempt-*.log
 export const FINAL_REGRESSION_RAW_OUTPUT_PATTERN = `${TESTS_RAW_DIR_RELATIVE}/final-regression-attempt-*.log`;
 export const TEMP_SUMMARY_RELATIVE = `${TESTS_RAW_DIR_RELATIVE}/requirement-summary.json`;
@@ -55,7 +58,21 @@ const INTEGRATION_TRUST_INPUTS = Object.freeze([
   FILE_MAP_RELATIVE,
   RAW_OUTPUT_RELATIVE,
 ]);
+export const UPGRADE_REQUIRED_SOURCE_PATTERNS = Object.freeze([
+  "src/upgrade.js",
+  "src/skills/**",
+  "src/presets/**",
+  "src/lib/skills.js",
+  "src/lib/include.js",
+  "src/lib/skill-rules.js",
+  "src/docs/lib/directive-parser.js",
+  "src/lib/preset-deploy.js",
+  "src/lib/presets.js",
+  "src/lib/agent-defaults.js",
+  "src/lib/config.js",
+]);
 const DURABLE_TEST_ARTIFACT_RELATIVE_PATTERNS = Object.freeze([
+  UPGRADE_RESULT_FILE,
   SCENARIO_VALIDITY_RESULT_FILE,
   TEST_EXECUTE_RESULT_FILE,
   TEST_RESULT_REVIEW_FILE,
@@ -64,6 +81,7 @@ const DURABLE_TEST_ARTIFACT_RELATIVE_PATTERNS = Object.freeze([
   FINAL_REGRESSION_RESULT_FILE,
   "retro.json",
   "report.json",
+  UPGRADE_RAW_OUTPUT_RELATIVE,
   SCENARIO_VALIDITY_RAW_OUTPUT_RELATIVE,
   RAW_OUTPUT_RELATIVE,
   FINAL_REGRESSION_RAW_OUTPUT_PATTERN,
@@ -83,6 +101,153 @@ const REBUILDABLE_TEST_ARTIFACT_RELATIVE_PATTERNS = Object.freeze([
 function testArtifactPathspecs(specId, relativePatterns) {
   const base = path.posix.join("specs", specId);
   return relativePatterns.map((p) => path.posix.join(base, p));
+}
+
+function normalizeRepoPath(filePath) {
+  return String(filePath || "").split(path.sep).join("/");
+}
+
+const UPGRADE_REQUIRED_SOURCE_MATCHERS = Object.freeze(
+  UPGRADE_REQUIRED_SOURCE_PATTERNS.map((pattern) => globToRegex(pattern)),
+);
+
+export function matchUpgradeRequiredSourcePaths(filePaths = []) {
+  return [...new Set(filePaths
+    .map(normalizeRepoPath)
+    .filter((filePath) => UPGRADE_REQUIRED_SOURCE_MATCHERS.some((matcher) => matcher.test(filePath))))]
+    .sort();
+}
+
+export function listUpgradeRequiredChangedPaths({ root, baseBranch }) {
+  if (!baseBranch) return [];
+  const res = runGit(["diff", "--name-only", `${baseBranch}...HEAD`], { cwd: root });
+  if (!res.ok) {
+    throw new Error(`failed to list upgrade-required changed paths: ${res.stderr || res.stdout}`);
+  }
+  return matchUpgradeRequiredSourcePaths(res.stdout.split(/\r?\n/).filter(Boolean));
+}
+
+export function upgradeResultPath(specDir) {
+  return path.join(specDir, UPGRADE_RESULT_FILE);
+}
+
+export function upgradeRawLogPath(specDir) {
+  return path.join(specDir, UPGRADE_RAW_OUTPUT_RELATIVE);
+}
+
+function upgradeResultFailure(reason, extra = {}) {
+  return { ok: false, reason, ...extra };
+}
+
+function upgradeResultSuccess(extra = {}) {
+  return { ok: true, ...extra };
+}
+
+function validateUpgradeSummary(summary) {
+  if (!summary || typeof summary !== "object" || Array.isArray(summary)) {
+    throw new Error("summary must be an object");
+  }
+}
+
+export function validateUpgradeResultArtifact(specDir, artifact) {
+  try {
+    if (!artifact || typeof artifact !== "object" || Array.isArray(artifact)) {
+      throw new Error(`${UPGRADE_RESULT_FILE} must be an object`);
+    }
+    if (artifact.version !== 1) throw new Error("version must be 1");
+    if (typeof artifact.command !== "string" || artifact.command.length === 0) {
+      throw new Error("command must be a non-empty string");
+    }
+    if (typeof artifact.dryRun !== "boolean") throw new Error("dryRun must be boolean");
+    if (!Number.isInteger(artifact.exitCode)) throw new Error("exitCode must be integer");
+    if (!["success-no-change", "success-updated", "failed"].includes(artifact.result)) {
+      throw new Error("result must be success-no-change, success-updated, or failed");
+    }
+    validateUpgradeSummary(artifact.summary);
+    if (!Array.isArray(artifact.checkedPaths) || artifact.checkedPaths.some((p) => typeof p !== "string" || p.length === 0)) {
+      throw new Error("checkedPaths must be an array of non-empty strings");
+    }
+    const sortedUnique = [...new Set(artifact.checkedPaths)].sort();
+    if (JSON.stringify(sortedUnique) !== JSON.stringify(artifact.checkedPaths)) {
+      throw new Error("checkedPaths must be sorted and unique");
+    }
+    const rawPath = resolveRepoRelativePathInside({
+      root: specDir,
+      allowedBaseDir: specDir,
+      relPath: artifact.rawLogPath,
+      label: "rawLogPath",
+    });
+    if (!fs.existsSync(rawPath)) {
+      throw new Error("rawLogPath points to missing upgrade raw log");
+    }
+    return upgradeResultSuccess({ artifact, rawPath });
+  } catch (err) {
+    return upgradeResultFailure(err.message);
+  }
+}
+
+function readUpgradeResultArtifact(specDir) {
+  const filePath = upgradeResultPath(specDir);
+  if (!fs.existsSync(filePath)) return upgradeResultFailure(`${UPGRADE_RESULT_FILE} missing`);
+  try {
+    return upgradeResultSuccess({ artifact: readBoundedJson(filePath, UPGRADE_RESULT_FILE).value });
+  } catch (err) {
+    return upgradeResultFailure(err.message);
+  }
+}
+
+export function writeUpgradeResultArtifact({
+  root,
+  specDir,
+  baseBranch,
+  command,
+  dryRun,
+  exitCode,
+  result,
+  summary,
+  rawOutput,
+}) {
+  const checkedPaths = listUpgradeRequiredChangedPaths({ root, baseBranch });
+  const rawLog = upgradeRawLogPath(specDir);
+  fs.mkdirSync(path.dirname(rawLog), { recursive: true });
+  fs.writeFileSync(rawLog, String(rawOutput ?? ""), "utf8");
+
+  const artifact = {
+    version: 1,
+    command,
+    dryRun,
+    exitCode,
+    result,
+    summary,
+    checkedPaths,
+    rawLogPath: UPGRADE_RAW_OUTPUT_RELATIVE,
+  };
+  fs.mkdirSync(specDir, { recursive: true });
+  fs.writeFileSync(upgradeResultPath(specDir), JSON.stringify(artifact, null, 2) + "\n", "utf8");
+  return { artifact, path: upgradeResultPath(specDir), rawLogPath: rawLog };
+}
+
+export function validateUpgradeEvidenceForGate({ root = null, specDir, baseBranch = null, currentRequiredPaths = null }) {
+  const requiredPaths = currentRequiredPaths
+    ? matchUpgradeRequiredSourcePaths(currentRequiredPaths)
+    : listUpgradeRequiredChangedPaths({ root, baseBranch });
+  if (requiredPaths.length === 0) return upgradeResultSuccess({ currentRequiredPaths: requiredPaths });
+
+  const loaded = readUpgradeResultArtifact(specDir);
+  if (!loaded.ok) return upgradeResultFailure(loaded.reason, { currentRequiredPaths: requiredPaths });
+
+  const validation = validateUpgradeResultArtifact(specDir, loaded.artifact);
+  if (!validation.ok) return upgradeResultFailure(validation.reason, { currentRequiredPaths: requiredPaths });
+  if (validation.artifact.result === "failed") {
+    return upgradeResultFailure("upgrade-result.json result=failed", { currentRequiredPaths: requiredPaths });
+  }
+  if (JSON.stringify(validation.artifact.checkedPaths) !== JSON.stringify(requiredPaths)) {
+    return upgradeResultFailure("upgrade-result.json checkedPaths is stale", {
+      currentRequiredPaths: requiredPaths,
+      checkedPaths: validation.artifact.checkedPaths,
+    });
+  }
+  return upgradeResultSuccess({ currentRequiredPaths: requiredPaths, artifact: validation.artifact });
 }
 
 export function durableTestArtifactPathspecs(specId) {
@@ -893,11 +1058,26 @@ function validateRequiredTrustInputs(specDir, requiredTrustInputs) {
   return new GateArtifactTrustSuccess();
 }
 
-export function validateIntegrationArtifactTrust({ root, specDir, phase = "integration", specPath = null, state = {}, config = {} }) {
+export function validateIntegrationArtifactTrust({
+  root,
+  specDir,
+  phase = "integration",
+  specPath = null,
+  state = {},
+  baseBranch = state?.baseBranch ?? null,
+  config = {},
+}) {
   const contract = buildGateArtifactTrustContract({ step: "impl-gate", phase });
   if (contract.requiredTrustInputs.length === 0) return new GateArtifactTrustSuccess({ contract });
 
   try {
+    const upgradeEvidence = validateUpgradeEvidenceForGate({
+      root,
+      specDir,
+      baseBranch,
+    });
+    if (!upgradeEvidence.ok) return new GateArtifactTrustFailure(upgradeEvidence.reason);
+
     const requiredInputsResult = validateRequiredTrustInputs(specDir, contract.requiredTrustInputs);
     if (!requiredInputsResult.ok) return requiredInputsResult;
 

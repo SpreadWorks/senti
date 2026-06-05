@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-05T00:29:16.342Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/278-upgrade-result-artifact/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "checkedPaths tests use uncommitted changes despite baseBranch...HEAD requirement",
+      "target": "specs/278-upgrade-result-artifact/tests/upgrade-result-artifact.test.js:initRepo, R1, R3",
+      "issue": "initRepo modifies src/skills/sdd-forge.flow/SKILL.md after the initial commit but never commits that change. The requirements define checkedPaths and gate recomputation from baseBranch...HEAD, which does not include uncommitted working tree changes. The tests therefore expect upgrade-required paths from a diff that should be empty under the required API.",
+      "requiredChange": "Commit the simulated changed file on a feature branch or otherwise construct a real baseBranch...HEAD committed diff before asserting checkedPaths/currentRequiredPaths.",
+      "whyBlocking": "This encodes an incorrect implementation premise and would drive production code toward including working-tree changes instead of the specified baseBranch...HEAD diff."
+    },
+    {
+      "kind": "blocking",
+      "title": "R4 schema-invalid artifact case is not covered",
+      "target": "specs/278-upgrade-result-artifact/tests/upgrade-result-artifact.test.js:R4",
+      "issue": "R4 requires the gate to fail when upgrade-result.json is schema invalid. The test only covers malformed JSON ({not json), which is parse invalid, not a valid JSON artifact that violates the schema.",
+      "requiredChange": "Add a minimal R4 assertion using valid JSON with an invalid schema, such as missing required fields or an invalid result value, and assert validateUpgradeEvidenceForGate fails.",
+      "whyBlocking": "The coverage artifact marks R4 covered, but one explicit acceptance failure mode has no corresponding spec-local test coverage."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/278-upgrade-result-artifact/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "8e4dd904ee78f2c1c70c56d6b2cad59b2915b677e4d1b2c8a30f9b186e4ab856"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "test-003-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "checkedPaths tests use uncommitted changes despite baseBranch...HEAD requirement",
+      "body": "initRepo modifies src/skills/sdd-forge.flow/SKILL.md after the initial commit but never commits that change. The requirements define checkedPaths and gate recomputation from baseBranch...HEAD, which does not include uncommitted working tree changes. The tests therefore expect upgrade-required paths from a diff that should be empty under the required API.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-003-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R4 schema-invalid artifact case is not covered",
+      "body": "R4 requires the gate to fail when upgrade-result.json is schema invalid. The test only covers malformed JSON ({not json), which is parse invalid, not a valid JSON artifact that violates the schema.",
+      "category": "unknown"
+    }
+  ]
+}

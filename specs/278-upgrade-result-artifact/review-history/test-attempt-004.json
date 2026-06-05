@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-05T00:30:08.795Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/278-upgrade-result-artifact/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R3 pattern list coverage is incomplete",
+      "target": "specs/278-upgrade-result-artifact/tests/upgrade-result-artifact.test.js R3 test",
+      "issue": "The test samples only src/skills/**, src/presets/**, src/lib/agent-defaults.js, and src/lib/config.js. R3 explicitly requires gate matching for the full UPGRADE_REQUIRED_SOURCE_PATTERNS list, including src/upgrade.js, src/lib/skills.js, src/lib/include.js, src/lib/skill-rules.js, src/docs/lib/directive-parser.js, src/lib/preset-deploy.js, and src/lib/presets.js, which currently have no spec-local assertion.",
+      "requiredChange": "Extend the R3 test to assert that every explicit path/pattern named in R3 is recognized by matchUpgradeRequiredSourcePaths or the gate evidence path calculation.",
+      "whyBlocking": "An acceptance requirement enumerates specific trust-gate trigger paths, and several of those required paths have no corresponding test coverage."
+    },
+    {
+      "kind": "blocking",
+      "title": "R7 header requirement is not actually tested",
+      "target": "specs/278-upgrade-result-artifact/tests/upgrade-result-artifact.test.js R7 test",
+      "issue": "R7 requires each spec-local test file to begin with a // spec: R<N> header, but the R7 test only checks for test names and does not assert that the file starts with the spec header or contains the declared requirement IDs in that header.",
+      "requiredChange": "Add a minimal assertion in the R7 test that import.meta.filename starts with the expected // spec: R1 R2 R3 R4 R5 R7 R8 header.",
+      "whyBlocking": "The requirement coverage artifact marks R7 covered, but the actual executable test does not cover the header-start acceptance condition."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/278-upgrade-result-artifact/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "e154c67143c1f2776e10ac9fda9738c5cb8971d88365dc0951fb4d42503da852"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "test-004-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "R3 pattern list coverage is incomplete",
+      "body": "The test samples only src/skills/**, src/presets/**, src/lib/agent-defaults.js, and src/lib/config.js. R3 explicitly requires gate matching for the full UPGRADE_REQUIRED_SOURCE_PATTERNS list, including src/upgrade.js, src/lib/skills.js, src/lib/include.js, src/lib/skill-rules.js, src/docs/lib/directive-parser.js, src/lib/preset-deploy.js, and src/lib/presets.js, which currently have no spec-local assertion.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-004-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "R7 header requirement is not actually tested",
+      "body": "R7 requires each spec-local test file to begin with a // spec: R<N> header, but the R7 test only checks for test names and does not assert that the file starts with the spec header or contains the declared requirement IDs in that header.",
+      "category": "unknown"
+    }
+  ]
+}
