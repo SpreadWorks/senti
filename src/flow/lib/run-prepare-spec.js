@@ -15,6 +15,7 @@ import { buildInitialSteps } from "../../lib/flow-helpers.js";
 import { findStepById } from "../definition.js";
 import { getWorktreeStatus, runGit } from "../../lib/git-helpers.js";
 import { emptySpecStub } from "../../lib/spec-json.js";
+import { onHook } from "../../lib/hooks.js";
 import { FlowCommand } from "./base-command.js";
 import { writeIssueMd } from "./issue-body-cache.js";
 
@@ -298,6 +299,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
 
     if (useWorktree) {
       runGitTrim(root, ["worktree", "add", worktreePath, "-b", branchName, resolvedBase]);
+      await onHook("PostWorktree", { CWD: worktreePath });
       writeSpecFiles();
       writeFlowState({ worktree: true });
       runDocsScanAndValidate(specRoot);

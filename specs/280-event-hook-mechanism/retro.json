@@ -1,0 +1,43 @@
+{
+  "spec": "specs/280-event-hook-mechanism/spec.json",
+  "date": "2026-06-05T10:49:18.172Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Add flow.hooks to .sdd-forge/config.json schema as an object whose additional property values are strings.",
+      "status": "done",
+      "note": "R1: config schema accepts flow.hooks string values and rejects non-string values"
+    },
+    {
+      "desc": "Implement onHook(hookName, context) so an undefined hook returns a successful no-op envelope, a defined hook replaces all {{KEY}} tokens with context values, leaves missing keys unchanged with a warning, executes the replaced command as a shell command with a 600000 ms timeout and cwd set to context.CWD when provided, returns { ok, output, stderr, status }, and never throws hook execution failure to the caller.",
+      "status": "done",
+      "note": "R2: onHook returns a successful no-op envelope when PostWorktree is not configured"
+    },
+    {
+      "desc": "Call PostWorktree immediately after git worktree add succeeds in flow prepare --worktree, passing { CWD: worktreePath }, executing the hook command with cwd set to worktreePath, and continue prepare even when the hook result is ok:false.",
+      "status": "done",
+      "note": "R3: flow prepare --worktree invokes PostWorktree in the new worktree before spec files are written"
+    },
+    {
+      "desc": "Add sdd-forge hook list with table output by default and --json output on request, listing PostWorktree name, description, available placeholders, and current configured command value.",
+      "status": "done",
+      "note": "R4: sdd-forge hook list prints PostWorktree metadata and current configured command"
+    },
+    {
+      "desc": "Cover config validation, onHook no-op/success/failure/missing-placeholder behavior, PostWorktree prepare integration, and hook list table/JSON/invalid-argument behavior with tests.",
+      "status": "done",
+      "note": "R5: hook execution regression exposes PostWorktree metadata and onHook"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 5,
+    "done": 5,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

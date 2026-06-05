@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "All 4 repair targets are valid: pending question text must not embed recommendations or rationale.",
+  "items": [
+    {
+      "title": "1. q1 includes recommendation and implementation rationale",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "The question can be repaired by moving recommendation and rationale out of the pending question text while keeping the same decision topic.",
+      "evidence": "draft-review-questions.json repairTargets[0] identifies q1 as containing answer, rationale, and implementation instruction instead of only question text."
+    },
+    {
+      "title": "2. q2 includes recommendation and rationale",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "The question can be repaired by keeping only the unresolved placeholder-handling decision in the pending question text.",
+      "evidence": "draft-review-questions.json repairTargets[1] identifies q2 as containing answer and rationale instead of only question text."
+    },
+    {
+      "title": "3. q3 includes recommendation and rationale",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "The question can be repaired by keeping only the hook list output-format decision in the pending question text.",
+      "evidence": "draft-review-questions.json repairTargets[2] identifies q3 as containing answer and rationale instead of only question text."
+    },
+    {
+      "title": "4. q4 includes recommendation and rationale",
+      "target": "q4",
+      "decision": "apply",
+      "rationale": "The question can be repaired by keeping only the PostWorktree ordering decision in the pending question text.",
+      "evidence": "draft-review-questions.json repairTargets[3] identifies q4 as containing answer and rationale instead of only question text."
+    }
+  ]
+}

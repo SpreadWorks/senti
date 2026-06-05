@@ -250,6 +250,10 @@ const CONFIG_SCHEMA = {
             },
           },
         },
+        hooks: {
+          type: "object",
+          additionalProperties: { type: "string" },
+        },
       },
     },
 

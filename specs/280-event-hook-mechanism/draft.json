@@ -1,0 +1,109 @@
+{
+  "devType": "feature",
+  "goal": "must: .sdd-forge/config.json の flow.hooks で定義したイベントフックを、flow prepare の worktree 作成直後に実行できるようにし、利用可能なフックを sdd-forge hook list で確認できるようにする。",
+  "analysis": {
+    "problem": "現状の flow prepare --worktree は git worktree add 後にプロジェクト固有の初期化処理を差し込む仕組みがない。サブモジュール初期化や npm install などを worktree 作成直後に自動実行したい利用者は、手動手順または外部ラッパーに依存する必要がある。",
+    "proposedApproach": "flow.hooks 設定を config schema に追加し、設定済みフックを読み出してプレースホルダ置換後にコマンド実行する共通ユーティリティを追加する。PostWorktree は run-prepare-spec.js の git worktree add 成功直後に呼び出し、hook list コマンドで定義済みフックと現在設定を表示する。",
+    "validation": "Issue #366 は設定形式、onHook の責務、PostWorktree の挿入位置、hook list の表示内容、config schema 更新を指定している。既存コードでは worktree 作成が src/flow/lib/run-prepare-spec.js に集約され、config schema は src/lib/config.js、CLI ルーティングは src/sdd-forge.js と src/lib/command-registry.js で管理されているため、指定された根本問題に対応できる。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #366 は flow.hooks.PostWorktree の設定例、onHook(hookName, context) の引数、{{KEY}} 置換、10分タイムアウト、失敗時 console.warn、sdd-forge hook list、CONFIG_SCHEMA の flow.hooks 追加を明示している。",
+      "must: src/flow/lib/run-prepare-spec.js は useWorktree 分岐で git worktree add、spec/draft 作成、flow state 作成、docs scan、active flow 登録を順に実行している。",
+      "must: src/lib/process.js の runCmd は execFile/spawnSync 系で引数配列を受け取るため、Issue の「shell command」と既存 runner の呼び出し形式には実装時に整合が必要である。",
+      "must: src/lib/config.js の CONFIG_SCHEMA は additionalProperties: false のため、flow.hooks を許可しないと設定ファイルの検証で失敗する。",
+      "must: config.lang は ja のため、ユーザー向け質問と draft 文面は日本語で作成する。",
+      "must: hook command はシェル構文を含められる文字列として実行する。ユーザーは draft-refine q1 で [1] Shell 文字列を選択した。",
+      "must: context に存在しない `{{KEY}}` プレースホルダは元の文字列を残し、警告で設定ミスを見せる。ユーザーは draft-refine q2 で [1] 残して警告を選択した。",
+      "must: `sdd-forge hook list` は標準で人間向け表形式を出力し、オプションで JSON 出力にも対応する。ユーザーは draft-refine q3 で [3] 両対応を選択した。",
+      "must: PostWorktree は `git worktree add` 成功直後に実行し、hook の成否に関係なく spec/draft 作成へ進める。Issue #366 が統合位置と非中断方針を指定している。"
+    ],
+    "decisionPoints": [],
+    "resolvedByProjectRules": [
+      "must: src/ 以下にプロジェクト固有のコマンド値を固定しない。PostWorktree の例示コマンドは docs/spec/test に置き、実コードは config から読む。",
+      "must: 新規依存は追加しない。child_process と既存 process helper を使う。",
+      "must: 既存の Command/dispatcher/command-registry パターンに合わせて hook list を実装する。",
+      "must: CLI 追加は user-facing behavior として help/routing/config schema のテストで固定する。",
+      "must: hook 失敗は flow を中断しないが、警告と戻り値で観測可能にする。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: onHook の戻り値 envelope の正確なフィールド名を spec で固定する。",
+      "must: PostWorktree が呼ばれる順序を spec で固定する。git worktree add 成功後、spec/draft 作成前または後のどちらに置くかを明記する。",
+      "must: config schema、hook utility、prepare integration、hook list、テストの requirement-to-file mapping を spec で定義する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: flow.hooks 設定の schema 追加。",
+      "must: onHook(hookName, context) による設定参照、{{KEY}} 置換、10分タイムアウト、コマンド実行、非中断警告。",
+      "must: PostWorktree を flow prepare --worktree の git worktree add 成功直後に統合。",
+      "must: sdd-forge hook list による利用可能フック、説明、プレースホルダ、現在設定値の表示。",
+      "must: config validation、CLI routing/help、hook execution、PostWorktree 呼び出しの回帰テスト。"
+    ],
+    "out": [
+      "must: PostWorktree 以外の新規フック実行点は対象外。",
+      "must: npm install や git submodule update のような具体的なプロジェクト初期化コマンドを src/ に固定することは対象外。",
+      "must: npm publish、dist-tag、リリース作業は対象外。",
+      "must: 外部 npm パッケージ追加は対象外。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: flow prepare --worktree は flow.hooks.PostWorktree が未設定なら既存動作を維持する。",
+    "must: flow prepare --worktree は hook 失敗時も worktree 作成フローを中断しない。ただし警告は表示する。",
+    "must: config validation は flow.hooks の文字列値を許可し、非文字列値は既存 schema validation と同じ経路で拒否する。",
+    "should: 新しい sdd-forge hook namespace は既存トップレベルコマンドの意味を変えない。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "hook command は `git submodule update --init --recursive && npm install` のようなシェル構文を含められる文字列として実行する方針でよいですか。",
+      "answer": "Shell 文字列として実行する。",
+      "evidence": "User selected option [1] in draft-refine q1. Issue #366 explicitly describes executing the replaced string as a shell command and shows `git submodule update --init --recursive && npm install`.",
+      "why": "Basis: existing code patterns and project rules. The project uses Node.js built-in process helpers only, and the Issue-provided command string includes shell syntax, so shell execution preserves the requested configuration contract without adding dependencies.",
+      "considered": "Restricting hooks to argument arrays would avoid shell syntax but would not satisfy the Issue's shell command example.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "context に存在しない `{{KEY}}` プレースホルダは、どのように扱うべきですか。",
+      "answer": "元の `{{KEY}}` 文字列を残し、警告を表示する。",
+      "evidence": "User selected option [1] in draft-refine q2. Issue #366 defines replacement from context but does not specify missing-key behavior.",
+      "why": "Basis: guardrail principles for complete context and unambiguous requirements. Leaving the placeholder visible makes configuration mistakes observable and avoids silently changing the command into a different string.",
+      "considered": "Replacing with an empty string was rejected because it can hide missing context. Treating the hook as failed was not selected because the warning-only path is enough for this edge case.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "`sdd-forge hook list` はどの出力形式にするべきですか。",
+      "answer": "標準は人間向け表形式にし、オプションで JSON 出力にも対応する。",
+      "evidence": "User selected option [3] in draft-refine q3. Issue #366 requires displaying hook name, description, placeholders, and configured value.",
+      "why": "Basis: existing command patterns. Raw CLI commands provide human-readable output by default, and JSON support can be exposed as an explicit option for automation without changing the default management-command UX.",
+      "considered": "Table-only was simpler but would not support automation. JSON-only was rejected because the command is primarily a human-readable management listing.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "PostWorktree は `git worktree add` 成功直後に実行し、hook の成否に関係なく spec/draft 作成へ進める順序でよいですか。",
+      "answer": "Issue #366 の指定どおり、`git worktree add` 成功直後に PostWorktree を実行し、hook の成否に関係なく spec/draft 作成へ進める。",
+      "evidence": "Issue #366 says to insert `await onHook(\"PostWorktree\", { CWD: worktreePath });` immediately after `git worktree add` succeeds and says hook failures must not interrupt the caller's flow.",
+      "why": "Basis: existing code pattern in src/flow/lib/run-prepare-spec.js and the impact-on-existing-features guardrail. The worktree creation point is centralized there, and non-blocking hook execution preserves existing prepare behavior when hook configuration fails.",
+      "considered": "Running the hook after spec/draft creation or making hook failure interrupt prepare was not selected because both would diverge from the Issue's explicit integration point and error-handling requirement.",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-05T05:48:00.081Z",
+    "notes": "All draft QA entries are answered; coverage review passed."
+  }
+}

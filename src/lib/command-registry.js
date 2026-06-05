@@ -99,6 +99,26 @@ export const specCommands = {
 };
 
 // ---------------------------------------------------------------------------
+// hook subtree
+// ---------------------------------------------------------------------------
+
+export const hookCommands = {
+  list: {
+    command: () => import("../hook/commands/list.js"),
+    outputMode: "raw",
+    args: { flags: ["--json"] },
+    help: [
+      "Usage: sdd-forge hook list [--json]",
+      "",
+      "List available flow hooks and current configured commands.",
+      "",
+      "Options:",
+      "  --json    Output structured JSON",
+    ].join("\n"),
+  },
+};
+
+// ---------------------------------------------------------------------------
 // Unified root
 // ---------------------------------------------------------------------------
 
@@ -108,4 +128,5 @@ export const allCommands = {
   check: checkCommands,
   metrics: metricsCommands,
   spec: specCommands,
+  hook: hookCommands,
 };

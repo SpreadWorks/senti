@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "phase": "draft-questions-review",
+  "sourceDraft": "draft.json",
+  "generatedAt": "2026-06-05T05:35:33.102Z",
+  "verdict": "ADVISORY",
+  "summary": "0 blocking, 0 advisory, 4 repair target finding(s) recorded.",
+  "blockingFindings": [],
+  "advisoryFindings": [],
+  "repairTargets": [
+    {
+      "title": "1. q1 includes recommendation and implementation rationale",
+      "target": "q1",
+      "rationale": "hook command は shell 構文を含められる文字列として実行する方針でよいですか。",
+      "evidence": "The shown question includes an answer, rationale, and implementation instruction instead of only question text.",
+      "classification": "repair_target"
+    },
+    {
+      "title": "2. q2 includes recommendation and rationale",
+      "target": "q2",
+      "rationale": "context に存在しない {{KEY}} の扱いは、元の文字列を残して警告対象にする方針でよいですか。",
+      "evidence": "The shown question includes an answer and rationale instead of only question text.",
+      "classification": "repair_target"
+    },
+    {
+      "title": "3. q3 includes recommendation and rationale",
+      "target": "q3",
+      "rationale": "sdd-forge hook list は人間向けの表形式で出力する方針でよいですか。",
+      "evidence": "The shown question includes an answer and rationale instead of only question text.",
+      "classification": "repair_target"
+    },
+    {
+      "title": "4. q4 includes recommendation and rationale",
+      "target": "q4",
+      "rationale": "PostWorktree は git worktree add 成功直後に実行し、hook の成否に関係なく spec/draft 作成へ進める順序でよいですか。",
+      "evidence": "The shown question includes an answer and rationale instead of only question text.",
+      "classification": "repair_target"
+    }
+  ]
+}

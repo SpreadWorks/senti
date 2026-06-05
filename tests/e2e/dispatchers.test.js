@@ -2,8 +2,24 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { join } from "path";
 import { execFileSync } from "child_process";
+import { createTmpDir, removeTmpDir, writeJson } from "../helpers/tmp-dir.js";
 
 const SDD_FORGE = join(process.cwd(), "src/sdd-forge.js");
+
+function createHookConfigProject(command) {
+  const root = createTmpDir("sdd-hook-list-e2e-");
+  writeJson(root, ".sdd-forge/config.json", {
+    lang: "en",
+    type: "node-cli",
+    docs: { languages: ["en"], defaultLanguage: "en" },
+    flow: {
+      hooks: {
+        PostWorktree: command,
+      },
+    },
+  });
+  return root;
+}
 
 function expectDispatcherFailure(args, assertions, message = "should exit non-zero") {
   let failure;
@@ -87,6 +103,35 @@ describe("sdd-forge dispatcher", () => {
       assert.match(out, /Usage: sdd-forge spec/);
       assert.match(out, /render/);
     }
+  });
+
+  it("routes 'hook list' through hook dispatcher", () => {
+    const result = execFileSync("node", [SDD_FORGE, "hook", "list"], { encoding: "utf8" });
+    assert.match(result, /PostWorktree/);
+    assert.match(result, /worktree/i);
+  });
+
+  it("routes 'hook list --json' and includes the current configured command", () => {
+    const tmp = createHookConfigProject("printf hook-json");
+    try {
+      const result = execFileSync("node", [SDD_FORGE, "hook", "list", "--json"], {
+        encoding: "utf8",
+        env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      });
+      const hooks = JSON.parse(result);
+      const postWorktree = hooks.find((hook) => hook.name === "PostWorktree");
+      assert.ok(postWorktree);
+      assert.equal(postWorktree.command, "printf hook-json");
+      assert.deepEqual(postWorktree.placeholders, ["CWD"]);
+    } finally {
+      removeTmpDir(tmp);
+    }
+  });
+
+  it("rejects unknown hook list options", () => {
+    expectDispatcherFailure(["hook", "list", "--unknown"], (err) => {
+      assert.match(err.stderr, /Unknown option/);
+    });
   });
 
   it("shows help when no subcommand", () => {

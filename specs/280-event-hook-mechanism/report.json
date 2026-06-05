@@ -1,0 +1,307 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".sdd-forge/output/analysis.json                    |    2 +-\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-questions-repair.json                    |   44 +\n .../draft-questions-triage.json                    |   36 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   40 +\n specs/280-event-hook-mechanism/draft.json          |  109 ++\n specs/280-event-hook-mechanism/file-map.json       |   35 +\n specs/280-event-hook-mechanism/flow.json           | 1091 ++++++++++++++++++++\n specs/280-event-hook-mechanism/impl-review.json    |   28 +\n specs/280-event-hook-mechanism/issue-log.json      |  160 +++\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |   84 ++\n .../review-history/impl-attempt-001.json           |   51 +\n .../review-history/impl-attempt-001.md             |   22 +\n .../review-history/impl-attempt-002.json           |   51 +\n .../review-history/impl-attempt-002.md             |   22 +\n .../review-history/impl-attempt-003.json           |   71 ++\n .../review-history/impl-attempt-003.md             |   31 +\n .../review-history/impl-attempt-004.json           |   31 +\n .../review-history/impl-attempt-004.md             |   16 +\n .../review-history/spec-attempt-001.json           |   74 ++\n .../review-history/spec-attempt-001.md             |   24 +\n .../review-history/test-attempt-001.json           |  102 ++\n .../review-history/test-attempt-001.md             |   33 +\n .../review-history/test-attempt-002.json           |   66 ++\n .../review-history/test-attempt-002.md             |   24 +\n .../review-history/test-attempt-003.json           |   47 +\n .../review-history/test-attempt-003.md             |   16 +\n specs/280-event-hook-mechanism/review.md           |   16 +\n specs/280-event-hook-mechanism/spec-repair.json    |   24 +\n specs/280-event-hook-mechanism/spec-review.json    |   40 +\n specs/280-event-hook-mechanism/spec-review.md      |   24 +\n specs/280-event-hook-mechanism/spec-triage.json    |   15 +\n specs/280-event-hook-mechanism/spec.json           |  259 +++++\n specs/280-event-hook-mechanism/spec.md             |  126 +++\n specs/280-event-hook-mechanism/tasks/T-1.md        |   20 +\n specs/280-event-hook-mechanism/tasks/T-2.md        |   22 +\n specs/280-event-hook-mechanism/tasks/T-3.md        |   21 +\n specs/280-event-hook-mechanism/tasks/T-4.md        |   20 +\n specs/280-event-hook-mechanism/test-coverage.json  |   86 ++\n specs/280-event-hook-mechanism/test-review.json    |   33 +\n specs/280-event-hook-mechanism/test-review.md      |   16 +\n .../tests/hooks-config-and-execution.test.js       |  204 ++++\n .../tests/post-worktree-and-cli.test.js            |  125 +++\n src/flow/lib/run-prepare-spec.js                   |    2 +\n src/hook.js                                        |   41 +\n src/hook/commands/list.js                          |   31 +\n src/lib/command-registry.js                        |   21 +\n src/lib/config.js                                  |    4 +\n src/lib/hooks.js                                   |   85 ++\n src/sdd-forge.js                                   |    2 +\n tests/e2e/dispatchers.test.js                      |   45 +\n tests/e2e/flow/commands/post-worktree-hook.test.js |   84 ++\n tests/unit/lib/config.test.js                      |   30 +\n tests/unit/lib/hooks.test.js                       |   96 ++\n 57 files changed, 3842 insertions(+), 1 deletion(-)",
+      "commits": [
+        "feat: feature/280-event-hook-mechanism"
+      ]
+    },
+    "retro": {
+      "total": 5,
+      "done": 5,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "Add flow.hooks to .sdd-forge/config.json schema as an object whose additional property values are strings.",
+          "status": "done",
+          "note": "R1: config schema accepts flow.hooks string values and rejects non-string values"
+        },
+        {
+          "desc": "Implement onHook(hookName, context) so an undefined hook returns a successful no-op envelope, a defined hook replaces all {{KEY}} tokens with context values, leaves missing keys unchanged with a warning, executes the replaced command as a shell command with a 600000 ms timeout and cwd set to context.CWD when provided, returns { ok, output, stderr, status }, and never throws hook execution failure to the caller.",
+          "status": "done",
+          "note": "R2: onHook returns a successful no-op envelope when PostWorktree is not configured"
+        },
+        {
+          "desc": "Call PostWorktree immediately after git worktree add succeeds in flow prepare --worktree, passing { CWD: worktreePath }, executing the hook command with cwd set to worktreePath, and continue prepare even when the hook result is ok:false.",
+          "status": "done",
+          "note": "R3: flow prepare --worktree invokes PostWorktree in the new worktree before spec files are written"
+        },
+        {
+          "desc": "Add sdd-forge hook list with table output by default and --json output on request, listing PostWorktree name, description, available placeholders, and current configured command value.",
+          "status": "done",
+          "note": "R4: sdd-forge hook list prints PostWorktree metadata and current configured command"
+        },
+        {
+          "desc": "Cover config validation, onHook no-op/success/failure/missing-placeholder behavior, PostWorktree prepare integration, and hook list table/JSON/invalid-argument behavior with tests.",
+          "status": "done",
+          "note": "R5: hook execution regression exposes PostWorktree metadata and onHook"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 10,
+      "fullLogPath": "specs/280-event-hook-mechanism/issue-log.json",
+      "importantTotal": 7,
+      "importantShown": 7,
+      "importantOmitted": 0,
+      "recentOtherTotal": 3,
+      "recentOtherShown": 3,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "provider=codex | profile=codex/gpt-5.3-spark | exit=1 | Reading additional input from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019e965a-b7a1-7502-906a-9ea29906ce9c\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\"...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "provider=codex | profile=codex/gpt-5.3-spark | exit=1 | Reading prompt from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019e9684-ee4b-7b62-aaaf-ab3abd6517d3\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"You've h...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "provider=claude | profile=claude/sonnet | exit=1 | stdoutPreview={\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":966,\"duration_api_ms\":0,\"num_turns\":1,\"result\":\"You've hit your session limit · re...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "provider=codex | profile=codex/gpt-5.5 | exit=1 | Reading prompt from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019e9687-0708-75a3-9391-35c6841359c1\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"You've hit you...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "provider=codex | profile=codex/gpt-5.4 | exit=1 | Reading prompt from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019e9687-88a6-70c3-b9dd-a0c4abd0a133\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"You've hit you...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "provider=codex | profile=codex/gpt-5.4-mini | exit=1 | Reading prompt from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019e9688-1bb0-7663-9b8d-97b1575f3dea\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"You've hi...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "provider=codex | profile=codex/gpt-5.3-spark | exit=1 | Reading prompt from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019e9764-623e-78b3-8fd1-68af18f7cae1\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"Codex ra...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "qa[1]: invalid category \"edge-case\"",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "Recommendation is stated, but the basis is cited as Issue #366 and selected option evidence, not explicitly grounded in project docs/, guardrail principles, or existing code patterns.; Recommendation rationale is given, but no explicit b...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: renamed R5 spec-local test evidence to remove placeholder sentinel",
+          "resolution": "Updated R5 test names and assertions, then regenerated test-execute and test-result-review artifacts so gate validation reads non-placeholder evidence."
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 1235212,
+      "output": 44737,
+      "cacheRead": 1485078,
+      "cacheCreation": 334269,
+      "cost": 2.24275495,
+      "callCount": 29,
+      "durationMs": 1137999,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 13240
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 12506
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 22405
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 172557
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 217107
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 68942
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 423151
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 208091
+        }
+      ]
+    },
+    "tests": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/280-event-hook-mechanism/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 112,
+          "end_line": 8891
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-prepare-spec.js"
+          },
+          {
+            "status": "added",
+            "path": "src/hook.js"
+          },
+          {
+            "status": "added",
+            "path": "src/hook/commands/list.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/command-registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/config.js"
+          },
+          {
+            "status": "added",
+            "path": "src/lib/hooks.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/sdd-forge.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/dispatchers.test.js"
+          },
+          {
+            "status": "added",
+            "path": "tests/e2e/flow/commands/post-worktree-hook.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/config.test.js"
+          },
+          {
+            "status": "added",
+            "path": "tests/unit/lib/hooks.test.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-prepare-spec.js"
+          },
+          {
+            "status": "added",
+            "path": "src/hook.js"
+          },
+          {
+            "status": "added",
+            "path": "src/hook/commands/list.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/command-registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/config.js"
+          },
+          {
+            "status": "added",
+            "path": "src/lib/hooks.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/sdd-forge.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/dispatchers.test.js"
+          },
+          {
+            "status": "added",
+            "path": "tests/e2e/flow/commands/post-worktree-hook.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/config.test.js"
+          },
+          {
+            "status": "added",
+            "path": "tests/unit/lib/hooks.test.js"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/280-event-hook-mechanism/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/280-event-hook-mechanism\n    57 files changed, 3842 insertions(+), 1 deletion(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (5 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 1\n    agent calls ................. 29\n    input tokens ................ 1,235,212\n    output tokens ............... 44,737\n    cache-read tokens ........... 1,485,078\n    cache-create tokens ......... 334,269\n    cost ........................ $2.2428\n    duration (total) ............ 1138.0s\n      draft-questions-review .... 13.2s\n      draft-coverage-review ..... 12.5s\n      draft-gate ................ 22.4s\n      spec-review ............... 172.6s\n      spec-gate ................. 217.1s\n      test-review ............... 68.9s\n      impl-review ............... 423.2s\n      impl-gate ................. 208.1s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 5  passed 5  failed 0 verdict=pass\n    raw_output: specs/280-event-hook-mechanism/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (10 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/280-event-hook-mechanism/issue-log.json\n\n    Important (7)\n    - [spec-gate] provider=codex | profile=codex/gpt-5.3-spark | exit=1 | Reading additional input from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019e965a-b7a1-7502-906a-9ea29906ce9c\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\"...\n    - [spec-gate] provider=codex | profile=codex/gpt-5.3-spark | exit=1 | Reading prompt from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019e9684-ee4b-7b62-aaaf-ab3abd6517d3\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"You've h...\n    - [spec-gate] provider=claude | profile=claude/sonnet | exit=1 | stdoutPreview={\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":966,\"duration_api_ms\":0,\"num_turns\":1,\"result\":\"You've hit your session limit · re...\n    - [spec-gate] provider=codex | profile=codex/gpt-5.5 | exit=1 | Reading prompt from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019e9687-0708-75a3-9391-35c6841359c1\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"You've hit you...\n    - [spec-gate] provider=codex | profile=codex/gpt-5.4 | exit=1 | Reading prompt from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019e9687-88a6-70c3-b9dd-a0c4abd0a133\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"You've hit you...\n    - [spec-gate] provider=codex | profile=codex/gpt-5.4-mini | exit=1 | Reading prompt from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019e9688-1bb0-7663-9b8d-97b1575f3dea\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"You've hi...\n    - [spec-gate] provider=codex | profile=codex/gpt-5.3-spark | exit=1 | Reading prompt from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019e9764-623e-78b3-8fd1-68af18f7cae1\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"Codex ra...\n\n    Recent Other (3)\n    - [draft-gate] qa[1]: invalid category \"edge-case\"\n    - [draft-gate] Recommendation is stated, but the basis is cited as Issue #366 and selected option evidence, not explicitly grounded in project docs/, guardrail principles, or existing code patterns.; Recommendation rationale is given, but no explicit b...\n    - [impl-gate] fix: renamed R5 spec-local test evidence to remove placeholder sentinel"
+}

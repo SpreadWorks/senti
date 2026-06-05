@@ -56,6 +56,36 @@ describe("loadConfig", () => {
     assert.equal(cfg.docs.defaultLanguage, "ja");
   });
 
+  it("validates flow.hooks as a string map", () => {
+    tmp = createTmpDir();
+    writeJson(tmp, ".sdd-forge/config.json", {
+      lang: "ja",
+      type: "cli",
+      docs: { languages: ["ja"], defaultLanguage: "ja" },
+      flow: {
+        hooks: {
+          PostWorktree: "printf ok",
+          CustomHook: "printf custom",
+        },
+      },
+    });
+    const cfg = loadConfig(tmp);
+    assert.equal(cfg.flow.hooks.PostWorktree, "printf ok");
+    assert.equal(cfg.flow.hooks.CustomHook, "printf custom");
+
+    writeJson(tmp, ".sdd-forge/config.json", {
+      lang: "ja",
+      type: "cli",
+      docs: { languages: ["ja"], defaultLanguage: "ja" },
+      flow: {
+        hooks: {
+          CustomHook: ["printf", "custom"],
+        },
+      },
+    });
+    assert.throws(() => loadConfig(tmp), /flow\.hooks\.CustomHook: must be string/);
+  });
+
   it("throws when config is missing", () => {
     tmp = createTmpDir();
     assert.throws(() => loadConfig(tmp), /Missing file/);

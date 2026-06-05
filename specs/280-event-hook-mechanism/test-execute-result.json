@@ -1,0 +1,182 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/280-event-hook-mechanism/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/280-event-hook-mechanism/tests/hooks-config-and-execution.test.js",
+        "test_name": "R1: config schema accepts flow.hooks string values and rejects non-string values",
+        "command": "node --test specs/280-event-hook-mechanism/tests/hooks-config-and-execution.test.js specs/280-event-hook-mechanism/tests/post-worktree-and-cli.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 111
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/280-event-hook-mechanism/tests/hooks-config-and-execution.test.js",
+        "test_name": "R2: onHook returns a successful no-op envelope when PostWorktree is not configured",
+        "command": "node --test specs/280-event-hook-mechanism/tests/hooks-config-and-execution.test.js specs/280-event-hook-mechanism/tests/post-worktree-and-cli.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 111
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/280-event-hook-mechanism/tests/post-worktree-and-cli.test.js",
+        "test_name": "R3: flow prepare --worktree invokes PostWorktree in the new worktree before spec files are written",
+        "command": "node --test specs/280-event-hook-mechanism/tests/hooks-config-and-execution.test.js specs/280-event-hook-mechanism/tests/post-worktree-and-cli.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 111
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/280-event-hook-mechanism/tests/post-worktree-and-cli.test.js",
+        "test_name": "R4: sdd-forge hook list prints PostWorktree metadata and current configured command",
+        "command": "node --test specs/280-event-hook-mechanism/tests/hooks-config-and-execution.test.js specs/280-event-hook-mechanism/tests/post-worktree-and-cli.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 111
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/280-event-hook-mechanism/tests/hooks-config-and-execution.test.js",
+        "test_name": "R5: hook execution regression exposes PostWorktree metadata and onHook",
+        "command": "node --test specs/280-event-hook-mechanism/tests/hooks-config-and-execution.test.js specs/280-event-hook-mechanism/tests/post-worktree-and-cli.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 111
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": true,
+    "mode": "full",
+    "root_test_command": "node tests/run.js",
+    "root_test_command_source": "test.command",
+    "command": "node tests/run.js",
+    "result": "pass",
+    "raw_output_lines": {
+      "start_line": 112,
+      "end_line": 8891
+    },
+    "trigger_relevant_changed_files": [
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-prepare-spec.js"
+      },
+      {
+        "status": "added",
+        "path": "src/hook.js"
+      },
+      {
+        "status": "added",
+        "path": "src/hook/commands/list.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/command-registry.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/config.js"
+      },
+      {
+        "status": "added",
+        "path": "src/lib/hooks.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/sdd-forge.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/e2e/dispatchers.test.js"
+      },
+      {
+        "status": "added",
+        "path": "tests/e2e/flow/commands/post-worktree-hook.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/lib/config.test.js"
+      },
+      {
+        "status": "added",
+        "path": "tests/unit/lib/hooks.test.js"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-prepare-spec.js"
+      },
+      {
+        "status": "added",
+        "path": "src/hook.js"
+      },
+      {
+        "status": "added",
+        "path": "src/hook/commands/list.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/command-registry.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/config.js"
+      },
+      {
+        "status": "added",
+        "path": "src/lib/hooks.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/sdd-forge.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/e2e/dispatchers.test.js"
+      },
+      {
+        "status": "added",
+        "path": "tests/e2e/flow/commands/post-worktree-hook.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/lib/config.test.js"
+      },
+      {
+        "status": "added",
+        "path": "tests/unit/lib/hooks.test.js"
+      }
+    ],
+    "process": {
+      "started": true,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "spawnError": null
+    }
+  }
+}

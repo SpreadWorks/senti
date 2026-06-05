@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Repaired 4 pending question texts by removing embedded recommendations and rationale.",
+  "items": [
+    {
+      "title": "1. q1 includes recommendation and implementation rationale",
+      "target": "q1",
+      "rationale": "Removed the recommendation and implementation rationale while preserving the shell-command execution decision.",
+      "evidence": "draft.json qa[0].question now asks only whether hook command strings may include shell syntax.",
+      "changedFieldPaths": [
+        "qa[0].question"
+      ]
+    },
+    {
+      "title": "2. q2 includes recommendation and rationale",
+      "target": "q2",
+      "rationale": "Removed the recommended placeholder behavior and kept the unresolved placeholder-handling question.",
+      "evidence": "draft.json qa[1].question now asks how missing context placeholders should be handled.",
+      "changedFieldPaths": [
+        "qa[1].question"
+      ]
+    },
+    {
+      "title": "3. q3 includes recommendation and rationale",
+      "target": "q3",
+      "rationale": "Removed the recommended output format and kept the unresolved hook list output-format question.",
+      "evidence": "draft.json qa[2].question now asks which output format sdd-forge hook list should use.",
+      "changedFieldPaths": [
+        "qa[2].question"
+      ]
+    },
+    {
+      "title": "4. q4 includes recommendation and rationale",
+      "target": "q4",
+      "rationale": "Removed the explanatory rationale while preserving the PostWorktree ordering decision.",
+      "evidence": "draft.json qa[3].question now asks only whether the specified PostWorktree ordering is acceptable.",
+      "changedFieldPaths": [
+        "qa[3].question"
+      ]
+    }
+  ]
+}

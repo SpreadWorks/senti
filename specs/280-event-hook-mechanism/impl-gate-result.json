@@ -1,0 +1,127 @@
+{
+  "verdict": "pass",
+  "issues": [],
+  "nextAction": {
+    "diagnosis": {
+      "summary": "No blocking observations.",
+      "observations": []
+    },
+    "prescription": "retro"
+  },
+  "level": "integration",
+  "phase": "integration",
+  "evaluations": [
+    {
+      "guardrail_id": "R1",
+      "result": "pass",
+      "reason": "CONFIG_SCHEMA adds flow.hooks as an object with additionalProperties values constrained to strings.",
+      "title": "R1",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R2",
+      "result": "pass",
+      "reason": "onHook implements no-op envelopes for unknown/unconfigured hooks, placeholder replacement with missing-key warnings, shell execution via spawnSync using cwd=context.CWD and 600000 ms timeout, returns ok/output/stderr/status, and reports command failures without throwing.",
+      "title": "R2",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R3",
+      "result": "pass",
+      "reason": "PostWorktree is awaited immediately after worktree add, receives {CWD: worktreePath}, hook execution uses cwd=context.CWD, and non-zero hook results warn/return without interrupting prepare.",
+      "title": "R3",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R4",
+      "result": "pass",
+      "reason": "Diff adds sdd-forge hook list dispatcher/registry, default table output, --json output, and lists PostWorktree name, description, placeholders, and configured command value.",
+      "title": "R4",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R5",
+      "result": "pass",
+      "reason": "Diff adds spec-local, unit, and e2e tests covering config validation, onHook no-op/success/failure/missing-placeholder behavior, PostWorktree prepare integration, and hook list table/JSON/invalid-argument behavior, with passing execution evidence.",
+      "title": "R5",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": []
+    },
+    {
+      "guardrail_id": "no-overengineering",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "code-quality",
+      "title": "Avoid Overengineering",
+      "observations": []
+    }
+  ],
+  "reasons": [
+    {
+      "verdict": "PASS",
+      "detail": "R1 — CONFIG_SCHEMA adds flow.hooks as an object with additionalProperties values constrained to strings.",
+      "guardrail_id": "R1",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R2 — onHook implements no-op envelopes for unknown/unconfigured hooks, placeholder replacement with missing-key warnings, shell execution via spawnSync using cwd=context.CWD and 600000 ms timeout, returns ok/output/stderr/status, and reports command failures without throwing.",
+      "guardrail_id": "R2",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R3 — PostWorktree is awaited immediately after worktree add, receives {CWD: worktreePath}, hook execution uses cwd=context.CWD, and non-zero hook results warn/return without interrupting prepare.",
+      "guardrail_id": "R3",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R4 — Diff adds sdd-forge hook list dispatcher/registry, default table output, --json output, and lists PostWorktree name, description, placeholders, and configured command value.",
+      "guardrail_id": "R4",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R5 — Diff adds spec-local, unit, and e2e tests covering config validation, onHook no-op/success/failure/missing-placeholder behavior, PostWorktree prepare integration, and hook list table/JSON/invalid-argument behavior, with passing execution evidence.",
+      "guardrail_id": "R5",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Spec Test Coverage — no observations emitted",
+      "guardrail_id": "spec-test-coverage",
+      "category": "testing"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Avoid Overengineering — no observations emitted",
+      "guardrail_id": "no-overengineering",
+      "category": "code-quality"
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "impl-gate",
+    "artifactPath": "specs/280-event-hook-mechanism/impl-gate-result.json",
+    "verdict": "pass",
+    "result": "pass",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": {
+      "diagnosis": {
+        "summary": "No blocking observations.",
+        "observations": []
+      },
+      "prescription": "retro"
+    },
+    "completionKind": "normal",
+    "progressSignature": "108a245bb520b08e132c33c6826bce65963445fbd64ade718b282cf72ed0c266"
+  }
+}

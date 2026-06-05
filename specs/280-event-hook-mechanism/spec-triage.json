@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "One blocking finding is valid and should be repaired: PostWorktree execution cwd must be specified.",
+  "items": [
+    {
+      "title": "PostWorktree command working directory is undefined",
+      "target": "R2/R3 / Data Flow",
+      "decision": "apply",
+      "rationale": "The spec currently defines CWD only as placeholder context. The command execution cwd affects whether setup commands run inside the new worktree or the original repository, so implementation and tests need an explicit contract.",
+      "evidence": "spec.json requirements[1].desc defines shell command execution, requirements[2].desc passes { CWD: worktreePath }, and overview.data_flow[0].text does not state the process cwd."
+    }
+  ]
+}

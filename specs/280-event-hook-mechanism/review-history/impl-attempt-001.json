@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-05T06:29:54.552Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "title": "Required test coverage is missing",
+      "failureMode": "missing_acceptance_requirement",
+      "requirementId": "R5",
+      "issue": "The touched file set contains no test files, so the required coverage for config validation, onHook behavior, PostWorktree prepare integration, and hook list CLI behavior is not implemented in this change.",
+      "suggestion": "Add the R5 tests in the spec-local and shared regression test locations named by the spec, including assertions for hook list table/JSON/invalid-argument behavior and PostWorktree non-blocking execution order.",
+      "rationale": "R5 is a must requirement and is explicitly part of the acceptance surface; without these tests the implementation does not satisfy the approved spec."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/280-event-hook-mechanism/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "831be926ad88b0e97e6c82f9ed809cb776e00f539203cfa144b5a04bef6435d5"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "impl-001-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Required test coverage is missing",
+      "body": "The touched file set contains no test files, so the required coverage for config validation, onHook behavior, PostWorktree prepare integration, and hook list CLI behavior is not implemented in this change.",
+      "category": "missing_acceptance_requirement"
+    }
+  ]
+}
