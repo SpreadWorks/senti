@@ -1,0 +1,240 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".sdd-forge/output/analysis.json                    |    2 +-\n .../completion-overrides.json                      |   25 +\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-questions-repair.json                    |   53 +\n .../draft-questions-triage.json                    |   43 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   47 +\n specs/280-flow-get-status-summary/draft.json       |  120 +++\n specs/280-flow-get-status-summary/file-map.json    |   38 +\n specs/280-flow-get-status-summary/flow.json        | 1089 ++++++++++++++++++++\n specs/280-flow-get-status-summary/impl-review.json |   28 +\n specs/280-flow-get-status-summary/issue-log.json   |  112 ++\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |  101 ++\n .../review-history/impl-attempt-001.json           |   51 +\n .../review-history/impl-attempt-001.md             |   22 +\n .../review-history/impl-attempt-002.json           |   31 +\n .../review-history/impl-attempt-002.md             |   16 +\n .../review-history/spec-attempt-001.json           |   54 +\n .../review-history/spec-attempt-001.md             |   19 +\n .../review-history/test-attempt-001.json           |  102 ++\n .../review-history/test-attempt-001.md             |   36 +\n .../review-history/test-attempt-002.json           |   66 ++\n .../review-history/test-attempt-002.md             |   21 +\n .../review-history/test-attempt-003.json           |   66 ++\n .../review-history/test-attempt-003.md             |   21 +\n .../review-history/test-attempt-004.json           |   66 ++\n .../review-history/test-attempt-004.md             |   24 +\n .../review-history/test-attempt-005.json           |   66 ++\n .../review-history/test-attempt-005.md             |   24 +\n specs/280-flow-get-status-summary/review.md        |   16 +\n specs/280-flow-get-status-summary/spec-review.json |   30 +\n specs/280-flow-get-status-summary/spec-review.md   |   19 +\n specs/280-flow-get-status-summary/spec.json        |  236 +++++\n specs/280-flow-get-status-summary/spec.md          |  118 +++\n specs/280-flow-get-status-summary/tasks/T-1.md     |   22 +\n specs/280-flow-get-status-summary/tasks/T-2.md     |   20 +\n .../280-flow-get-status-summary/test-coverage.json |  108 ++\n specs/280-flow-get-status-summary/test-review.json |   42 +\n specs/280-flow-get-status-summary/test-review.md   |   24 +\n .../tests/status-details-contract.test.js          |  457 ++++++++\n src/flow/lib/get-status.js                         |   34 +-\n src/flow/registry.js                               |    5 +-\n tests/unit/flow/get-status.test.js                 |   37 +\n 45 files changed, 3540 insertions(+), 12 deletions(-)",
+      "commits": [
+        "feat: feature/280-flow-get-status-summary"
+      ]
+    },
+    "retro": {
+      "total": 8,
+      "done": 8,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "Default `sdd-forge flow get status` for an active flow returns current status fields only: `active`, `spec`, `baseBranch`, `featureBranch`, `worktree`, `issue`, `runId`, `phase`, `steps`, `stepsProgress`, `requirements`, `requirementsProgress`, `mergeStrategy`, `autoApprove`, and `retryRecovery` when a retry recovery view exists.",
+          "status": "done",
+          "note": "R1: default active status returns current status fields"
+        },
+        {
+          "desc": "Default `sdd-forge flow get status` for an active flow omits audit/detail fields: `notes`, `metrics`, `metricsSummary`, `request`, `reviewStop`, `gateStop`, `broadModeHistory`, `broadModeHistoryTotal`, and `broadModeHistoryTruncated`.",
+          "status": "done",
+          "note": "R2: default active status omits audit and detail fields"
+        },
+        {
+          "desc": "`sdd-forge flow get status --details` for an active flow returns the default current status fields plus `notes`, `metrics`, `metricsSummary`, `request`, `reviewStop` when present, `gateStop` when present, `broadModeHistory`, `broadModeHistoryTotal`, and `broadModeHistoryTruncated`.",
+          "status": "done",
+          "note": "R3: --details returns default fields plus audit and detail fields"
+        },
+        {
+          "desc": "`sdd-forge flow get status <runId>` and `sdd-forge flow get status <runId> --details` apply the same default/details field contract as context-based status resolution.",
+          "status": "done",
+          "note": "R4: runId status uses the same default and --details field contract"
+        },
+        {
+          "desc": "When no active flow exists, default `sdd-forge flow get status` still succeeds with `{ active: false }`; adding `--details` does not require an active flow and does not change the inactive contract.",
+          "status": "done",
+          "note": "R5: inactive status remains active false with and without --details"
+        },
+        {
+          "desc": "`flow get status` accepts the user-facing boolean flag `--details`, documents it in help text, validates optional positional `runId` as an opaque non-empty string token from 1 to 200 characters, preserves existing unknown-option failure behavior, and preserves non-zero failure for an unmatched runId.",
+          "status": "done",
+          "note": "R6: status validates --details, unknown options, and runId failures"
+        },
+        {
+          "desc": "Default status generation does not build or attach `metricsSummary` unless `--details` is requested.",
+          "status": "done",
+          "note": "R7: default status does not build or attach metricsSummary"
+        },
+        {
+          "desc": "Spec-local tests under `specs/280-flow-get-status-summary/tests/` cover the default/details payload contract with `// spec: R<N>` headers, and shared regression tests are updated where production command contracts change.",
+          "status": "done",
+          "note": "R8: spec-local tests declare every requirement in the coverage header"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 7,
+      "fullLogPath": "specs/280-flow-get-status-summary/issue-log.json",
+      "importantTotal": 5,
+      "importantShown": 5,
+      "importantOmitted": 0,
+      "recentOtherTotal": 2,
+      "recentOtherShown": 2,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "provider=codex | profile=codex/gpt-5.3-spark | exit=1 | Reading additional input from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019e965a-4ef2-7720-841b-6eda238cf451\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\"...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "The spec modifies `flow get status` and lists `--details` as a user-facing boolean option (type stated in constraints[5]), but the existing positional argument `runId` has no type, format, or range specification anywhere in the spec. The...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "provider=codex | profile=codex/gpt-5.3-spark | exit=1 | Reading prompt from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019e967f-df0d-7381-acc3-514b581f995e\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"You've h...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "provider=claude | profile=claude/sonnet | exit=1 | stdoutPreview={\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":440,\"duration_api_ms\":0,\"num_turns\":1,\"result\":\"You've hit your session limit · re...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "provider=codex | profile=codex/gpt-5.3-spark | exit=1 | Reading prompt from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019e9681-f569-75c3-b6b7-564803234daa\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"You've h...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "qa[2]: invalid category \"consumer-contracts\"",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "`flow get status` の既定出力から `metricsSummary`/`request`/`reviewStop`/`gateStop` を除外して `--details` に移す方針が定義されているが、既存利用者向けの migration plan（移行手順・移行時期・代替取得手順の明示）が spec に具体的に記載されていない。既存契約変更の扱いとして要件不足。",
+          "resolution": null
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 1445837,
+      "output": 56335,
+      "cacheRead": 1325950,
+      "cacheCreation": 286138,
+      "cost": 1.5710183,
+      "callCount": 30,
+      "durationMs": 917734,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 21697
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 14040
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 23588
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 165660
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 278885
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 110455
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 91219
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 212190
+        }
+      ]
+    },
+    "tests": {
+      "total": 8,
+      "passed": 8,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/280-flow-get-status-summary/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 89,
+          "end_line": 5266
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "modified",
+            "path": "src/flow/lib/get-status.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/get-status.test.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "modified",
+            "path": "src/flow/lib/get-status.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/get-status.test.js"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/280-flow-get-status-summary/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/280-flow-get-status-summary\n    45 files changed, 3540 insertions(+), 12 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (8 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 0\n    agent calls ................. 30\n    input tokens ................ 1,445,837\n    output tokens ............... 56,335\n    cache-read tokens ........... 1,325,950\n    cache-create tokens ......... 286,138\n    cost ........................ $1.5710\n    duration (total) ............ 917.7s\n      draft-questions-review .... 21.7s\n      draft-coverage-review ..... 14.0s\n      draft-gate ................ 23.6s\n      spec-review ............... 165.7s\n      spec-gate ................. 278.9s\n      test-review ............... 110.5s\n      impl-review ............... 91.2s\n      impl-gate ................. 212.2s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 8  passed 8  failed 0 verdict=pass\n    raw_output: specs/280-flow-get-status-summary/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (7 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/280-flow-get-status-summary/issue-log.json\n\n    Important (5)\n    - [spec-gate] provider=codex | profile=codex/gpt-5.3-spark | exit=1 | Reading additional input from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019e965a-4ef2-7720-841b-6eda238cf451\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\"...\n    - [spec-gate] The spec modifies `flow get status` and lists `--details` as a user-facing boolean option (type stated in constraints[5]), but the existing positional argument `runId` has no type, format, or range specification anywhere in the spec. The...\n    - [spec-gate] provider=codex | profile=codex/gpt-5.3-spark | exit=1 | Reading prompt from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019e967f-df0d-7381-acc3-514b581f995e\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"You've h...\n    - [spec-gate] provider=claude | profile=claude/sonnet | exit=1 | stdoutPreview={\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":440,\"duration_api_ms\":0,\"num_turns\":1,\"result\":\"You've hit your session limit · re...\n    - [spec-gate] provider=codex | profile=codex/gpt-5.3-spark | exit=1 | Reading prompt from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019e9681-f569-75c3-b6b7-564803234daa\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"You've h...\n\n    Recent Other (2)\n    - [draft-gate] qa[2]: invalid category \"consumer-contracts\"\n    - [draft-gate] `flow get status` の既定出力から `metricsSummary`/`request`/`reviewStop`/`gateStop` を除外して `--details` に移す方針が定義されているが、既存利用者向けの migration plan（移行手順・移行時期・代替取得手順の明示）が spec に具体的に記載されていない。既存契約変更の扱いとして要件不足。"
+}

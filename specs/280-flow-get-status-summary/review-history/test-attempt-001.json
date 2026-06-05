@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-05T06:13:34.254Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 4,
+    "advisory": 0,
+    "total": 4
+  },
+  "coverageArtifact": "specs/280-flow-get-status-summary/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Missing retryRecovery coverage for default active status",
+      "target": "specs/280-flow-get-status-summary/tests/status-details-contract.test.js - R1",
+      "issue": "R1 requires default active status to include retryRecovery when a retry recovery view exists, but the fixture never creates a retry recovery view and CURRENT_FIELDS omits retryRecovery.",
+      "requiredChange": "Add a spec-local case or extend the active fixture so retryRecovery exists, then assert default status includes retryRecovery with the expected current-status payload.",
+      "whyBlocking": "A required conditional field in the default payload contract has no executable coverage, so an implementation could omit retryRecovery and still pass these tests."
+    },
+    {
+      "kind": "blocking",
+      "title": "Missing present reviewStop and gateStop details coverage",
+      "target": "specs/280-flow-get-status-summary/tests/status-details-contract.test.js - R3",
+      "issue": "R3 requires --details to return reviewStop when present and gateStop when present, but the active fixture does not populate either field and the R3 test only covers their absence implicitly.",
+      "requiredChange": "Add reviewStop and gateStop to the detailed-status fixture or add a focused test that creates them and asserts --details includes both fields when present.",
+      "whyBlocking": "Required detail fields that are conditional on presence have no corresponding positive test, so an implementation could drop them from detailed output and still pass."
+    },
+    {
+      "kind": "blocking",
+      "title": "R7 only checks output omission, not metricsSummary construction",
+      "target": "specs/280-flow-get-status-summary/tests/status-details-contract.test.js - R7",
+      "issue": "R7 requires default status generation not to build metricsSummary unless --details is requested, but the test only asserts metricsSummary is absent from the default JSON output. An implementation could still build metricsSummary and discard it before returning.",
+      "requiredChange": "Add a spec-local regression that makes metricsSummary construction observable, such as instrumenting/stubbing the summary builder or using an existing hook that fails if the builder runs during default status generation.",
+      "whyBlocking": "The current test does not exercise the production behavior named by the requirement and would pass for an implementation that violates the no-build contract."
+    },
+    {
+      "kind": "blocking",
+      "title": "Coverage artifact claims shared regression coverage without shared test file evidence",
+      "target": "Requirement-to-Test Coverage Artifact - R8",
+      "issue": "R8 requires shared regression tests to be updated where production command contracts change, but the coverage artifact lists only specs/280-flow-get-status-summary/tests/status-details-contract.test.js and no shared regression test files.",
+      "requiredChange": "Add the relevant shared regression test file to the coverage artifact and ensure it covers the changed command contract, or mark that portion of R8 uncovered until such a test exists.",
+      "whyBlocking": "The artifact's covered status for R8 contradicts the provided test file set, leaving a required shared-regression obligation without corresponding coverage."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/280-flow-get-status-summary/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 4,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "b656b32f1713fd298d3211c27939448aed5078176660e45e0cf2a015124074e0"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "test-001-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Missing retryRecovery coverage for default active status",
+      "body": "R1 requires default active status to include retryRecovery when a retry recovery view exists, but the fixture never creates a retry recovery view and CURRENT_FIELDS omits retryRecovery.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Missing present reviewStop and gateStop details coverage",
+      "body": "R3 requires --details to return reviewStop when present and gateStop when present, but the active fixture does not populate either field and the R3 test only covers their absence implicitly.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R7 only checks output omission, not metricsSummary construction",
+      "body": "R7 requires default status generation not to build metricsSummary unless --details is requested, but the test only asserts metricsSummary is absent from the default JSON output. An implementation could still build metricsSummary and discard it before returning.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Coverage artifact claims shared regression coverage without shared test file evidence",
+      "body": "R8 requires shared regression tests to be updated where production command contracts change, but the coverage artifact lists only specs/280-flow-get-status-summary/tests/status-details-contract.test.js and no shared regression test files.",
+      "category": "unknown"
+    }
+  ]
+}

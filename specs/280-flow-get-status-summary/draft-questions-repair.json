@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Applied 5 draft question repairs: q1-q4 were rewritten as question-only text, and q5 was removed because test placement is handled by spec/test planning rather than user draft Q&A.",
+  "items": [
+    {
+      "title": "1. q1 includes rationale and recommendation",
+      "target": "q1",
+      "rationale": "Removed the embedded recommendation and rationale while preserving the metricsSummary default-output decision.",
+      "evidence": "draft.json qa[id=q1].question now only asks whether metricsSummary remains in default status output.",
+      "changedFieldPaths": [
+        "qa[0].question"
+      ]
+    },
+    {
+      "title": "2. q2 includes rationale and recommendation",
+      "target": "q2",
+      "rationale": "Removed the embedded `--details` recommendation and kept the user-facing option-name decision.",
+      "evidence": "draft.json qa[id=q2].question now only asks for the explicit details option name.",
+      "changedFieldPaths": [
+        "qa[1].question"
+      ]
+    },
+    {
+      "title": "3. q3 includes rationale and recommendation",
+      "target": "q3",
+      "rationale": "Removed the split recommendation for request and mergeStrategy while preserving the output-boundary question.",
+      "evidence": "draft.json qa[id=q3].question now only asks whether request and mergeStrategy remain in default output.",
+      "changedFieldPaths": [
+        "qa[2].question"
+      ]
+    },
+    {
+      "title": "4. q4 includes rationale and recommendation",
+      "target": "q4",
+      "rationale": "Removed the retryRecovery recommendation and preserved the recovery-field default-output decision.",
+      "evidence": "draft.json qa[id=q4].question now only asks whether reviewStop/gateStop remain in default output.",
+      "changedFieldPaths": [
+        "qa[3].question"
+      ]
+    },
+    {
+      "title": "5. q5 asks internal implementation details and includes recommendation",
+      "target": "q5",
+      "rationale": "Removed the question because unit test placement can be derived from project patterns and is already deferred to spec planning.",
+      "evidence": "draft.json qa[] no longer contains q5; draft.json decisionMap.deferredToSpec still covers test strategy definition.",
+      "changedFieldPaths": [
+        "qa"
+      ]
+    }
+  ]
+}

@@ -28,6 +28,12 @@ describe("flow get status", () => {
       requirements: [],
       tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
       currentTaskId: null,
+      request: "request belongs in detailed status",
+      notes: [{ text: "status note", taskId: null, ts: "2026-01-01T00:00:00.000Z" }],
+      metrics: [{ phase: "draft", counter: "srcRead", delta: 1, taskId: null, ts: "2026-01-01T00:00:00.000Z" }],
+      broadModeHistory: [{ step: "implement", enabled: true, reason: "audit", ts: "2026-01-01T00:00:00.000Z" }],
+      mergeStrategy: "squash",
+      autoApprove: true,
     };
     makeFlowManager(dir).save(state);
     makeFlowManager(dir).addActiveFlow(specId, "local");
@@ -71,5 +77,36 @@ describe("flow get status", () => {
     });
     const envelope = JSON.parse(result);
     assert.equal(envelope.data.active, true);
+  });
+
+  it("omits audit details from default status", () => {
+    tmp = createTmpDir();
+    setupFlowState(tmp);
+    const result = execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "status"], {
+      encoding: "utf8",
+      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+    });
+    const envelope = JSON.parse(result);
+    assert.equal(envelope.data.active, true);
+    for (const key of ["request", "notes", "metrics", "metricsSummary", "broadModeHistory", "broadModeHistoryTotal", "broadModeHistoryTruncated"]) {
+      assert.equal(Object.hasOwn(envelope.data, key), false, `default status must omit ${key}`);
+    }
+    assert.equal(envelope.data.mergeStrategy, "squash");
+    assert.equal(envelope.data.autoApprove, true);
+  });
+
+  it("returns audit details when --details is requested", () => {
+    tmp = createTmpDir();
+    setupFlowState(tmp);
+    const result = execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "status", "--details"], {
+      encoding: "utf8",
+      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+    });
+    const envelope = JSON.parse(result);
+    assert.equal(envelope.data.request, "request belongs in detailed status");
+    assert.equal(envelope.data.notes.length, 1);
+    assert.equal(envelope.data.metrics.length, 1);
+    assert.equal(envelope.data.metricsSummary.flow.draft.srcRead, 1);
+    assert.equal(envelope.data.broadModeHistory.length, 1);
   });
 });

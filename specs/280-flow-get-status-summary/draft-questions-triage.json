@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "5 repair targets triaged: q1-q4 should be rewritten as question-only text, and q5 should be removed because test placement can be decided by project patterns during spec/test planning.",
+  "items": [
+    {
+      "title": "1. q1 includes rationale and recommendation",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "The pending question is valid, but pending QA entries must not include the recommended answer or rationale in the question text.",
+      "evidence": "draft.json qa[id=q1].question asks the metricsSummary default-output boundary and also embeds a recommendation and reason."
+    },
+    {
+      "title": "2. q2 includes rationale and recommendation",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "The pending question is valid as a user-facing CLI contract decision, but the recommendation and rationale must be removed from the question text.",
+      "evidence": "draft.json qa[id=q2].question asks the details option name and also embeds `--details` as the recommendation with a reason."
+    },
+    {
+      "title": "3. q3 includes rationale and recommendation",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "The pending question is valid because request and mergeStrategy are user-visible output fields, but it must ask only the decision.",
+      "evidence": "draft.json qa[id=q3].question asks whether request and mergeStrategy remain in default output and also embeds a split recommendation."
+    },
+    {
+      "title": "4. q4 includes rationale and recommendation",
+      "target": "q4",
+      "decision": "apply",
+      "rationale": "The pending question is valid because recovery fields affect status consumers, but pending question text must not include the proposed answer.",
+      "evidence": "draft.json qa[id=q4].question asks the reviewStop/gateStop default-output boundary and also embeds a recommendation to keep retryRecovery only."
+    },
+    {
+      "title": "5. q5 asks internal implementation details and includes recommendation",
+      "target": "q5",
+      "decision": "apply",
+      "rationale": "The test strategy is already deferred to spec and can be resolved from existing project patterns, so this user question should be removed instead of rewritten.",
+      "evidence": "draft.json decisionMap.deferredToSpec already says default/details contract, runId coverage, unknown option test, and help text updates will be defined in spec test strategy."
+    }
+  ]
+}

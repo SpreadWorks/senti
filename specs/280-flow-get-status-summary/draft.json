@@ -1,0 +1,120 @@
+{
+  "devType": "feature",
+  "goal": "`sdd-forge flow get status` の既定出力を current status 用の summary に絞り、監査用の raw data は明示オプションで取得できるようにする。",
+  "analysis": {
+    "problem": "現状の `flow get status` は active flow の状態確認に必要な情報と、notes / metrics / metricsSummary / broad mode history などの監査用詳細を同じ既定 payload に混在させている。`metrics` は append-only なので flow が長くなるほど既定出力が増える。",
+    "proposedApproach": "既定出力は `active`, spec/branch/worktree/runId/phase, `steps`, `stepsProgress`, `requirements`, `requirementsProgress`, `autoApprove`, `retryRecovery` などの current status に限定する。raw `metrics`, `notes`, 詳細履歴は `flow get status` の明示オプションで取得する。",
+    "validation": "Issue #363 は `src/flow/lib/get-status.js` の `buildStatusOutput` が raw `metrics` と詳細 field を返していることを根拠にしている。ソース確認でも同関数が `notes`, `metrics`, `metricsSummary`, `broadModeHistory*` を既定返却しており、`src/flow/registry.js` の `status` 登録には現時点で詳細取得用 option がない。既存 `sdd-forge.flow-status` skill は `steps` と `requirements` を読むため、これらを既定から外さない方針は根本問題と既存契約の両方に合う。作業開始時点で `src/` が `docs/` より新しいため、docs は参考扱いとし、必要なら実装前に `sdd-forge build` を提案する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "(must) `src/flow/lib/get-status.js` は既定で `notes`, raw `metrics`, `metricsSummary`, `broadModeHistory`, `broadModeHistoryTotal`, `broadModeHistoryTruncated` を返している。",
+      "(must) `src/flow/registry.js` の `flow get status` は `runId` positional のみを登録しており、詳細表示用 option は未定義。",
+      "(must) `tests/unit/flow/get-status.test.js` は active / inactive の基本 envelope を確認しているが、既定出力と詳細出力の field 差分は固定していない。",
+      "(must) `tests/unit/flow/get-unknown-options.test.js` は未知 option を拒否する契約を持つため、新しい明示 option は registry に登録する必要がある。",
+      "(must) `specs/207-unify-taskid-in-logs` は過去に raw `metrics` と `metricsSummary` を `flow get status` で返す契約を作ったが、Issue #363 は既定出力の肥大化を根拠にその境界を見直す要求である。",
+      "(must) User decision: `metricsSummary` は既定出力から外し、`--details` 側へ移す。",
+      "(must) User decision: 詳細 audit data を取得する明示 option 名は `--details` とする。",
+      "(must) User decision: `request` は `--details` 側へ移し、`mergeStrategy` は既定出力に残す。",
+      "(must) User decision: `retryRecovery` は既定出力に残し、`reviewStop` / `gateStop` は `--details` 側へ移す。"
+    ],
+    "decisionPoints": [
+      "(must) `metricsSummary` を既定出力に残すか、詳細 option 側へ移すかを決める。",
+      "(must) 詳細取得 option の名前を `--verbose` か `--details` などに決める。",
+      "(must) 既定出力に `request` と `mergeStrategy` を残すか、詳細 option 側へ移すかを決める。",
+      "(must) `reviewStop` / `gateStop` のような復旧判断用 field を既定出力に残すか、`retryRecovery` に集約して詳細 option 側へ移すかを決める。"
+    ],
+    "resolvedByProjectRules": [
+      "(must) `active:false` は no active flow の正常系 contract として維持する。",
+      "(must) `steps`, `requirements`, `stepsProgress`, `requirementsProgress`, `autoApprove` は `sdd-forge.flow-status` skill の入力 contract として既定出力に維持する。",
+      "(must) alpha 版ポリシーにより、旧 payload を既定に戻す互換 shim は作らない。ただし明示 option による詳細取得経路は用意する。",
+      "(must) Migration plan: 既定出力から外れる `metrics`, `metricsSummary`, `notes`, `request`, `reviewStop`, `gateStop`, broad mode history を読む consumer は、同じ release で `sdd-forge flow get status --details` または `sdd-forge flow get status <runId> --details` に移行する。",
+      "(must) Migration plan: `flow get status --help` は `--details` が旧既定 payload 相当の詳細 audit data を返す取得経路であることを案内する。",
+      "(must) 外部依存追加は禁止。実装は Node.js 組み込みと既存 CLI registry の仕組みで行う。",
+      "(must) 変更対象が `src/skills/` や `src/presets/` ではない限り、`sdd-forge upgrade` は不要。"
+    ],
+    "requiresUserJudgment": [
+      "(must) User decisions are captured in answered qa[] entries; no remaining draft-level user judgment is required before spec writing."
+    ],
+    "deferredToSpec": [
+      "(must) 既定出力と詳細出力それぞれの正確な field list を spec requirements と acceptance criteria に固定する。",
+      "(must) spec の Migration Plan で、旧既定 payload 依存 consumer は `--details` へ移行すること、既定 summary output への変更は alpha 期間の breaking change として同一 release で適用されること、互換 shim は追加しないことを明記する。",
+      "(must) `flow get status [runId]` と context-based `flow get status` の両方に同じ summary/details contract を適用する test scenario を定義する。",
+      "(must) unknown option test と新 option help text の更新範囲を spec の test strategy に含める。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "(must) `flow get status` の既定 output contract の summary 化。",
+      "(must) raw `metrics`, `notes`, 詳細履歴を取得する明示 option の追加。",
+      "(must) context-based status と `runId` 指定 status の同一 contract 化。",
+      "(must) 既定出力と詳細出力の差分を固定する unit test の追加・更新。",
+      "(should) help text に summary と details の使い分けを明記する。"
+    ],
+    "out": [
+      "(must) `flow get next-action` や `flow run` 系 command の output contract 変更は対象外。",
+      "(must) metrics の保存形式や記録タイミングの変更は対象外。",
+      "(must) workflow board 連携の仕様変更は対象外。",
+      "(must) docs 自動生成の実行そのものはこの spec の実装要件に含めない。"
+    ]
+  },
+  "impactOnExisting": [
+    "(must) `sdd-forge.flow-status` skill が読む `steps`, `requirements`, progress field, `autoApprove` は既定出力で維持される。",
+    "(must) raw `metrics` / `metricsSummary` / `notes` / `request` / `reviewStop` / `gateStop` / broad mode history を既定の `flow get status` から読む consumer は、`sdd-forge flow get status --details` に移行する必要がある。",
+    "(must) runId 指定で旧既定 payload 相当の詳細 audit data が必要な consumer は、`sdd-forge flow get status <runId> --details` に移行する必要がある。",
+    "(must) no active flow 時の `{ active: false }` envelope は維持される。",
+    "(should) `flow get status --help` は新しい詳細 option を案内する。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "`metricsSummary` は `metrics` から作る集計済み監査ビューです。既定の `flow get status` に `metricsSummary` を残しますか。",
+      "answer": "(must) 既定の `flow get status` に `metricsSummary` は残さず、明示 option の詳細出力側へ移す。",
+      "evidence": "User answered `1` for q1. Issue #363 states the default output should be limited to current status and explicitly asks the spec to decide whether `metricsSummary` remains in default output or moves to detailed output. `src/flow/lib/get-status.js` currently builds `metricsSummary` from raw `state.metrics` in `buildStatusOutput`.",
+      "why": "(must) 既定出力の payload と読み取り対象を削減する目的に合う。`metricsSummary` は raw `metrics` 由来の監査・集計情報であり、通常の current status 確認に必須ではない。",
+      "considered": "既定出力に残す案は既存 consumer 影響を減らすが、Issue #363 の summary 化効果を弱めるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "(must) raw `metrics`, `notes`, broad mode history などの詳細 audit data を取得する明示 option の名前をどうしますか。",
+      "answer": "(must) 詳細 audit data を取得する明示 option 名は `--details` にする。",
+      "evidence": "User answered `1` for q2. Issue #363 requires raw `metrics`, `notes`, and detailed history to be retrievable through an explicit verbose or details-style option. `src/flow/registry.js` currently registers `flow get status` with only positional `runId`, so a named option must be added.",
+      "why": "(must) `--details` は JSON payload に詳細 field を含める操作として意味が直接的で、既定 summary 出力との対比が明確になる。",
+      "considered": "`--verbose` は一般的だが、人間向け表示の冗長化など用途が広く、今回の audit data 取得境界としては `--details` より曖昧になる。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "(must) 既定出力に `request` と `mergeStrategy` を残しますか。",
+      "answer": "(must) `request` は `--details` 側へ移し、`mergeStrategy` は既定出力に残す。",
+      "evidence": "User answered `1` for q3. Current `src/flow/lib/get-status.js` returns both `request` and `mergeStrategy` from `buildStatusOutput`; Issue #363 asks default status output to focus on current status and move detailed audit data behind an explicit option.",
+      "why": "(must) `request` は長文になり得る文脈・監査 field なので既定 payload から外す。`mergeStrategy` は短い現在状態 field で、finalize 前の状態確認に有用なため既定に残す。",
+      "considered": "両方を既定に残す案は summary 化効果が弱い。両方を詳細側へ移す案は既定出力を小さくできるが、merge 方針確認に詳細 option が必要になるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "(must) `reviewStop` / `gateStop` のような復旧判断用 field を既定出力に残しますか。",
+      "answer": "(must) `retryRecovery` は既定出力に残し、`reviewStop` / `gateStop` は `--details` 側へ移す。",
+      "evidence": "User answered `1` for q4. Issue #363 lists `retryRecovery` as a default-output candidate while asking raw metrics, notes, and detailed history to move behind an explicit option. Current `src/flow/lib/get-status.js` conditionally returns `reviewStop`, `gateStop`, and `retryRecovery` from `buildStatusOutput`.",
+      "why": "(must) `retryRecovery` は通常の復旧判断に必要な current status summary として維持する。`reviewStop` / `gateStop` は停止詳細 field であり、既定出力に残すと summary 境界が曖昧になる。",
+      "considered": "全部を既定に残す案は既存 payload に近いが、詳細 field が増える。全部を詳細側へ移す案は既定出力を小さくできるが、復旧状態の確認に `--details` が必要になるため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-05T05:48:16Z",
+    "notes": "All draft QA decisions are answered; coverage review passed with no findings."
+  }
+}

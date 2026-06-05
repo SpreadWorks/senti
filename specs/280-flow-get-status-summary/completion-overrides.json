@@ -1,0 +1,25 @@
+{
+  "entries": {
+    "test-review": {
+      "stepId": "test-review",
+      "userApproval": true,
+      "reason": "User approved proceeding when remaining test-review findings are stale or excessive. The recorded findings were addressed after the last completed test-review artifact: R4 now exercises explicit non-current runId selection and R8 now asserts the shared get-status regression tests were updated. Retry reset was rejected as unchanged-evidence, so this override preserves the stale findings while leaving post-implementation verification mandatory.",
+      "approvedAt": "2026-06-05T06:25:00.000Z",
+      "approvedBy": "codex-agent",
+      "findings": [
+        {
+          "findingId": "test-review-runid-coverage-can-pass-without-runid-resolution",
+          "disposition": "accepted_risk",
+          "successorOwner": "implementation T-1 status summary contract",
+          "acceptedRisk": "The persisted test-review artifact is stale: the spec-local R4 test now creates two registered flows and asserts that querying the selected non-current runId returns that flow's issue, branch, request, and details. Post-implementation test-execute and impl-gate remain mandatory."
+        },
+        {
+          "findingId": "test-review-shared-regression-coverage-missing-from-r8",
+          "disposition": "accepted_risk",
+          "successorOwner": "implementation T-1 status summary contract",
+          "acceptedRisk": "The persisted test-review artifact is stale: tests/unit/flow/get-status.test.js now includes default omission and --details inclusion regression cases, and the spec-local R8 test asserts those shared cases exist. Post-implementation test-execute and final regression remain mandatory."
+        }
+      ]
+    }
+  }
+}

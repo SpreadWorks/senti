@@ -1,0 +1,117 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "qa[2]: invalid category \"consumer-contracts\"",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-05T05:48:57.036Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[2]: invalid category \"consumer-contracts\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "`flow get status` の既定出力から `metricsSummary`/`request`/`reviewStop`/`gateStop` を除外して `--details` に移す方針が定義されているが、既存利用者向けの migration plan（移行手順・移行時期・代替取得手順の明示）が spec に具体的に記載されていない。既存契約変更の扱いとして要件不足。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-05T05:49:32.892Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "backward-compatible-cli-interface",
+          "where": {
+            "file": "draft-content",
+            "locator": "impactOnExisting / qa/decisionMap"
+          },
+          "observed": "`flow get status` の既定出力から `metricsSummary`/`request`/`reviewStop`/`gateStop` を除外して `--details` に移す方針が定義されているが、既存利用者向けの migration plan（移行手順・移行時期・代替取得手順の明示）が spec に具体的に記載されていない。既存契約変更の扱いとして要件不足。",
+          "severity": "blocking",
+          "refs": [
+            "backward-compatible-cli-interface"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "backward-compatible-cli-interface",
+          "reason": "`flow get status` の既定出力から `metricsSummary`/`request`/`reviewStop`/`gateStop` を除外して `--details` に移す方針が定義されているが、既存利用者向けの migration plan（移行手順・移行時期・代替取得手順の明示）が spec に具体的に記載されていない。既存契約変更の扱いとして要件不足。"
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "provider=codex | profile=codex/gpt-5.3-spark | exit=1 | Reading additional input from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019e965a-4ef2-7720-841b-6eda238cf451\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"You've hit your usage limit for GPT-5.3-Codex-Spark. Switch to another m",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-05T05:56:05.883Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The spec modifies `flow get status` and lists `--details` as a user-facing boolean option (type stated in constraints[5]), but the existing positional argument `runId` has no type, format, or range specification anywhere in the spec. The guardrail requires the spec to list each user-facing argument and its validation requirements (type, format, range) when adding or modifying CLI commands. The spec only states that an unknown runId continues to fail with non-zero exit status, without specifying what constitutes a valid runId (e.g., expected type, string pattern, or length bounds).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-05T05:58:32.220Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "validate-user-input-at-entry-point",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.constraints[5], $.constraints[6], $.requirements[5]"
+          },
+          "observed": "The spec modifies `flow get status` and lists `--details` as a user-facing boolean option (type stated in constraints[5]), but the existing positional argument `runId` has no type, format, or range specification anywhere in the spec. The guardrail requires the spec to list each user-facing argument and its validation requirements (type, format, range) when adding or modifying CLI commands. The spec only states that an unknown runId continues to fail with non-zero exit status, without specifying what constitutes a valid runId (e.g., expected type, string pattern, or length bounds).",
+          "severity": "blocking",
+          "refs": [
+            "validate-user-input-at-entry-point"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "validate-user-input-at-entry-point",
+          "reason": "The spec modifies `flow get status` and lists `--details` as a user-facing boolean option (type stated in constraints[5]), but the existing positional argument `runId` has no type, format, or range specification anywhere in the spec. The guardrail requires the spec to list each user-facing argument and its validation requirements (type, format, range) when adding or modifying CLI commands. The spec only states that an unknown runId continues to fail with non-zero exit status, without specifying what constitutes a valid runId (e.g., expected type, string pattern, or length bounds)."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "provider=codex | profile=codex/gpt-5.3-spark | exit=1 | Reading prompt from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019e967f-df0d-7381-acc3-514b581f995e\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"You've hit your usage limit for GPT-5.3-Codex-Spark. Switch to another m",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-05T06:37:07.314Z"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "provider=claude | profile=claude/sonnet | exit=1 | stdoutPreview={\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":440,\"duration_api_ms\":0,\"num_turns\":1,\"result\":\"You've hit your session limit · resets 10:50am (UTC)\",\"stop_re",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-05T06:38:20.069Z"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "provider=codex | profile=codex/gpt-5.3-spark | exit=1 | Reading prompt from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019e9681-f569-75c3-b6b7-564803234daa\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"You've hit your usage limit for GPT-5.3-Codex-Spark. Switch to another m",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-05T06:39:24.263Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase detected conflicts in .sdd-forge/output/analysis.json. Worktree has been restored. Run 'git rebase main' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'sdd-forge flow run finalize'.",
+      "timestamp": "2026-06-05T10:52:45.915Z"
+    }
+  ]
+}

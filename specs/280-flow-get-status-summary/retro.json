@@ -1,0 +1,58 @@
+{
+  "spec": "specs/280-flow-get-status-summary/spec.json",
+  "date": "2026-06-05T10:49:51.774Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Default `sdd-forge flow get status` for an active flow returns current status fields only: `active`, `spec`, `baseBranch`, `featureBranch`, `worktree`, `issue`, `runId`, `phase`, `steps`, `stepsProgress`, `requirements`, `requirementsProgress`, `mergeStrategy`, `autoApprove`, and `retryRecovery` when a retry recovery view exists.",
+      "status": "done",
+      "note": "R1: default active status returns current status fields"
+    },
+    {
+      "desc": "Default `sdd-forge flow get status` for an active flow omits audit/detail fields: `notes`, `metrics`, `metricsSummary`, `request`, `reviewStop`, `gateStop`, `broadModeHistory`, `broadModeHistoryTotal`, and `broadModeHistoryTruncated`.",
+      "status": "done",
+      "note": "R2: default active status omits audit and detail fields"
+    },
+    {
+      "desc": "`sdd-forge flow get status --details` for an active flow returns the default current status fields plus `notes`, `metrics`, `metricsSummary`, `request`, `reviewStop` when present, `gateStop` when present, `broadModeHistory`, `broadModeHistoryTotal`, and `broadModeHistoryTruncated`.",
+      "status": "done",
+      "note": "R3: --details returns default fields plus audit and detail fields"
+    },
+    {
+      "desc": "`sdd-forge flow get status <runId>` and `sdd-forge flow get status <runId> --details` apply the same default/details field contract as context-based status resolution.",
+      "status": "done",
+      "note": "R4: runId status uses the same default and --details field contract"
+    },
+    {
+      "desc": "When no active flow exists, default `sdd-forge flow get status` still succeeds with `{ active: false }`; adding `--details` does not require an active flow and does not change the inactive contract.",
+      "status": "done",
+      "note": "R5: inactive status remains active false with and without --details"
+    },
+    {
+      "desc": "`flow get status` accepts the user-facing boolean flag `--details`, documents it in help text, validates optional positional `runId` as an opaque non-empty string token from 1 to 200 characters, preserves existing unknown-option failure behavior, and preserves non-zero failure for an unmatched runId.",
+      "status": "done",
+      "note": "R6: status validates --details, unknown options, and runId failures"
+    },
+    {
+      "desc": "Default status generation does not build or attach `metricsSummary` unless `--details` is requested.",
+      "status": "done",
+      "note": "R7: default status does not build or attach metricsSummary"
+    },
+    {
+      "desc": "Spec-local tests under `specs/280-flow-get-status-summary/tests/` cover the default/details payload contract with `// spec: R<N>` headers, and shared regression tests are updated where production command contracts change.",
+      "status": "done",
+      "note": "R8: spec-local tests declare every requirement in the coverage header"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 8,
+    "done": 8,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

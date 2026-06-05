@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Default `sdd-forge flow get status` for an active flow returns current status fields only: `active`, `spec`, `baseBranch`, `featureBranch`, `worktree`, `issue`, `runId`, `phase`, `steps`, `stepsProgress`, `requirements`, `requirementsProgress`, `mergeStrategy`, `autoApprove`, and `retryRecovery` when a retry recovery view exists.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/status-details-contract.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "Default `sdd-forge flow get status` for an active flow omits audit/detail fields: `notes`, `metrics`, `metricsSummary`, `request`, `reviewStop`, `gateStop`, `broadModeHistory`, `broadModeHistoryTotal`, and `broadModeHistoryTruncated`.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/status-details-contract.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "`sdd-forge flow get status --details` for an active flow returns the default current status fields plus `notes`, `metrics`, `metricsSummary`, `request`, `reviewStop` when present, `gateStop` when present, `broadModeHistory`, `broadModeHistoryTotal`, and `broadModeHistoryTruncated`.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/status-details-contract.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "`sdd-forge flow get status <runId>` and `sdd-forge flow get status <runId> --details` apply the same default/details field contract as context-based status resolution.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/status-details-contract.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "When no active flow exists, default `sdd-forge flow get status` still succeeds with `{ active: false }`; adding `--details` does not require an active flow and does not change the inactive contract.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/status-details-contract.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "`flow get status` accepts the user-facing boolean flag `--details`, documents it in help text, validates optional positional `runId` as an opaque non-empty string token from 1 to 200 characters, preserves existing unknown-option failure behavior, and preserves non-zero failure for an unmatched runId.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/status-details-contract.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "Default status generation does not build or attach `metricsSummary` unless `--details` is requested.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/status-details-contract.test.js"
+      ]
+    },
+    {
+      "id": "R8",
+      "desc": "Spec-local tests under `specs/280-flow-get-status-summary/tests/` cover the default/details payload contract with `// spec: R<N>` headers, and shared regression tests are updated where production command contracts change.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/status-details-contract.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/status-details-contract.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8"
+      ]
+    }
+  ]
+}

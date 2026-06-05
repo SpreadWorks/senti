@@ -194,7 +194,16 @@ function buildStatusGateViews(state, active, root) {
   return { gateStop, retryRecovery };
 }
 
-function buildStatusOutput(state, root) {
+function validateRunId(runId) {
+  if (runId == null) return null;
+  if (typeof runId !== "string" || runId.length < 1 || runId.length > 200) {
+    throw new Error("invalid runId: expected a non-empty string token from 1 to 200 characters");
+  }
+  return runId;
+}
+
+function buildStatusOutput(state, root, options = {}) {
+  const details = options.details === true;
   const phase = state.steps ? derivePhase(state) : null;
   // spec 251 R42: count leaf steps via flattenSteps so nested impl-phase
   // children (test-execute, test-result-review, retro, finalize-*) are
@@ -213,9 +222,8 @@ function buildStatusOutput(state, root) {
 
   // autoApprove is always false in preparing state
   const autoApprove = state.lifecycle === "preparing" ? false : (state.autoApprove || false);
-  const broadMode = buildBoundedBroadModeHistory(state, BROAD_MODE_HISTORY_MAX_ENTRIES);
 
-  return {
+  const output = {
     active: true,
     spec: state.spec,
     baseBranch: state.baseBranch,
@@ -228,15 +236,22 @@ function buildStatusOutput(state, root) {
     stepsProgress: { done: doneSteps, total: totalSteps },
     requirements,
     requirementsProgress: { done: doneReqs, total: totalReqs },
+    ...(retryRecovery && { retryRecovery }),
+    mergeStrategy: state.mergeStrategy || null,
+    autoApprove,
+  };
+
+  if (!details) return output;
+
+  const broadMode = buildBoundedBroadModeHistory(state, BROAD_MODE_HISTORY_MAX_ENTRIES);
+  return {
+    ...output,
     request: state.request || null,
     notes: state.notes || [],
     metrics: state.metrics || [],
     metricsSummary: buildMetricsSummary(state.metrics || []),
     ...(reviewStop && { reviewStop }),
     ...(gateViews?.gateStop && { gateStop: gateViews.gateStop }),
-    ...(retryRecovery && { retryRecovery }),
-    mergeStrategy: state.mergeStrategy || null,
-    autoApprove,
     broadModeHistory: broadMode.entries,
     broadModeHistoryTotal: broadMode.total,
     broadModeHistoryTruncated: broadMode.truncated,
@@ -249,7 +264,8 @@ export default class GetStatusCommand extends FlowCommand {
   }
 
   execute(ctx) {
-    const runId = ctx.runId;
+    const runId = validateRunId(ctx.runId);
+    const options = { details: ctx.details === true };
 
     if (runId) {
       // runId-based resolution
@@ -257,7 +273,7 @@ export default class GetStatusCommand extends FlowCommand {
       if (!state) {
         throw new Error(`RUN_ID_NOT_FOUND: ${runId}`);
       }
-      return buildStatusOutput(state, ctx.root);
+      return buildStatusOutput(state, ctx.root, options);
     }
 
     // Default: context-based resolution. No active flow is a normal state,
@@ -265,6 +281,6 @@ export default class GetStatusCommand extends FlowCommand {
     if (!ctx.flowState) {
       return { active: false };
     }
-    return buildStatusOutput(ctx.flowState, ctx.root);
+    return buildStatusOutput(ctx.flowState, ctx.root, options);
   }
 }

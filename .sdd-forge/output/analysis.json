@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-05T05:57:53.902Z",
+  "analyzedAt": "2026-06-05T05:27:41.549Z",
   "package": {
     "entries": [
       {
@@ -2616,9 +2616,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "05930315426cb4929faa65b877be05ba",
+        "hash": "47542fb10f41eb8371ca169e30c02d76",
         "lines": 3326,
-        "mtime": "2026-06-05T05:56:53.744Z",
+        "mtime": "2026-06-04T05:46:28.175Z",
         "className": "review",
         "methods": [
           "writeReviewAttemptHistory",
@@ -2822,25 +2822,25 @@
         "extends": "Error",
         "usedBy": null,
         "id": "331cf497",
-        "summary": "Implements the `flow review` command and orchestrates multi-phase AI-assisted reviews for draft, spec, implementation, and test artifacts. It gathers repository context, builds prompts, validates structured outputs, and persists review history and artifacts.",
-        "detail": "This module is the central review controller for the flow subsystem, combining CLI argument parsing, phase routing, git diff collection, spec loading, and AI agent invocation. It defines dedicated schemas, artifact classes, prompt builders, and parsing routines for several review modes, including implementation review, test coverage review, spec review, and draft QA review. The code repeatedly constrains scope by touched files, requirement IDs, review stages, and guarded path filters so findings stay aligned with the active spec and changed code. It also writes normalized JSON and Markdown outputs, stores per-attempt review history, repairs malformed model JSON when possible, and classifies failures into recoverable review-specific error types.",
-        "chapter": "cli_commands",
-        "role": "Multi-phase review command orchestrator for the Spec-Driven Development flow, including prompt generation, AI response validation, scoped diff analysis, and review artifact persistence.",
         "enrich": {
-          "processedAt": "2026-06-05T05:57:23.365Z",
-          "attempts": 1
+          "processedAt": "2026-06-04T10:47:55.713Z",
+          "attempts": 3
         },
+        "summary": "This module implements the `flow review` command suite, covering draft, spec, implementation, and test review phases in the SDD workflow. It orchestrates diff collection, prompt construction, AI-agent calls, schema validation, artifact persistence, and retry-oriented review loops.",
+        "detail": "The module is structured around phase-specific pipelines that load spec context, resolve touched files and merge bases, and build prompts tailored to draft QA, spec quality, implementation findings, or test coverage analysis. It uses explicit artifact classes and JSON schemas to normalize AI output, repair malformed JSON when possible, and preserve review history in reproducible files such as `review.md`, `impl-review.json`, `test-review.json`, and phase attempt logs. Several helper layers constrain scope by filtering findings to touched files, requirement IDs, and review stage classifications, while also enforcing limits on prompt size, field length, and loop retries. The command integrates guardrails, rationale summaries, git diff inspection, and optional automated fix application for test review outputs, making it a central orchestration module for review automation in the flow subsystem.",
+        "chapter": "cli_commands",
+        "role": "SDD flow review orchestrator",
         "keywords": [
-          "flow review command",
-          "AI review orchestration",
+          "flow review",
           "spec review",
           "implementation review",
-          "test coverage analysis",
-          "draft QA review",
-          "git diff filtering",
+          "test review",
+          "AI agent orchestration",
           "prompt builder",
-          "JSON schema validation",
-          "review artifact history"
+          "schema validation",
+          "review artifacts",
+          "git diff analysis",
+          "retry loop"
         ]
       },
       {
@@ -5035,9 +5035,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "36ee71cb218097cddbaf8911d00f1aac",
-        "lines": 3425,
-        "mtime": "2026-06-05T05:42:25.568Z",
+        "hash": "02b36f34ab4b33fd96ab80d47531c6bd",
+        "lines": 3263,
+        "mtime": "2026-06-02T11:45:07.597Z",
         "className": "run-gate",
         "methods": [
           "executeGateSideEffects",
@@ -5070,10 +5070,6 @@
           "buildPassedGuardrails",
           "findPreviousPassedGuardrails",
           "applyFlipOverride",
-          "RequirementPromptExcerpt",
-          "RequirementGateBatch",
-          "buildRequirementGateBatches",
-          "planRequirementGateCalls",
           "reasonsFromEvaluations",
           "RunGateCommand",
           "appendIssueLogFromGateResult",
@@ -5129,9 +5125,6 @@
           "normalizeObservationFailurePairs",
           "observationsFromGateEvaluations",
           "priorGateImplObservations",
-          "normalizeRequirementPromptInput",
-          "renderRequirementPromptSection",
-          "requirementEvaluation",
           "buildImplCheckPrompt",
           "buildPerRequirementDiffs",
           "nextActionFromGateEvaluations",
@@ -5202,10 +5195,6 @@
           "buildPassedGuardrails",
           "findPreviousPassedGuardrails",
           "applyFlipOverride",
-          "RequirementPromptExcerpt",
-          "RequirementGateBatch",
-          "buildRequirementGateBatches",
-          "planRequirementGateCalls",
           "reasonsFromEvaluations",
           "RunGateCommand",
           "appendIssueLogFromGateResult",
@@ -5219,7 +5208,6 @@
           "validateDraftReviewArtifactSet",
           "buildGuardrailPrompt",
           "buildImplCheckPrompt",
-          "MAX_IMPL_REQUIREMENT_BATCH_CHARS",
           "checkGuardrail",
           "splitDiffByFile",
           "collectPerFileDiffsForGate",
@@ -5236,25 +5224,25 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "`run-gate.js` implements the flow gate engine that validates draft, spec, task-implementation, and integration phases. It combines artifact checks, diff analysis, AI guardrail evaluation, retry control, and gate result persistence behind the `RunGateCommand` entry point.",
-        "detail": "The module centralizes phase-based gate execution and maps flow levels to concrete validation paths such as draft review artifacts, spec integrity checks, requirement-level implementation diffs, and integration evidence. It builds prompts for guardrail and requirement evaluation, parses strict JSON-only AI responses, and raises schema errors when the response shape or allowed keys deviate from the contract. The implementation also tracks retry budgets, recovery baselines, repeated failures, and prior pass/fail memory so gate decisions can detect no-progress states and avoid regressions across retries. Supporting utilities reconcile file maps, collect committed and untracked diffs, validate lifecycle artifacts, and persist issue-log and gate-result artifacts, making the gate command both a validator and an operational state manager for the SDD flow.",
-        "chapter": "cli_commands",
-        "role": "Flow gate command and validation engine for SDD phases, with artifact auditing, AI-based guardrail checks, retry handling, and result persistence.",
         "enrich": {
-          "processedAt": "2026-06-05T05:42:53.693Z",
-          "attempts": 1
+          "processedAt": "2026-06-04T10:48:04.185Z",
+          "attempts": 6
         },
+        "summary": "Implements the flow gate engine that validates specs, drafts, implementation diffs, and integration state before workflow progress continues. It combines local artifact checks, git-based diff analysis, AI guardrail evaluation, retry handling, and result persistence.",
+        "detail": "This module is the central gate runner for SDD flow phases such as draft, spec, task implementation, and integration. It builds phase-specific prompts, filters applicable guardrails, parses strict JSON evaluation responses, and converts them into normalized gate reports and next actions. The code also performs substantial local validation without AI, including spec text and JSON checks, draft review artifact lifecycle checks, integration artifact presence checks, file-map reconciliation, and untracked diff collection. Retry budgets, repeated-failure detection, recovery baselines, issue-log updates, and prior-memory artifacts are used to prevent loops and preserve diagnostic context across attempts.",
+        "chapter": "internal_design",
+        "role": "Flow gate orchestration and validation engine",
         "keywords": [
-          "gate runner",
-          "flow validation",
-          "spec gate",
-          "draft gate",
-          "integration gate",
+          "flow gate",
           "guardrail evaluation",
-          "requirement diff",
+          "spec validation",
+          "draft lifecycle",
+          "implementation diff",
+          "integration gate",
           "retry budget",
           "issue log",
-          "artifact validation"
+          "JSON schema parsing",
+          "workflow enforcement"
         ]
       },
       {
@@ -13361,9 +13349,9 @@
     ],
     "summary": {
       "total": 338,
-      "totalMethods": 1683
+      "totalMethods": 1676
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-05T05:57:23.365Z"
+  "enrichedAt": "2026-06-05T01:05:31.344Z"
 }
