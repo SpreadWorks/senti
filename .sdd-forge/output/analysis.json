@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-06T13:55:13.249Z",
+  "analyzedAt": "2026-06-06T14:34:54.876Z",
   "package": {
     "entries": [
       {
@@ -2618,9 +2618,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "9b0c9159752a041f81500225e45c9c14",
-        "lines": 3413,
-        "mtime": "2026-06-06T02:29:43.327Z",
+        "hash": "87ead4f4b8c756aa62594f21325e644d",
+        "lines": 3425,
+        "mtime": "2026-06-06T14:34:41.970Z",
         "className": "review",
         "methods": [
           "writeReviewAttemptHistory",
@@ -2692,6 +2692,7 @@
           "buildHeaderBlockingFindings",
           "measurePromptChars",
           "assertTestReviewPromptWithinLimit",
+          "runTestReviewWithDependencies",
           "classifyReviewCommandError",
           "parseReviewCliArgsForError",
           "parseGaps",
@@ -2799,6 +2800,9 @@
           "runReviewLoop",
           "buildTestReviewPrompt",
           "parseTestReviewFindings",
+          "TEST_REVIEW_PROMPT_CHAR_LIMIT",
+          "assertTestReviewPromptWithinLimit",
+          "runTestReviewWithDependencies",
           "extractGoalAndScope",
           "buildSpecSummaryMarkdown",
           "buildSpecReviewPrompt",
@@ -2836,26 +2840,9 @@
         "extends": "Error",
         "usedBy": null,
         "id": "331cf497",
-        "summary": "This module implements the flow review command and concentrates the review pipeline for spec, implementation, test, and draft phases. It combines git diff collection, prompt construction, AI agent orchestration, schema validation, artifact persistence, and retry logic in one command surface.",
-        "detail": "The file organizes review execution as phase-specific workflows, with separate builders, parsers, artifact classes, and output writers for implementation review, test review, spec review, and draft review. It relies on git-derived scope detection, requirement-to-file mapping, touched-file filtering, and merge-base resolution to constrain review context and reduce irrelevant findings. AI responses are treated as structured data: prompts are built with reusable helpers, outputs are repaired when malformed, validated against explicit schemas, normalized into domain classes, and written both as JSON memory artifacts and human-readable Markdown reports. The command also maintains review attempt history, supports looped review for large diffs, classifies failures into actionable review errors, and exposes a CLI entrypoint through a `Command` subclass plus direct script execution support.",
-        "chapter": "cli_commands",
-        "role": "Implements the `flow review` command orchestration layer, including multi-phase review execution, AI interaction, artifact generation, and review history tracking.",
         "enrich": {
-          "processedAt": "2026-06-06T02:30:14.595Z",
           "attempts": 1
-        },
-        "keywords": [
-          "flow review",
-          "code review pipeline",
-          "git diff analysis",
-          "AI prompt orchestration",
-          "schema validation",
-          "review artifacts",
-          "spec review",
-          "test coverage review",
-          "implementation review",
-          "draft QA"
-        ]
+        }
       },
       {
         "file": "src/flow/definition.js",
@@ -4395,7 +4382,8 @@
         "usedBy": [
           "src/flow/lib/run-auto-check.js",
           "src/flow/lib/set-auto.js",
-          "src/flow/lib/set-note.js"
+          "src/flow/lib/set-note.js",
+          "src/flow/lib/set-request.js"
         ],
         "id": "43a24e09",
         "enrich": {
@@ -6424,15 +6412,16 @@
       },
       {
         "file": "src/flow/lib/set-request.js",
-        "hash": "afd7c358cb1cbf8215d8e78cb413adcc",
-        "lines": 26,
-        "mtime": "2026-05-20T03:32:53.766Z",
+        "hash": "4958776c3f5a139be56a5055317fcd28",
+        "lines": 55,
+        "mtime": "2026-06-06T04:30:35.745Z",
         "className": "set-request",
         "methods": [],
         "imports": [
           "./base-command.js",
           "../../lib/flow-envelope.js",
-          "../../lib/flow-options.js"
+          "../../lib/flow-options.js",
+          "./resolve-preparing-run-id.js"
         ],
         "exports": [
           "default"
@@ -6440,22 +6429,9 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "546ef334",
-        "summary": "`SetRequestCommand` provides a minimal handler for `flow set request` text updates. It validates required input and emits a simple request payload.",
-        "detail": "The command is intentionally small and focused, inheriting context behavior from `FlowCommand`. It returns an `INVALID_USAGE` envelope with a quoted usage string when request text is missing. Option parsing is delegated to shared route-option helpers for consistency with sibling commands. On success, it returns `{ request: text }`, leaving state mutation to the flow storage layer.",
-        "chapter": "cli_commands",
-        "role": "Request setter command handler",
         "enrich": {
-          "processedAt": "2026-05-20T03:34:35.997Z",
           "attempts": 1
-        },
-        "keywords": [
-          "set request command",
-          "usage validation",
-          "request text update",
-          "command payload",
-          "shared option resolver",
-          "flow metadata"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/set-retry.js",
@@ -7013,9 +6989,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "53c4091a3b3ef30ee7d8d7394873e620",
-        "lines": 1108,
-        "mtime": "2026-06-05T10:54:09.149Z",
+        "hash": "fa672a07ef68386a7ddf40df89d7ddc9",
+        "lines": 1109,
+        "mtime": "2026-06-06T04:31:02.858Z",
         "className": "registry",
         "methods": [
           "assertDraftReviewRegistryHookBoundary",
@@ -7053,26 +7029,9 @@
           "src/workflow/index.js"
         ],
         "id": "d64f4095",
-        "summary": "`registry.js` defines the flow command registry and runtime hooks that connect gate, review, finalize, and issue-log behavior across the SDD workflow. It coordinates step status updates, route-specific draft review handling, and post-command side effects.",
-        "detail": "The module maps flow commands to help text, runtime options, and hook behavior while deriving active phases and resolving gate-related step identifiers. It contains helper logic for safe step-status mutation, finalize success detection, downstream step resetting, and fallback logging when registry side effects cannot be applied. Draft review lifecycle support is embedded through route resolution, verdict checks, and creation of empty triage or repair artifacts when needed. The registry also integrates with gate execution by updating retry counters, invoking gate side effects, validating finalize-related result artifacts, and enforcing responsibility boundaries between review and gate stages.",
-        "chapter": "cli_commands",
-        "role": "Flow command registry and orchestration layer for runtime hooks, step transitions, and finalize-side validations.",
         "enrich": {
-          "processedAt": "2026-06-05T10:54:30.868Z",
           "attempts": 1
-        },
-        "keywords": [
-          "command registry",
-          "flow orchestration",
-          "step status",
-          "finalize hooks",
-          "draft review routes",
-          "runtime options",
-          "issue log",
-          "phase resolution",
-          "workflow registry",
-          "command lifecycle"
-        ]
+        }
       },
       {
         "file": "src/help.js",
@@ -13531,9 +13490,9 @@
     ],
     "summary": {
       "total": 341,
-      "totalMethods": 1702
+      "totalMethods": 1703
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-06T02:30:14.595Z"
+  "enrichedAt": "2026-06-06T14:35:17.800Z"
 }
