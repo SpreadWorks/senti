@@ -1,0 +1,223 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-questions-repair.json                    |   53 +\n .../draft-questions-triage.json                    |   43 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   47 +\n specs/282-flow-local-prompt-cache/draft.json       |  127 +++\n specs/282-flow-local-prompt-cache/file-map.json    |   30 +\n specs/282-flow-local-prompt-cache/flow.json        | 1177 ++++++++++++++++++++\n .../gate-impl-memory.json                          |   45 +\n specs/282-flow-local-prompt-cache/impl-review.json |   28 +\n specs/282-flow-local-prompt-cache/issue-log.json   |  204 ++++\n specs/282-flow-local-prompt-cache/issue.md         |   62 ++\n .../retry-recovery.json                            |  101 ++\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |  101 ++\n .../review-history/impl-attempt-001.json           |   31 +\n .../review-history/impl-attempt-001.md             |   16 +\n .../review-history/spec-attempt-001.json           |   75 ++\n .../review-history/spec-attempt-001.md             |   25 +\n .../review-history/test-attempt-001.json           |   84 ++\n .../review-history/test-attempt-001.md             |   30 +\n .../review-history/test-attempt-002.json           |   48 +\n .../review-history/test-attempt-002.md             |   18 +\n .../review-history/test-attempt-003.json           |   48 +\n .../review-history/test-attempt-003.md             |   18 +\n .../review-history/test-attempt-004.json           |   48 +\n .../review-history/test-attempt-004.md             |   18 +\n .../review-history/test-attempt-005.json           |   48 +\n .../review-history/test-attempt-005.md             |   18 +\n .../review-history/test-attempt-006.json           |   48 +\n .../review-history/test-attempt-006.md             |   18 +\n .../review-history/test-attempt-007.json           |   48 +\n .../review-history/test-attempt-007.md             |   18 +\n .../review-history/test-attempt-008.json           |   48 +\n .../review-history/test-attempt-008.md             |   18 +\n .../review-history/test-attempt-009.json           |   47 +\n .../review-history/test-attempt-009.md             |   16 +\n specs/282-flow-local-prompt-cache/review.md        |   16 +\n specs/282-flow-local-prompt-cache/spec-repair.json |   47 +\n specs/282-flow-local-prompt-cache/spec-review.json |   41 +\n specs/282-flow-local-prompt-cache/spec-review.md   |   25 +\n specs/282-flow-local-prompt-cache/spec-triage.json |   22 +\n specs/282-flow-local-prompt-cache/spec.json        |  271 +++++\n specs/282-flow-local-prompt-cache/spec.md          |  125 +++\n specs/282-flow-local-prompt-cache/tasks/T-1.md     |   19 +\n specs/282-flow-local-prompt-cache/tasks/T-2.md     |   21 +\n specs/282-flow-local-prompt-cache/tasks/T-3.md     |   19 +\n .../282-flow-local-prompt-cache/test-coverage.json |   97 ++\n specs/282-flow-local-prompt-cache/test-review.json |   33 +\n specs/282-flow-local-prompt-cache/test-review.md   |   16 +\n .../tests/agent-prompt-cache.test.js               |  387 +++++++\n src/lib/agent.js                                   |  212 +++-\n 53 files changed, 4193 insertions(+), 3 deletions(-)",
+      "commits": [
+        "feat: feature/282-flow-local-prompt-cache"
+      ]
+    },
+    "retro": {
+      "total": 7,
+      "done": 7,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "On the second and later Agent.call with identical commandId, provider, profileKey, resolved profile invocation identity, systemPrompt, userPrompt, jsonSchema, and fmtFallback within the same active flow current-spec cache scope, return the saved response without invoking the provider process.",
+          "status": "done",
+          "note": "R1: identical active-flow Agent.call input returns cached response without a second provider invocation"
+        },
+        {
+          "desc": "Compute the cache key as a sha256 digest over commandId, provider, profileKey, resolved profile invocation identity, systemPrompt, userPrompt, jsonSchema, and fmtFallback using deterministic serialization for structured fields.",
+          "status": "done",
+          "note": "R2: cache identity includes resolved profile invocation shape"
+        },
+        {
+          "desc": "Treat a changed provider, profileKey, resolved profile invocation identity, commandId, systemPrompt, userPrompt, jsonSchema, or fmtFallback as a cache miss.",
+          "status": "done",
+          "note": "R3: changed provider profile or prompt identity misses the cache"
+        },
+        {
+          "desc": "Persist only successful non-empty responses after required provider output parsing has succeeded; do not cache empty responses, provider errors, or parse failures.",
+          "status": "done",
+          "note": "R4: empty responses, provider errors, and parse failures are not stored"
+        },
+        {
+          "desc": "Record cache-hit evidence separately from real provider callCount in metrics or runtime logs.",
+          "status": "done",
+          "note": "R5: cache hits are recorded separately from real provider call count"
+        },
+        {
+          "desc": "Keep cached responses scoped to the current active flow's current spec-local artifact, and disable caching when no active flow/current spec is resolved, so another project or another flow cannot reuse them.",
+          "status": "done",
+          "note": "R6: cache does not cross active flow scopes and is disabled without active flow"
+        },
+        {
+          "desc": "Preserve existing Agent.call caller behavior for cache misses, including retry handling, provider parsing, logging, and returned response text.",
+          "status": "done",
+          "note": "R7: cache misses preserve existing Agent.call response and retry behavior"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 7,
+      "fullLogPath": "specs/282-flow-local-prompt-cache/issue-log.json",
+      "importantTotal": 6,
+      "importantShown": 6,
+      "importantOmitted": 0,
+      "recentOtherTotal": 1,
+      "recentOtherShown": 1,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "retry-recovery",
+          "reason": "updated R3 expected provider invocation sequence after test-review finding",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "retry-recovery",
+          "reason": "relaxed R2 cache key assertion to avoid exact serialization coupling",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "retry-recovery",
+          "reason": "accept cache-hit evidence from metrics or runtime logs for R5",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "retry-recovery",
+          "reason": "verify R2 sha256 over implementation-provided cache key material",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "invalid phase: impl (valid: draft, spec, task-spec, task-impl, integration). legacy names pre/post/impl have been retired — use spec / task-spec / task-impl / integration.",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "No—requirement not fully validated from diff alone (tests not executable here), and behavior depends on resolved context identity fields being part of key; verification would need runtime confirmation.; No—diff alone does not conclusivel...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "qa[1]: invalid category \"consumer-contracts\"; qa[3]: invalid category \"edge-cases\"; qa[4]: invalid category \"test-strategy\"",
+          "resolution": null
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 2,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 389211,
+      "output": 33513,
+      "cacheRead": 796800,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 18,
+      "durationMs": 507638,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 15611
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 11191
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 13109
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 135548
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 45943
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 179035
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 107201
+        }
+      ]
+    },
+    "tests": {
+      "total": 7,
+      "passed": 7,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/282-flow-local-prompt-cache/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 66,
+          "end_line": 5243
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/282-flow-local-prompt-cache/"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/agent.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/282-flow-local-prompt-cache/"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/agent.js"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/282-flow-local-prompt-cache/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/282-flow-local-prompt-cache\n    53 files changed, 4193 insertions(+), 3 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (7 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 0\n    agent calls ................. 18\n    input tokens ................ 389,211\n    output tokens ............... 33,513\n    cache-read tokens ........... 796,800\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 507.6s\n      draft-questions-review .... 15.6s\n      draft-coverage-review ..... 11.2s\n      draft-gate ................ 13.1s\n      spec-review ............... 135.5s\n      spec-gate ................. 45.9s\n      test-review ............... 179.0s\n      impl-review ............... 107.2s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 7  passed 7  failed 0 verdict=pass\n    raw_output: specs/282-flow-local-prompt-cache/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (7 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/282-flow-local-prompt-cache/issue-log.json\n\n    Important (6)\n    - [retry-recovery] updated R3 expected provider invocation sequence after test-review finding\n    - [retry-recovery] relaxed R2 cache key assertion to avoid exact serialization coupling\n    - [retry-recovery] accept cache-hit evidence from metrics or runtime logs for R5\n    - [retry-recovery] verify R2 sha256 over implementation-provided cache key material\n    - [spec-gate] invalid phase: impl (valid: draft, spec, task-spec, task-impl, integration). legacy names pre/post/impl have been retired — use spec / task-spec / task-impl / integration.\n    - [impl-gate] No—requirement not fully validated from diff alone (tests not executable here), and behavior depends on resolved context identity fields being part of key; verification would need runtime confirmation.; No—diff alone does not conclusivel...\n\n    Recent Other (1)\n    - [draft-gate] qa[1]: invalid category \"consumer-contracts\"; qa[3]: invalid category \"edge-cases\"; qa[4]: invalid category \"test-strategy\""
+}

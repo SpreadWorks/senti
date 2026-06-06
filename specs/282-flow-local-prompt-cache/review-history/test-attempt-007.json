@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-06T14:20:32.374Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/282-flow-local-prompt-cache/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R5 test rejects valid runtime-log implementations",
+      "target": "specs/282-flow-local-prompt-cache/tests/agent-prompt-cache.test.js R5",
+      "issue": "The requirement allows cache-hit evidence to be recorded in metrics or runtime logs, but the test only inspects flowManager metrics and requires a cache-hit metric entry.",
+      "requiredChange": "Adjust the R5 test to accept either a separate metrics entry or separate runtime log evidence, or narrow the requirement to metrics only.",
+      "whyBlocking": "As written, a conforming implementation that records cache-hit evidence only in runtime logs would fail the spec-local test despite satisfying R5."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/282-flow-local-prompt-cache/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "533e4ef572f07bfb41c65ae14450c5c3e0daa0d1eff658214c304b3af78b5f87"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 7,
+  "findings": [
+    {
+      "id": "test-007-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 7,
+      "severity": "blocking",
+      "title": "R5 test rejects valid runtime-log implementations",
+      "body": "The requirement allows cache-hit evidence to be recorded in metrics or runtime logs, but the test only inspects flowManager metrics and requires a cache-hit metric entry.",
+      "category": "unknown"
+    }
+  ]
+}

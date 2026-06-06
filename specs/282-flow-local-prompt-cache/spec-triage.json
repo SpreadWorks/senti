@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "Both blocking findings are valid and require small spec changes: define the cache scope contract and include resolved invocation identity in the cache key.",
+  "items": [
+    {
+      "title": "Spec-local cache scope has no implementation target",
+      "target": "R1/R6, Overview Data Flow, T-1",
+      "decision": "apply",
+      "rationale": "The current Agent has FlowManager context for active flows but no existing non-active spec-local scope input. The spec must define a deterministic scope contract.",
+      "evidence": "src/lib/agent.js constructor accepts optional flowManager; spec review states ordinary non-active calls do not identify a current spec-local scope."
+    },
+    {
+      "title": "Cache key ignores mutable resolved profile behavior",
+      "target": "R1/R2/R3 cache identity",
+      "decision": "apply",
+      "rationale": "The resolved provider profile command and flags affect invocation semantics, so the cache identity must include those fields or equivalent invalidation data.",
+      "evidence": "src/lib/agent.js resolve() returns provider/profile/providerKey/profileKey, and _buildInvocation uses profile.command, args, jsonOutputFlag, jsonSchemaFlag, and jsonSchemaMode."
+    }
+  ]
+}

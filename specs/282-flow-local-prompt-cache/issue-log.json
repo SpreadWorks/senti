@@ -1,0 +1,204 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "qa[1]: invalid category \"consumer-contracts\"; qa[3]: invalid category \"edge-cases\"; qa[4]: invalid category \"test-strategy\"",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-06T13:58:21.852Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[1]: invalid category \"consumer-contracts\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[3]: invalid category \"edge-cases\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[4]: invalid category \"test-strategy\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "updated R3 expected provider invocation sequence after test-review finding",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "5515823bb1397c9d1c90ed44f8987bd53842f2285c0fe7b9983623b835fd3d3c",
+        "currentHash": "3100b16b65b2b3e0cab979708875227c2842df706027a3d979929fa626aa3ea8",
+        "changedPaths": [
+          "specs/282-flow-local-prompt-cache/tests/.raw/scenario-validity.log",
+          "specs/282-flow-local-prompt-cache/tests/agent-prompt-cache.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"updated R3 expected provider invocation sequence after test-review finding\" --yes",
+      "createdAt": "2026-06-06T14:18:47.318Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-002",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "relaxed R2 cache key assertion to avoid exact serialization coupling",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "3100b16b65b2b3e0cab979708875227c2842df706027a3d979929fa626aa3ea8",
+        "currentHash": "07adb112d1e2cc1a5d6463be14c9b7d197affd623e81a423fd475e521c0b01ae",
+        "changedPaths": [
+          "specs/282-flow-local-prompt-cache/tests/.raw/scenario-validity.log",
+          "specs/282-flow-local-prompt-cache/tests/agent-prompt-cache.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"relaxed R2 cache key assertion to avoid exact serialization coupling\" --yes",
+      "createdAt": "2026-06-06T14:20:10.137Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-003",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "accept cache-hit evidence from metrics or runtime logs for R5",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "07adb112d1e2cc1a5d6463be14c9b7d197affd623e81a423fd475e521c0b01ae",
+        "currentHash": "5cb9b11da10e832203c9ed767a3741f9a045753fc79452e522e3e098e1f4a616",
+        "changedPaths": [
+          "specs/282-flow-local-prompt-cache/tests/.raw/scenario-validity.log",
+          "specs/282-flow-local-prompt-cache/tests/agent-prompt-cache.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"accept cache-hit evidence from metrics or runtime logs for R5\" --yes",
+      "createdAt": "2026-06-06T14:21:47.476Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-004",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "verify R2 sha256 over implementation-provided cache key material",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "5cb9b11da10e832203c9ed767a3741f9a045753fc79452e522e3e098e1f4a616",
+        "currentHash": "9d1e0564865b73484dca31115f6b35a83f3d4a0a85b0ff5de37b0b2bb409cc57",
+        "changedPaths": [
+          "specs/282-flow-local-prompt-cache/tests/.raw/scenario-validity.log",
+          "specs/282-flow-local-prompt-cache/tests/agent-prompt-cache.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"verify R2 sha256 over implementation-provided cache key material\" --yes",
+      "createdAt": "2026-06-06T14:23:12.557Z"
+    },
+    {
+      "step": "spec-gate",
+      "phase": "impl",
+      "reason": "invalid phase: impl (valid: draft, spec, task-spec, task-impl, integration). legacy names pre/post/impl have been retired — use spec / task-spec / task-impl / integration.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-06T14:31:51.493Z"
+    },
+    {
+      "step": "impl-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "No—requirement not fully validated from diff alone (tests not executable here), and behavior depends on resolved context identity fields being part of key; verification would need runtime confirmation.; No—diff alone does not conclusively guarantee provider output parsing success is the only gating factor for persistence; runtime behavior should be validated with failure-mode tests.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-06T14:33:18.628Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R3",
+          "where": null,
+          "observed": "No—requirement not fully validated from diff alone (tests not executable here), and behavior depends on resolved context identity fields being part of key; verification would need runtime confirmation.",
+          "severity": "blocking",
+          "refs": [
+            "R3"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R4",
+          "where": null,
+          "observed": "No—diff alone does not conclusively guarantee provider output parsing success is the only gating factor for persistence; runtime behavior should be validated with failure-mode tests.",
+          "severity": "blocking",
+          "refs": [
+            "R4"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R5",
+        "R6",
+        "R7"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R3",
+          "reason": "No—requirement not fully validated from diff alone (tests not executable here), and behavior depends on resolved context identity fields being part of key; verification would need runtime confirmation."
+        },
+        {
+          "guardrail_id": "R4",
+          "reason": "No—diff alone does not conclusively guarantee provider output parsing success is the only gating factor for persistence; runtime behavior should be validated with failure-mode tests."
+        }
+      ]
+    }
+  ]
+}

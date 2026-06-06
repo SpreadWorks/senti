@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied both blocking review repairs: cache scope is now active-flow/current-spec only, and cache identity includes resolved profile invocation shape.",
+  "items": [
+    {
+      "title": "Spec-local cache scope has no implementation target",
+      "target": "R1/R6, Overview Data Flow, T-1",
+      "decision": "applied",
+      "rationale": "Replaced ambiguous active-flow-or-spec-local scope with an active-flow/current-spec artifact contract and explicit no-active-flow cache bypass.",
+      "evidence": "spec.json constraints, overview.data_flow, R1, R6, acceptance criteria, clarifications, and T-1 now define active-flow/current-spec scope and no-active-flow bypass.",
+      "changedFields": [
+        "scope.in",
+        "constraints",
+        "overview.data_flow",
+        "overview.decisions",
+        "requirements[0].desc",
+        "requirements[5].desc",
+        "acceptance_criteria",
+        "clarifications",
+        "tasks[0].acceptance",
+        "tasks[0].implementation_notes",
+        "tasks[1].acceptance"
+      ]
+    },
+    {
+      "title": "Cache key ignores mutable resolved profile behavior",
+      "target": "R1/R2/R3 cache identity",
+      "decision": "applied",
+      "rationale": "Added resolved profile invocation identity to cache identity and defined the minimum invocation fields that must participate.",
+      "evidence": "spec.json R1, R2, R3, acceptance criteria, clarifications, keywords, and overview decisions now include resolved profile invocation identity.",
+      "changedFields": [
+        "scope.in",
+        "overview.data_flow",
+        "overview.decisions",
+        "requirements[0].desc",
+        "requirements[1].desc",
+        "requirements[2].desc",
+        "acceptance_criteria",
+        "clarifications",
+        "keywords",
+        "tasks[0].acceptance"
+      ]
+    }
+  ]
+}

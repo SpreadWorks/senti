@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-06T14:11:28.333Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/282-flow-local-prompt-cache/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Parse-failure test encodes success return",
+      "target": "specs/282-flow-local-prompt-cache/tests/agent-prompt-cache.test.js R4 test",
+      "issue": "The parse-failure branch configures a provider with required JSON output parsing, emits non-JSON text, then asserts Agent.call returns \"not-json\" twice. That encodes an implementation premise that a required provider parse failure is a successful returned response, which contradicts R4's distinction between successful parsed output and parse failures.",
+      "requiredChange": "Change the parse-failure assertions to treat the invalid provider output as a parse failure, while still verifying the provider is invoked again on the repeated call and no cached response is used.",
+      "whyBlocking": "A test that expects parse failures to return as successful responses can force the implementation to preserve incorrect behavior and would not validate that caching happens only after required parsing succeeds."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/282-flow-local-prompt-cache/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "8955b996fa082d787a6ff66506ff9981f925290e013876efba47721f97d6c695"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "test-002-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Parse-failure test encodes success return",
+      "body": "The parse-failure branch configures a provider with required JSON output parsing, emits non-JSON text, then asserts Agent.call returns \"not-json\" twice. That encodes an implementation premise that a required provider parse failure is a successful returned response, which contradicts R4's distinction between successful parsed output and parse failures.",
+      "category": "unknown"
+    }
+  ]
+}

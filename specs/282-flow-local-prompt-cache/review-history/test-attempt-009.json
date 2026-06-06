@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-06T14:23:35.190Z",
+  "verdict": "ADVISORY",
+  "counts": {
+    "blocking": 0,
+    "advisory": 1,
+    "total": 1
+  },
+  "coverageArtifact": "specs/282-flow-local-prompt-cache/test-coverage.json",
+  "blockingFindings": [],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Add runtime miss check for same-provider profileKey changes",
+      "target": "specs/282-flow-local-prompt-cache/tests/agent-prompt-cache.test.js R3",
+      "improvement": "Add a small Agent.call case where SDD_FORGE_PROFILE changes between two profile keys that resolve to the same provider and same invocation, and assert the provider is invoked again.",
+      "whyNonBlocking": "The key-builder assertions already cover profileKey identity, so the requirement is not uncovered, but a runtime-level check would better match R3's cache-miss behavior claim."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/282-flow-local-prompt-cache/test-review.json",
+    "verdict": "ADVISORY",
+    "result": "ADVISORY",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": "implement",
+    "completionKind": "normal",
+    "progressSignature": "0ad5beb1182bf0338c8545450c81c8a6ad92c223331d41787ee9b9c5a2599216"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 9,
+  "findings": [
+    {
+      "id": "test-009-non-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 9,
+      "severity": "non-blocking",
+      "title": "Add runtime miss check for same-provider profileKey changes",
+      "body": "Add runtime miss check for same-provider profileKey changes",
+      "category": "unknown"
+    }
+  ]
+}

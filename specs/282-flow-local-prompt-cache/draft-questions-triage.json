@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "All five repair targets are valid structural edits: pending questions should not embed recommended answers or implementation-level test decisions.",
+  "items": [
+    {
+      "title": "1. q1 includes proposed answer/instruction",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "q1 can be rewritten as a goal confirmation question without embedding the expected answer.",
+      "evidence": "draft.json qa[0].question begins with a recommended must-level statement."
+    },
+    {
+      "title": "2. q2 includes proposed answer/rationale",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "q2 can ask for the desired observability contract without prescribing the metric shape in the question text.",
+      "evidence": "draft.json qa[1].question includes provider callCount exclusion and cacheHit/cachedResponse wording as the answer."
+    },
+    {
+      "title": "3. q3 includes proposed answer/instruction",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "q3 can ask about retention needs while leaving the artifact-retention answer open.",
+      "evidence": "draft.json qa[2].question states the active-flow/spec-local retention policy as the proposed answer."
+    },
+    {
+      "title": "4. q4 includes proposed answer/instruction",
+      "target": "q4",
+      "decision": "apply",
+      "rationale": "q4 can ask which unsuccessful response classes must be excluded without embedding the exclusion policy as an answer.",
+      "evidence": "draft.json qa[3].question lists the non-cache policy as a recommended must-level answer."
+    },
+    {
+      "title": "5. q5 asks internal implementation/test details",
+      "target": "q5",
+      "decision": "apply",
+      "rationale": "q5 can be rewritten at acceptance-evidence level instead of asking the user to choose unit or e2e implementation details.",
+      "evidence": "draft.json qa[4].question names unit test and e2e metrics scope, which project test patterns can decide later."
+    }
+  ]
+}

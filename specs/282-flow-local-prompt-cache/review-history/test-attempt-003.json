@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-06T14:12:23.783Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/282-flow-local-prompt-cache/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Provider/profile cache-miss coverage is confounded by commandId changes",
+      "target": "specs/282-flow-local-prompt-cache/tests/agent-prompt-cache.test.js R3 test",
+      "issue": "The R3 test claims to cover changed provider/profile identity, but the calls that change provider/profile also change commandId. An implementation that keys only on commandId and ignores provider/profileKey would still pass those assertions.",
+      "requiredChange": "Add or adjust a spec-local R3 assertion that changes provider and/or profileKey while keeping commandId and the rest of the prompt identity constant, and verifies a provider invocation occurs.",
+      "whyBlocking": "R3 explicitly requires provider and profileKey changes to be cache misses, and the current executable test can pass without exercising that production behavior."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/282-flow-local-prompt-cache/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "0bf4030ddd76f8e9d6e6e952f3c3a04eaf4d7862e7be2bd9981a34cb1b830e25"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "test-003-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Provider/profile cache-miss coverage is confounded by commandId changes",
+      "body": "The R3 test claims to cover changed provider/profile identity, but the calls that change provider/profile also change commandId. An implementation that keys only on commandId and ignores provider/profileKey would still pass those assertions.",
+      "category": "unknown"
+    }
+  ]
+}

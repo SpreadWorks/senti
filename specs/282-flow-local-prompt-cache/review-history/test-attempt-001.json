@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-06T14:09:04.834Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 3,
+    "advisory": 0,
+    "total": 3
+  },
+  "coverageArtifact": "specs/282-flow-local-prompt-cache/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R2 lacks digest and deterministic structured-field coverage",
+      "target": "specs/282-flow-local-prompt-cache/tests/agent-prompt-cache.test.js R2",
+      "issue": "The R2 test only verifies that mutating a provider invocation shape causes a miss. It does not assert that the cache key is a sha256 digest over the required fields, nor that structured fields such as jsonSchema and fmtFallback are serialized deterministically.",
+      "requiredChange": "Add a spec-local test that inspects or derives the saved cache key and verifies it is a sha256 digest computed from the required identity fields using deterministic serialization for structured fields.",
+      "whyBlocking": "R2 is a must requirement and the coverage artifact marks it covered, but the executable tests do not cover the required sha256/deterministic serialization behavior."
+    },
+    {
+      "kind": "blocking",
+      "title": "R3 does not cover all required cache-miss identity fields",
+      "target": "specs/282-flow-local-prompt-cache/tests/agent-prompt-cache.test.js R3",
+      "issue": "The R3 test covers changed provider/userPrompt and partially covers commandId through profile switching, but it does not independently cover changed profileKey, resolved profile invocation identity, systemPrompt, jsonSchema, or fmtFallback as cache misses.",
+      "requiredChange": "Add the smallest set of calls that prove each R3 identity field change, especially profileKey, resolved invocation identity, systemPrompt, jsonSchema, and fmtFallback, causes a provider invocation instead of a cache hit.",
+      "whyBlocking": "R3 is a must requirement requiring every listed field to be treated as cache identity; missing fields could be ignored by the implementation while these tests still pass."
+    },
+    {
+      "kind": "blocking",
+      "title": "R6 does not prove flow-local isolation within the same project",
+      "target": "specs/282-flow-local-prompt-cache/tests/agent-prompt-cache.test.js R6",
+      "issue": "The R6 test proves caching within one active flow, misses across different temp project roots, and disabled caching with no active flow. It does not test switching to another active flow/current spec within the same root, where accidental reuse of a spec-local artifact is most likely.",
+      "requiredChange": "Add a same-root second-flow/current-spec case that repeats the same Agent.call identity and verifies the provider is invoked for the second flow rather than reusing the first flow's cached response.",
+      "whyBlocking": "R6 requires another flow not to reuse cached responses. Cross-root isolation alone does not cover the current active flow/current spec-local artifact boundary."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/282-flow-local-prompt-cache/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "f0baf0470bd4292279a69b608ba5aebaa669cf7ae6add346408d7101130fc1b0"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "test-001-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R2 lacks digest and deterministic structured-field coverage",
+      "body": "The R2 test only verifies that mutating a provider invocation shape causes a miss. It does not assert that the cache key is a sha256 digest over the required fields, nor that structured fields such as jsonSchema and fmtFallback are serialized deterministically.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R3 does not cover all required cache-miss identity fields",
+      "body": "The R3 test covers changed provider/userPrompt and partially covers commandId through profile switching, but it does not independently cover changed profileKey, resolved profile invocation identity, systemPrompt, jsonSchema, or fmtFallback as cache misses.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R6 does not prove flow-local isolation within the same project",
+      "body": "The R6 test proves caching within one active flow, misses across different temp project roots, and disabled caching with no active flow. It does not test switching to another active flow/current spec within the same root, where accidental reuse of a spec-local artifact is most likely.",
+      "category": "unknown"
+    }
+  ]
+}

@@ -17,6 +17,7 @@
 
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import { spawn } from "child_process";
 import { generateRequestId } from "./log.js";
 import { ProviderRegistry } from "./provider.js";
@@ -97,7 +98,21 @@ class Agent {
     ensureWorkDir(this._paths.agentWorkDir);
 
     const retry = this._normalizeRetryOptionsForTest(opts);
-    return runWithLogging({
+    const promptCache = this._resolvePromptCache(resolved, prompt, opts);
+    const hit = promptCache?.cache.get(promptCache.key);
+    if (hit != null) {
+      recordPromptCacheHit({
+        flowManager: this._flowManager,
+        context: promptCache.context,
+        provider: resolved.providerKey,
+        profileKey: resolved.profileKey,
+        text: hit,
+      });
+      return hit;
+    }
+
+    let cacheCandidate = null;
+    const text = await runWithLogging({
       logger: this._logger,
       flowManager: this._flowManager,
       command: resolved.profile.command,
@@ -105,8 +120,15 @@ class Agent {
       prompt,
       provider: resolved.providerKey,
       profileKey: resolved.profileKey,
-      invoke: () => this._callOnceWithRetry(resolved, prompt, opts, retry),
+      invoke: async () => {
+        cacheCandidate = await this._callOnceWithRetry(resolved, prompt, opts, retry);
+        return cacheCandidate;
+      },
     });
+    if (promptCache && text && cacheCandidate?.cacheable !== false) {
+      promptCache.cache.set(promptCache.key, text);
+    }
+    return text;
   }
 
   // -----------------------------------------------------------------------
@@ -117,6 +139,14 @@ class Agent {
     const resolved = this.resolve(options.commandId);
     if (!resolved) throw new Error("No agent configured.");
     return this._buildInvocation(resolved, prompt, options);
+  }
+
+  _buildPromptCacheKeyMaterialForTest(resolved, prompt, options = {}) {
+    return PromptCacheIdentity.from({ resolved, prompt, options }).toKeyMaterial();
+  }
+
+  _buildPromptCacheKeyForTest(resolved, prompt, options = {}) {
+    return sha256(this._buildPromptCacheKeyMaterialForTest(resolved, prompt, options));
   }
 
   _normalizeRetryOptionsForTest(options = {}) {
@@ -131,6 +161,17 @@ class Agent {
       ? Math.floor(rawDelay)
       : DEFAULT_RETRY_DELAY_MS;
     return { retryCount, retryDelayMs };
+  }
+
+  _resolvePromptCache(resolved, prompt, options) {
+    const context = resolvePromptCacheContext(this._flowManager);
+    if (!context) return null;
+    const cache = new AgentPromptCache({
+      root: this._paths.root || process.cwd(),
+      specId: context.spec,
+    });
+    const key = this._buildPromptCacheKeyForTest(resolved, prompt, options);
+    return { cache, key, context };
   }
 
   _buildInvocation(resolved, prompt, options) {
@@ -258,7 +299,7 @@ class Agent {
           const trimmed = String(stdout).trim();
           if (profile.jsonOutputFlag) {
             const parsed = tryParseProvider(provider, trimmed);
-            resolve(parsed ?? { text: trimmed, usage: null });
+            resolve(parsed ?? { text: trimmed, usage: null, cacheable: false });
           } else {
             resolve({ text: filterStreamingEvents(trimmed), usage: null });
           }
@@ -292,6 +333,171 @@ class Agent {
 // ---------------------------------------------------------------------------
 // Module-private helpers
 // ---------------------------------------------------------------------------
+
+class PromptCacheIdentity {
+  constructor(input = {}) {
+    this.commandId = input.commandId ?? null;
+    this.provider = input.provider ?? null;
+    this.profileKey = input.profileKey ?? null;
+    this.invocation = input.invocation instanceof PromptCacheInvocation
+      ? input.invocation
+      : new PromptCacheInvocation(input.invocation || {});
+    this.systemPrompt = input.systemPrompt ?? null;
+    this.userPrompt = input.userPrompt ?? null;
+    this.jsonSchema = input.jsonSchema ?? null;
+    this.fmtFallback = input.fmtFallback ?? null;
+  }
+
+  static from({ resolved, prompt, options = {} }) {
+    return new PromptCacheIdentity({
+      commandId: options.commandId ?? null,
+      provider: resolved.providerKey,
+      profileKey: resolved.profileKey,
+      invocation: PromptCacheInvocation.fromProfile(resolved.profile),
+      systemPrompt: options.systemPrompt ?? null,
+      userPrompt: prompt,
+      jsonSchema: options.jsonSchema ?? null,
+      fmtFallback: options.fmtFallback ?? null,
+    });
+  }
+
+  toJSON() {
+    return {
+      commandId: this.commandId,
+      provider: this.provider,
+      profileKey: this.profileKey,
+      invocation: this.invocation.toJSON(),
+      systemPrompt: this.systemPrompt,
+      userPrompt: this.userPrompt,
+      jsonSchema: this.jsonSchema,
+      fmtFallback: this.fmtFallback,
+    };
+  }
+
+  toKeyMaterial() {
+    return stableStringify(this.toJSON());
+  }
+}
+
+class PromptCacheInvocation {
+  constructor(input = {}) {
+    this.command = input.command ?? null;
+    this.args = Array.isArray(input.args) ? [...input.args] : [];
+    this.jsonOutputFlag = input.jsonOutputFlag ?? null;
+    this.jsonSchemaFlag = input.jsonSchemaFlag ?? null;
+    this.jsonSchemaMode = input.jsonSchemaMode ?? null;
+  }
+
+  static fromProfile(profile = {}) {
+    return new PromptCacheInvocation({
+      command: profile.command,
+      args: profile.args,
+      jsonOutputFlag: profile.jsonOutputFlag,
+      jsonSchemaFlag: profile.jsonSchemaFlag,
+      jsonSchemaMode: profile.jsonSchemaMode,
+    });
+  }
+
+  toJSON() {
+    return {
+      command: this.command,
+      args: this.args,
+      jsonOutputFlag: this.jsonOutputFlag,
+      jsonSchemaFlag: this.jsonSchemaFlag,
+      jsonSchemaMode: this.jsonSchemaMode,
+    };
+  }
+}
+
+class AgentPromptCache {
+  constructor({ root, specId }) {
+    this.root = root;
+    this.specId = specId;
+    this.filePath = path.join(root, "specs", specId, "agent-cache.json");
+  }
+
+  get(key) {
+    const store = this.read();
+    const entry = store.entries[key] || null;
+    if (!entry || typeof entry.text !== "string") return null;
+    return entry.text;
+  }
+
+  set(key, text) {
+    const store = this.read();
+    store.entries[key] = {
+      text: String(text),
+      storedAt: new Date().toISOString(),
+    };
+    this.write(store);
+  }
+
+  read() {
+    if (!fs.existsSync(this.filePath)) return this.emptyStore();
+    try {
+      const data = JSON.parse(fs.readFileSync(this.filePath, "utf8"));
+      if (!data || typeof data !== "object" || data.version !== 1 || !data.entries || typeof data.entries !== "object") {
+        return this.emptyStore();
+      }
+      return data;
+    } catch (_) {
+      return this.emptyStore();
+    }
+  }
+
+  write(store) {
+    fs.mkdirSync(path.dirname(this.filePath), { recursive: true });
+    fs.writeFileSync(this.filePath, JSON.stringify(store, null, 2) + "\n", "utf8");
+  }
+
+  emptyStore() {
+    return { version: 1, entries: {} };
+  }
+}
+
+function resolvePromptCacheContext(flowManager) {
+  if (!flowManager) return null;
+  try {
+    const context = flowManager.resolveCurrentContext();
+    if (!context?.spec) return null;
+    const activeFlows = typeof flowManager.loadActiveFlows === "function"
+      ? flowManager.loadActiveFlows()
+      : [];
+    if (!activeFlows.some((entry) => entry.spec === context.spec)) return null;
+    return context;
+  } catch (_) {
+    return null;
+  }
+}
+
+function recordPromptCacheHit({ flowManager, context, provider, profileKey, text }) {
+  if (!flowManager || !context?.sddPhase) return;
+  try {
+    flowManager.appendMetric({
+      phase: context.sddPhase,
+      kind: "agent-cache",
+      provider,
+      profileKey,
+      callCount: 0,
+      cachedResponse: true,
+      responseChars: textStats(text).chars,
+    }, { specId: context.spec, taskId: context.taskId ?? null });
+  } catch (err) {
+    process.stderr.write(`[sdd-forge] agent: cache-hit metric failed: ${err.message}\n`);
+  }
+}
+
+function sha256(text) {
+  return crypto.createHash("sha256").update(text).digest("hex");
+}
+
+function stableStringify(value) {
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
 
 function matchProfilePrefix(profile, commandId) {
   if (!commandId) return null;

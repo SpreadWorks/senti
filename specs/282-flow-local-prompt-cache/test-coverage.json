@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "On the second and later Agent.call with identical commandId, provider, profileKey, resolved profile invocation identity, systemPrompt, userPrompt, jsonSchema, and fmtFallback within the same active flow current-spec cache scope, return the saved response without invoking the provider process.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/agent-prompt-cache.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "Compute the cache key as a sha256 digest over commandId, provider, profileKey, resolved profile invocation identity, systemPrompt, userPrompt, jsonSchema, and fmtFallback using deterministic serialization for structured fields.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/agent-prompt-cache.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "Treat a changed provider, profileKey, resolved profile invocation identity, commandId, systemPrompt, userPrompt, jsonSchema, or fmtFallback as a cache miss.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/agent-prompt-cache.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "Persist only successful non-empty responses after required provider output parsing has succeeded; do not cache empty responses, provider errors, or parse failures.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/agent-prompt-cache.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "Record cache-hit evidence separately from real provider callCount in metrics or runtime logs.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/agent-prompt-cache.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "Keep cached responses scoped to the current active flow's current spec-local artifact, and disable caching when no active flow/current spec is resolved, so another project or another flow cannot reuse them.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/agent-prompt-cache.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "Preserve existing Agent.call caller behavior for cache misses, including retry handling, provider parsing, logging, and returned response text.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/agent-prompt-cache.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/agent-prompt-cache.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7"
+      ]
+    }
+  ]
+}

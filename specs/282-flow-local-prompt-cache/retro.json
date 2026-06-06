@@ -1,0 +1,53 @@
+{
+  "spec": "specs/282-flow-local-prompt-cache/spec.json",
+  "date": "2026-06-06T14:33:57.919Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "On the second and later Agent.call with identical commandId, provider, profileKey, resolved profile invocation identity, systemPrompt, userPrompt, jsonSchema, and fmtFallback within the same active flow current-spec cache scope, return the saved response without invoking the provider process.",
+      "status": "done",
+      "note": "R1: identical active-flow Agent.call input returns cached response without a second provider invocation"
+    },
+    {
+      "desc": "Compute the cache key as a sha256 digest over commandId, provider, profileKey, resolved profile invocation identity, systemPrompt, userPrompt, jsonSchema, and fmtFallback using deterministic serialization for structured fields.",
+      "status": "done",
+      "note": "R2: cache identity includes resolved profile invocation shape"
+    },
+    {
+      "desc": "Treat a changed provider, profileKey, resolved profile invocation identity, commandId, systemPrompt, userPrompt, jsonSchema, or fmtFallback as a cache miss.",
+      "status": "done",
+      "note": "R3: changed provider profile or prompt identity misses the cache"
+    },
+    {
+      "desc": "Persist only successful non-empty responses after required provider output parsing has succeeded; do not cache empty responses, provider errors, or parse failures.",
+      "status": "done",
+      "note": "R4: empty responses, provider errors, and parse failures are not stored"
+    },
+    {
+      "desc": "Record cache-hit evidence separately from real provider callCount in metrics or runtime logs.",
+      "status": "done",
+      "note": "R5: cache hits are recorded separately from real provider call count"
+    },
+    {
+      "desc": "Keep cached responses scoped to the current active flow's current spec-local artifact, and disable caching when no active flow/current spec is resolved, so another project or another flow cannot reuse them.",
+      "status": "done",
+      "note": "R6: cache does not cross active flow scopes and is disabled without active flow"
+    },
+    {
+      "desc": "Preserve existing Agent.call caller behavior for cache misses, including retry handling, provider parsing, logging, and returned response text.",
+      "status": "done",
+      "note": "R7: cache misses preserve existing Agent.call response and retry behavior"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 7,
+    "done": 7,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Rewrote five pending question texts to remove embedded recommended answers and implementation-level test choices.",
+  "items": [
+    {
+      "title": "1. q1 includes proposed answer/instruction",
+      "target": "q1",
+      "rationale": "Removed the recommended must-level behavior and made q1 ask for the expected visible behavior.",
+      "evidence": "draft.json qa[0].question now asks what behavior is expected for the second identical cache-key call.",
+      "changedFieldPaths": [
+        "qa[0].question"
+      ]
+    },
+    {
+      "title": "2. q2 includes proposed answer/rationale",
+      "target": "q2",
+      "rationale": "Removed the prescribed metric field names and made q2 ask for the desired distinction between provider calls and cache returns.",
+      "evidence": "draft.json qa[1].question now asks how metrics or runtime logs should distinguish the two counts.",
+      "changedFieldPaths": [
+        "qa[1].question"
+      ]
+    },
+    {
+      "title": "3. q3 includes proposed answer/instruction",
+      "target": "q3",
+      "rationale": "Removed the prescribed retention policy and made q3 ask whether the artifact is internal-only or retained evidence.",
+      "evidence": "draft.json qa[2].question now asks about internal optimization versus spec-local evidence retention.",
+      "changedFieldPaths": [
+        "qa[2].question"
+      ]
+    },
+    {
+      "title": "4. q4 includes proposed answer/instruction",
+      "target": "q4",
+      "rationale": "Removed the prescribed exclusion policy and made q4 ask which unsuccessful responses should be excluded.",
+      "evidence": "draft.json qa[3].question now asks which response classes should be excluded from caching.",
+      "changedFieldPaths": [
+        "qa[3].question"
+      ]
+    },
+    {
+      "title": "5. q5 asks internal implementation/test details",
+      "target": "q5",
+      "rationale": "Moved the question from test implementation mechanics to acceptance-evidence scope.",
+      "evidence": "draft.json qa[4].question now asks which externally verifiable evidence areas are required.",
+      "changedFieldPaths": [
+        "qa[4].question"
+      ]
+    }
+  ]
+}

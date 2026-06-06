@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-06T14:22:11.416Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/282-flow-local-prompt-cache/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R2 does not verify sha256 algorithm",
+      "target": "specs/282-flow-local-prompt-cache/tests/agent-prompt-cache.test.js: R2 test",
+      "issue": "The test asserts that the cache key is 64 lowercase hex characters and changes for identity inputs, but it never checks the digest against a known sha256 value. An implementation using another deterministic 256-bit-looking digest, or hard-coded 64-hex keyed output, could satisfy this test while violating R2's sha256 requirement.",
+      "requiredChange": "Add one assertion with a known input and expected sha256 digest, or independently compute sha256 in the test over the required deterministic serialization contract and compare it to the produced key.",
+      "whyBlocking": "R2 explicitly requires sha256, and the current spec-local tests do not cover that algorithm requirement."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/282-flow-local-prompt-cache/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "86f4f2e9b7671ca16d25169a45908c49fc900e6b4a7eae8ac7f62bd312e16e11"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 8,
+  "findings": [
+    {
+      "id": "test-008-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 8,
+      "severity": "blocking",
+      "title": "R2 does not verify sha256 algorithm",
+      "body": "The test asserts that the cache key is 64 lowercase hex characters and changes for identity inputs, but it never checks the digest against a known sha256 value. An implementation using another deterministic 256-bit-looking digest, or hard-coded 64-hex keyed output, could satisfy this test while violating R2's sha256 requirement.",
+      "category": "unknown"
+    }
+  ]
+}

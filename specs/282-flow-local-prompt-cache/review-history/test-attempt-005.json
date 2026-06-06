@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-06T14:14:47.296Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/282-flow-local-prompt-cache/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R3 expected provider invocation sequence is internally inconsistent",
+      "target": "specs/282-flow-local-prompt-cache/tests/agent-prompt-cache.test.js R3 final count assertion",
+      "issue": "The test executes misses in the order providerA=a, providerB=b, flow.a=a, flow.a2=a, flow.b=b, flow.alt=a, then five mutated c calls. That yields count file content \"abaabaccccc\", but the test asserts \"ababaaccccc\".",
+      "requiredChange": "Change the final R3 count assertion to the sequence implied by the test setup, or reorder the calls/providers so the asserted sequence matches the intended misses.",
+      "whyBlocking": "As written, the test encodes an incorrect premise and would reject a correct implementation that treats the changed commandId, provider, profile, invocation, prompts, schema, and fallback as cache misses."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/282-flow-local-prompt-cache/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "c2682084891a4ad6b7350fce800f399afe219f6522d11174651d8eb8a9c3b687"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 5,
+  "findings": [
+    {
+      "id": "test-005-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "R3 expected provider invocation sequence is internally inconsistent",
+      "body": "The test executes misses in the order providerA=a, providerB=b, flow.a=a, flow.a2=a, flow.b=b, flow.alt=a, then five mutated c calls. That yields count file content \"abaabaccccc\", but the test asserts \"ababaaccccc\".",
+      "category": "unknown"
+    }
+  ]
+}

@@ -1,0 +1,127 @@
+{
+  "devType": "feature",
+  "goal": "must: Prevent repeated AI provider invocations when Agent.call receives an identical flow-local prompt request.",
+  "analysis": {
+    "problem": "Saved prompt logs show exact duplicate prompts across multiple phases. The current Agent.call path invokes the configured provider for every call, so identical commandId/provider/profileKey/system/user/schema/fallback inputs still pay process startup, latency, retry, and log-volume costs.",
+    "proposedApproach": "Introduce a prompt-response cache at the AI agent call boundary. The cache is scoped to the active flow or spec-local artifact, keyed by the Issue-defined identity fields, and stores only successful non-empty responses. Cache hits return the saved response without spawning the provider and are visible through metrics or logs.",
+    "validation": "The approach targets the root cause because all prompt-sending phases pass through Agent.call. Existing source shows Agent.call resolves provider/profile, runs retries, and appends agent metrics; flow-store already owns append-only flow metrics and active-flow-scoped state. A boundary cache can therefore suppress duplicate provider execution without changing individual review, gate, or docs command prompts."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #368 reports 572 surplus duplicate prompt calls and 12,703,553 duplicate characters across saved prompt logs.",
+      "must: Issue #368 defines the cache key fields as commandId, provider, profileKey, systemPrompt, userPrompt, jsonSchema, and fmtFallback.",
+      "must: src/lib/agent.js is the centralized provider invocation boundary and already receives commandId, systemPrompt, jsonSchema, fmtFallback, provider, and profileKey values.",
+      "must: src/lib/flow-store.js persists flow.json and appends flat metrics entries through appendMetric and accumulateAgentMetrics.",
+      "must: src/flow/lib/get-status.js and src/metrics/commands/token.js aggregate agent-kind metrics from the flat metrics array.",
+      "must: Project rules forbid external dependencies and require Node.js built-in modules only."
+    ],
+    "decisionPoints": [
+      "must: Confirm whether cache-hit metrics should count as agent activity separately from provider callCount.",
+      "must: Confirm whether cached responses may be reused only after successful schema/output parsing rather than raw stdout success alone.",
+      "must: Confirm the retention boundary for cache artifacts inside an active flow or spec-local scope.",
+      "should: Decide whether runtime logs should include an explicit cache-hit marker in addition to metrics."
+    ],
+    "resolvedByProjectRules": [
+      "must: Use Node.js built-in crypto for hashing; no dependency addition.",
+      "must: Do not create a global cache because Issue #368 explicitly limits reuse to active flow or spec-local scope.",
+      "must: Keep cache behavior at the Agent.call boundary so duplicate suppression applies across gate, review, docs, and future agent-using phases.",
+      "must: Cache only successful non-empty responses because Issue #368 excludes empty responses, provider errors, and failures before schema parsing."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: Exact artifact filename and JSON shape for the flow-local cache.",
+      "must: Exact hash serialization rules for jsonSchema and fmtFallback.",
+      "must: Exact test scenarios for identical calls, changed provider/profile/prompt, failed response, empty response, and cross-flow isolation.",
+      "should: How metrics aggregation displays cache hits without inflating provider call totals."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: Add a flow-local or spec-local cache for Agent.call responses.",
+      "must: Compute the cache identity from commandId, provider, profileKey, systemPrompt, userPrompt, jsonSchema, and fmtFallback.",
+      "must: Return a saved successful non-empty response on the second identical call without invoking the provider.",
+      "must: Miss the cache when provider/profileKey, systemPrompt, userPrompt, jsonSchema, fmtFallback, or commandId differs.",
+      "must: Avoid caching empty responses, provider errors, and failures before required response parsing succeeds.",
+      "must: Surface cache hits through metrics or logs so provider calls and cached responses are distinguishable.",
+      "must: Keep cache data scoped to active flow or spec-local artifacts and prevent cross-project or cross-flow reuse."
+    ],
+    "out": [
+      "must: No global prompt cache.",
+      "must: No provider-side cache integration or configuration changes.",
+      "must: No prompt rewriting or prompt-size optimization.",
+      "should: No change to public CLI command meanings unless required by metrics visibility."
+    ]
+  },
+  "impactOnExisting": [
+    "must: Agent.call behavior changes for repeated identical successful prompts during an active flow or spec-local run.",
+    "must: Flow metrics or runtime logs gain cache-hit observability while existing provider call metrics remain interpretable.",
+    "must: Existing review, gate, docs, and flow commands continue to call Agent.call with the same public options.",
+    "should: Existing tests for retry, empty response handling, JSON provider parsing, and metric aggregation remain valid with added cache-specific coverage."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "同一 commandId/provider/profileKey/systemPrompt/userPrompt/jsonSchema/fmtFallback の2回目以降に期待する利用者-visibleな振る舞いは何か。",
+      "answer": "must: The second and later identical call returns the saved successful response and does not invoke the configured provider process.",
+      "evidence": "Issue #368 Proposed Acceptance Criteria: second same commandId/provider/profileKey/system/user/schema/fallback call must not call provider and must return saved response.",
+      "why": "This directly targets the reported waste: repeated provider spawn, latency, retries, and log volume for exact duplicate prompts.",
+      "considered": "Relying only on provider-side prompt cache was rejected because the Issue states process invocation, latency, retry, and log volume still occur.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "metrics または runtime log では、provider を実際に呼び出した回数と cache から返した回数をどのように区別したいか。",
+      "answer": "must: Cache hits must be observable separately from real provider calls. Provider call totals must remain interpretable as actual provider invocations, while cached responses are recorded as cacheHit or cachedResponse evidence.",
+      "evidence": "Issue #368 requires cache hits to be confirmed in metrics or runtime logs; src/lib/flow-store.js appends agent metrics and src/flow/lib/get-status.js aggregates callCount from agent metric entries.",
+      "why": "Keeping provider call totals separate preserves the meaning of existing metrics while exposing the optimization result.",
+      "considered": "Counting cache hits as normal provider callCount was rejected because it would hide whether the provider was actually skipped.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "cache artifact は flow 中の内部最適化として扱うか、finalize 後にも参照できる spec-local evidence として保持したいか。",
+      "answer": "must: The cache is scoped to the active flow or spec-local scope and must not be reused by another project or another flow. The cache artifact is an internal optimization artifact; final evidence can be provided by metrics/logs and tests rather than cross-flow-retained reuse.",
+      "evidence": "Issue #368 Improvement Direction says to limit this to active flow or spec-local artifact and not create a global cache; Proposed Acceptance Criteria says cache must not leak to another project or another flow.",
+      "why": "The Issue's boundary prioritizes isolation over long-lived reuse, so retaining cache for future flows would contradict the non-leakage goal.",
+      "considered": "A global or cross-flow cache was rejected by the Issue scope. A finalize-retained evidence artifact remains optional only as audit data, not as reusable cache state.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "provider stdout が空、provider が失敗、または JSON/schema 期待時の parse が成功応答として扱えない場合、どの応答を cache 対象から除外したいか。",
+      "answer": "must: Empty responses, provider errors, and responses that fail before required parsing succeeds must not be cached.",
+      "evidence": "Issue #368 Improvement Direction excludes empty responses, failures before schema parsing, and provider errors from caching.",
+      "why": "Caching unsuccessful or unparsed output would make later calls return an invalid result without retrying the provider.",
+      "considered": "Caching empty strings from retry opt-out paths was rejected because the Issue explicitly excludes empty responses.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "follow-up-coverage",
+      "question": "受け入れ証跡として、cache hit/miss、失敗/空応答の非保存、別 flow への非漏洩、metrics または log での確認のうち、どこまで必須にしたいか。",
+      "answer": "must: Acceptance evidence must cover identical-call cache hit, changed provider/profile or prompt cache miss, failed/empty response non-storage, cache-hit observability in metrics or logs, and isolation from another flow or project.",
+      "evidence": "Issue #368 Proposed Acceptance Criteria lists these five behaviors explicitly.",
+      "why": "These checks cover both the optimization behavior and the safety boundary that prevents incorrect reuse.",
+      "considered": "Only testing same-input cache hit was rejected because it would not prove safe miss behavior, non-storage of invalid results, or flow isolation.",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [
+    "should: Cache-hit observabilityを flow status、metrics token、runtime log のどこまで表示するかは spec で確定する。",
+    "should: Cache artifact を finalize 後に削除するか spec-local evidence として残すかは spec で確定する。"
+  ],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-06T13:58:11.000Z",
+    "notes": "autoApprove: Issue #368 preflight summary was accepted and all draft QA entries were resolved from Issue content, project rules, and source context."
+  }
+}
