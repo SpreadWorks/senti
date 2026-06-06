@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-06T14:34:54.876Z",
+  "analyzedAt": "2026-06-06T14:37:10.998Z",
   "package": {
     "entries": [
       {
@@ -2841,8 +2841,24 @@
         "usedBy": null,
         "id": "331cf497",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-06-06T14:37:37.009Z",
+          "attempts": 2
+        },
+        "summary": "Implements the `flow review` command and its phase-specific review pipelines for draft, spec, test, and implementation checks. It combines git diff collection, prompt construction, AI response parsing, scope filtering, and artifact persistence into one orchestration module.",
+        "detail": "This module routes review execution by phase and supports multiple review styles, including draft QA review, spec review, test review, implementation review, and looped per-file review for larger diffs. It builds structured prompts from specs, requirement-to-file maps, touched files, previous review memory, and guardrails, then calls the configured AI agent and validates JSON-shaped responses against explicit schemas. The implementation normalizes findings into dedicated artifact classes, filters them by touched-file scope and requirement IDs, and writes both Markdown and JSON outputs plus attempt history under the spec directory. It also integrates git merge-base resolution, diff slicing, retry loops, review repair prompts, and failure classification so review behavior remains consistent across flow phases.",
+        "chapter": "cli_commands",
+        "role": "flow review command orchestrator",
+        "keywords": [
+          "flow review",
+          "code review pipeline",
+          "spec review",
+          "implementation review",
+          "test review",
+          "AI prompt orchestration",
+          "artifact generation",
+          "git diff analysis",
+          "schema validation"
+        ]
       },
       {
         "file": "src/flow/definition.js",
@@ -6430,8 +6446,22 @@
         "usedBy": null,
         "id": "546ef334",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-06-06T14:37:37.009Z",
+          "attempts": 2
+        },
+        "summary": "Defines the `flow set request` command that records or returns the active request text for a flow run. It is a small command wrapper focused on validating CLI usage and packaging the result in a flow envelope.",
+        "detail": "The command extends the shared `FlowCommand` base and uses the common envelope format to report invalid usage when request text is missing. It delegates run-id handling to a helper so the command can either target a specific preparing run or operate without one. The returned payload is intentionally minimal, containing the request text and optional resolved run ID. This keeps request-setting behavior isolated from broader flow orchestration while still fitting the standardized command routing system.",
+        "chapter": "cli_commands",
+        "role": "flow subcommand handler",
+        "keywords": [
+          "set request",
+          "flow command",
+          "CLI validation",
+          "request text",
+          "run id",
+          "command envelope",
+          "subcommand handler"
+        ]
       },
       {
         "file": "src/flow/lib/set-retry.js",
@@ -7030,8 +7060,24 @@
         ],
         "id": "d64f4095",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-06-06T14:37:37.009Z",
+          "attempts": 2
+        },
+        "summary": "Provides the central flow command registry and runtime coordination logic for the Spec-Driven Development workflow. It maps command behavior to phases, review routes, gate handling, finalize transitions, and artifact checks.",
+        "detail": "This module defines shared constants for finalize success states, review verdict handling, retry-help phases, and runtime step mappings, then uses them to coordinate command execution across the flow lifecycle. It contains helper functions for deriving the active phase, resolving runtime log step IDs, updating step status safely, and resetting downstream steps when finalize behavior changes. The registry also bridges draft review routing, gate step resolution, issue-log updates, and validation of generated result artifacts such as test execution and final regression outputs. In practice, it acts as the control plane that keeps CLI commands, flow state transitions, and review/gate bookkeeping aligned with the formal workflow definition.",
+        "chapter": "internal_design",
+        "role": "flow command registry and state coordinator",
+        "keywords": [
+          "flow registry",
+          "workflow orchestration",
+          "state transition",
+          "phase routing",
+          "gate step",
+          "finalize flow",
+          "review routes",
+          "step status management",
+          "artifact validation"
+        ]
       },
       {
         "file": "src/help.js",
@@ -7269,11 +7315,15 @@
       },
       {
         "file": "src/lib/agent.js",
-        "hash": "58b21fcef9f4d6284a31b0cb57ebfeb5",
-        "lines": 461,
-        "mtime": "2026-05-29T01:36:40.517Z",
+        "hash": "d74c0baf5d6e382920fd46c2de759cf0",
+        "lines": 667,
+        "mtime": "2026-06-06T14:37:04.651Z",
         "className": "agent",
         "methods": [
+          "resolvePromptCacheContext",
+          "recordPromptCacheHit",
+          "sha256",
+          "stableStringify",
           "matchProfilePrefix",
           "resolveProfileKey",
           "matchDefaultProfileFallback",
@@ -7290,6 +7340,7 @@
         "imports": [
           "fs",
           "path",
+          "crypto",
           "child_process",
           "./log.js",
           "./provider.js",
@@ -7304,22 +7355,24 @@
           "src/lib/container.js"
         ],
         "id": "13ddf392",
-        "enrich": {
-          "processedAt": "2026-05-29T02:08:40.284Z",
-          "attempts": 2
-        },
-        "summary": "Implements the core AI agent runner with provider-based invocation, retries, and logging hooks. It resolves profiles, prepares command arguments, and executes subprocess calls with timeout control.",
-        "detail": "The `Agent` class validates configuration, selects provider profiles by command scope, and supports profile/environment overrides. It can inject JSON schema arguments or temporary schema files depending on provider capabilities and prompt size thresholds. Invocation uses retry policies with exponential backoff and captures stdout/stderr for robust error reporting. `runWithLogging` records start/end events, usage metrics, and preview-safe failure context for flow observability. Utility helpers normalize prompt argument substitution, workdir injection, and streaming-event filtering.",
+        "summary": "Implements the core agent runtime used to invoke AI providers with retries, prompt caching, logging, and work-directory support. It abstracts provider selection and command construction behind a reusable `Agent` interface.",
+        "detail": "The module resolves provider profiles from configuration, builds provider-specific invocations, and supports prompt injection patterns, schema sidecar files, and optional work-directory flags for agent execution. It includes a persistent prompt cache keyed by normalized invocation identity so repeated prompts can be reused within a spec context, and it records cache-hit metrics when flow state is available. Runtime execution wraps calls with structured logging, timeout-aware process spawning, retry with exponential backoff, and provider-specific output parsing that strips streaming protocol noise when necessary. Supporting classes such as `PromptCacheIdentity`, `PromptCacheInvocation`, and `AgentPromptCache` encapsulate cache serialization and stable hashing so the agent layer remains deterministic and testable.",
         "chapter": "internal_design",
-        "role": "AI agent execution engine",
+        "role": "AI agent execution runtime",
+        "enrich": {
+          "processedAt": "2026-06-06T14:37:37.009Z",
+          "attempts": 1
+        },
         "keywords": [
-          "agent runner",
-          "provider abstraction",
-          "retry backoff",
-          "subprocess invocation",
-          "schema injection",
-          "usage logging",
-          "profile resolution"
+          "agent runtime",
+          "AI provider abstraction",
+          "prompt cache",
+          "retry logic",
+          "process spawning",
+          "profile resolution",
+          "schema validation input",
+          "streaming output parsing",
+          "LLM invocation"
         ]
       },
       {
@@ -13490,9 +13543,9 @@
     ],
     "summary": {
       "total": 341,
-      "totalMethods": 1703
+      "totalMethods": 1707
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-06T14:35:17.800Z"
+  "enrichedAt": "2026-06-06T14:37:37.009Z"
 }
