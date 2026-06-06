@@ -413,7 +413,7 @@ class AgentPromptCache {
   constructor({ root, specId }) {
     this.root = root;
     this.specId = specId;
-    this.filePath = path.join(root, "specs", specId, "agent-cache.json");
+    this.filePath = path.join(root, ".sdd-forge", "agent-cache", `${cacheFileName(specId)}.json`);
   }
 
   get(key) {
@@ -489,6 +489,10 @@ function recordPromptCacheHit({ flowManager, context, provider, profileKey, text
 
 function sha256(text) {
   return crypto.createHash("sha256").update(text).digest("hex");
+}
+
+function cacheFileName(specId) {
+  return String(specId || "no-spec").replace(/[^a-zA-Z0-9._-]+/g, "-");
 }
 
 function stableStringify(value) {
