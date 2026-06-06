@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Added active impl review integration requirements so loop review changes affect the real runReview path.",
+  "items": [
+    {
+      "title": "Spec targets an unused impl review loop",
+      "target": "Overview Modules / Data Flow / T-1",
+      "decision": "applied",
+      "rationale": "Updated the spec to state that applicable active impl review executions must call loop review and pass normalized results into the existing review.md / impl-review.json artifact flow.",
+      "evidence": "spec.json scope.in, overview.modules, overview.data_flow, overview.decisions, R7, acceptance_criteria, and T-1 now cover active-path integration.",
+      "changedFields": [
+        "scope.in",
+        "overview.modules",
+        "overview.data_flow",
+        "overview.decisions",
+        "background",
+        "requirements",
+        "acceptance_criteria",
+        "tasks[0]"
+      ]
+    }
+  ]
+}

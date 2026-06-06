@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Removed recommendations, rationale, and option text from the two pending draft questions.",
+  "items": [
+    {
+      "title": "1. q1 includes rationale and answer options",
+      "target": "q1",
+      "rationale": "Reduced q1 to the MAX_LOOP_CALLS value question only.",
+      "evidence": "draft.json qa[0].question is now self-contained and contains no answer options.",
+      "changedFieldPaths": [
+        "qa[0].question"
+      ]
+    },
+    {
+      "title": "2. q2 includes rationale, evidence, and implementation guidance",
+      "target": "q2",
+      "rationale": "Reduced q2 to the chunk hash skip decision question only.",
+      "evidence": "draft.json qa[1].question is now self-contained and contains no recommendation or answer options.",
+      "changedFieldPaths": [
+        "qa[1].question"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Set the impl loop review `MAX_LOOP_CALLS` fixed limit to 16.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/loop-review-call-limit.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "When grouped diff count exceeds 16, batch groups so the number of per-chunk AI review calls is at most 16.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/loop-review-call-limit.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "Run the cross-check AI pass only when proposals are produced from more than one reviewed chunk.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/loop-review-call-limit.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "Do not run the cross-check AI pass when proposals are produced from exactly one reviewed chunk.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/loop-review-call-limit.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "Within one loop review execution, skip the AI call for a chunk whose hash matches an already reviewed chunk input.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/loop-review-call-limit.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "Preserve the existing review.md and impl-review.json output formats for recorded impl review findings.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/loop-review-call-limit.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "Wire loop review into the active impl review path so `sdd-forge flow review` executions where `shouldUseLoopReview(touchedFiles.size)` is true use the bounded loop review result before writing review.md and impl-review.json.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/loop-review-call-limit.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/loop-review-call-limit.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7"
+      ]
+    }
+  ]
+}

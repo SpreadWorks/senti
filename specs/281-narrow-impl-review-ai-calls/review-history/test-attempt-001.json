@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-06T02:13:23.753Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 3,
+    "advisory": 0,
+    "total": 3
+  },
+  "coverageArtifact": "specs/281-narrow-impl-review-ai-calls/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Behavioral loop review requirements are covered only by source-text assertions",
+      "target": "specs/281-narrow-impl-review-ai-calls/tests/loop-review-call-limit.test.js",
+      "issue": "R2, R3, R4, R5, and R7 are asserted primarily by reading src/flow/commands/review.js and matching regexes against function source. These tests can pass without exercising production behavior, and they can fail for valid implementations that satisfy the requirements with different local names or control flow.",
+      "requiredChange": "Replace source-text assertions for loop review behavior with executable tests that call the relevant review path using stubbed AI review functions or injectable dependencies, then assert call counts, chunk batching, cross-check invocation, duplicate-hash skipping, and active-path selection from observed behavior.",
+      "whyBlocking": "The tests have a static anti-pattern that would pass without exercising production behavior, leaving the acceptance requirements without reliable spec-local regression coverage."
+    },
+    {
+      "kind": "blocking",
+      "title": "R2 test encodes a specific implementation formula instead of the batching contract",
+      "target": "specs/281-narrow-impl-review-ai-calls/tests/loop-review-call-limit.test.js",
+      "issue": "The R2 test requires the literal expression Math.ceil(groups.length / MAX_LOOP_CALLS) and a specific for-loop shape. A correct implementation could batch groups to at most 16 per-chunk AI calls using another algorithm, while this test would reject it; conversely, the regex can pass even if the resulting chunks are not actually used for AI calls.",
+      "requiredChange": "Assert the contract by constructing more than 16 grouped diffs, running loop review with an AI-call stub, and verifying the number of per-chunk review calls is at most 16.",
+      "whyBlocking": "The test encodes an implementation premise rather than the acceptance requirement, so it does not provide valid coverage for R2."
+    },
+    {
+      "kind": "blocking",
+      "title": "R6 artifact preservation is not tied to loop review persistence behavior",
+      "target": "specs/281-narrow-impl-review-ai-calls/tests/loop-review-call-limit.test.js",
+      "issue": "The R6 test separately calls formatImplReviewJson and formatImplReviewMd, then uses source order checks to infer that loop review results are persisted through the existing artifact helpers. It does not execute the active review flow or verify that findings returned by loop review are written to review.md and impl-review.json in the existing formats.",
+      "requiredChange": "Add an executable active-path test where loop review returns known findings, then assert the generated review.md and impl-review.json content preserve the existing formatter output shape for those findings.",
+      "whyBlocking": "R6 requires preserving recorded impl review output formats in the loop review path; the current test does not exercise that production path and can pass without proving the requirement."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/281-narrow-impl-review-ai-calls/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "0c3e62132d2dd849b00115b018307c4b7176f4d2614d3b37a1586c4d2ca07173"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "test-001-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Behavioral loop review requirements are covered only by source-text assertions",
+      "body": "R2, R3, R4, R5, and R7 are asserted primarily by reading src/flow/commands/review.js and matching regexes against function source. These tests can pass without exercising production behavior, and they can fail for valid implementations that satisfy the requirements with different local names or control flow.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R2 test encodes a specific implementation formula instead of the batching contract",
+      "body": "The R2 test requires the literal expression Math.ceil(groups.length / MAX_LOOP_CALLS) and a specific for-loop shape. A correct implementation could batch groups to at most 16 per-chunk AI calls using another algorithm, while this test would reject it; conversely, the regex can pass even if the resulting chunks are not actually used for AI calls.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R6 artifact preservation is not tied to loop review persistence behavior",
+      "body": "The R6 test separately calls formatImplReviewJson and formatImplReviewMd, then uses source order checks to infer that loop review results are persisted through the existing artifact helpers. It does not execute the active review flow or verify that findings returned by loop review are written to review.md and impl-review.json in the existing formats.",
+      "category": "unknown"
+    }
+  ]
+}

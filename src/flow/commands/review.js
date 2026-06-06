@@ -12,6 +12,7 @@
 
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import { parseArgs, PKG_DIR } from "../../lib/cli.js";
 import { getSpecName } from "../../lib/flow-helpers.js";
 import { loadSpecJson, resolveSpecDir } from "../../lib/spec-json.js";
@@ -114,7 +115,7 @@ function resolveDraftReviewStage(flow) {
 }
 
 const LOOP_REVIEW_THRESHOLD = 10;
-const MAX_LOOP_CALLS = 50;
+const MAX_LOOP_CALLS = 16;
 
 /** Supported review phases and their descriptions. */
 const REVIEW_PHASES = {
@@ -999,6 +1000,109 @@ function chunkLabel(chunk) {
     : `${primary.representative} (${primary.files.length} file(s))`;
 }
 
+function createLoopReviewChunks(groups, maxCalls = MAX_LOOP_CALLS) {
+  if (groups.length <= maxCalls) return groups.map((g) => [g]);
+  const chunkSize = Math.ceil(groups.length / maxCalls);
+  const chunks = [];
+  for (let i = 0; i < groups.length; i += chunkSize) {
+    chunks.push(groups.slice(i, i + chunkSize));
+  }
+  return chunks;
+}
+
+function hashLoopReviewInput(input) {
+  return crypto.createHash("sha256").update(input).digest("hex");
+}
+
+async function runLoopReviewWithDependencies({
+  groups,
+  maxLoopCalls = MAX_LOOP_CALLS,
+  buildChunkInput,
+  reviewChunk,
+  crossCheck,
+  parseReviewProposals = parseProposals,
+  expandGroupProposals = expandProposalsToGroup,
+  onBatch = null,
+  onReviewChunk = null,
+}) {
+  const reviewChunks = createLoopReviewChunks(groups, maxLoopCalls);
+  if (groups.length > maxLoopCalls && onBatch) onBatch({ groups, reviewChunks, maxLoopCalls });
+
+  const allProposals = [];
+  const summaries = [];
+  const seen = new Map();
+  let reviewCallCount = 0;
+
+  for (let i = 0; i < reviewChunks.length; i++) {
+    const chunk = reviewChunks[i];
+    const input = buildChunkInput(chunk);
+    const chunkHash = hashLoopReviewInput(input);
+
+    let result = seen.get(chunkHash);
+    if (!result) {
+      if (onReviewChunk) onReviewChunk({ chunk, index: reviewCallCount, total: reviewChunks.length });
+      result = await reviewChunk(chunk, input);
+      reviewCallCount += 1;
+      seen.set(chunkHash, result);
+    }
+    if (result.includes("NO_PROPOSALS")) continue;
+
+    const proposals = parseReviewProposals(result);
+    if (proposals.length === 0) continue;
+
+    for (const g of chunk) {
+      const gProposals = proposals.filter((p) => p.file && g.files.includes(p.file));
+      const toExpand = gProposals.length > 0 ? gProposals : proposals;
+      const expanded = g.files.length > 1
+        ? expandGroupProposals(toExpand, g.files)
+        : toExpand;
+      allProposals.push(...expanded);
+    }
+    summaries.push({ file: chunk[0].representative, proposals: result });
+  }
+
+  if (summaries.length > 1 && reviewCallCount < maxLoopCalls) {
+    const crossCheckResult = await crossCheck(summaries);
+    reviewCallCount += 1;
+    if (!crossCheckResult.includes("NO_PROPOSALS")) {
+      allProposals.push(...parseReviewProposals(crossCheckResult));
+    }
+  }
+
+  return { proposals: allProposals, summaries, reviewChunks, reviewCallCount };
+}
+
+function loopProposalsToImplReviewJson(proposals) {
+  return JSON.stringify({
+    blockingFindings: [],
+    nonBlockingImprovements: proposals.map((proposal) => ({
+      title: proposal.title,
+      failureMode: "refactor",
+      ...(proposal.file ? { file: proposal.file } : {}),
+      issue: proposal.body || proposal.title,
+      suggestion: proposal.body || proposal.title,
+      rationale: "Loop review proposal.",
+    })),
+  });
+}
+
+async function runActiveImplReviewWithDependencies({
+  touchedFiles,
+  shouldUseLoopReview,
+  runLoopReview,
+  runSingleReview,
+  persistImplReview,
+}) {
+  const reviewOutput = shouldUseLoopReview(touchedFiles.size)
+    ? await runLoopReview()
+    : await runSingleReview();
+  return persistImplReview(reviewOutput);
+}
+
+async function runReviewWithDependencies(options) {
+  return runActiveImplReviewWithDependencies(options);
+}
+
 async function runLoopReview(root, flow, mergeBase, fileMap, touchedFiles, guardrails) {
   const specInput = path.resolve(root, flow.spec);
   const spec = loadSpecJson(specInput);
@@ -1021,60 +1125,30 @@ async function runLoopReview(root, flow, mergeBase, fileMap, touchedFiles, guard
     buildReviewAcknowledgedRationale(root, flow, guardrails),
   );
 
-  // Batch groups into chunks when exceeding MAX_LOOP_CALLS
-  let reviewChunks;
-  if (groups.length <= MAX_LOOP_CALLS) {
-    reviewChunks = groups.map((g) => [g]);
-  } else {
-    const chunkSize = Math.ceil(groups.length / MAX_LOOP_CALLS);
-    reviewChunks = [];
-    for (let i = 0; i < groups.length; i += chunkSize) {
-      reviewChunks.push(groups.slice(i, i + chunkSize));
-    }
-    console.error(`  [loop-review] ${groups.length} groups batched into ${reviewChunks.length} chunk(s) (limit ${MAX_LOOP_CALLS}).`);
-  }
+  const result = await runLoopReviewWithDependencies({
+    groups,
+    maxLoopCalls: MAX_LOOP_CALLS,
+    buildChunkInput: (chunk) => buildChunkReviewInput(chunk, rawPerFileDiffs, fileToReqs),
+    reviewChunk: (chunk, input) => callReviewAgent(draftAgent, input, "flow.impl.review.propose", systemPrompt),
+    crossCheck: (summaries) => {
+      console.error("  [loop-review] Running cross-check pass...");
+      const crossCheckInput = buildCrossCheckInput(summaries);
+      return callReviewAgent(
+        draftAgent, crossCheckInput, "flow.impl.review.propose", buildCrossCheckSystemPrompt(),
+      );
+    },
+    onBatch: ({ reviewChunks }) => {
+      console.error(`  [loop-review] ${groups.length} groups batched into ${reviewChunks.length} chunk(s) (limit ${MAX_LOOP_CALLS}).`);
+    },
+    onReviewChunk: ({ chunk, index, total }) => {
+      console.error(`  [loop-review] Call ${index + 1}/${total}: ${chunkLabel(chunk)}...`);
+    },
+  });
 
-  console.error(`  [loop-review] ${touchedFiles.size} files → ${groups.length} group(s) after compaction → ${reviewChunks.length} AI call(s).`);
+  console.error(`  [loop-review] ${touchedFiles.size} files → ${groups.length} group(s) after compaction → ${result.reviewCallCount} AI call(s).`);
 
-  const allProposals = [];
-  const summaries = [];
-
-  for (let i = 0; i < reviewChunks.length; i++) {
-    const chunk = reviewChunks[i];
-    console.error(`  [loop-review] Call ${i + 1}/${reviewChunks.length}: ${chunkLabel(chunk)}...`);
-
-    const input = buildChunkReviewInput(chunk, rawPerFileDiffs, fileToReqs);
-    const result = await callReviewAgent(draftAgent, input, "flow.impl.review.propose", systemPrompt);
-
-    if (!result.includes("NO_PROPOSALS")) {
-      const proposals = parseProposals(result);
-      if (proposals.length > 0) {
-        for (const g of chunk) {
-          const gProposals = proposals.filter((p) => p.file && g.files.includes(p.file));
-          const toExpand = gProposals.length > 0 ? gProposals : proposals;
-          const expanded = g.files.length > 1
-            ? expandProposalsToGroup(toExpand, g.files)
-            : toExpand;
-          allProposals.push(...expanded);
-        }
-        summaries.push({ file: chunk[0].representative, proposals: result });
-      }
-    }
-  }
-
-  if (summaries.length > 0) {
-    console.error("  [loop-review] Running cross-check pass...");
-    const crossCheckInput = buildCrossCheckInput(summaries);
-    const crossCheckResult = await callReviewAgent(
-      draftAgent, crossCheckInput, "flow.impl.review.propose", buildCrossCheckSystemPrompt(),
-    );
-    if (!crossCheckResult.includes("NO_PROPOSALS")) {
-      allProposals.push(...parseProposals(crossCheckResult));
-    }
-  }
-
-  console.error(`  [loop-review] ${allProposals.length} total proposal(s).`);
-  return allProposals;
+  console.error(`  [loop-review] ${result.proposals.length} total proposal(s).`);
+  return result.proposals;
 }
 
 // ---------------------------------------------------------------------------
@@ -3208,27 +3282,37 @@ async function runReview(rawArgs) {
     }
   }
   const previousReview = loadPreviousImplReviewMemory(root, flow.spec);
-  const reviewPrompt = buildImplReviewPrompt({
-    requirementFileMap: fileMap,
-    diff,
+  const result = await runReviewWithDependencies({
     touchedFiles,
-    previousReview,
-    taskSpec: taskSpec ? {
-      relPath: taskSpec.relPath,
-      content: taskSpec.content,
-    } : null,
+    shouldUseLoopReview: (fileCount) => !taskSpec && shouldUseLoopReview(fileCount),
+    runLoopReview: async () => {
+      const proposals = await runLoopReview(root, flow, mergeBase, fileMap, touchedFiles, reviewGuardrails);
+      return loopProposalsToImplReviewJson(proposals);
+    },
+    runSingleReview: async () => {
+      const reviewPrompt = buildImplReviewPrompt({
+        requirementFileMap: fileMap,
+        diff,
+        touchedFiles,
+        previousReview,
+        taskSpec: taskSpec ? {
+          relPath: taskSpec.relPath,
+          content: taskSpec.content,
+        } : null,
+      });
+      const reviewAgent = ensureAgent("flow.impl.review.propose");
+      return callReviewAgent(
+        reviewAgent,
+        reviewPrompt,
+        "flow.impl.review.propose",
+        buildDraftSystemPrompt(
+          reviewGuardrails,
+          buildReviewAcknowledgedRationale(root, flow, reviewGuardrails),
+        ),
+      );
+    },
+    persistImplReview: (reviewOutput) => runImplReview({ root, flow, reviewOutput, touchedFiles, taskSpec }),
   });
-  const reviewAgent = ensureAgent("flow.impl.review.propose");
-  const reviewOutput = await callReviewAgent(
-    reviewAgent,
-    reviewPrompt,
-    "flow.impl.review.propose",
-    buildDraftSystemPrompt(
-      reviewGuardrails,
-      buildReviewAcknowledgedRationale(root, flow, reviewGuardrails),
-    ),
-  );
-  const result = await runImplReview({ root, flow, reviewOutput, touchedFiles, taskSpec });
   console.error(`  [review] Results saved to ${result.changed[0]}`);
   console.error(`  [review] JSON saved to ${result.changed[1]}`);
   console.error([
@@ -3300,6 +3384,9 @@ export {
   buildDraftReviewArtifact,
   shouldUseLoopReview, groupByDiffContent, buildPerFileReviewInput,
   buildCrossCheckInput, expandProposalsToGroup,
+  createLoopReviewChunks, runLoopReviewWithDependencies,
+  runActiveImplReviewWithDependencies, runReviewWithDependencies,
+  loopProposalsToImplReviewJson,
   LOOP_REVIEW_THRESHOLD, MAX_LOOP_CALLS,
 };
 

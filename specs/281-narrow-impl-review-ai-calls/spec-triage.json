@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "The blocking finding is valid: the spec must state how loop review is wired into the active impl review path, otherwise implementation could change unused code only.",
+  "items": [
+    {
+      "title": "Spec targets an unused impl review loop",
+      "target": "Overview Modules / Data Flow / T-1",
+      "decision": "apply",
+      "rationale": "Verified source shows current runReview uses buildImplReviewPrompt and runImplReview directly, while runLoopReview is not called. The spec needs an active-path integration requirement.",
+      "evidence": "src/flow/commands/review.js runReview builds buildImplReviewPrompt, calls flow.impl.review.propose, then passes reviewOutput to runImplReview; rg finds runLoopReview only at its definition and export."
+    }
+  ]
+}

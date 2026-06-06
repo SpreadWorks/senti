@@ -1,0 +1,153 @@
+{
+  "verdict": "pass",
+  "issues": [],
+  "nextAction": {
+    "diagnosis": {
+      "summary": "No blocking observations.",
+      "observations": []
+    },
+    "prescription": "retro"
+  },
+  "level": "integration",
+  "phase": "integration",
+  "evaluations": [
+    {
+      "guardrail_id": "R1",
+      "result": "pass",
+      "reason": "`MAX_LOOP_CALLS` is changed from 50 to 16 in `src/flow/commands/review.js`.",
+      "title": "R1",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R2",
+      "result": "pass",
+      "reason": "`createLoopReviewChunks` batches `groups` when count exceeds limit using `ceil(groups.length / maxCalls)`, yielding at most `MAX_LOOP_CALLS` chunks and thus at most that many chunk review calls.",
+      "title": "R2",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R3",
+      "result": "pass",
+      "reason": "`runLoopReviewWithDependencies` only triggers cross-check when `summaries.length > 1`, i.e., proposals were produced from more than one reviewed chunk.",
+      "title": "R3",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R4",
+      "result": "pass",
+      "reason": "Cross-check is gated by `summaries.length > 1`, so it does not run when proposals come from exactly one reviewed chunk.",
+      "title": "R4",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R5",
+      "result": "pass",
+      "reason": "Chunk inputs are hashed (`hashLoopReviewInput`) and looked up in `seen`; repeated hashes reuse cached result without calling `reviewChunk` again.",
+      "title": "R5",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R6",
+      "result": "pass",
+      "reason": "Loop review findings are converted into existing impl-review JSON shape via `loopProposalsToImplReviewJson` and then passed to existing `runImplReview` persistence path.",
+      "title": "R6",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R7",
+      "result": "pass",
+      "reason": "`runReview` now routes through `runReviewWithDependencies`/`runActiveImplReviewWithDependencies`, selecting loop review when the loop gate is true and persisting via the same impl-review writer before files are written.",
+      "title": "R7",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": []
+    },
+    {
+      "guardrail_id": "no-overengineering",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "code-quality",
+      "title": "Avoid Overengineering",
+      "observations": []
+    }
+  ],
+  "reasons": [
+    {
+      "verdict": "PASS",
+      "detail": "R1 — `MAX_LOOP_CALLS` is changed from 50 to 16 in `src/flow/commands/review.js`.",
+      "guardrail_id": "R1",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R2 — `createLoopReviewChunks` batches `groups` when count exceeds limit using `ceil(groups.length / maxCalls)`, yielding at most `MAX_LOOP_CALLS` chunks and thus at most that many chunk review calls.",
+      "guardrail_id": "R2",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R3 — `runLoopReviewWithDependencies` only triggers cross-check when `summaries.length > 1`, i.e., proposals were produced from more than one reviewed chunk.",
+      "guardrail_id": "R3",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R4 — Cross-check is gated by `summaries.length > 1`, so it does not run when proposals come from exactly one reviewed chunk.",
+      "guardrail_id": "R4",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R5 — Chunk inputs are hashed (`hashLoopReviewInput`) and looked up in `seen`; repeated hashes reuse cached result without calling `reviewChunk` again.",
+      "guardrail_id": "R5",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R6 — Loop review findings are converted into existing impl-review JSON shape via `loopProposalsToImplReviewJson` and then passed to existing `runImplReview` persistence path.",
+      "guardrail_id": "R6",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R7 — `runReview` now routes through `runReviewWithDependencies`/`runActiveImplReviewWithDependencies`, selecting loop review when the loop gate is true and persisting via the same impl-review writer before files are written.",
+      "guardrail_id": "R7",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Spec Test Coverage — no observations emitted",
+      "guardrail_id": "spec-test-coverage",
+      "category": "testing"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Avoid Overengineering — no observations emitted",
+      "guardrail_id": "no-overengineering",
+      "category": "code-quality"
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "impl-gate",
+    "artifactPath": "specs/281-narrow-impl-review-ai-calls/impl-gate-result.json",
+    "verdict": "pass",
+    "result": "pass",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": {
+      "diagnosis": {
+        "summary": "No blocking observations.",
+        "observations": []
+      },
+      "prescription": "retro"
+    },
+    "completionKind": "normal",
+    "progressSignature": "d11b9258f4283685c8582a69ee1f599a3e975ddf05078d88c80826f0793e3d6b"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "Both repair targets are valid: pending draft questions must contain only the question text, with recommendations and options deferred to the user-facing Q&A step.",
+  "items": [
+    {
+      "title": "1. q1 includes rationale and answer options",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "q1 is still valid as a user decision, but the pending question text must not include the recommendation, rationale, or selectable answers.",
+      "evidence": "draft.json qa[0].question contains the MAX_LOOP_CALLS decision plus recommendation and options."
+    },
+    {
+      "title": "2. q2 includes rationale, evidence, and implementation guidance",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "q2 is still valid as a user decision, but the pending question text must be reduced to the decision question only.",
+      "evidence": "draft.json qa[1].question contains the chunk hash guard decision plus recommendation, rationale, and options."
+    }
+  ]
+}

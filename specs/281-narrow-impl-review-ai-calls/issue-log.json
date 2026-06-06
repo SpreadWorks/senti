@@ -1,0 +1,53 @@
+{
+  "entries": [
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "No explicit impact statement is provided for existing features. The spec does not state which existing features are affected or explicitly say that no existing features are affected.; The spec requests spec-local tests but does not require the mandated coverage format: test files under `specs/281-narrow-impl-review-ai-calls/tests/` with `// spec: R<N> ...` headers.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-05T15:47:38.502Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "impact-on-existing-features",
+          "where": {
+            "file": "spec.json",
+            "locator": "scope/out and constraints"
+          },
+          "observed": "No explicit impact statement is provided for existing features. The spec does not state which existing features are affected or explicitly say that no existing features are affected.",
+          "severity": "blocking",
+          "refs": [
+            "impact-on-existing-features"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[0].test_strategy / tasks[1].test_strategy"
+          },
+          "observed": "The spec requests spec-local tests but does not require the mandated coverage format: test files under `specs/281-narrow-impl-review-ai-calls/tests/` with `// spec: R<N> ...` headers.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "No explicit impact statement is provided for existing features. The spec does not state which existing features are affected or explicitly say that no existing features are affected."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "The spec requests spec-local tests but does not require the mandated coverage format: test files under `specs/281-narrow-impl-review-ai-calls/tests/` with `// spec: R<N> ...` headers."
+        }
+      ]
+    }
+  ]
+}

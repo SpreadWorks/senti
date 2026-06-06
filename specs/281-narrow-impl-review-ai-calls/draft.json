@@ -1,0 +1,85 @@
+{
+  "devType": "feature",
+  "goal": "impl review の loop review で AI call の fan-out を抑え、単一 chunk の proposal では cross-check を追加実行しないようにする。",
+  "analysis": {
+    "problem": "must: 現行の impl review は MAX_LOOP_CALLS が 50 で、diff group が 50 以下なら group ごとに AI call を実行する。さらに proposal が 1 chunk だけでも cross-check が追加されるため、1 回の review 実行内で call 数が増えやすい。",
+    "proposedApproach": "must: 既存の group chunking と review.md / impl-review.json の出力契約を維持したまま、loop review の固定上限を 50 より小さい値へ下げ、cross-check は複数 chunk 由来の proposal がある場合だけに限定する。should: 同一 review 実行内で同じ chunk hash を再レビューしない guard を入れる。",
+    "validation": "must: Issue #367 の原因は src/flow/commands/review.js の MAX_LOOP_CALLS と summaries.length > 0 条件に対応している。上限値と cross-check 条件を変えることで call 数を決定的に削減でき、proposal 出力形式は既存 formatter を維持すれば守れる。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #367 は impl review の loop review を対象にしている。",
+      "must: src/flow/commands/review.js では MAX_LOOP_CALLS が 50 に設定されている。",
+      "must: 現行コードは groups.length <= MAX_LOOP_CALLS の場合に各 group を 1 call として処理する。",
+      "must: 現行コードは summaries.length > 0 の場合に cross-check pass を実行する。",
+      "must: review.md は formatReviewMd / formatImplReviewMd 系の既存出力契約として扱われている。",
+      "must: MAX_LOOP_CALLS の新しい固定値は 16 とする。",
+      "should: 同じ review 実行内で同一 chunk hash が再出現した場合、AI call 前に skip する。"
+    ],
+    "decisionPoints": [
+      "must: MAX_LOOP_CALLS の新しい固定上限を 12 から 16 程度の範囲で決める。",
+      "must: cross-check 実行条件を proposal が複数 chunk から出た場合に限定する。",
+      "should: 同一 review 実行内の chunk hash guard を、AI call 前の重複 chunk 抑止として扱うか、観測用メタデータとして扱うかを決める。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 外部依存は追加しない。hash が必要な場合は Node.js 組み込みモジュールのみを使う。",
+      "must: src/ 以下にプロジェクト固有情報を書かない。",
+      "must: 既存の review artifact 形式を壊さない。CLI の既存コマンドやオプションの意味も変えない。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: test は MAX_LOOP_CALLS 超過時の call 数、単一 proposal chunk 時の cross-check 抑止、複数 proposal chunk 時の cross-check 実行、review.md 形式維持を検証する。",
+      "should: 実装は src/flow/commands/review.js と既存 unit test の範囲に閉じる。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: impl review の loop review call 数上限を下げる。",
+      "must: groups.length が上限を超える場合、per-chunk AI call 数を上限以下にする。",
+      "must: cross-check は proposal が複数 chunk から出た場合だけ実行する。",
+      "must: 単一 chunk だけに proposal がある場合、cross-check call を実行しない。",
+      "must: review.md の proposal 出力形式を維持する。",
+      "should: 同一 review 実行内で同じ chunk hash を再レビューしない guard を追加する。"
+    ],
+    "out": [
+      "must: impl review 以外の review phase の挙動変更は対象外。",
+      "must: agent provider、CLI option、flow step 構造の変更は対象外。",
+      "must: prompt log 集計や metrics 表示の新機能追加は対象外。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: impl review の AI call 回数が減る。review verdict と artifact 保存の外部契約は維持する。",
+    "must: cross-check は複数 chunk proposal のときだけ走るため、単一 chunk proposal では cross-file 指摘の追加機会がなくなる。",
+    "should: chunking の単位が大きくなるため、1 call あたりの prompt は増える可能性がある。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "MAX_LOOP_CALLS の新しい固定値はいくつにしますか？",
+      "answer": "must: MAX_LOOP_CALLS の新しい固定値は 16 とする。",
+      "evidence": "User selected option 1 during draft-refine. Issue #367 proposed lowering the limit to around 12-16.",
+      "why": "50 から大きく削減しつつ、12 より 1 call あたりの chunk サイズ増加を抑えるため。",
+      "considered": "12 は call 数削減をより強めるが、chunk が大きくなる。別の 50 未満の固定値も可能だが、Issue の候補範囲内では 16 が最も入力増加を抑える。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "同じ review 実行内で同一 chunk hash が再出現した場合、AI call 前に skip しますか？",
+      "answer": "should: 同じ review 実行内で同一 chunk hash が再出現した場合、AI call 前に skip する。",
+      "evidence": "User selected option 1 during draft-refine. Issue #367 explicitly asked to record chunk hashes and add a guard to avoid re-reviewing the same chunk hash within the same review execution.",
+      "why": "重複 chunk 入力の AI call を発生させず、Issue #367 の call 数削減目的に直接対応するため。",
+      "considered": "hash 記録のみは挙動変化を抑えるが call 削減効果が限定的。今回対象外にする案は上限と cross-check 条件に scope を絞れるが、Issue の改善方向を一部満たさない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-05T15:40:25Z",
+    "notes": "Draft decisions resolved during draft-refine."
+  }
+}

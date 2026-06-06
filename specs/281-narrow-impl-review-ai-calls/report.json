@@ -1,0 +1,191 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".sdd-forge/output/analysis.json                    |  26 +-\n .../draft-coverage-repair.json                     |   8 +\n .../draft-coverage-triage.json                     |   8 +\n .../draft-questions-repair.json                    |  26 +\n .../draft-questions-triage.json                    |  22 +\n .../draft-review-coverage.json                     |  11 +\n .../draft-review-questions.json                    |  26 +\n specs/281-narrow-impl-review-ai-calls/draft.json   |  85 +++\n .../281-narrow-impl-review-ai-calls/file-map.json  |  23 +\n specs/281-narrow-impl-review-ai-calls/flow.json    | 843 +++++++++++++++++++++\n .../impl-review.json                               |  28 +\n .../281-narrow-impl-review-ai-calls/issue-log.json |  53 ++\n .../review-history/draft-coverage-attempt-001.json |  14 +\n .../draft-questions-attempt-001.json               |  50 ++\n .../review-history/impl-attempt-001.json           |  51 ++\n .../review-history/impl-attempt-001.md             |  22 +\n .../review-history/impl-attempt-002.json           |  31 +\n .../review-history/impl-attempt-002.md             |  16 +\n .../review-history/spec-attempt-001.json           |  56 ++\n .../review-history/spec-attempt-001.md             |  19 +\n .../review-history/test-attempt-001.json           |  84 ++\n .../review-history/test-attempt-001.md             |  30 +\n .../review-history/test-attempt-002.json           |  48 ++\n .../review-history/test-attempt-002.md             |  18 +\n .../review-history/test-attempt-003.json           |  66 ++\n .../review-history/test-attempt-003.md             |  24 +\n .../review-history/test-attempt-004.json           |  28 +\n .../review-history/test-attempt-004.md             |  13 +\n specs/281-narrow-impl-review-ai-calls/review.md    |  16 +\n .../spec-repair.json                               |  25 +\n .../spec-review.json                               |  32 +\n .../281-narrow-impl-review-ai-calls/spec-review.md |  19 +\n .../spec-triage.json                               |  15 +\n specs/281-narrow-impl-review-ai-calls/spec.json    | 212 ++++++\n specs/281-narrow-impl-review-ai-calls/spec.md      | 105 +++\n specs/281-narrow-impl-review-ai-calls/tasks/T-1.md |  21 +\n specs/281-narrow-impl-review-ai-calls/tasks/T-2.md |  18 +\n .../test-coverage.json                             |  97 +++\n .../test-review.json                               |  25 +\n .../281-narrow-impl-review-ai-calls/test-review.md |  13 +\n .../tests/loop-review-call-limit.test.js           | 183 +++++\n src/flow/commands/review.js                        | 231 ++++--\n 42 files changed, 2647 insertions(+), 94 deletions(-)",
+      "commits": [
+        "feat: feature/281-narrow-impl-review-ai-calls"
+      ]
+    },
+    "retro": {
+      "total": 7,
+      "done": 7,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "Set the impl loop review `MAX_LOOP_CALLS` fixed limit to 16.",
+          "status": "done",
+          "note": "R1: impl loop review uses fixed MAX_LOOP_CALLS value 16"
+        },
+        {
+          "desc": "When grouped diff count exceeds 16, batch groups so the number of per-chunk AI review calls is at most 16.",
+          "status": "done",
+          "note": "R2: grouped diffs above the limit are batched to at most MAX_LOOP_CALLS calls"
+        },
+        {
+          "desc": "Run the cross-check AI pass only when proposals are produced from more than one reviewed chunk.",
+          "status": "done",
+          "note": "R3: cross-check runs only for proposals from more than one reviewed chunk"
+        },
+        {
+          "desc": "Do not run the cross-check AI pass when proposals are produced from exactly one reviewed chunk.",
+          "status": "done",
+          "note": "R4: single proposal chunk does not run the cross-check pass"
+        },
+        {
+          "desc": "Within one loop review execution, skip the AI call for a chunk whose hash matches an already reviewed chunk input.",
+          "status": "done",
+          "note": "R5: duplicate chunk hashes are skipped before another AI call"
+        },
+        {
+          "desc": "Preserve the existing review.md and impl-review.json output formats for recorded impl review findings.",
+          "status": "done",
+          "note": "R6: active loop review path still writes through existing impl review artifact helpers"
+        },
+        {
+          "desc": "Wire loop review into the active impl review path so `sdd-forge flow review` executions where `shouldUseLoopReview(touchedFiles.size)` is true use the bounded loop review result before writing review.md and impl-review.json.",
+          "status": "done",
+          "note": "R7: active impl review path uses loop review when shouldUseLoopReview is true"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 1,
+      "fullLogPath": "specs/281-narrow-impl-review-ai-calls/issue-log.json",
+      "importantTotal": 0,
+      "importantShown": 0,
+      "importantOmitted": 0,
+      "recentOtherTotal": 1,
+      "recentOtherShown": 1,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "No explicit impact statement is provided for existing features. The spec does not state which existing features are affected or explicitly say that no existing features are affected.; The spec requests spec-local tests but does not requi...",
+          "resolution": null
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 3,
+      "question": 0,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 260339,
+      "output": 26991,
+      "cacheRead": 264960,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 14,
+      "durationMs": 300276,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 9085
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 15416
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 10791
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 99396
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 16327
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 73464
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 57033
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 18764
+        }
+      ]
+    },
+    "tests": {
+      "total": 7,
+      "passed": 7,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/281-narrow-impl-review-ai-calls/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 64,
+          "end_line": 5238
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/281-narrow-impl-review-ai-calls/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/review.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/281-narrow-impl-review-ai-calls/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/review.js"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/281-narrow-impl-review-ai-calls/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/281-narrow-impl-review-ai-calls\n    42 files changed, 2647 insertions(+), 94 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (7 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 3\n    Q&A ......................... 0\n    issue-log ................... 0\n    agent calls ................. 14\n    input tokens ................ 260,339\n    output tokens ............... 26,991\n    cache-read tokens ........... 264,960\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 300.3s\n      draft-questions-review .... 9.1s\n      draft-coverage-review ..... 15.4s\n      draft-gate ................ 10.8s\n      spec-review ............... 99.4s\n      spec-gate ................. 16.3s\n      test-review ............... 73.5s\n      impl-review ............... 57.0s\n      impl-gate ................. 18.8s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 7  passed 7  failed 0 verdict=pass\n    raw_output: specs/281-narrow-impl-review-ai-calls/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (1 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/281-narrow-impl-review-ai-calls/issue-log.json\n\n    Recent Other (1)\n    - [spec-gate] No explicit impact statement is provided for existing features. The spec does not state which existing features are affected or explicitly say that no existing features are affected.; The spec requests spec-local tests but does not requi..."
+}

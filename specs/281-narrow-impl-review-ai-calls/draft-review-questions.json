@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "phase": "draft-questions-review",
+  "sourceDraft": "draft.json",
+  "generatedAt": "2026-06-05T15:36:38.103Z",
+  "verdict": "ADVISORY",
+  "summary": "0 blocking, 0 advisory, 2 repair target finding(s) recorded.",
+  "blockingFindings": [],
+  "advisoryFindings": [],
+  "repairTargets": [
+    {
+      "title": "1. q1 includes rationale and answer options",
+      "target": "q1",
+      "rationale": "Replace with: `MAX_LOOP_CALLS の新しい固定値はいくつにしますか？`",
+      "evidence": "The shown pending question includes a recommendation, rationale, and selectable answers instead of only the question text.",
+      "classification": "repair_target"
+    },
+    {
+      "title": "2. q2 includes rationale, evidence, and implementation guidance",
+      "target": "q2",
+      "rationale": "Replace with: `同じ review 実行内で同一 chunk hash が再出現した場合、AI call 前に skip しますか？`",
+      "evidence": "The shown pending question includes explanation, recommendation, rationale, and answer options instead of only the question text.",
+      "classification": "repair_target"
+    }
+  ]
+}

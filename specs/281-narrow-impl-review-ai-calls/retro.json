@@ -1,0 +1,53 @@
+{
+  "spec": "specs/281-narrow-impl-review-ai-calls/spec.json",
+  "date": "2026-06-06T02:26:38.181Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Set the impl loop review `MAX_LOOP_CALLS` fixed limit to 16.",
+      "status": "done",
+      "note": "R1: impl loop review uses fixed MAX_LOOP_CALLS value 16"
+    },
+    {
+      "desc": "When grouped diff count exceeds 16, batch groups so the number of per-chunk AI review calls is at most 16.",
+      "status": "done",
+      "note": "R2: grouped diffs above the limit are batched to at most MAX_LOOP_CALLS calls"
+    },
+    {
+      "desc": "Run the cross-check AI pass only when proposals are produced from more than one reviewed chunk.",
+      "status": "done",
+      "note": "R3: cross-check runs only for proposals from more than one reviewed chunk"
+    },
+    {
+      "desc": "Do not run the cross-check AI pass when proposals are produced from exactly one reviewed chunk.",
+      "status": "done",
+      "note": "R4: single proposal chunk does not run the cross-check pass"
+    },
+    {
+      "desc": "Within one loop review execution, skip the AI call for a chunk whose hash matches an already reviewed chunk input.",
+      "status": "done",
+      "note": "R5: duplicate chunk hashes are skipped before another AI call"
+    },
+    {
+      "desc": "Preserve the existing review.md and impl-review.json output formats for recorded impl review findings.",
+      "status": "done",
+      "note": "R6: active loop review path still writes through existing impl review artifact helpers"
+    },
+    {
+      "desc": "Wire loop review into the active impl review path so `sdd-forge flow review` executions where `shouldUseLoopReview(touchedFiles.size)` is true use the bounded loop review result before writing review.md and impl-review.json.",
+      "status": "done",
+      "note": "R7: active impl review path uses loop review when shouldUseLoopReview is true"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 7,
+    "done": 7,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}
