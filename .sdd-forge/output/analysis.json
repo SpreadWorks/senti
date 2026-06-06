@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-05T15:33:41.768Z",
+  "analyzedAt": "2026-06-06T02:29:58.360Z",
   "package": {
     "entries": [
       {
@@ -22,7 +22,26 @@
         "composerDeps": null,
         "composerScripts": null,
         "makefileTest": null,
-        "id": "451a9f25"
+        "id": "451a9f25",
+        "summary": "The package manifest defines sdd-forge as a Node.js CLI for spec-driven development and automated documentation generation. It exposes a single executable entrypoint, constrains the runtime to modern Node 18+, and organizes test scopes for unit, e2e, acceptance, agent, and full runs.",
+        "detail": "The package is published as an ES module and maps both the CLI binary and package export to `src/sdd-forge.js`, indicating one central runtime entry. Packaging is intentionally narrow: only `src/` is shipped, with preset test fixtures excluded from published artifacts. Operational constraints are explicit through the Node engine requirement and a pinned pnpm package manager version for reproducible environments. The scripts separate standard tests from agent-backed tests, reflecting a codebase that distinguishes deterministic verification from AI-integrated validation.",
+        "chapter": "stack_and_ops",
+        "role": "Defines runtime metadata, packaging boundaries, executable entrypoints, and test command topology for the distributed CLI.",
+        "enrich": {
+          "processedAt": "2026-06-06T02:30:14.595Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "package manifest",
+          "Node.js CLI",
+          "ES modules",
+          "runtime requirements",
+          "pnpm",
+          "test scripts",
+          "package export",
+          "binary entrypoint",
+          "distribution config"
+        ]
       }
     ],
     "summary": {
@@ -2599,9 +2618,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "05930315426cb4929faa65b877be05ba",
-        "lines": 3326,
-        "mtime": "2026-06-05T05:56:53.744Z",
+        "hash": "9b0c9159752a041f81500225e45c9c14",
+        "lines": 3413,
+        "mtime": "2026-06-06T02:29:43.327Z",
         "className": "review",
         "methods": [
           "writeReviewAttemptHistory",
@@ -2651,6 +2670,12 @@
           "resolveTaskReviewSpec",
           "buildTaskReviewInput",
           "chunkLabel",
+          "createLoopReviewChunks",
+          "hashLoopReviewInput",
+          "runLoopReviewWithDependencies",
+          "loopProposalsToImplReviewJson",
+          "runActiveImplReviewWithDependencies",
+          "runReviewWithDependencies",
           "runLoopReview",
           "runReviewLoop",
           "extractRequirements",
@@ -2731,6 +2756,7 @@
         "imports": [
           "fs",
           "path",
+          "crypto",
           "../../lib/cli.js",
           "../../lib/flow-helpers.js",
           "../../lib/spec-json.js",
@@ -2799,31 +2825,36 @@
           "buildPerFileReviewInput",
           "buildCrossCheckInput",
           "expandProposalsToGroup",
+          "createLoopReviewChunks",
+          "runLoopReviewWithDependencies",
+          "runActiveImplReviewWithDependencies",
+          "runReviewWithDependencies",
+          "loopProposalsToImplReviewJson",
           "LOOP_REVIEW_THRESHOLD",
           "MAX_LOOP_CALLS"
         ],
         "extends": "Error",
         "usedBy": null,
         "id": "331cf497",
-        "summary": "Implements the `flow review` command and its phase-specific review workflows for specs, implementation, tests, and draft artifacts. It orchestrates AI prompts, diff collection, artifact persistence, retry handling, and review result normalization across the flow lifecycle.",
-        "detail": "This module combines CLI parsing, git-based scope detection, spec loading, and prompt construction to run multiple review modes such as implementation review, test review, spec review, and draft QA review. It defines schema-backed artifact classes and parsing helpers that repair malformed JSON, validate response shapes, normalize findings, and persist both markdown and JSON outputs with review history snapshots. The review pipeline limits scope by touched files, requirement IDs, and excluded paths, and it supports looped per-file or grouped diff review when changes exceed a threshold. It also includes retry and failure classification logic, prompt size guards, tooling-failure fallbacks, and utilities to transform review findings into stable history records for downstream flow state handling.",
+        "summary": "This module implements the flow review command and concentrates the review pipeline for spec, implementation, test, and draft phases. It combines git diff collection, prompt construction, AI agent orchestration, schema validation, artifact persistence, and retry logic in one command surface.",
+        "detail": "The file organizes review execution as phase-specific workflows, with separate builders, parsers, artifact classes, and output writers for implementation review, test review, spec review, and draft review. It relies on git-derived scope detection, requirement-to-file mapping, touched-file filtering, and merge-base resolution to constrain review context and reduce irrelevant findings. AI responses are treated as structured data: prompts are built with reusable helpers, outputs are repaired when malformed, validated against explicit schemas, normalized into domain classes, and written both as JSON memory artifacts and human-readable Markdown reports. The command also maintains review attempt history, supports looped review for large diffs, classifies failures into actionable review errors, and exposes a CLI entrypoint through a `Command` subclass plus direct script execution support.",
         "chapter": "cli_commands",
-        "role": "Flow review command orchestrator and review artifact processor",
+        "role": "Implements the `flow review` command orchestration layer, including multi-phase review execution, AI interaction, artifact generation, and review history tracking.",
         "enrich": {
-          "processedAt": "2026-06-05T10:54:38.374Z",
+          "processedAt": "2026-06-06T02:30:14.595Z",
           "attempts": 1
         },
         "keywords": [
           "flow review",
-          "code review command",
-          "spec review",
-          "implementation review",
-          "test review",
-          "draft QA",
+          "code review pipeline",
+          "git diff analysis",
           "AI prompt orchestration",
-          "artifact history",
-          "diff analysis",
-          "schema validation"
+          "schema validation",
+          "review artifacts",
+          "spec review",
+          "test coverage review",
+          "implementation review",
+          "draft QA"
         ]
       },
       {
@@ -13500,9 +13531,9 @@
     ],
     "summary": {
       "total": 341,
-      "totalMethods": 1696
+      "totalMethods": 1702
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-05T10:55:26.400Z"
+  "enrichedAt": "2026-06-06T02:30:14.595Z"
 }
