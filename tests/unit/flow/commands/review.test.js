@@ -32,7 +32,12 @@ import {
   applyTestFixes,
   formatTestReviewMd,
   buildTestReviewPrompt,
+  buildGapAnalysisPrompt,
+  buildTestFixPrompt,
   parseTestReviewFindings,
+  TEST_REVIEW_PROMPT_CHAR_LIMIT,
+  assertTestReviewPromptWithinLimit,
+  runTestReviewWithDependencies,
   resolveMergeBase,
 } from "../../../../src/flow/commands/review.js";
 
@@ -138,8 +143,15 @@ describe("test-review spec-local file scope", () => {
     tmp = createTmpDir();
     const specDir = "specs/demo";
     write("tests/project.test.js", "project root test");
+    write(`${specDir}/spec.md`, "spec markdown");
+    write(`${specDir}/tests/.raw/test-execution.log`, "raw execution log");
+    write(`${specDir}/tests/helper.js`, "helper module");
+    write(`${specDir}/tests/local.test.txt`, "text file");
+    write(`${specDir}/tests/local.md`, "markdown file");
     write(`${specDir}/tests/project.test.js`, "spec local shadow");
+    write(`${specDir}/tests/local.test.ts`, "spec local ts test");
     write(`${specDir}/tests/local.spec.mjs`, "spec local mjs");
+    write(`${specDir}/tests/nested/local.spec.ts`, "nested spec local ts");
 
     const files = collectTestFiles(tmp, specDir);
 
@@ -147,12 +159,62 @@ describe("test-review spec-local file scope", () => {
       files.map((f) => f.source).sort(),
       [
         `${specDir}/tests/local.spec.mjs`,
+        `${specDir}/tests/local.test.ts`,
+        `${specDir}/tests/nested/local.spec.ts`,
         `${specDir}/tests/project.test.js`,
-      ],
+      ].sort(),
     );
     assert.ok(files.every((f) => f.source.startsWith(`${specDir}/tests/`)));
     assert.ok(files.some((f) => f.content === "spec local shadow"));
     assert.ok(!files.some((f) => f.content === "project root test"));
+    assert.ok(!files.some((f) => f.content === "spec markdown"));
+    assert.ok(!files.some((f) => f.content === "raw execution log"));
+    assert.ok(!files.some((f) => f.content === "helper module"));
+    assert.ok(!files.some((f) => f.content === "text file"));
+    assert.ok(!files.some((f) => f.content === "markdown file"));
+  });
+
+  it("keeps test design in systemPrompt for gap-analysis and fix prompts", () => {
+    const testDesign = "TC-1: review-test input contract";
+    const testFiles = [{
+      source: "specs/demo/tests/review.test.js",
+      content: "test('R1: collects local files', () => {});",
+    }];
+    const gapPrompt = buildGapAnalysisPrompt(testDesign, testFiles);
+    const fixPrompt = buildTestFixPrompt(testDesign, "GAP-1", testFiles);
+
+    for (const prompt of [gapPrompt, fixPrompt]) {
+      assert.match(prompt.systemPrompt, /## Test Design/);
+      assert.match(prompt.systemPrompt, /TC-1: review-test input contract/);
+      assert.doesNotMatch(prompt.userPrompt, /## Test Design/);
+      assert.doesNotMatch(prompt.userPrompt, /TC-1: review-test input contract/);
+    }
+  });
+
+  it("enforces the test-review prompt limit before calling the agent", async () => {
+    assert.equal(TEST_REVIEW_PROMPT_CHAR_LIMIT, 1_000_000);
+    const overLimitPrompt = {
+      systemPrompt: "x".repeat(TEST_REVIEW_PROMPT_CHAR_LIMIT),
+      userPrompt: "y",
+      fmtFallback: "",
+    };
+    let agentCalled = false;
+
+    assert.throws(
+      () => assertTestReviewPromptWithinLimit(overLimitPrompt, "test review"),
+      /TEST_REVIEW_PROMPT_TOO_LARGE/,
+    );
+    await assert.rejects(
+      () => runTestReviewWithDependencies({
+        buildReviewPrompt: () => overLimitPrompt,
+        callAgent: async () => {
+          agentCalled = true;
+          return "{}";
+        },
+      }),
+      /TEST_REVIEW_PROMPT_TOO_LARGE/,
+    );
+    assert.equal(agentCalled, false);
   });
 
   it("applies test fixes only under the current spec-local tests directory", () => {

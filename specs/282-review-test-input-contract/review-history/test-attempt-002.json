@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-06T14:19:46.846Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/282-review-test-input-contract/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R1 lacks TypeScript module coverage",
+      "target": "specs/282-review-test-input-contract/tests/review-test-input-contract.test.js",
+      "issue": "R1 requires collectTestFiles to include JavaScript and TypeScript .test/.spec module files, but the test only covers .test.js and .spec.mjs. A collectTestFiles implementation that omits .test.ts/.spec.ts or other TypeScript module extensions could still pass.",
+      "requiredChange": "Add at least one spec-local TypeScript test module fixture, such as local.test.ts or nested/local.spec.ts, and assert it is collected.",
+      "whyBlocking": "This is a concrete acceptance requirement with no corresponding executable coverage for the TypeScript portion of the file contract."
+    },
+    {
+      "kind": "blocking",
+      "title": "R3 does not verify the configured agent is not invoked",
+      "target": "specs/282-review-test-input-contract/tests/review-test-input-contract.test.js",
+      "issue": "R3 requires prompt size enforcement to stop before invoking the configured agent when the measured prompt exceeds 1,000,000 characters, but the test only calls assertTestReviewPromptWithinLimit directly. It would pass even if the review-test command failed to call the guard before agent invocation.",
+      "requiredChange": "Add a test around the review-test execution path with an oversized prompt and a stub/configured agent that records calls, then assert the command errors before the agent is invoked.",
+      "whyBlocking": "The critical provider-boundary behavior required by R3 has no regression test; the current test only covers a helper surface, not the production behavior."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/282-review-test-input-contract/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "5c39caeeb3504772fe8fc989a4ab0f815020755b8ad7c143d506cbaef0420634"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "test-002-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R1 lacks TypeScript module coverage",
+      "body": "R1 requires collectTestFiles to include JavaScript and TypeScript .test/.spec module files, but the test only covers .test.js and .spec.mjs. A collectTestFiles implementation that omits .test.ts/.spec.ts or other TypeScript module extensions could still pass.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R3 does not verify the configured agent is not invoked",
+      "body": "R3 requires prompt size enforcement to stop before invoking the configured agent when the measured prompt exceeds 1,000,000 characters, but the test only calls assertTestReviewPromptWithinLimit directly. It would pass even if the review-test command failed to call the guard before agent invocation.",
+      "category": "unknown"
+    }
+  ]
+}

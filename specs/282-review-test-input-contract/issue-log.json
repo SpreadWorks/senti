@@ -1,0 +1,214 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "qa[1]: invalid category \"test strategy\"",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-06T14:02:02.035Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[1]: invalid category \"test strategy\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate failed because qa[1].category used invalid value test strategy",
+      "trigger": "sdd-forge flow run gate --phase draft",
+      "resolution": "Change qa[1].category to an accepted draft QA category after scanning draft.json categories",
+      "guardrailCandidate": "Draft QA category values must be chosen from the schema enum in the flow instructions.",
+      "taskId": null,
+      "timestamp": "2026-06-06T14:02:11.139Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "`大きな挙動変更は避ける` は判定基準が主観的で、何をもって“大きい変更”とするかが定量化されていないため、実装可否を検証できません。; 同じく `大きな挙動変更は避ける` の記述は、独立した2名のレビューアが合否を一致させるための検証条件がなく、要件の完全性が不足しています。; `既存の改善済み契約を固定` は `改善済み` の基準が定義されておらず、何を満たしたら達成かが明確な条件として示されていません。; `最小検証` の条件が未定義で、e2e対象の採否基準が曖昧なため、レビューア間で同一判断しにくいです。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-06T14:02:59.333Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "draft-content",
+            "locator": "analysis.proposedApproach"
+          },
+          "observed": "`大きな挙動変更は避ける` は判定基準が主観的で、何をもって“大きい変更”とするかが定量化されていないため、実装可否を検証できません。",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "draft-content",
+            "locator": "analysis.proposedApproach"
+          },
+          "observed": "同じく `大きな挙動変更は避ける` の記述は、独立した2名のレビューアが合否を一致させるための検証条件がなく、要件の完全性が不足しています。",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "decisionMap.decisionPoints",
+            "locator": "decisionMap.decisionPoints[0]"
+          },
+          "observed": "`既存の改善済み契約を固定` は `改善済み` の基準が定義されておらず、何を満たしたら達成かが明確な条件として示されていません。",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "scopeVerification.in",
+            "locator": "scopeVerification.in[2]"
+          },
+          "observed": "`最小検証` の条件が未定義で、e2e対象の採否基準が曖昧なため、レビューア間で同一判断しにくいです。",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "`大きな挙動変更は避ける` は判定基準が主観的で、何をもって“大きい変更”とするかが定量化されていないため、実装可否を検証できません。"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "同じく `大きな挙動変更は避ける` の記述は、独立した2名のレビューアが合否を一致させるための検証条件がなく、要件の完全性が不足しています。"
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "`既存の改善済み契約を固定` は `改善済み` の基準が定義されておらず、何を満たしたら達成かが明確な条件として示されていません。"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "`最小検証` の条件が未定義で、e2e対象の採否基準が曖昧なため、レビューア間で同一判断しにくいです。"
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate failed because draft wording used vague phrases: large behavior changes, improved contract, and minimal verification",
+      "trigger": "second sdd-forge flow run gate --phase draft",
+      "resolution": "Replace vague phrases throughout draft.json with verifiable scope and test conditions",
+      "guardrailCandidate": "Draft requirement wording must avoid subjective labels and name concrete verification boundaries.",
+      "taskId": null,
+      "timestamp": "2026-06-06T14:03:12.075Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The review-test input collection path is recursive (`collectTestsRecursive`/spec tests directory) but the spec does not define any explicit upper bound for recursion depth, file-count, or collected input size before processing, only a final prompt-size check, so bulk/recursive loading is not explicitly bounded.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-06T14:10:13.008Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[0], overview.decisions[0], scope"
+          },
+          "observed": "The review-test input collection path is recursive (`collectTestsRecursive`/spec tests directory) but the spec does not define any explicit upper bound for recursion depth, file-count, or collected input size before processing, only a final prompt-size check, so bulk/recursive loading is not explicitly bounded.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "The review-test input collection path is recursive (`collectTestsRecursive`/spec tests directory) but the spec does not define any explicit upper bound for recursion depth, file-count, or collected input size before processing, only a final prompt-size check, so bulk/recursive loading is not explicitly bounded."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec gate failed because bounded-resource-usage needed explicit treatment for existing recursive collectTestsRecursive traversal",
+      "trigger": "sdd-forge flow run gate",
+      "resolution": "Add bounded-resource-usage acknowledgment in spec constraints while preserving the Issue #369 scope and the 1,000,000 character provider-boundary limit",
+      "guardrailCandidate": "When a spec intentionally keeps existing recursive traversal, record the guardrail id and the concrete bounded provider boundary in constraints.",
+      "taskId": null,
+      "timestamp": "2026-06-06T14:10:29.754Z"
+    },
+    {
+      "step": "approval",
+      "reason": "attempted sdd-forge spec render with a spec path argument, but the command rejected that positional option",
+      "trigger": "sdd-forge spec render specs/282-review-test-input-contract/spec.json",
+      "resolution": "Use the approval step command sdd-forge flow get prompt plan.approval to render the gate-passed spec",
+      "guardrailCandidate": "During approval, render spec through flow get prompt plan.approval rather than passing a spec path to spec render.",
+      "taskId": null,
+      "timestamp": "2026-06-06T14:11:12.881Z"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "scenario-validity blocked because plan/test added shared tests under tests/unit before the scenario-validity phase",
+      "trigger": "sdd-forge flow run scenario-validity",
+      "resolution": "Remove the shared unit test edits from the plan-phase test artifact and keep shared npm-test coverage for the implementation phase",
+      "guardrailCandidate": "Plan/test should write spec-local tests only; shared tests required for npm test coverage should be added during implementation.",
+      "taskId": null,
+      "timestamp": "2026-06-06T14:15:46.983Z"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "spec-local test used missing named ESM exports, causing SyntaxError and invalid_test classifications instead of per-requirement expected failures",
+      "trigger": "scenario-validity-result.json classified R1-R5 as invalid_test",
+      "resolution": "Use namespace import and assertion-based contract-surface checks so tests execute and fail per requirement",
+      "guardrailCandidate": "Spec-local tests should avoid top-level missing named imports when the intended pre-implementation failure is an assertion.",
+      "taskId": null,
+      "timestamp": "2026-06-06T14:16:38.591Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review failed because R4 was incorrectly covered by a spec-local test and R1 lacked non-test files inside the spec-local tests directory",
+      "trigger": "sdd-forge flow run review --phase test",
+      "resolution": "Mark R4 as not spec-local-testable, remove R4 from the spec-local header/test, and add non-test module fixtures for R1",
+      "guardrailCandidate": "Spec-local headers should cover executable product behavior only; shared npm-test coverage requirements should not be mapped to spec-local tests.",
+      "taskId": null,
+      "timestamp": "2026-06-06T14:18:17.443Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review failed because R1 lacked TypeScript fixture coverage and R3 only tested the prompt limit helper instead of the review-test execution boundary",
+      "trigger": "second sdd-forge flow run review --phase test",
+      "resolution": "Add TypeScript test fixtures for R1 and require a dependency-injected review-test execution helper that proves over-limit prompts stop before agent invocation",
+      "guardrailCandidate": "Provider-boundary requirements need execution-path tests, not only direct guard helper tests.",
+      "taskId": null,
+      "timestamp": "2026-06-06T14:20:17.341Z"
+    }
+  ]
+}

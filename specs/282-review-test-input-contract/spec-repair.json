@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Separated normal npm test coverage from flow-local spec-local coverage for R4.",
+  "items": [
+    {
+      "title": "R4 conflicts with the existing npm test boundary for spec-local tests",
+      "target": "R4 / Acceptance Criteria R4 / specs/282-review-test-input-contract/tests/",
+      "decision": "applied",
+      "rationale": "R4 now requires shared tests under `tests/unit` or `tests/e2e` for normal npm test detection, while spec-local tests remain flow-local requirement coverage.",
+      "evidence": "spec.json requirements[3].desc and acceptance_criteria[3] now separate shared npm-test coverage from spec-local coverage.",
+      "changedFields": [
+        "scope.in[3]",
+        "requirements[3].desc",
+        "acceptance_criteria[3]",
+        "tasks[2].acceptance[1]"
+      ]
+    }
+  ]
+}

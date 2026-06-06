@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Rewrote q2-q4 as neutral questions without embedded answers, non-goal instructions, or internal implementation detail.",
+  "items": [
+    {
+      "title": "1. q2 embeds the proposed test strategy",
+      "target": "q2",
+      "rationale": "Replaced the proposed must/should unit/e2e split with a neutral question asking which scope each test layer should fix.",
+      "evidence": "draft.json qa[1].question now asks `unit tests と e2e tests でそれぞれどの範囲を固定しますか`.",
+      "changedFieldPaths": [
+        "qa[1].question"
+      ]
+    },
+    {
+      "title": "2. q3 embeds acceptance answers and internal detail",
+      "target": "q3",
+      "rationale": "Removed the preselected acceptance answer and internal `agent.call` detail from the question.",
+      "evidence": "draft.json qa[2].question now asks `prompt 上限超過時の受け入れ条件は何ですか`.",
+      "changedFieldPaths": [
+        "qa[2].question"
+      ]
+    },
+    {
+      "title": "3. q4 embeds a non-goal instruction",
+      "target": "q4",
+      "rationale": "Removed the embedded must-level non-goal and rewrote the question to ask for the out-of-scope boundary.",
+      "evidence": "draft.json qa[3].question now asks `対象外とする review-test 関連の変更範囲は何ですか`.",
+      "changedFieldPaths": [
+        "qa[3].question"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "3 repair target(s) are valid and should be applied by rewriting q2-q4 as neutral user questions.",
+  "items": [
+    {
+      "title": "1. q2 embeds the proposed test strategy",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "The question should ask for the desired unit/e2e coverage boundary without embedding the proposed must/should answer.",
+      "evidence": "draft.json qa entry q2 currently includes `must: unit tests` and `should: e2e tests`, matching the repair target."
+    },
+    {
+      "title": "2. q3 embeds acceptance answers and internal detail",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "The question should ask which observable acceptance condition to require without preselecting `agent.call` or CLI wording.",
+      "evidence": "draft.json qa entry q3 currently includes `agent.call` and a proposed should-level wording decision, matching the repair target."
+    },
+    {
+      "title": "3. q4 embeds a non-goal instruction",
+      "target": "q4",
+      "decision": "apply",
+      "rationale": "The question should ask what review-test related changes are out of scope without embedding the non-goal as a must requirement.",
+      "evidence": "draft.json qa entry q4 currently includes `must: この issue では...対象外`, matching the repair target."
+    }
+  ]
+}

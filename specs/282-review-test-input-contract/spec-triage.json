@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "The blocking R4 finding is valid and should be repaired by separating normal npm test coverage from flow-local spec-local coverage.",
+  "items": [
+    {
+      "title": "R4 conflicts with the existing npm test boundary for spec-local tests",
+      "target": "R4 / Acceptance Criteria R4 / specs/282-review-test-input-contract/tests/",
+      "decision": "apply",
+      "rationale": "The spec currently implies spec-local tests are part of normal npm test detection. Existing flow conventions treat spec-local tests as flow-local coverage, so R4 must require shared unit/e2e coverage for npm test while retaining spec-local tests for flow coverage.",
+      "evidence": "spec.json R4 and AC R4 mention normal npm test and spec-local tests together; spec review cites test runner boundaries that exclude specs/ from normal npm test."
+    }
+  ]
+}

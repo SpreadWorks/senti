@@ -1,0 +1,105 @@
+{
+  "devType": "test",
+  "goal": "Issue #369 の目的どおり、review-test の prompt 入力契約と 1,000,000 文字上限を通常の npm test で検出できる回帰テストとして固定する。",
+  "analysis": {
+    "problem": "review-test は過去に Existing Test Code の巨大 dump により input-too-large を起こし得た。現行コードは spec-local tests のみ収集し、prompt 上限と system/user prompt 分離を持つが、契約を固定するテストが不足すると将来の変更で再発する。",
+    "proposedApproach": "must: review-test の agent 入力、収集対象、上限値、systemPrompt/userPrompt 配置を Issue #369 に列挙された契約から変更せず、unit/e2e の回帰テストで固定する。must: spec-local tests 以外、raw log、project root tests、spec.md 全文が prompt に混入しないこと、上限超過時に agent.call 前で止まること、testDesign が systemPrompt に入り userPrompt に ## Test Design が入らないことを検証対象にする。",
+    "validation": "Issue #369 は対象関数と受け入れ条件を具体化している。src/flow/commands/review.js では collectTestFiles、TEST_REVIEW_PROMPT_CHAR_LIMIT、buildGapAnalysisPrompt、buildTestFixPrompt が該当し、tests/unit/flow/commands/review.test.js には既存の spec-local file scope テストがあるため、根本原因である prompt 入力契約の回帰検知に直接対応できる。docs は src より古い可能性があるため、ソースコードを正とする。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: GitHub Issue #369 は review-test の prompt 入力契約を対象とし、主対象として src/flow/commands/review.js の collectTestFiles、buildGapAnalysisPrompt、buildTestFixPrompt、TEST_REVIEW_PROMPT_CHAR_LIMIT と対応する unit/e2e tests を挙げている。",
+      "must: src/flow/commands/review.js の collectTestFiles は path.resolve(root, specDir, \"tests\") 配下のみを収集する。",
+      "must: src/flow/commands/review.js の TEST_REVIEW_PROMPT_CHAR_LIMIT は 1_000_000 である。",
+      "must: buildGapAnalysisPrompt と buildTestFixPrompt は testDesign を systemPrompt に置き、Existing Test Code や Gaps/Current test code を userPrompt に置いている。",
+      "must: tests/unit/flow/commands/review.test.js には spec-local tests と project-level tests の分離を確認する既存テストがある。"
+    ],
+    "decisionPoints": [
+      "must: 回帰テストは Issue #369 に列挙された契約、つまり spec-local tests 限定、1_000_000 文字上限、testDesign の systemPrompt 配置を固定し、test-review の評価基準や auto-fix behavior を追加しない。",
+      "must: prompt 入力の除外対象は project root tests、tests/.raw/test-execution.log、spec.md 全文を含む。",
+      "must: prompt 上限超過時は provider 呼び出し前、つまり agent.call 前に停止することを検証する。",
+      "should: gap-analysis と gap-fix の prompt 分離は systemPrompt/userPrompt の構造として検証する。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 外部依存は追加しない。Node.js 組み込みモジュールと既存テスト基盤だけを使う。",
+      "must: テストを通すためにテストコードを弱めない。契約違反を検出できるテストとして追加する。",
+      "must: Issue #369 を 1 つの concern として扱い、勝手に別 spec へ分割しない。",
+      "must: src/ 配下にはプロジェクト固有情報を入れない。今回の対象は汎用的な flow review-test 契約に限定する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: 各 requirement のテスト配置、対象ファイル、テスト名、fixture の詳細は spec 作成時に決める。",
+      "should: 既存 helper の export 追加が必要か、既存 export だけで検証できるかは spec 作成時にコード構造を確認して決める。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: src/flow/commands/review.js の review-test prompt 入力契約に関係する helper と上限チェック。",
+      "must: tests/unit/flow/commands/review.test.js など通常 npm test で実行される regression tests。",
+      "should: CLI 経路または e2e fixture では、agent.call 前停止または spec-local input 境界のうち、unit tests だけでは確認できない process boundary を 1 ケース以上検証する。"
+    ],
+    "out": [
+      "must: review-test の新しい AI 評価ロジックや auto-fix behavior の追加は対象外。",
+      "must: provider input limit 自体の変更や agent provider 設定の変更は対象外。",
+      "must: saved prompt logs の集計・分析機能追加は対象外。",
+      "should: docs 再生成や npm publish はこの issue の直接スコープ外。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: review-test の runtime behavior は、Issue #369 の契約を観測可能にする export や test seam 以外では変更しない。",
+    "must: 既存テストの期待を弱めず、通常 npm test で契約違反を検出できるようにする。",
+    "should: prompt cache に効きやすい systemPrompt/userPrompt 分離を維持する。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "Goal / Scope は Issue #369 の内容どおり、review-test の prompt 入力契約と 1,000,000 文字上限を回帰テストで固定する、でよいですか。",
+      "answer": "はい。Issue #369 の Goal / Scope として、review-test の prompt 入力契約と 1,000,000 文字上限を regression tests で固定する。",
+      "evidence": "Prior conversation: user selected [1] for the Goal / Scope confirmation before prepare. Issue #369 Proposed Acceptance Criteria lists spec-local prompt input, exclusions, prompt limit, and systemPrompt/userPrompt placement.",
+      "why": "User-confirmed Goal / Scope matches the linked issue and keeps the spec bounded to the review-test input contract.",
+      "considered": "Scope revision was offered before prepare and not selected.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "review-test の prompt 入力契約は、unit tests と e2e tests でそれぞれどの範囲を固定しますか。",
+      "answer": "unit tests must lock detailed prompt contracts for collected files, excluded inputs, prompt structure, and prompt limit behavior. e2e tests should cover the CLI path only where needed to prove the normal npm test run can detect the contract at integration level.",
+      "evidence": "Issue #369 Target names corresponding unit and e2e tests. Existing tests/unit/flow/commands/review.test.js already contains test-review spec-local file scope coverage.",
+      "why": "Detailed helper behavior is cheapest and most precise at unit level. E2E coverage remains useful for the CLI path, but duplicating every prompt assertion there would add cost without improving the contract boundary.",
+      "considered": "Full e2e duplication of all unit assertions was considered but would increase fixture cost and make failures harder to diagnose.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "prompt 上限超過時の受け入れ条件は何ですか。",
+      "answer": "The prompt limit acceptance criterion is that prompts over TEST_REVIEW_PROMPT_CHAR_LIMIT must stop before provider execution; tests must prove the provider call is not made for over-limit review-test input.",
+      "evidence": "Issue #369 Proposed Acceptance Criteria says agent.call is not executed when TEST_REVIEW_PROMPT_CHAR_LIMIT is exceeded. src/flow/commands/review.js defines TEST_REVIEW_PROMPT_CHAR_LIMIT = 1_000_000 and checks prompt size before callReviewAgent in runTestReview.",
+      "why": "The root risk is provider input-too-large. The contract must protect the provider boundary before the call rather than only checking the emitted error text.",
+      "considered": "Pinning exact user-facing error wording was considered but is less important than proving the provider boundary is not crossed.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "この issue で対象外とする review-test 関連の変更範囲は何ですか。",
+      "answer": "Out of scope: new review-test AI evaluation behavior, provider configuration changes, prompt wording rewrites unrelated to the fixed contract, saved prompt log analytics, and npm publish/release work.",
+      "evidence": "Issue #369 Improvement Direction limits the task to locking the current contract with tests. Project rules forbid adding external dependencies and require npm publish only when release intent is explicit.",
+      "why": "Keeping the scope to regression tests prevents the spec from turning a contract-locking task into a broader review-test redesign.",
+      "considered": "Expanding into prompt optimization or saved log analysis was considered and rejected because Issue #369 describes this as mainly contract locking rather than major implementation work.",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-06T14:01:49Z",
+    "notes": "Draft QA resolved from Issue #369, prior user confirmation, project rules, and verified source context."
+  }
+}

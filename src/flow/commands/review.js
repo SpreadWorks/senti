@@ -1775,6 +1775,16 @@ function assertTestReviewPromptWithinLimit(prompt, label) {
   );
 }
 
+async function runTestReviewWithDependencies({
+  buildReviewPrompt,
+  callAgent,
+  promptLabel = "test review",
+}) {
+  const reviewPrompt = buildReviewPrompt();
+  assertTestReviewPromptWithinLimit(reviewPrompt, promptLabel);
+  return callAgent(reviewPrompt);
+}
+
 function classifyReviewCommandError(err, phase) {
   const message = String(err?.stack || err?.message || err || "");
   const recoveryCommand = phase ? `sdd-forge flow run review --phase ${phase}` : "sdd-forge flow run review";
@@ -2010,12 +2020,13 @@ async function runTestReview(root, flow, config, dryRun) {
     const agent = ensureAgent("flow.test.review");
     console.error("  [test-review] Running one-shot static review...");
     if (dryRun) console.error("  [test-review] dry-run has no auto-fix phase; detection still runs once.");
-    const reviewPrompt = buildTestReviewPrompt(requirements, coverageArtifact, testFiles);
-    assertTestReviewPromptWithinLimit(reviewPrompt, "test review");
-    const raw = await callReviewAgent(
-      agent, reviewPrompt, "flow.test.review",
-      "You are a one-shot static test reviewer. Return JSON with blockingFindings and advisoryFindings.",
-    );
+    const raw = await runTestReviewWithDependencies({
+      buildReviewPrompt: () => buildTestReviewPrompt(requirements, coverageArtifact, testFiles),
+      callAgent: (reviewPrompt) => callReviewAgent(
+        agent, reviewPrompt, "flow.test.review",
+        "You are a one-shot static test reviewer. Return JSON with blockingFindings and advisoryFindings.",
+      ),
+    });
     aiFindings = parseTestReviewFindings(raw);
   } catch (err) {
     const kind = /JSON|schema|parse|Unexpected token/i.test(err?.message || "") ? "parser_error" : "agent_error";
@@ -3374,6 +3385,7 @@ export {
   getReviewMaxAttempts, REVIEW_PHASES, extractRequirements, collectTestFiles, parseGaps,
   applyTestFixes, formatTestReviewMd, runReviewLoop,
   buildTestReviewPrompt, parseTestReviewFindings,
+  TEST_REVIEW_PROMPT_CHAR_LIMIT, assertTestReviewPromptWithinLimit, runTestReviewWithDependencies,
   extractGoalAndScope, buildSpecSummaryMarkdown, buildSpecReviewPrompt, buildSpecReviewRepairPrompt,
   formatSpecReviewMd, formatSpecReviewJson, parseSpecReviewFindings, parseSpecReviewFindingsWithRepair,
   buildImplReviewPrompt, parseImplReviewFindings, filterImplReviewFindingsByScope,

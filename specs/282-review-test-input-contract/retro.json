@@ -1,0 +1,38 @@
+{
+  "spec": "specs/282-review-test-input-contract/spec.json",
+  "date": "2026-06-06T14:31:33.066Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "`collectTestFiles(root, specDir)` must include only `.test` or `.spec` JavaScript/TypeScript module files under `path.resolve(root, specDir, \"tests\")` and must not include project root `tests/`, `specs/<id>/tests/.raw/test-execution.log`, or `specs/<id>/spec.md` content.",
+      "status": "done",
+      "note": "R1: collects only spec-local test modules and excludes root tests, raw logs, and spec.md"
+    },
+    {
+      "desc": "`buildGapAnalysisPrompt(testDesign, testFiles)` and `buildTestFixPrompt(testDesign, gaps, testFiles)` must include `testDesign` in `systemPrompt` under `## Test Design` and must not include `## Test Design` in `userPrompt`.",
+      "status": "done",
+      "note": "R2: keeps test design in systemPrompt for gap-analysis and gap-fix prompts"
+    },
+    {
+      "desc": "review-test prompt size enforcement must use a 1,000,000 character limit and must stop before invoking the configured agent when the measured prompt exceeds that limit.",
+      "status": "done",
+      "note": "R3: exposes and enforces the 1,000,000 character provider-boundary limit"
+    },
+    {
+      "desc": "The change must not alter review-test AI scoring, finding classification, auto-fix behavior, CLI options, or exit-code semantics.",
+      "status": "done",
+      "note": "R5: contract tests do not require review-test scoring, CLI, or exit-code changes"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 4,
+    "done": 4,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 1,
+    "not_testable_count": 1,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

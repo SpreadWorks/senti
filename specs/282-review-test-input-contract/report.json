@@ -1,0 +1,244 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".sdd-forge/output/analysis.json                    |   2 +-\n .../draft-coverage-repair.json                     |   8 +\n .../draft-coverage-triage.json                     |   8 +\n .../draft-questions-repair.json                    |  35 +\n .../draft-questions-triage.json                    |  29 +\n .../draft-review-coverage.json                     |  11 +\n .../draft-review-questions.json                    |  33 +\n specs/282-review-test-input-contract/draft.json    | 105 +++\n specs/282-review-test-input-contract/file-map.json |  18 +\n specs/282-review-test-input-contract/flow.json     | 908 +++++++++++++++++++++\n .../impl-review.json                               |  28 +\n .../282-review-test-input-contract/issue-log.json  | 214 +++++\n specs/282-review-test-input-contract/issue.md      |  62 ++\n .../review-history/draft-coverage-attempt-001.json |  14 +\n .../draft-questions-attempt-001.json               |  67 ++\n .../review-history/impl-attempt-001.json           |  31 +\n .../review-history/impl-attempt-001.md             |  16 +\n .../review-history/spec-attempt-001.json           |  74 ++\n .../review-history/spec-attempt-001.md             |  24 +\n .../review-history/test-attempt-001.json           |  66 ++\n .../review-history/test-attempt-001.md             |  24 +\n .../review-history/test-attempt-002.json           |  66 ++\n .../review-history/test-attempt-002.md             |  24 +\n .../review-history/test-attempt-003.json           |  47 ++\n .../review-history/test-attempt-003.md             |  16 +\n specs/282-review-test-input-contract/review.md     |  16 +\n .../spec-repair.json                               |  21 +\n .../spec-review.json                               |  40 +\n .../282-review-test-input-contract/spec-review.md  |  24 +\n .../spec-triage.json                               |  15 +\n specs/282-review-test-input-contract/spec.json     | 220 +++++\n specs/282-review-test-input-contract/spec.md       | 109 +++\n specs/282-review-test-input-contract/tasks/T-1.md  |  19 +\n specs/282-review-test-input-contract/tasks/T-2.md  |  19 +\n specs/282-review-test-input-contract/tasks/T-3.md  |  20 +\n .../test-coverage.json                             |  71 ++\n .../test-review.json                               |  33 +\n .../282-review-test-input-contract/test-review.md  |  16 +\n .../tests/review-test-input-contract.test.js       | 112 +++\n src/flow/commands/review.js                        |  24 +-\n tests/unit/flow/commands/review.test.js            |  64 +-\n 41 files changed, 2745 insertions(+), 8 deletions(-)",
+      "commits": [
+        "Lock review-test input contract"
+      ]
+    },
+    "retro": {
+      "total": 4,
+      "done": 4,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 1,
+      "not_testable_count": 1,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "`collectTestFiles(root, specDir)` must include only `.test` or `.spec` JavaScript/TypeScript module files under `path.resolve(root, specDir, \"tests\")` and must not include project root `tests/`, `specs/<id>/tests/.raw/test-execution.log`, or `specs/<id>/spec.md` content.",
+          "status": "done",
+          "note": "R1: collects only spec-local test modules and excludes root tests, raw logs, and spec.md"
+        },
+        {
+          "desc": "`buildGapAnalysisPrompt(testDesign, testFiles)` and `buildTestFixPrompt(testDesign, gaps, testFiles)` must include `testDesign` in `systemPrompt` under `## Test Design` and must not include `## Test Design` in `userPrompt`.",
+          "status": "done",
+          "note": "R2: keeps test design in systemPrompt for gap-analysis and gap-fix prompts"
+        },
+        {
+          "desc": "review-test prompt size enforcement must use a 1,000,000 character limit and must stop before invoking the configured agent when the measured prompt exceeds that limit.",
+          "status": "done",
+          "note": "R3: exposes and enforces the 1,000,000 character provider-boundary limit"
+        },
+        {
+          "desc": "The change must not alter review-test AI scoring, finding classification, auto-fix behavior, CLI options, or exit-code semantics.",
+          "status": "done",
+          "note": "R5: contract tests do not require review-test scoring, CLI, or exit-code changes"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 11,
+      "fullLogPath": "specs/282-review-test-input-contract/issue-log.json",
+      "importantTotal": 7,
+      "importantShown": 7,
+      "importantOmitted": 0,
+      "recentOtherTotal": 4,
+      "recentOtherShown": 4,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "draft gate failed because qa[1].category used invalid value test strategy",
+          "resolution": "Change qa[1].category to an accepted draft QA category after scanning draft.json categories"
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "draft gate failed because draft wording used vague phrases: large behavior changes, improved contract, and minimal verification",
+          "resolution": "Replace vague phrases throughout draft.json with verifiable scope and test conditions"
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "spec gate failed because bounded-resource-usage needed explicit treatment for existing recursive collectTestsRecursive traversal",
+          "resolution": "Add bounded-resource-usage acknowledgment in spec constraints while preserving the Issue #369 scope and the 1,000,000 character provider-boundary limit"
+        },
+        {
+          "classification": "important",
+          "step": "scenario-validity",
+          "reason": "scenario-validity blocked because plan/test added shared tests under tests/unit before the scenario-validity phase",
+          "resolution": "Remove the shared unit test edits from the plan-phase test artifact and keep shared npm-test coverage for the implementation phase"
+        },
+        {
+          "classification": "important",
+          "step": "scenario-validity",
+          "reason": "spec-local test used missing named ESM exports, causing SyntaxError and invalid_test classifications instead of per-requirement expected failures",
+          "resolution": "Use namespace import and assertion-based contract-surface checks so tests execute and fail per requirement"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test-review failed because R4 was incorrectly covered by a spec-local test and R1 lacked non-test files inside the spec-local tests directory",
+          "resolution": "Mark R4 as not spec-local-testable, remove R4 from the spec-local header/test, and add non-test module fixtures for R1"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test-review failed because R1 lacked TypeScript fixture coverage and R3 only tested the prompt limit helper instead of the review-test execution boundary",
+          "resolution": "Add TypeScript test fixtures for R1 and require a dependency-injected review-test execution helper that proves over-limit prompts stop before agent invocation"
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "qa[1]: invalid category \"test strategy\"",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "`大きな挙動変更は避ける` は判定基準が主観的で、何をもって“大きい変更”とするかが定量化されていないため、実装可否を検証できません。; 同じく `大きな挙動変更は避ける` の記述は、独立した2名のレビューアが合否を一致させるための検証条件がなく、要件の完全性が不足しています。; `既存の改善済み契約を固定` は `改善済み` の基準が定義されておらず、何を満たしたら達成かが明確な条件として示されていません。; `最小検証` の条件が未定義で、e2e対象の採否基準が曖昧...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "The review-test input collection path is recursive (`collectTestsRecursive`/spec tests directory) but the spec does not define any explicit upper bound for recursion depth, file-count, or collected input size before processing, only a fi...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "approval",
+          "reason": "attempted sdd-forge spec render with a spec path argument, but the command rejected that positional option",
+          "resolution": "Use the approval step command sdd-forge flow get prompt plan.approval to render the gate-passed spec"
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 8
+    },
+    "tokenMetrics": {
+      "input": 294054,
+      "output": 48247,
+      "cacheRead": 967424,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 16,
+      "durationMs": 402829,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 21132
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 8852
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 59392
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 136727
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 24779
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 62354
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 10472
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 79121
+        }
+      ]
+    },
+    "tests": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/282-review-test-input-contract/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 50,
+          "end_line": 5224
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/282-review-test-input-contract/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/review.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/commands/review.test.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/282-review-test-input-contract/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/review.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/commands/review.test.js"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/282-review-test-input-contract/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    Lock review-test input contract\n    41 files changed, 2745 insertions(+), 8 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (4 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 8\n    agent calls ................. 16\n    input tokens ................ 294,054\n    output tokens ............... 48,247\n    cache-read tokens ........... 967,424\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 402.8s\n      draft-questions-review .... 21.1s\n      draft-coverage-review ..... 8.9s\n      draft-gate ................ 59.4s\n      spec-review ............... 136.7s\n      spec-gate ................. 24.8s\n      test-review ............... 62.4s\n      impl-review ............... 10.5s\n      impl-gate ................. 79.1s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 4  passed 4  failed 0 verdict=pass\n    raw_output: specs/282-review-test-input-contract/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (11 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/282-review-test-input-contract/issue-log.json\n\n    Important (7)\n    - [draft-gate] draft gate failed because qa[1].category used invalid value test strategy\n    - [draft-gate] draft gate failed because draft wording used vague phrases: large behavior changes, improved contract, and minimal verification\n    - [spec-gate] spec gate failed because bounded-resource-usage needed explicit treatment for existing recursive collectTestsRecursive traversal\n    - [scenario-validity] scenario-validity blocked because plan/test added shared tests under tests/unit before the scenario-validity phase\n    - [scenario-validity] spec-local test used missing named ESM exports, causing SyntaxError and invalid_test classifications instead of per-requirement expected failures\n    - [test-review] test-review failed because R4 was incorrectly covered by a spec-local test and R1 lacked non-test files inside the spec-local tests directory\n    - [test-review] test-review failed because R1 lacked TypeScript fixture coverage and R3 only tested the prompt limit helper instead of the review-test execution boundary\n\n    Recent Other (4)\n    - [draft-gate] qa[1]: invalid category \"test strategy\"\n    - [draft-gate] `大きな挙動変更は避ける` は判定基準が主観的で、何をもって“大きい変更”とするかが定量化されていないため、実装可否を検証できません。; 同じく `大きな挙動変更は避ける` の記述は、独立した2名のレビューアが合否を一致させるための検証条件がなく、要件の完全性が不足しています。; `既存の改善済み契約を固定` は `改善済み` の基準が定義されておらず、何を満たしたら達成かが明確な条件として示されていません。; `最小検証` の条件が未定義で、e2e対象の採否基準が曖昧...\n    - [spec-gate] The review-test input collection path is recursive (`collectTestsRecursive`/spec tests directory) but the spec does not define any explicit upper bound for recursion depth, file-count, or collected input size before processing, only a fi...\n    - [approval] attempted sdd-forge spec render with a spec path argument, but the command rejected that positional option"
+}
