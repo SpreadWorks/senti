@@ -270,17 +270,26 @@ B.0. **Initialize flow state**
    - Run `sdd-forge flow set init [--issue N] [--request "<user raw text>"]` to create a preparing state file (`.active-flow.<runId>`).
    - Save the returned `runId` from `data.runId` for use in B.4.
 
-B.0.5. **Auto-mode eligibility check** (spec 208, phase-aware input per spec 220)
+B.0.5. **Preflight summary and auto-mode eligibility check** (spec 208, phase-aware input per spec 220, ba40)
    - If an Issue is linked, ensure its body is reflected into `--request` at `flow set init` (fetch with `sdd-forge flow get issue <n>` if needed). The CLI derives the input statically from the preparing flow state (`issue + request`) — `--input` is no longer accepted.
-   - Run `sdd-forge flow run auto-check --run-id <runId>` and read `data.eligible`. `--run-id` is required in preparing mode (spec 220 removed the single-preparing auto-select).
-   - **If `eligible: true`**: present the auto-mode prompt using the Choice Format. The prompt asks ONLY whether to enable auto mode — do not bundle a "is this summary correct?" question into the same choice (the summary is confirmed in B.3).
-     - Question (above choices): `Enable auto mode?` (single line).
-     - Choices: `[1] Yes — AI proceeds without confirmations` `[2] No — keep normal per-step confirmations`.
+   - Build a preflight interpretation before auto-check. Use only the user's request and linked Issue content; do not inspect project code and do not invent project-specific fields.
+     - Format: `Goal` + `Scope` + `Out of Scope` (if inferable) + 1-3 line description.
+     - If the original request is too thin but a bounded interpretation can be derived directly from the words given, persist the refined request with `sdd-forge flow set request "<Goal/Scope/description text>" --run-id <runId>` before auto-check.
+   - Run `sdd-forge flow run auto-check --run-id <runId>` and read `data.eligible` and `data.breakdown`. `--run-id` is required in preparing mode (spec 220 removed the single-preparing auto-select).
+   - **If `eligible: false` and the breakdown points to missing specBuildability, ambiguity, verifiability, or scopeBoundedness**:
+     - Refine the preflight interpretation from the same request / Issue text and the breakdown reason.
+     - Persist the refined request with `sdd-forge flow set request "<refined Goal/Scope/description text>" --run-id <runId>`.
+     - Re-run `sdd-forge flow run auto-check --run-id <runId>`.
+     - Retry this preflight refinement at most 2 times. If still ineligible, continue with the normal B.1 → B.2 → B.3 flow; do not display the auto-mode prompt.
+   - **If `eligible: true`**: present the auto-mode prompt using the Choice Format. This prompt is also the intent confirmation: the user is approving the displayed Goal + Scope + description and choosing whether to enter auto mode.
+     - Description (inside lines): show the preflight `Goal` + `Scope` + 1-3 line description that was sent to auto-check.
+     - Choices: `[1] Enable auto — summary is correct; AI proceeds without confirmations` `[2] Keep manual — revise or confirm intent before continuing`.
      - Note below choices: "You can switch later with `/sdd-forge.flow-auto on`."
      - If user picks `[1]`:
        - Run `sdd-forge flow set auto on --run-id <runId>` (the CLI trusts the verdict already persisted by `run auto-check` above and writes `autoApprove: true` to the preparing flow so `flow prepare` will inherit it; no second AI call. Rejection here means STOP).
        - **Skip B.1 and B.2.** Use work-environment = worktree and base-branch = current branch by default.
-       - Proceed to B.3 (Draft Q1 is also auto-approved under autoApprove).
+       - Treat the accepted preflight summary as Draft Q1. Derive the spec `--title`: short, max 30 characters, lowercase English, hyphen-separated.
+       - Proceed to B.4.
      - If user picks `[2]`: continue with the normal B.1 → B.2 → B.3 flow.
    - **If `eligible: false`**: do NOT display the auto-mode prompt. Continue with the normal B.1 → B.2 → B.3 flow. The result is still persisted in the flow state `autoCheck` for audit.
 
@@ -294,14 +303,14 @@ B.2. **Choose base branch**
      - `[2]` → ask which branch and use `--base <user-specified-branch>`.
 
 B.3. **Draft Q1 — intent confirmation**
-   - **autoApprove skip:** if `autoApprove: true`, skip this interactive step and use the Issue / request text directly as the draft source.
+   - **Preflight auto skip:** if B.0.5 `[1]` was accepted, this confirmation is already satisfied by the accepted preflight Goal + Scope + description. Do not ask again.
    - If an Issue number was captured, run `sdd-forge flow get issue <number>` to fetch the title and body.
    - Present a concise summary using the unified Goal + Scope + 1–3 line description format (same shape the auto-check prompt uses in B.0.5).
    - Ask with the Choice Format: `[1] Yes [2] Revise [3] Other`. **Retry limit: 1 round.** If `[3]` is selected twice, STOP.
    - Derive the spec `--title`: short, max 30 characters, lowercase English, hyphen-separated.
 
 B.4. **Prepare spec (silent)**
-   - Commands (based on B.1). `--run-id <runId>` from B.0 inherits `--issue` and `--request`:
+   - Commands (based on B.1, or B.0.5 auto default when preflight auto was accepted). `--run-id <runId>` from B.0 inherits `--issue` and `--request`:
      - Worktree: `sdd-forge flow prepare --title "..." --base <branch> --worktree --run-id <runId>`
      - Branch: `sdd-forge flow prepare --title "..." --base <branch> --run-id <runId>`
      - No branch: `sdd-forge flow prepare --title "..." --no-branch --run-id <runId>`

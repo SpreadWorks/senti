@@ -401,9 +401,10 @@ export const FLOW_COMMANDS = {
     },
     request: {
       helpKey: "flow.set.request",
+      requiresFlow: false,
       command: () => import("./lib/set-request.js"),
-      args: { positional: ["text"] },
-      help: "Usage: sdd-forge flow set request \"<text>\"\n\nSet the user request field in flow.json.",
+      args: { positional: ["text"], options: ["--run-id"] },
+      help: "Usage: sdd-forge flow set request \"<text>\" [--run-id <id>]\n\nSet the user request field. Works in both active and preparing mode.",
     },
     issue: {
       helpKey: "flow.set.issue",

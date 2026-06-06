@@ -25,6 +25,38 @@ describe("flow set request", () => {
     const updated = makeFlowManager(tmp).load();
     assert.equal(updated.request, "make a resume command");
   });
+
+  it("saves request to a preparing flow with --run-id", () => {
+    tmp = createTmpDir();
+    const init = execFileSync("node", [
+      FLOW_CMD,
+      ...FLOW_CMD_ARGS_PREFIX,
+      "set",
+      "init",
+      "--request",
+      "thin request",
+    ], {
+      encoding: "utf8",
+      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+    });
+    const runId = JSON.parse(init).data.runId;
+
+    execFileSync("node", [
+      FLOW_CMD,
+      ...FLOW_CMD_ARGS_PREFIX,
+      "set",
+      "request",
+      "Goal: refined\nScope: bounded",
+      "--run-id",
+      runId,
+    ], {
+      encoding: "utf8",
+      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+    });
+
+    const updated = makeFlowManager(tmp).loadPreparingFlow(runId);
+    assert.equal(updated.request, "Goal: refined\nScope: bounded");
+  });
 });
 
 describe("flow set note", () => {
