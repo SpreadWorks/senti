@@ -10,7 +10,6 @@
  *   metrics → src/metrics.js
  *   spec    → src/spec.js
  *   hook    → src/hook.js
- *   workflow → src/workflow/index.js  ([EXPERIMENTAL])
  *   setup   → src/setup.js
  *   upgrade → src/upgrade.js
  *   help    → src/help.js
@@ -70,7 +69,6 @@ const NAMESPACE_SCRIPTS = {
   metrics: "metrics",
   spec: "spec",
   hook: "hook",
-  workflow: "workflow/index",
 };
 
 /** Independent commands — receive rest args directly */
@@ -78,6 +76,7 @@ const INDEPENDENT = {
   setup:   "setup",
   upgrade: "upgrade",
   presets: "presets-cmd",
+  plugin:  "plugin",
 };
 
 if (NAMESPACE_SCRIPTS[subCmd]) {
@@ -99,7 +98,15 @@ if (NAMESPACE_SCRIPTS[subCmd]) {
     process.exit(EXIT_ERROR);
   }
 } else {
-  console.error(`senti: unknown command '${subCmd}'`);
+  try {
+    const { repoRoot } = await import("./lib/cli.js");
+    const { dispatchPluginCommand } = await import("./lib/plugin-registry.js");
+    const handled = await dispatchPluginCommand(repoRoot(), subCmd, rest);
+    if (handled) process.exit(0);
+    console.error(`senti: unknown command '${subCmd}' is unavailable. Enable a plugin that contributes this command, or run: senti plugin list`);
+  } catch (err) {
+    console.error(`senti: unknown command '${subCmd}' is unavailable. Plugin command resolution failed: ${err.message}`);
+  }
   console.error("Run: senti help");
   process.exit(EXIT_ERROR);
 }

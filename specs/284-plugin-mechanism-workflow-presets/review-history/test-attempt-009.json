@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-09T09:38:48.886Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 3,
+    "advisory": 1,
+    "total": 4
+  },
+  "coverageArtifact": "specs/284-plugin-mechanism-workflow-presets/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "update-all does not prove runtime files are refreshed",
+      "target": "specs/284-plugin-mechanism-workflow-presets/tests/plugin-install-safety.test.js: R3 lifecycle test",
+      "issue": "The update-all scenario advances repo commits and asserts config.plugin.packages commits changed, but it never reads the copied plugin runtime files after update-all. An implementation that only updates commit metadata and leaves .senti/plugins/* stale would pass.",
+      "requiredChange": "After plugin update-all, assert the installed plugin files contain content from the updated commits, for example by reading each installed preset/preset.json label or command file content.",
+      "whyBlocking": "R3 requires update-all to operate on installed plugin state with reproducible copying, so the current test can pass without exercising a required production behavior."
+    },
+    {
+      "kind": "blocking",
+      "title": "unsafe package validation is only covered for install",
+      "target": "specs/284-plugin-mechanism-workflow-presets/tests/plugin-install-safety.test.js: R3/R4 safety coverage",
+      "issue": "The unsafe structure cases all call plugin install. There is no regression test proving plugin sync or plugin update-all rejects unsafe package contents when those commands copy from recorded or newly advanced commits.",
+      "requiredChange": "Add a spec-local test that reaches an unsafe package through sync or update-all and asserts the command fails without copying unsafe content.",
+      "whyBlocking": "R3 requires sync/update-all with validation, and R4 requires unsafe plugin package structures to be rejected. This critical safety path has no direct coverage."
+    },
+    {
+      "kind": "blocking",
+      "title": "upgrade consumption of plugin preset contributions is untested",
+      "target": "specs/284-plugin-mechanism-workflow-presets/tests/plugin-preset-registry.test.js: R5 coverage",
+      "issue": "R5 explicitly includes upgrade consuming plugin preset contributions, but the tests cover resolveChain, docs resolver, and setup only. The upgrade tests are under R7 and do not verify that upgrade can resolve a type supplied only by an enabled plugin preset contribution.",
+      "requiredChange": "Add an R5 upgrade test with config.type set to a plugin-contributed preset key, run upgrade, and assert it succeeds while preserving/resolving that plugin preset after upgrade.",
+      "whyBlocking": "An acceptance requirement has no corresponding spec-local test coverage, so an implementation could leave upgrade using only core preset resolution and still pass the current R5 tests."
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "temporary path regex escape is brittle",
+      "target": "specs/284-plugin-mechanism-workflow-presets/tests/plugin-install-safety.test.js: clean local Git path test",
+      "improvement": "Replace the custom RegExp construction for the repo path with assert.includes or a standard RegExp escape using \"\\\\$&\".",
+      "whyNonBlocking": "The current temp paths are likely to avoid regex metacharacters, so this is mainly a portability and clarity improvement rather than missing requirement coverage."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/284-plugin-mechanism-workflow-presets/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "bfd1bad18d6690727e0c55c7f5a952cb2f0bddc4f262bf9296d59aeb4c80b83c"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 9,
+  "findings": [
+    {
+      "id": "test-009-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 9,
+      "severity": "blocking",
+      "title": "update-all does not prove runtime files are refreshed",
+      "body": "The update-all scenario advances repo commits and asserts config.plugin.packages commits changed, but it never reads the copied plugin runtime files after update-all. An implementation that only updates commit metadata and leaves .senti/plugins/* stale would pass.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-009-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 9,
+      "severity": "blocking",
+      "title": "unsafe package validation is only covered for install",
+      "body": "The unsafe structure cases all call plugin install. There is no regression test proving plugin sync or plugin update-all rejects unsafe package contents when those commands copy from recorded or newly advanced commits.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-009-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 9,
+      "severity": "blocking",
+      "title": "upgrade consumption of plugin preset contributions is untested",
+      "body": "R5 explicitly includes upgrade consuming plugin preset contributions, but the tests cover resolveChain, docs resolver, and setup only. The upgrade tests are under R7 and do not verify that upgrade can resolve a type supplied only by an enabled plugin preset contribution.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-009-non-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 9,
+      "severity": "non-blocking",
+      "title": "temporary path regex escape is brittle",
+      "body": "temporary path regex escape is brittle",
+      "category": "unknown"
+    }
+  ]
+}

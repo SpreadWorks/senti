@@ -1,0 +1,63 @@
+{
+  "spec": "specs/284-plugin-mechanism-workflow-presets/spec.json",
+  "date": "2026-06-09T11:40:00.081Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Add plugin.repos and plugin.packages config support with repo ids, package ids, optional refs, and commit-pinned enabled package entries.",
+      "status": "done",
+      "note": "R1: loadConfig accepts plugin.repos and commit-pinned plugin.packages"
+    },
+    {
+      "desc": "Implement plugin repo management and candidate discovery from checked-out plugin.json files for git URL and clean Git local path repo sources.",
+      "status": "done",
+      "note": "R2: plugin repo help exposes git URL and local path repository management"
+    },
+    {
+      "desc": "Implement plugin install, list, enable, disable, update-all, and sync with safe checkout, validation, copying, token masking, and reproducible commits.",
+      "status": "done",
+      "note": "R3: plugin help exposes install list enable disable update and sync commands"
+    },
+    {
+      "desc": "Reject unsafe plugin package structures, including invalid ids/files, contribution paths outside copied files, symlinks, .git content, package dependencies, and scripts.",
+      "status": "done",
+      "note": "R4: update-all rejects newly unsafe package contents before copying runtime files"
+    },
+    {
+      "desc": "Make preset resolution, docs loaders, setup, and upgrade consume plugin preset contributions while retaining base as core builtin and .senti/presets/<key>/ as registry-backed project-local overlay.",
+      "status": "done",
+      "note": "R5: resolveChain uses enabled plugin preset contributions and project-local overlays"
+    },
+    {
+      "desc": "Implement plugin registry static meta for preset/DataSource resolution, parent chains, override resolution, and template/data directive pre-validation.",
+      "status": "done",
+      "note": "R6: registry metadata validates DataSource static meta and bounded parent chains"
+    },
+    {
+      "desc": "Move non-base official presets to senti-presets with plugin.json contributions and update core migration to install/enable them when existing config.type requires them.",
+      "status": "done",
+      "note": "R7: non-base official presets move out of core and into the official senti-presets artifact"
+    },
+    {
+      "desc": "Move workflow command, skills, config schema/defaults, and flowIntegration support to senti-workflow-plugin while enabling the workflow plugin for every valid existing project during upgrade.",
+      "status": "done",
+      "note": "R8: workflow command skill and config contributions live in the official workflow plugin artifact"
+    },
+    {
+      "desc": "Replace core workflow-specific top-level dispatch with generic plugin command dispatch that resolves core built-ins first and rejects overriding core commands.",
+      "status": "done",
+      "note": "R9: core dispatcher no longer hardcodes workflow and unavailable plugin commands fail non-zero"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 9,
+    "done": 9,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 1,
+    "not_testable_count": 1,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

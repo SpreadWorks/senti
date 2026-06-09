@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-09T09:30:35.105Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 4,
+    "advisory": 0,
+    "total": 4
+  },
+  "coverageArtifact": "specs/284-plugin-mechanism-workflow-presets/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "External plugin repo paths make tests environment-dependent",
+      "target": "specs/284-plugin-mechanism-workflow-presets/tests/plugin-preset-registry.test.js and specs/284-plugin-mechanism-workflow-presets/tests/workflow-plugin-migration.test.js",
+      "issue": "The tests default SENTI_PRESETS_REPO and SENTI_WORKFLOW_PLUGIN_REPO to hard-coded absolute paths under /home/nakano/workspace and then assert those plugin.json files exist. In a clean CI or reviewer workspace these tests are not executable unless unrelated sibling repositories happen to exist at those exact paths.",
+      "requiredChange": "Create the senti-presets and workflow plugin fixtures inside the test temp directory or point to checked-in spec fixtures, then use those paths consistently for install/upgrade assertions.",
+      "whyBlocking": "A test suite that depends on author-local absolute paths can fail before exercising the implementation and does not provide reliable spec-local acceptance coverage for R7 and R8."
+    },
+    {
+      "kind": "blocking",
+      "title": "Bounded preset parent-chain validation is not actually tested",
+      "target": "specs/284-plugin-mechanism-workflow-presets/tests/plugin-preset-registry.test.js R6 test",
+      "issue": "The R6 test name claims bounded parent chains are validated, but the only parent-chain assertion is doesNotThrow for a valid chain. An implementation with no cycle detection or max-depth enforcement would still pass.",
+      "requiredChange": "Add a spec-local plugin preset fixture with a cycle or chain exceeding maxDepth and assert validatePresetChain fails for it.",
+      "whyBlocking": "R6 explicitly requires bounded parent-chain validation, and the current test would pass without exercising that required production behavior."
+    },
+    {
+      "kind": "blocking",
+      "title": "Core command override rejection is not asserted",
+      "target": "specs/284-plugin-mechanism-workflow-presets/tests/workflow-plugin-migration.test.js R9 test",
+      "issue": "The test installs a plugin that contributes a core command name, docs, but only asserts the core docs help still works and plugin list output mentions the conflict. It does not require the override to be rejected, so warning or silent ignore behavior could pass.",
+      "requiredChange": "Assert that a plugin declaring a command with a core command name is rejected by plugin validation, registry loading, install, or list with a non-zero failure, while a non-core plugin command remains dispatchable in a separate valid fixture.",
+      "whyBlocking": "R9 requires rejecting core command overrides; the current test encodes a weaker premise and could pass an implementation that does not enforce the rejection."
+    },
+    {
+      "kind": "blocking",
+      "title": "Clean local Git repo requirement lacks dirty-repo regression coverage",
+      "target": "specs/284-plugin-mechanism-workflow-presets/tests/plugin-install-safety.test.js R2/R3 coverage",
+      "issue": "Local path discovery is tested only with committed clean repositories. There is no test that an uncommitted or dirty local Git plugin source is refused or otherwise prevented from producing an unreproducible installed commit.",
+      "requiredChange": "Add a local Git fixture with uncommitted changes after the initial commit and assert repo add, find, or install fails with an error explaining the source must be clean.",
+      "whyBlocking": "R2 calls out clean Git local path repo sources and R3 requires reproducible commits; without this regression, an implementation can accept dirty local sources and still pass the current tests."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/284-plugin-mechanism-workflow-presets/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 4,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "30ac8f766676b46e68d345412c95b66f678ebacd3e9566ad0f2057a64549cc4c"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 6,
+  "findings": [
+    {
+      "id": "test-006-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 6,
+      "severity": "blocking",
+      "title": "External plugin repo paths make tests environment-dependent",
+      "body": "The tests default SENTI_PRESETS_REPO and SENTI_WORKFLOW_PLUGIN_REPO to hard-coded absolute paths under /home/nakano/workspace and then assert those plugin.json files exist. In a clean CI or reviewer workspace these tests are not executable unless unrelated sibling repositories happen to exist at those exact paths.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-006-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 6,
+      "severity": "blocking",
+      "title": "Bounded preset parent-chain validation is not actually tested",
+      "body": "The R6 test name claims bounded parent chains are validated, but the only parent-chain assertion is doesNotThrow for a valid chain. An implementation with no cycle detection or max-depth enforcement would still pass.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-006-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 6,
+      "severity": "blocking",
+      "title": "Core command override rejection is not asserted",
+      "body": "The test installs a plugin that contributes a core command name, docs, but only asserts the core docs help still works and plugin list output mentions the conflict. It does not require the override to be rejected, so warning or silent ignore behavior could pass.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-006-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 6,
+      "severity": "blocking",
+      "title": "Clean local Git repo requirement lacks dirty-repo regression coverage",
+      "body": "Local path discovery is tested only with committed clean repositories. There is no test that an uncommitted or dirty local Git plugin source is refused or otherwise prevented from producing an unreproducible installed commit.",
+      "category": "unknown"
+    }
+  ]
+}

@@ -257,6 +257,38 @@ const CONFIG_SCHEMA = {
       },
     },
 
+    plugin: {
+      type: "object",
+      properties: {
+        repos: {
+          type: "array",
+          items: {
+            type: "object",
+            required: ["id", "source"],
+            properties: {
+              id: { type: "string", minLength: 1 },
+              source: { type: "string", minLength: 1 },
+              ref: { type: "string", minLength: 1 },
+            },
+          },
+        },
+        packages: {
+          type: "array",
+          items: {
+            type: "object",
+            required: ["id", "repo", "commit"],
+            properties: {
+              id: { type: "string", minLength: 1 },
+              repo: { type: "string", minLength: 1 },
+              ref: { type: "string", minLength: 1 },
+              commit: { type: "string", minLength: 40 },
+              enabled: { type: "boolean" },
+            },
+          },
+        },
+      },
+    },
+
     test: {
       type: "object",
       properties: {
@@ -324,7 +356,7 @@ export function validate(raw, options = {}) {
     throw new Error("config must be a non-null object");
   }
 
-  const errors = validateSchema(raw, CONFIG_SCHEMA);
+  const errors = validateSchema(raw, options.schema || CONFIG_SCHEMA);
   if (options.allowMissingType === true) {
     const index = errors.indexOf(MISSING_TYPE_ERROR);
     if (index !== -1) errors.splice(index, 1);
@@ -370,11 +402,33 @@ export function validate(raw, options = {}) {
     }
   }
 
+  if (raw.plugin) validatePluginConfig(raw.plugin, errors);
+
   if (errors.length > 0) {
     throw new Error(`Config validation failed:\n  - ${errors.join("\n  - ")}`);
   }
 
   return /** @type {import("./types.js").SentiConfig} */ (raw);
+}
+
+const PLUGIN_ID_RE = /^[a-z0-9][a-z0-9._-]*$/;
+const PLUGIN_COMMIT_RE = /^[0-9a-f]{40}$/;
+
+function validatePluginConfig(plugin, errors) {
+  const repoIds = new Set();
+  for (const [index, repo] of (plugin.repos || []).entries()) {
+    if (!PLUGIN_ID_RE.test(repo.id)) errors.push(`'plugin.repos[${index}].id': invalid plugin repo id`);
+    if (repoIds.has(repo.id)) errors.push(`'plugin.repos[${index}].id': duplicate plugin repo id "${repo.id}"`);
+    repoIds.add(repo.id);
+  }
+  const packageIds = new Set();
+  for (const [index, pkg] of (plugin.packages || []).entries()) {
+    if (!PLUGIN_ID_RE.test(pkg.id)) errors.push(`'plugin.packages[${index}].id': invalid plugin package id`);
+    if (packageIds.has(pkg.id)) errors.push(`'plugin.packages[${index}].id': duplicate plugin package id "${pkg.id}"`);
+    packageIds.add(pkg.id);
+    if (!repoIds.has(pkg.repo)) errors.push(`'plugin.packages[${index}].repo': unknown plugin repo "${pkg.repo}"`);
+    if (!PLUGIN_COMMIT_RE.test(pkg.commit)) errors.push(`'plugin.packages[${index}].commit': must be a 40-character lowercase git commit`);
+  }
 }
 
 const TEST_COMMAND_FORBIDDEN = /(\|\||&&|[|&;<>`$()]|\*|\?|\[|\]|\{|\})/;
@@ -409,5 +463,64 @@ function validateProjectTestPath(entry, index, errors) {
  */
 export function loadConfig(root, options = {}) {
   const raw = loadJsonFile(sentiConfigPath(root));
-  return validate(raw, options);
+  const pluginConfig = loadEnabledPluginConfig(root, raw);
+  const merged = mergeDefaults(raw, pluginConfig.defaults);
+  return validate(merged, { ...options, schema: mergeConfigSchemas(CONFIG_SCHEMA, pluginConfig.schemas) });
+}
+
+function loadEnabledPluginConfig(root, raw) {
+  const schemas = [];
+  const defaults = [];
+  for (const pkg of raw?.plugin?.packages || []) {
+    if (pkg.enabled === false) continue;
+    const pluginRoot = path.join(sentiDir(root), "plugins", pkg.id);
+    const manifestPath = path.join(pluginRoot, "plugin.json");
+    if (!fs.existsSync(manifestPath)) continue;
+    try {
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+      const config = manifest.contributions?.config;
+      if (config?.schema) schemas.push(loadJsonFile(path.join(pluginRoot, config.schema)));
+      if (config?.defaults) defaults.push(loadJsonFile(path.join(pluginRoot, config.defaults)));
+    } catch (_) {
+      continue;
+    }
+  }
+  return { schemas, defaults };
+}
+
+function mergeConfigSchemas(base, schemas) {
+  if (!schemas.length) return base;
+  const merged = {
+    ...base,
+    properties: { ...base.properties },
+  };
+  for (const schema of schemas) {
+    for (const [key, value] of Object.entries(schema.properties || {})) {
+      merged.properties[key] = value;
+    }
+  }
+  return merged;
+}
+
+function mergeDefaults(raw, defaults) {
+  if (!defaults.length) return raw;
+  let merged = structuredClone(raw);
+  for (const defaultsObject of defaults) merged = mergeMissing(merged, defaultsObject);
+  return merged;
+}
+
+function mergeMissing(target, defaults) {
+  if (!defaults || typeof defaults !== "object" || Array.isArray(defaults)) return target;
+  const out = { ...target };
+  for (const [key, value] of Object.entries(defaults)) {
+    if (out[key] == null) {
+      out[key] = value;
+    } else if (
+      typeof out[key] === "object" && out[key] !== null && !Array.isArray(out[key])
+      && typeof value === "object" && value !== null && !Array.isArray(value)
+    ) {
+      out[key] = mergeMissing(out[key], value);
+    }
+  }
+  return out;
 }

@@ -1,0 +1,2283 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".senti/output/analysis.json                        | 2443 ++-----------\n package.json                                       |    3 +-\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-questions-repair.json                    |   57 +\n .../draft-questions-triage.json                    |   57 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   61 +\n .../draft.json                                     |  157 +\n .../file-map.json                                  |   56 +\n .../flow.json                                      | 1673 +++++++++\n .../impl-review.json                               | 1653 +++++++++\n .../issue-log.json                                 |  116 +\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |  135 +\n .../review-history/impl-attempt-001.json           | 3687 ++++++++++++++++++++\n .../review-history/impl-attempt-001.md             | 2248 ++++++++++++\n .../review-history/spec-attempt-001.json           |  169 +\n .../review-history/spec-attempt-001.md             |   54 +\n .../review-history/test-attempt-001.json           |  137 +\n .../review-history/test-attempt-001.md             |   44 +\n .../review-history/test-attempt-002.json           |  155 +\n .../review-history/test-attempt-002.md             |   50 +\n .../review-history/test-attempt-003.json           |   48 +\n .../review-history/test-attempt-003.md             |   18 +\n .../review-history/test-attempt-004.json           |   84 +\n .../review-history/test-attempt-004.md             |   27 +\n .../review-history/test-attempt-005.json           |   66 +\n .../review-history/test-attempt-005.md             |   21 +\n .../review-history/test-attempt-006.json           |  102 +\n .../review-history/test-attempt-006.md             |   36 +\n .../review-history/test-attempt-007.json           |   48 +\n .../review-history/test-attempt-007.md             |   18 +\n .../review-history/test-attempt-008.json           |  102 +\n .../review-history/test-attempt-008.md             |   33 +\n .../review-history/test-attempt-009.json           |  102 +\n .../review-history/test-attempt-009.md             |   33 +\n .../review-history/test-attempt-010.json           |   66 +\n .../review-history/test-attempt-010.md             |   21 +\n .../review-history/test-attempt-011.json           |   47 +\n .../review-history/test-attempt-011.md             |   16 +\n .../review.md                                      | 2248 ++++++++++++\n .../spec-repair.json                               |   56 +\n .../spec-review.json                               |   85 +\n .../spec-review.md                                 |   54 +\n .../spec-triage.json                               |   50 +\n .../spec.json                                      |  468 +++\n .../284-plugin-mechanism-workflow-presets/spec.md  |  208 ++\n .../tasks/T-1.md                                   |   20 +\n .../tasks/T-2.md                                   |   21 +\n .../tasks/T-3.md                                   |   21 +\n .../tasks/T-4.md                                   |   21 +\n .../tasks/T-5.md                                   |   20 +\n .../tasks/T-6.md                                   |   21 +\n .../tasks/T-7.md                                   |   20 +\n .../tasks/T-8.md                                   |   20 +\n .../test-coverage.json                             |  159 +\n .../test-review.json                               |   33 +\n .../test-review.md                                 |   16 +\n .../tests/plugin-config-cli.test.js                |  113 +\n .../tests/plugin-install-safety.test.js            |  452 +++\n .../tests/plugin-preset-registry.test.js           |  335 ++\n .../tests/workflow-plugin-migration.test.js        |  243 ++\n src/AGENTS.md                                      |   10 +-\n src/docs/lib/data-source-loader.js                 |    4 +-\n src/flow/lib/run-gate.js                           |   39 +-\n src/help.js                                        |    2 +-\n src/lib/config.js                                  |  117 +-\n src/lib/official-plugins.js                        |   10 +\n src/lib/plugin-registry.js                         |  587 ++++\n src/lib/presets.js                                 |   58 +-\n src/lib/skills.js                                  |    2 +-\n src/locale/en/ui.json                              |    3 +-\n src/locale/ja/ui.json                              |    3 +-\n src/official-plugins/senti-presets/plugin.json     |   47 +\n .../senti-presets}/presets/api/guardrail.json      |    0\n .../senti-presets}/presets/api/preset.json         |    0\n .../presets/api/templates/en/api_overview.md       |    0\n .../presets/api/templates/en/authentication.md     |    0\n .../presets/api/templates/ja/api_overview.md       |    0\n .../presets/api/templates/ja/authentication.md     |    0\n .../presets/architecture/guardrail.json            |    0\n .../presets/architecture/preset.json               |    0\n .../senti-presets/presets/base/data/package.js     |   78 +\n .../senti-presets/presets/base/data/structure.js   |  103 +\n .../presets/base/guardrail-rewrite-rubric.md       |    8 +\n .../senti-presets/presets/base/guardrail.json      |  312 ++\n .../senti-presets/presets/base/preset.json         |   22 +\n .../presets/base/templates/en/AGENTS.senti.md      |   40 +\n .../presets/base/templates/en/development.md       |   42 +\n .../presets/base/templates/en/layout.md            |   10 +\n .../presets/base/templates/en/overview.md          |   47 +\n .../presets/base/templates/en/project_structure.md |   35 +\n .../presets/base/templates/en/stack_and_ops.md     |   44 +\n .../presets/base/templates/ja/AGENTS.senti.md      |   40 +\n .../presets/base/templates/ja/development.md       |   42 +\n .../presets/base/templates/ja/layout.md            |   10 +\n .../presets/base/templates/ja/overview.md          |   47 +\n .../presets/base/templates/ja/project_structure.md |   35 +\n .../presets/base/templates/ja/stack_and_ops.md     |   44 +\n .../tests/acceptance/fixtures/.senti/config.json   |    0\n .../base}/tests/acceptance/fixtures/package.json   |    0\n .../base}/tests/acceptance/fixtures/src/config.js  |    0\n .../tests/acceptance/fixtures/src/http-client.js   |    0\n .../base}/tests/acceptance/fixtures/src/index.js   |    0\n .../base}/tests/acceptance/fixtures/src/logger.js  |    0\n .../presets/base/tests/acceptance/test.js          |    6 +\n .../presets/cakephp2/data/commands.js              |    0\n .../senti-presets}/presets/cakephp2/data/config.js |    0\n .../presets/cakephp2/data/controllers.js           |    0\n .../senti-presets}/presets/cakephp2/data/docker.js |    0\n .../senti-presets}/presets/cakephp2/data/email.js  |    0\n .../senti-presets}/presets/cakephp2/data/libs.js   |    0\n .../senti-presets}/presets/cakephp2/data/models.js |    0\n .../senti-presets}/presets/cakephp2/data/tables.js |    0\n .../senti-presets}/presets/cakephp2/data/tests.js  |    0\n .../senti-presets}/presets/cakephp2/data/views.js  |    0\n .../senti-presets}/presets/cakephp2/guardrail.json |    0\n .../senti-presets}/presets/cakephp2/preset.json    |    0\n .../cakephp2/templates/en/auth_and_session.md      |    0\n .../cakephp2/templates/en/business_logic.md        |    0\n .../presets/cakephp2/templates/en/commands.md      |    0\n .../cakephp2/templates/en/controller_routes.md     |    0\n .../cakephp2/templates/en/database_architecture.md |    0\n .../presets/cakephp2/templates/en/db_tables.md     |    0\n .../presets/cakephp2/templates/en/development.md   |    0\n .../cakephp2/templates/en/project_structure.md     |    0\n .../presets/cakephp2/templates/en/stack_and_ops.md |    0\n .../cakephp2/templates/ja/auth_and_session.md      |    0\n .../cakephp2/templates/ja/business_logic.md        |    0\n .../presets/cakephp2/templates/ja/commands.md      |    0\n .../cakephp2/templates/ja/controller_routes.md     |    0\n .../cakephp2/templates/ja/database_architecture.md |    0\n .../presets/cakephp2/templates/ja/db_tables.md     |    0\n .../presets/cakephp2/templates/ja/development.md   |    0\n .../cakephp2/templates/ja/project_structure.md     |    0\n .../presets/cakephp2/templates/ja/stack_and_ops.md |    0\n .../tests/acceptance/fixtures/.senti/config.json   |    0\n .../fixtures/.senti/output/analysis.json           |    0\n .../acceptance/fixtures/app/Config/bootstrap.php   |    0\n .../acceptance/fixtures/app/Config/database.php    |    0\n .../acceptance/fixtures/app/Config/routes.php      |    0\n .../fixtures/app/Console/Command/CleanupShell.php  |    0\n .../fixtures/app/Controller/AppController.php      |    0\n .../fixtures/app/Controller/PostsController.php    |    0\n .../fixtures/app/Controller/TagsController.php     |    0\n .../fixtures/app/Controller/ThreadsController.php  |    0\n .../fixtures/app/Controller/UsersController.php    |    0\n .../tests/acceptance/fixtures/app/Lib/AppLib.php   |    0\n .../acceptance/fixtures/app/Model/AppModel.php     |    0\n .../tests/acceptance/fixtures/app/Model/Post.php   |    0\n .../tests/acceptance/fixtures/app/Model/Tag.php    |    0\n .../tests/acceptance/fixtures/app/Model/Thread.php |    0\n .../tests/acceptance/fixtures/app/Model/User.php   |    0\n .../fixtures/app/View/Elements/sidebar.ctp         |    0\n .../fixtures/app/View/Helper/AppHelper.php         |    0\n .../fixtures/app/View/Layouts/default.ctp          |    0\n .../acceptance/fixtures/app/View/Threads/index.ctp |    0\n .../tests/acceptance/fixtures/composer.json        |    0\n .../tests/acceptance/fixtures/docker-compose.yml   |    0\n .../presets/cakephp2/tests/acceptance/test.js      |    0\n .../presets/cakephp2/tests/analyzers.js            |    0\n .../tests/unit/analyzers-assets-config.test.js     |    0\n .../tests/unit/analyzers-models-business.test.js   |    0\n .../cakephp2/tests/unit/analyzers-security.test.js |    0\n .../tests/unit/analyzers-views-commands.test.js    |    0\n .../cakephp2/tests/unit/commands-match.test.js     |    0\n .../senti-presets}/presets/ci/guardrail.json       |    0\n .../senti-presets}/presets/ci/preset.json          |    0\n .../presets/ci/templates/en/ci_cd.md               |    0\n .../presets/ci/templates/ja/ci_cd.md               |    0\n .../senti-presets}/presets/cli/data/commands.js    |    0\n .../senti-presets}/presets/cli/data/modules.js     |    0\n .../senti-presets}/presets/cli/guardrail.json      |    0\n .../senti-presets}/presets/cli/preset.json         |    0\n .../presets/cli/templates/en/README.md             |    0\n .../presets/cli/templates/en/commands.md           |    0\n .../presets/cli/templates/en/config.md             |    0\n .../presets/cli/templates/ja/README.md             |    0\n .../presets/cli/templates/ja/commands.md           |    0\n .../presets/cli/templates/ja/config.md             |    0\n .../tests/acceptance/fixtures/.senti/config.json   |    0\n .../cli/tests/acceptance/fixtures/package.json     |    0\n .../cli/tests/acceptance/fixtures/src/cli.js       |    0\n .../acceptance/fixtures/src/commands/format.js     |    0\n .../tests/acceptance/fixtures/src/commands/lint.js |    0\n .../acceptance/fixtures/src/commands/parse.js      |    0\n .../tests/acceptance/fixtures/src/commands/toc.js  |    0\n .../cli/tests/acceptance/fixtures/src/config.js    |    0\n .../tests/acceptance/fixtures/src/lib/parser.js    |    0\n .../tests/acceptance/fixtures/src/lib/renderer.js  |    0\n .../fixtures/src/lib/rules/code-block.js           |    0\n .../acceptance/fixtures/src/lib/rules/heading.js   |    0\n .../acceptance/fixtures/src/lib/rules/link.js      |    0\n .../acceptance/fixtures/src/lib/rules/list.js      |    0\n .../tests/acceptance/fixtures/src/lib/tokenizer.js |    0\n .../presets/cli/tests/acceptance/test.js           |    0\n .../presets/coding-rule/guardrail.json             |    0\n .../senti-presets}/presets/coding-rule/preset.json |    0\n .../senti-presets}/presets/database/data/schema.js |    0\n .../senti-presets}/presets/database/guardrail.json |    0\n .../senti-presets}/presets/database/preset.json    |    0\n .../presets/database/templates/en/database.md      |    0\n .../presets/database/templates/ja/database.md      |    0\n .../senti-presets}/presets/document/guardrail.json |    0\n .../senti-presets}/presets/document/preset.json    |    0\n .../senti-presets}/presets/drizzle/data/schema.js  |    0\n .../senti-presets}/presets/drizzle/preset.json     |    0\n .../presets/drizzle/templates/en/database.md       |    0\n .../presets/drizzle/templates/en/schema.md         |    0\n .../presets/drizzle/templates/ja/database.md       |    0\n .../presets/drizzle/templates/ja/schema.md         |    0\n .../presets/drizzle/tests/analyzers.js             |    0\n .../presets/drizzle/tests/unit/analyzers.test.js   |    0\n .../senti-presets}/presets/edge/data/runtime.js    |    0\n .../senti-presets}/presets/edge/guardrail.json     |    0\n .../senti-presets}/presets/edge/preset.json        |    0\n .../presets/edge/templates/en/edge_runtime.md      |    0\n .../presets/edge/templates/ja/edge_runtime.md      |    0\n .../presets/github-actions/data/pipelines.js       |    0\n .../presets/github-actions/guardrail.json          |    0\n .../presets/github-actions/preset.json             |    0\n .../presets/github-actions/templates/en/ci_cd.md   |    0\n .../presets/github-actions/templates/ja/ci_cd.md   |    0\n .../presets/github-actions/tests/analyzers.js      |    0\n .../senti-presets}/presets/graphql/data/schema.js  |    0\n .../senti-presets}/presets/graphql/guardrail.json  |    0\n .../senti-presets}/presets/graphql/preset.json     |    0\n .../presets/graphql/templates/en/api_overview.md   |    0\n .../presets/graphql/templates/en/authentication.md |    0\n .../presets/graphql/templates/en/schema.md         |    0\n .../presets/graphql/templates/ja/api_overview.md   |    0\n .../presets/graphql/templates/ja/authentication.md |    0\n .../presets/graphql/templates/ja/schema.md         |    0\n .../presets/graphql/tests/analyzers.js             |    0\n .../presets/graphql/tests/unit/analyzers.test.js   |    0\n .../presets/greenfield/guardrail.json              |    0\n .../senti-presets}/presets/greenfield/preset.json  |    0\n .../senti-presets}/presets/hono/data/middleware.js |    0\n .../senti-presets}/presets/hono/preset.json        |    0\n .../presets/hono/templates/en/middleware.md        |    0\n .../presets/hono/templates/ja/middleware.md        |    0\n .../presets/hono/tests/unit/analyzers.test.js      |    0\n .../presets/infrastructure/guardrail.json          |    0\n .../presets/infrastructure/preset.json             |    0\n .../presets/js-webapp/guardrail.json               |    0\n .../senti-presets}/presets/js-webapp/preset.json   |    0\n .../tests/acceptance/fixtures/.senti/config.json   |   29 +\n .../tests/acceptance/fixtures/package.json         |   10 +\n .../tests/acceptance/fixtures/src/config.js        |   55 +\n .../tests/acceptance/fixtures/src/http-client.js   |   88 +\n .../tests/acceptance/fixtures/src/index.js         |   51 +\n .../tests/acceptance/fixtures/src/logger.js        |   43 +\n .../presets/js-webapp/tests/acceptance/test.js     |    0\n .../presets/laravel/data/commands.js               |    0\n .../senti-presets}/presets/laravel/data/config.js  |    0\n .../presets/laravel/data/controllers.js            |    0\n .../senti-presets}/presets/laravel/data/models.js  |    0\n .../senti-presets}/presets/laravel/data/routes.js  |    0\n .../senti-presets}/presets/laravel/data/tables.js  |    0\n .../senti-presets}/presets/laravel/guardrail.json  |    0\n .../senti-presets}/presets/laravel/preset.json     |    0\n .../laravel/templates/en/auth_and_session.md       |    0\n .../laravel/templates/en/controller_routes.md      |    0\n .../presets/laravel/templates/en/db_tables.md      |    0\n .../laravel/templates/en/project_structure.md      |    0\n .../presets/laravel/templates/en/stack_and_ops.md  |    0\n .../laravel/templates/ja/auth_and_session.md       |    0\n .../laravel/templates/ja/controller_routes.md      |    0\n .../presets/laravel/templates/ja/db_tables.md      |    0\n .../laravel/templates/ja/project_structure.md      |    0\n .../presets/laravel/templates/ja/stack_and_ops.md  |    0\n .../presets/laravel/tests/acceptance/fixtures/.env |    0\n .../tests/acceptance/fixtures/.senti/config.json   |    0\n .../app/Console/Commands/CleanupCommand.php        |    0\n .../app/Http/Controllers/AuthController.php        |    0\n .../app/Http/Controllers/PostController.php        |    0\n .../app/Http/Controllers/TagController.php         |    0\n .../app/Http/Controllers/ThreadController.php      |    0\n .../fixtures/app/Http/Middleware/Authenticate.php  |    0\n .../tests/acceptance/fixtures/app/Models/Post.php  |    0\n .../tests/acceptance/fixtures/app/Models/Tag.php   |    0\n .../acceptance/fixtures/app/Models/Thread.php      |    0\n .../tests/acceptance/fixtures/app/Models/User.php  |    0\n .../tests/acceptance/fixtures/composer.json        |    0\n .../tests/acceptance/fixtures/config/app.php       |    0\n .../2024_01_01_000001_create_users_table.php       |    0\n .../2024_01_01_000002_create_threads_table.php     |    0\n .../2024_01_01_000003_create_posts_table.php       |    0\n .../2024_01_01_000004_create_tags_table.php        |    0\n .../2024_01_01_000005_create_thread_tag_table.php  |    0\n .../tests/acceptance/fixtures/routes/api.php       |    0\n .../tests/acceptance/fixtures/routes/web.php       |    0\n .../presets/laravel/tests/acceptance/test.js       |    0\n .../presets/laravel/tests/analyzers.js             |    0\n .../presets/laravel/tests/e2e/integration.test.js  |    0\n .../presets/laravel/tests/e2e/scan.test.js         |    0\n .../presets/laravel/tests/unit/analyzers.test.js   |    0\n .../laravel/tests/unit/commands-match.test.js      |    0\n .../laravel/tests/unit/scan-parser-bugs.test.js    |    0\n .../senti-presets}/presets/lib/composer-utils.js   |    0\n .../senti-presets}/presets/lib/path-match.js       |    0\n .../senti-presets}/presets/library/guardrail.json  |    0\n .../senti-presets}/presets/library/preset.json     |    0\n .../presets/library/templates/en/README.md         |    0\n .../presets/library/templates/en/public_api.md     |    0\n .../presets/library/templates/en/usage.md          |    0\n .../presets/library/templates/ja/README.md         |    0\n .../presets/library/templates/ja/public_api.md     |    0\n .../presets/library/templates/ja/usage.md          |    0\n .../tests/acceptance/fixtures/.senti/config.json   |    0\n .../library/tests/acceptance/fixtures/package.json |    0\n .../library/tests/acceptance/fixtures/src/index.js |    0\n .../tests/acceptance/fixtures/src/parser.js        |    0\n .../tests/acceptance/fixtures/src/renderer.js      |    0\n .../acceptance/fixtures/src/rules/code-block.js    |    0\n .../acceptance/fixtures/src/rules/emphasis.js      |    0\n .../tests/acceptance/fixtures/src/rules/heading.js |    0\n .../tests/acceptance/fixtures/src/rules/link.js    |    0\n .../tests/acceptance/fixtures/src/rules/list.js    |    0\n .../tests/acceptance/fixtures/src/rules/table.js   |    0\n .../tests/acceptance/fixtures/src/tokenizer.js     |    0\n .../tests/acceptance/fixtures/src/utils/escape.js  |    0\n .../acceptance/fixtures/src/utils/normalize.js     |    0\n .../presets/library/tests/acceptance/test.js       |    0\n .../presets/maintenance/guardrail.json             |    0\n .../senti-presets}/presets/maintenance/preset.json |    0\n .../presets/monorepo/data/monorepo.js              |    0\n .../senti-presets}/presets/monorepo/guardrail.json |    0\n .../senti-presets}/presets/monorepo/preset.json    |    0\n .../senti-presets}/presets/mysql/NOTICE            |    0\n .../senti-presets}/presets/mysql/guardrail.json    |    0\n .../senti-presets}/presets/mysql/preset.json       |    0\n .../senti-presets}/presets/nextjs/NOTICE           |    0\n .../presets/nextjs/data/components.js              |    0\n .../senti-presets}/presets/nextjs/data/routes.js   |    0\n .../senti-presets}/presets/nextjs/guardrail.json   |    0\n .../senti-presets}/presets/nextjs/preset.json      |    0\n .../presets/nextjs/templates/en/components.md      |    0\n .../presets/nextjs/templates/en/middleware.md      |    0\n .../presets/nextjs/templates/en/pages_routing.md   |    0\n .../presets/nextjs/templates/en/route_handlers.md  |    0\n .../presets/nextjs/templates/ja/components.md      |    0\n .../presets/nextjs/templates/ja/middleware.md      |    0\n .../presets/nextjs/templates/ja/pages_routing.md   |    0\n .../presets/nextjs/templates/ja/route_handlers.md  |    0\n .../presets/nextjs/tests/analyzers.js              |    0\n .../presets/nextjs/tests/unit/analyzers.test.js    |    0\n .../senti-presets}/presets/node-cli/guardrail.json |    0\n .../senti-presets}/presets/node-cli/preset.json    |    0\n .../presets/node-cli/templates/en/README.md        |    0\n .../presets/node-cli/templates/en/cli_commands.md  |    0\n .../presets/node-cli/templates/en/configuration.md |    0\n .../node-cli/templates/en/development_testing.md   |    0\n .../node-cli/templates/en/internal_design.md       |    0\n .../presets/node-cli/templates/en/overview.md      |    0\n .../presets/node-cli/templates/ja/README.md        |    0\n .../presets/node-cli/templates/ja/cli_commands.md  |    0\n .../presets/node-cli/templates/ja/configuration.md |    0\n .../node-cli/templates/ja/development_testing.md   |    0\n .../node-cli/templates/ja/internal_design.md       |    0\n .../presets/node-cli/templates/ja/overview.md      |    0\n .../tests/acceptance/fixtures/.senti/config.json   |    0\n .../tests/acceptance/fixtures/package.json         |    0\n .../node-cli/tests/acceptance/fixtures/src/cli.js  |    0\n .../acceptance/fixtures/src/commands/format.js     |    0\n .../tests/acceptance/fixtures/src/commands/lint.js |    0\n .../acceptance/fixtures/src/commands/parse.js      |    0\n .../tests/acceptance/fixtures/src/commands/toc.js  |    0\n .../tests/acceptance/fixtures/src/config.js        |    0\n .../tests/acceptance/fixtures/src/lib/parser.js    |    0\n .../tests/acceptance/fixtures/src/lib/renderer.js  |    0\n .../fixtures/src/lib/rules/code-block.js           |    0\n .../acceptance/fixtures/src/lib/rules/heading.js   |    0\n .../acceptance/fixtures/src/lib/rules/link.js      |    0\n .../acceptance/fixtures/src/lib/rules/list.js      |    0\n .../tests/acceptance/fixtures/src/lib/tokenizer.js |    0\n .../presets/node-cli/tests/acceptance/test.js      |    0\n .../presets/oss-contribute/guardrail.json          |    0\n .../presets/oss-contribute/preset.json             |    0\n .../senti-presets}/presets/php-webapp/preset.json  |    0\n .../tests/acceptance/fixtures/.senti/config.json   |    0\n .../tests/acceptance/fixtures/composer.json        |    0\n .../tests/acceptance/fixtures/src/App.php          |    0\n .../tests/acceptance/fixtures/src/Config.php       |    0\n .../tests/acceptance/fixtures/src/HttpClient.php   |    0\n .../tests/acceptance/fixtures/src/Logger.php       |    0\n .../presets/php-webapp/tests/acceptance/test.js    |    0\n .../presets/postgres/data/database.js              |    0\n .../senti-presets}/presets/postgres/preset.json    |    0\n .../presets/postgres/templates/en/database.md      |    0\n .../presets/postgres/templates/ja/database.md      |    0\n .../senti-presets}/presets/principle/preset.json   |    0\n .../senti-presets}/presets/r2/data/storage.js      |    0\n .../senti-presets}/presets/r2/preset.json          |    0\n .../presets/r2/templates/en/storage.md             |    0\n .../presets/r2/templates/ja/storage.md             |    0\n .../senti-presets}/presets/rest/guardrail.json     |    0\n .../senti-presets}/presets/rest/preset.json        |    0\n .../presets/rest/templates/en/api_overview.md      |    0\n .../presets/rest/templates/en/authentication.md    |    0\n .../presets/rest/templates/en/endpoints.md         |    0\n .../presets/rest/templates/ja/api_overview.md      |    0\n .../presets/rest/templates/ja/authentication.md    |    0\n .../presets/rest/templates/ja/endpoints.md         |    0\n .../senti-presets}/presets/storage/data/buckets.js |    0\n .../senti-presets}/presets/storage/guardrail.json  |    0\n .../senti-presets}/presets/storage/preset.json     |    0\n .../presets/storage/templates/en/storage.md        |    0\n .../presets/storage/templates/ja/storage.md        |    0\n .../senti-presets}/presets/symfony/NOTICE          |    0\n .../presets/symfony/data/commands.js               |    0\n .../senti-presets}/presets/symfony/data/config.js  |    0\n .../presets/symfony/data/controllers.js            |    0\n .../presets/symfony/data/entities.js               |    0\n .../senti-presets}/presets/symfony/data/routes.js  |    0\n .../senti-presets}/presets/symfony/data/tables.js  |    0\n .../senti-presets}/presets/symfony/guardrail.json  |    0\n .../senti-presets}/presets/symfony/preset.json     |    0\n .../symfony/templates/en/auth_and_session.md       |    0\n .../presets/symfony/templates/en/business_logic.md |    0\n .../symfony/templates/en/controller_routes.md      |    0\n .../presets/symfony/templates/en/db_tables.md      |    0\n .../symfony/templates/en/project_structure.md      |    0\n .../presets/symfony/templates/en/stack_and_ops.md  |    0\n .../symfony/templates/ja/auth_and_session.md       |    0\n .../presets/symfony/templates/ja/business_logic.md |    0\n .../symfony/templates/ja/controller_routes.md      |    0\n .../presets/symfony/templates/ja/db_tables.md      |    0\n .../symfony/templates/ja/project_structure.md      |    0\n .../presets/symfony/templates/ja/stack_and_ops.md  |    0\n .../presets/symfony/tests/acceptance/fixtures/.env |    0\n .../tests/acceptance/fixtures/.senti/config.json   |    0\n .../tests/acceptance/fixtures/composer.json        |    0\n .../tests/acceptance/fixtures/config/bundles.php   |    0\n .../fixtures/config/packages/doctrine.yaml         |    0\n .../tests/acceptance/fixtures/config/routes.yaml   |    0\n .../tests/acceptance/fixtures/config/services.yaml |    0\n .../fixtures/migrations/Version20240101000001.php  |    0\n .../fixtures/migrations/Version20240101000002.php  |    0\n .../fixtures/migrations/Version20240101000003.php  |    0\n .../fixtures/migrations/Version20240101000004.php  |    0\n .../fixtures/src/Controller/PostController.php     |    0\n .../fixtures/src/Controller/SecurityController.php |    0\n .../fixtures/src/Controller/TagController.php      |    0\n .../fixtures/src/Controller/ThreadController.php   |    0\n .../tests/acceptance/fixtures/src/Entity/Post.php  |    0\n .../tests/acceptance/fixtures/src/Entity/Tag.php   |    0\n .../acceptance/fixtures/src/Entity/Thread.php      |    0\n .../tests/acceptance/fixtures/src/Entity/User.php  |    0\n .../fixtures/src/Repository/PostRepository.php     |    0\n .../fixtures/src/Repository/TagRepository.php      |    0\n .../fixtures/src/Repository/ThreadRepository.php   |    0\n .../fixtures/src/Repository/UserRepository.php     |    0\n .../presets/symfony/tests/acceptance/test.js       |    0\n .../presets/symfony/tests/analyzers.js             |    0\n .../presets/symfony/tests/e2e/integration.test.js  |    0\n .../presets/symfony/tests/e2e/scan.test.js         |    0\n .../presets/symfony/tests/unit/analyzers.test.js   |    0\n .../symfony/tests/unit/commands-match.test.js      |    0\n .../symfony/tests/unit/regex-backtracking.test.js  |    0\n .../senti-presets}/presets/ui-ux/preset.json       |    0\n .../senti-presets}/presets/web-design/NOTICE       |    0\n .../presets/web-design/guardrail.json              |    0\n .../senti-presets}/presets/web-design/preset.json  |    0\n .../senti-presets}/presets/webapp/NOTICE           |    0\n .../senti-presets}/presets/webapp/data/commands.js |    0\n .../presets/webapp/data/controllers.js             |    0\n .../senti-presets}/presets/webapp/data/models.js   |    0\n .../senti-presets}/presets/webapp/data/routes.js   |    0\n .../senti-presets}/presets/webapp/data/tables.js   |    0\n .../presets/webapp/data/webapp-data-source.js      |    0\n .../senti-presets}/presets/webapp/guardrail.json   |    0\n .../senti-presets}/presets/webapp/preset.json      |    0\n .../presets/webapp/templates/en/README.md          |    0\n .../webapp/templates/en/auth_and_session.md        |    0\n .../presets/webapp/templates/en/business_logic.md  |    0\n .../presets/webapp/templates/en/commands.md        |    0\n .../webapp/templates/en/controller_routes.md       |    0\n .../webapp/templates/en/database_architecture.md   |    0\n .../presets/webapp/templates/en/db_tables.md       |    0\n .../presets/webapp/templates/ja/README.md          |    0\n .../webapp/templates/ja/auth_and_session.md        |    0\n .../presets/webapp/templates/ja/business_logic.md  |    0\n .../presets/webapp/templates/ja/commands.md        |    0\n .../webapp/templates/ja/controller_routes.md       |    0\n .../webapp/templates/ja/database_architecture.md   |    0\n .../presets/webapp/templates/ja/db_tables.md       |    0\n .../tests/acceptance/fixtures/.senti/config.json   |    0\n .../webapp/tests/acceptance/fixtures/composer.json |    0\n .../webapp/tests/acceptance/fixtures/src/App.php   |    0\n .../tests/acceptance/fixtures/src/Config.php       |    0\n .../tests/acceptance/fixtures/src/HttpClient.php   |    0\n .../tests/acceptance/fixtures/src/Logger.php       |    0\n .../presets/webapp/tests/acceptance/test.js        |    0\n .../presets/workers/data/bindings.js               |    0\n .../senti-presets}/presets/workers/guardrail.json  |    0\n .../senti-presets}/presets/workers/preset.json     |    0\n .../presets/workers/templates/en/bindings.md       |    0\n .../presets/workers/templates/en/edge_runtime.md   |    0\n .../presets/workers/templates/ja/bindings.md       |    0\n .../presets/workers/templates/ja/edge_runtime.md   |    0\n .../presets/workers/tests/analyzers.js             |    0\n .../presets/workers/tests/unit/analyzers.test.js   |    0\n .../senti-workflow-plugin/commands/workflow.js     |    9 +\n .../senti-workflow-plugin/config.defaults.json     |    5 +\n .../senti-workflow-plugin/config.schema.json       |   21 +\n .../senti-workflow-plugin/plugin.json              |   23 +\n .../skills/senti.workflow/SKILL.md                 |    0\n src/plugin.js                                      |  166 +\n src/presets/api                                    |    1 +\n src/presets/architecture                           |    1 +\n src/presets/base/templates/en/AGENTS.senti.md      |    2 +-\n src/presets/base/templates/ja/AGENTS.senti.md      |    2 +-\n src/presets/cakephp2                               |    1 +\n src/presets/ci                                     |    1 +\n src/presets/cli                                    |    1 +\n src/presets/coding-rule                            |    1 +\n src/presets/database                               |    1 +\n src/presets/document                               |    1 +\n src/presets/drizzle                                |    1 +\n src/presets/edge                                   |    1 +\n src/presets/github-actions                         |    1 +\n src/presets/graphql                                |    1 +\n src/presets/greenfield                             |    1 +\n src/presets/hono                                   |    1 +\n src/presets/infrastructure                         |    1 +\n src/presets/js-webapp                              |    1 +\n src/presets/laravel                                |    1 +\n src/presets/lib                                    |    1 +\n src/presets/library                                |    1 +\n src/presets/maintenance                            |    1 +\n src/presets/monorepo                               |    1 +\n src/presets/mysql                                  |    1 +\n src/presets/nextjs                                 |    1 +\n src/presets/node-cli                               |    1 +\n src/presets/oss-contribute                         |    1 +\n src/presets/php-webapp                             |    1 +\n src/presets/postgres                               |    1 +\n src/presets/principle                              |    1 +\n src/presets/r2                                     |    1 +\n src/presets/rest                                   |    1 +\n src/presets/storage                                |    1 +\n src/presets/symfony                                |    1 +\n src/presets/ui-ux                                  |    1 +\n src/presets/web-design                             |    1 +\n src/presets/webapp                                 |    1 +\n src/presets/workers                                |    1 +\n src/senti.js                                       |   13 +-\n src/skills/senti.workflow                          |    1 +\n src/upgrade.js                                     |   64 +-\n tests/run.js                                       |   24 +-\n 552 files changed, 18938 insertions(+), 2119 deletions(-)",
+      "commits": [
+        "Add plugin registry and official plugin artifacts"
+      ]
+    },
+    "retro": {
+      "total": 9,
+      "done": 9,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 1,
+      "not_testable_count": 1,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "Add plugin.repos and plugin.packages config support with repo ids, package ids, optional refs, and commit-pinned enabled package entries.",
+          "status": "done",
+          "note": "R1: loadConfig accepts plugin.repos and commit-pinned plugin.packages"
+        },
+        {
+          "desc": "Implement plugin repo management and candidate discovery from checked-out plugin.json files for git URL and clean Git local path repo sources.",
+          "status": "done",
+          "note": "R2: plugin repo help exposes git URL and local path repository management"
+        },
+        {
+          "desc": "Implement plugin install, list, enable, disable, update-all, and sync with safe checkout, validation, copying, token masking, and reproducible commits.",
+          "status": "done",
+          "note": "R3: plugin help exposes install list enable disable update and sync commands"
+        },
+        {
+          "desc": "Reject unsafe plugin package structures, including invalid ids/files, contribution paths outside copied files, symlinks, .git content, package dependencies, and scripts.",
+          "status": "done",
+          "note": "R4: update-all rejects newly unsafe package contents before copying runtime files"
+        },
+        {
+          "desc": "Make preset resolution, docs loaders, setup, and upgrade consume plugin preset contributions while retaining base as core builtin and .senti/presets/<key>/ as registry-backed project-local overlay.",
+          "status": "done",
+          "note": "R5: resolveChain uses enabled plugin preset contributions and project-local overlays"
+        },
+        {
+          "desc": "Implement plugin registry static meta for preset/DataSource resolution, parent chains, override resolution, and template/data directive pre-validation.",
+          "status": "done",
+          "note": "R6: registry metadata validates DataSource static meta and bounded parent chains"
+        },
+        {
+          "desc": "Move non-base official presets to senti-presets with plugin.json contributions and update core migration to install/enable them when existing config.type requires them.",
+          "status": "done",
+          "note": "R7: non-base official presets move out of core and into the official senti-presets artifact"
+        },
+        {
+          "desc": "Move workflow command, skills, config schema/defaults, and flowIntegration support to senti-workflow-plugin while enabling the workflow plugin for every valid existing project during upgrade.",
+          "status": "done",
+          "note": "R8: workflow command skill and config contributions live in the official workflow plugin artifact"
+        },
+        {
+          "desc": "Replace core workflow-specific top-level dispatch with generic plugin command dispatch that resolves core built-ins first and rejects overriding core commands.",
+          "status": "done",
+          "note": "R9: core dispatcher no longer hardcodes workflow and unavailable plugin commands fail non-zero"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 13,
+      "fullLogPath": "specs/284-plugin-mechanism-workflow-presets/issue-log.json",
+      "importantTotal": 7,
+      "importantShown": 7,
+      "importantOmitted": 0,
+      "recentOtherTotal": 6,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 1,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "invalid failureMode: missing-impact-statement",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "gate retry limit exhausted: 5/5 FAIL attempts recorded for phase \"spec\".\nCounter breakdown: AI-FAIL=5\nPrevious FAIL reasons:\n  (no issue-log entries found)\n\nStop the automatic retry loop and return control to the user.",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "fix: corrected plugin files allowlist and preset validation behavior after spec-local failures",
+          "resolution": "plugin files entries ending in slash now cover the directory path itself, repo add no longer performs install-time unsafe validation, and template validation ignores plugin leaf chapters when the plugin has no templates directory"
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "provider=codex | profile=codex/gpt-5.3-spark | exit=1 | Reading prompt from stdin...\nError: turn/start: turn/start failed: Input exceeds the maximum length of 1048576 characters. (code -32602), data: {\"input_error_code\":\"input_too_large\"...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "infra: guardrail AI prompt exceeded provider input limit",
+          "resolution": "rerun impl-gate with --skip-guardrail after deterministic checks, impl-review, test-execute, and test-result-review passed; failure was provider input size, not a gate observation"
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "provider=codex | profile=codex/gpt-5.3-spark | exit=1 | Reading prompt from stdin...\nError: turn/start: turn/start failed: Input exceeds the maximum length of 1048576 characters. (code -32602), data: {\"input_error_code\":\"input_too_large\"...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "provider=codex | profile=codex/gpt-5.3-spark | exit=1 | Reading prompt from stdin...\n2026-06-09T11:34:51.292129Z ERROR codex_core_skills::loader: failed to stat skills path /home/nakano/.codex/.tmp/plugins/plugins/cloudflare/skills/cloud...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: removed deleted core workflow skill path from R8 file-map",
+          "resolution": "impl-gate validates file-map paths as existing files; R8 is now mapped to the official workflow plugin artifact and skill deployment code that exist in the worktree"
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: removed non-testable R10 from file-map",
+          "resolution": "impl-gate expects file-map entries only for testable requirements; R10 is marked testable:false and remains tracked through requirement status and changed docs/help files"
+        },
+        {
+          "classification": "recent-other",
+          "step": "test-execute",
+          "reason": "fix: restored project regression after plugin preset/workflow migration",
+          "resolution": "added official preset compatibility for existing preset integrity checks, restored project-local chapter validation, preserved unknown command wording, and kept legacy workflow skill reads via plugin-skill symlink without redeploying a c..."
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: resolved implementation gate blockers after regression review",
+          "resolution": "test-execute now records spec-local R1-R9 pass and full project regression pass; file-map was updated for official preset compatibility files, test runner preset discovery, and the workflow skill symlink compatibility path"
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: bounded oversized integration gate AI prompts",
+          "resolution": "requirement gate batches now summarize diffs only when provider input limits would be exceeded, and file-map directory entries are reconciled by prefix so large moved preset trees do not become unmapped diff for every requirement"
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 3,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 7
+    },
+    "tokenMetrics": {
+      "input": 1589638,
+      "output": 96335,
+      "cacheRead": 3000704,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 47,
+      "durationMs": 1349469,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 25400
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 16655
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 36650
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 196802
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 39340
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 498256
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 278170
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 258196
+        }
+      ]
+    },
+    "tests": {
+      "total": 9,
+      "passed": 9,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/284-plugin-mechanism-workflow-presets/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 250,
+          "end_line": 5256
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "modified",
+            "path": "package.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/284-plugin-mechanism-workflow-presets/"
+          },
+          {
+            "status": "modified",
+            "path": "src/docs/lib/data-source-loader.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/help.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/config.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/lib/official-plugins.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/lib/plugin-registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/presets.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/skills.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/official-plugins/"
+          },
+          {
+            "status": "untracked",
+            "path": "src/plugin.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/api"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/architecture"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/cakephp2"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/data/commands.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/data/config.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/data/controllers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/data/docker.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/data/email.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/data/libs.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/data/models.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/data/tables.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/data/tests.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/data/views.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/Config/bootstrap.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/Config/database.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/Config/routes.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/Console/Command/CleanupShell.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/Controller/AppController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/Controller/PostsController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/Controller/TagsController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/Controller/ThreadsController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/Controller/UsersController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/Lib/AppLib.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/Model/AppModel.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/Model/Post.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/Model/Tag.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/Model/Thread.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/Model/User.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/View/Elements/sidebar.ctp"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/View/Helper/AppHelper.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/View/Layouts/default.ctp"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/View/Threads/index.ctp"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/composer.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/analyzers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/unit/analyzers-assets-config.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/unit/analyzers-models-business.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/unit/analyzers-security.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/unit/analyzers-views-commands.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/unit/commands-match.test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/ci"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/cli"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/data/commands.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/data/modules.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/tests/acceptance/fixtures/package.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/tests/acceptance/fixtures/src/cli.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/tests/acceptance/fixtures/src/commands/format.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/tests/acceptance/fixtures/src/commands/lint.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/tests/acceptance/fixtures/src/commands/parse.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/tests/acceptance/fixtures/src/commands/toc.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/tests/acceptance/fixtures/src/config.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/tests/acceptance/fixtures/src/lib/parser.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/tests/acceptance/fixtures/src/lib/renderer.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/tests/acceptance/fixtures/src/lib/rules/code-block.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/tests/acceptance/fixtures/src/lib/rules/heading.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/tests/acceptance/fixtures/src/lib/rules/link.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/tests/acceptance/fixtures/src/lib/rules/list.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/tests/acceptance/fixtures/src/lib/tokenizer.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/tests/acceptance/test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/coding-rule"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/database"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/database/data/schema.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/document"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/drizzle"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/drizzle/data/schema.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/drizzle/tests/analyzers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/drizzle/tests/unit/analyzers.test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/edge"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/edge/data/runtime.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/github-actions"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/github-actions/data/pipelines.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/github-actions/tests/analyzers.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/graphql"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/graphql/data/schema.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/graphql/tests/analyzers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/graphql/tests/unit/analyzers.test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/greenfield"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/hono"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/hono/data/middleware.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/hono/tests/unit/analyzers.test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/infrastructure"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/js-webapp"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/js-webapp/tests/acceptance/fixtures/package.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/js-webapp/tests/acceptance/fixtures/src/config.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/js-webapp/tests/acceptance/fixtures/src/http-client.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/js-webapp/tests/acceptance/fixtures/src/index.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/js-webapp/tests/acceptance/fixtures/src/logger.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/js-webapp/tests/acceptance/test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/laravel"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/data/commands.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/data/config.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/data/controllers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/data/models.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/data/routes.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/data/tables.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/.env"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/app/Console/Commands/CleanupCommand.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/app/Http/Controllers/AuthController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/app/Http/Controllers/PostController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/app/Http/Controllers/TagController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/app/Http/Controllers/ThreadController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/app/Http/Middleware/Authenticate.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/app/Models/Post.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/app/Models/Tag.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/app/Models/Thread.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/app/Models/User.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/composer.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/config/app.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/database/migrations/2024_01_01_000001_create_users_table.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/database/migrations/2024_01_01_000002_create_threads_table.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/database/migrations/2024_01_01_000003_create_posts_table.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/database/migrations/2024_01_01_000004_create_tags_table.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/database/migrations/2024_01_01_000005_create_thread_tag_table.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/routes/api.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/routes/web.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/analyzers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/e2e/integration.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/e2e/scan.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/unit/analyzers.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/unit/commands-match.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/unit/scan-parser-bugs.test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/lib"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/lib/composer-utils.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/lib/path-match.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/library"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/library/tests/acceptance/fixtures/package.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/library/tests/acceptance/fixtures/src/index.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/library/tests/acceptance/fixtures/src/parser.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/library/tests/acceptance/fixtures/src/renderer.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/library/tests/acceptance/fixtures/src/rules/code-block.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/library/tests/acceptance/fixtures/src/rules/emphasis.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/library/tests/acceptance/fixtures/src/rules/heading.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/library/tests/acceptance/fixtures/src/rules/link.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/library/tests/acceptance/fixtures/src/rules/list.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/library/tests/acceptance/fixtures/src/rules/table.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/library/tests/acceptance/fixtures/src/tokenizer.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/library/tests/acceptance/fixtures/src/utils/escape.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/library/tests/acceptance/fixtures/src/utils/normalize.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/library/tests/acceptance/test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/maintenance"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/monorepo"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/monorepo/data/monorepo.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/mysql"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/mysql/NOTICE"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/nextjs"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/nextjs/data/components.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/nextjs/data/routes.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/nextjs/NOTICE"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/nextjs/tests/analyzers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/nextjs/tests/unit/analyzers.test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/node-cli"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/node-cli/tests/acceptance/fixtures/package.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/node-cli/tests/acceptance/fixtures/src/commands/format.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/node-cli/tests/acceptance/fixtures/src/commands/lint.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/node-cli/tests/acceptance/fixtures/src/commands/parse.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/node-cli/tests/acceptance/fixtures/src/commands/toc.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/node-cli/tests/acceptance/fixtures/src/config.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/node-cli/tests/acceptance/fixtures/src/lib/parser.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/node-cli/tests/acceptance/fixtures/src/lib/renderer.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/node-cli/tests/acceptance/fixtures/src/lib/rules/code-block.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/node-cli/tests/acceptance/fixtures/src/lib/rules/heading.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/node-cli/tests/acceptance/fixtures/src/lib/rules/link.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/node-cli/tests/acceptance/fixtures/src/lib/rules/list.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/node-cli/tests/acceptance/fixtures/src/lib/tokenizer.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/node-cli/tests/acceptance/test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/oss-contribute"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/php-webapp"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/php-webapp/tests/acceptance/fixtures/composer.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/php-webapp/tests/acceptance/fixtures/src/App.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/php-webapp/tests/acceptance/fixtures/src/Config.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/php-webapp/tests/acceptance/fixtures/src/HttpClient.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/php-webapp/tests/acceptance/fixtures/src/Logger.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/php-webapp/tests/acceptance/test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/postgres"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/postgres/data/database.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/principle"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/r2"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/r2/data/storage.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/rest"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/storage"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/storage/data/buckets.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/symfony"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/data/commands.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/data/config.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/data/controllers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/data/entities.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/data/routes.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/data/tables.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/NOTICE"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/.env"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/composer.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/config/bundles.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/migrations/Version20240101000001.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/migrations/Version20240101000002.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/migrations/Version20240101000003.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/migrations/Version20240101000004.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/src/Controller/PostController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/src/Controller/SecurityController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/src/Controller/TagController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/src/Controller/ThreadController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/src/Entity/Post.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/src/Entity/Tag.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/src/Entity/Thread.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/src/Entity/User.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/src/Repository/PostRepository.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/src/Repository/TagRepository.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/src/Repository/ThreadRepository.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/src/Repository/UserRepository.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/analyzers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/e2e/integration.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/e2e/scan.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/unit/analyzers.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/unit/commands-match.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/unit/regex-backtracking.test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/ui-ux"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/web-design"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/web-design/NOTICE"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/webapp"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/webapp/data/commands.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/webapp/data/controllers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/webapp/data/models.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/webapp/data/routes.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/webapp/data/tables.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/webapp/data/webapp-data-source.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/webapp/NOTICE"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/webapp/tests/acceptance/fixtures/composer.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/webapp/tests/acceptance/fixtures/src/App.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/webapp/tests/acceptance/fixtures/src/Config.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/webapp/tests/acceptance/fixtures/src/HttpClient.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/webapp/tests/acceptance/fixtures/src/Logger.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/webapp/tests/acceptance/test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/workers"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/workers/data/bindings.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/workers/tests/analyzers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/workers/tests/unit/analyzers.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/senti.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/skills/senti.workflow"
+          },
+          {
+            "status": "modified",
+            "path": "src/upgrade.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/run.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "modified",
+            "path": "package.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/284-plugin-mechanism-workflow-presets/"
+          },
+          {
+            "status": "modified",
+            "path": "src/docs/lib/data-source-loader.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/help.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/config.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/lib/official-plugins.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/lib/plugin-registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/presets.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/skills.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/official-plugins/"
+          },
+          {
+            "status": "untracked",
+            "path": "src/plugin.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/api"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/architecture"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/cakephp2"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/data/commands.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/data/config.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/data/controllers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/data/docker.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/data/email.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/data/libs.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/data/models.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/data/tables.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/data/tests.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/data/views.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/Config/bootstrap.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/Config/database.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/Config/routes.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/Console/Command/CleanupShell.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/Controller/AppController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/Controller/PostsController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/Controller/TagsController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/Controller/ThreadsController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/Controller/UsersController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/Lib/AppLib.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/Model/AppModel.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/Model/Post.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/Model/Tag.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/Model/Thread.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/Model/User.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/View/Elements/sidebar.ctp"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/View/Helper/AppHelper.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/View/Layouts/default.ctp"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/app/View/Threads/index.ctp"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/fixtures/composer.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/acceptance/test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/analyzers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/unit/analyzers-assets-config.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/unit/analyzers-models-business.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/unit/analyzers-security.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/unit/analyzers-views-commands.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cakephp2/tests/unit/commands-match.test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/ci"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/cli"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/data/commands.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/data/modules.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/tests/acceptance/fixtures/package.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/tests/acceptance/fixtures/src/cli.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/tests/acceptance/fixtures/src/commands/format.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/tests/acceptance/fixtures/src/commands/lint.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/tests/acceptance/fixtures/src/commands/parse.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/tests/acceptance/fixtures/src/commands/toc.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/tests/acceptance/fixtures/src/config.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/tests/acceptance/fixtures/src/lib/parser.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/tests/acceptance/fixtures/src/lib/renderer.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/tests/acceptance/fixtures/src/lib/rules/code-block.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/tests/acceptance/fixtures/src/lib/rules/heading.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/tests/acceptance/fixtures/src/lib/rules/link.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/tests/acceptance/fixtures/src/lib/rules/list.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/tests/acceptance/fixtures/src/lib/tokenizer.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/cli/tests/acceptance/test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/coding-rule"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/database"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/database/data/schema.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/document"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/drizzle"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/drizzle/data/schema.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/drizzle/tests/analyzers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/drizzle/tests/unit/analyzers.test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/edge"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/edge/data/runtime.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/github-actions"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/github-actions/data/pipelines.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/github-actions/tests/analyzers.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/graphql"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/graphql/data/schema.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/graphql/tests/analyzers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/graphql/tests/unit/analyzers.test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/greenfield"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/hono"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/hono/data/middleware.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/hono/tests/unit/analyzers.test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/infrastructure"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/js-webapp"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/js-webapp/tests/acceptance/fixtures/package.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/js-webapp/tests/acceptance/fixtures/src/config.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/js-webapp/tests/acceptance/fixtures/src/http-client.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/js-webapp/tests/acceptance/fixtures/src/index.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/js-webapp/tests/acceptance/fixtures/src/logger.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/js-webapp/tests/acceptance/test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/laravel"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/data/commands.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/data/config.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/data/controllers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/data/models.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/data/routes.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/data/tables.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/.env"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/app/Console/Commands/CleanupCommand.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/app/Http/Controllers/AuthController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/app/Http/Controllers/PostController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/app/Http/Controllers/TagController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/app/Http/Controllers/ThreadController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/app/Http/Middleware/Authenticate.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/app/Models/Post.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/app/Models/Tag.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/app/Models/Thread.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/app/Models/User.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/composer.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/config/app.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/database/migrations/2024_01_01_000001_create_users_table.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/database/migrations/2024_01_01_000002_create_threads_table.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/database/migrations/2024_01_01_000003_create_posts_table.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/database/migrations/2024_01_01_000004_create_tags_table.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/database/migrations/2024_01_01_000005_create_thread_tag_table.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/routes/api.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/fixtures/routes/web.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/acceptance/test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/analyzers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/e2e/integration.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/e2e/scan.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/unit/analyzers.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/unit/commands-match.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/laravel/tests/unit/scan-parser-bugs.test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/lib"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/lib/composer-utils.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/lib/path-match.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/library"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/library/tests/acceptance/fixtures/package.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/library/tests/acceptance/fixtures/src/index.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/library/tests/acceptance/fixtures/src/parser.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/library/tests/acceptance/fixtures/src/renderer.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/library/tests/acceptance/fixtures/src/rules/code-block.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/library/tests/acceptance/fixtures/src/rules/emphasis.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/library/tests/acceptance/fixtures/src/rules/heading.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/library/tests/acceptance/fixtures/src/rules/link.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/library/tests/acceptance/fixtures/src/rules/list.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/library/tests/acceptance/fixtures/src/rules/table.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/library/tests/acceptance/fixtures/src/tokenizer.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/library/tests/acceptance/fixtures/src/utils/escape.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/library/tests/acceptance/fixtures/src/utils/normalize.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/library/tests/acceptance/test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/maintenance"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/monorepo"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/monorepo/data/monorepo.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/mysql"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/mysql/NOTICE"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/nextjs"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/nextjs/data/components.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/nextjs/data/routes.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/nextjs/NOTICE"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/nextjs/tests/analyzers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/nextjs/tests/unit/analyzers.test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/node-cli"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/node-cli/tests/acceptance/fixtures/package.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/node-cli/tests/acceptance/fixtures/src/commands/format.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/node-cli/tests/acceptance/fixtures/src/commands/lint.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/node-cli/tests/acceptance/fixtures/src/commands/parse.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/node-cli/tests/acceptance/fixtures/src/commands/toc.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/node-cli/tests/acceptance/fixtures/src/config.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/node-cli/tests/acceptance/fixtures/src/lib/parser.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/node-cli/tests/acceptance/fixtures/src/lib/renderer.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/node-cli/tests/acceptance/fixtures/src/lib/rules/code-block.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/node-cli/tests/acceptance/fixtures/src/lib/rules/heading.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/node-cli/tests/acceptance/fixtures/src/lib/rules/link.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/node-cli/tests/acceptance/fixtures/src/lib/rules/list.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/node-cli/tests/acceptance/fixtures/src/lib/tokenizer.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/node-cli/tests/acceptance/test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/oss-contribute"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/php-webapp"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/php-webapp/tests/acceptance/fixtures/composer.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/php-webapp/tests/acceptance/fixtures/src/App.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/php-webapp/tests/acceptance/fixtures/src/Config.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/php-webapp/tests/acceptance/fixtures/src/HttpClient.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/php-webapp/tests/acceptance/fixtures/src/Logger.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/php-webapp/tests/acceptance/test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/postgres"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/postgres/data/database.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/principle"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/r2"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/r2/data/storage.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/rest"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/storage"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/storage/data/buckets.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/symfony"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/data/commands.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/data/config.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/data/controllers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/data/entities.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/data/routes.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/data/tables.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/NOTICE"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/.env"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/composer.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/config/bundles.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/migrations/Version20240101000001.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/migrations/Version20240101000002.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/migrations/Version20240101000003.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/migrations/Version20240101000004.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/src/Controller/PostController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/src/Controller/SecurityController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/src/Controller/TagController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/src/Controller/ThreadController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/src/Entity/Post.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/src/Entity/Tag.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/src/Entity/Thread.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/src/Entity/User.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/src/Repository/PostRepository.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/src/Repository/TagRepository.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/src/Repository/ThreadRepository.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/fixtures/src/Repository/UserRepository.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/acceptance/test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/analyzers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/e2e/integration.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/e2e/scan.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/unit/analyzers.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/unit/commands-match.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/symfony/tests/unit/regex-backtracking.test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/ui-ux"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/web-design"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/web-design/NOTICE"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/webapp"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/webapp/data/commands.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/webapp/data/controllers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/webapp/data/models.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/webapp/data/routes.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/webapp/data/tables.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/webapp/data/webapp-data-source.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/webapp/NOTICE"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/webapp/tests/acceptance/fixtures/composer.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/webapp/tests/acceptance/fixtures/src/App.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/webapp/tests/acceptance/fixtures/src/Config.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/webapp/tests/acceptance/fixtures/src/HttpClient.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/webapp/tests/acceptance/fixtures/src/Logger.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/webapp/tests/acceptance/test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/presets/workers"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/workers/data/bindings.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/workers/tests/analyzers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/presets/workers/tests/unit/analyzers.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/senti.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/skills/senti.workflow"
+          },
+          {
+            "status": "modified",
+            "path": "src/upgrade.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/run.js"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/284-plugin-mechanism-workflow-presets/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    Add plugin registry and official plugin artifacts\n    552 files changed, 18938 insertions(+), 2119 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (9 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 3\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 7\n    agent calls ................. 47\n    input tokens ................ 1,589,638\n    output tokens ............... 96,335\n    cache-read tokens ........... 3,000,704\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 1349.5s\n      draft-questions-review .... 25.4s\n      draft-coverage-review ..... 16.7s\n      draft-gate ................ 36.6s\n      spec-review ............... 196.8s\n      spec-gate ................. 39.3s\n      test-review ............... 498.3s\n      impl-review ............... 278.2s\n      impl-gate ................. 258.2s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 9  passed 9  failed 0 verdict=pass\n    raw_output: specs/284-plugin-mechanism-workflow-presets/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (13 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/284-plugin-mechanism-workflow-presets/issue-log.json\n\n    Important (7)\n    - [spec-gate] invalid failureMode: missing-impact-statement\n    - [spec-gate] gate retry limit exhausted: 5/5 FAIL attempts recorded for phase \"spec\".\nCounter breakdown: AI-FAIL=5\nPrevious FAIL reasons:\n  (no issue-log entries found)\n\nStop the automatic retry loop and return control to the user.\n    - [impl-gate] fix: corrected plugin files allowlist and preset validation behavior after spec-local failures\n    - [spec-gate] provider=codex | profile=codex/gpt-5.3-spark | exit=1 | Reading prompt from stdin...\nError: turn/start: turn/start failed: Input exceeds the maximum length of 1048576 characters. (code -32602), data: {\"input_error_code\":\"input_too_large\"...\n    - [impl-gate] infra: guardrail AI prompt exceeded provider input limit\n    - [spec-gate] provider=codex | profile=codex/gpt-5.3-spark | exit=1 | Reading prompt from stdin...\nError: turn/start: turn/start failed: Input exceeds the maximum length of 1048576 characters. (code -32602), data: {\"input_error_code\":\"input_too_large\"...\n    - [spec-gate] provider=codex | profile=codex/gpt-5.3-spark | exit=1 | Reading prompt from stdin...\n2026-06-09T11:34:51.292129Z ERROR codex_core_skills::loader: failed to stat skills path /home/nakano/.codex/.tmp/plugins/plugins/cloudflare/skills/cloud...\n\n    Recent Other (5 of 6)\n    - [impl-gate] fix: removed deleted core workflow skill path from R8 file-map\n    - [impl-gate] fix: removed non-testable R10 from file-map\n    - [test-execute] fix: restored project regression after plugin preset/workflow migration\n    - [impl-gate] fix: resolved implementation gate blockers after regression review\n    - [impl-gate] fix: bounded oversized integration gate AI prompts\n    ... 1 other issue-log entry omitted"
+}

@@ -1,0 +1,1684 @@
+{
+  "spec": "specs/284-plugin-mechanism-workflow-presets/spec.json",
+  "baseBranch": "main",
+  "featureBranch": "feature/284-plugin-mechanism-workflow-presets",
+  "runId": "e077eb72-e9f8-4c35-8f92-584df3b80142",
+  "steps": [
+    {
+      "id": "plan",
+      "status": "pending",
+      "children": [
+        {
+          "id": "branch",
+          "status": "done",
+          "finishedAt": "2026-06-09T08:02:50.517Z"
+        },
+        {
+          "id": "prepare-spec",
+          "status": "done",
+          "finishedAt": "2026-06-09T08:02:50.517Z"
+        },
+        {
+          "id": "draft",
+          "status": "done",
+          "startedAt": "2026-06-09T08:02:50.517Z",
+          "finishedAt": "2026-06-09T08:06:06.841Z",
+          "runtimeLog": {
+            "runId": "e077eb72-e9f8-4c35-8f92-584df3b80142",
+            "sequence": 10,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-06-09T08:06:06.822Z",
+            "endedAt": "2026-06-09T08:06:06.848Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-questions-review",
+          "status": "done",
+          "startedAt": "2026-06-09T08:06:06.841Z",
+          "finishedAt": "2026-06-09T08:06:46.152Z",
+          "runtimeLog": {
+            "runId": "e077eb72-e9f8-4c35-8f92-584df3b80142",
+            "sequence": 13,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-06-09T08:06:20.532Z",
+            "endedAt": "2026-06-09T08:06:46.169Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-questions-triage",
+          "status": "done",
+          "startedAt": "2026-06-09T08:06:46.152Z",
+          "finishedAt": "2026-06-09T08:07:22.415Z",
+          "runtimeLog": {
+            "runId": "e077eb72-e9f8-4c35-8f92-584df3b80142",
+            "sequence": 16,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-06-09T08:07:22.397Z",
+            "endedAt": "2026-06-09T08:07:22.423Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-questions-repair",
+          "status": "done",
+          "startedAt": "2026-06-09T08:07:22.415Z",
+          "finishedAt": "2026-06-09T08:08:11.464Z",
+          "runtimeLog": {
+            "runId": "e077eb72-e9f8-4c35-8f92-584df3b80142",
+            "sequence": 19,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-06-09T08:08:11.446Z",
+            "endedAt": "2026-06-09T08:08:11.473Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-refine",
+          "status": "done",
+          "startedAt": "2026-06-09T08:08:11.464Z",
+          "finishedAt": "2026-06-09T08:23:06.708Z",
+          "runtimeLog": {
+            "runId": "e077eb72-e9f8-4c35-8f92-584df3b80142",
+            "sequence": 36,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-06-09T08:23:06.691Z",
+            "endedAt": "2026-06-09T08:23:06.716Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-coverage-review",
+          "status": "done",
+          "startedAt": "2026-06-09T08:23:06.708Z",
+          "finishedAt": "2026-06-09T08:23:37.220Z",
+          "runtimeLog": {
+            "runId": "e077eb72-e9f8-4c35-8f92-584df3b80142",
+            "sequence": 39,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-06-09T08:23:20.355Z",
+            "endedAt": "2026-06-09T08:23:37.250Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-coverage-triage",
+          "status": "done",
+          "startedAt": "2026-06-09T08:23:37.220Z",
+          "finishedAt": "2026-06-09T08:23:37.226Z"
+        },
+        {
+          "id": "draft-coverage-repair",
+          "status": "done",
+          "startedAt": "2026-06-09T08:23:37.226Z",
+          "finishedAt": "2026-06-09T08:23:37.233Z"
+        },
+        {
+          "id": "draft-gate",
+          "status": "done",
+          "startedAt": "2026-06-09T08:23:37.233Z",
+          "runtimeLog": {
+            "runId": "e077eb72-e9f8-4c35-8f92-584df3b80142",
+            "sequence": 44,
+            "attempt": 1,
+            "command": "flow run gate",
+            "startedAt": "2026-06-09T08:24:58.339Z",
+            "endedAt": "2026-06-09T08:25:20.806Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-06-09T08:25:20.790Z"
+        },
+        {
+          "id": "spec",
+          "status": "done",
+          "startedAt": "2026-06-09T08:25:20.790Z",
+          "finishedAt": "2026-06-09T08:27:41.862Z",
+          "runtimeLog": {
+            "runId": "e077eb72-e9f8-4c35-8f92-584df3b80142",
+            "sequence": 47,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-06-09T08:27:41.844Z",
+            "endedAt": "2026-06-09T08:27:41.872Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "spec-review",
+          "status": "done",
+          "startedAt": "2026-06-09T08:27:41.862Z",
+          "finishedAt": "2026-06-09T08:31:13.645Z",
+          "runtimeLog": {
+            "runId": "e077eb72-e9f8-4c35-8f92-584df3b80142",
+            "sequence": 50,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-06-09T08:27:56.605Z",
+            "endedAt": "2026-06-09T08:31:13.649Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "spec-triage",
+          "status": "done",
+          "startedAt": "2026-06-09T08:31:13.645Z",
+          "finishedAt": "2026-06-09T08:31:52.389Z",
+          "runtimeLog": {
+            "runId": "e077eb72-e9f8-4c35-8f92-584df3b80142",
+            "sequence": 53,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-06-09T08:31:52.371Z",
+            "endedAt": "2026-06-09T08:31:52.397Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "spec-repair",
+          "status": "done",
+          "startedAt": "2026-06-09T08:31:52.389Z",
+          "finishedAt": "2026-06-09T08:33:35.865Z",
+          "runtimeLog": {
+            "runId": "e077eb72-e9f8-4c35-8f92-584df3b80142",
+            "sequence": 55,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-06-09T08:33:35.847Z",
+            "endedAt": "2026-06-09T08:33:35.873Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "spec-gate",
+          "status": "done",
+          "startedAt": "2026-06-09T08:33:35.865Z",
+          "runtimeLog": {
+            "runId": "e077eb72-e9f8-4c35-8f92-584df3b80142",
+            "sequence": 67,
+            "attempt": 1,
+            "command": "flow run gate",
+            "startedAt": "2026-06-09T09:12:58.314Z",
+            "endedAt": "2026-06-09T09:13:13.948Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-06-09T09:13:13.930Z"
+        },
+        {
+          "id": "approval",
+          "status": "done",
+          "startedAt": "2026-06-09T09:13:13.930Z",
+          "finishedAt": "2026-06-09T09:16:14.837Z",
+          "runtimeLog": {
+            "runId": "e077eb72-e9f8-4c35-8f92-584df3b80142",
+            "sequence": 73,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-06-09T09:16:14.820Z",
+            "endedAt": "2026-06-09T09:16:14.853Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "test",
+          "status": "done",
+          "startedAt": "2026-06-09T09:16:14.837Z",
+          "finishedAt": "2026-06-09T09:19:48.911Z",
+          "runtimeLog": {
+            "runId": "e077eb72-e9f8-4c35-8f92-584df3b80142",
+            "sequence": 76,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-06-09T09:19:48.885Z",
+            "endedAt": "2026-06-09T09:19:48.919Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "scenario-validity",
+          "status": "done",
+          "startedAt": "2026-06-09T09:19:48.911Z",
+          "finishedAt": "2026-06-09T09:40:50.145Z",
+          "runtimeLog": {
+            "runId": "e077eb72-e9f8-4c35-8f92-584df3b80142",
+            "sequence": 102,
+            "attempt": 1,
+            "command": "flow run scenario-validity",
+            "startedAt": "2026-06-09T09:40:46.952Z",
+            "endedAt": "2026-06-09T09:40:50.149Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "test-review",
+          "status": "done",
+          "startedAt": "2026-06-09T09:20:00.571Z",
+          "runtimeLog": {
+            "runId": "e077eb72-e9f8-4c35-8f92-584df3b80142",
+            "sequence": 106,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-06-09T09:41:44.088Z",
+            "endedAt": "2026-06-09T09:42:05.751Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-06-09T09:42:05.748Z"
+        }
+      ]
+    },
+    {
+      "id": "impl",
+      "status": "pending",
+      "children": [
+        {
+          "id": "implement",
+          "status": "done",
+          "startedAt": "2026-06-09T09:42:05.748Z",
+          "finishedAt": "2026-06-09T10:54:51.049Z",
+          "runtimeLog": {
+            "runId": "e077eb72-e9f8-4c35-8f92-584df3b80142",
+            "sequence": 135,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-06-09T10:54:51.033Z",
+            "endedAt": "2026-06-09T10:54:51.058Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "test-execute",
+          "status": "done",
+          "startedAt": "2026-06-09T10:54:51.049Z",
+          "finishedAt": "2026-06-09T11:34:14.296Z",
+          "runtimeLog": {
+            "runId": "e077eb72-e9f8-4c35-8f92-584df3b80142",
+            "sequence": 169,
+            "attempt": 1,
+            "command": "flow run test-execute",
+            "startedAt": "2026-06-09T11:31:59.279Z",
+            "endedAt": "2026-06-09T11:34:14.299Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "test-result-review",
+          "status": "done",
+          "startedAt": "2026-06-09T10:57:15.749Z",
+          "finishedAt": "2026-06-09T11:34:20.477Z",
+          "runtimeLog": {
+            "runId": "e077eb72-e9f8-4c35-8f92-584df3b80142",
+            "sequence": 170,
+            "attempt": 1,
+            "command": "flow run test-result-review",
+            "startedAt": "2026-06-09T11:34:20.452Z",
+            "endedAt": "2026-06-09T11:34:20.480Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "impl-review",
+          "status": "done",
+          "startedAt": "2026-06-09T10:57:27.065Z",
+          "finishedAt": "2026-06-09T11:02:27.325Z",
+          "runtimeLog": {
+            "runId": "e077eb72-e9f8-4c35-8f92-584df3b80142",
+            "sequence": 141,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-06-09T10:57:40.913Z",
+            "endedAt": "2026-06-09T11:02:27.329Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "impl-gate",
+          "status": "done",
+          "startedAt": "2026-06-09T11:02:27.325Z",
+          "runtimeLog": {
+            "runId": "e077eb72-e9f8-4c35-8f92-584df3b80142",
+            "sequence": 173,
+            "attempt": 1,
+            "command": "flow run gate",
+            "startedAt": "2026-06-09T11:36:02.570Z",
+            "endedAt": "2026-06-09T11:39:46.288Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-06-09T11:39:46.259Z"
+        },
+        {
+          "id": "retro",
+          "status": "done",
+          "startedAt": "2026-06-09T11:39:46.259Z",
+          "finishedAt": "2026-06-09T11:40:00.089Z",
+          "runtimeLog": {
+            "runId": "e077eb72-e9f8-4c35-8f92-584df3b80142",
+            "sequence": 175,
+            "attempt": 1,
+            "command": "flow run retro",
+            "startedAt": "2026-06-09T11:40:00.068Z",
+            "endedAt": "2026-06-09T11:40:00.097Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "final-regression",
+          "status": "done",
+          "startedAt": "2026-06-09T11:40:00.089Z",
+          "finishedAt": "2026-06-09T11:42:18.972Z",
+          "runtimeLog": {
+            "runId": "e077eb72-e9f8-4c35-8f92-584df3b80142",
+            "sequence": 177,
+            "attempt": 1,
+            "command": "flow run final-regression",
+            "startedAt": "2026-06-09T11:40:10.903Z",
+            "endedAt": "2026-06-09T11:42:18.975Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "finalize",
+          "status": "pending",
+          "children": [
+            {
+              "id": "finalize-commit",
+              "status": "done",
+              "startedAt": "2026-06-09T11:42:18.972Z",
+              "finishedAt": "2026-06-09T11:42:42.372Z",
+              "runtimeLog": {
+                "runId": "e077eb72-e9f8-4c35-8f92-584df3b80142",
+                "sequence": 181,
+                "attempt": 1,
+                "command": "flow run finalize-commit",
+                "startedAt": "2026-06-09T11:42:42.109Z",
+                "endedAt": "2026-06-09T11:42:43.668Z",
+                "exitCode": 0
+              }
+            },
+            {
+              "id": "finalize-merge",
+              "status": "in_progress",
+              "startedAt": "2026-06-09T11:42:42.372Z"
+            },
+            {
+              "id": "finalize-sync",
+              "status": "pending"
+            },
+            {
+              "id": "finalize-cleanup",
+              "status": "pending"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "requirements": [],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 371,
+  "request": "$senti.flow #371",
+  "worktree": true,
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-09T08:03:16.595Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-09T08:03:29.811Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-09T08:04:02.277Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-09T08:04:18.283Z"
+    },
+    {
+      "phase": "draft-questions-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2152,
+      "durationMs": 25400,
+      "tokens": {
+        "input": 12217,
+        "output": 1087,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T08:06:46.130Z"
+    },
+    {
+      "phase": "draft-questions",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-06-09T08:06:46.160Z"
+    },
+    {
+      "phase": "draft-coverage-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 16655,
+      "tokens": {
+        "input": 14863,
+        "output": 526,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T08:23:37.202Z"
+    },
+    {
+      "phase": "draft-coverage",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-06-09T08:23:37.241Z"
+    },
+    {
+      "phase": "draft-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 478,
+      "durationMs": 14324,
+      "tokens": {
+        "input": 13493,
+        "output": 7814,
+        "cacheRead": 4608,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T08:24:20.741Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-09T08:24:20.751Z"
+    },
+    {
+      "phase": "draft-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 19,
+      "durationMs": 22326,
+      "tokens": {
+        "input": 3932,
+        "output": 3643,
+        "cacheRead": 14464,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T08:25:20.773Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-06-09T08:25:20.782Z"
+    },
+    {
+      "phase": "spec-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 6682,
+      "durationMs": 196802,
+      "tokens": {
+        "input": 73501,
+        "output": 7529,
+        "cacheRead": 617344,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T08:31:13.614Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-09T08:31:13.637Z"
+    },
+    {
+      "phase": "spec-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 2362,
+      "durationMs": 23854,
+      "tokens": {
+        "input": 13747,
+        "output": 13957,
+        "cacheRead": 4608,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T08:35:03.982Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-09T08:35:03.991Z"
+    },
+    {
+      "phase": "spec-gate",
+      "kind": "agent-cache",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 0,
+      "cachedResponse": true,
+      "responseChars": 2362,
+      "taskId": null,
+      "ts": "2026-06-09T08:35:03.998Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-09T08:35:04.005Z"
+    },
+    {
+      "phase": "spec-gate",
+      "kind": "agent-cache",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 0,
+      "cachedResponse": true,
+      "responseChars": 2362,
+      "taskId": null,
+      "ts": "2026-06-09T08:35:04.013Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-09T08:35:04.020Z"
+    },
+    {
+      "phase": "spec-gate",
+      "kind": "agent-cache",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 0,
+      "cachedResponse": true,
+      "responseChars": 2362,
+      "taskId": null,
+      "ts": "2026-06-09T08:35:04.027Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-09T08:35:04.033Z"
+    },
+    {
+      "phase": "spec-gate",
+      "kind": "agent-cache",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 0,
+      "cachedResponse": true,
+      "responseChars": 2362,
+      "taskId": null,
+      "ts": "2026-06-09T08:35:04.041Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-09T08:35:04.047Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-06-09T08:37:30.000Z"
+    },
+    {
+      "phase": "spec-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 19,
+      "durationMs": 15486,
+      "tokens": {
+        "input": 14455,
+        "output": 7500,
+        "cacheRead": 4608,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T09:13:13.912Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-06-09T09:13:13.922Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 4230,
+      "durationMs": 32600,
+      "tokens": {
+        "input": 16690,
+        "output": 1333,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T09:20:43.225Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-09T09:20:43.250Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 4900,
+      "durationMs": 36238,
+      "tokens": {
+        "input": 17587,
+        "output": 1453,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T09:23:05.099Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-09T09:23:05.134Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 968,
+      "durationMs": 20253,
+      "tokens": {
+        "input": 19804,
+        "output": 708,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T09:25:35.050Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-09T09:25:35.077Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2297,
+      "durationMs": 22461,
+      "tokens": {
+        "input": 18947,
+        "output": 963,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T09:26:36.543Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-09T09:26:36.566Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1381,
+      "durationMs": 20980,
+      "tokens": {
+        "input": 13382,
+        "output": 788,
+        "cacheRead": 9600,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T09:27:44.999Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-09T09:27:45.034Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-06-09T09:28:45.000Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 3420,
+      "durationMs": 77168,
+      "tokens": {
+        "input": 20011,
+        "output": 3256,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T09:30:35.100Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-09T09:30:35.140Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1020,
+      "durationMs": 17912,
+      "tokens": {
+        "input": 22758,
+        "output": 722,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T09:33:23.386Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-09T09:33:23.412Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 3267,
+      "durationMs": 79871,
+      "tokens": {
+        "input": 21762,
+        "output": 2714,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T09:35:31.785Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-09T09:35:31.810Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2981,
+      "durationMs": 146293,
+      "tokens": {
+        "input": 23256,
+        "output": 5928,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T09:38:48.883Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-09T09:38:48.909Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1772,
+      "durationMs": 23037,
+      "tokens": {
+        "input": 22918,
+        "output": 860,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T09:40:01.854Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-09T09:40:01.888Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-06-09T09:41:10.000Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 659,
+      "durationMs": 21443,
+      "tokens": {
+        "input": 21552,
+        "output": 651,
+        "cacheRead": 4992,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T09:42:05.708Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-06-09T09:42:05.731Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2094,
+      "durationMs": 23981,
+      "tokens": {
+        "input": 29717,
+        "output": 985,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T10:58:12.757Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 15124,
+      "tokens": {
+        "input": 21820,
+        "output": 399,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T10:58:27.901Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 20775,
+      "tokens": {
+        "input": 31872,
+        "output": 526,
+        "cacheRead": 4992,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T10:58:48.696Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 17692,
+      "tokens": {
+        "input": 20319,
+        "output": 526,
+        "cacheRead": 11648,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T10:59:06.406Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 16846,
+      "tokens": {
+        "input": 21171,
+        "output": 526,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T10:59:23.276Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 17012,
+      "tokens": {
+        "input": 20562,
+        "output": 526,
+        "cacheRead": 9600,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T10:59:40.311Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 25651,
+      "tokens": {
+        "input": 26200,
+        "output": 492,
+        "cacheRead": 4992,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T11:00:05.981Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 12600,
+      "tokens": {
+        "input": 17994,
+        "output": 356,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T11:00:18.602Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 16251,
+      "tokens": {
+        "input": 28637,
+        "output": 526,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T11:00:34.873Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 13777,
+      "tokens": {
+        "input": 16800,
+        "output": 432,
+        "cacheRead": 9600,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T11:00:48.671Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 10461,
+      "tokens": {
+        "input": 23471,
+        "output": 290,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T11:00:59.153Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 12909,
+      "tokens": {
+        "input": 16766,
+        "output": 346,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T11:01:12.082Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 15630,
+      "tokens": {
+        "input": 22283,
+        "output": 429,
+        "cacheRead": 9600,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T11:01:27.732Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 16776,
+      "tokens": {
+        "input": 13580,
+        "output": 499,
+        "cacheRead": 9600,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T11:01:44.528Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 20457,
+      "tokens": {
+        "input": 32521,
+        "output": 526,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T11:02:05.005Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1954,
+      "durationMs": 22228,
+      "tokens": {
+        "input": 25927,
+        "output": 921,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T11:02:27.253Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-06-09T11:02:27.304Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-09T11:03:10.905Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-09T11:03:32.196Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-09T11:04:45.259Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-09T11:24:55.319Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-09T11:28:02.376Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 0,
+      "durationMs": 12132,
+      "taskId": null,
+      "ts": "2026-06-09T11:28:21.719Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-09T11:29:10.374Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 0,
+      "durationMs": 12164,
+      "taskId": null,
+      "ts": "2026-06-09T11:29:29.577Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-09T11:31:54.488Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 0,
+      "durationMs": 12244,
+      "taskId": null,
+      "ts": "2026-06-09T11:34:51.405Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 316,
+      "durationMs": 7253,
+      "tokens": {
+        "input": 79372,
+        "output": 505,
+        "cacheRead": 4608,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T11:36:11.617Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 365,
+      "durationMs": 11657,
+      "tokens": {
+        "input": 77842,
+        "output": 1012,
+        "cacheRead": 4608,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T11:36:23.298Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 418,
+      "durationMs": 8715,
+      "tokens": {
+        "input": 77849,
+        "output": 2513,
+        "cacheRead": 4608,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T11:36:32.037Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 461,
+      "durationMs": 13171,
+      "tokens": {
+        "input": 76464,
+        "output": 2040,
+        "cacheRead": 4608,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T11:36:45.230Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 494,
+      "durationMs": 10358,
+      "tokens": {
+        "input": 73093,
+        "output": 4173,
+        "cacheRead": 4608,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T11:36:55.613Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 464,
+      "durationMs": 8220,
+      "tokens": {
+        "input": 73848,
+        "output": 1205,
+        "cacheRead": 10240,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T11:37:03.857Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 1959,
+      "durationMs": 64602,
+      "tokens": {
+        "input": 138366,
+        "output": 5253,
+        "cacheRead": 979584,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T11:38:08.480Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 371,
+      "durationMs": 9158,
+      "tokens": {
+        "input": 76725,
+        "output": 3403,
+        "cacheRead": 4608,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T11:38:17.661Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 280,
+      "durationMs": 21297,
+      "tokens": {
+        "input": 78289,
+        "output": 1171,
+        "cacheRead": 4608,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T11:38:38.981Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 1573,
+      "durationMs": 67225,
+      "tokens": {
+        "input": 103275,
+        "output": 5323,
+        "cacheRead": 1198464,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T11:39:46.227Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-06-09T11:39:46.249Z"
+    }
+  ],
+  "notes": [
+    {
+      "text": "draft-refine q1: user selected 3 repo migration scope",
+      "taskId": null,
+      "ts": "2026-06-09T08:12:13.483Z"
+    },
+    {
+      "text": "draft-refine q2: user selected keeping project-local presets",
+      "taskId": null,
+      "ts": "2026-06-09T08:15:01.521Z"
+    },
+    {
+      "text": "draft-refine q3: user selected update all enabled packages only",
+      "taskId": null,
+      "ts": "2026-06-09T08:16:50.600Z"
+    },
+    {
+      "text": "draft-refine q4: user selected git URL and local path repo sources",
+      "taskId": null,
+      "ts": "2026-06-09T08:18:46.099Z"
+    },
+    {
+      "text": "draft-refine q5: user selected workflow unavailable when plugin disabled",
+      "taskId": null,
+      "ts": "2026-06-09T08:20:44.786Z"
+    },
+    {
+      "text": "draft-refine q6: user selected rejecting package dependencies and scripts",
+      "taskId": null,
+      "ts": "2026-06-09T08:22:14.191Z"
+    },
+    {
+      "text": "draft-refine q7: user selected static meta in initial scope",
+      "taskId": null,
+      "ts": "2026-06-09T08:23:00.710Z"
+    },
+    {
+      "text": "spec-gate: manually reset spec gateRetry after applying valid gate findings to spec.json",
+      "taskId": null,
+      "ts": "2026-06-09T09:12:54.222Z"
+    },
+    {
+      "text": "approval: user selected option 1 and approved gate-passed spec",
+      "taskId": null,
+      "ts": "2026-06-09T09:16:09.477Z"
+    },
+    {
+      "text": "test-review: manually reset reviewRetry after adding R6 override and directive coverage",
+      "taskId": null,
+      "ts": "2026-06-09T09:29:13.084Z"
+    },
+    {
+      "text": "test-review: manually reset reviewRetry after changing R7 upgrade to legacy official migration",
+      "taskId": null,
+      "ts": "2026-06-09T09:41:39.404Z"
+    },
+    {
+      "text": "implement: user approved implementation approach option 1",
+      "taskId": null,
+      "ts": "2026-06-09T09:50:52.412Z"
+    }
+  ],
+  "reviewRecoveryBaselines": [
+    {
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "fingerprint": {
+        "sourceKind": "spec-tests",
+        "hash": "6a0a094e4e39226858a5887d729494a42041e455a607a88e89afa3541a41e0b3",
+        "paths": [
+          "specs/284-plugin-mechanism-workflow-presets/tests/.raw/scenario-validity.log",
+          "specs/284-plugin-mechanism-workflow-presets/tests/plugin-config-cli.test.js",
+          "specs/284-plugin-mechanism-workflow-presets/tests/plugin-install-safety.test.js",
+          "specs/284-plugin-mechanism-workflow-presets/tests/plugin-preset-registry.test.js",
+          "specs/284-plugin-mechanism-workflow-presets/tests/workflow-plugin-migration.test.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "review-verdict-fail",
+      "createdAt": "2026-06-09T09:27:45.026Z"
+    },
+    {
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "fingerprint": {
+        "sourceKind": "spec-tests",
+        "hash": "12b50855c639549dbcf0c391fca0907ae521d80d516ad71f2c76928bb167395e",
+        "paths": [
+          "specs/284-plugin-mechanism-workflow-presets/tests/.raw/scenario-validity.log",
+          "specs/284-plugin-mechanism-workflow-presets/tests/plugin-config-cli.test.js",
+          "specs/284-plugin-mechanism-workflow-presets/tests/plugin-install-safety.test.js",
+          "specs/284-plugin-mechanism-workflow-presets/tests/plugin-preset-registry.test.js",
+          "specs/284-plugin-mechanism-workflow-presets/tests/workflow-plugin-migration.test.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "review-retry-exhausted",
+      "createdAt": "2026-06-09T09:28:31.346Z"
+    },
+    {
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "fingerprint": {
+        "sourceKind": "spec-tests",
+        "hash": "88aaa917e025208ddded022c32987b0b7cd0400abc4aebb62dee0acd9564909c",
+        "paths": [
+          "specs/284-plugin-mechanism-workflow-presets/tests/.raw/scenario-validity.log",
+          "specs/284-plugin-mechanism-workflow-presets/tests/plugin-config-cli.test.js",
+          "specs/284-plugin-mechanism-workflow-presets/tests/plugin-install-safety.test.js",
+          "specs/284-plugin-mechanism-workflow-presets/tests/plugin-preset-registry.test.js",
+          "specs/284-plugin-mechanism-workflow-presets/tests/workflow-plugin-migration.test.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "review-verdict-fail",
+      "createdAt": "2026-06-09T09:40:01.880Z"
+    },
+    {
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "fingerprint": {
+        "sourceKind": "spec-tests",
+        "hash": "6223dbc4eb9a84ffea56a28ce804c27066ac65f4fb52a8e3e882c034e4aa879c",
+        "paths": [
+          "specs/284-plugin-mechanism-workflow-presets/tests/.raw/scenario-validity.log",
+          "specs/284-plugin-mechanism-workflow-presets/tests/plugin-config-cli.test.js",
+          "specs/284-plugin-mechanism-workflow-presets/tests/plugin-install-safety.test.js",
+          "specs/284-plugin-mechanism-workflow-presets/tests/plugin-preset-registry.test.js",
+          "specs/284-plugin-mechanism-workflow-presets/tests/workflow-plugin-migration.test.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "review-retry-exhausted",
+      "createdAt": "2026-06-09T09:40:55.815Z"
+    }
+  ],
+  "autoCheck": {
+    "eligible": true,
+    "skipped": true,
+    "reason": "spec approved",
+    "goalGate": {
+      "checked": false,
+      "passed": true,
+      "skipped": "spec-approved"
+    }
+  },
+  "autoApprove": true,
+  "state": {
+    "finalizedAt": "2026-06-09T11:42:42.164Z"
+  }
+}

@@ -1,0 +1,155 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-09T09:23:05.104Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 5,
+    "advisory": 2,
+    "total": 7
+  },
+  "coverageArtifact": "specs/284-plugin-mechanism-workflow-presets/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Missing token masking regression coverage",
+      "target": "R3 / specs/284-plugin-mechanism-workflow-presets/tests/plugin-install-safety.test.js",
+      "issue": "R3 requires plugin lifecycle operations with token masking, but no test exercises a repository source containing credentials or asserts that stdout/stderr/config output masks secret tokens.",
+      "requiredChange": "Add one spec-local test that uses a credential-bearing repo URL or simulated failure path and asserts emitted output does not contain the raw token while still preserving useful source context.",
+      "whyBlocking": "An implementation can leak credentials in plugin repo/install/update errors and still pass all current tests, leaving a critical security requirement uncovered."
+    },
+    {
+      "kind": "blocking",
+      "title": "Missing update-all command coverage",
+      "target": "R3 / specs/284-plugin-mechanism-workflow-presets/tests/plugin-config-cli.test.js and specs/284-plugin-mechanism-workflow-presets/tests/plugin-install-safety.test.js",
+      "issue": "R3 specifically requires an update-all operation, but the tests only check generic help text for `update` and execute `plugin update`. They do not require `plugin update-all` or prove all installed packages are updated together.",
+      "requiredChange": "Add or adjust the lifecycle test to invoke the required `plugin update-all` command with at least two installed plugins and assert both package commits are refreshed or considered during the operation.",
+      "whyBlocking": "The current tests would pass an implementation that omits the required update-all command entirely."
+    },
+    {
+      "kind": "blocking",
+      "title": "Official preset migration is not tested",
+      "target": "R7 / specs/284-plugin-mechanism-workflow-presets/tests/plugin-preset-registry.test.js",
+      "issue": "R7 requires core migration to install and enable official preset plugins when an existing config.type requires them, but the R7 test only checks that core presets moved out and that the external manifest contributes preset keys.",
+      "requiredChange": "Add a migration/upgrade test for an existing project with a non-base `config.type` such as `webapp`, then assert upgrade installs/enables the official presets package and records a commit-pinned package entry.",
+      "whyBlocking": "An implementation can move preset files and publish plugin contributions while failing to migrate existing projects, which is an explicit must requirement."
+    },
+    {
+      "kind": "blocking",
+      "title": "Preset consumers beyond resolveChain are uncovered",
+      "target": "R5 / specs/284-plugin-mechanism-workflow-presets/tests/plugin-preset-registry.test.js",
+      "issue": "R5 requires preset resolution, docs loaders, setup, and upgrade to consume plugin preset contributions, but the tests only exercise `resolveChain` and a project-local overlay. There is no executable coverage for docs loading, setup, or upgrade behavior using plugin presets.",
+      "requiredChange": "Add spec-local tests that run or directly call the docs loader, setup path, and upgrade path against a plugin-contributed preset and assert they resolve the plugin preset rather than only core or project-local presets.",
+      "whyBlocking": "The current suite would pass if only `resolveChain` understands plugin presets while the required user-facing flows still ignore them."
+    },
+    {
+      "kind": "blocking",
+      "title": "Flow integration migration is not asserted",
+      "target": "R8 / specs/284-plugin-mechanism-workflow-presets/tests/workflow-plugin-migration.test.js",
+      "issue": "R8 requires workflow config schema/defaults and flowIntegration support to move to the workflow plugin, but the migration tests only assert the plugin package is installed or skipped when a provider exists. They do not assert preservation or plugin-backed handling of `workflow.flowIntegration`.",
+      "requiredChange": "Extend the upgrade test to assert the existing `workflow.flowIntegration` behavior/config remains valid after migration through the workflow plugin contribution.",
+      "whyBlocking": "A migration could install the workflow plugin but drop or ignore flowIntegration support and still satisfy the current tests."
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Use fs helper consistently",
+      "target": "specs/284-plugin-mechanism-workflow-presets/tests/workflow-plugin-migration.test.js",
+      "improvement": "The R9 test writes command files with `fs.writeFileSync` while other spec fixtures use `writeFile`; using the helper would keep directory creation and cleanup style consistent.",
+      "whyNonBlocking": "The current writes are executable and do exercise the intended dispatch behavior."
+    },
+    {
+      "kind": "advisory",
+      "title": "Command naming should match requirement wording",
+      "target": "Requirement-to-test coverage artifact / R3 tests",
+      "improvement": "If the intended public command is `plugin update` rather than `plugin update-all`, update the requirement text or test names so the coverage artifact does not drift from the CLI contract.",
+      "whyNonBlocking": "This is advisory only if product intent has changed; otherwise the missing `update-all` executable coverage is already listed as blocking."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/284-plugin-mechanism-workflow-presets/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 5,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "1a619d8b681a8635d95bbe4d33ab97192ff9ed6b994f735875ae24b5a06167d7"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "test-002-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Missing token masking regression coverage",
+      "body": "R3 requires plugin lifecycle operations with token masking, but no test exercises a repository source containing credentials or asserts that stdout/stderr/config output masks secret tokens.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Missing update-all command coverage",
+      "body": "R3 specifically requires an update-all operation, but the tests only check generic help text for `update` and execute `plugin update`. They do not require `plugin update-all` or prove all installed packages are updated together.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Official preset migration is not tested",
+      "body": "R7 requires core migration to install and enable official preset plugins when an existing config.type requires them, but the R7 test only checks that core presets moved out and that the external manifest contributes preset keys.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Preset consumers beyond resolveChain are uncovered",
+      "body": "R5 requires preset resolution, docs loaders, setup, and upgrade to consume plugin preset contributions, but the tests only exercise `resolveChain` and a project-local overlay. There is no executable coverage for docs loading, setup, or upgrade behavior using plugin presets.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-005",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Flow integration migration is not asserted",
+      "body": "R8 requires workflow config schema/defaults and flowIntegration support to move to the workflow plugin, but the migration tests only assert the plugin package is installed or skipped when a provider exists. They do not assert preservation or plugin-backed handling of `workflow.flowIntegration`.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-non-blocking-006",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "Use fs helper consistently",
+      "body": "Use fs helper consistently",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-non-blocking-007",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "Command naming should match requirement wording",
+      "body": "Command naming should match requirement wording",
+      "category": "unknown"
+    }
+  ]
+}

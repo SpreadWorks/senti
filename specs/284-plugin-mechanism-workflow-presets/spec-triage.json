@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "All 6 blocking findings are valid and should be repaired in spec.json. The 2 non-blocking improvements are advisory memory only.",
+  "items": [
+    {
+      "title": "Plugin manifest contract is not defined",
+      "target": "R2/R3/R4/R5/R8 and plugin.json references",
+      "decision": "apply",
+      "rationale": "The manifest contract is required for deterministic candidate discovery, validation, copying, and registry loading.",
+      "evidence": "spec.json references plugin.json in scope, requirements, and acceptance criteria but does not define required fields or contribution shapes."
+    },
+    {
+      "title": "Plugin-owned config validation has no bootstrap path",
+      "target": "Plugin registry config schema/default contributions",
+      "decision": "apply",
+      "rationale": "The config bootstrap order must be explicit because core schema is currently closed and workflow schema moves to a plugin.",
+      "evidence": "spec.json requires workflow config schema/defaults to move to a plugin but lacks validation ordering for plugin-owned config keys."
+    },
+    {
+      "title": "Workflow migration cannot identify prior direct users",
+      "target": "Workflow migration behavior",
+      "decision": "apply",
+      "rationale": "Existing direct workflow use has no persisted marker, so migration selection must avoid losing the command for prior users.",
+      "evidence": "spec.json says existing workflow users continue after upgrade but does not say which upgraded projects receive the workflow plugin."
+    },
+    {
+      "title": "Project-local preset overrides do not preserve plugin preset inheritance",
+      "target": "R5 project-local preset override behavior",
+      "decision": "apply",
+      "rationale": "Project-local overrides must inherit from active plugin presets after non-base presets leave src/presets.",
+      "evidence": "spec.json keeps .senti/presets/<key>/ overrides but does not define registry-backed inheritance for plugin-provided preset keys."
+    },
+    {
+      "title": "Local path sources conflict with commit-pinned reproducibility",
+      "target": "Repo source and commit pinning semantics",
+      "decision": "apply",
+      "rationale": "Local path sources must still provide a reproducible commit and clear failure mode.",
+      "evidence": "spec.json supports local paths and commit-pinned plugin.packages but does not define Git/dirty/non-Git handling."
+    },
+    {
+      "title": "DataSource static meta is both required and nice-to-have",
+      "target": "R6 versus Scope/Clarifications/Acceptance Criteria",
+      "decision": "apply",
+      "rationale": "The user selected static meta as initial scope, so R6 priority must match the required scope.",
+      "evidence": "spec.json includes DataSource static meta in scope, tasks, and acceptance criteria while R6 has priority nice-to-have."
+    }
+  ]
+}

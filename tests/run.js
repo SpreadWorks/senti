@@ -9,6 +9,7 @@ import { buildSearchDirs, validateFlags } from "./helpers/test-runner-search-dir
 
 const ROOT = resolve(import.meta.dirname, "..");
 const PRESETS_DIR = join(ROOT, "src", "presets");
+const OFFICIAL_PRESETS_DIR = join(ROOT, "src", "official-plugins", "senti-presets", "presets");
 const MAX_COLLECTED = 10000;
 
 function fail(message) {
@@ -39,9 +40,14 @@ function walk(dir, out) {
 }
 
 function getRealPresetNames() {
-  return readdirSync(PRESETS_DIR, { withFileTypes: true })
-    .filter((e) => e.isDirectory())
-    .map((e) => e.name);
+  const names = [];
+  for (const dir of [PRESETS_DIR, OFFICIAL_PRESETS_DIR]) {
+    if (!existsSync(dir)) continue;
+    names.push(...readdirSync(dir, { withFileTypes: true })
+      .filter((e) => e.isDirectory())
+      .map((e) => e.name));
+  }
+  return [...new Set(names)];
 }
 
 function getPresetNames() {
@@ -144,15 +150,10 @@ const hasFile = fileArgs.length > 0;
 const hasPattern = patternArgs.length > 0;
 const hasPositional = positionalArgs.length > 0;
 const fileSpecMode = hasFile || hasPattern || hasPositional;
-
 let preset = null;
 if (presetIdx !== -1) {
   preset = args[presetIdx + 1];
   if (!preset) fail("--preset requires a value");
-  const valid = getPresetNames();
-  if (!valid.includes(preset)) {
-    fail(`unknown preset "${preset}". Available: ${valid.join(", ")}`);
-  }
 }
 
 let scope = null;
@@ -163,6 +164,13 @@ if (scopeIdx !== -1) {
 
 const validation = validateFlags({ agent, all, preset, scope, hasFile, hasPattern, hasPositional });
 if (validation.error) fail(validation.error);
+
+if (presetIdx !== -1) {
+  const valid = getPresetNames();
+  if (!valid.includes(preset)) {
+    fail(`unknown preset "${preset}". Available: ${valid.join(", ")}`);
+  }
+}
 
 const testFiles = fileSpecMode
   ? collectFromFileSpec({ fileArgs, patternArgs, positionalArgs })

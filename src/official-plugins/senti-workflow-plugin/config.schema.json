@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "properties": {
+    "workflow": {
+      "type": "object",
+      "properties": {
+        "languages": {
+          "type": "object",
+          "properties": {
+            "source": { "type": "string" },
+            "publish": { "type": "string" }
+          }
+        },
+        "flowIntegration": {
+          "type": "string",
+          "enum": ["enable", "disable"]
+        }
+      }
+    }
+  }
+}

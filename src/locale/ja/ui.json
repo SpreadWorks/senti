@@ -92,6 +92,7 @@
       "help": "このヘルプを表示",
       "setup": "プロジェクト登録 + 設定生成（対話式）",
       "upgrade": "テンプレート由来ファイルを最新版に更新",
+      "plugin": "plugin repo/package と command/preset/workflow provider を管理",
       "docs build": "ドキュメント一括生成（scan → enrich → init → data → text → readme）",
       "docs scan": "ソースコード解析 → analysis.json",
       "docs enrich": "AI で analysis エントリーを拡充（summary/detail/chapter）",
@@ -270,7 +271,7 @@
       "upgrade": {
         "usage": "Usage: senti upgrade [options]",
         "desc": "テンプレート由来のファイルをインストール済み senti のバージョンに合わせて更新する。",
-        "descDetail": "config.json や context.json は変更しない。",
+        "descDetail": "skill 由来ファイルを更新し、必要な場合は公式 preset/workflow plugin を有効化する config.json migration も実行する。",
         "updatedFiles": [
           ".agents/skills/*/SKILL.md        スキルテンプレート",
           ".claude/skills/*/SKILL.md        .agents/skills/ へのシンボリックリンク"

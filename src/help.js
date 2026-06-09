@@ -15,6 +15,7 @@ const LAYOUT = [
   { section: "Project" },
   { name: "setup" },
   { name: "upgrade" },
+  { name: "plugin" },
   { section: "Docs" },
   { name: "docs build" },
   { name: "docs scan" },
@@ -74,4 +75,3 @@ function main() {
 }
 
 export { main, LAYOUT as commands };
-

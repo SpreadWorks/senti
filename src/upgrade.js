@@ -23,8 +23,11 @@ import { container } from "./lib/container.js";
 import { mergeAgentDefaults } from "./lib/agent-defaults.js";
 import { translate } from "./lib/i18n.js";
 import { validatePresetChain } from "./lib/presets.js";
+import { officialPresetPluginRoot, officialWorkflowPluginRoot } from "./lib/official-plugins.js";
+import { ensureOfficialPackage, loadPluginRegistry } from "./lib/plugin-registry.js";
 import {
   deploySkills,
+  deploySkillsFromDir,
   cleanupObsoleteSkills,
   MAIN_SKILLS_DIR,
 } from "./lib/skills.js";
@@ -306,6 +309,25 @@ function writeActiveUpgradeArtifact({ root, activeFlow, command, dryRun, exitCod
   });
 }
 
+function pluginSkillSourceDirs(root) {
+  try {
+    const registry = loadPluginRegistry(root);
+    const dirs = [];
+    const seen = new Set();
+    for (const manifest of registry.manifests) {
+      for (const skill of manifest.contributions.skills || []) {
+        const dir = path.join(manifest.root, path.dirname(skill.path));
+        if (seen.has(dir)) continue;
+        seen.add(dir);
+        dirs.push(dir);
+      }
+    }
+    return dirs;
+  } catch (_) {
+    return [];
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
@@ -336,6 +358,7 @@ async function main() {
   const summary = {
     skills: { updated: 0, unchanged: 0, removed: 0 },
     presets: { copied: 0 },
+    plugins: { changed: false },
     config: { changed: false },
     rename: { changed: 0 },
   };
@@ -348,6 +371,40 @@ async function main() {
 
   const config = loadConfig(root);
   const t = translate();
+
+  function needsOfficialPresets() {
+    const types = Array.isArray(config.type) ? config.type : [config.type];
+    return types.some((type) => type && type !== "base");
+  }
+
+  function hasWorkflowProvider() {
+    try {
+      return Boolean(loadPluginRegistry(root).resolveCommand("workflow"));
+    } catch (_) {
+      return false;
+    }
+  }
+
+  if (!dryRun) {
+    if (needsOfficialPresets()) {
+      ensureOfficialPackage(root, {
+        id: "official-presets",
+        sourceRoot: officialPresetPluginRoot(),
+        type: "preset",
+      });
+      summary.plugins.changed = true;
+      logger.log("[upgrade] enabled official preset plugin");
+    }
+    if (!hasWorkflowProvider()) {
+      ensureOfficialPackage(root, {
+        id: "workflow",
+        sourceRoot: officialWorkflowPluginRoot(),
+        type: "workflow",
+      });
+      summary.plugins.changed = true;
+      logger.log("[upgrade] enabled official workflow plugin");
+    }
+  }
 
   // Fail-fast: chapters ↔ preset chain static integrity check (spec 218).
   if (config.type) {
@@ -390,6 +447,9 @@ async function main() {
   let skillResults;
   try {
     skillResults = deploySkills(root, { dryRun });
+    for (const skillsDir of pluginSkillSourceDirs(root)) {
+      skillResults.push(...deploySkillsFromDir({ skillsDir, workRoot: root, dryRun }));
+    }
   } catch (e) {
     logger.error(`upgrade failed: ${e.message}`);
     writeActiveUpgradeArtifact({
@@ -409,7 +469,7 @@ async function main() {
   summary.skills.unchanged = skillResults.filter((r) => r.status === "unchanged").length;
 
   // Remove obsolete senti.* skills no longer in the skill source directory
-  const removedSkills = cleanupObsoleteSkills(root, [MAIN_SKILLS_DIR], { dryRun });
+  const removedSkills = cleanupObsoleteSkills(root, [MAIN_SKILLS_DIR, ...pluginSkillSourceDirs(root)], { dryRun });
   summary.skills.removed = removedSkills.length;
   for (const { name } of removedSkills) {
     logger.log(t("ui:upgrade.skillRemoved", { name }));
@@ -460,7 +520,7 @@ async function main() {
   summary.config.changed = configChanged;
 
   // Summary
-  const hasChanges = renameChanges.length > 0 || skillResults.some((r) => r.status === "updated") || removedSkills.length > 0 || configChanged;
+  const hasChanges = renameChanges.length > 0 || skillResults.some((r) => r.status === "updated") || removedSkills.length > 0 || configChanged || summary.plugins.changed;
   if (!hasChanges) {
     logger.log(t("ui:upgrade.noChanges"));
   } else if (dryRun) {

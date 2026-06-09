@@ -1,0 +1,1 @@
+../official-plugins/senti-workflow-plugin/skills/senti.workflow

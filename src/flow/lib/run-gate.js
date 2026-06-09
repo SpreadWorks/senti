@@ -194,6 +194,7 @@ const UNTRACKED_DEFAULT_MAX_FILES = 500;
 const UNTRACKED_DEFAULT_MAX_FILE_SIZE = 1024 * 1024; // 1 MiB
 const TASK_IMPL_GATE_DIFF_MAX_BYTES = 1024 * 1024; // 1 MiB
 const MAX_IMPL_REQUIREMENT_BATCH_CHARS = 120000;
+const MAX_AGENT_PROMPT_INPUT_CHARS = 900000;
 
 /**
  * Synthesize a unified diff for every untracked file in `root` and return the
@@ -2356,6 +2357,10 @@ export class RequirementGateBatch {
     this.requirementIds = Object.freeze(this.requirements.map((requirement) => requirement.id));
     this.category = "requirements";
     this.requirementPromptText = this.usesFullSpec ? this.fullSpecText : renderRequirementPromptSection(this.requirements);
+    if (this.requirementPromptText.length + this.diff.length > MAX_AGENT_PROMPT_INPUT_CHARS) {
+      const budget = Math.max(20000, this.maxChars - this.requirementPromptText.length);
+      this.diff = summarizeDiffForPrompt(this.diff, budget);
+    }
     this.promptCharCount = this.requirementPromptText.length + this.diff.length;
     this.overflow = this.requirements.length === 1 && !this.usesFullSpec && this.promptCharCount > this.maxChars;
     Object.freeze(this);
@@ -2382,6 +2387,24 @@ export class RequirementGateBatch {
       knownIds: this.requirementIds,
     });
   }
+}
+
+function summarizeDiffForPrompt(diff, maxChars) {
+  const lines = [
+    "[diff summarized: original diff exceeded provider input limits]",
+  ];
+  for (const [file, fileDiff] of splitDiffByFile(diff)) {
+    const added = (fileDiff.match(/^\+(?!\+\+)/gm) || []).length;
+    const removed = (fileDiff.match(/^-(?!--)/gm) || []).length;
+    const header = fileDiff.split(/\r?\n/).slice(0, 4).filter(Boolean).join(" | ");
+    const entry = `- ${file}: +${added} -${removed}; ${header}`;
+    if (lines.join("\n").length + entry.length + 1 > maxChars) {
+      lines.push("- ... additional files omitted from summary");
+      break;
+    }
+    lines.push(entry);
+  }
+  return lines.join("\n");
 }
 
 class RequirementGatePlan {
@@ -2519,10 +2542,18 @@ function buildPerRequirementDiffs(fileMap, perFileDiffs, reqIds, fullDiff) {
       for (const f of files) allMappedFiles.add(f);
     }
   }
+  const isMappedFile = (file) => {
+    if (allMappedFiles.has(file)) return true;
+    for (const mapped of allMappedFiles) {
+      const prefix = String(mapped).replace(/\/$/, "");
+      if (prefix && file.startsWith(`${prefix}/`)) return true;
+    }
+    return false;
+  };
 
   let unmappedDiff = "";
   for (const [file, diff] of perFileDiffs) {
-    if (!allMappedFiles.has(file)) unmappedDiff += diff;
+    if (!isMappedFile(file)) unmappedDiff += diff;
   }
 
   const result = new Map();
@@ -2536,6 +2567,12 @@ function buildPerRequirementDiffs(fileMap, perFileDiffs, reqIds, fullDiff) {
     for (const file of mappedFiles) {
       const fileDiff = perFileDiffs.get(file);
       if (fileDiff) reqDiff += fileDiff;
+      const prefix = String(file).replace(/\/$/, "");
+      if (prefix) {
+        for (const [diffFile, diffText] of perFileDiffs) {
+          if (diffFile.startsWith(`${prefix}/`)) reqDiff += diffText;
+        }
+      }
     }
     reqDiff += unmappedDiff;
     result.set(reqId, reqDiff);

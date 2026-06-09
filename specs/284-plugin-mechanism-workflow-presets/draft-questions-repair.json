@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Applied 7 question-text repairs by removing rationale/evidence and replacing implementation-detail prompts with user-facing scope decisions.",
+  "items": [
+    {
+      "title": "1. q1 includes extra context",
+      "target": "q1",
+      "rationale": "Removed repository role explanations while keeping the completion-scope decision.",
+      "evidence": "draft.json qa[0].question now asks only whether the flow includes file migration across three repositories.",
+      "changedFieldPaths": ["qa[0].question"]
+    },
+    {
+      "title": "2. q2 includes rationale/evidence",
+      "target": "q2",
+      "rationale": "Removed current docs/code evidence from the question text.",
+      "evidence": "draft.json qa[1].question now asks only whether project-local presets remain as project-specific overrides.",
+      "changedFieldPaths": ["qa[1].question"]
+    },
+    {
+      "title": "3. q3 includes rationale/evidence",
+      "target": "q3",
+      "rationale": "Removed issue-reference rationale from the question text.",
+      "evidence": "draft.json qa[2].question now asks only whether plugin update is initially all-enabled-packages update.",
+      "changedFieldPaths": ["qa[2].question"]
+    },
+    {
+      "title": "4. q4 asks internal implementation details",
+      "target": "q4",
+      "rationale": "Reframed repo normalization details as a user-facing support boundary question.",
+      "evidence": "draft.json qa[3].question now asks whether git URL and local path sources are supported initially.",
+      "changedFieldPaths": ["qa[3].question"]
+    },
+    {
+      "title": "5. q5 includes rationale/evidence",
+      "target": "q5",
+      "rationale": "Removed issue-reference rationale from the question text.",
+      "evidence": "draft.json qa[4].question now asks only how `senti workflow` behaves when the workflow plugin is disabled.",
+      "changedFieldPaths": ["qa[4].question"]
+    },
+    {
+      "title": "6. q6 includes rationale/evidence",
+      "target": "q6",
+      "rationale": "Removed safety rationale from the question text.",
+      "evidence": "draft.json qa[5].question now asks only whether dependency/script fields reject install and sync.",
+      "changedFieldPaths": ["qa[5].question"]
+    },
+    {
+      "title": "7. q7 asks internal implementation details",
+      "target": "q7",
+      "rationale": "Reframed internal loader details as a user-facing scope decision.",
+      "evidence": "draft.json qa[6].question now asks whether static meta is part of the initial scope.",
+      "changedFieldPaths": ["qa[6].question"]
+    }
+  ]
+}

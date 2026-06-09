@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "7 repair target findings are valid and can be fixed by shortening question text or moving implementation-detail choices out of user-facing questions.",
+  "items": [
+    {
+      "title": "1. q1 includes extra context",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "The question can keep the repository-scope decision while removing explanatory context from the question field.",
+      "evidence": "draft-review-questions.json repairTargets[0] identifies q1 as extra context, and draft.json qa[0].question contains explanatory repository definitions."
+    },
+    {
+      "title": "2. q2 includes rationale/evidence",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "The question can ask only whether project-local presets remain without embedding code/docs evidence.",
+      "evidence": "draft-review-questions.json repairTargets[1] identifies q2 as rationale/evidence after the question."
+    },
+    {
+      "title": "3. q3 includes rationale/evidence",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "The question can ask only about initial update scope and leave issue evidence in decisionMap.",
+      "evidence": "draft-review-questions.json repairTargets[2] identifies q3 as rationale/evidence after the question."
+    },
+    {
+      "title": "4. q4 asks internal implementation details",
+      "target": "q4",
+      "decision": "apply",
+      "rationale": "The user-facing decision should be support boundary for local path repositories, not hash normalization details.",
+      "evidence": "draft-review-questions.json repairTargets[3] says q4 asks about repo URL normalization and hash id generation."
+    },
+    {
+      "title": "5. q5 includes rationale/evidence",
+      "target": "q5",
+      "decision": "apply",
+      "rationale": "The question can ask only whether disabled workflow plugin should make the command unavailable.",
+      "evidence": "draft-review-questions.json repairTargets[4] identifies q5 as rationale/evidence after the question."
+    },
+    {
+      "title": "6. q6 includes rationale/evidence",
+      "target": "q6",
+      "decision": "apply",
+      "rationale": "The question can ask only whether package.json dependency/script fields should reject install/sync.",
+      "evidence": "draft-review-questions.json repairTargets[5] identifies q6 as rationale/evidence after the question."
+    },
+    {
+      "title": "7. q7 asks internal implementation details",
+      "target": "q7",
+      "decision": "apply",
+      "rationale": "The user-facing decision should be required scope for DataSource registry meta behavior, not loader implementation details.",
+      "evidence": "draft-review-questions.json repairTargets[6] says q7 asks about internal loader/registry design details."
+    }
+  ]
+}

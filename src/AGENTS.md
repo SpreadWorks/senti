@@ -19,12 +19,14 @@ src/
 ├── docs.js                   docs ディスパッチャ
 ├── spec.js                   spec ディスパッチャ
 ├── flow.js                   flow ディスパッチャ
-├── setup.js / upgrade.js / presets-cmd.js / help.js  独立コマンド
+├── setup.js / upgrade.js / presets-cmd.js / plugin.js / help.js  独立コマンド
 ├── lib/                      全レイヤー共有ユーティリティ
 │   ├── cli.js                repoRoot, sourceRoot, parseArgs, PKG_DIR
 │   ├── config.js             .senti/config.json ローダー
 │   ├── agent.js              AI エージェント呼び出し
 │   ├── presets.js            プリセット自動探索・親チェーン解決
+│   ├── plugin-registry.js    plugin manifest 検証・install/sync・contribution 解決
+│   ├── official-plugins.js   公式 preset/workflow plugin artifact の場所を解決
 │   ├── flow-state.js         Spec-Driven Development フロー状態永続化
 │   ├── flow-envelope.js      flow get/set/run の JSON envelope
 │   ├── git-helpers.js          git/gh 状態取得ヘルパー
@@ -47,7 +49,8 @@ src/
 │   ├── run/                 prepare-spec, gate, review, impl-confirm, finalize, sync
 │   └── commands/            内部ヘルパー（merge, cleanup, review の実体）
 ├── spec/commands/            init, gate, guardrail（flow/run/prepare-spec, gate が内部で呼ぶ）
-├── presets/                  プリセット群（後述）
+├── presets/                  core builtin preset（base のみ）
+├── official-plugins/         公式 plugin artifact（senti-presets / workflow）
 ├── locale/                   en/, ja/
 └── templates/
     ├── skills/              skill テンプレート（SKILL.md）
@@ -70,8 +73,11 @@ senti <cmd> [args]
     │   │   ├─ flow/get.js → flow/get/*.js
     │   │   ├─ flow/set.js → flow/set/*.js
     │   │   └─ flow/run.js → flow/run/*.js
+    │   ├─ plugin.js         # plugin repo/package 管理
     │   └─ help.js           # 直接実行
 ```
+
+`senti.js` は core command を先に解決する。core に存在しないトップレベル command は、enabled plugin の `contributions.commands` に fallback する。plugin は core command 名を上書きできない。
 
 ### プロジェクトコンテキスト
 

@@ -12,28 +12,31 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createLogger } from "./progress.js";
+import { officialPresetPluginRoot } from "./official-plugins.js";
+import { loadPluginRegistry } from "./plugin-registry.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const logger = createLogger("presets");
-export const PRESETS_DIR = path.resolve(__dirname, "..", "presets");
+export const CORE_PRESETS_DIR = path.resolve(__dirname, "..", "presets");
+export const PRESETS_DIR = path.join(officialPresetPluginRoot(), "presets");
 
 /**
  * Discover all presets by scanning src/presets/{key}/preset.json.
  * Each preset gets: { key, dir, parent, label, aliases, scan, chapters }.
  */
-function discoverPresets() {
-  if (!fs.existsSync(PRESETS_DIR)) return [];
+function discoverPresetsInDir(presetsDir) {
+  if (!fs.existsSync(presetsDir)) return [];
 
-  return fs.readdirSync(PRESETS_DIR, { withFileTypes: true })
+  return fs.readdirSync(presetsDir, { withFileTypes: true })
     .filter((d) => d.isDirectory())
     .map((d) => {
-      const manifestPath = path.join(PRESETS_DIR, d.name, "preset.json");
+      const manifestPath = path.join(presetsDir, d.name, "preset.json");
       if (!fs.existsSync(manifestPath)) return null;
       const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
 
       return {
         key: d.name,
-        dir: path.join(PRESETS_DIR, d.name),
+        dir: path.join(presetsDir, d.name),
         parent: manifest.parent || null,
         label: manifest.label,
         aliases: manifest.aliases || [],
@@ -44,7 +47,32 @@ function discoverPresets() {
     .filter(Boolean);
 }
 
+function discoverPresets() {
+  const byKey = new Map();
+  for (const preset of discoverPresetsInDir(CORE_PRESETS_DIR)) byKey.set(preset.key, preset);
+  for (const preset of discoverPresetsInDir(PRESETS_DIR)) {
+    if (!byKey.has(preset.key)) byKey.set(preset.key, preset);
+  }
+  return [...byKey.values()];
+}
+
 export const PRESETS = discoverPresets();
+
+function registryPresets(projectRoot) {
+  if (!projectRoot) return [];
+  try {
+    return [...loadPluginRegistry(projectRoot).presets.values()];
+  } catch (err) {
+    logger.verbose(`plugin registry failed: ${err.message}`);
+    return [];
+  }
+}
+
+function allPresets(projectRoot) {
+  const byKey = new Map(PRESETS.map((preset) => [preset.key, preset]));
+  for (const preset of registryPresets(projectRoot)) byKey.set(preset.key, preset);
+  return [...byKey.values()];
+}
 
 /**
  * Build a project-local preset object from .senti/presets/<key>/.
@@ -74,11 +102,12 @@ function resolveProjectPreset(key, root) {
       aliases: manifest.aliases || [],
       scan: manifest.scan || {},
       chapters: manifest.chapters || [],
+      localManifest: true,
     };
   }
 
   // preset.json omitted — inherit built-in settings if available
-  const builtin = PRESETS.find((p) => p.key === key);
+  const builtin = allPresets(root).find((p) => p.key === key);
   if (builtin) {
     return { ...builtin, dir: projectDir };
   }
@@ -101,7 +130,7 @@ function resolveProjectPreset(key, root) {
  */
 export function resolveChain(leafKey, projectRoot) {
   const preset = (projectRoot && resolveProjectPreset(leafKey, projectRoot))
-    || PRESETS.find((p) => p.key === leafKey);
+    || allPresets(projectRoot).find((p) => p.key === leafKey);
   if (!preset) {
     throw new Error(`Preset not found: ${leafKey}`);
   }
@@ -114,7 +143,7 @@ export function resolveChain(leafKey, projectRoot) {
     if (visited.has(current.parent)) {
       throw new Error(`Circular parent reference detected: ${current.key} → ${current.parent}`);
     }
-    const parentPreset = PRESETS.find((p) => p.key === current.parent);
+    const parentPreset = allPresets(projectRoot).find((p) => p.key === current.parent);
     if (!parentPreset) {
       throw new Error(`Parent preset not found: ${current.parent} (referenced by ${current.key})`);
     }
@@ -183,7 +212,7 @@ export function resolveChainSafe(presetKey, projectRoot) {
       const local = resolveProjectPreset(presetKey, projectRoot);
       if (local) return [local];
     }
-    const preset = PRESETS.find((p) => p.key === presetKey);
+    const preset = allPresets(projectRoot).find((p) => p.key === presetKey);
     if (preset) return [preset];
     const base = PRESETS.find((p) => p.key === "base");
     return base ? [base] : [];
@@ -226,7 +255,9 @@ function resolveEffectiveChapters(typeList, projectRoot, configChapters) {
     const chain = resolveChainSafe(key, projectRoot);
     let chainChapters = [];
     for (const preset of chain) {
-      if (preset.chapters?.length) chainChapters = preset.chapters;
+      if (preset.chapters?.length && (presetHasTemplates(preset) || preset.localManifest)) {
+        chainChapters = preset.chapters;
+      }
     }
     for (const ch of chainChapters) {
       const name = typeof ch === "string" ? ch : ch.chapter;
@@ -237,6 +268,11 @@ function resolveEffectiveChapters(typeList, projectRoot, configChapters) {
     }
   }
   return result;
+}
+
+function presetHasTemplates(preset) {
+  const templatesDir = path.join(preset.dir, "templates");
+  return fs.existsSync(templatesDir);
 }
 
 /**

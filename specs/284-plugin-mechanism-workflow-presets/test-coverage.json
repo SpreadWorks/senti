@@ -1,0 +1,159 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Add plugin.repos and plugin.packages config support with repo ids, package ids, optional refs, and commit-pinned enabled package entries.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/plugin-config-cli.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "Implement plugin repo management and candidate discovery from checked-out plugin.json files for git URL and clean Git local path repo sources.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/plugin-config-cli.test.js",
+        "tests/plugin-install-safety.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "Implement plugin install, list, enable, disable, update-all, and sync with safe checkout, validation, copying, token masking, and reproducible commits.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/plugin-config-cli.test.js",
+        "tests/plugin-install-safety.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "Reject unsafe plugin package structures, including invalid ids/files, contribution paths outside copied files, symlinks, .git content, package dependencies, and scripts.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/plugin-install-safety.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "Make preset resolution, docs loaders, setup, and upgrade consume plugin preset contributions while retaining base as core builtin and .senti/presets/<key>/ as registry-backed project-local overlay.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/plugin-preset-registry.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "Implement plugin registry static meta for preset/DataSource resolution, parent chains, override resolution, and template/data directive pre-validation.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/plugin-preset-registry.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "Move non-base official presets to senti-presets with plugin.json contributions and update core migration to install/enable them when existing config.type requires them.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/plugin-preset-registry.test.js"
+      ]
+    },
+    {
+      "id": "R8",
+      "desc": "Move workflow command, skills, config schema/defaults, and flowIntegration support to senti-workflow-plugin while enabling the workflow plugin for every valid existing project during upgrade.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/workflow-plugin-migration.test.js"
+      ]
+    },
+    {
+      "id": "R9",
+      "desc": "Replace core workflow-specific top-level dispatch with generic plugin command dispatch that resolves core built-ins first and rejects overriding core commands.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/plugin-config-cli.test.js",
+        "tests/workflow-plugin-migration.test.js"
+      ]
+    },
+    {
+      "id": "R10",
+      "desc": "Update docs, AGENTS, help text, and upgrade output to describe plugin repos, preset creation, workflow plugin activation, migration behavior, and disabled-plugin unavailable command handling.",
+      "testable": false,
+      "status": "not_testable",
+      "files": []
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/plugin-config-cli.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R9"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R9"
+      ]
+    },
+    {
+      "file": "tests/plugin-install-safety.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R2",
+        "R3",
+        "R4"
+      ],
+      "testNameIds": [
+        "R2",
+        "R3",
+        "R4"
+      ]
+    },
+    {
+      "file": "tests/plugin-preset-registry.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R5",
+        "R6",
+        "R7"
+      ],
+      "testNameIds": [
+        "R5",
+        "R6",
+        "R7"
+      ]
+    },
+    {
+      "file": "tests/workflow-plugin-migration.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R8",
+        "R9"
+      ],
+      "testNameIds": [
+        "R8",
+        "R9"
+      ]
+    }
+  ]
+}

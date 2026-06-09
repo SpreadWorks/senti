@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-09T09:27:45.001Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 1,
+    "total": 2
+  },
+  "coverageArtifact": "specs/284-plugin-mechanism-workflow-presets/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R6 override and template directive coverage missing",
+      "target": "specs/284-plugin-mechanism-workflow-presets/tests/plugin-preset-registry.test.js",
+      "issue": "R6 requires plugin registry static meta for override resolution and template/data directive pre-validation, but the tests only assert DataSource metadata, bounded parent-chain validation, and data directive validation. There is no spec-local test for plugin preset override ordering/resolution or template directive pre-validation.",
+      "requiredChange": "Add the smallest focused R6 test that creates conflicting/base/project-local/plugin preset metadata and verifies override resolution, plus a template directive pre-validation assertion.",
+      "whyBlocking": "The coverage artifact marks R6 as covered, but two required R6 behaviors have no corresponding executable coverage."
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R3 safe checkout could use a dirtiness case",
+      "target": "specs/284-plugin-mechanism-workflow-presets/tests/plugin-install-safety.test.js",
+      "improvement": "Add a boundary test showing local path repo sources with uncommitted changes are rejected or handled according to the intended safe-checkout rule.",
+      "whyNonBlocking": "R3 has broad lifecycle, pinning, copying, masking, and update coverage already; this would strengthen a specific risk area rather than fill a completely missing requirement."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/284-plugin-mechanism-workflow-presets/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "810f798d1b8ef24e546c272f74278940da68ce777a753e16c1a3f19d3740a835"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 5,
+  "findings": [
+    {
+      "id": "test-005-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "R6 override and template directive coverage missing",
+      "body": "R6 requires plugin registry static meta for override resolution and template/data directive pre-validation, but the tests only assert DataSource metadata, bounded parent-chain validation, and data directive validation. There is no spec-local test for plugin preset override ordering/resolution or template directive pre-validation.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-005-non-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "non-blocking",
+      "title": "R3 safe checkout could use a dirtiness case",
+      "body": "R3 safe checkout could use a dirtiness case",
+      "category": "unknown"
+    }
+  ]
+}

@@ -92,6 +92,7 @@
       "help": "Show this help",
       "setup": "Register project + generate config (interactive)",
       "upgrade": "Update template-derived files to latest version",
+      "plugin": "Manage plugin repos, packages, commands, presets, and workflow providers",
       "docs build": "Generate docs (scan → enrich → init → data → text → readme)",
       "docs init": "Initialize docs/ from templates",
       "docs forge": "Iterative docs improvement (AI agent)",
@@ -270,7 +271,7 @@
       "upgrade": {
         "usage": "Usage: senti upgrade [options]",
         "desc": "Upgrade template-derived files to match the installed senti version.",
-        "descDetail": "Does NOT modify config.json or context.json.",
+        "descDetail": "Updates skill-derived files and migrates config.json by enabling official preset/workflow plugins when required.",
         "updatedFiles": [
           ".agents/skills/*/SKILL.md        Skill templates",
           ".claude/skills/*/SKILL.md        Symlinks to .agents/skills/"

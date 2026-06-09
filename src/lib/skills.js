@@ -59,7 +59,7 @@ function removeIfSymlink(filePath) {
  * @param {boolean} [args.dryRun=false]
  * @returns {{ name: string, status: "updated" | "unchanged" }[]}
  */
-function deploySkillsFromDir({ skillsDir, workRoot, dryRun = false }) {
+export function deploySkillsFromDir({ skillsDir, workRoot, dryRun = false }) {
   const skillDirs = listSkillDirNames(skillsDir);
   if (skillDirs.length === 0) return [];
 

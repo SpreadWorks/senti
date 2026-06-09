@@ -1,0 +1,157 @@
+{
+  "devType": "feature",
+  "goal": "#371 の設計に従い、workflow と preset を同じ Git 取得・配置・有効化・再現性モデルで扱う plugin 機構を導入し、setup / upgrade / docs / AGENTS へ反映できる状態にする。",
+  "analysis": {
+    "problem": "現状の workflow は core の top-level command、config schema、flow skill 連携に直結している。preset も `src/presets/<key>/preset.json` の built-in scan 前提で、外部 repository 由来の候補一覧、install、enable、sync、commit 固定による再現性の境界がない。このため、private workflow や npm 以外の preset を core release なしに追加する運用ができない。",
+    "proposedApproach": "拡張単位を plugin に統一し、`.senti/config.json` に `plugin.repos` と `plugin.packages` を追加する。plugin repo checkout、plugin.json 由来の候補検索、plugin install/sync/update、preset resolver、setup、upgrade、汎用 top-level plugin command dispatch、workflow plugin 化、既存 project の migration plan、docs/AGENTS 更新を同一フローで設計する。",
+    "validation": "Issue #371 は用語、config、CLI、配置、公式 repo、migration 順序、security、既存 project 移行を具体化している。既存 code では `src/senti.js` が `workflow` を固定 dispatch し、`src/lib/presets.js` が `src/presets` を scan し、`src/lib/config.js` が workflow schema を core に持つため、提案は根本原因に対応している。docs はまだ sdd-forge 表記と built-in/project-local preset 前提を含むため、source を正として扱い、実装後に docs build が必要になる。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #371 は plugin を workflow と preset の共通拡張単位とし、config 名は `plugin.repos` と `plugin.packages`、manifest 名は `plugin.json` と指定している。",
+      "must: 現在の preset resolver は `src/presets/<key>/preset.json` を自動発見し、project-local preset は `.senti/presets/<key>/` を leaf override として扱う。",
+      "must: 現在の setup は `PRESETS` から選択肢を作り、未導入 preset を候補表示またはその場で install する境界を持たない。",
+      "must: 現在の top-level CLI は `src/senti.js` の固定 map で `workflow` を core command として dispatch している。",
+      "must: 現在の config schema は `additionalProperties: false` で、`workflow.flowIntegration` を core schema に含めている。",
+      "must: この flow の完了条件は、senti 本体、senti-presets、senti-workflow-plugin の 3 repository の実ファイル移行まで含める。",
+      "should: `senti plugin update` は初期 CLI では enabled packages 全体を最新 commit へ進める一括更新だけにする。",
+      "must: plugin repo の取得元は通常の git URL と local path の両方を初期仕様でサポートする。",
+      "must: workflow plugin が disabled の project では `senti workflow` を unavailable command として扱う。",
+      "must: 外部 plugin package の `package.json` に dependencies / devDependencies / optionalDependencies / peerDependencies / scripts がある場合、install / sync を拒否する。",
+      "nice-to-have: DataSource registry の static meta 化は初期実装の必須範囲に含める。",
+      "must: 既存 project migration は `senti upgrade` が workflow plugin と official preset plugin を導入・有効化し、従来の `senti workflow` 利用 project が upgrade 後も plugin 経由で同じ command を使える migration plan にする。"
+    ],
+    "decisionPoints": [
+      "must: plugin command dispatch で core built-in command と同名の plugin contribution を初期実装で拒否する範囲を確定する。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 外部依存は追加しない。Git 操作、manifest validation、copy、hash、schema validation は Node.js built-in module と既存 helper で実装する。",
+      "must: alpha 版ポリシーに従い、旧 format の長期互換 layer は作らない。ただし Issue #371 が求める既存 project migration と command migration plan は spec に含める。",
+      "must: `src/` には特定 project 固有情報を入れない。公式 repo 名など package 全利用者に配る仕様値だけを core default として扱う。",
+      "must: `src/skills/` または `src/presets/` を変更した場合は `senti upgrade` を実行する。",
+      "must: docs は自動生成物なので、plugin 機構導入後に `senti build` 相当の docs 更新が必要になる。",
+      "must: CLI interface を変更するため、help/docs/AGENTS には workflow plugin の有効化条件、upgrade migration、disabled 時の unavailable command を明記する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: `plugin.repos[].id` の hash 入力正規化、path-safe plugin id validation、token masking、package.json safety check、files pattern copy validation は spec で検証可能な requirement に分解する。",
+      "must: setup、upgrade、plugin sync、plugin command dispatch、preset resolver、DataSource registry への影響は spec の acceptance criteria と test strategy に落とす。",
+      "must: backward-compatible-cli-interface guardrail 対応として、existing project では `senti upgrade` が workflow plugin を導入して既存の `senti workflow` invocation を plugin 経由で維持し、新規/disabled project では unavailable command として案内する migration requirement を spec に落とす。",
+      "must: DataSource static meta 化を plugin / preset registry の初期実装 requirement として spec に落とす。",
+      "should: docs freshness は source が docs より新しいため、実装完了後の docs build / review 対象に含める。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: `.senti/config.json` に `plugin.repos` と `plugin.packages` を追加し、commit 固定で plugin 状態を再現できるようにする。",
+      "must: plugin repo checkout、candidate find、repo add/update/list、plugin install/list/enable/disable/update/sync の初期 CLI を設計対象にする。",
+      "must: preset resolver と setup を plugin preset contribution に対応させ、base だけを core builtin とする移行経路を設計対象にする。",
+      "must: workflow command を plugin contribution として提供できるようにし、core の workflow 専用 stub 削除を設計対象にする。",
+      "must: 既存 project migration では `senti upgrade` が workflow plugin package repo を登録し、workflow plugin を install / enable し、必要な config schema/defaults と skills を plugin 由来として反映する。",
+      "must: plugin.json validation、files copy、package.json safety、symlink/.git 排除、repo URL/token masking を設計対象にする。",
+      "must: docs / AGENTS 更新と `senti upgrade` / docs build の必要性を設計対象にする。"
+    ],
+    "out": [
+      "must: npm publish や npm dist-tag はリリース指示がないため実行しない。",
+      "must: plugin 側 script hook、postinstall、prepare 相当の実行機構は作らない。",
+      "must: `.senti/plugins.lock.json`、`plugins.json`、`resolved`、`version` を reproducibility の主フィールドとして導入しない。",
+      "should: 個別 plugin update は Issue #371 では将来追加候補として扱い、初期実装から外してよいか確認する。",
+      "nice-to-have: DataSource static meta の完全移行は初期実装の必須到達点として設計する。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: `src/senti.js` の top-level dispatch と help 表示に影響する。unknown command と plugin command contribution の解決順が変わる。",
+    "must: `src/lib/config.js` の schema validation に影響する。plugin defaults/schema を読める二段階 validation が必要になる。",
+    "must: `src/lib/presets.js` と docs template resolver に影響する。`src/presets` 前提から enabled plugin contribution を含む解決へ変わる。",
+    "must: `src/setup.js` に影響する。未インストール preset を候補表示し、選択時に install / enable / type 設定を行う必要がある。",
+    "must: `src/upgrade.js` に影響する。既存 project の type 逆引き、commit 補完、plugin sync、skill deployment を含む必要がある。",
+    "must: `src/workflow` と `src/skills/senti.workflow` に影響する。workflow plugin が enabled の場合だけ command と flowIntegration が有効になる。",
+    "must: 既存 project の `senti workflow` 利用に影響する。upgrade migration 後は workflow plugin 経由で同じ invocation を使えるようにし、workflow plugin が disabled の場合は unavailable command と docs/help の案内で扱う。",
+    "should: docs は現状 `sdd-forge` 表記や built-in preset 前提を含むため、source 変更後に再生成・確認が必要になる。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "この flow の完了条件は、must: senti 本体、senti-presets、senti-workflow-plugin の 3 repository の実ファイル移行まで含めますか。",
+      "answer": "must: 3 repository の実ファイル移行まで含める。",
+      "evidence": "User answered `1` to q1. Issue #371 flow implementation policy lists senti, /home/nakano/workspace/senti-presets, and /home/nakano/workspace/senti-workflow-plugin as target repositories.",
+      "why": "must: plugin 機構、preset 切り出し、workflow 切り出しは同じ取得・配置・有効化・再現性モデルで検証する必要があるため、外部 repo への実移行まで完了条件に含める。",
+      "considered": "Core の plugin 機構と移行支援だけを完了条件にする案は、workflow/preset 抽出が実際に機能することを検証できないため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "既存の project-local preset `.senti/presets/<key>/` は、must: plugin 機構導入後も project 固有 override として残しますか。",
+      "answer": "must: project-local preset `.senti/presets/<key>/` は project 固有 override として残す。",
+      "evidence": "User answered `1` to q2. Existing `src/lib/presets.js` resolves `.senti/presets/<key>/` before built-in presets, and docs/creating_presets.md describes project-local presets as project-specific customization.",
+      "why": "must: project 固有 override は共有 plugin package と責務が違う。残すことで local customization と配布単位を分離できる。",
+      "considered": "Plugin package へ一本化する案は preset entry point を単純化するが、既存 project の local customization migration と配布単位の分離が難しくなるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "`senti plugin update` は、should: enabled packages 全体を最新 commit へ進める一括更新だけを初期 CLI としますか。",
+      "answer": "should: 初期 CLI は enabled packages 全体の一括更新だけにする。",
+      "evidence": "User answered `1` to q3. Issue #371 CLI section states `senti plugin update` advances all enabled packages and individual update is not part of the initial specification.",
+      "why": "should: 初期実装は plugin state の再現性、sync、setup/upgrade migration の検証に集中する。個別 update は解決・表示・テスト範囲を増やすため将来追加にする。",
+      "considered": "個別 package update を初期 CLI に含める案は運用自由度が上がるが、初期仕様の範囲と検証コストを広げるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "plugin repo の取得元は、must: 通常の git URL と local path の両方を初期仕様でサポートしますか。",
+      "answer": "must: 通常の git URL と local path の両方を初期仕様でサポートする。",
+      "evidence": "User answered `1` to q4. Issue #371 requires GitHub/private repository acquisition and this flow includes local repositories /home/nakano/workspace/senti-presets and /home/nakano/workspace/senti-workflow-plugin as migration targets.",
+      "why": "must: local path support allows the 3 repository migration to be developed and verified without publishing intermediate plugin packages, while git URL support covers GitHub/private repository operation.",
+      "considered": "Git URL のみに限定する案は仕様が狭いが、ローカル移行検証と開発中 plugin 導入を後回しにするため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "workflow plugin が disabled の project では、must: `senti workflow` を unavailable command として扱いますか。",
+      "answer": "must: workflow plugin が disabled の project では `senti workflow` を unavailable command として扱う。",
+      "evidence": "User answered `1` to q5. Issue #371 states core must not keep a workflow-specific stub and workflow plugin provides the `workflow` command contribution.",
+      "why": "must: workflow command availability must follow plugin activation. Core に workflow 専用経路を残すと、plugin 有効化と command contribution の境界が曖昧になる。",
+      "considered": "案内用 stub を core に残す案は互換性寄りだが、workflow 抽出の目的と衝突するため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q6",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "外部 plugin package の `package.json` に dependencies / devDependencies / optionalDependencies / peerDependencies / scripts がある場合、must: install / sync を拒否しますか。",
+      "answer": "must: dependencies / devDependencies / optionalDependencies / peerDependencies / scripts がある plugin package は install / sync を拒否する。",
+      "evidence": "User answered `1` to q6. Issue #371 security / install safety section says plugin install/sync/update never executes plugin-side scripts and rejects package.json when dependencies, devDependencies, optionalDependencies, peerDependencies, or scripts are non-empty.",
+      "why": "must: plugin package は build 済みでコピー可能な runtime files だけを含む前提にする。依存や scripts を許可すると、実行されない準備処理に依存する package を配置するリスクがある。",
+      "considered": "Dependency や scripts を許可する案は package 形態の自由度が上がるが、install safety と再現性を弱めるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q7",
+      "status": "answered",
+      "category": "follow-up-coverage",
+      "question": "DataSource registry の static meta 化は、nice-to-have: 初期実装の必須範囲に含めますか。",
+      "answer": "nice-to-have: DataSource registry の static meta 化は初期実装の必須範囲に含める。",
+      "evidence": "User answered `1` to q7. Issue #371 says the final design should move toward registry/meta and this board includes the preset/DataSource registry endpoint.",
+      "why": "nice-to-have: plugin / preset registry が parent chain、override、template/data directive validation を扱うため、static meta を初期実装の到達点に含める。",
+      "considered": "既存 DataSource loader を使いながら registry/meta は設計・検証観点に留める案は実装範囲を抑えられるが、ユーザーは初期実装への包含を選択したため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-09T08:23:51Z",
+    "notes": "All draft QA entries are answered or resolved; no unresolved user decision remains."
+  }
+}

@@ -63,7 +63,9 @@ export async function loadDataSources(dataDir, opts) {
     }
     const Source = mod.default;
     if (typeof Source !== "function") continue;
-    const Cls = Source(container);
+    const Cls = /^class\s/.test(Function.prototype.toString.call(Source))
+      ? Source
+      : Source(container);
     if (typeof Cls !== "function") {
       throw new Error(
         `preset DataSource factory at ${filePath} must return a class`,
