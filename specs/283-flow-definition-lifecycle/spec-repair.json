@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied two review lifecycle preservation repairs to requirements, acceptance criteria, overview decisions, and task coverage.",
+  "items": [
+    {
+      "title": "Draft review PASS artifacts are omitted",
+      "target": "R3/R4/T-4 review lifecycle",
+      "decision": "applied",
+      "rationale": "Added explicit draft PASS empty triage/repair artifact preservation to lifecycle requirements, acceptance criteria, overview decisions, and T-4 acceptance/test strategy.",
+      "evidence": "spec.json requirements[3].desc and tasks[3].acceptance now name draft PASS empty triage/repair artifact generation before draft-gate validation.",
+      "changedFields": [
+        "overview.decisions[6]",
+        "requirements[3].desc",
+        "requirements[7].desc",
+        "acceptance_criteria[4]",
+        "tasks[3].acceptance[1]",
+        "tasks[3].test_strategy"
+      ]
+    },
+    {
+      "title": "Impl review proposal reset side effects are omitted",
+      "target": "R3/R4/T-4 review lifecycle",
+      "decision": "applied",
+      "rationale": "Added explicit implementation-review proposal evidence reset and downstream step reset coverage to lifecycle requirements, acceptance criteria, overview decisions, and T-4 acceptance/test strategy.",
+      "evidence": "spec.json requirements[3].desc and tasks[3].acceptance now name proposal-producing implementation reviews resetting evidence and downstream leaves from test-execute through finalize-cleanup.",
+      "changedFields": [
+        "overview.decisions[6]",
+        "requirements[3].desc",
+        "requirements[7].desc",
+        "acceptance_criteria[5]",
+        "tasks[3].acceptance[2]",
+        "tasks[3].test_strategy"
+      ]
+    }
+  ]
+}

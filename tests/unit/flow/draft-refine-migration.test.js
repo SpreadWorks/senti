@@ -5,7 +5,7 @@ import path from "path";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { makeFlowManager } from "../../helpers/flow-setup.js";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
-import { findStepById } from "../../../src/flow/definition.js";
+import { findStepById } from "../../../src/flow/lib/step-tree.js";
 
 function writeFlowWithoutDraftRefine(tmp, overrides = {}) {
   const specId = "001-test";

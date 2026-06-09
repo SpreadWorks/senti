@@ -1,0 +1,469 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/283-flow-definition-lifecycle/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/283-flow-definition-lifecycle/tests/definition-boundary.test.js",
+        "test_name": "R1: definition exposes APIs instead of raw definition data",
+        "command": "node --test specs/283-flow-definition-lifecycle/tests/definition-boundary.test.js specs/283-flow-definition-lifecycle/tests/registry-lifecycle.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 100
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/283-flow-definition-lifecycle/tests/definition-boundary.test.js",
+        "test_name": "R2: steps-array utilities live in a dedicated step-tree module",
+        "command": "node --test specs/283-flow-definition-lifecycle/tests/definition-boundary.test.js specs/283-flow-definition-lifecycle/tests/registry-lifecycle.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 100
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/283-flow-definition-lifecycle/tests/definition-boundary.test.js",
+        "test_name": "R3: lifecycle actions are dedicated classes with invariants",
+        "command": "node --test specs/283-flow-definition-lifecycle/tests/definition-boundary.test.js specs/283-flow-definition-lifecycle/tests/registry-lifecycle.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 100
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/283-flow-definition-lifecycle/tests/registry-lifecycle.test.js",
+        "test_name": "R4: resolveLifecycle returns executable draft review PASS artifact actions",
+        "command": "node --test specs/283-flow-definition-lifecycle/tests/definition-boundary.test.js specs/283-flow-definition-lifecycle/tests/registry-lifecycle.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 100
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/283-flow-definition-lifecycle/tests/registry-lifecycle.test.js",
+        "test_name": "R5: registry hooks delegate definition-derived lifecycle decisions",
+        "command": "node --test specs/283-flow-definition-lifecycle/tests/definition-boundary.test.js specs/283-flow-definition-lifecycle/tests/registry-lifecycle.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 100
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/283-flow-definition-lifecycle/tests/definition-boundary.test.js",
+        "test_name": "R6: production, helper, and shared tests do not import raw definition data",
+        "command": "node --test specs/283-flow-definition-lifecycle/tests/definition-boundary.test.js specs/283-flow-definition-lifecycle/tests/registry-lifecycle.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 100
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/283-flow-definition-lifecycle/tests/registry-lifecycle.test.js",
+        "test_name": "R7: registry keeps command metadata while lifecycle ownership changes",
+        "command": "node --test specs/283-flow-definition-lifecycle/tests/definition-boundary.test.js specs/283-flow-definition-lifecycle/tests/registry-lifecycle.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 100
+        }
+      }
+    },
+    {
+      "id": "R8",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/283-flow-definition-lifecycle/tests/definition-boundary.test.js",
+        "test_name": "R8: spec-local coverage observes the definition boundary requirements",
+        "command": "node --test specs/283-flow-definition-lifecycle/tests/definition-boundary.test.js specs/283-flow-definition-lifecycle/tests/registry-lifecycle.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 100
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": true,
+    "mode": "full",
+    "root_test_command": "node tests/run.js",
+    "root_test_command_source": "test.command",
+    "command": "node tests/run.js",
+    "result": "pass",
+    "raw_output_lines": {
+      "start_line": 101,
+      "end_line": 5277
+    },
+    "trigger_relevant_changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/283-flow-definition-lifecycle/"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/commands/review.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/definition.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/gate-recovery-display.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/gate-step.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/get-check.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/get-next-action.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/get-status.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/resolve-auto-check-input.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/resolve-context-envelope.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-finalize-cleanup.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-gate.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-prepare-spec.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-reopen-draft.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-review.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/set-retry.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/set-step.js"
+      },
+      {
+        "status": "untracked",
+        "path": "src/flow/lib/step-tree.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/registry.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/flow-helpers.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/flow-manager.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/flow-store.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/skill-rules.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/e2e/220-auto-check-phase-flow.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/e2e/flow/commands/status-check.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/helpers/flow-setup.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/226-task-decomp-wiring/t6-step-redesign-and-cli.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/227-post-226-forest-integration/t-a3-no-flat-fallback.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/auto-upgrade-next-action.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/draft-refine-migration.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/finalize-merge-retry.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/flow-steps.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/get-next-action.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/instructions-coverage.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/resolve-auto-check-input.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/run-auto-check-phase.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/set-auto.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/set-step.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/spec-repair-migration.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/lib/flow-helpers-tasks.test.js"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/283-flow-definition-lifecycle/"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/commands/review.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/definition.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/gate-recovery-display.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/gate-step.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/get-check.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/get-next-action.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/get-status.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/resolve-auto-check-input.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/resolve-context-envelope.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-finalize-cleanup.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-gate.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-prepare-spec.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-reopen-draft.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-review.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/set-retry.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/set-step.js"
+      },
+      {
+        "status": "untracked",
+        "path": "src/flow/lib/step-tree.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/registry.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/flow-helpers.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/flow-manager.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/flow-store.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/skill-rules.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/e2e/220-auto-check-phase-flow.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/e2e/flow/commands/status-check.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/helpers/flow-setup.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/226-task-decomp-wiring/t6-step-redesign-and-cli.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/227-post-226-forest-integration/t-a3-no-flat-fallback.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/auto-upgrade-next-action.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/draft-refine-migration.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/finalize-merge-retry.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/flow-steps.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/get-next-action.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/instructions-coverage.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/resolve-auto-check-input.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/run-auto-check-phase.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/set-auto.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/set-step.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/spec-repair-migration.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/lib/flow-helpers-tasks.test.js"
+      }
+    ],
+    "process": {
+      "started": true,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "spawnError": null
+    }
+  }
+}

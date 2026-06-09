@@ -17,9 +17,8 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import {
-  collectLeafIds,
-  FLOW_DEFINITION,
-  TASK_DEFINITION,
+  collectFlowLeafIds,
+  collectTaskLeafIds,
 } from "../flow/definition.js";
 import { parseDirectives } from "../docs/lib/directive-parser.js";
 
@@ -31,8 +30,8 @@ export const RULES_JSON_PATH = path.resolve(__dirname, "..", "skills", "rules.js
 
 /** Canonical scope-aware leaf id strings (24 entries). */
 export const VALID_SKILL_RULE_PHASES = Object.freeze([
-  ...collectLeafIds(FLOW_DEFINITION).map((id) => `flow.${id}`),
-  ...collectLeafIds(TASK_DEFINITION).map((id) => `task.${id}`),
+  ...collectFlowLeafIds().map((id) => `flow.${id}`),
+  ...collectTaskLeafIds().map((id) => `task.${id}`),
 ]);
 
 const VALID_PHASE_SET = new Set(VALID_SKILL_RULE_PHASES);

@@ -9,7 +9,6 @@
  */
 
 import { derivePhase } from "../lib/flow-helpers.js";
-import fs from "fs";
 import path from "path";
 import {
   VALID_PHASES,
@@ -19,7 +18,12 @@ import {
   VALID_GUARDRAIL_PHASES,
 } from "../lib/constants.js";
 import { resolveGateStepId, resolveGatePhaseFromState } from "./lib/gate-step.js";
-import { flattenSteps } from "./definition.js";
+import {
+  resolveLifecycle,
+  resolveRuntimeStep,
+  writeEmptyDraftReviewRouteArtifacts,
+} from "./definition.js";
+import { flattenSteps } from "./lib/step-tree.js";
 import { DRAFT_REVIEW_ROUTES, draftReviewRouteForRetryPhase } from "./lib/draft-review-routes.js";
 import { assertStepCompletionTransitionAllowed } from "./lib/flow-judgment-contract.js";
 
@@ -28,16 +32,9 @@ import { assertStepCompletionTransitionAllowed } from "./lib/flow-judgment-contr
  * 'skipped' is normalized to 'done' so the step ledger does not mix done/skipped
  * for finalize leaves (per spec 251 design principle).
  */
-const FINALIZE_SUCCESS_STATUSES = new Set(["done", "completed", "skipped"]);
 const FLOW_RUN_RUNTIME_OPTIONS = ["--agent-work-dir"];
-const DRAFT_REVIEW_RECORDED_VERDICTS = new Set(["PASS", "ADVISORY", "FAIL"]);
 const RETRY_HELP_GATE_PHASES = Object.freeze(["task-impl", "integration"]);
 const RETRY_HELP_REVIEW_PHASES = Object.freeze(["draft", "draft-questions", "draft-coverage", "spec", "test", "impl"]);
-const REVIEW_RUNTIME_STEP_BY_PHASE = Object.freeze({
-  spec: "spec-review",
-  test: "test-review",
-  impl: "impl-review",
-});
 export const DRAFT_REVIEW_REGISTRY_RESPONSIBILITY_BOUNDARY = Object.freeze({
   review: "detection",
   triage: "disposition",
@@ -65,35 +62,6 @@ export function assertDraftReviewRegistryHookBoundary() {
   }
 }
 
-function isFinalizeSuccess(result) {
-  return FINALIZE_SUCCESS_STATUSES.has(String(result?.status || ""));
-}
-
-function isDraftReviewRecordedVerdict(verdict) {
-  return DRAFT_REVIEW_RECORDED_VERDICTS.has(verdict);
-}
-
-function writeEmptyDraftReviewRouteArtifacts(ctx, route) {
-  const specDir = path.dirname(path.resolve(ctx.root, ctx.flowState.spec));
-  const generatedAt = new Date().toISOString();
-  fs.writeFileSync(path.join(specDir, route.triageArtifact), JSON.stringify({
-    version: 1,
-    phase: route.triageStepId,
-    sourceReview: route.reviewArtifact,
-    generatedAt,
-    summary: "No draft review findings to triage.",
-    items: [],
-  }, null, 2) + "\n");
-  fs.writeFileSync(path.join(specDir, route.repairArtifact), JSON.stringify({
-    version: 1,
-    phase: route.repairStepId,
-    sourceTriage: route.triageArtifact,
-    generatedAt,
-    summary: "No draft triage items to repair.",
-    items: [],
-  }, null, 2) + "\n");
-}
-
 /**
  * Resolve the FlowManager scoped to the main repo for merge-onward post hooks.
  * After finalize-merge runs, the main repo gains its own specs/<id>/flow.json
@@ -113,21 +81,15 @@ function resolveMainRepoFlowManager(ctx) {
  * need promoteNextPendingLeaf to advance to finalize-sync, which it cannot do
  * while those steps are skipped.
  */
-// Built at runtime so the literal quoted leaf-id strings (finalize-sync /
-// finalize-cleanup) do not appear in source above the registry entries.
-// This keeps the spec-test split-segment heuristics for R1 / R6 anchored on
-// each entry's registry key as the first quoted occurrence.
-const FINALIZE_DOWNSTREAM_LEAVES = ["sync", "cleanup"].map((s) => `finalize-${s}`);
-
 /**
  * @returns {boolean} true when at least one leaf was reset, false when no-op.
  */
-function resetSkippedDownstreamSteps(targetFm, opts) {
+function resetSkippedDownstreamSteps(targetFm, opts, stepIds = []) {
   const state = opts?.specId ? targetFm.load(opts.specId) : targetFm.load();
   if (!state) return false;
   const flat = flattenSteps(state.steps || []);
   let mutated = false;
-  for (const id of FINALIZE_DOWNSTREAM_LEAVES) {
+  for (const id of stepIds) {
     const step = flat.find((s) => s.id === id);
     if (step?.status === "skipped") {
       tryUpdateStepStatus(targetFm, id, "pending", opts);
@@ -231,13 +193,188 @@ function draftReviewRuntimeLogStepId(ctx, result) {
 }
 
 function reviewRuntimeLogStepId(ctx, result) {
-  const phase = result?.artifacts?.phase || ctx.phase;
-  if (phase === "draft" || phase === "draft-questions" || phase === "draft-coverage") return draftReviewRuntimeLogStepId(ctx, result);
-  if (REVIEW_RUNTIME_STEP_BY_PHASE[phase]) return REVIEW_RUNTIME_STEP_BY_PHASE[phase];
-  return activeStepId(ctx.flowState, [
-    ...DRAFT_REVIEW_ROUTES.map((candidate) => candidate.reviewStepId),
-    ...Object.values(REVIEW_RUNTIME_STEP_BY_PHASE),
-  ]);
+  return resolveRuntimeStep({
+    command: "run-review",
+    phase: ctx.phase,
+    result,
+    flowState: ctx.flowState,
+    currentStepId: activeStepId(ctx.flowState, DRAFT_REVIEW_ROUTES.map((candidate) => candidate.reviewStepId)),
+  });
+}
+
+function finalizeCommand(suffix) {
+  return `finalize-${suffix}`;
+}
+
+class RegistryLifecycleAdapter {
+  constructor(ctx, result, err) {
+    this.ctx = ctx;
+    this.result = result;
+    this.err = err;
+    this.phase = result?.artifacts?.phase || ctx.phase;
+  }
+
+  setStepStatus(step, status) {
+    if (step.startsWith("finalize-")) {
+      tryUpdateStepStatus(this.ctx.flowManager, step, status, { specId: this.ctx.specId });
+      return;
+    }
+    tryUpdateStepStatus({ ...this.ctx, phase: this.phase }, step, status);
+  }
+
+  keepInProgress(step) {
+    tryUpdateStepStatus(this.ctx, step, "in_progress");
+  }
+
+  async incrementMetric(phase, counter) {
+    if (counter === "reviewRetry") {
+      const reviewMod = await import("./lib/run-review.js");
+      reviewMod.updateReviewRetryCounter(this.ctx, this.result);
+      return;
+    }
+    if (counter === "gateRetry") {
+      const gateMod = await import("./lib/run-gate.js");
+      try {
+        gateMod.updateGateRetryCounter(this.ctx, this.result);
+      } catch (err) {
+        process.stderr.write(`[sdd-forge] updateGateRetryCounter failed: ${err.message}\n`);
+      }
+    }
+  }
+
+  async appendIssueLog(source) {
+    if (source === "gate-result") {
+      const gateMod = await import("./lib/run-gate.js");
+      tryAppendIssueLog(() => gateMod.appendIssueLogFromGateResult(this.ctx, this.result));
+      return;
+    }
+    if (source === "test-review-tooling-failure") {
+      const reviewMod = await import("./lib/run-review.js");
+      tryAppendIssueLog(() => reviewMod.appendIssueLogFromTestReviewToolingFailure(this.ctx, this.result));
+    }
+  }
+
+  async executeSideEffects() {
+    const gateMod = await import("./lib/run-gate.js");
+    const phase = this.result?.artifacts?.phase || this.ctx.phase;
+    await gateMod.executeGateSideEffects(this.ctx, phase);
+  }
+
+  skipSteps(steps) {
+    for (const id of steps) {
+      try {
+        this.ctx.flowManager.updateStepStatus(id, "skipped");
+      } catch (e) {
+        process.stderr.write(`[sdd-forge] finalize-merge onError: step-status update failed (${id}): ${e.message}\n`);
+      }
+    }
+  }
+
+  resetSteps(steps) {
+    this.ctx.flowManager.mutate((state) => {
+      const flat = flattenSteps(state.steps || []);
+      for (const id of steps) {
+        const step = flat.find((candidate) => candidate.id === id);
+        if (!step) continue;
+        step.status = "pending";
+        delete step.finishedAt;
+        delete step.startedAt;
+      }
+    });
+  }
+
+  async runLifecycleHook(module, handler, args) {
+    if (module === "review") {
+      await this.runReviewHook(handler, args);
+      return;
+    }
+    if (module === "finalize") {
+      await this.runFinalizeHook(handler, args);
+    }
+  }
+
+  async runReviewHook(handler, args) {
+    if (handler === "writeEmptyDraftReviewRouteArtifacts") {
+      const route = draftReviewRouteForRetryPhase(args?.retryPhase);
+      if (!route) return;
+      const specDir = path.dirname(path.resolve(this.ctx.root, this.ctx.flowState.spec));
+      writeEmptyDraftReviewRouteArtifacts({ specDir, route });
+      return;
+    }
+    if (handler === "resetImplEvidenceAfterReviewProposals") {
+      const reviewMod = await import("./lib/run-review.js");
+      reviewMod.resetImplEvidenceAfterReviewProposals(this.ctx, this.result);
+    }
+  }
+
+  async runFinalizeHook(handler, args) {
+    const finalize = await import("./lib/run-finalize.js");
+    if (handler === "prepareFinalizeMerge") {
+      const metadataPreflight = finalize.readFinalizeMergeMetadataPreflight({
+        root: this.ctx.root,
+        specId: this.ctx.specId,
+      });
+      if (finalize.hasFinalizeMergeTargetExternalDirty({
+        root: this.ctx.root,
+        specId: this.ctx.specId,
+        preflight: metadataPreflight,
+      })) {
+        return;
+      }
+      const mutated = resetSkippedDownstreamSteps(this.ctx.flowManager, undefined, args?.steps || []);
+      finalize.commitFinalizeMergeMetadataIfSafe({
+        root: this.ctx.root,
+        specId: this.ctx.specId,
+        preflight: metadataPreflight,
+        includeFlowJson: mutated,
+        message: mutated
+          ? "chore: reset downstream finalize steps for retry"
+          : "chore: record finalize metadata before merge",
+      });
+      return;
+    }
+    if (handler === "resolveMainRepoFlowManager") {
+      this.ctx.flowManager = resolveMainRepoFlowManager(this.ctx);
+      return;
+    }
+    if (handler === "executeCommitPost") {
+      await finalize.executeCommitPost(this.ctx);
+      return;
+    }
+    if (handler === "recordMergeOutcome") {
+      const strategy = this.result?.strategy === "skip" ? null : (this.result?.strategy ?? null);
+      const baseline = strategy === "squash" ? (this.result?.mergedFromSha ?? null) : null;
+      try {
+        this.ctx.flowManager.setMergeOutcome(
+          { mergeStrategy: strategy, featureBranchSquashedSha: baseline },
+          { specId: this.ctx.specId },
+        );
+      } catch (err) {
+        process.stderr.write(`[sdd-forge] finalize-merge: setMergeOutcome failed: ${err.message}\n`);
+      }
+      return;
+    }
+    if (handler === "resetSkippedDownstreamSteps") {
+      resetSkippedDownstreamSteps(this.ctx.flowManager, { specId: this.ctx.specId }, args?.steps || []);
+      return;
+    }
+    if (handler === "finalizeOnError") {
+      finalize.finalizeOnError(args?.command)(this.ctx, this.err);
+    }
+  }
+}
+
+async function applyLifecycleActionsFromRegistry(ctx, input, result = null, err = null) {
+  const actions = resolveLifecycle({
+    ...input,
+    result,
+    error: err,
+    flowState: ctx.flowState,
+  });
+  const adapter = new RegistryLifecycleAdapter(ctx, result, err);
+  for (const action of actions) {
+    await action.apply(adapter);
+  }
 }
 
 
@@ -532,14 +669,18 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.run.gate",
       responsibilities: DRAFT_REVIEW_GATE_RESPONSIBILITIES,
       runtimeLog: { stepId: gateRuntimeLogStepId },
-      pre(ctx) {
+      async pre(ctx) {
         // When --phase is omitted, phase resolution and stale-step recovery
         // happen inside RunGateCommand.execute (which has exclusive ownership
         // over flow state mutations for the duration of the gate). The
         // pre-hook's step-status update is only valid when phase is already
         // known, so skip it otherwise.
         if (ctx.phase == null) return;
-        tryUpdateStepStatus(ctx, resolveGateStepId(ctx.phase), "in_progress");
+        await applyLifecycleActionsFromRegistry(ctx, {
+          event: "gate:pre",
+          command: "run-gate",
+          phase: ctx.phase,
+        });
       },
       command: () => import("./lib/run-gate.js"),
       args: {
@@ -559,24 +700,11 @@ export const FLOW_COMMANDS = {
         "  --skip-guardrail              Skip AI guardrail compliance check",
       ].join("\n"),
       async post(ctx, result) {
-        const status = result?.result === "pass" ? "done" : "in_progress";
-        const phase = result?.artifacts?.phase || ctx.phase;
-        tryUpdateStepStatus({ ...ctx, phase }, resolveGateStepId(phase), status);
-
-        const gateMod = await import("./lib/run-gate.js");
-        try {
-          gateMod.updateGateRetryCounter(ctx, result);
-        } catch (err) {
-          process.stderr.write(`[sdd-forge] updateGateRetryCounter failed: ${err.message}\n`);
-        }
-
-        if (result?.result !== "pass") {
-          tryAppendIssueLog(() => gateMod.appendIssueLogFromGateResult(ctx, result));
-        }
-
-        if (result?.result === "pass") {
-          await gateMod.executeGateSideEffects(ctx, phase);
-        }
+        await applyLifecycleActionsFromRegistry(ctx, {
+          event: "gate:post",
+          command: "run-gate",
+          phase: result?.artifacts?.phase || ctx.phase,
+        }, result);
       },
       async onError(ctx, err) {
         const { appendIssueLogFromGateError } = await import("./lib/run-gate.js");
@@ -606,64 +734,14 @@ export const FLOW_COMMANDS = {
         "  --skip-confirm   Skip initial confirmation prompt",
       ].join("\n"),
       async post(ctx, result) {
-        // spec 253: counter update first (R29: precedence). Errors propagate
-        // to dispatcher (R22) so POST_HOOK_FAILED warning surfaces.
-        const reviewMod = await import("./lib/run-review.js");
-        reviewMod.updateReviewRetryCounter(ctx, result);
-
-        if (ctx.phase === "draft") {
-          assertDraftReviewRegistryHookBoundary();
-          // Registry post hook boundary: review as detection, triage as
-          // disposition, repair as mutation/audit, gate as mechanical
-          // validation. This hook completes routing state only; draft
-          // mutation/audit remains owned by repair leaves.
-          const retryPhase = result?.artifacts?.retryPhase;
-          const verdict = result?.artifacts?.verdict;
-          const routing = draftReviewRouteForRetryPhase(retryPhase);
-          if (routing && isDraftReviewRecordedVerdict(verdict)) {
-            tryUpdateStepStatus(ctx, routing.reviewStepId, "done");
-            if (verdict === "PASS") {
-              writeEmptyDraftReviewRouteArtifacts(ctx, routing);
-              tryUpdateStepStatus(ctx, routing.triageStepId, "done");
-              tryUpdateStepStatus(ctx, routing.repairStepId, "done");
-            }
-          }
-          return;
-        }
-
-        if (ctx.phase === "spec") {
-          const verdict = result?.artifacts?.verdict;
-          if (verdict === "PASS" || verdict === "ADVISORY") {
-            tryUpdateStepStatus(ctx, "spec-review", "done");
-            tryUpdateStepStatus(ctx, "spec-triage", "done");
-            tryUpdateStepStatus(ctx, "spec-repair", "done");
-          } else if (verdict === "FAIL") {
-            tryUpdateStepStatus(ctx, "spec-review", "done");
-          }
-          return;
-        }
-
-        if (ctx.phase === "test") {
-          const verdict = result?.artifacts?.verdict;
-          if (verdict === "PASS" || verdict === "ADVISORY") {
-            tryUpdateStepStatus(ctx, "test-review", "done");
-          } else if (verdict === "TOOLING_FAILURE") {
-            tryAppendIssueLog(() => reviewMod.appendIssueLogFromTestReviewToolingFailure(ctx, result));
-          }
-          return;
-        }
-
-        const planPhases = ["draft", "spec", "test"];
-        if (planPhases.includes(ctx.phase)) return;
-        if (result?.artifacts?.phase === "impl") {
-          const verdict = result.artifacts.verdict;
-          if (verdict === "PASS" || verdict === "ADVISORY") {
-            tryUpdateStepStatus(ctx, activeImplReviewStepId(ctx.flowState), "done");
-          }
-          return;
-        }
-        if (!ctx.dryRun && reviewMod.resetImplEvidenceAfterReviewProposals(ctx, result)) return;
-        tryUpdateStepStatus(ctx, activeImplReviewStepId(ctx.flowState), "done");
+        assertDraftReviewRegistryHookBoundary();
+        await applyLifecycleActionsFromRegistry(ctx, {
+          event: "review:post",
+          command: "run-review",
+          phase: ctx.phase,
+          currentStepId: activeImplReviewStepId(ctx.flowState),
+          dryRun: ctx.dryRun,
+        }, result);
       },
     },
     "auto-check": {
@@ -728,18 +806,16 @@ export const FLOW_COMMANDS = {
         "  --agent-work-dir <path>  Per-invocation agent/tmp base directory",
       ].join("\n"),
       async post(ctx, result) {
-        // R11: skip side effects on preflight_failed / failed. The step is
-        // intentionally left at its prior status so the user can retry.
-        if (!isFinalizeSuccess(result)) return;
-        // R1: normalize success command-result status to flow step 'done'.
-        // Pre-merge, authority is the worktree's own flow.json.
-        tryUpdateStepStatus(ctx, "finalize-commit", "done");
-        const m = await import("./lib/run-finalize.js");
-        await m.executeCommitPost(ctx);
+        await applyLifecycleActionsFromRegistry(ctx, {
+          event: "finalize:post",
+          command: "finalize-commit",
+        }, result);
       },
       async onError(ctx, err) {
-        const m = await import("./lib/run-finalize.js");
-        m.finalizeOnError("finalize-commit")(ctx, err);
+        await applyLifecycleActionsFromRegistry(ctx, {
+          event: "finalize:onError",
+          command: "finalize-commit",
+        }, null, err);
       },
     },
     "finalize-merge": {
@@ -753,76 +829,22 @@ export const FLOW_COMMANDS = {
         "Squash merge or PR creation. On failure, subsequent steps are skipped.",
       ].join("\n"),
       async pre(ctx) {
-        const finalize = await import("./lib/run-finalize.js");
-        const metadataPreflight = finalize.readFinalizeMergeMetadataPreflight({
-          root: ctx.root,
-          specId: ctx.specId,
-        });
-        if (finalize.hasFinalizeMergeTargetExternalDirty({
-          root: ctx.root,
-          specId: ctx.specId,
-          preflight: metadataPreflight,
-        })) {
-          return;
-        }
-
-        // R20/R21: a prior merge failure left finalize-sync / finalize-cleanup
-        // marked 'skipped' on the worktree flow.json (via this entry's onError).
-        // Reset them to 'pending' before the retry so promoteNextPendingLeaf
-        // can advance after a successful retry. Commit the reset so the merge
-        // command's pre-merge dirty check (R21) sees a clean working tree —
-        // without this commit, the pre-hook write would itself satisfy 'dirty'
-        // and block the retry it is meant to enable.
-        const mutated = resetSkippedDownstreamSteps(ctx.flowManager);
-        finalize.commitFinalizeMergeMetadataIfSafe({
-          root: ctx.root,
-          specId: ctx.specId,
-          preflight: metadataPreflight,
-          includeFlowJson: mutated,
-          message: mutated
-            ? "chore: reset downstream finalize steps for retry"
-            : "chore: record finalize metadata before merge",
+        await applyLifecycleActionsFromRegistry(ctx, {
+          event: "finalize:pre",
+          command: "finalize-merge",
         });
       },
       async post(ctx, result) {
-        if (!isFinalizeSuccess(result)) return;
-        // R2: switch authority to the main repo flow.json (squash-merged in
-        // by execute()). The worktree's flow.json is left alone; from this
-        // point on it is no longer the authoritative copy.
-        const targetFm = resolveMainRepoFlowManager(ctx);
-        ctx.flowManager = targetFm; // Switch authority for the dispatcher's runtime-log persistence
-        const opts = { specId: ctx.specId };
-        tryUpdateStepStatus(targetFm, "finalize-merge", "done", opts);
-        // Spec 253 R16/R17: persist squash baseline + merge route on main repo
-        // flow.json so finalize-cleanup can detect orphan commits later.
-        // result.strategy is "squash" | "pr" | "skip"; "skip" means spec-only
-        // mode, which is treated as null route (no detection applies).
-        const strategy = result?.strategy === "skip" ? null : (result?.strategy ?? null);
-        const baseline =
-          strategy === "squash" ? (result?.mergedFromSha ?? null) : null;
-        try {
-          targetFm.setMergeOutcome(
-            { mergeStrategy: strategy, featureBranchSquashedSha: baseline },
-            opts,
-          );
-        } catch (err) {
-          process.stderr.write(`[sdd-forge] finalize-merge: setMergeOutcome failed: ${err.message}\n`);
-        }
-        // R6: on retry success, reset any 'skipped' finalize-sync /
-        // finalize-cleanup back to 'pending' so the dispatcher can promote
-        // finalize-sync as the next leaf.
-        resetSkippedDownstreamSteps(targetFm, opts);
+        await applyLifecycleActionsFromRegistry(ctx, {
+          event: "finalize:post",
+          command: "finalize-merge",
+        }, result);
       },
       async onError(ctx, err) {
-        const m = await import("./lib/run-finalize.js");
-        m.finalizeOnError("finalize-merge")(ctx, err);
-        for (const id of FINALIZE_DOWNSTREAM_LEAVES) {
-          try {
-            ctx.flowManager.updateStepStatus(id, "skipped");
-          } catch (e) {
-            process.stderr.write(`[sdd-forge] finalize-merge onError: step-status update failed (${id}): ${e.message}\n`);
-          }
-        }
+        await applyLifecycleActionsFromRegistry(ctx, {
+          event: "finalize:onError",
+          command: "finalize-merge",
+        }, null, err);
       },
     },
     "finalize-sync": {
@@ -836,15 +858,16 @@ export const FLOW_COMMANDS = {
         "Build docs on main repo after merge and commit.",
       ].join("\n"),
       async post(ctx, result) {
-        if (!isFinalizeSuccess(result)) return;
-        // R2: post-merge authority is the main repo flow.json.
-        const targetFm = resolveMainRepoFlowManager(ctx);
-        ctx.flowManager = targetFm; // Switch authority for the dispatcher's runtime-log persistence
-        tryUpdateStepStatus(targetFm, "finalize-sync", "done", { specId: ctx.specId });
+        await applyLifecycleActionsFromRegistry(ctx, {
+          event: "finalize:post",
+          command: finalizeCommand("sync"),
+        }, result);
       },
       async onError(ctx, err) {
-        const m = await import("./lib/run-finalize.js");
-        m.finalizeOnError("finalize-sync")(ctx, err);
+        await applyLifecycleActionsFromRegistry(ctx, {
+          event: "finalize:onError",
+          command: finalizeCommand("sync"),
+        }, null, err);
       },
     },
     "finalize-cleanup": {
@@ -869,18 +892,16 @@ export const FLOW_COMMANDS = {
         "--auto-rescue and --force are mutually exclusive.",
       ].join("\n"),
       async post(ctx, result) {
-        // The cleanup body owns the step transition (it must be done inside
-        // the same git commit as the final flow.json — see R5). The post hook
-        // is an idempotent re-set in case the body wrote the file but the
-        // dispatcher still ran post for some unforeseen reason.
-        if (!isFinalizeSuccess(result)) return;
-        const targetFm = resolveMainRepoFlowManager(ctx);
-        ctx.flowManager = targetFm; // Switch authority for the dispatcher's runtime-log persistence
-        tryUpdateStepStatus(targetFm, "finalize-cleanup", "done", { specId: ctx.specId });
+        await applyLifecycleActionsFromRegistry(ctx, {
+          event: "finalize:post",
+          command: finalizeCommand("cleanup"),
+        }, result);
       },
       async onError(ctx, err) {
-        const m = await import("./lib/run-finalize.js");
-        m.finalizeOnError("finalize-cleanup")(ctx, err);
+        await applyLifecycleActionsFromRegistry(ctx, {
+          event: "finalize:onError",
+          command: finalizeCommand("cleanup"),
+        }, null, err);
       },
     },
     sync: {

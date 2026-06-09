@@ -11,7 +11,7 @@ import path from "path";
 import { getWorktreeStatus, getCurrentBranch, getAheadCount, getLastCommit, isGhAvailable } from "../../lib/git-helpers.js";
 import { derivePhase } from "../../lib/flow-helpers.js";
 import { loadSpecJson, loadSpecRequirements } from "../../lib/spec-json.js";
-import { flattenSteps } from "../definition.js";
+import { flattenSteps } from "./step-tree.js";
 
 const SKILL_BY_PHASE = { sync: "sdd-forge.flow-sync" };
 const DEFAULT_SKILL = "sdd-forge.flow";

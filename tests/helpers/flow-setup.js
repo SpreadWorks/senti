@@ -3,7 +3,7 @@ import path from "path";
 import { Container } from "../../src/lib/container.js";
 import { FlowManager } from "../../src/lib/flow-manager.js";
 import { FLOW_STEPS, buildInitialSteps } from "../../src/lib/flow-helpers.js";
-import { findStepById } from "../../src/flow/definition.js";
+import { findStepById } from "../../src/flow/lib/step-tree.js";
 
 /**
  * Build a fresh Container instance with `flowManager` registered for a test

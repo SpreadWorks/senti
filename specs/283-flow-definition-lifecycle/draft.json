@@ -1,0 +1,132 @@
+{
+  "devType": "refactor",
+  "goal": "Issue #370: registry.js remains the CLI command registry while definition-derived flow lifecycle decisions move to definition-side APIs.",
+  "analysis": {
+    "problem": "Flow lifecycle decisions have leaked into registry.js hooks even though registry.js is the place for CLI subcommands and hook connection points. Current source evidence shows registry.js resolving review runtime steps and hardcoding step status updates, while definition.js still raw-exports FLOW_DEFINITION/TASK_DEFINITION and contains steps-array utilities.",
+    "proposedApproach": "Move decisions derivable from the flow definition to definition-side query and lifecycle APIs, keep complex execution side effects in normal modules behind an escape hatch, and separate steps-array utilities into a dedicated module.",
+    "validation": "The approach addresses the root boundary problem because registry.js can keep command metadata while asking definition-side APIs how lifecycle transitions, runtime step resolution, maxAttempts, sideEffects, and step tree operations are resolved."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #370 keeps registry.js as the CLI command registry for subcommand list, command imports, args, help, requiresFlow/requiresConfig, and hook connection points.",
+      "must: Issue #370 moves hook decisions about step ids and phase structure to definition-side APIs.",
+      "must: Issue #370 lists definition-derived decisions including step order, phase/action mappings, maxAttempts, contextKinds, sideEffects, review/gate/finalize relationships, status transitions, skip behavior, and runtime log step resolution.",
+      "must: Current source has raw FLOW_DEFINITION/TASK_DEFINITION exports and callers importing them from src/flow/definition.js.",
+      "must: Current source keeps steps-array utilities such as flattenSteps, findStepById, findFirstPendingLeaf, and findInProgressLeaf in src/flow/definition.js.",
+      "must: Current source shows registry.js containing review runtime step maps and direct status updates for review and finalize lifecycle hooks.",
+      "must: All lifecycle leak examples named in Issue #370 are in scope when they are definition-derived decisions.",
+      "must: CLI user-visible command behavior remains unchanged while internal lifecycle ownership changes.",
+      "must: Tests and helper modules stop importing raw FLOW_DEFINITION/TASK_DEFINITION when the raw exports are removed.",
+      "should: Docs rebuild/update belongs in this flow only if documented flow internals change."
+    ],
+    "decisionPoints": [],
+    "resolvedByProjectRules": [
+      "must: Add no external dependency because AGENTS.md permits only Node.js built-in modules.",
+      "must: Keep alpha policy by removing old raw definition exports instead of adding backward-compatible aliases.",
+      "must: Use dedicated classes for meaningful lifecycle action values because project rules require OOP-based value representation.",
+      "must: Treat source code as authoritative if docs and source disagree.",
+      "must: Keep Issue #370 in one spec; record unrelated discovered residual issues in issue-log if they cannot be fixed in scope."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: Translate approved draft decisions into verifiable requirements and task boundaries.",
+      "must: Define tests that prove registry.js delegates lifecycle decisions and callers stop depending on raw definition exports.",
+      "should: Specify which existing tests must move imports from definition.js to the new definition API or step-tree module."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: Keep registry.js as the CLI command registry while removing direct lifecycle decisions from hooks.",
+      "must: Add definition-side APIs for node lookup, maxAttempts, sideEffects, runtime step resolution, lifecycle resolution, and task node lookup.",
+      "must: Represent lifecycle actions with dedicated classes that enforce invariants in constructors.",
+      "must: Use an escape hatch for complex finalize, git, filesystem, report, and issue-comment behavior.",
+      "must: Remove raw FLOW_DEFINITION/TASK_DEFINITION exports and update callers to use APIs.",
+      "must: Move steps-array-only utilities to a dedicated step-tree module."
+    ],
+    "out": [
+      "must: Keep registry.js.",
+      "must: Avoid external dependencies and TypeScript migration.",
+      "must: Avoid compatibility aliases for raw definition exports.",
+      "must: Keep complex finalize execution side effects outside declarative lifecycle primitives."
+    ]
+  },
+  "impactOnExisting": [
+    "must: Existing flow command names, options, help text, JSON envelopes, step ids, and status transitions remain compatible.",
+    "must: Existing review, gate, task, and finalize flow behavior remains behaviorally equivalent after lifecycle decisions move out of registry.js.",
+    "must: Tests and helper modules that currently import definition internals are affected by complete raw export removal."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "must: Are all named Issue #370 lifecycle leak examples acceptance criteria: review status transitions, gate step resolution, finalize downstream skip/reset behavior, sideEffects, maxAttempts, and runtime log step resolution?",
+      "answer": "must: The spec covers all named examples when they are definition-derived decisions: review status transitions, gate step resolution, finalize downstream skip/reset behavior, sideEffects, maxAttempts, and runtime log step resolution.",
+      "evidence": "Issue #370 lists these exact decision categories under Centralize flow decisions on the definition side, and source context shows registry.js currently hardcodes review runtime step maps and finalize step status updates.",
+      "why": "Treating only one named leak as mandatory would leave the registry/definition boundary broken in the same way the Issue describes.",
+      "considered": "A narrower first pass was rejected because the user-defined Issue is the scope boundary and project rules prohibit splitting the Issue by default.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "must: Are lifecycle actions represented by dedicated classes with enforced invariants instead of object literal action records?",
+      "answer": "must: Lifecycle actions are represented by dedicated classes with constructor-enforced invariants instead of object literal action records.",
+      "evidence": "Issue #370 says lifecycle contents should be represented by dedicated classes, and AGENTS.md requires OOP-based value representation for meaningful values because TypeScript is not used.",
+      "why": "Dedicated classes provide reliable instanceof checks and keep lifecycle action behavior attached to the value type.",
+      "considered": "Object literal action records were rejected because they repeat the discriminated-union style that the project rules explicitly avoid.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "must: Does CLI user-visible behavior remain unchanged after this refactor, including command names, options, help text, JSON envelope shape, step ids, and existing status transitions?",
+      "answer": "must: Command names, options, help text, JSON envelope shape, step ids, and existing status transitions remain user-visible compatible while internal lifecycle ownership changes.",
+      "evidence": "Issue #370 says registry.js remains the CLI command registry and should keep subcommand list, args, help, requiresFlow/requiresConfig, and hook connection points.",
+      "why": "The requested change is an internal responsibility cleanup, not a CLI contract change.",
+      "considered": "Changing CLI output to simplify the refactor was rejected because the Issue does not request command behavior changes.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "must: Are test files and internal helper modules migrated away from raw FLOW_DEFINITION/TASK_DEFINITION imports in the same spec, so raw exports disappear from all callers rather than only production code?",
+      "answer": "must: Production modules, internal helper modules, and tests are migrated away from raw FLOW_DEFINITION/TASK_DEFINITION imports so raw exports disappear from all callers.",
+      "evidence": "Issue #370 says external code should not touch definition data directly, and rg shows imports of FLOW_DEFINITION/TASK_DEFINITION in src/lib/flow-helpers.js, src/lib/skill-rules.js, src/flow/lib/*, and tests.",
+      "why": "Leaving tests or helpers on raw exports would keep the old internal structure as an active contract and make the raw export removal incomplete.",
+      "considered": "Production-only migration was rejected because alpha policy says not to keep backward-compatible exports for phased migration.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "should: Does this flow include a docs rebuild/update after implementation if the refactor changes documented flow internals?",
+      "answer": "should: Rebuild/update docs through the project flow when implementation changes documented flow internals; otherwise keep docs unchanged.",
+      "evidence": "AGENTS.md says docs are source-generated, source is authoritative when docs disagree, and source/docs freshness should be checked before implementation.",
+      "why": "The docs work tracks actual source changes instead of creating manual generated-doc churn before implementation proves what changed.",
+      "considered": "Always rebuilding docs at draft time was rejected because docs updates should be tied to actual implementation changes.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q6",
+      "status": "answered",
+      "category": "follow-up-coverage",
+      "question": "must: Are Issue #370 named lifecycle leaks completed in this spec instead of recorded as lower-risk follow-up issue-log items?",
+      "answer": "must: Named lifecycle leaks in the Issue are completed in this spec; only unrelated discoveries or residual issues outside the approved scope are recorded in issue-log.",
+      "evidence": "AGENTS.md says not to split user-defined Issues, and the flow issue-log rule requires recording discovered problems that are not fixed in the current spec scope.",
+      "why": "Follow-up logging is for unrelated or out-of-scope discoveries, not for deferring the central concern of the current Issue.",
+      "considered": "Recording lower-risk named leaks as follow-up was rejected because it would leave the requested registry/definition cleanup incomplete.",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-08T09:45:30.000Z",
+    "notes": "All draft QA entries are answered from Issue #370, project rules, and source context; no unresolved user decision remains."
+  }
+}

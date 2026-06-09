@@ -88,7 +88,7 @@ export async function executeGateSideEffects(ctx, phase) {
   const state = fm.load();
   const stepId = resolveGateStepId(phase);
   const scope = state?.currentTaskId != null ? "task" : "flow";
-  const derived = deriveNextAction(scope, stepId, state);
+  const derived = deriveNextAction({ scope, stepId, context: state });
   const sideEffects = derived?.sideEffects;
   if (!sideEffects || sideEffects.length === 0) return;
 
@@ -1607,7 +1607,7 @@ async function checkGuardrail(root, targetText, phase, role, previouslyPassedIds
 // Retry counter & escalation (spec 201, P2-R1〜P2-R4)
 // ---------------------------------------------------------------------------
 
-import { resolveNodeFor, FLOW_DEFINITION, TASK_DEFINITION } from "../definition.js";
+import { resolveMaxAttempts } from "../definition.js";
 
 const RETRY_TRACKED_PHASES = Object.freeze(["draft", "spec", "task-impl", "integration"]);
 const GATE_RECOVERY_PHASES = new Set(["task-impl", "integration"]);
@@ -1619,9 +1619,7 @@ export function resolveRetryMax(retryContext = {}, phase) {
   const flowState = retryContext.flowState || retryContext;
   const scope = retryContext.scope
     || (flowState?.currentTaskId != null ? "task" : "flow");
-  const definition = scope === "task" ? TASK_DEFINITION : FLOW_DEFINITION;
-  const node = resolveNodeFor(definition, stepId);
-  return node?.resolveMaxAttempts(flowState) ?? 5;
+  return resolveMaxAttempts({ scope, stepId, context: flowState }) ?? 5;
 }
 
 /**

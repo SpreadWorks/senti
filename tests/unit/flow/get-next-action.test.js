@@ -22,7 +22,7 @@ import {
   buildInitialSteps,
   buildInitialTaskSteps,
 } from "../../../src/lib/flow-helpers.js";
-import { flattenSteps, findStepById } from "../../../src/flow/definition.js";
+import { flattenSteps, findStepById } from "../../../src/flow/lib/step-tree.js";
 import { validateSchema } from "../../../src/lib/schema-validate.js";
 import { PKG_DIR } from "../../../src/lib/cli.js";
 import { resolveIncludes } from "../../../src/lib/include.js";

@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "Two repair targets are valid wording fixes for pending draft questions.",
+  "items": [
+    {
+      "title": "1. q2 asks internal implementation detail",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "The question should ask for the required behavioral boundary, not whether exact internal class names must be used.",
+      "evidence": "draft-review-questions.json repairTargets[0] identifies q2 as asking about specific class names."
+    },
+    {
+      "title": "2. q5 includes evidence/context",
+      "target": "q5",
+      "decision": "apply",
+      "rationale": "The question should contain only the user decision and leave evidence in draft analysis or triage records.",
+      "evidence": "draft-review-questions.json repairTargets[1] identifies q5 as including source/docs freshness evidence in the question text."
+    }
+  ]
+}

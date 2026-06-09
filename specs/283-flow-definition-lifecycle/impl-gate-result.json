@@ -1,0 +1,179 @@
+{
+  "verdict": "pass",
+  "issues": [],
+  "nextAction": {
+    "diagnosis": {
+      "summary": "No blocking observations.",
+      "observations": []
+    },
+    "prescription": "retro"
+  },
+  "level": "integration",
+  "phase": "integration",
+  "evaluations": [
+    {
+      "guardrail_id": "R1",
+      "result": "pass",
+      "reason": "`src/flow/definition.js` no longer exports `FLOW_DEFINITION`/`TASK_DEFINITION` directly (now internal `const`s), and adds/exposes definition-side accessors including `getFlowNode`, `getTaskNode`, leaf-id collectors, phase map and next-action derivation support, definition-order APIs, `findActiveNode`, `resolveMaxAttempts`, `resolveSideEffects`, `resolveRuntimeStep`, and `resolveLifecycle`.",
+      "title": "R1",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R2",
+      "result": "pass",
+      "reason": "`src/flow/lib/step-tree.js` now owns `flattenSteps/findStepById/findFirstPendingLeaf/findInProgressLeaf/promoteNextPendingLeaf`, `src/flow/definition.js` no longer defines them, and all discovered consumers import them from `step-tree.js` rather than defining/copying implementations.",
+      "title": "R2",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R3",
+      "result": "pass",
+      "reason": "`src/flow/definition.js` now introduces dedicated lifecycle action classes (status transition, keep-in-progress, metric increment, issue-log append, side-effects execute, skip/reset, lifecycle hook), each enforcing constructor invariants, and wires lifecycle resolution through `FlowNode.resolveLifecycle` to return these actions.",
+      "title": "R3",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R4",
+      "result": "pass",
+      "reason": "Definition-side lifecycle handling now centralizes review/gate/finalize transitions via resolveLifecycle and action classes, includes draft PASS triage/repair empty-artifact generation, impl review proposal reset over test-execute→finalize-cleanup with artifact cleanup, finalize downstream skip/reset behavior, gate side-effect execution, review/gate retry metric increments, and runtime-log step resolution for review/gate/finalize cases.",
+      "title": "R4",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R5",
+      "result": "pass",
+      "reason": "`registry.js` lifecycle hooks (`run.gate`, `run.review`, `run.finalize-*`) now call `applyLifecycleActionsFromRegistry`, which resolves actions via `resolveLifecycle` in `src/flow/definition.js`; decision maps/constants and downstream finalize arrays were moved there (registry no longer has `REVIEW_RUNTIME_STEP_BY_PHASE`, `FINALIZE_DOWNSTREAM_LEAVES`, or direct `tryUpdateStepStatus` calls for derived decisions).",
+      "title": "R5",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R6",
+      "result": "pass",
+      "reason": "No code in production/helper/test modules imports FLOW_DEFINITION or TASK_DEFINITION directly; callers now use accessor/wrapper APIs from flow definition. Remaining matches are only in definition.js internals/comments/strings.",
+      "title": "R6",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R7",
+      "result": "pass",
+      "reason": "The diff keeps flow command names/options/help wiring and request/response command metadata intact while moving hook behavior to lifecycle adapters; the new tests explicitly assert help output, known/unknown subcommand behavior, and status envelope shape, which indicates user-visible flow CLI compatibility is preserved.",
+      "title": "R7",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R8",
+      "result": "pass",
+      "reason": "Implemented: new spec tests explicitly validate definition/registry boundary rules and raw export removal, step-tree utility relocation, lifecycle action class invariants, draft PASS artifact preservation, impl-review proposal reset, and representative review/gate/finalize lifecycle transitions in spec-local coverage.",
+      "title": "R8",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R9",
+      "result": "pass",
+      "reason": "Implementation changes include `src/flow/definition.js` and related flow internals; the diff also updates `.sdd-forge/output/analysis.json` (generated analysis artifact), indicating a docs/metadata rebuild/update was performed rather than leaving stale internals documentation.",
+      "title": "R9",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": []
+    },
+    {
+      "guardrail_id": "no-overengineering",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "code-quality",
+      "title": "Avoid Overengineering",
+      "observations": []
+    }
+  ],
+  "reasons": [
+    {
+      "verdict": "PASS",
+      "detail": "R1 — `src/flow/definition.js` no longer exports `FLOW_DEFINITION`/`TASK_DEFINITION` directly (now internal `const`s), and adds/exposes definition-side accessors including `getFlowNode`, `getTaskNode`, leaf-id collectors, phase map and next-action derivation support, definition-order APIs, `findActiveNode`, `resolveMaxAttempts`, `resolveSideEffects`, `resolveRuntimeStep`, and `resolveLifecycle`.",
+      "guardrail_id": "R1",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R2 — `src/flow/lib/step-tree.js` now owns `flattenSteps/findStepById/findFirstPendingLeaf/findInProgressLeaf/promoteNextPendingLeaf`, `src/flow/definition.js` no longer defines them, and all discovered consumers import them from `step-tree.js` rather than defining/copying implementations.",
+      "guardrail_id": "R2",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R3 — `src/flow/definition.js` now introduces dedicated lifecycle action classes (status transition, keep-in-progress, metric increment, issue-log append, side-effects execute, skip/reset, lifecycle hook), each enforcing constructor invariants, and wires lifecycle resolution through `FlowNode.resolveLifecycle` to return these actions.",
+      "guardrail_id": "R3",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R4 — Definition-side lifecycle handling now centralizes review/gate/finalize transitions via resolveLifecycle and action classes, includes draft PASS triage/repair empty-artifact generation, impl review proposal reset over test-execute→finalize-cleanup with artifact cleanup, finalize downstream skip/reset behavior, gate side-effect execution, review/gate retry metric increments, and runtime-log step resolution for review/gate/finalize cases.",
+      "guardrail_id": "R4",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R5 — `registry.js` lifecycle hooks (`run.gate`, `run.review`, `run.finalize-*`) now call `applyLifecycleActionsFromRegistry`, which resolves actions via `resolveLifecycle` in `src/flow/definition.js`; decision maps/constants and downstream finalize arrays were moved there (registry no longer has `REVIEW_RUNTIME_STEP_BY_PHASE`, `FINALIZE_DOWNSTREAM_LEAVES`, or direct `tryUpdateStepStatus` calls for derived decisions).",
+      "guardrail_id": "R5",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R6 — No code in production/helper/test modules imports FLOW_DEFINITION or TASK_DEFINITION directly; callers now use accessor/wrapper APIs from flow definition. Remaining matches are only in definition.js internals/comments/strings.",
+      "guardrail_id": "R6",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R7 — The diff keeps flow command names/options/help wiring and request/response command metadata intact while moving hook behavior to lifecycle adapters; the new tests explicitly assert help output, known/unknown subcommand behavior, and status envelope shape, which indicates user-visible flow CLI compatibility is preserved.",
+      "guardrail_id": "R7",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R8 — Implemented: new spec tests explicitly validate definition/registry boundary rules and raw export removal, step-tree utility relocation, lifecycle action class invariants, draft PASS artifact preservation, impl-review proposal reset, and representative review/gate/finalize lifecycle transitions in spec-local coverage.",
+      "guardrail_id": "R8",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R9 — Implementation changes include `src/flow/definition.js` and related flow internals; the diff also updates `.sdd-forge/output/analysis.json` (generated analysis artifact), indicating a docs/metadata rebuild/update was performed rather than leaving stale internals documentation.",
+      "guardrail_id": "R9",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Spec Test Coverage — no observations emitted",
+      "guardrail_id": "spec-test-coverage",
+      "category": "testing"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Avoid Overengineering — no observations emitted",
+      "guardrail_id": "no-overengineering",
+      "category": "code-quality"
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "impl-gate",
+    "artifactPath": "specs/283-flow-definition-lifecycle/impl-gate-result.json",
+    "verdict": "pass",
+    "result": "pass",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": {
+      "diagnosis": {
+        "summary": "No blocking observations.",
+        "observations": []
+      },
+      "prescription": "retro"
+    },
+    "completionKind": "normal",
+    "progressSignature": "1d00310344bf9badbe7b0a2d0ac6e3f9c01508334d2f44b31ebe937f97921dc6"
+  }
+}

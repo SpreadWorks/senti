@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-08T10:41:59.256Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/283-flow-definition-lifecycle/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R1 API behavior coverage is incomplete",
+      "target": "specs/283-flow-definition-lifecycle/tests/definition-boundary.test.js",
+      "issue": "The R1 test only asserts that collectFlowLeafIds, deriveFlowPhaseMap, findActiveNode, and deriveNextAction are exported, but it does not exercise their behavior. These are explicit definition-side APIs required by R1, so existence-only checks could pass with stubs that do not preserve production behavior.",
+      "requiredChange": "Add representative assertions for collectFlowLeafIds, deriveFlowPhaseMap, findActiveNode, and deriveNextAction using known flow/task inputs and expected outputs.",
+      "whyBlocking": "R1 requires these APIs as part of the refactor boundary, and the current spec-local tests do not provide corresponding behavioral coverage for several required APIs."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/283-flow-definition-lifecycle/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "74bd63419dcfd5fba3d2287ff3befafd0dce6ab2bd3a3b5430abe7183e92eee9"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "test-003-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R1 API behavior coverage is incomplete",
+      "body": "The R1 test only asserts that collectFlowLeafIds, deriveFlowPhaseMap, findActiveNode, and deriveNextAction are exported, but it does not exercise their behavior. These are explicit definition-side APIs required by R1, so existence-only checks could pass with stubs that do not preserve production behavior.",
+      "category": "unknown"
+    }
+  ]
+}

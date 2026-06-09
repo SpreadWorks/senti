@@ -1,12 +1,12 @@
 {
-  "analyzedAt": "2026-06-06T14:37:10.998Z",
+  "analyzedAt": "2026-06-08T09:35:27.513Z",
   "package": {
     "entries": [
       {
         "file": "package.json",
-        "hash": "f0393f4e3896996f9c054030ce9a7127",
+        "hash": "5b178390693b1c772f1f50100d4da6ff",
         "lines": 41,
-        "mtime": "2026-06-05T15:33:41.172Z",
+        "mtime": "2026-06-08T09:35:26.898Z",
         "packageDeps": {
           "dependencies": {},
           "devDependencies": {}
@@ -22,26 +22,7 @@
         "composerDeps": null,
         "composerScripts": null,
         "makefileTest": null,
-        "id": "451a9f25",
-        "summary": "The package manifest defines sdd-forge as a Node.js CLI for spec-driven development and automated documentation generation. It exposes a single executable entrypoint, constrains the runtime to modern Node 18+, and organizes test scopes for unit, e2e, acceptance, agent, and full runs.",
-        "detail": "The package is published as an ES module and maps both the CLI binary and package export to `src/sdd-forge.js`, indicating one central runtime entry. Packaging is intentionally narrow: only `src/` is shipped, with preset test fixtures excluded from published artifacts. Operational constraints are explicit through the Node engine requirement and a pinned pnpm package manager version for reproducible environments. The scripts separate standard tests from agent-backed tests, reflecting a codebase that distinguishes deterministic verification from AI-integrated validation.",
-        "chapter": "stack_and_ops",
-        "role": "Defines runtime metadata, packaging boundaries, executable entrypoints, and test command topology for the distributed CLI.",
-        "enrich": {
-          "processedAt": "2026-06-06T02:30:14.595Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "package manifest",
-          "Node.js CLI",
-          "ES modules",
-          "runtime requirements",
-          "pnpm",
-          "test scripts",
-          "package export",
-          "binary entrypoint",
-          "distribution config"
-        ]
+        "id": "451a9f25"
       }
     ],
     "summary": {
@@ -7315,14 +7296,15 @@
       },
       {
         "file": "src/lib/agent.js",
-        "hash": "d74c0baf5d6e382920fd46c2de759cf0",
-        "lines": 667,
-        "mtime": "2026-06-06T14:37:04.651Z",
+        "hash": "764c3f384dd16c3e255ee4196972df70",
+        "lines": 671,
+        "mtime": "2026-06-08T09:35:27.237Z",
         "className": "agent",
         "methods": [
           "resolvePromptCacheContext",
           "recordPromptCacheHit",
           "sha256",
+          "cacheFileName",
           "stableStringify",
           "matchProfilePrefix",
           "resolveProfileKey",
@@ -7354,26 +7336,7 @@
         "usedBy": [
           "src/lib/container.js"
         ],
-        "id": "13ddf392",
-        "summary": "Implements the core agent runtime used to invoke AI providers with retries, prompt caching, logging, and work-directory support. It abstracts provider selection and command construction behind a reusable `Agent` interface.",
-        "detail": "The module resolves provider profiles from configuration, builds provider-specific invocations, and supports prompt injection patterns, schema sidecar files, and optional work-directory flags for agent execution. It includes a persistent prompt cache keyed by normalized invocation identity so repeated prompts can be reused within a spec context, and it records cache-hit metrics when flow state is available. Runtime execution wraps calls with structured logging, timeout-aware process spawning, retry with exponential backoff, and provider-specific output parsing that strips streaming protocol noise when necessary. Supporting classes such as `PromptCacheIdentity`, `PromptCacheInvocation`, and `AgentPromptCache` encapsulate cache serialization and stable hashing so the agent layer remains deterministic and testable.",
-        "chapter": "internal_design",
-        "role": "AI agent execution runtime",
-        "enrich": {
-          "processedAt": "2026-06-06T14:37:37.009Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "agent runtime",
-          "AI provider abstraction",
-          "prompt cache",
-          "retry logic",
-          "process spawning",
-          "profile resolution",
-          "schema validation input",
-          "streaming output parsing",
-          "LLM invocation"
-        ]
+        "id": "13ddf392"
       },
       {
         "file": "src/lib/agents-md.js",
@@ -13543,7 +13506,7 @@
     ],
     "summary": {
       "total": 341,
-      "totalMethods": 1707
+      "totalMethods": 1708
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },

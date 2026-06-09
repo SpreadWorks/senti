@@ -4,7 +4,7 @@ import fs from "fs";
 import path from "path";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
-import { flattenSteps, findStepById } from "../../../src/flow/definition.js";
+import { flattenSteps, findStepById } from "../../../src/flow/lib/step-tree.js";
 import {
   resolveAutoCheckInput,
   isSpecApproved,

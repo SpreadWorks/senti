@@ -19,7 +19,7 @@ import { withSpecIdArgDefault, withSpecIdDefault } from "./flow-options.js";
 import { ActiveFlowRegistry } from "./active-flow-registry.js";
 import { PreparingFlowStore } from "./preparing-flow-store.js";
 import { STATE_FILE, SCAN_FLOWS_LIMIT, PREPARING_SCAN_LIMIT, specIdFromPath } from "./flow-helpers.js";
-import { findInProgressLeaf } from "../flow/definition.js";
+import { findInProgressLeaf } from "../flow/lib/step-tree.js";
 
 // Pointer written by `flow run finalize-cleanup` (and read by `flow report
 // show`) to mark the last spec that completed cleanup. Stored relative to the

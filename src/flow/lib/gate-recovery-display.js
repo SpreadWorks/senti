@@ -6,7 +6,7 @@
  * point at the phase that actually consumed its retry budget.
  */
 
-import { FLOW_DEFINITION, resolveNodeFor } from "../definition.js";
+import { getFlowNode } from "../definition.js";
 import { resolveGatePhaseFromState } from "./gate-step.js";
 import { countGateRetry } from "./run-gate.js";
 import { resolveRecoveryMaxAttempts } from "./retry-recovery.js";
@@ -20,7 +20,7 @@ export class GateRecoveryDisplayPhase {
 }
 
 export function resolveGateRecoveryDisplayPhase({ flowState, stepId, maxAttempts }) {
-  const phases = resolveNodeFor(FLOW_DEFINITION, stepId)?.gatePhase;
+  const phases = getFlowNode(stepId)?.gatePhase;
   const gatePhases = Array.isArray(phases) ? phases : [];
   for (const phase of gatePhases) {
     const attempts = countGateRetry(flowState.metrics, phase);

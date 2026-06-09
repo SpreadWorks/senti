@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-08T11:33:47.792Z",
+  "verdict": "ADVISORY",
+  "counts": {
+    "blocking": 0,
+    "advisory": 1,
+    "total": 1
+  },
+  "coverageArtifact": "specs/283-flow-definition-lifecycle/test-coverage.json",
+  "blockingFindings": [],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R4 maxAttempts coverage is only indirect",
+      "target": "specs/283-flow-definition-lifecycle/tests/registry-lifecycle.test.js",
+      "improvement": "Add a small R4-labeled assertion for lifecycle-relevant maxAttempts behavior, or update the coverage artifact to acknowledge that maxAttempts is exercised under R1 in definition-boundary.test.js.",
+      "whyNonBlocking": "The behavior is covered elsewhere by executable assertions, so this is a traceability/naming gap rather than missing spec-local coverage."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/283-flow-definition-lifecycle/test-review.json",
+    "verdict": "ADVISORY",
+    "result": "ADVISORY",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": "implement",
+    "completionKind": "normal",
+    "progressSignature": "a095087fffa337d10967c62681710c485a2b291031aacfb11b904e92deb11cfc"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 8,
+  "findings": [
+    {
+      "id": "test-008-non-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 8,
+      "severity": "non-blocking",
+      "title": "R4 maxAttempts coverage is only indirect",
+      "body": "R4 maxAttempts coverage is only indirect",
+      "category": "unknown"
+    }
+  ]
+}

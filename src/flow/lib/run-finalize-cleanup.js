@@ -38,6 +38,7 @@ import { runGit } from "../../lib/git-helpers.js";
 import { FlowCommand } from "./base-command.js";
 import { writeLastFinalizedPointer } from "./run-finalize.js";
 import { resolveLatestReportPath, readReportText } from "./run-report-show.js";
+import { flattenSteps } from "./step-tree.js";
 import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
 
 const ORPHAN_COMMIT_LIST_LIMIT = 50;
@@ -754,17 +755,6 @@ export function validateTeardown({ worktreePath, mainRepoPath, featureBranch, sp
   }
 
   return { ok: reasons.length === 0, reasons };
-}
-
-function flattenSteps(steps) {
-  const flat = [];
-  for (const s of steps) {
-    flat.push(s);
-    if (Array.isArray(s.children)) {
-      flat.push(...flattenSteps(s.children));
-    }
-  }
-  return flat;
 }
 
 export { runTeardown };

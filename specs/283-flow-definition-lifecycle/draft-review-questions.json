@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "phase": "draft-questions-review",
+  "sourceDraft": "draft.json",
+  "generatedAt": "2026-06-08T09:40:26.750Z",
+  "verdict": "ADVISORY",
+  "summary": "0 blocking, 0 advisory, 2 repair target finding(s) recorded.",
+  "blockingFindings": [],
+  "advisoryFindings": [],
+  "repairTargets": [
+    {
+      "title": "1. q2 asks internal implementation detail",
+      "target": "q2",
+      "rationale": "Reword to ask only about the required behavioral boundary, e.g. “Must lifecycle actions be represented by dedicated classes with enforced invariants rather than object literal action records?”",
+      "evidence": "The question asks whether specific internal class names must be used, which project patterns should decide.",
+      "classification": "repair_target"
+    },
+    {
+      "title": "2. q5 includes evidence/context",
+      "target": "q5",
+      "rationale": "Remove the evidence and keep only: “Should this flow include a docs rebuild/update after implementation if the refactor changes documented flow internals?”",
+      "evidence": "The question includes evidence instead of only the question text: “Docs are slightly older than src in this worktree.”",
+      "classification": "repair_target"
+    }
+  ]
+}

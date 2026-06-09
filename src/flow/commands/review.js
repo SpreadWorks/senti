@@ -75,7 +75,8 @@ import { runGit } from "../../lib/git-helpers.js";
 import { EXIT_ERROR } from "../../lib/constants.js";
 import { VALID_PHASES } from "../../lib/constants.js";
 import { loadMergedGuardrails, filterByPhase } from "../../lib/guardrail.js";
-import { resolveNodeFor, FLOW_DEFINITION, flattenSteps } from "../definition.js";
+import { resolveMaxAttempts } from "../definition.js";
+import { flattenSteps } from "../lib/step-tree.js";
 
 const REVIEW_PHASE_NODE_MAP = {
   "draft-questions": "draft-questions-review",
@@ -92,7 +93,7 @@ function getReviewMaxAttempts(phase, attemptContext) {
   if (!attemptContext || typeof attemptContext !== "object") {
     throw new Error(`review maxAttempts resolution requires explicit context for phase: ${phase}`);
   }
-  return resolveNodeFor(FLOW_DEFINITION, nodeId).resolveMaxAttempts(attemptContext);
+  return resolveMaxAttempts({ scope: "flow", stepId: nodeId, context: attemptContext });
 }
 
 function resolveDraftReviewStage(flow) {

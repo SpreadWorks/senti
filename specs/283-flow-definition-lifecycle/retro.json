@@ -1,0 +1,58 @@
+{
+  "spec": "specs/283-flow-definition-lifecycle/spec.json",
+  "date": "2026-06-09T00:05:41.439Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "definition.js shall stop exporting raw FLOW_DEFINITION and TASK_DEFINITION and instead expose definition-side APIs for node lookup, task node lookup, leaf id collection, phase/action mapping, definition order, active node lookup, maxAttempts, sideEffects, runtime step resolution, and lifecycle resolution.",
+      "status": "done",
+      "note": "R1: definition exposes APIs instead of raw definition data"
+    },
+    {
+      "desc": "Steps-array-only utilities shall move out of definition.js into a dedicated step-tree module, and all consumers shall import those utilities from the step-tree module.",
+      "status": "done",
+      "note": "R2: steps-array utilities live in a dedicated step-tree module"
+    },
+    {
+      "desc": "FlowNode or equivalent definition-side node objects shall carry lifecycle behavior using dedicated action classes with constructor-enforced invariants for status transitions, keep-in-progress behavior, metric increments, issue-log appends, side-effect execution, skip behavior, and hook escape hatches.",
+      "status": "done",
+      "note": "R3: lifecycle actions are dedicated classes with invariants"
+    },
+    {
+      "desc": "Definition-side lifecycle resolution shall cover review/gate/finalize status transitions, draft PASS empty triage/repair artifact generation, implementation-review proposal evidence reset from test-execute through finalize-cleanup, downstream skip/reset behavior, sideEffects, maxAttempts, and runtime log step resolution for the lifecycle cases named in Issue #370.",
+      "status": "done",
+      "note": "R4: resolveLifecycle returns executable draft review PASS artifact actions"
+    },
+    {
+      "desc": "registry.js hooks shall delegate lifecycle decisions to definition-side APIs or shared lifecycle application helpers and shall not hardcode flow step ids, review phase maps, gate phase maps, or finalize downstream leaf lists for definition-derived decisions.",
+      "status": "done",
+      "note": "R5: registry hooks delegate definition-derived lifecycle decisions"
+    },
+    {
+      "desc": "Production modules, helper modules, and tests shall be migrated away from raw definition imports so no caller depends on FLOW_DEFINITION or TASK_DEFINITION as exported data.",
+      "status": "done",
+      "note": "R6: production, helper, and shared tests do not import raw definition data"
+    },
+    {
+      "desc": "Existing flow CLI command names, options, help text, JSON envelope shapes, step ids, status transitions, and exit behavior shall remain user-visible compatible after the refactor.",
+      "status": "done",
+      "note": "R7: registry keeps command metadata while lifecycle ownership changes"
+    },
+    {
+      "desc": "Spec-local tests shall verify the new definition/registry boundary, raw export removal, step-tree utility relocation, lifecycle action class invariants, draft PASS artifact preservation, implementation-review proposal evidence reset, and representative review/gate/finalize lifecycle transitions.",
+      "status": "done",
+      "note": "R8: spec-local coverage observes the definition boundary requirements"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 8,
+    "done": 8,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 1,
+    "not_testable_count": 1,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

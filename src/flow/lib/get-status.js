@@ -9,7 +9,8 @@ import { derivePhase } from "../../lib/flow-helpers.js";
 import { normalizeAgentMetricDimension } from "../../lib/agent-metrics.js";
 import { BROAD_MODE_HISTORY_MAX_ENTRIES } from "../../lib/constants.js";
 import { loadSpecRequirements } from "../../lib/spec-json.js";
-import { FLOW_DEFINITION, flattenSteps, findLatestInProgressLeaf, resolveNodeFor } from "../definition.js";
+import { findLatestInProgressLeaf, resolveMaxAttempts } from "../definition.js";
+import { flattenSteps } from "./step-tree.js";
 import { FlowCommand } from "./base-command.js";
 import { buildReviewStopView, reviewPhaseForStepId } from "./review-failure.js";
 import { resolveGateRecoveryDisplayPhase } from "./gate-recovery-display.js";
@@ -135,7 +136,7 @@ export function buildReportTotals(summaryTotal) {
 
 function resolveActiveStepMaxAttempts(state, active) {
   if (!active?.id) return null;
-  const maxAttempts = resolveNodeFor(FLOW_DEFINITION, active.id)?.resolveMaxAttempts(state);
+  const maxAttempts = resolveMaxAttempts({ scope: "flow", stepId: active.id, context: state });
   return Number.isSafeInteger(maxAttempts) && maxAttempts >= 1 ? maxAttempts : null;
 }
 

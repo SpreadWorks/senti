@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "generatedAt": "2026-06-08T09:53:03.690Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "nonBlocking": 0,
+    "total": 2
+  },
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Draft review PASS artifacts are omitted",
+      "target": "R3/R4/T-4 review lifecycle",
+      "body": "**Target:** R3/R4/T-4 review lifecycle\n**Issue:** Existing registry review post behavior writes empty draft triage and repair JSON artifacts on draft PASS before marking the triage and repair steps done. src/flow/lib/run-gate.js then validates those artifacts and reports missing draft triage/repair artifacts when they are absent. The spec covers review status transitions but does not require preserving this mandatory artifact data path through a lifecycle hook action or handler call.\n**Required change:** Add the smallest review-lifecycle requirement and acceptance basis that draft PASS routes must generate or invoke the existing handler to generate the empty draft triage/repair artifacts before downstream draft gate validation.\n**Why blocking:** An implementation can satisfy status-transition checks while omitting the artifacts, leaving draft-gate unable to pass after a PASS draft review because required draft triage/repair files are missing.",
+      "issue": "Existing registry review post behavior writes empty draft triage and repair JSON artifacts on draft PASS before marking the triage and repair steps done. src/flow/lib/run-gate.js then validates those artifacts and reports missing draft triage/repair artifacts when they are absent. The spec covers review status transitions but does not require preserving this mandatory artifact data path through a lifecycle hook action or handler call.",
+      "requiredChange": "Add the smallest review-lifecycle requirement and acceptance basis that draft PASS routes must generate or invoke the existing handler to generate the empty draft triage/repair artifacts before downstream draft gate validation.",
+      "whyBlocking": "An implementation can satisfy status-transition checks while omitting the artifacts, leaving draft-gate unable to pass after a PASS draft review because required draft triage/repair files are missing."
+    },
+    {
+      "kind": "blocking",
+      "title": "Impl review proposal reset side effects are omitted",
+      "target": "R3/R4/T-4 review lifecycle",
+      "body": "**Target:** R3/R4/T-4 review lifecycle\n**Issue:** Existing review post behavior calls resetImplEvidenceAfterReviewProposals when implementation review produces proposals. That path removes rebuildable test artifacts and resets downstream leaves from test-execute through finalize-cleanup to pending while keeping impl-review from being marked done. The spec mentions keep-in-progress and downstream reset behavior, but does not identify this review-specific data path or make it observable in acceptance/tests.\n**Required change:** Add the implementation-review lifecycle case that proposal-producing impl reviews must run the existing evidence-reset hook or equivalent and reset the definition-derived downstream range from test-execute through finalize-cleanup.\n**Why blocking:** Without this, stale test, retro, and finalize evidence can remain marked valid after review-applied code changes, allowing later flow steps to proceed against invalid artifacts even though status-only lifecycle tests pass.",
+      "issue": "Existing review post behavior calls resetImplEvidenceAfterReviewProposals when implementation review produces proposals. That path removes rebuildable test artifacts and resets downstream leaves from test-execute through finalize-cleanup to pending while keeping impl-review from being marked done. The spec mentions keep-in-progress and downstream reset behavior, but does not identify this review-specific data path or make it observable in acceptance/tests.",
+      "requiredChange": "Add the implementation-review lifecycle case that proposal-producing impl reviews must run the existing evidence-reset hook or equivalent and reset the definition-derived downstream range from test-execute through finalize-cleanup.",
+      "whyBlocking": "Without this, stale test, retro, and finalize evidence can remain marked valid after review-applied code changes, allowing later flow steps to proceed against invalid artifacts even though status-only lifecycle tests pass."
+    }
+  ],
+  "nonBlockingImprovements": []
+}

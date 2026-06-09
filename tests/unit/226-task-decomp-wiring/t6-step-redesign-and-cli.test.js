@@ -15,7 +15,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { TASK_STEPS_PLAN, buildInitialTaskSteps } from "../../../src/lib/flow-helpers.js";
-import { TASK_DEFINITION, resolveNodeFor } from "../../../src/flow/definition.js";
+import { collectTaskLeafIds, getTaskNode } from "../../../src/flow/definition.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { setupFlow, makeFlowManager } from "../../helpers/flow-setup.js";
 
@@ -48,14 +48,14 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
   });
 
   it("TASK_DEFINITION has no approval/gate/update-overview entries", () => {
-    const taskIds = TASK_DEFINITION.map((n) => n.id);
+    const taskIds = collectTaskLeafIds();
     assert.ok(!taskIds.includes("approval"), "task scope must not contain approval");
     assert.ok(!taskIds.includes("gate"), "task scope must not contain gate (task-spec gate)");
     assert.ok(!taskIds.includes("update-overview"), "task scope must not contain update-overview");
   });
 
   it("TASK_DEFINITION has task-gate entry", () => {
-    const node = resolveNodeFor(TASK_DEFINITION, "task-gate");
+    const node = getTaskNode("task-gate");
     assert.ok(node, "task scope must contain task-gate");
   });
 
@@ -542,7 +542,7 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
       "TASK_STEPS_PLAN must not include update-overview as a separate step",
     );
 
-    const taskIds = TASK_DEFINITION.map((n) => n.id);
+    const taskIds = collectTaskLeafIds();
     assert.ok(
       !taskIds.includes("update-overview"),
       "TASK_DEFINITION must not include update-overview",

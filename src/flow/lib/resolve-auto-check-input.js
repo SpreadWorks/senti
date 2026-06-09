@@ -16,7 +16,8 @@
 
 import fs from "fs";
 import path from "path";
-import { findStepById, flattenSteps, resolveNodeFor, FLOW_DEFINITION } from "../definition.js";
+import { getFlowNode } from "../definition.js";
+import { findStepById, flattenSteps } from "./step-tree.js";
 
 function isStepDone(state, stepId) {
   const steps = state?.steps;
@@ -30,12 +31,12 @@ function isStepDone(state, stepId) {
 }
 
 export function isSpecApproved(state) {
-  const node = resolveNodeFor(FLOW_DEFINITION, "approval");
+  const node = getFlowNode("approval");
   return node ? isStepDone(state, node.id) : false;
 }
 
 function isDraftGateDone(state) {
-  const node = resolveNodeFor(FLOW_DEFINITION, "draft-gate");
+  const node = getFlowNode("draft-gate");
   return node ? isStepDone(state, node.id) : false;
 }
 

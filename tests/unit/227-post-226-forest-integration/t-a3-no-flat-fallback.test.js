@@ -4,7 +4,7 @@ import fs from "fs";
 import path from "path";
 import { createTmpDir, removeTmpDir, writeJson } from "../../helpers/tmp-dir.js";
 import { setupFlow, makeFlowManager, setStepDone, makeFlowState } from "../../helpers/flow-setup.js";
-import { findStepById } from "../../../src/flow/definition.js";
+import { findStepById } from "../../../src/flow/lib/step-tree.js";
 
 describe("REQ-A3: get-next-action assumes non-empty tasks", () => {
   let tmp;

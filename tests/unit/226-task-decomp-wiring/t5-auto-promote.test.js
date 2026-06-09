@@ -22,7 +22,7 @@ import {
   buildInitialSteps,
   buildInitialTaskSteps,
 } from "../../../src/lib/flow-helpers.js";
-import { flattenSteps, findStepById } from "../../../src/flow/definition.js";
+import { flattenSteps, findStepById } from "../../../src/flow/lib/step-tree.js";
 import { syncSpecTasksToFlow } from "../../../src/flow/lib/sync-spec-tasks.js";
 
 // ── helpers ──────────────────────────────────────────────────────────────────

@@ -28,7 +28,7 @@ import {
   TASK_REQUIREMENT_STATUSES,
   isTaskTerminalStatus,
 } from "./flow-helpers.js";
-import { findStepById, promoteNextPendingLeaf, flattenSteps } from "../flow/definition.js";
+import { findStepById, promoteNextPendingLeaf, flattenSteps } from "../flow/lib/step-tree.js";
 import { DRAFT_REVIEW_ROUTES } from "../flow/lib/draft-review-routes.js";
 
 const MAX_FLOW_STEPS_FOR_MIGRATION = 200;

@@ -10,14 +10,13 @@
 
 import path from "path";
 import {
-  FLOW_DEFINITION,
-  TASK_DEFINITION,
-  collectLeafIds,
-  derivePhaseMap,
+  collectFlowLeafIds,
+  collectTaskLeafIds,
+  deriveFlowPhaseMap,
   buildInitialNestedSteps,
   buildInitialTaskSteps as buildTaskStepsFromDef,
-  flattenSteps,
 } from "../flow/definition.js";
+import { flattenSteps } from "../flow/lib/step-tree.js";
 
 export const STATE_FILE = "flow.json";
 export const ACTIVE_FLOW_FILE = ".active-flow";
@@ -27,10 +26,10 @@ export const PREPARING_SCAN_LIMIT = 100;
 export const SCAN_FLOWS_LIMIT = 200;
 
 /** SDD workflow step IDs in order (flow level). Derived from definition. */
-export const FLOW_STEPS = collectLeafIds(FLOW_DEFINITION);
+export const FLOW_STEPS = collectFlowLeafIds();
 
 /** Step ID → phase mapping (flow level). Derived from definition. */
-export const PHASE_MAP = derivePhaseMap(FLOW_DEFINITION);
+export const PHASE_MAP = deriveFlowPhaseMap();
 
 /** Valid values for Task.origin. */
 export const TASK_ORIGINS = ["plan", "integration"];
@@ -45,11 +44,11 @@ export const TASK_STEP_STATUSES = ["pending", "in_progress", "done", "skipped"];
 export const TASK_REQUIREMENT_STATUSES = ["pending", "done"];
 
 /** Task-level step sequence. Derived from TASK_DEFINITION. */
-export const TASK_STEPS_PLAN = TASK_DEFINITION.map((n) => n.id);
+export const TASK_STEPS_PLAN = collectTaskLeafIds();
 
 /** Task-level step → phase mapping. */
 export const TASK_PHASE_MAP = Object.fromEntries(
-  TASK_DEFINITION.map((n) => [n.id, "task-impl"]),
+  TASK_STEPS_PLAN.map((id) => [id, "task-impl"]),
 );
 
 /**
@@ -118,7 +117,7 @@ export function derivePhase(state) {
  * Build initial flow-level steps as a nested structure from the definition.
  */
 export function buildInitialSteps() {
-  return buildInitialNestedSteps(FLOW_DEFINITION);
+  return buildInitialNestedSteps();
 }
 
 /**

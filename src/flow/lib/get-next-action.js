@@ -15,12 +15,10 @@ import { getStepInstructions } from "./get-step-instructions.js";
 import {
   findActiveNode,
   deriveNextAction,
-  FLOW_DEFINITION,
-  TASK_DEFINITION,
-  flattenSteps,
-  promoteNextPendingLeaf,
-  resolveNodeFor,
+  getFlowNode,
+  getTaskNode,
 } from "../definition.js";
+import { flattenSteps, promoteNextPendingLeaf } from "./step-tree.js";
 import { promoteNextPending } from "../../lib/flow-helpers.js";
 import { loadRules, filterRules, renderRuleBlock } from "../../lib/skill-rules.js";
 import { buildReviewStopView, reviewPhaseForStepId } from "./review-failure.js";
@@ -49,19 +47,19 @@ function findCurrentTask(state) {
   return state.tasks.find((t) => t.id === state.currentTaskId) || null;
 }
 
-function findUnresolvedInProgressStep(steps, definition) {
+function findUnresolvedInProgressStep(steps, resolveNode) {
   return flattenSteps(steps || []).find((step) => (
-    step.status === "in_progress" && !resolveNodeFor(definition, step.id)
+    step.status === "in_progress" && !resolveNode(step.id)
   )) || null;
 }
 
 function findUnresolvedInProgressTarget(state) {
   const task = findCurrentTask(state);
   if (task && Array.isArray(task.steps)) {
-    const step = findUnresolvedInProgressStep(task.steps, TASK_DEFINITION);
+    const step = findUnresolvedInProgressStep(task.steps, getTaskNode);
     if (step) return { scope: "task", taskId: state.currentTaskId, stepId: step.id };
   }
-  const step = findUnresolvedInProgressStep(state.steps, FLOW_DEFINITION);
+  const step = findUnresolvedInProgressStep(state.steps, getFlowNode);
   if (step) return { scope: "flow", taskId: null, stepId: step.id };
   return null;
 }
@@ -190,7 +188,11 @@ export default class GetNextActionCommand extends FlowCommand {
     let state = ctx.flowState;
 
     assertNoUnresolvedInProgressTarget(state);
-    let target = findActiveNode(state.steps, state.tasks, state.currentTaskId);
+    let target = findActiveNode({
+      steps: state.steps,
+      tasks: state.tasks,
+      currentTaskId: state.currentTaskId,
+    });
     if (isFlowImplementationStep(target)) {
       const decision = evaluateTaskScope(state, target.stepId);
       if (decision.kind === "invalid-current-task" || decision.kind === "blocked") {
@@ -205,7 +207,11 @@ export default class GetNextActionCommand extends FlowCommand {
       if (decision.promotable) {
         ctx.flowManager.mutate((s) => { promoteNextTaskAndFirstStep(s); });
         state = ctx.flowManager.load();
-        target = findActiveNode(state.steps, state.tasks, state.currentTaskId);
+        target = findActiveNode({
+          steps: state.steps,
+          tasks: state.tasks,
+          currentTaskId: state.currentTaskId,
+        });
       }
     }
     if (!target) {
@@ -216,7 +222,11 @@ export default class GetNextActionCommand extends FlowCommand {
       if (promoted) {
         state = ctx.flowManager.load();
         assertNoUnresolvedInProgressTarget(state);
-        target = findActiveNode(state.steps, state.tasks, state.currentTaskId);
+        target = findActiveNode({
+          steps: state.steps,
+          tasks: state.tasks,
+          currentTaskId: state.currentTaskId,
+        });
       }
     }
     if (!target) {
@@ -231,7 +241,11 @@ export default class GetNextActionCommand extends FlowCommand {
       };
     }
 
-    const derived = deriveNextAction(target.scope, target.stepId, state);
+    const derived = deriveNextAction({
+      scope: target.scope,
+      stepId: target.stepId,
+      context: state,
+    });
     if (!derived) {
       throw new Error(`NO_RULE_FOR_STEP: ${target.scope}.${target.stepId} has no entry in definition`);
     }

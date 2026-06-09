@@ -8,10 +8,11 @@
 import { isGhAvailable, runGit } from "../../lib/git-helpers.js";
 import { VALID_CHECK_TARGETS } from "../../lib/constants.js";
 import { FlowCommand } from "./base-command.js";
-import { derivePrereqs, FLOW_DEFINITION, flattenSteps, findStepById } from "../definition.js";
+import { deriveFlowPrereqs } from "../definition.js";
+import { flattenSteps } from "./step-tree.js";
 
 function checkStepPrereqs(state, targetId) {
-  const required = derivePrereqs(FLOW_DEFINITION, targetId);
+  const required = deriveFlowPrereqs(targetId);
   const flat = Array.isArray(state.steps) && state.steps.some((s) => s.children)
     ? flattenSteps(state.steps)
     : (state.steps || []);

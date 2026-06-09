@@ -1,0 +1,138 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-08T10:45:05.445Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 6,
+    "advisory": 0,
+    "total": 6
+  },
+  "coverageArtifact": "specs/283-flow-definition-lifecycle/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R7 compatibility is marked covered without behavioral compatibility tests",
+      "target": "specs/283-flow-definition-lifecycle/tests/registry-lifecycle.test.js, test \"R7: registry keeps command metadata while lifecycle ownership changes\"",
+      "issue": "The test only regex-checks registry source for command keys, helpKey, args, lazy imports, and lifecycle delegation. It does not exercise or snapshot existing flow CLI command names/options/help text, JSON envelope shapes, status transitions, or exit behavior, which R7 explicitly requires to remain user-visible compatible.",
+      "requiredChange": "Add spec-local compatibility coverage that invokes or otherwise verifies representative existing flow commands/options/help and JSON/exit/status behavior, not just registry source tokens.",
+      "whyBlocking": "The coverage artifact marks R7 covered, but the actual test can pass while user-visible CLI behavior regresses."
+    },
+    {
+      "kind": "blocking",
+      "title": "R6 raw definition dependency test encodes an overbroad implementation premise",
+      "target": "specs/283-flow-definition-lifecycle/tests/definition-boundary.test.js, test \"R6: production, helper, and shared tests do not import raw definition data\"",
+      "issue": "The test scans every src and shared test file for any occurrence of FLOW_DEFINITION or TASK_DEFINITION. R1/R6 require raw exported data and caller dependencies to be removed, but this test would also fail a valid implementation that keeps private internal constants with those names inside definition.js.",
+      "requiredChange": "Narrow the assertion to exported symbols and external imports/references, or exclude definition.js private implementation details from the raw-name scan.",
+      "whyBlocking": "This would block a valid refactor that satisfies the public boundary while retaining private implementation names."
+    },
+    {
+      "kind": "blocking",
+      "title": "Draft PASS artifact preservation is not actually tested",
+      "target": "specs/283-flow-definition-lifecycle/tests/registry-lifecycle.test.js, test \"R4: resolveLifecycle returns executable draft review PASS artifact actions\"",
+      "issue": "The test asserts that a RunLifecycleHook named writeEmptyDraftReviewRouteArtifacts is returned and can be dispatched to a recorder, but it does not verify that empty triage/repair artifacts are generated or that existing draft PASS artifacts are preserved.",
+      "requiredChange": "Add an executable regression around the lifecycle helper/hook behavior that proves draft PASS triage/repair artifacts are created only as needed and existing artifacts are not overwritten.",
+      "whyBlocking": "R8 explicitly requires draft PASS artifact preservation coverage; checking only a hook name can pass without exercising the production behavior."
+    },
+    {
+      "kind": "blocking",
+      "title": "Implementation-review evidence reset coverage only checks strings",
+      "target": "specs/283-flow-definition-lifecycle/tests/registry-lifecycle.test.js, test \"R4: resolveLifecycle covers impl proposal reset and finalize downstream behavior\"",
+      "issue": "The proposal reset case only asserts a hook handler name and that serialized actions contain test-execute and finalize-cleanup somewhere. It does not verify the concrete downstream reset range or that evidence is actually reset from test-execute through finalize-cleanup.",
+      "requiredChange": "Assert a structured reset action or execute the shared lifecycle hook/helper against representative state to verify the exact downstream steps and evidence reset behavior.",
+      "whyBlocking": "R4/R8 require regression coverage for proposal evidence reset; the current string check can pass without the required lifecycle behavior."
+    },
+    {
+      "kind": "blocking",
+      "title": "Finalize lifecycle status transitions are incomplete",
+      "target": "specs/283-flow-definition-lifecycle/tests/registry-lifecycle.test.js",
+      "issue": "The lifecycle tests cover finalize-merge success/error and delegation checks for finalize-sync/finalize-cleanup hooks, but they do not verify the post-transition behavior for finalize-sync and finalize-cleanup themselves.",
+      "requiredChange": "Add resolveLifecycle assertions for finalize-sync post and finalize-cleanup post that verify the expected status transitions and any lifecycle hooks/side effects.",
+      "whyBlocking": "R4 requires finalize status transition coverage for the lifecycle cases named in the issue; delegation-only assertions do not cover those transitions."
+    },
+    {
+      "kind": "blocking",
+      "title": "Registry hardcode prohibition can pass with renamed hardcoded maps",
+      "target": "specs/283-flow-definition-lifecycle/tests/registry-lifecycle.test.js, test \"R5: registry hooks delegate definition-derived lifecycle decisions\"",
+      "issue": "The static checks reject only specific old names and a few tryUpdateStepStatus patterns. A registry implementation could still hardcode review/gate phase maps or downstream step id lists under different names while calling resolveLifecycle/applyLifecycleActions somewhere, and this test would pass.",
+      "requiredChange": "Add mutation-resistant assertions that lifecycle hook bodies do not contain definition-derived step id literals or phase-to-step/downstream-list structures, or verify delegation through a shared helper boundary instead of matching only old symbol names.",
+      "whyBlocking": "R5 explicitly forbids hardcoded flow step ids, phase maps, and finalize downstream leaf lists for definition-derived decisions; the current test does not enforce that acceptance requirement."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/283-flow-definition-lifecycle/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 6,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "0941d9bad1903b4090905d1370b56ff728e496dac09ad44f4cad710600318770"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 5,
+  "findings": [
+    {
+      "id": "test-005-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "R7 compatibility is marked covered without behavioral compatibility tests",
+      "body": "The test only regex-checks registry source for command keys, helpKey, args, lazy imports, and lifecycle delegation. It does not exercise or snapshot existing flow CLI command names/options/help text, JSON envelope shapes, status transitions, or exit behavior, which R7 explicitly requires to remain user-visible compatible.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-005-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "R6 raw definition dependency test encodes an overbroad implementation premise",
+      "body": "The test scans every src and shared test file for any occurrence of FLOW_DEFINITION or TASK_DEFINITION. R1/R6 require raw exported data and caller dependencies to be removed, but this test would also fail a valid implementation that keeps private internal constants with those names inside definition.js.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-005-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "Draft PASS artifact preservation is not actually tested",
+      "body": "The test asserts that a RunLifecycleHook named writeEmptyDraftReviewRouteArtifacts is returned and can be dispatched to a recorder, but it does not verify that empty triage/repair artifacts are generated or that existing draft PASS artifacts are preserved.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-005-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "Implementation-review evidence reset coverage only checks strings",
+      "body": "The proposal reset case only asserts a hook handler name and that serialized actions contain test-execute and finalize-cleanup somewhere. It does not verify the concrete downstream reset range or that evidence is actually reset from test-execute through finalize-cleanup.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-005-blocking-005",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "Finalize lifecycle status transitions are incomplete",
+      "body": "The lifecycle tests cover finalize-merge success/error and delegation checks for finalize-sync/finalize-cleanup hooks, but they do not verify the post-transition behavior for finalize-sync and finalize-cleanup themselves.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-005-blocking-006",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "Registry hardcode prohibition can pass with renamed hardcoded maps",
+      "body": "The static checks reject only specific old names and a few tryUpdateStepStatus patterns. A registry implementation could still hardcode review/gate phase maps or downstream step id lists under different names while calling resolveLifecycle/applyLifecycleActions somewhere, and this test would pass.",
+      "category": "unknown"
+    }
+  ]
+}

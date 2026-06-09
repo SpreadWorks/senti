@@ -14,7 +14,7 @@ import { Envelope } from "../../lib/flow-envelope.js";
 import { syncSpecTasksToFlow } from "./sync-spec-tasks.js";
 import { runAutoCheckCore } from "./run-auto-check.js";
 import { resolveAutoCheckInput, buildSkipVerdict } from "./resolve-auto-check-input.js";
-import { resolveNodeFor, FLOW_DEFINITION } from "../definition.js";
+import { resolveSideEffects } from "../definition.js";
 import { validateTestHeaders, formatValidationMessages } from "./test-headers.js";
 import { loadSpecJson, resolveSpecDir } from "../../lib/spec-json.js";
 import { validateStepCompletionTransition } from "./flow-judgment-contract.js";
@@ -25,8 +25,7 @@ import {
 } from "./test-artifacts.js";
 
 function collectSideEffects(stepId) {
-  const node = resolveNodeFor(FLOW_DEFINITION, stepId);
-  return node?.sideEffects || [];
+  return resolveSideEffects({ scope: "flow", stepId }) || [];
 }
 
 /**

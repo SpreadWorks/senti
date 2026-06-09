@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Applied two draft question wording repairs from triage.",
+  "items": [
+    {
+      "title": "1. q2 asks internal implementation detail",
+      "target": "q2",
+      "rationale": "Reworded q2 to ask for the required behavioral boundary of lifecycle action representation instead of exact internal class names.",
+      "evidence": "draft.json qa[1].question now asks whether lifecycle actions must be dedicated classes with enforced invariants instead of object literal action records.",
+      "changedFieldPaths": [
+        "decisionMap.decisionPoints[1]",
+        "decisionMap.requiresUserJudgment[1]",
+        "qa[1].question",
+        "openQuestions[1]"
+      ]
+    },
+    {
+      "title": "2. q5 includes evidence/context",
+      "target": "q5",
+      "rationale": "Removed source/docs freshness evidence from the question text while preserving the user decision.",
+      "evidence": "draft.json qa[4].question now asks only whether docs rebuild/update belongs in the flow.",
+      "changedFieldPaths": [
+        "qa[4].question"
+      ]
+    }
+  ]
+}

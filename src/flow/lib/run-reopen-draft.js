@@ -17,7 +17,7 @@ import { FlowCommand } from "./base-command.js";
 import { FlowManager } from "../../lib/flow-manager.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
-import { findInProgressLeaf, findStepById } from "../definition.js";
+import { findInProgressLeaf, findStepById } from "./step-tree.js";
 import { DRAFT_REVIEW_ROUTES } from "./draft-review-routes.js";
 
 const MAX_REASON_LENGTH = 500;

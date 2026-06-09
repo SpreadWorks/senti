@@ -19,7 +19,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { FLOW_DEFINITION, TASK_DEFINITION } from "../../../src/flow/definition.js";
+import { collectFlowNodes, collectTaskNodes } from "../../../src/flow/definition.js";
 
 const PKG_DIR = path.resolve(fileURLToPath(import.meta.url), "../../../../src");
 const PROMPTS_DIR = path.join(PKG_DIR, "flow", "prompts");
@@ -96,8 +96,8 @@ function keyToFilePath(key) {
 
 describe("instructions-coverage (definition ↔ prompt files)", () => {
   it("every instructionsKey in the definition has a matching prompt file", () => {
-    const flowKeys = collectInstructionKeys(FLOW_DEFINITION);
-    const taskKeys = collectInstructionKeys(TASK_DEFINITION);
+    const flowKeys = collectInstructionKeys(collectFlowNodes());
+    const taskKeys = collectInstructionKeys(collectTaskNodes());
     const keys = [...flowKeys, ...taskKeys];
 
     assert.ok(keys.length > 0, "definition has at least one instructionsKey");
@@ -115,8 +115,8 @@ describe("instructions-coverage (definition ↔ prompt files)", () => {
   });
 
   it("every entry prompt file under src/flow/prompts/ is referenced by some instructionsKey", () => {
-    const flowKeys = collectInstructionKeys(FLOW_DEFINITION);
-    const taskKeys = collectInstructionKeys(TASK_DEFINITION);
+    const flowKeys = collectInstructionKeys(collectFlowNodes());
+    const taskKeys = collectInstructionKeys(collectTaskNodes());
     const registeredKeys = new Set([...flowKeys, ...taskKeys]);
     const files = collectPromptFiles(PROMPTS_DIR).filter((f) => !f.partial);
 
@@ -136,8 +136,8 @@ describe("instructions-coverage (definition ↔ prompt files)", () => {
   });
 
   it("every instructionsKey maps to an existing prompt file", () => {
-    const flowKeys = collectInstructionKeys(FLOW_DEFINITION);
-    const taskKeys = collectInstructionKeys(TASK_DEFINITION);
+    const flowKeys = collectInstructionKeys(collectFlowNodes());
+    const taskKeys = collectInstructionKeys(collectTaskNodes());
     const keys = [...flowKeys, ...taskKeys];
     const files = collectPromptFiles(PROMPTS_DIR).filter((f) => !f.partial);
     const fileKeys = new Set(files.map((f) => f.key));

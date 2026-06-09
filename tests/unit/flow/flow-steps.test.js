@@ -7,7 +7,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { FLOW_STEPS, PHASE_MAP } from "../../../src/lib/flow-helpers.js";
-import { FLOW_DEFINITION, resolveNodeFor } from "../../../src/flow/definition.js";
+import { getFlowNode } from "../../../src/flow/definition.js";
 describe("FLOW_STEPS ordering (plan rework)", () => {
   it("has draft review triage and repair steps before their consumers", () => {
     assertStepsAppearInOrder(
@@ -48,35 +48,35 @@ describe("FLOW_STEPS ordering (plan rework)", () => {
   });
 
   it("keeps draft question review one-shot in manual and auto modes", () => {
-    const node = resolveNodeFor(FLOW_DEFINITION, "draft-questions-review");
+    const node = getFlowNode("draft-questions-review");
 
     assert.equal(node.resolveMaxAttempts({ autoApprove: true }), 1);
     assert.equal(node.resolveMaxAttempts({ autoApprove: false }), 1);
   });
 
   it("keeps draft coverage review one-shot in manual and auto modes", () => {
-    const node = resolveNodeFor(FLOW_DEFINITION, "draft-coverage-review");
+    const node = getFlowNode("draft-coverage-review");
 
     assert.equal(node.resolveMaxAttempts({ autoApprove: true }), 1);
     assert.equal(node.resolveMaxAttempts({ autoApprove: false }), 1);
   });
 
   it("sets spec review retry budget from recent convergence data", () => {
-    const node = resolveNodeFor(FLOW_DEFINITION, "spec-review");
+    const node = getFlowNode("spec-review");
 
     assert.equal(node.resolveMaxAttempts({ autoApprove: true }), 4);
     assert.equal(node.resolveMaxAttempts({ autoApprove: false }), 4);
   });
 
   it("sets test review retry budget from recent convergence data", () => {
-    const node = resolveNodeFor(FLOW_DEFINITION, "test-review");
+    const node = getFlowNode("test-review");
 
     assert.equal(node.resolveMaxAttempts({ autoApprove: true }), 5);
     assert.equal(node.resolveMaxAttempts({ autoApprove: false }), 5);
   });
 
   it("sets implementation review retry budget from recent convergence data", () => {
-    const node = resolveNodeFor(FLOW_DEFINITION, "impl-review");
+    const node = getFlowNode("impl-review");
 
     assert.equal(node.resolveMaxAttempts({ autoApprove: true }), 4);
     assert.equal(node.resolveMaxAttempts({ autoApprove: false }), 4);

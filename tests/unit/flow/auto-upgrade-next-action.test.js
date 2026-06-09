@@ -6,7 +6,7 @@ import os from "os";
 import { spawnSync } from "node:child_process";
 import { setupFlow, setStepDone } from "../../helpers/flow-setup.js";
 import { makeFlowManager } from "../../helpers/flow-setup.js";
-import { findStepById } from "../../../src/flow/definition.js";
+import { findStepById } from "../../../src/flow/lib/step-tree.js";
 
 function createTmp() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "auto-upgrade-na-"));

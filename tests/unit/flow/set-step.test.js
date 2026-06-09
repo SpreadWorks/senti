@@ -11,7 +11,7 @@ import { execFileSync } from "child_process";
 import { join } from "path";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
-import { findStepById } from "../../../src/flow/definition.js";
+import { findStepById } from "../../../src/flow/lib/step-tree.js";
 const FLOW_CMD = join(process.cwd(), "src/flow.js");
 
 describe("flow set step", () => {

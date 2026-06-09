@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-08T11:32:18.612Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "advisory": 1,
+    "total": 3
+  },
+  "coverageArtifact": "specs/283-flow-definition-lifecycle/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Raw definition namespace uses can evade R6 coverage",
+      "target": "specs/283-flow-definition-lifecycle/tests/definition-boundary.test.js R6 test",
+      "issue": "The raw data migration test only detects namespace access through variables named definitionModule or definition. A production caller could import src/flow/definition.js as another alias, for example `import * as def from ...`, then use `def.FLOW_DEFINITION` or `def.TASK_DEFINITION`, and this test would still pass.",
+      "requiredChange": "Broaden the R6 scanner to collect every namespace import alias from flow/definition.js and reject `${alias}.FLOW_DEFINITION` and `${alias}.TASK_DEFINITION` uses.",
+      "whyBlocking": "R6 requires all production modules, helper modules, and tests to stop depending on raw definition exports. The current static test can pass while a caller still has that dependency."
+    },
+    {
+      "kind": "blocking",
+      "title": "CLI exit behavior compatibility is not covered",
+      "target": "specs/283-flow-definition-lifecycle/tests/registry-lifecycle.test.js R7 test",
+      "issue": "R7 explicitly requires existing flow CLI exit behavior to remain compatible, but the test only checks successful help/status commands. It does not cover any failure-path exit behavior.",
+      "requiredChange": "Add at least one spec-local CLI compatibility assertion for an existing failure case, such as an invalid flow subcommand or invalid run invocation, including the expected nonzero exit status and stable output/envelope behavior.",
+      "whyBlocking": "A refactor could change failure exit behavior while preserving the currently tested success paths, so an acceptance requirement has no corresponding executable coverage."
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Impl proposal reset lacks a no-proposal boundary case",
+      "target": "specs/283-flow-definition-lifecycle/tests/registry-lifecycle.test.js R4 impl proposal reset test",
+      "improvement": "Add a boundary assertion that implementation-review results with zero proposals do not reset downstream evidence, if that is the intended lifecycle rule.",
+      "whyNonBlocking": "The existing test covers the required positive reset path from test-execute through finalize-cleanup; the zero-proposal case would improve precision but is not necessary to establish baseline coverage."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/283-flow-definition-lifecycle/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "5870354b917e39bd17c6515037c4325831472ad3bba2bc779f82c90eb1cb5a48"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 7,
+  "findings": [
+    {
+      "id": "test-007-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 7,
+      "severity": "blocking",
+      "title": "Raw definition namespace uses can evade R6 coverage",
+      "body": "The raw data migration test only detects namespace access through variables named definitionModule or definition. A production caller could import src/flow/definition.js as another alias, for example `import * as def from ...`, then use `def.FLOW_DEFINITION` or `def.TASK_DEFINITION`, and this test would still pass.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-007-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 7,
+      "severity": "blocking",
+      "title": "CLI exit behavior compatibility is not covered",
+      "body": "R7 explicitly requires existing flow CLI exit behavior to remain compatible, but the test only checks successful help/status commands. It does not cover any failure-path exit behavior.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-007-non-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 7,
+      "severity": "non-blocking",
+      "title": "Impl proposal reset lacks a no-proposal boundary case",
+      "body": "Impl proposal reset lacks a no-proposal boundary case",
+      "category": "unknown"
+    }
+  ]
+}

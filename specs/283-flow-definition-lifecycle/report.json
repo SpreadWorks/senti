@@ -1,0 +1,546 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".sdd-forge/output/analysis.json                    |   57 +-\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-questions-repair.json                    |   29 +\n .../draft-questions-triage.json                    |   22 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   26 +\n specs/283-flow-definition-lifecycle/draft.json     |  132 ++\n specs/283-flow-definition-lifecycle/file-map.json  |   52 +\n specs/283-flow-definition-lifecycle/flow.json      | 1628 ++++++++++++++++++++\n .../283-flow-definition-lifecycle/impl-review.json |  557 +++++++\n specs/283-flow-definition-lifecycle/issue-log.json |  102 ++\n specs/283-flow-definition-lifecycle/issue.md       |  462 ++++++\n .../retry-recovery.json                            |   80 +\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |   50 +\n .../review-history/impl-attempt-001.json           | 1221 +++++++++++++++\n .../review-history/impl-attempt-001.md             | 1265 +++++++++++++++\n .../review-history/spec-attempt-001.json           |   56 +\n .../review-history/spec-attempt-001.md             |   22 +\n .../review-history/test-attempt-001.json           |  138 ++\n .../review-history/test-attempt-001.md             |   45 +\n .../review-history/test-attempt-002.json           |   66 +\n .../review-history/test-attempt-002.md             |   21 +\n .../review-history/test-attempt-003.json           |   48 +\n .../review-history/test-attempt-003.md             |   18 +\n .../review-history/test-attempt-004.json           |   48 +\n .../review-history/test-attempt-004.md             |   18 +\n .../review-history/test-attempt-005.json           |  138 ++\n .../review-history/test-attempt-005.md             |   48 +\n .../review-history/test-attempt-006.json           |   66 +\n .../review-history/test-attempt-006.md             |   21 +\n .../review-history/test-attempt-007.json           |   84 +\n .../review-history/test-attempt-007.md             |   27 +\n .../review-history/test-attempt-008.json           |   47 +\n .../review-history/test-attempt-008.md             |   16 +\n specs/283-flow-definition-lifecycle/review.md      | 1265 +++++++++++++++\n .../283-flow-definition-lifecycle/spec-repair.json |   38 +\n .../283-flow-definition-lifecycle/spec-review.json |   32 +\n specs/283-flow-definition-lifecycle/spec-review.md |   22 +\n .../283-flow-definition-lifecycle/spec-triage.json |   22 +\n specs/283-flow-definition-lifecycle/spec.json      |  306 ++++\n specs/283-flow-definition-lifecycle/spec.md        |  129 ++\n specs/283-flow-definition-lifecycle/tasks/T-1.md   |   20 +\n specs/283-flow-definition-lifecycle/tasks/T-2.md   |   20 +\n specs/283-flow-definition-lifecycle/tasks/T-3.md   |   20 +\n specs/283-flow-definition-lifecycle/tasks/T-4.md   |   23 +\n specs/283-flow-definition-lifecycle/tasks/T-5.md   |   20 +\n .../test-coverage.json                             |  126 ++\n .../283-flow-definition-lifecycle/test-review.json |   33 +\n specs/283-flow-definition-lifecycle/test-review.md |   16 +\n .../tests/definition-boundary.test.js              |  364 +++++\n .../tests/registry-lifecycle.test.js               |  410 +++++\n src/flow/commands/review.js                        |    5 +-\n src/flow/definition.js                             |  530 ++++++-\n src/flow/lib/gate-recovery-display.js              |    4 +-\n src/flow/lib/gate-step.js                          |    4 +-\n src/flow/lib/get-check.js                          |    5 +-\n src/flow/lib/get-next-action.js                    |   40 +-\n src/flow/lib/get-status.js                         |    5 +-\n src/flow/lib/resolve-auto-check-input.js           |    7 +-\n src/flow/lib/resolve-context-envelope.js           |    2 +-\n src/flow/lib/run-finalize-cleanup.js               |   12 +-\n src/flow/lib/run-gate.js                           |    8 +-\n src/flow/lib/run-prepare-spec.js                   |    2 +-\n src/flow/lib/run-reopen-draft.js                   |    2 +-\n src/flow/lib/run-review.js                         |   30 +-\n src/flow/lib/set-retry.js                          |    2 +-\n src/flow/lib/set-step.js                           |    5 +-\n src/flow/lib/step-tree.js                          |   70 +\n src/flow/registry.js                               |  467 +++---\n src/lib/flow-helpers.js                            |   19 +-\n src/lib/flow-manager.js                            |    2 +-\n src/lib/flow-store.js                              |    2 +-\n src/lib/skill-rules.js                             |    9 +-\n tests/e2e/220-auto-check-phase-flow.test.js        |    2 +-\n tests/e2e/flow/commands/status-check.test.js       |    2 +-\n tests/helpers/flow-setup.js                        |    2 +-\n .../226-task-decomp-wiring/t5-auto-promote.test.js |    2 +-\n .../t6-step-redesign-and-cli.test.js               |    8 +-\n .../t-a3-no-flat-fallback.test.js                  |    2 +-\n tests/unit/flow.test.js                            |    2 +-\n tests/unit/flow/auto-upgrade-next-action.test.js   |    2 +-\n tests/unit/flow/draft-refine-migration.test.js     |    2 +-\n tests/unit/flow/finalize-merge-retry.test.js       |    2 +-\n tests/unit/flow/flow-steps.test.js                 |   12 +-\n tests/unit/flow/get-next-action.test.js            |    2 +-\n tests/unit/flow/instructions-coverage.test.js      |   14 +-\n tests/unit/flow/resolve-auto-check-input.test.js   |    2 +-\n tests/unit/flow/run-auto-check-phase.test.js       |    2 +-\n tests/unit/flow/set-auto.test.js                   |    2 +-\n tests/unit/flow/set-step.test.js                   |    2 +-\n tests/unit/flow/spec-repair-migration.test.js      |    2 +-\n tests/unit/lib/flow-helpers-tasks.test.js          |    2 +-\n 94 files changed, 10343 insertions(+), 472 deletions(-)",
+      "commits": [
+        "feat: feature/283-flow-definition-lifecycle"
+      ]
+    },
+    "retro": {
+      "total": 8,
+      "done": 8,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 1,
+      "not_testable_count": 1,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "definition.js shall stop exporting raw FLOW_DEFINITION and TASK_DEFINITION and instead expose definition-side APIs for node lookup, task node lookup, leaf id collection, phase/action mapping, definition order, active node lookup, maxAttempts, sideEffects, runtime step resolution, and lifecycle resolution.",
+          "status": "done",
+          "note": "R1: definition exposes APIs instead of raw definition data"
+        },
+        {
+          "desc": "Steps-array-only utilities shall move out of definition.js into a dedicated step-tree module, and all consumers shall import those utilities from the step-tree module.",
+          "status": "done",
+          "note": "R2: steps-array utilities live in a dedicated step-tree module"
+        },
+        {
+          "desc": "FlowNode or equivalent definition-side node objects shall carry lifecycle behavior using dedicated action classes with constructor-enforced invariants for status transitions, keep-in-progress behavior, metric increments, issue-log appends, side-effect execution, skip behavior, and hook escape hatches.",
+          "status": "done",
+          "note": "R3: lifecycle actions are dedicated classes with invariants"
+        },
+        {
+          "desc": "Definition-side lifecycle resolution shall cover review/gate/finalize status transitions, draft PASS empty triage/repair artifact generation, implementation-review proposal evidence reset from test-execute through finalize-cleanup, downstream skip/reset behavior, sideEffects, maxAttempts, and runtime log step resolution for the lifecycle cases named in Issue #370.",
+          "status": "done",
+          "note": "R4: resolveLifecycle returns executable draft review PASS artifact actions"
+        },
+        {
+          "desc": "registry.js hooks shall delegate lifecycle decisions to definition-side APIs or shared lifecycle application helpers and shall not hardcode flow step ids, review phase maps, gate phase maps, or finalize downstream leaf lists for definition-derived decisions.",
+          "status": "done",
+          "note": "R5: registry hooks delegate definition-derived lifecycle decisions"
+        },
+        {
+          "desc": "Production modules, helper modules, and tests shall be migrated away from raw definition imports so no caller depends on FLOW_DEFINITION or TASK_DEFINITION as exported data.",
+          "status": "done",
+          "note": "R6: production, helper, and shared tests do not import raw definition data"
+        },
+        {
+          "desc": "Existing flow CLI command names, options, help text, JSON envelope shapes, step ids, status transitions, and exit behavior shall remain user-visible compatible after the refactor.",
+          "status": "done",
+          "note": "R7: registry keeps command metadata while lifecycle ownership changes"
+        },
+        {
+          "desc": "Spec-local tests shall verify the new definition/registry boundary, raw export removal, step-tree utility relocation, lifecycle action class invariants, draft PASS artifact preservation, implementation-review proposal evidence reset, and representative review/gate/finalize lifecycle transitions.",
+          "status": "done",
+          "note": "R8: spec-local coverage observes the definition boundary requirements"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 6,
+      "fullLogPath": "specs/283-flow-definition-lifecycle/issue-log.json",
+      "importantTotal": 6,
+      "importantShown": 6,
+      "importantOmitted": 0,
+      "recentOtherTotal": 0,
+      "recentOtherShown": 0,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "retry-recovery",
+          "reason": "test coverage repaired after review findings",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "retry-recovery",
+          "reason": "step-tree migration test extended for namespace and const export leaks",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "retry-recovery",
+          "reason": "raw namespace alias and CLI failure exit coverage added",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "fix: lifecycle action apply methods now return adapter calls so async metric and hook actions are awaited",
+          "resolution": "updated definition lifecycle actions, preserved TOOLING_FAILURE no-status-update contract, reran spec-local tests plus test-execute with regression pass"
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "provider=codex | profile=codex/gpt-5.3-spark | exit=1 | WARNING: proceeding, even though we could not update PATH: Read-only file system (os error 30)\nReading additional input from stdin...\nError: failed to initialize in-process app-serv...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "tooling: codex provider failed to initialize inside sandbox read-only filesystem",
+          "resolution": "rerun impl-gate outside sandbox so provider can initialize; no implementation change required for this tooling failure"
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 3,
+      "question": 0,
+      "issueLog": 2
+    },
+    "tokenMetrics": {
+      "input": 656946,
+      "output": 95834,
+      "cacheRead": 2247351,
+      "cacheCreation": 349646,
+      "cost": 3.979736999999999,
+      "callCount": 45,
+      "durationMs": 2898987,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 17279
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 9680
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 8920
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 195230
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 10612
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 286943
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 2220899
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 149424
+        }
+      ]
+    },
+    "tests": {
+      "total": 8,
+      "passed": 8,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/283-flow-definition-lifecycle/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 101,
+          "end_line": 5277
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/283-flow-definition-lifecycle/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/review.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/definition.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/gate-recovery-display.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/gate-step.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/get-check.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/get-next-action.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/get-status.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/resolve-auto-check-input.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/resolve-context-envelope.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-finalize-cleanup.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-prepare-spec.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-reopen-draft.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-review.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-retry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-step.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/flow/lib/step-tree.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-helpers.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-manager.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-store.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/skill-rules.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/220-auto-check-phase-flow.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/flow/commands/status-check.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/helpers/flow-setup.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/226-task-decomp-wiring/t6-step-redesign-and-cli.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/227-post-226-forest-integration/t-a3-no-flat-fallback.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/auto-upgrade-next-action.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/draft-refine-migration.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/finalize-merge-retry.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/flow-steps.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/get-next-action.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/instructions-coverage.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/resolve-auto-check-input.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/run-auto-check-phase.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/set-auto.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/set-step.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/spec-repair-migration.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/flow-helpers-tasks.test.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/283-flow-definition-lifecycle/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/review.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/definition.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/gate-recovery-display.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/gate-step.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/get-check.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/get-next-action.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/get-status.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/resolve-auto-check-input.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/resolve-context-envelope.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-finalize-cleanup.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-prepare-spec.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-reopen-draft.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-review.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-retry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-step.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/flow/lib/step-tree.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-helpers.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-manager.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-store.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/skill-rules.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/220-auto-check-phase-flow.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/flow/commands/status-check.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/helpers/flow-setup.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/226-task-decomp-wiring/t6-step-redesign-and-cli.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/227-post-226-forest-integration/t-a3-no-flat-fallback.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/auto-upgrade-next-action.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/draft-refine-migration.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/finalize-merge-retry.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/flow-steps.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/get-next-action.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/instructions-coverage.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/resolve-auto-check-input.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/run-auto-check-phase.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/set-auto.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/set-step.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/spec-repair-migration.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/flow-helpers-tasks.test.js"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/283-flow-definition-lifecycle/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/283-flow-definition-lifecycle\n    94 files changed, 10343 insertions(+), 472 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (8 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 3\n    Q&A ......................... 0\n    issue-log ................... 2\n    agent calls ................. 45\n    input tokens ................ 656,946\n    output tokens ............... 95,834\n    cache-read tokens ........... 2,247,351\n    cache-create tokens ......... 349,646\n    cost ........................ $3.9797\n    duration (total) ............ 2899.0s\n      draft-questions-review .... 17.3s\n      draft-coverage-review ..... 9.7s\n      draft-gate ................ 8.9s\n      spec-review ............... 195.2s\n      spec-gate ................. 10.6s\n      test-review ............... 286.9s\n      impl-review ............... 2220.9s\n      impl-gate ................. 149.4s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 8  passed 8  failed 0 verdict=pass\n    raw_output: specs/283-flow-definition-lifecycle/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (6 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/283-flow-definition-lifecycle/issue-log.json\n\n    Important (6)\n    - [retry-recovery] test coverage repaired after review findings\n    - [retry-recovery] step-tree migration test extended for namespace and const export leaks\n    - [retry-recovery] raw namespace alias and CLI failure exit coverage added\n    - [impl-gate] fix: lifecycle action apply methods now return adapter calls so async metric and hook actions are awaited\n    - [spec-gate] provider=codex | profile=codex/gpt-5.3-spark | exit=1 | WARNING: proceeding, even though we could not update PATH: Read-only file system (os error 30)\nReading additional input from stdin...\nError: failed to initialize in-process app-serv...\n    - [impl-gate] tooling: codex provider failed to initialize inside sandbox read-only filesystem"
+}

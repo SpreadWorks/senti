@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "Both blocking findings are valid lifecycle preservation requirements and should be applied in spec repair.",
+  "items": [
+    {
+      "title": "Draft review PASS artifacts are omitted",
+      "target": "R3/R4/T-4 review lifecycle",
+      "decision": "apply",
+      "rationale": "The current spec covers review status transitions but does not require preserving the empty draft triage/repair artifact data path needed by draft-gate.",
+      "evidence": "spec-review.json blockingFindings[0] identifies missing draft PASS artifact generation; current R4 and T-4 do not name draft triage/repair artifacts."
+    },
+    {
+      "title": "Impl review proposal reset side effects are omitted",
+      "target": "R3/R4/T-4 review lifecycle",
+      "decision": "apply",
+      "rationale": "The current spec covers downstream reset behavior generally but does not require preserving the implementation-review proposal evidence-reset path.",
+      "evidence": "spec-review.json blockingFindings[1] identifies resetImplEvidenceAfterReviewProposals and the downstream test-execute through finalize-cleanup reset range; current R4 and T-4 do not name that case."
+    }
+  ]
+}

@@ -6,7 +6,7 @@ import {
   derivePhase,
   TASK_STEPS_PLAN,
 } from "../../../src/lib/flow-helpers.js";
-import { findStepById, flattenSteps } from "../../../src/flow/definition.js";
+import { findStepById, flattenSteps } from "../../../src/flow/lib/step-tree.js";
 
 describe("flow-helpers task-aware APIs", () => {
   describe("buildInitialTaskSteps", () => {

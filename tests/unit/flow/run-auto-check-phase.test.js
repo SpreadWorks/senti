@@ -12,7 +12,7 @@ import {
 } from "../../helpers/stub-agent.js";
 import { makeFlowManager } from "../../helpers/flow-setup.js";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
-import { findStepById } from "../../../src/flow/definition.js";
+import { findStepById } from "../../../src/flow/lib/step-tree.js";
 
 const CMD = path.join(process.cwd(), "src/sdd-forge.js");
 

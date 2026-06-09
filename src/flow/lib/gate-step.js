@@ -6,7 +6,7 @@
  * task-level task-gate remains mapped to task-impl.
  */
 
-import { FLOW_DEFINITION, TASK_DEFINITION, collectLeafIds, resolveNodeFor, collectGatePhaseEntries } from "../definition.js";
+import { collectFlowLeafIds, collectGatePhaseEntries } from "../definition.js";
 
 const PHASE_TO_STEP_ENTRIES = Object.freeze(collectGatePhaseEntries());
 
@@ -57,7 +57,7 @@ export function resolveGatePhaseFromState(state) {
 
   if (flowInProgress.length === 0) return null;
 
-  const leafIds = collectLeafIds(FLOW_DEFINITION);
+  const leafIds = collectFlowLeafIds();
   const chosen = pickLatestFlowGateStep(flowInProgress, leafIds);
   const staleSteps = flowInProgress.filter((s) => s.id !== chosen.id).map((s) => s.id);
   return { phase: STEP_TO_PHASE[chosen.id], staleSteps };

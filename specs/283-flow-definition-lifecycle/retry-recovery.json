@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "test coverage repaired after review findings",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "12738b58b850ea7ee967dbca8266ee001d81f8c5f28dca44d774750029588eb0",
+        "currentHash": "9d98a4ee821fec58cc848a114c65a39a43bb65ba780d606d3edb481502593523",
+        "changedPaths": [
+          "specs/283-flow-definition-lifecycle/tests/.raw/scenario-validity.log",
+          "specs/283-flow-definition-lifecycle/tests/definition-boundary.test.js",
+          "specs/283-flow-definition-lifecycle/tests/registry-lifecycle.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"test coverage repaired after review findings\" --yes",
+      "createdAt": "2026-06-08T11:29:38.094Z"
+    },
+    {
+      "id": "recovery-002",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "step-tree migration test extended for namespace and const export leaks",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "9d98a4ee821fec58cc848a114c65a39a43bb65ba780d606d3edb481502593523",
+        "currentHash": "57a9997c276f454ff67c132840db331161cab06b674379a605dc14c901073f03",
+        "changedPaths": [
+          "specs/283-flow-definition-lifecycle/tests/.raw/scenario-validity.log",
+          "specs/283-flow-definition-lifecycle/tests/definition-boundary.test.js",
+          "specs/283-flow-definition-lifecycle/tests/registry-lifecycle.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"step-tree migration test extended for namespace and const export leaks\" --yes",
+      "createdAt": "2026-06-08T11:30:54.787Z"
+    },
+    {
+      "id": "recovery-003",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "raw namespace alias and CLI failure exit coverage added",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "57a9997c276f454ff67c132840db331161cab06b674379a605dc14c901073f03",
+        "currentHash": "1536c6801e823910c50c4f2785821854b14e398cc060dcdcefe4d3f3cb1d08eb",
+        "changedPaths": [
+          "specs/283-flow-definition-lifecycle/tests/.raw/scenario-validity.log",
+          "specs/283-flow-definition-lifecycle/tests/definition-boundary.test.js",
+          "specs/283-flow-definition-lifecycle/tests/registry-lifecycle.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"raw namespace alias and CLI failure exit coverage added\" --yes",
+      "createdAt": "2026-06-08T11:33:25.156Z"
+    }
+  ]
+}

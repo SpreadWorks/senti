@@ -6,7 +6,7 @@ import { join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson } from "../helpers/tmp-dir.js";
 import { buildInitialSteps, FLOW_STEPS } from "../../src/lib/flow-helpers.js";
-import { flattenSteps, findStepById } from "../../src/flow/definition.js";
+import { flattenSteps, findStepById } from "../../src/flow/lib/step-tree.js";
 const FLOW_CMD = join(process.cwd(), "src/flow.js");
 
 // ── .active-flow pointer tests ──────────────────────────────────────────────

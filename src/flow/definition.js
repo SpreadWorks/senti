@@ -11,7 +11,14 @@
  * Max depth: 3 (root list → branch → leaf). Traversal helpers enforce this.
  */
 
-import { draftReviewRouteForKey } from "./lib/draft-review-routes.js";
+import fs from "fs";
+import path from "path";
+import { draftReviewRouteForKey, draftReviewRouteForRetryPhase } from "./lib/draft-review-routes.js";
+import {
+  flattenSteps,
+  findFirstPendingLeaf,
+  findStepById,
+} from "./lib/step-tree.js";
 
 const MAX_DEPTH = 3;
 
@@ -73,6 +80,379 @@ function createMaxAttempts(value) {
   return new ModeMaxAttempts(value);
 }
 
+function requireString(value, field) {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new Error(`${field} must be a non-empty string`);
+  }
+  return value;
+}
+
+function requireStepList(value, field) {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new Error(`${field} must be a non-empty array`);
+  }
+  return Object.freeze(value.map((step) => requireString(step, field)));
+}
+
+const STEP_STATUSES = new Set(["pending", "in_progress", "done", "skipped"]);
+
+export class SetStepStatus {
+  constructor({ step, status }) {
+    this.step = requireString(step, "step");
+    this.status = requireString(status, "status");
+    if (!STEP_STATUSES.has(this.status)) throw new Error(`invalid status: ${this.status}`);
+    Object.freeze(this);
+  }
+
+  apply(adapter) {
+    return adapter.setStepStatus(this.step, this.status);
+  }
+}
+
+export class KeepInProgress {
+  constructor({ step }) {
+    this.step = requireString(step, "step");
+    Object.freeze(this);
+  }
+
+  apply(adapter) {
+    return adapter.keepInProgress(this.step);
+  }
+}
+
+export class IncrementMetric {
+  constructor({ phase, counter }) {
+    this.phase = requireString(phase, "phase");
+    this.counter = requireString(counter, "counter");
+    Object.freeze(this);
+  }
+
+  apply(adapter) {
+    return adapter.incrementMetric(this.phase, this.counter);
+  }
+}
+
+export class AppendIssueLog {
+  constructor({ source }) {
+    this.source = requireString(source, "source");
+    Object.freeze(this);
+  }
+
+  apply(adapter) {
+    return adapter.appendIssueLog(this.source);
+  }
+}
+
+export class ExecuteSideEffects {
+  constructor() {
+    Object.freeze(this);
+  }
+
+  apply(adapter) {
+    return adapter.executeSideEffects();
+  }
+}
+
+export class SkipSteps {
+  constructor({ steps }) {
+    this.steps = requireStepList(steps, "steps");
+    Object.freeze(this);
+  }
+
+  apply(adapter) {
+    return adapter.skipSteps([...this.steps]);
+  }
+}
+
+export class ResetSteps {
+  constructor({ steps }) {
+    this.steps = requireStepList(steps, "steps");
+    Object.freeze(this);
+  }
+
+  apply(adapter) {
+    return adapter.resetSteps([...this.steps]);
+  }
+}
+
+export class RunLifecycleHook {
+  constructor({ module, handler, args = null }) {
+    this.module = requireString(module, "module");
+    this.handler = requireString(handler, "handler");
+    this.args = args == null ? null : Object.freeze({ ...args });
+    Object.freeze(this);
+  }
+
+  apply(adapter) {
+    return adapter.runLifecycleHook(this.module, this.handler, this.args);
+  }
+}
+
+export function applyLifecycleActions(adapter, actions) {
+  for (const action of actions) action.apply(adapter);
+}
+
+const FINALIZE_SUCCESS_STATUSES = new Set(["done", "completed", "skipped"]);
+const REVIEW_STEP_BY_PHASE = Object.freeze({
+  "draft-questions": "draft-questions-review",
+  "draft-coverage": "draft-coverage-review",
+  spec: "spec-review",
+  test: "test-review",
+  impl: "impl-review",
+});
+const IMPL_REVIEW_RESET_RANGE = Object.freeze([
+  "test-execute",
+  "test-result-review",
+  "impl-review",
+  "impl-gate",
+  "retro",
+  "final-regression",
+  "finalize-commit",
+  "finalize-merge",
+  "finalize-sync",
+  "finalize-cleanup",
+]);
+const REBUILDABLE_TEST_ARTIFACT_PATHS = Object.freeze([
+  "upgrade-result.json",
+  "scenario-validity-result.json",
+  "test-execute-result.json",
+  "test-result-review.json",
+  "test-result-review.md",
+  "impl-gate-result.json",
+  "final-regression-result.json",
+  "retro.json",
+  "report.json",
+  "tests/.raw/upgrade.log",
+  "tests/.raw/scenario-validity.log",
+  "tests/.raw/test-execution.log",
+  "tests/.raw/requirement-summary.json",
+]);
+
+function isFinalizeSuccess(result) {
+  return FINALIZE_SUCCESS_STATUSES.has(String(result?.status || ""));
+}
+
+function gateStepIdForPhase(phase) {
+  return Object.fromEntries(collectGatePhaseEntries())[phase] || "spec-gate";
+}
+
+function draftReviewRouteForInput(input = {}) {
+  const retryPhase = input.result?.artifacts?.retryPhase
+    || (String(input.phase || "").startsWith("draft-") ? input.phase : null);
+  return draftReviewRouteForRetryPhase(retryPhase || "draft-questions");
+}
+
+function reviewStepIdForInput(input = {}) {
+  const phase = input.result?.artifacts?.phase || input.phase;
+  if (phase === "draft" || phase === "draft-questions" || phase === "draft-coverage") {
+    return draftReviewRouteForInput(input).reviewStepId;
+  }
+  return REVIEW_STEP_BY_PHASE[phase] || input.currentStepId || null;
+}
+
+export function resolveRuntimeStep(input = {}) {
+  const command = input.command || input.action;
+  if (command === "run-review") return reviewStepIdForInput(input);
+  if (command === "run-gate") return gateStepIdForPhase(input.phase || input.result?.artifacts?.phase);
+  if (String(command || "").startsWith("finalize-")) return command;
+  return input.currentStepId || null;
+}
+
+function resolveDraftReviewLifecycle(input) {
+  const route = draftReviewRouteForInput(input);
+  const verdict = input.result?.artifacts?.verdict;
+  const actions = [];
+  if (!["PASS", "ADVISORY", "FAIL"].includes(verdict)) return actions;
+  actions.push(new SetStepStatus({ step: route.reviewStepId, status: "done" }));
+  if (verdict === "PASS") {
+    actions.push(new SetStepStatus({ step: route.triageStepId, status: "done" }));
+    actions.push(new SetStepStatus({ step: route.repairStepId, status: "done" }));
+    actions.push(new RunLifecycleHook({
+      module: "review",
+      handler: "writeEmptyDraftReviewRouteArtifacts",
+      args: { retryPhase: route.retryPhase },
+    }));
+  }
+  actions.push(new IncrementMetric({ phase: route.retryPhase, counter: "reviewRetry" }));
+  return actions;
+}
+
+function resolvePlanReviewLifecycle(input) {
+  const phase = input.result?.artifacts?.phase || input.phase;
+  const verdict = input.result?.artifacts?.verdict;
+  if (phase === "draft" || phase === "draft-questions" || phase === "draft-coverage") {
+    return resolveDraftReviewLifecycle(input);
+  }
+  const actions = [];
+  if (verdict !== "TOOLING_FAILURE") {
+    actions.push(new IncrementMetric({ phase, counter: "reviewRetry" }));
+  }
+  if (phase === "spec") {
+    if (verdict === "PASS" || verdict === "ADVISORY") {
+      actions.push(
+        new SetStepStatus({ step: "spec-review", status: "done" }),
+        new SetStepStatus({ step: "spec-triage", status: "done" }),
+        new SetStepStatus({ step: "spec-repair", status: "done" }),
+      );
+    } else if (verdict === "FAIL") {
+      actions.push(new SetStepStatus({ step: "spec-review", status: "done" }));
+    }
+    return actions;
+  }
+  if (phase === "test") {
+    if (verdict === "PASS" || verdict === "ADVISORY") {
+      actions.push(new SetStepStatus({ step: "test-review", status: "done" }));
+    } else if (verdict === "TOOLING_FAILURE") {
+      actions.push(new AppendIssueLog({ source: "test-review-tooling-failure" }));
+    }
+    return actions;
+  }
+  return actions;
+}
+
+function resolveImplReviewLifecycle(input) {
+  const verdict = input.result?.artifacts?.verdict;
+  const proposalCount = input.result?.artifacts?.proposalCount ?? 0;
+  const actions = [];
+  if (input.result?.artifacts?.phase === "impl") {
+    actions.push(new IncrementMetric({ phase: "impl", counter: "reviewRetry" }));
+    if (verdict === "PASS" || verdict === "ADVISORY") {
+      actions.push(new SetStepStatus({ step: input.currentStepId || "impl-review", status: "done" }));
+    }
+    return actions;
+  }
+  if (!input.dryRun && proposalCount > 0) {
+    actions.push(
+      new ResetSteps({ steps: IMPL_REVIEW_RESET_RANGE }),
+      new RunLifecycleHook({ module: "review", handler: "resetImplEvidenceAfterReviewProposals" }),
+    );
+    return actions;
+  }
+  actions.push(new SetStepStatus({ step: input.currentStepId || "impl-review", status: "done" }));
+  return actions;
+}
+
+function resolveReviewLifecycle(input) {
+  if (input.phase === "draft" || input.phase === "spec" || input.phase === "test") {
+    return resolvePlanReviewLifecycle(input);
+  }
+  return resolveImplReviewLifecycle(input);
+}
+
+function resolveGateLifecycle(input) {
+  const phase = input.result?.artifacts?.phase || input.phase;
+  const step = gateStepIdForPhase(phase);
+  if (input.event === "gate:pre") {
+    return [new SetStepStatus({ step, status: "in_progress" })];
+  }
+  const actions = [new IncrementMetric({ phase, counter: "gateRetry" })];
+  if (input.result?.result === "pass") {
+    actions.push(new SetStepStatus({ step, status: "done" }));
+    actions.push(new ExecuteSideEffects());
+  } else {
+    actions.push(new SetStepStatus({ step, status: "in_progress" }));
+    actions.push(new AppendIssueLog({ source: "gate-result" }));
+  }
+  return actions;
+}
+
+function resolveFinalizeLifecycle(input) {
+  const command = input.command;
+  if (input.event === "finalize:pre" && command === "finalize-merge") {
+    return [new RunLifecycleHook({
+      module: "finalize",
+      handler: "prepareFinalizeMerge",
+      args: { steps: ["finalize-sync", "finalize-cleanup"] },
+    })];
+  }
+  if (input.event === "finalize:onError") {
+    const actions = [
+      new RunLifecycleHook({ module: "finalize", handler: "finalizeOnError", args: { command } }),
+    ];
+    if (command === "finalize-merge") {
+      actions.push(new SkipSteps({ steps: ["finalize-sync", "finalize-cleanup"] }));
+    }
+    return actions;
+  }
+  if (!isFinalizeSuccess(input.result)) return [];
+  const actions = [];
+  if (command === "finalize-merge" || command === "finalize-sync" || command === "finalize-cleanup") {
+    actions.push(new RunLifecycleHook({ module: "finalize", handler: "resolveMainRepoFlowManager" }));
+  }
+  actions.push(new SetStepStatus({ step: command, status: "done" }));
+  if (command === "finalize-commit") {
+    actions.push(new RunLifecycleHook({ module: "finalize", handler: "executeCommitPost" }));
+  }
+  if (command === "finalize-merge") {
+    actions.push(
+      new RunLifecycleHook({ module: "finalize", handler: "recordMergeOutcome" }),
+      new RunLifecycleHook({
+        module: "finalize",
+        handler: "resetSkippedDownstreamSteps",
+        args: { steps: ["finalize-sync", "finalize-cleanup"] },
+      }),
+    );
+  }
+  return actions;
+}
+
+function resolveLifecycleForNode(node, input = {}) {
+  if (input.event === "review:post" || node.action === "run-review") return resolveReviewLifecycle(input);
+  if (input.event === "gate:post" || node.action === "run-gate") return resolveGateLifecycle(input);
+  if (String(input.event || "").startsWith("finalize:") || String(node.action || "").startsWith("run-finalize-")) {
+    return resolveFinalizeLifecycle(input);
+  }
+  return [];
+}
+
+export function resolveLifecycle(input = {}) {
+  const stepId = input.currentStepId || resolveRuntimeStep(input);
+  const node = stepId ? (getFlowNode(stepId) || getTaskNode(stepId)) : null;
+  if (!node) return [];
+  return node.resolveLifecycle(input);
+}
+
+export function writeEmptyDraftReviewRouteArtifacts({ specDir, route, generatedAt = new Date().toISOString() }) {
+  fs.mkdirSync(specDir, { recursive: true });
+  const triagePath = path.join(specDir, route.triageArtifact);
+  const repairPath = path.join(specDir, route.repairArtifact);
+  if (!fs.existsSync(triagePath)) {
+    fs.writeFileSync(triagePath, JSON.stringify({
+      version: 1,
+      phase: route.triageStepId,
+      sourceReview: route.reviewArtifact,
+      generatedAt,
+      summary: "No draft review findings to triage.",
+      items: [],
+    }, null, 2) + "\n");
+  }
+  if (!fs.existsSync(repairPath)) {
+    fs.writeFileSync(repairPath, JSON.stringify({
+      version: 1,
+      phase: route.repairStepId,
+      sourceTriage: route.triageArtifact,
+      generatedAt,
+      summary: "No draft triage items to repair.",
+      items: [],
+    }, null, 2) + "\n");
+  }
+}
+
+export function resetImplEvidenceAfterReviewProposals({ specDir, flowState }) {
+  for (const relPath of REBUILDABLE_TEST_ARTIFACT_PATHS) {
+    const filePath = path.join(specDir, relPath);
+    if (fs.existsSync(filePath)) fs.rmSync(filePath, { force: true });
+  }
+  for (const id of IMPL_REVIEW_RESET_RANGE) {
+    const step = findStepById(flowState.steps || [], id);
+    if (!step) continue;
+    step.status = "pending";
+    delete step.finishedAt;
+    delete step.startedAt;
+  }
+  return true;
+}
+
 class FlowNode {
   constructor({
     id,
@@ -109,6 +489,10 @@ class FlowNode {
 
   resolveMaxAttempts(context = {}) {
     return this.maxAttempts.resolve(context);
+  }
+
+  resolveLifecycle(input = {}) {
+    return resolveLifecycleForNode(this, input);
   }
 }
 
@@ -182,7 +566,7 @@ function createDraftReviewRouteNodes(route) {
 
 // ── FLOW_DEFINITION ─────────────────────────────────────────────────────────
 
-export const FLOW_DEFINITION = Object.freeze([
+const FLOW_DEFINITION = Object.freeze([
   new FlowNode({
     id: "plan",
     label: "Plan",
@@ -424,7 +808,7 @@ export const FLOW_DEFINITION = Object.freeze([
 
 // ── TASK_DEFINITION ─────────────────────────────────────────────────────────
 
-export const TASK_DEFINITION = Object.freeze([
+const TASK_DEFINITION = Object.freeze([
   new FlowNode({
     id: "task-impl",
     label: "Task impl",
@@ -476,6 +860,62 @@ export function collectGatePhaseEntries() {
   walk(FLOW_DEFINITION, 1);
   walk(TASK_DEFINITION, 1);
   return entries;
+}
+
+export function collectFlowLeafIds() {
+  return collectLeafIds(FLOW_DEFINITION);
+}
+
+export function collectTaskLeafIds() {
+  return collectLeafIds(TASK_DEFINITION);
+}
+
+export function deriveFlowPhaseMap() {
+  return derivePhaseMap(FLOW_DEFINITION);
+}
+
+export function getFlowDefinitionOrder() {
+  return collectFlowLeafIds();
+}
+
+export function getTaskDefinitionOrder() {
+  return collectTaskLeafIds();
+}
+
+export function collectFlowNodes() {
+  return [...FLOW_DEFINITION];
+}
+
+export function collectTaskNodes() {
+  return [...TASK_DEFINITION];
+}
+
+export function getFlowNode(id) {
+  return resolveNodeFor(FLOW_DEFINITION, id);
+}
+
+export function getTaskNode(id) {
+  return resolveNodeFor(TASK_DEFINITION, id);
+}
+
+export function resolveMaxAttempts({ scope = "flow", stepId, context = {} }) {
+  const node = scope === "task" ? getTaskNode(stepId) : getFlowNode(stepId);
+  return node?.resolveMaxAttempts(context) ?? null;
+}
+
+export function resolveSideEffects({ scope = "flow", stepId }) {
+  const node = scope === "task" ? getTaskNode(stepId) : getFlowNode(stepId);
+  return node?.sideEffects ? [...node.sideEffects] : null;
+}
+
+export function deriveFlowPrereqs(targetId) {
+  return derivePrereqs(FLOW_DEFINITION, targetId);
+}
+
+export function getFlowBranchLeafIds(parentId) {
+  const parent = getFlowNode(parentId);
+  if (!parent?.children) return [];
+  return flattenSteps(parent.children).map((step) => step.id);
 }
 
 // ── Traversal helpers ───────────────────────────────────────────────────────
@@ -548,7 +988,7 @@ export function resolveNodeFor(definition, id) {
  *
  * Returns `{ scope: "flow"|"task", taskId, stepId }` or null.
  */
-export function findActiveNode(steps, tasks, currentTaskId) {
+export function findActiveNode({ steps, tasks, currentTaskId }) {
   if (currentTaskId != null && Array.isArray(tasks)) {
     const task = tasks.find((t) => t.id === currentTaskId);
     if (task && Array.isArray(task.steps)) {
@@ -610,27 +1050,13 @@ export function findLatestInProgressLeaf(steps, definition = FLOW_DEFINITION) {
   return selected.unknownStep || selected.step;
 }
 
-export function findInProgressLeaf(steps, depth = 0) {
-  assertDepth(depth);
-  if (!Array.isArray(steps)) return null;
-  for (const s of steps) {
-    if (s.children) {
-      const found = findInProgressLeaf(s.children, depth + 1);
-      if (found) return found;
-    } else if (s.status === "in_progress") {
-      return s;
-    }
-  }
-  return null;
-}
-
 /**
  * Derive the next action envelope fields from the definition for a given step.
  *
  * Returns `{ action, instructionsKey, contextKinds, outputSchemaRef, requiresApproval, maxAttempts }`
  * for the step identified by `scope` ("flow" or "task") and `stepId`.
  */
-export function deriveNextAction(scope, stepId, context = {}) {
+export function deriveNextAction({ scope = "flow", stepId, context = {} }) {
   const def = scope === "task" ? TASK_DEFINITION : FLOW_DEFINITION;
   const node = resolveNodeFor(def, stepId);
   if (!node) return null;
@@ -652,7 +1078,7 @@ export function deriveNextAction(scope, stepId, context = {}) {
  *
  * The first leaf is promoted to "in_progress".
  */
-export function buildInitialNestedSteps(definition) {
+export function buildInitialNestedSteps(definition = FLOW_DEFINITION) {
   function buildNode(node) {
     if (node.children) {
       return { id: node.id, status: "pending", children: node.children.map(buildNode) };
@@ -670,70 +1096,6 @@ export function buildInitialNestedSteps(definition) {
  */
 export function buildInitialTaskSteps() {
   return TASK_DEFINITION.map((node) => ({ id: node.id, status: "pending" }));
-}
-
-/**
- * Flatten nested steps to a flat list of leaf steps (for compatibility).
- */
-export function flattenSteps(steps) {
-  const flat = [];
-  function walk(nodes) {
-    for (const s of nodes) {
-      if (s.children) {
-        walk(s.children);
-      } else {
-        flat.push(s);
-      }
-    }
-  }
-  walk(steps);
-  return flat;
-}
-
-/**
- * Find a step by id in nested steps structure.
- */
-export function findStepById(steps, id) {
-  for (const s of steps) {
-    if (s.id === id) return s;
-    if (s.children) {
-      const found = findStepById(s.children, id);
-      if (found) return found;
-    }
-  }
-  return null;
-}
-
-/**
- * Find the first pending leaf in nested steps (depth-first).
- */
-export function findFirstPendingLeaf(steps) {
-  for (const s of steps) {
-    if (s.children) {
-      const found = findFirstPendingLeaf(s.children);
-      if (found) return found;
-    } else if (s.status === "pending") {
-      return s;
-    }
-  }
-  return null;
-}
-
-/**
- * Promote the next pending leaf to in_progress after a step completes.
- * Respects branch boundaries: if all children of a branch are done/skipped,
- * moves to the next sibling branch.
- *
- * Returns the promoted step, or null.
- */
-export function promoteNextPendingLeaf(steps) {
-  if (steps.some((s) => {
-    if (s.children) return findInProgressLeaf(s.children) != null;
-    return s.status === "in_progress";
-  })) {
-    return null;
-  }
-  return findFirstPendingLeaf(steps);
 }
 
 /**

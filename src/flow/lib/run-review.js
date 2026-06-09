@@ -10,7 +10,12 @@ import { runCmd } from "../../lib/process.js";
 import { VALID_REVIEW_PHASES } from "../../lib/constants.js";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
-import { resolveNodeFor, FLOW_DEFINITION, flattenSteps, findStepById } from "../definition.js";
+import {
+  getFlowBranchLeafIds,
+  resolveMaxAttempts,
+  resetImplEvidenceAfterReviewProposals as resetImplEvidenceStateAfterReviewProposals,
+} from "../definition.js";
+import { flattenSteps } from "./step-tree.js";
 import path from "path";
 import fs from "fs";
 import {
@@ -20,7 +25,6 @@ import {
 } from "./review-failure.js";
 import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
 import { persistCurrentRecoveryBaseline } from "./retry-recovery.js";
-import { removeRebuildableTestArtifacts } from "./test-artifacts.js";
 import {
   assertAuditedBroadMode,
   evaluateTaskScope,
@@ -41,7 +45,7 @@ const REVIEW_RECOVERY_TRIGGER_VERDICT_FAIL = "review-verdict-fail";
 const MAX_IMPL_DOWNSTREAM_RESET_STEPS = 20;
 // Review proposals invalidate all implementation leaves from fresh test
 // execution through finalize cleanup; both endpoints are intentionally reset.
-const IMPL_REVIEW_DOWNSTREAM_STEP_IDS = inclusiveFlowLeafStepIdsBetween("impl", "test-execute", "finalize-cleanup");
+const IMPL_REVIEW_DOWNSTREAM_STEP_IDS = inclusiveFlowLeafStepIdsBetween("test-execute", "finalize-cleanup");
 
 // ---------------------------------------------------------------------------
 // Review retry counter (spec 253: enforce review maxAttempts on the CLI side)
@@ -65,10 +69,8 @@ function isImplementationReviewPhase(phase) {
   return phase == null || phase === IMPL_REVIEW_PHASE;
 }
 
-function inclusiveFlowLeafStepIdsBetween(parentId, startId, endId) {
-  const parent = FLOW_DEFINITION.find((node) => node.id === parentId);
-  if (!parent) throw new Error(`flow definition parent not found: ${parentId}`);
-  const ids = flattenSteps(parent.children).map((step) => step.id);
+function inclusiveFlowLeafStepIdsBetween(startId, endId) {
+  const ids = getFlowBranchLeafIds("impl");
   if (ids.length > MAX_IMPL_DOWNSTREAM_RESET_STEPS) {
     throw new Error(`impl downstream reset leaf count exceeds max ${MAX_IMPL_DOWNSTREAM_RESET_STEPS}`);
   }
@@ -149,8 +151,7 @@ export function resolveReviewRetryMax(retryContext = {}, phase) {
     throw err;
   }
   const flowState = retryContext.flowState || retryContext;
-  const node = resolveNodeFor(FLOW_DEFINITION, nodeId);
-  return node?.resolveMaxAttempts(flowState) ?? 5;
+  return resolveMaxAttempts({ scope: "flow", stepId: nodeId, context: flowState }) ?? 5;
 }
 
 /**
@@ -236,17 +237,8 @@ export function resetImplEvidenceAfterReviewProposals(ctx, result) {
   if (ctx?.phase) return false;
   if ((result?.artifacts?.proposalCount ?? 0) <= 0) return false;
   const specDir = path.dirname(path.resolve(ctx.root, ctx.flowState.spec));
-  // Review-applied code changes can make downstream evidence stale even when
-  // the changed-file path list itself is unchanged.
-  removeRebuildableTestArtifacts(specDir);
   ctx.flowManager.mutate((state) => {
-    for (const id of IMPL_REVIEW_DOWNSTREAM_STEP_IDS) {
-      const step = findStepById(state.steps, id);
-      if (!step) continue;
-      step.status = "pending";
-      delete step.finishedAt;
-      delete step.startedAt;
-    }
+    resetImplEvidenceStateAfterReviewProposals({ specDir, flowState: state });
   });
   return true;
 }

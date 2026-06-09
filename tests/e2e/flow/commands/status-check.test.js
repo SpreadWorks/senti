@@ -4,7 +4,7 @@ import { join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir } from "../../../helpers/tmp-dir.js";
 import { makeFlowState, setStepDone, makeFlowManager } from "../../../helpers/flow-setup.js";
-import { findStepById } from "../../../../src/flow/definition.js";
+import { findStepById } from "../../../../src/flow/lib/step-tree.js";
 const FLOW_CMD = join(process.cwd(), "src/sdd-forge.js");
 const FLOW_CMD_ARGS_PREFIX = ["flow"];
 

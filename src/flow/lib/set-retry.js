@@ -11,7 +11,7 @@ import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { countGateRetry, resolveRetryMax } from "./run-gate.js";
 import { countReviewRetry, resolveReviewRetryMax } from "./run-review.js";
-import { flattenSteps } from "../definition.js";
+import { flattenSteps } from "./step-tree.js";
 import { clearReviewStopState } from "./review-failure.js";
 import {
   RetryRecoveryInput,

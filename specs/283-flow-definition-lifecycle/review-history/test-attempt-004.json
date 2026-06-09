@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-08T10:43:02.969Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/283-flow-definition-lifecycle/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Lifecycle ownership on node objects is not tested",
+      "target": "specs/283-flow-definition-lifecycle/tests/definition-boundary.test.js",
+      "issue": "R3 requires FlowNode or equivalent definition-side node objects to carry lifecycle behavior, but the tests only verify that lifecycle action classes exist, have some invariants, and can be applied. An implementation could keep all lifecycle branching in a centralized switch inside definition.js, expose unrelated action classes, and still satisfy these tests.",
+      "requiredChange": "Add a spec-local assertion that lifecycle behavior is attached to the returned definition-side node object or equivalent node abstraction, and that lifecycle resolution uses that node-owned behavior for at least one representative node.",
+      "whyBlocking": "This is a must requirement with no corresponding executable coverage for the ownership boundary it specifies, so implementation could pass tests while violating the required design."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/283-flow-definition-lifecycle/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "e35199b130af7afb4138a61be4b217fab5e10960b629b9145c9b010b7a76b1bc"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "test-004-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Lifecycle ownership on node objects is not tested",
+      "body": "R3 requires FlowNode or equivalent definition-side node objects to carry lifecycle behavior, but the tests only verify that lifecycle action classes exist, have some invariants, and can be applied. An implementation could keep all lifecycle branching in a centralized switch inside definition.js, expose unrelated action classes, and still satisfy these tests.",
+      "category": "unknown"
+    }
+  ]
+}

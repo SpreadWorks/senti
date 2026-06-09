@@ -6,7 +6,7 @@ import path from "path";
 import os from "os";
 import { execFileSync, spawnSync } from "node:child_process";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
-import { findStepById } from "../../../src/flow/definition.js";
+import { findStepById } from "../../../src/flow/lib/step-tree.js";
 import {
   writeStubAgentScript,
   writeCapturingStubAgentScript,
