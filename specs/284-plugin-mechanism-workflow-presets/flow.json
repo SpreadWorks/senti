@@ -402,16 +402,39 @@
             },
             {
               "id": "finalize-merge",
-              "status": "in_progress",
-              "startedAt": "2026-06-09T11:42:42.372Z"
+              "status": "done",
+              "startedAt": "2026-06-09T11:42:42.372Z",
+              "finishedAt": "2026-06-09T11:43:04.159Z",
+              "runtimeLog": {
+                "runId": "e077eb72-e9f8-4c35-8f92-584df3b80142",
+                "sequence": 183,
+                "attempt": 1,
+                "command": "flow run finalize-merge",
+                "startedAt": "2026-06-09T11:43:01.712Z",
+                "endedAt": "2026-06-09T11:43:04.164Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-sync",
-              "status": "pending"
+              "status": "done",
+              "startedAt": "2026-06-09T11:43:04.159Z",
+              "finishedAt": "2026-06-09T11:49:28.418Z",
+              "runtimeLog": {
+                "runId": "e077eb72-e9f8-4c35-8f92-584df3b80142",
+                "sequence": 185,
+                "attempt": 1,
+                "command": "flow run finalize-sync",
+                "startedAt": "2026-06-09T11:43:26.367Z",
+                "endedAt": "2026-06-09T11:49:28.422Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-cleanup",
-              "status": "pending"
+              "status": "done",
+              "startedAt": "2026-06-09T11:49:28.418Z",
+              "finishedAt": "2026-06-09T11:50:22.322Z"
             }
           ]
         }
@@ -1525,6 +1548,176 @@
       "reset": true,
       "taskId": null,
       "ts": "2026-06-09T11:39:46.249Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.4",
+      "callCount": 1,
+      "responseChars": 7706,
+      "durationMs": 54296,
+      "tokens": {
+        "input": 20146,
+        "output": 2362,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T11:44:21.152Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.4",
+      "callCount": 1,
+      "responseChars": 12219,
+      "durationMs": 58693,
+      "tokens": {
+        "input": 14974,
+        "output": 2673,
+        "cacheRead": 8064,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T11:44:25.545Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.4",
+      "callCount": 1,
+      "responseChars": 17475,
+      "durationMs": 103797,
+      "tokens": {
+        "input": 15687,
+        "output": 5212,
+        "cacheRead": 8064,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T11:45:10.648Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.4",
+      "callCount": 1,
+      "responseChars": 11476,
+      "durationMs": 52553,
+      "tokens": {
+        "input": 14687,
+        "output": 2531,
+        "cacheRead": 8064,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T11:45:18.110Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.4",
+      "callCount": 1,
+      "responseChars": 13692,
+      "durationMs": 112157,
+      "tokens": {
+        "input": 19927,
+        "output": 5707,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T11:45:19.011Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.4",
+      "callCount": 1,
+      "responseChars": 12078,
+      "durationMs": 135251,
+      "tokens": {
+        "input": 15167,
+        "output": 7182,
+        "cacheRead": 4992,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T11:46:36.417Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.4",
+      "callCount": 1,
+      "responseChars": 14776,
+      "durationMs": 85940,
+      "tokens": {
+        "input": 21380,
+        "output": 4455,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T11:46:36.597Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.4",
+      "callCount": 1,
+      "responseChars": 24687,
+      "durationMs": 140581,
+      "tokens": {
+        "input": 14399,
+        "output": 7485,
+        "cacheRead": 10112,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T11:47:38.699Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.4",
+      "callCount": 1,
+      "responseChars": 32032,
+      "durationMs": 119794,
+      "tokens": {
+        "input": 15473,
+        "output": 6329,
+        "cacheRead": 8064,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T11:48:36.234Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.4",
+      "callCount": 1,
+      "responseChars": 58667,
+      "durationMs": 249017,
+      "tokens": {
+        "input": 21558,
+        "output": 13509,
+        "cacheRead": 4992,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T11:49:28.047Z"
     }
   ],
   "notes": [
@@ -1679,6 +1872,8 @@
   },
   "autoApprove": true,
   "state": {
-    "finalizedAt": "2026-06-09T11:42:42.164Z"
+    "finalizedAt": "2026-06-09T11:42:42.164Z",
+    "mergeStrategy": "squash",
+    "featureBranchSquashedSha": "ee222f63435ff0947178ef0298aedf5bce145fd7"
   }
 }
