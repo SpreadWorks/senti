@@ -31,6 +31,7 @@
 ### 開発ワークフロー
 
 - `src/skills/`, `src/presets/`, `src/official-plugins/` のスキル・プリセット・テンプレートを変更した場合は `senti upgrade` を実行して、プロジェクトのスキル・設定・公式 plugin 有効化に反映すること。
+- `src/official-plugins/` は npm package に同梱する互換用 copy であり、公式 plugin repository migration の完了証跡ではない。公式 plugin 移行は実 repository の clean な Git HEAD と contribution path で検証すること。
 
 ### docs/ 編集ルール
 

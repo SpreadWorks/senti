@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-09T15:53:38.397Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/285-fix-371-plugin-sibling-repos/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "No executable coverage for empty sibling repositories",
+      "target": "specs/285-fix-371-plugin-sibling-repos/tests/official-sibling-behavior.test.js",
+      "issue": "R4 explicitly requires a spec-local test that fails when sibling repositories are empty, but the closest case creates and commits README.md, so it only covers a repository missing plugin.json, not an empty sibling repository.",
+      "requiredChange": "Add the smallest dedicated test case that points upgrade at an empty sibling source, or adjust the existing missing-manifest fixture so it is truly empty while still asserting the intended failure.",
+      "whyBlocking": "The requirement-to-test artifact marks R4 covered, but one required failure mode has no corresponding executable test coverage."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/285-fix-371-plugin-sibling-repos/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "8a3ddadc73950740a82355e8154708aa5a833978d6795a4b3423e36227039fd5"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "test-002-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "No executable coverage for empty sibling repositories",
+      "body": "R4 explicitly requires a spec-local test that fails when sibling repositories are empty, but the closest case creates and commits README.md, so it only covers a repository missing plugin.json, not an empty sibling repository.",
+      "category": "unknown"
+    }
+  ]
+}

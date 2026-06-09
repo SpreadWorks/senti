@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-09T15:56:14.045Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 1,
+    "total": 2
+  },
+  "coverageArtifact": "specs/285-fix-371-plugin-sibling-repos/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Missing successful commit-pinned official preset package coverage",
+      "target": "specs/285-fix-371-plugin-sibling-repos/tests/official-sibling-behavior.test.js",
+      "issue": "R4 requires spec-local tests that fail when implementation is unable to produce commit-pinned plugin.packages entries. The current behavior tests cover several rejection paths and assert a workflow package commit in R5, but there is no successful official preset upgrade assertion that the official-presets plugin.packages entry is created with a commit matching the sibling repo HEAD.",
+      "requiredChange": "Add the smallest success-path assertion for official preset upgrade verifying config.plugin.packages contains official-presets with a commit equal to git(PRESETS_REPO, [\"rev-parse\", \"HEAD\"]) and the repo source points at PRESETS_REPO.",
+      "whyBlocking": "An implementation could install official presets from the sibling repo without recording a commit pin, or record an invalid one, and these tests would not fail."
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Artifact test checks expected preset keys but not exact preset set",
+      "target": "specs/285-fix-371-plugin-sibling-repos/tests/official-sibling-artifacts.test.js",
+      "improvement": "Consider asserting that the contributed preset keys exactly match the current non-base official preset set, or derive the expected set from the migrated source of truth if available.",
+      "whyNonBlocking": "The test still verifies the named current presets and contribution paths exist; this is a useful tightening rather than a clear blocker from the provided artifact."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/285-fix-371-plugin-sibling-repos/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "2be81d3ab632b38cf8cdf845bdc1a882ace39f5d6de04a238ac250c8f102ae62"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "test-004-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Missing successful commit-pinned official preset package coverage",
+      "body": "R4 requires spec-local tests that fail when implementation is unable to produce commit-pinned plugin.packages entries. The current behavior tests cover several rejection paths and assert a workflow package commit in R5, but there is no successful official preset upgrade assertion that the official-presets plugin.packages entry is created with a commit matching the sibling repo HEAD.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-004-non-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "non-blocking",
+      "title": "Artifact test checks expected preset keys but not exact preset set",
+      "body": "Artifact test checks expected preset keys but not exact preset set",
+      "category": "unknown"
+    }
+  ]
+}

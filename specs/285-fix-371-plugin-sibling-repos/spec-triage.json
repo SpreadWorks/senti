@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "All three blocking findings are valid and will be repaired in spec.json.",
+  "items": [
+    {
+      "title": "Non-base presets still resolve from bundled artifacts as built-ins",
+      "target": "R3/R5 and src/lib/presets.js",
+      "decision": "apply",
+      "rationale": "The spec must forbid non-base presets from being available solely through bundled src/official-plugins discovery; otherwise the sibling repository migration can still be bypassed.",
+      "evidence": "spec-review finding explains that PRESETS_DIR points at officialPresetPluginRoot()/presets and may merge bundled non-base presets into PRESETS without an enabled plugin."
+    },
+    {
+      "title": "Official upgrade path is not tied to the committed sibling source",
+      "target": "R3/R4/R5 and src/lib/plugin-registry.js ensureOfficialPackage",
+      "decision": "apply",
+      "rationale": "The spec must require official install/upgrade to copy from a clean, commit-pinned sibling Git source, not from a dirty working tree or bundled fallback.",
+      "evidence": "spec-review finding identifies ensureOfficialPackage and officialPackageCommit behavior as able to copy sourceRoot directly and fall back to a zero SHA."
+    },
+    {
+      "title": "Workflow plugin artifact lacks an execution acceptance basis",
+      "target": "R2/R5 and src/official-plugins/senti-workflow-plugin/commands/workflow.js",
+      "decision": "apply",
+      "rationale": "Manifest/path validation alone can pass while the installed workflow command fails at runtime due to package-relative import paths.",
+      "evidence": "spec-review finding identifies the existing ../../../lib/cli.js import path as valid only from src/official-plugins and not from .senti/plugins/workflow/commands/workflow.js."
+    }
+  ]
+}

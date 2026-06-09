@@ -1,0 +1,76 @@
+{
+  "devType": "bugfix",
+  "goal": "must: Repair the issue #371 completion gap by moving the official preset and workflow plugin artifacts into the real sibling repositories and by strengthening tests so the flow cannot pass when only bundled src/official-plugins artifacts exist.",
+  "analysis": {
+    "problem": "The prior #371 implementation created bundled official plugin artifacts under src/official-plugins, but the linked issue and previous spec explicitly included /home/nakano/workspace/senti-presets and /home/nakano/workspace/senti-workflow-plugin as target repositories. Those sibling repositories currently exist but do not contain the plugin artifacts, so the three-repository migration requirement is not actually satisfied.",
+    "proposedApproach": "Populate the sibling senti-presets and senti-workflow-plugin repositories with the real plugin.json, runtime files, preset files, workflow command, skill, and config artifacts; update senti tests and official source handling so R7/R8 validate the real repositories instead of passing solely from src/official-plugins; preserve npm publish and dist-tag as out of scope.",
+    "validation": "The repair addresses the root problem because it changes the missing external repository state and adds regression coverage that fails if the sibling repositories remain empty. It does not treat the bundled artifacts alone as completion evidence."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #371 states that target repositories include senti itself, /home/nakano/workspace/senti-presets, and /home/nakano/workspace/senti-workflow-plugin.",
+      "must: The previous spec listed /home/nakano/workspace/senti-presets and /home/nakano/workspace/senti-workflow-plugin in implementationTargets.",
+      "must: Current production artifacts exist under src/official-plugins/senti-presets and src/official-plugins/senti-workflow-plugin.",
+      "must: The sibling repositories currently have Git metadata but no plugin.json or runtime artifact files.",
+      "must: Existing R7/R8 tests verify src/official-plugins artifacts and do not fail solely because sibling repositories are empty."
+    ],
+    "decisionPoints": [
+      "must: Decide how tests identify the real sibling repository paths without making clean CI depend on the developer's absolute home directory.",
+      "must: Decide whether src/official-plugins remains as a packaged fallback, a mirror of sibling repository artifacts, or is removed from the completion proof."
+    ],
+    "resolvedByProjectRules": [
+      "must: Use Spec-Driven Development because the repair spans multiple repositories, behavior, tests, and migration expectations.",
+      "must: Do not run npm publish or npm dist-tag because publishing requires explicit release intent.",
+      "must: Use only Node.js built-in modules and existing project helpers.",
+      "must: Do not add plugin-side scripts or dependency installation hooks.",
+      "must: Commit messages must be English."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: Specify the exact artifact layout and commit expectations for the two sibling repositories.",
+      "must: Specify a CI-safe test strategy that still proves the real sibling repository migration in this workspace.",
+      "must: Specify how senti resolves official plugin sources after the sibling repository artifacts exist."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: Populate /home/nakano/workspace/senti-presets with the official preset plugin artifact, including plugin.json and all non-base preset files required by its contributions.",
+      "must: Populate /home/nakano/workspace/senti-workflow-plugin with the official workflow plugin artifact, including plugin.json, workflow command, skill, config schema, and config defaults.",
+      "must: Strengthen tests so R7/R8 fail when the sibling repository artifacts are missing or incomplete.",
+      "must: Update senti source or test helpers so official plugin source handling is explicit and does not silently treat src/official-plugins alone as three-repository completion.",
+      "must: Preserve base as the only core builtin preset in senti.",
+      "must: Re-run relevant spec tests and project regression."
+    ],
+    "out": [
+      "must: Do not run npm publish or npm dist-tag.",
+      "must: Do not introduce plugin-side installScript, postinstall, prepare, or dependency execution hooks.",
+      "must: Do not change the original plugin config field names plugin.repos and plugin.packages.",
+      "should: Do not redesign the entire plugin mechanism unless required to make sibling repository artifacts the verified source."
+    ]
+  },
+  "impactOnExisting": [
+    "must: Existing upgrade behavior for non-base official presets must still install and enable the official preset plugin when config.type requires it.",
+    "must: Existing upgrade behavior for workflow must still enable the workflow plugin for valid existing projects unless a workflow provider already exists.",
+    "must: Existing root regression must continue to pass after tests are updated to include sibling repository artifact validation.",
+    "should: src/official-plugins compatibility may remain only if it no longer masks missing sibling repository artifacts in the tests that prove #371 completion."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "must: Issue #371 の修復完了条件は、senti 本体だけでなく /home/nakano/workspace/senti-presets と /home/nakano/workspace/senti-workflow-plugin に実 plugin artifact を配置し、その存在と contribution path の完全性をテストで保証すること、でよいですか。",
+      "answer": "must: はい。根拠は issue #371 の target repository 記述、前回 spec の implementationTargets、現在の sibling repository が空である実測、ユーザーの「その方針で進めてください」という明示指示である。",
+      "evidence": "Prior conversation: user asked why /home/nakano/workspace/senti-presets was empty, then asked how to proceed, and then said \"その方針で進めてください。\" The issue body also states the target repositories include /home/nakano/workspace/senti-presets and /home/nakano/workspace/senti-workflow-plugin.",
+      "why": "must: The basis is the linked issue text, previous spec target list, current repository inspection, and user instruction. The root failure is not the plugin mechanism itself but the missing real external repository artifacts and insufficient tests, so completion must include those repositories and tests that fail when they are empty or incomplete.",
+      "considered": "Keeping only src/official-plugins as the completion proof was rejected because it masks the missing three-repository migration required by issue #371.",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-09T14:54:44Z",
+    "notes": "No unresolved user decision remains; q1 was answered from the user's explicit instruction to proceed with the sibling repository repair policy."
+  }
+}

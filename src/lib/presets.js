@@ -11,14 +11,14 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { bundledOfficialPresetPluginRoot } from "./official-plugins.js";
 import { createLogger } from "./progress.js";
-import { officialPresetPluginRoot } from "./official-plugins.js";
-import { loadPluginRegistry } from "./plugin-registry.js";
+import { loadPluginRegistry, PluginManifest } from "./plugin-registry.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const logger = createLogger("presets");
 export const CORE_PRESETS_DIR = path.resolve(__dirname, "..", "presets");
-export const PRESETS_DIR = path.join(officialPresetPluginRoot(), "presets");
+export const PRESETS_DIR = path.join(bundledOfficialPresetPluginRoot(), "presets");
 
 /**
  * Discover all presets by scanning src/presets/{key}/preset.json.
@@ -50,13 +50,22 @@ function discoverPresetsInDir(presetsDir) {
 function discoverPresets() {
   const byKey = new Map();
   for (const preset of discoverPresetsInDir(CORE_PRESETS_DIR)) byKey.set(preset.key, preset);
-  for (const preset of discoverPresetsInDir(PRESETS_DIR)) {
-    if (!byKey.has(preset.key)) byKey.set(preset.key, preset);
-  }
+  for (const preset of officialPresetsWithoutProject()) byKey.set(preset.key, preset);
   return [...byKey.values()];
 }
 
+export const CORE_PRESETS = discoverPresetsInDir(CORE_PRESETS_DIR);
 export const PRESETS = discoverPresets();
+
+function isPluginAwareProject(projectRoot) {
+  try {
+    const configPath = path.join(projectRoot, ".senti", "config.json");
+    const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    return Object.prototype.hasOwnProperty.call(config, "plugin");
+  } catch (_) {
+    return false;
+  }
+}
 
 function registryPresets(projectRoot) {
   if (!projectRoot) return [];
@@ -68,8 +77,21 @@ function registryPresets(projectRoot) {
   }
 }
 
+function officialPresetsWithoutProject() {
+  try {
+    return PluginManifest.fromRoot(bundledOfficialPresetPluginRoot(), "official-presets").presetEntries();
+  } catch (err) {
+    logger.verbose(`official preset registry failed: ${err.message}`);
+    return [];
+  }
+}
+
 function allPresets(projectRoot) {
-  const byKey = new Map(PRESETS.map((preset) => [preset.key, preset]));
+  const basePresets = projectRoot && isPluginAwareProject(projectRoot) ? CORE_PRESETS : PRESETS;
+  const byKey = new Map(basePresets.map((preset) => [preset.key, preset]));
+  if (!projectRoot) {
+    return [...byKey.values()];
+  }
   for (const preset of registryPresets(projectRoot)) byKey.set(preset.key, preset);
   return [...byKey.values()];
 }

@@ -40,6 +40,15 @@ const PRESETS_DIR = path.resolve(
   "../../presets",
 );
 
+function resolveScanChains(types, root) {
+  try {
+    return resolveMultiChains(types, root);
+  } catch (err) {
+    if (!/Preset not found:/.test(err.message)) throw err;
+    return resolveMultiChains(types);
+  }
+}
+
 function printHelp() {
   const t = translate();
   const h = t.raw("ui:help.cmdHelp.scan");
@@ -283,7 +292,7 @@ async function runScan(ctx, rawArgs) {
   const currentFilePaths = new Set(files.map((f) => f.relPath));
 
   // 3. Load Scannable DataSources from preset chain
-  const chains = resolveMultiChains(types, root);
+  const chains = resolveScanChains(types, root);
   const seenDirs = new Set();
 
   let dataSources = new Map();

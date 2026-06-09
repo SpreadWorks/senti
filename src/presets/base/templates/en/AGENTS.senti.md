@@ -31,6 +31,7 @@ If source is newer, suggest running `senti build` to the user.
 ### Development Workflow
 
 - After modifying skill sources, presets, or templates in `src/skills/`, `src/presets/`, or `src/official-plugins/`, run `senti upgrade` to deploy changes to the project's skills, settings, and official plugin activation.
+- `src/official-plugins/` is a bundled compatibility copy for the npm package, not completion evidence for an official plugin repository migration. Verify official plugin migrations against the real repository's clean Git HEAD and contribution paths.
 
 ### docs/ Editing Rules
 

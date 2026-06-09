@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "changed-test-evidence-after-tightening-exact-official-preset-set",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "4d008227a913308c4c24958558d1e0659e47f3a31b39f3f2f6b5d6e85340d77d",
+        "currentHash": "d5179218aed37b32c142b0fc36d7b53f07e0db043064b2b3664aa13de9caaca6",
+        "changedPaths": [
+          "specs/285-fix-371-plugin-sibling-repos/tests/.raw/scenario-validity.log",
+          "specs/285-fix-371-plugin-sibling-repos/tests/official-sibling-artifacts.test.js",
+          "specs/285-fix-371-plugin-sibling-repos/tests/official-sibling-behavior.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset review test --reason \"changed-test-evidence-after-tightening-exact-official-preset-set\" --yes",
+      "createdAt": "2026-06-09T16:01:15.556Z"
+    },
+    {
+      "id": "recovery-002",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "changed-test-evidence-after-adding-workflow-invalid-source-coverage",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "d5179218aed37b32c142b0fc36d7b53f07e0db043064b2b3664aa13de9caaca6",
+        "currentHash": "ae548ccf3fe29c93051dde6dba5f2f1bdb592a993e6edcea3ddf63ad5d11fdf8",
+        "changedPaths": [
+          "specs/285-fix-371-plugin-sibling-repos/tests/.raw/scenario-validity.log",
+          "specs/285-fix-371-plugin-sibling-repos/tests/official-sibling-artifacts.test.js",
+          "specs/285-fix-371-plugin-sibling-repos/tests/official-sibling-behavior.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset review test --reason \"changed-test-evidence-after-adding-workflow-invalid-source-coverage\" --yes",
+      "createdAt": "2026-06-09T16:04:40.782Z"
+    }
+  ]
+}

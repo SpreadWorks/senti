@@ -102,7 +102,13 @@ export async function createResolver(type, root, opts) {
   const loadOverrides = () => loadOverridesFor(root);
   const ctx = { desc, loadOverrides, root, docsDir: opts?.docsDir, type, configChapters: opts?.configChapters };
 
-  const chains = resolveMultiChains(type, root);
+  let chains;
+  try {
+    chains = resolveMultiChains(type, root);
+  } catch (err) {
+    if (!/Preset not found:/.test(err.message)) throw err;
+    chains = resolveMultiChains(type);
+  }
 
   // 各チェーンの leaf key → DataSource マップ
   const resolverMap = new Map();

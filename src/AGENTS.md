@@ -50,12 +50,14 @@ src/
 │   └── commands/            内部ヘルパー（merge, cleanup, review の実体）
 ├── spec/commands/            init, gate, guardrail（flow/run/prepare-spec, gate が内部で呼ぶ）
 ├── presets/                  core builtin preset（base のみ）
-├── official-plugins/         公式 plugin artifact（senti-presets / workflow）
+├── official-plugins/         公式 plugin の bundled compatibility copy（senti-presets / workflow）
 ├── locale/                   en/, ja/
 └── templates/
     ├── skills/              skill テンプレート（SKILL.md）
     └── partials/            共有パーツ（include 用）
 ```
+
+`src/official-plugins/` は npm package に含める互換用 copy であり、公式 plugin repository migration の完了証跡ではない。公式 plugin source は resolver が検出する実 repository または明示設定された repository とし、migration 完了はその repository の clean な Git HEAD と contribution path で検証する。
 
 ## コマンドルーティング
 

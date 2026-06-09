@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Added one explicit confirmation QA entry for the sibling repository completion boundary.",
+  "items": [
+    {
+      "title": "1. Empty Initial QA List",
+      "target": "q<N> (no qa.id exists)",
+      "rationale": "draft.json now contains one pending, self-contained goal-confirmation question that records the user-facing completion boundary without introducing a new implementation design.",
+      "evidence": "draft.json qa[0].question asks whether completion requires real artifacts in both sibling repositories and tests that prove artifact/path completeness.",
+      "changedFieldPaths": [
+        "qa[0]"
+      ]
+    }
+  ]
+}

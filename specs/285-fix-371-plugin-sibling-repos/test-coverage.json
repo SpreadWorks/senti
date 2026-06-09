@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Populate /home/nakano/workspace/senti-presets with a committed official preset plugin package whose plugin.json contributes all current non-base official presets and whose contribution paths all exist.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/official-sibling-artifacts.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "Populate /home/nakano/workspace/senti-workflow-plugin with a committed official workflow plugin package whose plugin.json contributes the workflow command, senti.workflow skill, config schema, and config defaults, with every referenced path present.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/official-sibling-artifacts.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "Update senti's official plugin source handling and preset discovery so tests and migration use the real sibling repository roots, src/presets/base remains the only built-in preset source, and bundled src/official-plugins artifacts cannot make non-base presets available without an enabled plugin.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/official-sibling-behavior.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "Add spec-local tests that fail when sibling repositories are empty, missing plugin.json, missing contribution paths, dirty before commit-pinned install, unable to produce commit-pinned plugin.packages entries, or copied from a working tree that does not match the recorded commit.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/official-sibling-behavior.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "Preserve existing official preset upgrade behavior and workflow plugin migration behavior, including successful execution of an installed sibling-sourced workflow command entry point.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/official-sibling-behavior.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "Update documentation, help text, or AGENTS guidance only where current wording would incorrectly imply that bundled src/official-plugins artifacts alone satisfy the official repository migration.",
+      "testable": false,
+      "status": "not_testable",
+      "files": []
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/official-sibling-artifacts.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2"
+      ]
+    },
+    {
+      "file": "tests/official-sibling-behavior.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "testNameIds": [
+        "R3",
+        "R4",
+        "R5"
+      ]
+    }
+  ]
+}

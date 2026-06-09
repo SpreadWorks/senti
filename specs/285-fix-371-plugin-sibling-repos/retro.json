@@ -1,0 +1,43 @@
+{
+  "spec": "specs/285-fix-371-plugin-sibling-repos/spec.json",
+  "date": "2026-06-09T17:03:47.523Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Populate /home/nakano/workspace/senti-presets with a committed official preset plugin package whose plugin.json contributes all current non-base official presets and whose contribution paths all exist.",
+      "status": "done",
+      "note": "R1: senti-presets is a committed official preset plugin package"
+    },
+    {
+      "desc": "Populate /home/nakano/workspace/senti-workflow-plugin with a committed official workflow plugin package whose plugin.json contributes the workflow command, senti.workflow skill, config schema, and config defaults, with every referenced path present.",
+      "status": "done",
+      "note": "R2: senti-workflow-plugin is a committed official workflow plugin package"
+    },
+    {
+      "desc": "Update senti's official plugin source handling and preset discovery so tests and migration use the real sibling repository roots, src/presets/base remains the only built-in preset source, and bundled src/official-plugins artifacts cannot make non-base presets available without an enabled plugin.",
+      "status": "done",
+      "note": "R3: official helpers expose sibling roots and unenabled non-base presets are unavailable"
+    },
+    {
+      "desc": "Add spec-local tests that fail when sibling repositories are empty, missing plugin.json, missing contribution paths, dirty before commit-pinned install, unable to produce commit-pinned plugin.packages entries, or copied from a working tree that does not match the recorded commit.",
+      "status": "done",
+      "note": "R4: official preset upgrade rejects dirty sibling sources before writing plugin.packages"
+    },
+    {
+      "desc": "Preserve existing official preset upgrade behavior and workflow plugin migration behavior, including successful execution of an installed sibling-sourced workflow command entry point.",
+      "status": "done",
+      "note": "R5: upgrade from sibling workflow repo installs and executes workflow command"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 5,
+    "done": 5,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 1,
+    "not_testable_count": 1,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

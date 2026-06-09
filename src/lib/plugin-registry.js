@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { pathToFileURL } from "url";
-import { repoRoot } from "./cli.js";
+import { PKG_DIR, repoRoot } from "./cli.js";
 import { sentiConfigPath, sentiDir } from "./config.js";
 import { runCmd, assertOk } from "./process.js";
 
@@ -559,7 +559,14 @@ export async function dispatchPluginCommand(root, commandName, args) {
   if (!command) return false;
   process.argv = [process.argv[0], command.absolutePath, ...args];
   const mod = await import(pathToFileURL(command.absolutePath).href);
-  if (typeof mod.main === "function") await mod.main();
+  if (typeof mod.main === "function") {
+    await mod.main(args, {
+      projectRoot: root,
+      sourceRoot: process.env.SENTI_SOURCE_ROOT || PKG_DIR,
+      packageRoot: PKG_DIR,
+      commandPath: command.absolutePath,
+    });
+  }
   return true;
 }
 
@@ -573,15 +580,12 @@ export function ensureOfficialPackage(root, { id, sourceRoot, ref, type }) {
     plugin.repos.push(repo);
   }
   if (!plugin.packages.some((pkg) => pkg.id === id)) {
-    const commit = officialPackageCommit(sourceRoot);
-    plugin.packages.push({ id, repo: repo.id, commit });
-    copyAllowlistedFiles(sourceRoot, path.join(installedPluginsDir(root), id), PluginManifest.fromRoot(sourceRoot).files);
+    writeProjectConfig(root, config);
+    const source = resolveRepo(root, repo);
+    const sourceManifest = PluginManifest.fromRoot(source.root);
+    if (sourceManifest.name !== id) throw new Error(`official package mismatch: expected ${id}, got ${sourceManifest.name}`);
+    installFromSource(root, repo, source.root, source.commit);
+    return;
   }
   writeProjectConfig(root, config);
-}
-
-function officialPackageCommit(sourceRoot) {
-  const result = runCmd("git", ["-C", sourceRoot, "rev-parse", "HEAD"]);
-  if (result.ok && SHA_RE.test(result.stdout.trim())) return result.stdout.trim();
-  return "0000000000000000000000000000000000000000";
 }

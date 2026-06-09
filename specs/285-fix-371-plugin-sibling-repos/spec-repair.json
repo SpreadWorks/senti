@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied all three blocking spec review findings to requirements, acceptance criteria, overview decisions, constraints, and tasks.",
+  "items": [
+    {
+      "title": "Non-base presets still resolve from bundled artifacts as built-ins",
+      "target": "R3/R5 and src/lib/presets.js",
+      "decision": "applied",
+      "rationale": "The spec now requires core built-ins to come only from src/presets/base and requires tests proving non-base official presets are unavailable until the sibling-sourced plugin is enabled.",
+      "evidence": "spec.json constraints, R3, acceptance_criteria, overview.decisions, and task T-3 now cover enabled-plugin-only non-base preset resolution.",
+      "changedFields": [
+        "constraints",
+        "requirements[R3].desc",
+        "acceptance_criteria",
+        "overview.decisions",
+        "tasks[T-3]"
+      ]
+    },
+    {
+      "title": "Official upgrade path is not tied to the committed sibling source",
+      "target": "R3/R4/R5 and src/lib/plugin-registry.js ensureOfficialPackage",
+      "decision": "applied",
+      "rationale": "The spec now requires official upgrade to validate clean sibling Git roots, copy from pinned HEAD, and reject dirty/non-Git/missing-HEAD sources before writing plugin.packages.",
+      "evidence": "spec.json constraints, R4, acceptance_criteria, overview.decisions, and task T-4 now cover committed-source materialization and dirty source rejection.",
+      "changedFields": [
+        "constraints",
+        "requirements[R4].desc",
+        "acceptance_criteria",
+        "overview.decisions",
+        "tasks[T-4]"
+      ]
+    },
+    {
+      "title": "Workflow plugin artifact lacks an execution acceptance basis",
+      "target": "R2/R5 and src/official-plugins/senti-workflow-plugin/commands/workflow.js",
+      "decision": "applied",
+      "rationale": "The spec now requires a temporary project to run an installed sibling-sourced workflow command entry point so manifest completeness alone cannot pass.",
+      "evidence": "spec.json R5, acceptance_criteria, overview.data_flow, overview.decisions, and task T-5 now cover installed workflow command execution.",
+      "changedFields": [
+        "requirements[R5].desc",
+        "acceptance_criteria",
+        "overview.data_flow",
+        "overview.decisions",
+        "tasks[T-5]"
+      ]
+    }
+  ]
+}

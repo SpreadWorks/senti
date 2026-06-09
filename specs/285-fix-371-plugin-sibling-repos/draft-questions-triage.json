@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "One repair target will be applied: add a self-contained confirmation QA entry so the draft has an explicit user-decision record.",
+  "items": [
+    {
+      "title": "1. Empty Initial QA List",
+      "target": "q<N> (no qa.id exists)",
+      "decision": "apply",
+      "rationale": "The current draft records the user's direction in analysis and scope, but the workflow expects an explicit QA entry before answers exist. A single confirmation question can capture the already-discussed completion boundary without adding new scope.",
+      "evidence": "draft.json qa[] is empty, while draft.json goal and scopeVerification define a repair based on the user's requested sibling repository completion boundary."
+    }
+  ]
+}
