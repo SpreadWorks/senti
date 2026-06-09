@@ -402,16 +402,39 @@
             },
             {
               "id": "finalize-merge",
-              "status": "in_progress",
-              "startedAt": "2026-06-09T00:09:10.721Z"
+              "status": "done",
+              "startedAt": "2026-06-09T00:09:10.721Z",
+              "finishedAt": "2026-06-09T00:09:30.696Z",
+              "runtimeLog": {
+                "runId": "01b4f4e2-761a-40b3-af42-b1c17c0bd906",
+                "sequence": 147,
+                "attempt": 1,
+                "command": "flow run finalize-merge",
+                "startedAt": "2026-06-09T00:09:28.352Z",
+                "endedAt": "2026-06-09T00:09:30.703Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-sync",
-              "status": "pending"
+              "status": "done",
+              "startedAt": "2026-06-09T00:09:30.696Z",
+              "finishedAt": "2026-06-09T00:11:59.956Z",
+              "runtimeLog": {
+                "runId": "01b4f4e2-761a-40b3-af42-b1c17c0bd906",
+                "sequence": 149,
+                "attempt": 1,
+                "command": "flow run finalize-sync",
+                "startedAt": "2026-06-09T00:09:43.532Z",
+                "endedAt": "2026-06-09T00:11:59.959Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-cleanup",
-              "status": "pending"
+              "status": "done",
+              "startedAt": "2026-06-09T00:11:59.956Z",
+              "finishedAt": "2026-06-09T00:12:14.708Z"
             }
           ]
         }
@@ -1386,6 +1409,57 @@
       "reset": true,
       "taskId": null,
       "ts": "2026-06-09T00:05:13.626Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.4",
+      "callCount": 1,
+      "responseChars": 8008,
+      "durationMs": 42421,
+      "tokens": {
+        "input": 14936,
+        "output": 1967,
+        "cacheRead": 8064,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T00:10:26.933Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.4",
+      "callCount": 1,
+      "responseChars": 7134,
+      "durationMs": 68368,
+      "tokens": {
+        "input": 9068,
+        "output": 3357,
+        "cacheRead": 13184,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T00:10:52.882Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.4",
+      "callCount": 1,
+      "responseChars": 11322,
+      "durationMs": 135071,
+      "tokens": {
+        "input": 71906,
+        "output": 6556,
+        "cacheRead": 153984,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-09T00:11:59.587Z"
     }
   ],
   "reviewRecoveryBaselines": [
@@ -1634,6 +1708,8 @@
   },
   "reviewStop": null,
   "state": {
-    "finalizedAt": "2026-06-09T00:09:10.528Z"
+    "finalizedAt": "2026-06-09T00:09:10.528Z",
+    "mergeStrategy": "squash",
+    "featureBranchSquashedSha": "bacbd541020499f8b6184493945d8e5dfa6e6d08"
   }
 }
