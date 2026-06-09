@@ -5,15 +5,15 @@ import { join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../../../helpers/tmp-dir.js";
 
-const CMD = join(process.cwd(), "src/sdd-forge.js");
+const CMD = join(process.cwd(), "src/senti.js");
 const CMD_ARGS = ["docs", "readme"];
 
 function makeEnv(tmp) {
-  return { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_SOURCE_ROOT: tmp };
+  return { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp };
 }
 
 function setupProject(tmp, pkg = { name: "test-project" }) {
-  writeJson(tmp, ".sdd-forge/config.json", { lang: "ja", type: "node-cli", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+  writeJson(tmp, ".senti/config.json", { lang: "ja", type: "node-cli", docs: { languages: ["ja"], defaultLanguage: "ja" } });
   writeJson(tmp, "package.json", pkg);
 }
 
@@ -44,7 +44,7 @@ describe("readme CLI", () => {
 
   it("skips when type is not set", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".sdd-forge/config.json", { lang: "ja", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".senti/config.json", { lang: "ja", docs: { languages: ["ja"], defaultLanguage: "ja" } });
     const result = runReadme();
     assert.match(result, /type.*not set|type.*設定されていません/);
   });

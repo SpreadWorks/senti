@@ -2,7 +2,7 @@
    - Read `specs/<spec-id>/draft-questions-triage.json` first. Treat only `items[]` entries with `decision: "apply"` as the repair input.
    - Do not re-triage review findings in this step. Do not decide that an `apply` item is invalid, already resolved, or non-blocking; if the triage artifact is wrong or missing, stop and surface that artifact problem instead of silently changing the decision.
    - Always write `specs/<spec-id>/draft-questions-repair.json` before completing this step. This file is the audit log for actual `draft.json` mutations applied from triage decisions.
-   - If `draft-questions-triage.json` is missing, invalid, or contains no `decision: "apply"` items, do not rewrite the draft. Write `draft-questions-repair.json` with an empty `items[]`, a concise `summary`, and run `sdd-forge flow set step draft-questions-repair done`.
+   - If `draft-questions-triage.json` is missing, invalid, or contains no `decision: "apply"` items, do not rewrite the draft. Write `draft-questions-repair.json` with an empty `items[]`, a concise `summary`, and run `senti flow set step draft-questions-repair done`.
    - Apply the triaged findings once. Update `draft.json` so each `decision: "apply"` item is resolved in the smallest appropriate field.
    - Keep repair strictly limited to resolving triage `apply` items. Do not add a new requirement, scope item, task, integration path, or design decision unless it is the smallest direct correction required by that triage item and supported by the repair `evidence`.
    - Preserve existing user decisions and request-derived policy. If a blocking fix would reverse a user decision or require a new answer, ask the user via Choice Format before writing it.
@@ -31,4 +31,4 @@
      }
      ```
    - Do not run another draft review loop from this step. The downstream `draft-refine` step remains responsible for user question handling.
-   - **On complete**: `sdd-forge flow set step draft-questions-repair done`
+   - **On complete**: `senti flow set step draft-questions-repair done`

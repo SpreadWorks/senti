@@ -24,7 +24,7 @@ import fs from "fs";
 import path from "path";
 import { container } from "../../lib/container.js";
 import { resolveSpecDir } from "../../lib/spec-json.js";
-import { sddOutputDir } from "../../lib/config.js";
+import { sentiOutputDir } from "../../lib/config.js";
 import { listChangedFilesDetailed } from "../../lib/git-helpers.js";
 import { FlowCommand } from "./base-command.js";
 import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
@@ -67,7 +67,7 @@ function recordPrerequisiteIssue(root, state, err) {
     commandSource: err.commandSource || null,
     commandCandidates: Array.isArray(err.commandCandidates) ? err.commandCandidates : [],
     changedFileCount,
-    trigger: "sdd-forge flow run test-execute",
+    trigger: "senti flow run test-execute",
     resolution: "fix the prerequisite failure and rerun test-execute",
     taskId: null,
     timestamp: new Date().toISOString(),
@@ -224,7 +224,7 @@ export default class RunTestExecuteCommand extends FlowCommand {
       const spec = readJsonStrict(path.join(specDir, "spec.json"));
       const requirements = Array.isArray(spec.requirements) ? spec.requirements : [];
       const testableRequirements = testableRequirementsForSummary(requirements);
-      const analysisPath = path.join(sddOutputDir(root), "analysis.json");
+      const analysisPath = path.join(sentiOutputDir(root), "analysis.json");
       if (!fs.existsSync(analysisPath)) {
         throw new Error(`analysis.json not found at ${analysisPath}: run docs scan before test-execute`);
       }
@@ -238,12 +238,12 @@ export default class RunTestExecuteCommand extends FlowCommand {
       }
       const specLocalFailedIds = failedRequirementIdsFromSpecLocal(specLocal, testableRequirements);
       const specRange = appendRaw(rawLines, [
-        "[sdd-forge] spec-local tests start",
+        "[senti] spec-local tests start",
         `command: ${specLocal.command}`,
         ...processOutputLines(specLocal.result),
         ...testableRequirements
-          .map((req) => `[sdd-forge] requirement ${req.id} result ${requirementResult(req.id, specLocalFailedIds)}`),
-        "[sdd-forge] spec-local tests end",
+          .map((req) => `[senti] requirement ${req.id} result ${requirementResult(req.id, specLocalFailedIds)}`),
+        "[senti] spec-local tests end",
       ]);
       const summary = buildSummary({
         root,
@@ -280,12 +280,12 @@ export default class RunTestExecuteCommand extends FlowCommand {
         }
         const regressionResult = processPassed(result) ? "pass" : "fail";
         const range = appendRaw(rawLines, [
-          `[sdd-forge] project regression start command=${command.toString()} mode=${regressionPlan.classification.mode}`,
+          `[senti] project regression start command=${command.toString()} mode=${regressionPlan.classification.mode}`,
           `command: ${command.toString()}`,
           `mode: ${regressionPlan.classification.mode}`,
           ...processOutputLines(result),
           `result: ${regressionResult}`,
-          `[sdd-forge] project regression end result=${regressionResult}`,
+          `[senti] project regression end result=${regressionResult}`,
         ]);
         regression = buildRequiredRegression({ classification: regressionPlan.classification, rootCommand, command, result, range });
       }

@@ -19,12 +19,12 @@ import path from "node:path";
 
 const SKILL_PATH = path.join(
   process.cwd(),
-  "src/skills/sdd-forge.flow/SKILL.md",
+  "src/skills/senti.flow/SKILL.md",
 );
 
-const LEGACY_INSTRUCTION_PATTERN = /sdd-forge flow report show/;
+const LEGACY_INSTRUCTION_PATTERN = /senti flow report show/;
 
-describe("sdd-forge.flow skill — cleanup envelope wiring (spec 251)", () => {
+describe("senti.flow skill — cleanup envelope wiring (spec 251)", () => {
   const text = fs.readFileSync(SKILL_PATH, "utf8");
 
   it("SKILL.md does not carry the legacy post-cleanup streaming instruction", () => {

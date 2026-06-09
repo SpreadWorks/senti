@@ -4,7 +4,7 @@ import { join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir } from "../../../helpers/tmp-dir.js";
 import { makeFlowState, setupFlow, makeFlowManager } from "../../../helpers/flow-setup.js";
-const FLOW_CMD = join(process.cwd(), "src/sdd-forge.js");
+const FLOW_CMD = join(process.cwd(), "src/senti.js");
 const FLOW_CMD_ARGS_PREFIX = ["flow"];
 
 // ---------------------------------------------------------------------------
@@ -20,7 +20,7 @@ describe("flow set request", () => {
     setupFlow(tmp);
     execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "set", "request", "make a resume command"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp },
     });
     const updated = makeFlowManager(tmp).load();
     assert.equal(updated.request, "make a resume command");
@@ -37,7 +37,7 @@ describe("flow set request", () => {
       "thin request",
     ], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp },
     });
     const runId = JSON.parse(init).data.runId;
 
@@ -51,7 +51,7 @@ describe("flow set request", () => {
       runId,
     ], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp },
     });
 
     const updated = makeFlowManager(tmp).loadPreparingFlow(runId);
@@ -68,7 +68,7 @@ describe("flow set note", () => {
     setupFlow(tmp);
     execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "set", "note", "draft: first note"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp },
     });
     const updated = makeFlowManager(tmp).load();
     assert.equal(updated.notes.length, 1);
@@ -82,11 +82,11 @@ describe("flow set note", () => {
     setupFlow(tmp);
     execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "set", "note", "first note"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp },
     });
     execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "set", "note", "second note"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp },
     });
     const updated = makeFlowManager(tmp).load();
     assert.equal(updated.notes.length, 2);
@@ -102,7 +102,7 @@ describe("flow set note", () => {
     makeFlowManager(tmp).addActiveFlow("001-test", "local");
     execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "set", "note", "new note"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp },
     });
     const updated = makeFlowManager(tmp).load();
     assert.ok(Array.isArray(updated.notes));

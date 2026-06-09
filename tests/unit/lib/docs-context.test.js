@@ -11,11 +11,11 @@ function buildContainer({ root = "/repo", config = {}, lang = "ja" } = {}) {
   c.register("paths", {
     root,
     srcRoot: root,
-    sddDir: path.join(root, ".sdd-forge"),
-    outputDir: path.join(root, ".sdd-forge/output"),
+    sentiDir: path.join(root, ".senti"),
+    outputDir: path.join(root, ".senti/output"),
     agentWorkDir: path.join(root, ".tmp"),
     logDir: path.join(root, ".tmp/logs"),
-    configPath: path.join(root, ".sdd-forge/config.json"),
+    configPath: path.join(root, ".senti/config.json"),
   });
   c.register("agent", { resolve: () => null, call: async () => "" });
   c.register("i18n", () => (k) => k);

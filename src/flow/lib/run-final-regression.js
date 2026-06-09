@@ -10,7 +10,7 @@ import fs from "fs";
 import path from "path";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
-import { sddOutputDir } from "../../lib/config.js";
+import { sentiOutputDir } from "../../lib/config.js";
 import { resolveSpecDir } from "../../lib/spec-json.js";
 import {
   FINAL_REGRESSION_RESULT_FILE,
@@ -230,7 +230,7 @@ function repoRelative(root, absolutePath) {
 }
 
 function writeFinalRegressionProgressLine(message) {
-  process.stderr.write(`[sdd-forge] final-regression ${message}\n`);
+  process.stderr.write(`[senti] final-regression ${message}\n`);
 }
 
 function appendRaw(lines, sectionLines) {
@@ -250,7 +250,7 @@ function resolveRealPath(value) {
 }
 
 function readAnalysisIfExists(root) {
-  const analysisPath = path.join(sddOutputDir(root), "analysis.json");
+  const analysisPath = path.join(sentiOutputDir(root), "analysis.json");
   if (!fs.existsSync(analysisPath)) return null;
   return JSON.parse(fs.readFileSync(analysisPath, "utf8"));
 }
@@ -444,13 +444,13 @@ export default class RunFinalRegressionCommand extends FlowCommand {
       : FinalRegressionDecision.fail(failureKind, previousFailures.length);
 
     const range = appendRaw(rawLines, [
-      `[sdd-forge] final regression start command=${commandText || "<unresolved>"}`,
+      `[senti] final regression start command=${commandText || "<unresolved>"}`,
       `command: ${commandText || "<unresolved>"}`,
       ...(rootCommand ? [`commandSource: ${rootCommand.source}`] : []),
       ...processOutputLines(result),
       `result: ${resultStatus}`,
       ...(failureKind ? [`failureKind: ${failureKind}`, `retryable: ${decision.retryable}`, `nextAction: ${decision.nextAction}`] : []),
-      `[sdd-forge] final regression end result=${resultStatus}`,
+      `[senti] final regression end result=${resultStatus}`,
     ]);
     fs.writeFileSync(attemptPath, rawLines.join("\n") + "\n");
 

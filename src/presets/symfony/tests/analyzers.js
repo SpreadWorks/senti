@@ -3,7 +3,7 @@
  *
  * These helpers are used only by unit tests. They were previously
  * exported from data/*.js modules but have been relocated here so
- * that preset data/ files do not import sdd-forge internals
+ * that preset data/ files do not import senti internals
  * (spec 191: preset DI container).
  */
 

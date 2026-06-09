@@ -15,7 +15,7 @@ describe("createResolver", () => {
 
   function setupTmp(name) {
     tmp = createTmpDir(name);
-    fs.mkdirSync(path.join(tmp, ".sdd-forge"), { recursive: true });
+    fs.mkdirSync(path.join(tmp, ".senti"), { recursive: true });
     return tmp;
   }
 
@@ -72,7 +72,7 @@ describe("createResolver", () => {
 
   it("loads overrides.json when present", async () => {
     setupTmp("resolver-overrides");
-    writeJson(tmp, ".sdd-forge/overrides.json", {
+    writeJson(tmp, ".senti/overrides.json", {
       project: { summary: "Custom override" },
     });
     writeJson(tmp, "package.json", { name: "test-pkg", version: "1.0.0" });
@@ -123,11 +123,11 @@ describe("createResolver", () => {
     assert.equal(resolver.resolve("base", "project", "name", {}, [""]).toMarkdown(), "base-pkg");
   });
 
-  it("loads project-specific DataSources from .sdd-forge/data/", async () => {
+  it("loads project-specific DataSources from .senti/data/", async () => {
     setupTmp("resolver-projds");
     writeJson(tmp, "package.json", { name: "projds", version: "1.0.0" });
     // Project data dir exists but is empty — should not break
-    fs.mkdirSync(path.join(tmp, ".sdd-forge", "data"), { recursive: true });
+    fs.mkdirSync(path.join(tmp, ".senti", "data"), { recursive: true });
     const resolver = await createResolver("node-cli", tmp);
     assert.equal(resolver.resolve("node-cli", "project", "name", {}, [""]).toMarkdown(), "projds");
   });

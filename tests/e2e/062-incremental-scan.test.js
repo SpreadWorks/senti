@@ -5,7 +5,7 @@ import { join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../helpers/tmp-dir.js";
 
-const CMD = join(process.cwd(), "src/sdd-forge.js");
+const CMD = join(process.cwd(), "src/senti.js");
 const CMD_ARGS = ["docs", "scan"];
 
 describe("incremental scan by hash", () => {
@@ -14,7 +14,7 @@ describe("incremental scan by hash", () => {
 
   function setupProject(files = {}) {
     tmp = createTmpDir();
-    writeJson(tmp, ".sdd-forge/config.json", {
+    writeJson(tmp, ".senti/config.json", {
       lang: "ja",
       type: "node-cli",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -29,9 +29,9 @@ describe("incremental scan by hash", () => {
   function runScan() {
     execFileSync("node", [CMD, ...CMD_ARGS], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
     });
-    const outputPath = join(tmp, ".sdd-forge/output/analysis.json");
+    const outputPath = join(tmp, ".senti/output/analysis.json");
     return JSON.parse(fs.readFileSync(outputPath, "utf8"));
   }
 
@@ -39,7 +39,7 @@ describe("incremental scan by hash", () => {
     const entry = analysis.modules.entries[index];
     Object.assign(entry, enrichment);
     analysis.enrichedAt = "2026-01-01T00:00:00.000Z";
-    const outputPath = join(tmp, ".sdd-forge/output/analysis.json");
+    const outputPath = join(tmp, ".senti/output/analysis.json");
     fs.writeFileSync(outputPath, JSON.stringify(analysis) + "\n");
   }
 
@@ -54,7 +54,7 @@ describe("incremental scan by hash", () => {
 
     // Enrich both entries
     enrichEntry(first, 0, { summary: "func a", detail: "returns a", chapter: "overview", role: "lib" });
-    const enriched = JSON.parse(fs.readFileSync(join(tmp, ".sdd-forge/output/analysis.json"), "utf8"));
+    const enriched = JSON.parse(fs.readFileSync(join(tmp, ".senti/output/analysis.json"), "utf8"));
     enrichEntry(enriched, 1, { summary: "func b", detail: "returns b", chapter: "cli_commands", role: "lib" });
 
     // 2nd scan (no changes)
@@ -81,7 +81,7 @@ describe("incremental scan by hash", () => {
       first.modules.entries[i].chapter = "overview";
     }
     first.enrichedAt = "2026-01-01T00:00:00.000Z";
-    fs.writeFileSync(join(tmp, ".sdd-forge/output/analysis.json"), JSON.stringify(first) + "\n");
+    fs.writeFileSync(join(tmp, ".senti/output/analysis.json"), JSON.stringify(first) + "\n");
 
     // Change only a.js
     writeFile(tmp, "src/a.js", 'export function a() { return "changed"; }\n');

@@ -1,7 +1,7 @@
 /**
  * src/workflow/lib/commands/issue-start.js
  *
- * sdd-forge workflow issue-start <issueNumber>
+ * senti workflow issue-start <issueNumber>
  *
  * Move the board item linked to a GitHub issue number into "In Progress".
  * Called by the flow draft step when workflow.flowIntegration is enabled and

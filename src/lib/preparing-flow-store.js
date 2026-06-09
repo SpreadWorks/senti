@@ -1,14 +1,14 @@
 /**
  * src/lib/preparing-flow-store.js
  *
- * Manages `.sdd-forge/.active-flow.<runId>` — transient state files
+ * Manages `.senti/.active-flow.<runId>` — transient state files
  * created during the prepare phase before flow.json exists.
  */
 
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-import { sddDir } from "./config.js";
+import { sentiDir } from "./config.js";
 import {
   PREPARING_PREFIX,
   PREPARING_TTL_MS,
@@ -36,7 +36,7 @@ export class PreparingFlowStore {
    * @returns {string} created file path
    */
   create(runId, extra = {}) {
-    const dir = sddDir(this._mainRoot);
+    const dir = sentiDir(this._mainRoot);
     fs.mkdirSync(dir, { recursive: true });
     const state = {
       runId,
@@ -62,7 +62,7 @@ export class PreparingFlowStore {
    * @returns {object|null}
    */
   load(runId) {
-    const p = path.join(sddDir(this._mainRoot), `${PREPARING_PREFIX}${runId}`);
+    const p = path.join(sentiDir(this._mainRoot), `${PREPARING_PREFIX}${runId}`);
     if (!fs.existsSync(p)) return null;
     try {
       return JSON.parse(fs.readFileSync(p, "utf8"));
@@ -104,7 +104,7 @@ export class PreparingFlowStore {
    * @returns {object} the updated state
    */
   mutate(runId, mutator) {
-    const p = path.join(sddDir(this._mainRoot), `${PREPARING_PREFIX}${runId}`);
+    const p = path.join(sentiDir(this._mainRoot), `${PREPARING_PREFIX}${runId}`);
     if (!fs.existsSync(p)) {
       throw new Error(`preparing flow not found: ${runId}`);
     }
@@ -116,13 +116,13 @@ export class PreparingFlowStore {
 
   /** @param {string} runId */
   delete(runId) {
-    const p = path.join(sddDir(this._mainRoot), `${PREPARING_PREFIX}${runId}`);
+    const p = path.join(sentiDir(this._mainRoot), `${PREPARING_PREFIX}${runId}`);
     try { fs.unlinkSync(p); } catch (err) { if (err.code !== "ENOENT") throw err; }
   }
 
   /** @returns {string[]} runIds */
   list() {
-    const dir = sddDir(this._mainRoot);
+    const dir = sentiDir(this._mainRoot);
     if (!fs.existsSync(dir)) return [];
     return fs.readdirSync(dir)
       .filter((f) => f.startsWith(PREPARING_PREFIX))
@@ -146,7 +146,7 @@ export class PreparingFlowStore {
   }
 
   _pruneAndList() {
-    const dir = sddDir(this._mainRoot);
+    const dir = sentiDir(this._mainRoot);
     if (!fs.existsSync(dir)) return { deleted: [], remaining: [] };
 
     const now = Date.now();

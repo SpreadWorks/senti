@@ -4,8 +4,8 @@
 Do not ask the user to confirm routine step execution when `requires_approval: false`.
 
 **autoApprove check (MANDATORY):**
-Before presenting any choice to the user, you MUST run `sdd-forge flow get status` and display the `autoApprove` field value. This is not optional — skipping this check is a protocol violation.
-- Run the command exactly as `sdd-forge flow get status` (no extra options).
+Before presenting any choice to the user, you MUST run `senti flow get status` and display the `autoApprove` field value. This is not optional — skipping this check is a protocol violation.
+- Run the command exactly as `senti flow get status` (no extra options).
 - If the next-action envelope has `requires_approval: false`, execute the step without a "run this step?" confirmation. This applies even when `autoApprove: false`.
 - If `requires_approval: true` and `autoApprove: false` (or field is missing): present the choice to the user and wait for input.
 - If `requires_approval: true` and `autoApprove: true`: treat choice id=1 as selected and proceed immediately. Display progress briefly (e.g. "auto: approval → [1] 承認").
@@ -40,7 +40,7 @@ The following user-facing choices are explicit exceptions to the auto-select rul
 
 **Flow runtime log rule (MANDATORY):**
 - Never hardcode `/tmp/...` for flow-related logs or temporary files.
-- When a flow command needs an agent/tmp/log base directory for the current invocation, pass `--agent-work-dir <path>` to `sdd-forge flow run ...`.
+- When a flow command needs an agent/tmp/log base directory for the current invocation, pass `--agent-work-dir <path>` to `senti flow run ...`.
 - Flow commands automatically append stdout/stderr to `.tmp/logs/<flowId>.log`, or `.tmp/logs/no-flow.log` when no flow is active.
-- Use `sdd-forge flow get runtime-log` to inspect the latest flow command output after failures.
-- Do not wrap flow commands with environment-variable prefixes or shell redirection just to capture logs; keep the command prefix as `sdd-forge flow ...` so approval-prefix rules can match it.
+- Use `senti flow get runtime-log` to inspect the latest flow command output after failures.
+- Do not wrap flow commands with environment-variable prefixes or shell redirection just to capture logs; keep the command prefix as `senti flow ...` so approval-prefix rules can match it.

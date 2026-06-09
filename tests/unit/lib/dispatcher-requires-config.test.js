@@ -48,7 +48,7 @@ describe("dispatcher — requiresConfig enforcement (R2/R3/R6, #175)", () => {
     const msg = Array.isArray(err.messages) ? err.messages[0] : err.message;
     assert.match(
       String(msg),
-      /config\.json not found\. Run sdd-forge setup first\./,
+      /config\.json not found\. Run senti setup first\./,
       "NO_CONFIG message must match the existing canonical text",
     );
     assert.notEqual(exitCode, 0, "exit code must be non-zero on failure");

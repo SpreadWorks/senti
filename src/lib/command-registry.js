@@ -108,7 +108,7 @@ export const hookCommands = {
     outputMode: "raw",
     args: { flags: ["--json"] },
     help: [
-      "Usage: sdd-forge hook list [--json]",
+      "Usage: senti hook list [--json]",
       "",
       "List available flow hooks and current configured commands.",
       "",

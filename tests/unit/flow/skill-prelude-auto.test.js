@@ -3,13 +3,13 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 
-const SKILL_PATH = path.join(process.cwd(), "src/skills/sdd-forge.flow/SKILL.md");
+const SKILL_PATH = path.join(process.cwd(), "src/skills/senti.flow/SKILL.md");
 
 function readSkill() {
   return fs.readFileSync(SKILL_PATH, "utf8");
 }
 
-describe("sdd-forge.flow skill prelude auto flow", () => {
+describe("senti.flow skill prelude auto flow", () => {
   it("uses the auto prompt as an intent confirmation with Goal and Scope", () => {
     const text = readSkill();
 
@@ -39,6 +39,6 @@ describe("sdd-forge.flow skill prelude auto flow", () => {
     const text = readSkill();
 
     assert.match(text, /B\.0\.5 auto default when preflight auto was accepted/);
-    assert.match(text, /Worktree: `sdd-forge flow prepare --title "\.\.\." --base <branch> --worktree --run-id <runId>`/);
+    assert.match(text, /Worktree: `senti flow prepare --title "\.\.\." --base <branch> --worktree --run-id <runId>`/);
   });
 });

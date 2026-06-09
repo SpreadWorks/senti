@@ -5,7 +5,7 @@ import { join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeFile } from "../../../helpers/tmp-dir.js";
 
-const CMD = join(process.cwd(), "src/sdd-forge.js");
+const CMD = join(process.cwd(), "src/senti.js");
 const CMD_ARGS = ["docs", "changelog"];
 
 function fixtureSpecJson({ goal, scopeIn = [] } = {}) {
@@ -45,7 +45,7 @@ describe("changelog CLI", () => {
 
     execFileSync("node", [CMD, ...CMD_ARGS], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
     });
 
     const outFile = join(tmp, "docs", "change_log.md");
@@ -62,7 +62,7 @@ describe("changelog CLI", () => {
 
     execFileSync("node", [CMD, ...CMD_ARGS], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
     });
 
     const outFile = join(tmp, "docs", "change_log.md");
@@ -81,7 +81,7 @@ describe("changelog CLI", () => {
 
     const result = execFileSync("node", [CMD, ...CMD_ARGS, "--dry-run"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
     });
     assert.match(result, /Change Log/);
     assert.match(result, /001-test-feature/);
@@ -99,7 +99,7 @@ describe("changelog CLI", () => {
 
     execFileSync("node", [CMD, ...CMD_ARGS], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
     });
 
     const content = fs.readFileSync(outFile, "utf8");

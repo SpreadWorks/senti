@@ -7,8 +7,8 @@
  * envelope contract:
  *   - data.report is null when no report.json exists (and an errors entry
  *     with code REPORT_MISSING is attached at level 'warn', preserving ok:true)
- *   - .sdd-forge/last-finalized-spec is written
- *   - .sdd-forge/.active-flow is cleared
+ *   - .senti/last-finalized-spec is written
+ *   - .senti/.active-flow is cleared
  *   - flow get status returns active:false post-cleanup (R17)
  *
  * The full worktree path (commit → merge → sync → cleanup with squash) is
@@ -25,7 +25,7 @@ import path from "node:path";
 import { createTmpDir, removeTmpDir } from "../../../helpers/tmp-dir.js";
 import { makeFlowState, makeFlowManager } from "../../../helpers/flow-setup.js";
 
-const FLOW_CMD = path.join(process.cwd(), "src/sdd-forge.js");
+const FLOW_CMD = path.join(process.cwd(), "src/senti.js");
 
 function git(args, cwd) {
   return execSync(`git ${args}`, { cwd, encoding: "utf8" });
@@ -77,7 +77,7 @@ function setupSpecOnlyFlow(tmp) {
 function runCli(args, tmp) {
   return execFileSync("node", [FLOW_CMD, "flow", ...args], {
     encoding: "utf8",
-    env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+    env: { ...process.env, SENTI_WORK_ROOT: tmp },
   });
 }
 
@@ -86,7 +86,7 @@ describe("flow run finalize-cleanup — self-contained envelope (spec 251)", () 
   afterEach(() => tmp && removeTmpDir(tmp));
 
   it("emits ok:true envelope with data.report=null + REPORT_MISSING warning when no report.json exists", () => {
-    tmp = createTmpDir("sdd-finalize-e2e-");
+    tmp = createTmpDir("senti-finalize-e2e-");
     setupSpecOnlyFlow(tmp);
 
     const out = runCli(["run", "finalize-cleanup"], tmp);
@@ -101,17 +101,17 @@ describe("flow run finalize-cleanup — self-contained envelope (spec 251)", () 
     assert.equal(warn.level, "warn");
   });
 
-  it("writes .sdd-forge/last-finalized-spec and clears .active-flow", () => {
-    tmp = createTmpDir("sdd-finalize-e2e-pointer-");
+  it("writes .senti/last-finalized-spec and clears .active-flow", () => {
+    tmp = createTmpDir("senti-finalize-e2e-pointer-");
     setupSpecOnlyFlow(tmp);
 
     runCli(["run", "finalize-cleanup"], tmp);
 
-    const pointer = path.join(tmp, ".sdd-forge", "last-finalized-spec");
+    const pointer = path.join(tmp, ".senti", "last-finalized-spec");
     assert.ok(fs.existsSync(pointer), "last-finalized-spec pointer must be written");
     assert.match(fs.readFileSync(pointer, "utf8"), /specs\/001-test\/spec\.json/);
 
-    const activeFlow = path.join(tmp, ".sdd-forge", ".active-flow");
+    const activeFlow = path.join(tmp, ".senti", ".active-flow");
     if (fs.existsSync(activeFlow)) {
       const content = fs.readFileSync(activeFlow, "utf8").trim();
       assert.ok(
@@ -122,7 +122,7 @@ describe("flow run finalize-cleanup — self-contained envelope (spec 251)", () 
   });
 
   it("flow get status returns active:false after cleanup (R17 post-cleanup inactive)", () => {
-    tmp = createTmpDir("sdd-finalize-e2e-status-");
+    tmp = createTmpDir("senti-finalize-e2e-status-");
     setupSpecOnlyFlow(tmp);
 
     runCli(["run", "finalize-cleanup"], tmp);

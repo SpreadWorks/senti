@@ -12,7 +12,7 @@
 
 import fs from "fs";
 import path from "path";
-import { sddOutputDir, loadConfig } from "../../lib/config.js";
+import { sentiOutputDir, loadConfig } from "../../lib/config.js";
 import { FlowCommand } from "./base-command.js";
 import { iterateAnalysisCategories } from "../../docs/lib/analysis-entry.js";
 import { container } from "../../lib/container.js";
@@ -261,7 +261,7 @@ async function aiSearch(allEntries, analysis, query, _root) {
       fmtFallback: kwBuilt.fmtFallback,
     });
   } catch (err) {
-    process.stderr.write(`[sdd-forge] context aiSearch agent call failed: ${err.message}\n`);
+    process.stderr.write(`[senti] context aiSearch agent call failed: ${err.message}\n`);
     return fallbackSearch(allEntries, query);
   }
 
@@ -272,7 +272,7 @@ async function aiSearch(allEntries, analysis, query, _root) {
     selectedKeywords = JSON.parse(cleaned);
     if (!Array.isArray(selectedKeywords)) return fallbackSearch(allEntries, query);
   } catch (err) {
-    process.stderr.write(`[sdd-forge] context aiSearch JSON parse failed: ${err.message}\n`);
+    process.stderr.write(`[senti] context aiSearch JSON parse failed: ${err.message}\n`);
     return fallbackSearch(allEntries, query);
   }
 
@@ -409,11 +409,11 @@ function filterEntry(entry) {
  * @returns {{ analysis: Object, entries: Object[] }}
  */
 function loadAnalysisEntries(root) {
-  const outputDir = sddOutputDir(root);
+  const outputDir = sentiOutputDir(root);
   const analysisPath = path.join(outputDir, "analysis.json");
 
   if (!fs.existsSync(analysisPath)) {
-    throw new Error("analysis.json not found. Run: sdd-forge docs scan");
+    throw new Error("analysis.json not found. Run: senti docs scan");
   }
 
   let analysis;

@@ -184,15 +184,15 @@ function isTextLike(filePath) {
 
 function isRegressionConfigPath(filePath) {
   const base = path.posix.basename(filePath);
-  return filePath === ".sdd-forge/config.json" ||
+  return filePath === ".senti/config.json" ||
     base === "package.json" ||
     base === "composer.json" ||
     base === "Makefile" ||
     base === "makefile";
 }
 
-function isGeneratedSddArtifact(filePath, activeSpec) {
-  return filePath.startsWith(`${activeSpec}/`) || filePath.startsWith(".sdd-forge/");
+function isGeneratedSpecDrivenDevelopmentArtifact(filePath, activeSpec) {
+  return filePath.startsWith(`${activeSpec}/`) || filePath.startsWith(".senti/");
 }
 
 function isDocumentationPath(filePath) {
@@ -208,7 +208,7 @@ function isTriggerRelevantFile(filePath, analysisFiles) {
 
 function classifyNonTrigger(filePath, activeSpec) {
   const normalized = normalizePath(filePath);
-  if (isGeneratedSddArtifact(normalized, activeSpec)) {
+  if (isGeneratedSpecDrivenDevelopmentArtifact(normalized, activeSpec)) {
     return "spec-artifact-only";
   }
   if (isDocumentationPath(normalized)) {

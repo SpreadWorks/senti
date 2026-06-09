@@ -32,4 +32,4 @@
      }
      ```
    - Do not run another draft review loop from this step. The downstream `draft-gate` step remains the blocking validation step.
-   - **On complete**: `sdd-forge flow set step draft-coverage-repair done`
+   - **On complete**: `senti flow set step draft-coverage-repair done`

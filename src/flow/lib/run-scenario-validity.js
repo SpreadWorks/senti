@@ -78,7 +78,7 @@ export function buildScenarioValidityDiffArgs(baseBranch = "main") {
     "src/",
     "tests/",
     "package.json",
-    ".sdd-forge/config.json",
+    ".senti/config.json",
   ];
 }
 
@@ -93,14 +93,14 @@ function listScenarioValidityPreflightFiles({ root, baseBranch }) {
       return normalized.startsWith("src/")
         || normalized.startsWith("tests/")
         || normalized === "package.json"
-        || normalized === ".sdd-forge/config.json";
+        || normalized === ".senti/config.json";
     });
   return [...new Set([...diffFiles, ...statusFiles])].filter((filePath) => {
     const normalized = normalizePath(filePath);
     return normalized.startsWith("src/")
       || normalized.startsWith("tests/")
       || normalized === "package.json"
-      || normalized === ".sdd-forge/config.json";
+      || normalized === ".senti/config.json";
   });
 }
 
@@ -241,9 +241,9 @@ function buildSummary({ root, files, testEntries, fileRecords, requirements, com
 
 function writeScenarioValidityFallbackArtifacts({ root, specDir, resultPath, rawOutputPath, requirements, command, err }) {
   const rawLines = [
-    "[sdd-forge] scenario-validity error",
+    "[senti] scenario-validity error",
     `error: ${err?.message || String(err)}`,
-    "[sdd-forge] scenario-validity error end",
+    "[senti] scenario-validity error end",
   ];
   const range = { start_line: 1, end_line: rawLines.length };
   const summary = requirements
@@ -309,11 +309,11 @@ export default class RunScenarioValidityCommand extends FlowCommand {
     const preflight = validateScenarioValidityPreflightPaths({ specId, changedFiles });
     if (!preflight.ok) {
       const range = appendRaw(rawLines, [
-        "[sdd-forge] scenario-validity preflight block",
+        "[senti] scenario-validity preflight block",
         `command: ${buildScenarioValidityDiffArgs(state.baseBranch || "main").join(" ")}`,
         `invalid_paths: ${preflight.invalidPaths.join(", ")}`,
-        ...requirements.filter((req) => req.testable !== false).map((req) => `[sdd-forge] requirement ${req.id} result invalid_test`),
-        "[sdd-forge] scenario-validity preflight end",
+        ...requirements.filter((req) => req.testable !== false).map((req) => `[senti] requirement ${req.id} result invalid_test`),
+        "[senti] scenario-validity preflight end",
       ]);
       const artifact = {
         version: "1",
@@ -365,20 +365,20 @@ export default class RunScenarioValidityCommand extends FlowCommand {
           stderr: "",
         };
     const range = appendRaw(rawLines, [
-      "[sdd-forge] scenario-validity tests start",
+      "[senti] scenario-validity tests start",
       `command: ${command}`,
       ...fileRecords.flatMap((record) => [
-        `[sdd-forge] scenario-validity file start command=${record.command}`,
+        `[senti] scenario-validity file start command=${record.command}`,
         ...processLines(record.process),
-        `[sdd-forge] scenario-validity file end command=${record.command}`,
+        `[senti] scenario-validity file end command=${record.command}`,
       ]),
       ...processLines(scenarioProcess),
       ...requirements.filter((req) => req.testable !== false).map((req) => {
         const entry = findTestEntriesForReq(testEntries, req.id)[0];
         const testName = entry ? extractRequirementTestName(entry, req.id) : `${req.id}: not run`;
-        return `[sdd-forge] requirement ${req.id} observed: ${testName}`;
+        return `[senti] requirement ${req.id} observed: ${testName}`;
       }),
-      "[sdd-forge] scenario-validity tests end",
+      "[senti] scenario-validity tests end",
     ]);
     const rawText = rawLines.join("\n");
     const summary = buildSummary({ root, files, testEntries, fileRecords, requirements, command, range });

@@ -74,12 +74,12 @@ export function setStepDone(state, ...ids) {
 }
 
 /**
- * Write a .sdd-forge/config.json with the given language into tmp.
+ * Write a .senti/config.json with the given language into tmp.
  */
 export function setupFlowConfig(tmp, lang) {
-  const sddDir = path.join(tmp, ".sdd-forge");
-  fs.mkdirSync(sddDir, { recursive: true });
-  fs.writeFileSync(path.join(sddDir, "config.json"), JSON.stringify({
+  const sentiDir = path.join(tmp, ".senti");
+  fs.mkdirSync(sentiDir, { recursive: true });
+  fs.writeFileSync(path.join(sentiDir, "config.json"), JSON.stringify({
     lang,
     type: "base",
     docs: { languages: [lang], defaultLanguage: lang },

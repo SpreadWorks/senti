@@ -6,7 +6,7 @@
 
 import fs from "fs";
 import path from "path";
-import { loadConfig, sddDir } from "./config.js";
+import { loadConfig, sentiDir } from "./config.js";
 import { resolveChainSafe } from "./presets.js";
 import { patternToRegex } from "../docs/lib/scanner.js";
 import {
@@ -218,8 +218,8 @@ export function loadMergedGuardrails(root) {
   // 1. Collect guardrails from preset chain
   let guardrails = loadPresetGuardrails(presetKey);
 
-  // 2. Merge guardrails from project (.sdd-forge/guardrail.json)
-  const projectPath = path.join(sddDir(root), GUARDRAIL_FILENAME);
+  // 2. Merge guardrails from project (.senti/guardrail.json)
+  const projectPath = path.join(sentiDir(root), GUARDRAIL_FILENAME);
   if (fs.existsSync(projectPath)) {
     const projectGuardrails = loadGuardrailFile(projectPath);
     guardrails = mergeById(guardrails, projectGuardrails);

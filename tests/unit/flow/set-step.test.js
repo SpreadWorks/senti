@@ -39,7 +39,7 @@ describe("flow set step", () => {
     setupFlowState(tmp);
     const result = execFileSync(
       "node", [FLOW_CMD, "set", "step", "branch", "done"],
-      { encoding: "utf8", env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp } },
+      { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } },
     );
     const envelope = JSON.parse(result);
     assert.equal(envelope.ok, true);
@@ -57,7 +57,7 @@ describe("flow set step", () => {
     try {
       execFileSync(
         "node", [FLOW_CMD, "set", "step", "nonexistent", "done"],
-        { encoding: "utf8", env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp } },
+        { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } },
       );
       assert.fail("should exit non-zero");
     } catch (err) {

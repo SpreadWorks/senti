@@ -49,11 +49,11 @@ describe("Container", () => {
       const paths = {
         root: "/abs/root",
         srcRoot: "/abs/src",
-        sddDir: "/abs/root/.sdd-forge",
-        outputDir: "/abs/root/.sdd-forge/output",
+        sentiDir: "/abs/root/.senti",
+        outputDir: "/abs/root/.senti/output",
         agentWorkDir: "/abs/root/.tmp",
         logDir: "/abs/root/.tmp/logs",
-        configPath: "/abs/root/.sdd-forge/config.json",
+        configPath: "/abs/root/.senti/config.json",
       };
       c.register("paths", paths);
       const got = c.get("paths");

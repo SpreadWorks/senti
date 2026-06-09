@@ -107,7 +107,7 @@ export async function executeGateSideEffects(ctx, phase) {
         await cmd.execute({ ...ctx, args: { json: "[]" } });
       }
     } catch (err) {
-      process.stderr.write(`[sdd-forge] gate side effect '${effect}' failed: ${err.message}\n`);
+      process.stderr.write(`[senti] gate side effect '${effect}' failed: ${err.message}\n`);
     }
   }
 }
@@ -1689,7 +1689,7 @@ function formatRetryHistory(root, specPath, limit, phase) {
   try {
     log = loadIssueLog(root, specPath);
   } catch (err) {
-    process.stderr.write(`[sdd-forge] formatRetryHistory: loadIssueLog failed: ${err.message}\n`);
+    process.stderr.write(`[senti] formatRetryHistory: loadIssueLog failed: ${err.message}\n`);
     return "";
   }
   const gateEntries = (log.entries || [])
@@ -1707,7 +1707,7 @@ export function warnGateRetryBudget(ctx, phase) {
   const max = resolveRetryMax(ctx, phase);
   const remaining = Math.max(0, max - used);
   process.stderr.write(
-    `[sdd-forge] gate retry: ${used}/${max} used (${remaining} remaining) [AI-FAIL=${used}] for phase "${phase}"\n`,
+    `[senti] gate retry: ${used}/${max} used (${remaining} remaining) [AI-FAIL=${used}] for phase "${phase}"\n`,
   );
 }
 
@@ -2057,7 +2057,7 @@ export function checkNoProgressSinceLastFail({ flowState, issueLog, phase, curre
     "Modify the spec or implementation before retrying.",
   ];
   process.stderr.write(
-    `[sdd-forge] gate pre-check rejected (NO_PROGRESS_SINCE_LAST_FAIL) — retry budget not consumed\n`,
+    `[senti] gate pre-check rejected (NO_PROGRESS_SINCE_LAST_FAIL) — retry budget not consumed\n`,
   );
   appendGateEscalationIssueLog(ctx, phase, messages);
   return Envelope.fail(
@@ -2836,7 +2836,7 @@ function updateStepStatusDuringInference(stepId, status) {
   } catch (err) {
     if (err?.code === "ERR_MISSING_FILE") {
       process.stderr.write(
-        `[sdd-forge] gate: step-status update skipped (${stepId}=${status}): ${err.message}\n`,
+        `[senti] gate: step-status update skipped (${stepId}=${status}): ${err.message}\n`,
       );
       return;
     }
@@ -2864,7 +2864,7 @@ export class RunGateCommand extends FlowCommand {
       for (const staleId of resolution.staleSteps) {
         updateStepStatusDuringInference(staleId, "done");
         process.stderr.write(
-          `[sdd-forge] gate: stale in_progress step "${staleId}" ` +
+          `[senti] gate: stale in_progress step "${staleId}" ` +
             `transitioned to done (auto-resolved phase=${phase})\n`,
         );
       }
@@ -3330,7 +3330,7 @@ export class RunGateCommand extends FlowCommand {
       if (unrecorded.length === 0) return [];
       return [`file-map: ${unrecorded.length} file(s) in diff but not recorded: ${unrecorded.join(", ")}`];
     } catch (err) {
-      process.stderr.write(`[sdd-forge] file-map reconciliation skipped: ${err.message}\n`);
+      process.stderr.write(`[senti] file-map reconciliation skipped: ${err.message}\n`);
       return [];
     }
   }

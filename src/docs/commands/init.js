@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
- * sdd-forge/engine/init.js
+ * senti/engine/init.js
  *
  * テンプレート継承チェーンをもとにテンプレートをマージし docs/ に出力する。
  *
  * Usage:
- *   node sdd-forge/engine/init.js [--type php-mvc] [--force]
+ *   node senti/engine/init.js [--type php-mvc] [--force]
  */
 
 import fs from "fs";
@@ -167,7 +167,7 @@ async function runInit(ctx, rawArgs) {
   logger.verbose(`type=${type} lang=${lang}`);
 
   // テンプレート解決（ボトムアップ方式）
-  const projectLocalDir = path.join(root, ".sdd-forge", "templates", lang, "docs");
+  const projectLocalDir = path.join(root, ".senti", "templates", lang, "docs");
   const docsConfig = config?.docs;
   const configLangs = docsConfig?.languages?.filter((l) => l !== lang) || [];
   // Always include "en" as ultimate fallback for presets with English-only templates

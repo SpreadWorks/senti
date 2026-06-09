@@ -2,7 +2,7 @@
 /**
  * src/check/commands/scan.js
  *
- * sdd-forge check scan — scan coverage report.
+ * senti check scan — scan coverage report.
  *
  * Shows DataSource coverage: scan.include matched files vs DataSource-analyzed files.
  * Reports uncovered files grouped by extension (actionable summary) followed by the file list.
@@ -11,7 +11,7 @@
 import fs from "fs";
 import path from "path";
 import { sourceRoot, parseArgs } from "../../lib/cli.js";
-import { sddOutputDir } from "../../lib/config.js";
+import { sentiOutputDir } from "../../lib/config.js";
 import { globToRegex } from "../../lib/glob.js";
 import { iterateAnalysisCategories } from "../../docs/lib/analysis-entry.js";
 import { pushSection, DIVIDER } from "../../lib/formatter.js";
@@ -25,7 +25,7 @@ const MAX_SCAN_FILES = 100_000;
 
 function printHelp() {
   console.log([
-    "Usage: sdd-forge check scan [options]",
+    "Usage: senti check scan [options]",
     "",
     "Show scan coverage report for the current project.",
     "",
@@ -55,7 +55,7 @@ function groupByExtension(files) {
 
 /**
  * Walk baseDir recursively, collecting files matched by includeMatchers.
- * Skips .git, node_modules, vendor, .sdd-forge directories.
+ * Skips .git, node_modules, vendor, .senti directories.
  * Applies excludeMatchers to relative paths.
  *
  * @param {string} baseDir
@@ -88,7 +88,7 @@ function walkIncludedFiles(baseDir, includeMatchers, excludeMatchers) {
     }
     for (const entry of entries) {
       if (entry.isDirectory()) {
-        if (entry.name === ".git" || entry.name === "node_modules" || entry.name === "vendor" || entry.name === ".sdd-forge") continue;
+        if (entry.name === ".git" || entry.name === "node_modules" || entry.name === "vendor" || entry.name === ".senti") continue;
         const nextRel = relPrefix ? `${relPrefix}/${entry.name}` : entry.name;
         walk(path.join(dir, entry.name), nextRel, depth + 1);
       } else if (entry.isFile()) {
@@ -112,13 +112,13 @@ function coveragePercent(coverage) {
  *
  * @param {string} root - work root
  * @param {string} src - source root
- * @param {Object} cfg - sdd config
+ * @param {Object} cfg - senti config
  * @returns {{ dataSourceCoverage: { total, analyzed, uncovered } }}
  */
 function computeCoverage(root, src, cfg) {
-  const outputPath = path.join(sddOutputDir(root), "analysis.json");
+  const outputPath = path.join(sentiOutputDir(root), "analysis.json");
   if (!fs.existsSync(outputPath)) {
-    throw new Error(`analysis.json not found: ${outputPath}\nRun 'sdd-forge docs scan' first.`);
+    throw new Error(`analysis.json not found: ${outputPath}\nRun 'senti docs scan' first.`);
   }
 
   let analysis;
@@ -238,7 +238,7 @@ async function runCheckScan(rawArgs, container) {
 
   const format = cli.format || "text";
   if (!["text", "json", "md"].includes(format)) {
-    process.stderr.write(`sdd-forge check scan: unknown format '${format}'. Use text, json, or md.\n`);
+    process.stderr.write(`senti check scan: unknown format '${format}'. Use text, json, or md.\n`);
     process.exit(EXIT_ERROR);
   }
 
@@ -247,7 +247,7 @@ async function runCheckScan(rawArgs, container) {
 
   const cfg = container.get("config");
   if (!cfg || Object.keys(cfg).length === 0) {
-    process.stderr.write(`sdd-forge check scan: config is not available\n`);
+    process.stderr.write(`senti check scan: config is not available\n`);
     process.exit(EXIT_ERROR);
   }
 
@@ -255,7 +255,7 @@ async function runCheckScan(rawArgs, container) {
   try {
     data = computeCoverage(root, src, cfg);
   } catch (err) {
-    process.stderr.write(`sdd-forge check scan: ${err.message}\n`);
+    process.stderr.write(`senti check scan: ${err.message}\n`);
     process.exit(EXIT_ERROR);
   }
 

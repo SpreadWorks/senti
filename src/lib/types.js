@@ -1,5 +1,5 @@
 /**
- * sdd-forge/lib/types.js
+ * senti/lib/types.js
  *
  * JSDoc 型定義。
  */
@@ -89,11 +89,11 @@
 
 /**
  * @typedef {Object} WorkflowConfig
- * @property {WorkflowLanguages} [languages] - Language settings for `sdd-forge workflow` ([EXPERIMENTAL])
+ * @property {WorkflowLanguages} [languages] - Language settings for `senti workflow` ([EXPERIMENTAL])
  */
 
 /**
- * @typedef {Object} SddConfig
+ * @typedef {Object} SentiConfig
  * @property {string} [name]                 - Project name (optional, set by setup wizard)
  * @property {DocsConfig} docs               - Documentation configuration (required)
  * @property {string} lang                   - Operating language for CLI, AGENTS.md, skills, specs
@@ -104,5 +104,5 @@
  * @property {TestConfig} [test]             - Project-level regression test configuration
  * @property {CommandsConfig} [commands]     - External command availability
  * @property {LogsConfig} [logs]             - Logging configuration
- * @property {WorkflowConfig} [workflow]     - `sdd-forge workflow` settings ([EXPERIMENTAL])
+ * @property {WorkflowConfig} [workflow]     - `senti workflow` settings ([EXPERIMENTAL])
  */

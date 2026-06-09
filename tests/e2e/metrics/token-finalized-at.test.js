@@ -26,7 +26,7 @@ describe("metrics token — state.finalizedAt as date axis (R2, R3, R4, R5)", ()
   afterEach(() => tmp && removeTmpDir(tmp));
 
   it("R2: uses state.finalizedAt as the date column (not file mtime)", () => {
-    tmp = createTmpDir("sdd-metrics-finalized-at-");
+    tmp = createTmpDir("senti-metrics-finalized-at-");
     writeBaseConfig(tmp);
     writeJson(
       tmp,
@@ -41,7 +41,7 @@ describe("metrics token — state.finalizedAt as date axis (R2, R3, R4, R5)", ()
   });
 
   it("R3: skips specs missing state.finalizedAt and prints a warning", () => {
-    tmp = createTmpDir("sdd-metrics-finalized-at-missing-");
+    tmp = createTmpDir("senti-metrics-finalized-at-missing-");
     writeBaseConfig(tmp);
     writeJson(tmp, "specs/001-alpha/flow.json", metricsFlow());
     writeJson(
@@ -64,14 +64,14 @@ describe("metrics token — state.finalizedAt as date axis (R2, R3, R4, R5)", ()
   });
 
   it("R4/R5: cache without maxFinalizedAt is invalidated and rebuilt", () => {
-    tmp = createTmpDir("sdd-metrics-finalized-at-cache-");
+    tmp = createTmpDir("senti-metrics-finalized-at-cache-");
     writeBaseConfig(tmp);
     writeJson(
       tmp,
       "specs/001-alpha/flow.json",
       metricsFlow("2025-06-15T12:00:00Z"),
     );
-    writeJson(tmp, ".sdd-forge/output/metrics.json", {
+    writeJson(tmp, ".senti/output/metrics.json", {
       generatedAt: "2020-01-01T00:00:00Z",
       rows: [
         {
@@ -90,7 +90,7 @@ describe("metrics token — state.finalizedAt as date axis (R2, R3, R4, R5)", ()
 
     runTokenJson(tmp);
 
-    const cachePath = join(tmp, ".sdd-forge/output/metrics.json");
+    const cachePath = join(tmp, ".senti/output/metrics.json");
     const cache = JSON.parse(readFileSync(cachePath, "utf8"));
     assert.ok(
       typeof cache.maxFinalizedAt === "string" && cache.maxFinalizedAt.length > 0,
@@ -105,14 +105,14 @@ describe("metrics token — state.finalizedAt as date axis (R2, R3, R4, R5)", ()
   });
 
   it("R4: cache is reused when maxFinalizedAt matches current max", () => {
-    tmp = createTmpDir("sdd-metrics-finalized-at-cache-reuse-");
+    tmp = createTmpDir("senti-metrics-finalized-at-cache-reuse-");
     writeBaseConfig(tmp);
     writeJson(
       tmp,
       "specs/001-alpha/flow.json",
       metricsFlow("2025-06-15T12:00:00Z"),
     );
-    writeJson(tmp, ".sdd-forge/output/metrics.json", {
+    writeJson(tmp, ".senti/output/metrics.json", {
       version: 3,
       generatedAt: "2025-06-16T00:00:00Z",
       maxFinalizedAt: "2025-06-15T12:00:00Z",

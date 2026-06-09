@@ -20,7 +20,7 @@ function attemptLogPath(index) {
 }
 
 function setupProject(tmp, scriptBody, extraFlowState = {}) {
-  fs.mkdirSync(path.join(tmp, ".sdd-forge"), { recursive: true });
+  fs.mkdirSync(path.join(tmp, ".senti"), { recursive: true });
   writeFile(tmp, `${SPEC_DIR}/spec.md`, "# Spec\n");
   writeFile(tmp, FIXTURE_PATH, scriptBody);
   initGitRepo(tmp);

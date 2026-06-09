@@ -8,7 +8,7 @@
 import fs from "fs";
 import path from "path";
 import { isInsideWorktree, PKG_DIR } from "../../lib/cli.js";
-import { sddDir, sddOutputDir } from "../../lib/config.js";
+import { sentiDir, sentiOutputDir } from "../../lib/config.js";
 import { assertOk, runCmd } from "../../lib/process.js";
 import { iterateAnalysisCategories } from "../../docs/lib/analysis-entry.js";
 import { buildInitialSteps } from "../../lib/flow-helpers.js";
@@ -69,7 +69,7 @@ function detectBaseBranch(root) {
   try {
     return runGitTrim(root, ["rev-parse", "--abbrev-ref", "HEAD"]).trim();
   } catch (e) {
-    process.stderr.write(`[sdd-forge] failed to detect current branch, falling back to "main": ${e.message}\n`);
+    process.stderr.write(`[senti] failed to detect current branch, falling back to "main": ${e.message}\n`);
     return "main";
   }
 }
@@ -119,13 +119,13 @@ export function buildDraftTemplate() {
 }
 
 function runDocsScanAndValidate(root) {
-  const res = runCmd(process.execPath, [path.join(PKG_DIR, "sdd-forge.js"), "docs", "scan"], {
+  const res = runCmd(process.execPath, [path.join(PKG_DIR, "senti.js"), "docs", "scan"], {
     cwd: root,
     timeout: 600000,
-    env: { ...process.env, SDD_FORGE_WORK_ROOT: root },
+    env: { ...process.env, SENTI_WORK_ROOT: root },
   });
   assertOk(res, "docs scan failed during prepare-spec");
-  const analysisPath = path.join(sddOutputDir(root), "analysis.json");
+  const analysisPath = path.join(sentiOutputDir(root), "analysis.json");
   if (!fs.existsSync(analysisPath)) throw new Error(`analysis.json not found after docs scan: ${analysisPath}`);
   let analysis;
   try {
@@ -193,7 +193,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
 
     // Determine where spec files live
     const worktreePath = useWorktree
-      ? path.join(sddDir(root), "worktree", branchName.replace(/\//g, "-"))
+      ? path.join(sentiDir(root), "worktree", branchName.replace(/\//g, "-"))
       : null;
     const specRoot = useWorktree ? worktreePath : root;
     const specDir = path.join(specRoot, "specs", specDirName);
@@ -292,7 +292,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
     ];
     const fillAndGateNext = [
       `fill specs/${specDirName}/draft.json`,
-      `run: sdd-forge flow run gate --phase draft`,
+      `run: senti flow run gate --phase draft`,
       `start implementation`,
     ];
     const lines = [];

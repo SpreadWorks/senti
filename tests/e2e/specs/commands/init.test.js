@@ -5,12 +5,12 @@ import { join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson } from "../../../helpers/tmp-dir.js";
 
-const CMD = join(process.cwd(), "src/sdd-forge.js");
+const CMD = join(process.cwd(), "src/senti.js");
 
 function initProject(tmp) {
   execFileSync("git", ["init", tmp], { encoding: "utf8" });
   execFileSync("git", ["-C", tmp, "checkout", "-b", "main"], { encoding: "utf8" });
-  writeJson(tmp, ".sdd-forge/config.json", {
+  writeJson(tmp, ".senti/config.json", {
     lang: "en", type: "node-cli",
     docs: { languages: ["en"], defaultLanguage: "en" },
   });
@@ -33,7 +33,7 @@ describe("spec init CLI", () => {
 
     const result = execFileSync("node", [CMD, "flow", "prepare", "--title", "test-feature", "--base", "main", "--dry-run"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp },
     });
 
     const envelope = JSON.parse(result);
@@ -48,7 +48,7 @@ describe("spec init CLI", () => {
     try {
       execFileSync("node", [CMD, "flow", "prepare"], {
         encoding: "utf8",
-        env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+        env: { ...process.env, SENTI_WORK_ROOT: tmp },
       });
       assert.fail("should throw");
     } catch (err) {
@@ -64,7 +64,7 @@ describe("spec init CLI", () => {
 
     const result = execFileSync("node", [CMD, "flow", "prepare", "--title", "my-feat", "--base", "main"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp },
     });
 
     const envelope = JSON.parse(result);
@@ -79,7 +79,7 @@ describe("spec init CLI", () => {
     initProject(tmp);
     const result = execFileSync("node", [CMD, "flow", "prepare", "--help"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp },
     });
     assert.match(result, /--title/);
     assert.match(result, /--no-branch/);
@@ -92,7 +92,7 @@ describe("spec init CLI", () => {
 
     const result = execFileSync("node", [CMD, "flow", "prepare", "--title", "nb-feat", "--base", "main", "--no-branch"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp },
     });
 
     const envelope = JSON.parse(result);
@@ -113,7 +113,7 @@ describe("spec init CLI", () => {
 
     const result = execFileSync("node", [CMD, "flow", "prepare", "--title", "test-so", "--base", "main", "--no-branch", "--dry-run"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp },
     });
 
     const envelope = JSON.parse(result);
@@ -127,14 +127,14 @@ describe("spec init CLI", () => {
 
     const result = execFileSync("node", [CMD, "flow", "prepare", "--title", "wt-feat", "--base", "main", "--worktree"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp },
     });
 
     const envelope = JSON.parse(result);
     assert.equal(envelope.ok, true);
     assert.match(envelope.data.output, /created worktree/);
     assert.match(envelope.data.output, /created branch/);
-    const wtPath = join(tmp, ".sdd-forge", "worktree", "feature-001-wt-feat");
+    const wtPath = join(tmp, ".senti", "worktree", "feature-001-wt-feat");
     assertPrepareArtifacts(wtPath, "specs/001-wt-feat");
 
     // Cleanup worktree
@@ -147,7 +147,7 @@ describe("spec init CLI", () => {
 
     const result = execFileSync("node", [CMD, "flow", "prepare", "--title", "test-wt", "--base", "main", "--worktree", "--dry-run"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp },
     });
 
     const envelope = JSON.parse(result);
@@ -162,14 +162,14 @@ describe("spec init CLI", () => {
 
     const wtPath = join(tmp, "auto-wt");
     execFileSync("git", ["-C", tmp, "worktree", "add", wtPath, "-b", "wt-auto"], { encoding: "utf8" });
-    writeJson(wtPath, ".sdd-forge/config.json", {
+    writeJson(wtPath, ".senti/config.json", {
       lang: "en", type: "node-cli",
       docs: { languages: ["en"], defaultLanguage: "en" },
     });
 
     const result = execFileSync("node", [CMD, "flow", "prepare", "--title", "auto-feat", "--base", "main"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: wtPath },
+      env: { ...process.env, SENTI_WORK_ROOT: wtPath },
     });
 
     const envelope = JSON.parse(result);

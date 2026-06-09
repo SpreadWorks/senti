@@ -12,7 +12,7 @@ describe("scan scripts extraction", () => {
 
     const tmp = createTmpDir();
     try {
-      writeJson(tmp, ".sdd-forge/config.json", {
+      writeJson(tmp, ".senti/config.json", {
         lang: "en",
         type: "node-cli",
         docs: { languages: ["en"], defaultLanguage: "en" },
@@ -25,10 +25,10 @@ describe("scan scripts extraction", () => {
       });
       writeFile(tmp, "src/index.js", 'export function hello() {}\n');
 
-      const CMD = join(process.cwd(), "src/sdd-forge.js");
+      const CMD = join(process.cwd(), "src/senti.js");
       const result = execFileSync("node", [CMD, "docs", "scan", "--stdout"], {
         encoding: "utf8",
-        env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_SOURCE_ROOT: tmp },
+        env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
       });
       const analysis = JSON.parse(result);
 
@@ -47,7 +47,7 @@ describe("scan scripts extraction", () => {
 
     const tmp = createTmpDir();
     try {
-      writeJson(tmp, ".sdd-forge/config.json", {
+      writeJson(tmp, ".senti/config.json", {
         lang: "en",
         type: "node-cli",
         docs: { languages: ["en"], defaultLanguage: "en" },
@@ -58,10 +58,10 @@ describe("scan scripts extraction", () => {
       });
       writeFile(tmp, "src/index.js", 'export function hello() {}\n');
 
-      const CMD = join(process.cwd(), "src/sdd-forge.js");
+      const CMD = join(process.cwd(), "src/senti.js");
       const result = execFileSync("node", [CMD, "docs", "scan", "--stdout"], {
         encoding: "utf8",
-        env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_SOURCE_ROOT: tmp },
+        env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
       });
       const analysis = JSON.parse(result);
 

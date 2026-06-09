@@ -58,7 +58,7 @@ describe("flow get resolve-context (extended fields)", () => {
     setupFlowState(tmp);
     const result = execFileSync(
       "node", [FLOW_CMD, "get", "resolve-context"],
-      { encoding: "utf8", env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp } },
+      { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } },
     );
     const envelope = JSON.parse(result);
     assert.equal(envelope.ok, true);
@@ -80,7 +80,7 @@ describe("flow get resolve-context (extended fields)", () => {
 
     const result = execFileSync(
       "node", [FLOW_CMD, "get", "resolve-context"],
-      { encoding: "utf8", env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp } },
+      { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } },
     );
     const envelope = JSON.parse(result);
     assert.equal(envelope.ok, true);

@@ -1,7 +1,7 @@
 /**
- * sdd-forge/lib/config.js
+ * senti/lib/config.js
  *
- * JSON / package.json 読み込みユーティリティ + SDD 設定管理。
+ * JSON / package.json 読み込みユーティリティ + Spec-Driven Development 設定管理。
  */
 
 import fs from "fs";
@@ -18,7 +18,7 @@ export const DEFAULT_LANG = "en";
 /**
  * Resolve concurrency from config, falling back to DEFAULT_CONCURRENCY.
  *
- * @param {Object} cfg - SDD config object
+ * @param {Object} cfg - Spec-Driven Development config object
  * @returns {number}
  */
 export function resolveConcurrency(cfg) {
@@ -60,21 +60,21 @@ export function loadPackageField(root, field) {
 }
 
 // ---------------------------------------------------------------------------
-// .sdd-forge パスヘルパー
+// .senti パスヘルパー
 // ---------------------------------------------------------------------------
 
-const SDD_DIR_NAME = ".sdd-forge";
+const SENTI_DIR_NAME = ".senti";
 
-export function sddDir(root) {
-  return path.join(root, SDD_DIR_NAME);
+export function sentiDir(root) {
+  return path.join(root, SENTI_DIR_NAME);
 }
 
-export function sddConfigPath(root) {
-  return path.join(root, SDD_DIR_NAME, "config.json");
+export function sentiConfigPath(root) {
+  return path.join(root, SENTI_DIR_NAME, "config.json");
 }
 
-export function sddOutputDir(root) {
-  return path.join(root, SDD_DIR_NAME, "output");
+export function sentiOutputDir(root) {
+  return path.join(root, SENTI_DIR_NAME, "output");
 }
 
 /**
@@ -86,7 +86,7 @@ export function sddOutputDir(root) {
  *   3) ".tmp" (default)
  *
  * @param {string} root - Repository root
- * @param {Object} [cfg] - SDD config object
+ * @param {Object} [cfg] - Spec-Driven Development config object
  * @param {Object} [opts]
  * @param {string} [opts.agentWorkDirOverride] - Per-invocation override
  * @returns {string} Absolute path to work directory
@@ -97,7 +97,7 @@ export function resolveWorkDir(root, cfg, opts = {}) {
 }
 
 /**
- * .sdd-forge/config.json から lang を読み込む。
+ * .senti/config.json から lang を読み込む。
  * ファイルが存在しないかパースに失敗した場合は "en" を返す。
  * ヘルプ表示など、バリデーション前に言語が必要な場面で使用する。
  *
@@ -106,7 +106,7 @@ export function resolveWorkDir(root, cfg, opts = {}) {
  */
 export function loadLang(root) {
   try {
-    const raw = JSON.parse(fs.readFileSync(sddConfigPath(root), "utf8"));
+    const raw = JSON.parse(fs.readFileSync(sentiConfigPath(root), "utf8"));
     return raw.lang || DEFAULT_LANG;
   } catch (_) {
     return DEFAULT_LANG;
@@ -315,7 +315,7 @@ const CONFIG_SCHEMA = {
  * Throws on any validation failure.
  *
  * @param {*} raw - Parsed config object
- * @returns {import("./types.js").SddConfig} Validated config
+ * @returns {import("./types.js").SentiConfig} Validated config
  */
 const MISSING_TYPE_ERROR = "type: required field is missing";
 
@@ -374,7 +374,7 @@ export function validate(raw, options = {}) {
     throw new Error(`Config validation failed:\n  - ${errors.join("\n  - ")}`);
   }
 
-  return /** @type {import("./types.js").SddConfig} */ (raw);
+  return /** @type {import("./types.js").SentiConfig} */ (raw);
 }
 
 const TEST_COMMAND_FORBIDDEN = /(\|\||&&|[|&;<>`$()]|\*|\?|\[|\]|\{|\})/;
@@ -398,16 +398,16 @@ function validateProjectTestPath(entry, index, errors) {
 }
 
 // ---------------------------------------------------------------------------
-// SDD 設定管理
+// Spec-Driven Development 設定管理
 // ---------------------------------------------------------------------------
 
 /**
- * .sdd-forge/config.json を読み込みバリデーションする。
+ * .senti/config.json を読み込みバリデーションする。
  *
  * @param {string} root - リポジトリルート
- * @returns {import("./types.js").SddConfig}
+ * @returns {import("./types.js").SentiConfig}
  */
 export function loadConfig(root, options = {}) {
-  const raw = loadJsonFile(sddConfigPath(root));
+  const raw = loadJsonFile(sentiConfigPath(root));
   return validate(raw, options);
 }

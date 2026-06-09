@@ -1,15 +1,15 @@
-# workflow (`sdd-forge workflow`)
+# workflow (`senti workflow`)
 
-このディレクトリは `sdd-forge workflow <subcommand>` コマンドの実装である。GitHub Projects ボードのドラフト管理と issue 化を提供する。
+このディレクトリは `senti workflow <subcommand>` コマンドの実装である。GitHub Projects ボードのドラフト管理と issue 化を提供する。
 
 ## [EXPERIMENTAL]
 
-`sdd-forge workflow` は **experimental** である。実装は安定しているが、運用方法論（methodology）が未確定であり、usage patterns may change（使い方は今後変わる可能性がある）。
+`senti workflow` は **experimental** である。実装は安定しているが、運用方法論（methodology）が未確定であり、usage patterns may change（使い方は今後変わる可能性がある）。
 
 - 実装の安定性: サブコマンド（`add` / `update` / `show` / `search` / `list` / `publish`）の振る舞いは安定している。
 - 未確定なのは「運用方法論」: ボードに何を載せるか、Ideas ステータスからの繰り上げ昇格判断、published issue との突き合わせ等の運用ルール。
 
-experimental ラベルは `sdd-forge workflow --help` の冒頭と top-level `sdd-forge help` に表示される。
+experimental ラベルは `senti workflow --help` の冒頭と top-level `senti help` に表示される。
 
 ## アーキテクチャ
 

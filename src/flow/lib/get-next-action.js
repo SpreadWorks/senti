@@ -34,7 +34,7 @@ import { Envelope } from "../../lib/flow-envelope.js";
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
 function resolveSchemaDir() {
-  return process.env.SDD_FORGE_NEXT_ACTION_SCHEMA_DIR || DEFAULT_SCHEMA_DIR;
+  return process.env.SENTI_NEXT_ACTION_SCHEMA_DIR || DEFAULT_SCHEMA_DIR;
 }
 
 function loadSchema(relPath) {

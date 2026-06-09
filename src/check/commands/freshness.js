@@ -2,10 +2,10 @@
 /**
  * src/check/commands/freshness.js
  *
- * sdd-forge check freshness — compare docs/ and source modification timestamps.
+ * senti check freshness — compare docs/ and source modification timestamps.
  *
- * Determines whether `sdd-forge docs build` is needed by comparing the newest mtime
- * of files under SDD_SOURCE_ROOT with the newest mtime of files under docs/.
+ * Determines whether `senti docs build` is needed by comparing the newest mtime
+ * of files under SENTI_SOURCE_ROOT with the newest mtime of files under docs/.
  *
  * Results:
  *   fresh       — docs/ is up to date (exit 0)
@@ -24,15 +24,15 @@ const FILE_LIMIT = 10_000;
 function printHelp() {
   console.log(
     [
-      "Usage: sdd-forge check freshness [options]",
+      "Usage: senti check freshness [options]",
       "",
       "Compare docs/ and source modification timestamps to determine if",
-      "sdd-forge docs build is needed.",
+      "senti docs build is needed.",
       "",
       "Results:",
       "  fresh       docs/ is up to date",
-      "  stale       source is newer than docs/ — run sdd-forge docs build",
-      "  never-built docs/ does not exist — run sdd-forge docs build",
+      "  stale       source is newer than docs/ — run senti docs build",
+      "  never-built docs/ does not exist — run senti docs build",
       "",
       "Exit codes:",
       "  0  fresh",
@@ -130,12 +130,12 @@ async function checkFreshness(workRoot, srcRoot) {
 
   if (srcTruncated) {
     process.stderr.write(
-      `sdd-forge check freshness: warning — source file limit (${FILE_LIMIT}) reached, result may be approximate\n`
+      `senti check freshness: warning — source file limit (${FILE_LIMIT}) reached, result may be approximate\n`
     );
   }
   if (docsTruncated) {
     process.stderr.write(
-      `sdd-forge check freshness: warning — docs file limit (${FILE_LIMIT}) reached, result may be approximate\n`
+      `senti check freshness: warning — docs file limit (${FILE_LIMIT}) reached, result may be approximate\n`
     );
   }
 
@@ -169,7 +169,7 @@ async function runFreshnessCheck(rawArgs, container) {
 
   const format = cli.format;
   if (!["text", "json"].includes(format)) {
-    process.stderr.write(`sdd-forge check freshness: unknown format '${format}'. Use text or json.\n`);
+    process.stderr.write(`senti check freshness: unknown format '${format}'. Use text or json.\n`);
     process.exit(EXIT_ERROR);
   }
 
@@ -191,11 +191,11 @@ async function runFreshnessCheck(rawArgs, container) {
       process.stdout.write("fresh — docs/ is up to date\n");
       break;
     case "stale":
-      process.stdout.write("stale — source is newer than docs/, run: sdd-forge docs build\n");
+      process.stdout.write("stale — source is newer than docs/, run: senti docs build\n");
       process.exit(EXIT_ERROR);
       break;
     case "never-built":
-      process.stdout.write("never-built — docs/ does not exist, run: sdd-forge docs build\n");
+      process.stdout.write("never-built — docs/ does not exist, run: senti docs build\n");
       process.exit(EXIT_ERROR);
       break;
   }

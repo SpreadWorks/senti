@@ -18,17 +18,17 @@ const subCmd = args[0];
 const rest = args.slice(1);
 
 if (!subCmd || subCmd === "-h" || subCmd === "--help") {
-  console.error("Usage: sdd-forge docs <command>\n");
+  console.error("Usage: senti docs <command>\n");
   console.error("Available commands:");
   for (const c of Object.keys(docsCommands)) console.error(`  ${c}`);
-  console.error("\nRun: sdd-forge docs <command> --help");
+  console.error("\nRun: senti docs <command> --help");
   process.exit(subCmd ? 0 : 1);
 }
 
 const entry = docsCommands[subCmd];
 if (!entry) {
-  console.error(`sdd-forge docs: unknown command '${subCmd}'`);
-  console.error("Run: sdd-forge help");
+  console.error(`senti docs: unknown command '${subCmd}'`);
+  console.error("Run: senti help");
   process.exit(EXIT_ERROR);
 }
 

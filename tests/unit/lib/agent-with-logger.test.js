@@ -48,7 +48,7 @@ describe("Agent.call() — Logger integration", () => {
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "agent-log-"));
-    logFile = path.join(tmpDir, `sdd-forge-${todayLocal()}.jsonl`);
+    logFile = path.join(tmpDir, `senti-${todayLocal()}.jsonl`);
     logger = makeLogger(tmpDir);
   });
 
@@ -115,7 +115,7 @@ describe("Agent.call() — metric accumulation (spec 186 R3)", () => {
   it("calls flowManager.accumulateAgentMetrics after a successful call", async () => {
     const calls = [];
     const flowManager = {
-      resolveCurrentContext: () => ({ spec: "186-logger-container-service", sddPhase: "test" }),
+      resolveCurrentContext: () => ({ spec: "186-logger-container-service", sentiPhase: "test" }),
       accumulateAgentMetrics: (...args) => { calls.push(args); },
     };
     const agent = makeAgentService({ command: "echo", args: ["{{PROMPT}}"] }, tmpDir, { logger, flowManager });
@@ -123,14 +123,14 @@ describe("Agent.call() — metric accumulation (spec 186 R3)", () => {
     await logger.flush();
 
     assert.equal(calls.length, 1, "metric should be accumulated exactly once");
-    assert.equal(calls[0][0], "test", "phase arg should be the current sddPhase");
+    assert.equal(calls[0][0], "test", "phase arg should be the current sentiPhase");
   });
 
   it("runs metric accumulation even when logger is disabled", async () => {
     const disabledLogger = new Logger({ logDir: tmpDir, enabled: false, entryCommand: "test", cwd: tmpDir });
     const calls = [];
     const flowManager = {
-      resolveCurrentContext: () => ({ spec: "186", sddPhase: "test" }),
+      resolveCurrentContext: () => ({ spec: "186", sentiPhase: "test" }),
       accumulateAgentMetrics: (...args) => { calls.push(args); },
     };
     const agent = makeAgentService({ command: "echo", args: ["{{PROMPT}}"] }, tmpDir, { logger: disabledLogger, flowManager });
@@ -138,10 +138,10 @@ describe("Agent.call() — metric accumulation (spec 186 R3)", () => {
     assert.equal(calls.length, 1);
   });
 
-  it("skips metric accumulation when sddPhase is null", async () => {
+  it("skips metric accumulation when sentiPhase is null", async () => {
     const calls = [];
     const flowManager = {
-      resolveCurrentContext: () => ({ spec: null, sddPhase: null }),
+      resolveCurrentContext: () => ({ spec: null, sentiPhase: null }),
       accumulateAgentMetrics: (...args) => { calls.push(args); },
     };
     const agent = makeAgentService({ command: "echo", args: ["{{PROMPT}}"] }, tmpDir, { logger, flowManager });
@@ -154,7 +154,7 @@ describe("Agent.call() — metric accumulation (spec 186 R3)", () => {
   it("passes a non-negative integer durationMs to accumulateAgentMetrics (spec 191 R1)", async () => {
     const calls = [];
     const flowManager = {
-      resolveCurrentContext: () => ({ spec: "191-record-phase-duration", sddPhase: "test" }),
+      resolveCurrentContext: () => ({ spec: "191-record-phase-duration", sentiPhase: "test" }),
       accumulateAgentMetrics: (...args) => { calls.push(args); },
     };
     const agent = makeAgentService({ command: "echo", args: ["{{PROMPT}}"] }, tmpDir, { logger, flowManager });
@@ -170,7 +170,7 @@ describe("Agent.call() — metric accumulation (spec 186 R3)", () => {
   it("durationMs covers all retry attempts when retries occur (spec 191 R1)", async () => {
     const calls = [];
     const flowManager = {
-      resolveCurrentContext: () => ({ spec: "191", sddPhase: "test" }),
+      resolveCurrentContext: () => ({ spec: "191", sentiPhase: "test" }),
       accumulateAgentMetrics: (...args) => { calls.push(args); },
     };
     // Use a command that sleeps briefly then exits non-zero so retry kicks in

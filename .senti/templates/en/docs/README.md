@@ -3,9 +3,9 @@
 <!-- {{data("cli.docs.langSwitcher", {labels: "absolute"})}} -->
 <!-- {{/data}} -->
 
-[![npm version](https://img.shields.io/npm/v/sdd-forge.svg)](https://www.npmjs.com/package/sdd-forge)
-[![license](https://img.shields.io/npm/l/sdd-forge.svg)](https://opensource.org/licenses/MIT)
-[![downloads](https://img.shields.io/npm/dm/sdd-forge.svg)](https://www.npmjs.com/package/sdd-forge)
+[![npm version](https://img.shields.io/npm/v/senti.svg)](https://www.npmjs.com/package/senti)
+[![license](https://img.shields.io/npm/l/senti.svg)](https://opensource.org/licenses/MIT)
+[![downloads](https://img.shields.io/npm/dm/senti.svg)](https://www.npmjs.com/package/senti)
 
 > **Alpha:** APIs, command structure, and configuration formats may change without notice.
 
@@ -13,7 +13,7 @@
 
 A spec-first development flow manager designed to work with AI coding agents.
 
-## The SDD Flow
+## The Spec-Driven Development Flow
 
 Every feature goes through three phases, from spec to merge.
 
@@ -73,19 +73,19 @@ If you already have source code, generate documentation to get a complete pictur
 <!-- {{data("cli.project.name")}} --><!-- {{/data}} --> docs build
 </pre>
 
-### Develop with the SDD flow
+### Develop with the Spec-Driven Development flow
 
 **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)** — run each phase via skills:
 
 | Skill | Phase |
 |---|---|
-| `/sdd-forge.flow` | full SDD flow (plan, implement, finalize) |
+| `/senti.flow` | full Spec-Driven Development flow (plan, implement, finalize) |
 
 **[Codex CLI](https://github.com/openai/codex)** — invoke via `$` prefix:
 
 | Command | Phase |
 |---|---|
-| `$sdd-forge.flow` | full SDD flow (plan, implement, finalize) |
+| `$senti.flow` | full Spec-Driven Development flow (plan, implement, finalize) |
 
 ## Commands
 
@@ -94,11 +94,11 @@ If you already have source code, generate documentation to get a complete pictur
 | `setup` | Register project and generate config |
 | `docs build` | Run the full documentation pipeline |
 
-See `sdd-forge help` or the [command reference](docs/cli_commands.md) for the full list.
+See `senti help` or the [command reference](docs/cli_commands.md) for the full list.
 
 ## Configuration
 
-`setup` generates `.sdd-forge/config.json`:
+`setup` generates `.senti/config.json`:
 
 ```jsonc
 {

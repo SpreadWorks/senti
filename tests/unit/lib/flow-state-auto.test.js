@@ -8,7 +8,7 @@ import { execFileSync } from "node:child_process";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 function createTmpProject() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "flow-auto-"));
-  fs.mkdirSync(path.join(tmp, ".sdd-forge"), { recursive: true });
+  fs.mkdirSync(path.join(tmp, ".senti"), { recursive: true });
   fs.mkdirSync(path.join(tmp, "specs", "001-test"), { recursive: true });
   execFileSync("git", ["init", tmp], { stdio: "ignore" });
   return tmp;

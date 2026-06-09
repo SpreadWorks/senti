@@ -12,7 +12,7 @@ import { join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../helpers/tmp-dir.js";
 
-const CMD = join(process.cwd(), "src/sdd-forge.js");
+const CMD = join(process.cwd(), "src/senti.js");
 const CMD_ARGS = ["docs", "scan"];
 
 // ---------------------------------------------------------------------------
@@ -182,7 +182,7 @@ describe("scan config override", () => {
   it("config.json scan replaces preset scan entirely", () => {
     tmp = createTmpDir();
     // config specifies only lib/ — src/ files should NOT appear
-    writeJson(tmp, ".sdd-forge/config.json", {
+    writeJson(tmp, ".senti/config.json", {
       lang: "ja",
       type: "node-cli",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -193,7 +193,7 @@ describe("scan config override", () => {
 
     const result = execFileSync("node", [CMD, ...CMD_ARGS, "--stdout"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
     });
     const analysis = JSON.parse(result);
 
@@ -220,7 +220,7 @@ describe("analysis.json top-level structure (no extras)", () => {
 
   it("package data is at top level, not under extras", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".sdd-forge/config.json", {
+    writeJson(tmp, ".senti/config.json", {
       lang: "ja",
       type: "node-cli",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -234,7 +234,7 @@ describe("analysis.json top-level structure (no extras)", () => {
 
     const result = execFileSync("node", [CMD, ...CMD_ARGS, "--stdout"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
     });
     const analysis = JSON.parse(result);
 
@@ -254,7 +254,7 @@ describe("preserveEnrichment recursive hash search", () => {
 
   it("preserves enrichment for entries nested at arbitrary depth", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".sdd-forge/config.json", {
+    writeJson(tmp, ".senti/config.json", {
       lang: "ja",
       type: "node-cli",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -268,10 +268,10 @@ describe("preserveEnrichment recursive hash search", () => {
     // 1st scan
     execFileSync("node", [CMD, ...CMD_ARGS], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
     });
 
-    const outputPath = join(tmp, ".sdd-forge/output/analysis.json");
+    const outputPath = join(tmp, ".senti/output/analysis.json");
     const first = JSON.parse(fs.readFileSync(outputPath, "utf8"));
 
     // Find any entry with a hash and add enrichment
@@ -288,7 +288,7 @@ describe("preserveEnrichment recursive hash search", () => {
     // 2nd scan (same source)
     execFileSync("node", [CMD, ...CMD_ARGS], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
     });
 
     const second = JSON.parse(fs.readFileSync(outputPath, "utf8"));
@@ -308,7 +308,7 @@ describe("single DataSource match (first wins)", () => {
 
   it("a file is assigned to the first matching DataSource only", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".sdd-forge/config.json", {
+    writeJson(tmp, ".senti/config.json", {
       lang: "ja",
       type: "cakephp2",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -331,7 +331,7 @@ describe("single DataSource match (first wins)", () => {
 
     const result = execFileSync("node", [CMD, ...CMD_ARGS, "--stdout"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
     });
     const analysis = JSON.parse(result);
     // config DataSource matches AppController.php first (first-match-wins)

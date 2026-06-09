@@ -271,10 +271,10 @@ describe("T-5: auto-promote function and callers", () => {
     const fm = makeFlowManager(tmp);
     fm.save(fm.load()); // persist through load/save to validate schema
 
-    const CLI = path.join(process.cwd(), "src/sdd-forge.js");
+    const CLI = path.join(process.cwd(), "src/senti.js");
     const out = execFileSync("node", [CLI, "flow", "get", "next-action"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp },
     });
     const envelope = JSON.parse(out);
     assert.equal(envelope.ok, true);
@@ -305,10 +305,10 @@ describe("T-5: auto-promote function and callers", () => {
       steps,
     });
 
-    const CLI = path.join(process.cwd(), "src/sdd-forge.js");
+    const CLI = path.join(process.cwd(), "src/senti.js");
     const out = execFileSync("node", [CLI, "flow", "get", "next-action"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp },
     });
     const envelope = JSON.parse(out);
     assert.equal(envelope.ok, true);

@@ -2,7 +2,7 @@
 /**
  * src/presets-cmd.js
  *
- * `sdd-forge presets list` — display the preset inheritance tree.
+ * `senti presets list` — display the preset inheritance tree.
  * Uses parent field for hierarchy display.
  */
 
@@ -24,14 +24,14 @@ export async function main() {
     try {
       lang = loadLang(repoRoot());
     } catch (err) {
-      process.stderr.write(`[sdd-forge presets] lang load failed, falling back to en: ${err?.message}\n`);
+      process.stderr.write(`[senti presets] lang load failed, falling back to en: ${err?.message}\n`);
       lang = "en";
     }
     const tu = createI18n(lang);
     const h = tu.raw("help.cmdHelp.presets");
     console.log([h.usage, "", `  ${h.desc}`].join("\n"));
   } else {
-    console.error(`sdd-forge presets: unknown command '${subCmd}'`);
+    console.error(`senti presets: unknown command '${subCmd}'`);
     process.exit(EXIT_ERROR);
   }
 }

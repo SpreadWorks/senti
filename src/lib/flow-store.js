@@ -17,7 +17,7 @@ import {
   hasExplicitOption,
 } from "./flow-options.js";
 import { runGit } from "./git-helpers.js";
-import { sddDir } from "./config.js";
+import { sentiDir } from "./config.js";
 import { renameFlowStateStepIds } from "./step-id-rename.js";
 import {
   STATE_FILE,
@@ -627,7 +627,7 @@ export class FlowStore {
     try {
       state = JSON.parse(fs.readFileSync(p, "utf8"));
     } catch (err) {
-      process.stderr.write(`[sdd-forge] flow-store.loadReadOnly: malformed flow.json at ${p}: ${err.message}\n`);
+      process.stderr.write(`[senti] flow-store.loadReadOnly: malformed flow.json at ${p}: ${err.message}\n`);
       return null;
     }
     migrateFlowState(state, p, { persist: false, root: this._root });
@@ -673,7 +673,7 @@ export class FlowStore {
 
     const dirName = state.featureBranch.replace(/\//g, "-");
     return {
-      worktreePath: path.join(sddDir(this._root), "worktree", dirName),
+      worktreePath: path.join(sentiDir(this._root), "worktree", dirName),
       mainRepoPath: this._root,
     };
   }

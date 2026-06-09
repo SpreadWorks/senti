@@ -9,8 +9,8 @@ describe("flow finalize — state.finalizedAt write (R1)", () => {
   afterEach(() => tmp && removeTmpDir(tmp));
 
   it("R1: saveFinalizedAt writes state.finalizedAt in ISO 8601 UTC", () => {
-    tmp = createTmpDir("sdd-finalize-write-");
-    writeJson(tmp, ".sdd-forge/config.json", {
+    tmp = createTmpDir("senti-finalize-write-");
+    writeJson(tmp, ".senti/config.json", {
       lang: "ja",
       type: "base",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -32,8 +32,8 @@ describe("flow finalize — state.finalizedAt write (R1)", () => {
   });
 
   it("R1: ISO 8601 UTC format is enforced (Z suffix)", () => {
-    tmp = createTmpDir("sdd-finalize-format-");
-    writeJson(tmp, ".sdd-forge/config.json", {
+    tmp = createTmpDir("senti-finalize-format-");
+    writeJson(tmp, ".senti/config.json", {
       lang: "ja",
       type: "base",
       docs: { languages: ["ja"], defaultLanguage: "ja" },

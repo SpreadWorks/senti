@@ -5,16 +5,16 @@
      - `security_or_data_integrity_bug`
    - Regression failures, test false positives, scope creep, project-rule violations, naming proposals, refactor proposals, DRY proposals, comment proposals, and docs proposals are not impl review blocking findings. Non-blocking improvements are optional and must name a touched file, observable issue, and replacement action when reported.
    - **Test-only spec detection (autoApprove mode):** If the spec's Goal, Scope, and Requirements indicate that only tests are being added (no production code changes), and `autoApprove: true`:
-     1. Set `sdd-forge flow set step implement skipped`.
+     1. Set `senti flow set step implement skipped`.
      2. **Do NOT skip `test-execute`, `test-result-review`, or the flow-level `impl-gate`.** They run regardless because the spec's tests still need execution, artifact review, and regression gate validation.
      3. The dispatcher promotes `test-execute` next.
      4. Display: "auto: test-only spec detected — implement skipped; test-execute will run"
      - If unsure whether the spec is test-only, proceed with normal implementation (err on the side of caution).
    - **Context gathering (supplement-first):** Build understanding in tiers — stop as soon as sufficient. Do NOT re-read material already in context.
      1. The spec (just read above) and test files from the plan phase are the primary inputs. Proceed if they are sufficient.
-     2. If target files are not yet in context: `sdd-forge flow get context --search "<spec goal>" --raw` using the spec's Goal section as the query.
-     3. If project structure is still unclear after step 2: `sdd-forge flow get context --raw` for a broad overview; then `sdd-forge flow get context <path> --raw` for specific files.
-     4. If guardrail articles have NOT been loaded in this session: `sdd-forge flow get guardrail integration` for flow-level implementation work, or `sdd-forge flow get guardrail task-impl` for per-task work. The alias `impl` resolves to `task-impl` for compatibility. If output is non-empty, follow these principles. Skip if already present in context.
+     2. If target files are not yet in context: `senti flow get context --search "<spec goal>" --raw` using the spec's Goal section as the query.
+     3. If project structure is still unclear after step 2: `senti flow get context --raw` for a broad overview; then `senti flow get context <path> --raw` for specific files.
+     4. If guardrail articles have NOT been loaded in this session: `senti flow get guardrail integration` for flow-level implementation work, or `senti flow get guardrail task-impl` for per-task work. The alias `impl` resolves to `task-impl` for compatibility. If output is non-empty, follow these principles. Skip if already present in context.
    - **Before writing any code**, present an implementation approach and obtain approval:
      - For each spec requirement, describe:
        - **方針 (Approach):** how you plan to implement it
@@ -49,17 +49,17 @@
      - **If `autoApprove: true`**: present the approach briefly, then auto-select [1] and proceed. Display: "auto: approach confirmed → proceeding to implementation"
    - Code only after confirming gate PASS, test phase completion, and approach approval.
    - Aim to make tests pass.
-   - **Update requirements as you go**: `sdd-forge flow set req <reqId> done` (for example `R1`) for each completed requirement. Numeric values are still accepted as 0-based indexes when needed.
+   - **Update requirements as you go**: `senti flow set req <reqId> done` (for example `R1`) for each completed requirement. Numeric values are still accepted as 0-based indexes when needed.
    - **Do NOT run tests in this step.** Test execution is centralized in the `test-execute` step that runs after `implement` completes. Implement code so it is self-consistent; the dispatcher will invoke `test-execute` next.
-   - **Prepare/docs scan hard stop:** if preparation or later execution reports that `.sdd-forge/output/analysis.json` cannot be created, read, or validated, stop through the normal flow error path. Do not mask it with manual `flow set step`.
+   - **Prepare/docs scan hard stop:** if preparation or later execution reports that `.senti/output/analysis.json` cannot be created, read, or validated, stop through the normal flow error path. Do not mask it with manual `flow set step`.
    - **v2 test artifact contract:** `test-execute` produces `test-execute-result.json` version `"2"` and raw output. Started project regression failures still create a normal artifact and advance to `test-result-review`; prerequisite failures before the command starts are hard stops and must be fixed before rerunning.
    - **Placeholder artifact permission:** do not write hand-made placeholder test artifacts to satisfy the flow. If real execution is unavailable, use the `placeholder-permission.json` contract documented in the flow skill; without explicit user permission, flow-level `impl-gate` rejects placeholder artifacts with `ARTIFACT_PLACEHOLDER`.
    - **Prepare file-map before impl-gate:** before running the flow-level `impl-gate` / integration gate, prepare `file-map.json` by recording changed files for every testable requirement.
-     - Use: `sdd-forge flow set files <reqId> <path...>`
+     - Use: `senti flow set files <reqId> <path...>`
      - `reqId` is a spec requirement id, such as `R1`.
      - Each `path` is a repo-relative changed file path.
      - Record at least one file-map entry for every testable requirement before proceeding to the flow-level `impl-gate`.
-   - **MUST: If implementation reveals a pre-existing bug outside the current spec's scope**, record it in issue-log (`sdd-forge flow set issue-log --step implement --reason "..."`) before adjusting the spec or applying a workaround.
+   - **MUST: If implementation reveals a pre-existing bug outside the current spec's scope**, record it in issue-log (`senti flow set issue-log --step implement --reason "..."`) before adjusting the spec or applying a workaround.
    - **On complete**:
-     - Run guardrail lint check: `sdd-forge flow run lint`. If violations are found, fix them before proceeding. If lint passes with no guardrail articles defined, this is normal — proceed.
-     - `sdd-forge flow set step implement done`
+     - Run guardrail lint check: `senti flow run lint`. If violations are found, fix them before proceeding. If lint passes with no guardrail articles defined, this is normal — proceed.
+     - `senti flow set step implement done`

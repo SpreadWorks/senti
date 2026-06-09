@@ -5,15 +5,15 @@ import { join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../../../helpers/tmp-dir.js";
 
-const CMD = join(process.cwd(), "src/sdd-forge.js");
+const CMD = join(process.cwd(), "src/senti.js");
 const CMD_ARGS = ["docs", "text"];
 
 function makeEnv(tmp) {
-  return { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_SOURCE_ROOT: tmp };
+  return { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp };
 }
 
 function setupProject(tmp, opts = {}) {
-  writeJson(tmp, ".sdd-forge/config.json", {
+  writeJson(tmp, ".senti/config.json", {
     lang: "ja", type: "node-cli",
     docs: { languages: ["ja"], defaultLanguage: "ja" },
     agent: {
@@ -29,7 +29,7 @@ function setupProject(tmp, opts = {}) {
     ...opts.config,
   });
   writeJson(tmp, "package.json", { name: "test-pkg", version: "1.0.0" });
-  writeJson(tmp, ".sdd-forge/output/analysis.json", {
+  writeJson(tmp, ".senti/output/analysis.json", {
     analyzedAt: "2026-01-01",
     enrichedAt: "2026-01-01",
     extras: {},

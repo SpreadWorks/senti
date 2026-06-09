@@ -16,7 +16,7 @@
 
 ## 昇格の実例
 
-- `sdd-forge workflow`（GitHub Projects ボード管理 + issue 化）は `experimental/` から `src/workflow/` へ昇格済み。昇格条件は `src/workflow/AGENTS.md` を参照。
+- `senti workflow`（GitHub Projects ボード管理 + issue 化）は `experimental/` から `src/workflow/` へ昇格済み。昇格条件は `src/workflow/AGENTS.md` を参照。
 
 ## テスト
 

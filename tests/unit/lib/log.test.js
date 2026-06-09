@@ -6,7 +6,7 @@
  *
  *   - No-op behavior when `enabled` is false (R7).
  *   - Daily JSONL and per-request prompt JSON output (R1, R2, R3).
- *   - spec / sddPhase auto-resolution via the injected FlowManager (R4).
+ *   - spec / sentiPhase auto-resolution via the injected FlowManager (R4).
  *   - Logger.git / Logger.event API surface (R9).
  *   - requestId 8-char hex linkage between start/end and prompt files (R12).
  *   - I/O failure tolerance (AC10).
@@ -72,7 +72,7 @@ describe("Logger.agent — start/end events and JSONL output", () => {
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "logger-agent-"));
-    logFile = path.join(tmpDir, `sdd-forge-${todayLocal()}.jsonl`);
+    logFile = path.join(tmpDir, `senti-${todayLocal()}.jsonl`);
   });
   afterEach(() => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -160,9 +160,9 @@ describe("Logger.agent — start/end events and JSONL output", () => {
     assert.equal(promptJson.response.exitCode, 0);
   });
 
-  it("spec and sddPhase are resolved via injected flowManager", async () => {
+  it("spec and sentiPhase are resolved via injected flowManager", async () => {
     const flowManager = {
-      resolveCurrentContext: () => ({ spec: "153-unified-jsonl-logger", sddPhase: "gate" }),
+      resolveCurrentContext: () => ({ spec: "153-unified-jsonl-logger", sentiPhase: "gate" }),
     };
     const inst = buildLogger(tmpDir, { flowManager });
     await inst.agent({
@@ -178,10 +178,10 @@ describe("Logger.agent — start/end events and JSONL output", () => {
 
     const entries = readJsonl(logFile);
     assert.equal(entries[0].spec, "153-unified-jsonl-logger");
-    assert.equal(entries[0].sddPhase, "gate");
+    assert.equal(entries[0].sentiPhase, "gate");
   });
 
-  it("spec/sddPhase are null when no flowManager is provided", async () => {
+  it("spec/sentiPhase are null when no flowManager is provided", async () => {
     const inst = buildLogger(tmpDir);
     await inst.agent({
       phase: "end",
@@ -195,7 +195,7 @@ describe("Logger.agent — start/end events and JSONL output", () => {
     await inst.flush();
     const entries = readJsonl(logFile);
     assert.equal(entries[0].spec, null);
-    assert.equal(entries[0].sddPhase, null);
+    assert.equal(entries[0].sentiPhase, null);
   });
 
   it("requestId links start/end and prompt file name", async () => {
@@ -234,7 +234,7 @@ describe("Logger.agent — start/end events and JSONL output", () => {
   it("does not call accumulateAgentMetrics (metric is agent's responsibility)", async () => {
     let called = false;
     const flowManager = {
-      resolveCurrentContext: () => ({ spec: "186-logger-container-service", sddPhase: "test" }),
+      resolveCurrentContext: () => ({ spec: "186-logger-container-service", sentiPhase: "test" }),
       accumulateAgentMetrics: () => { called = true; },
     };
     const inst = buildLogger(tmpDir, { flowManager });
@@ -259,7 +259,7 @@ describe("Logger.git and Logger.event — API surface", () => {
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "logger-git-"));
-    logFile = path.join(tmpDir, `sdd-forge-${todayLocal()}.jsonl`);
+    logFile = path.join(tmpDir, `senti-${todayLocal()}.jsonl`);
   });
   afterEach(() => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -300,7 +300,7 @@ describe("Logger — caller frame extraction", () => {
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "logger-caller-"));
-    logFile = path.join(tmpDir, `sdd-forge-${todayLocal()}.jsonl`);
+    logFile = path.join(tmpDir, `senti-${todayLocal()}.jsonl`);
   });
   afterEach(() => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -340,7 +340,7 @@ describe("Logger — I/O failure tolerance", () => {
 describe("Logger — sensitive information masking", () => {
   let tmpDir;
   let logFile;
-  const savedWorkRoot = process.env.SDD_WORK_ROOT;
+  const savedWorkRoot = process.env.SENTI_WORK_ROOT;
 
   // Synthetic fake tokens assembled at runtime so the source does not
   // contain recognizable secret literals (guardrail: No Hardcoded Secrets).
@@ -358,13 +358,13 @@ describe("Logger — sensitive information masking", () => {
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "logger-mask-"));
-    logFile = path.join(tmpDir, `sdd-forge-${todayLocal()}.jsonl`);
-    process.env.SDD_WORK_ROOT = tmpDir;
+    logFile = path.join(tmpDir, `senti-${todayLocal()}.jsonl`);
+    process.env.SENTI_WORK_ROOT = tmpDir;
   });
   afterEach(() => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
-    if (savedWorkRoot === undefined) delete process.env.SDD_WORK_ROOT;
-    else process.env.SDD_WORK_ROOT = savedWorkRoot;
+    if (savedWorkRoot === undefined) delete process.env.SENTI_WORK_ROOT;
+    else process.env.SENTI_WORK_ROOT = savedWorkRoot;
   });
 
   /** Run an action on a fresh Logger, flush, and return the first JSONL entry. */
@@ -420,14 +420,14 @@ describe("Logger — sensitive information masking", () => {
     assert.ok(!entry.note.includes(FAKE.aws), `AWS key should be masked: ${entry.note}`);
   });
 
-  it("masks absolute paths outside SDD_WORK_ROOT", async () => {
+  it("masks absolute paths outside SENTI_WORK_ROOT", async () => {
     const entry = await writeAndReadEntry((inst) =>
       inst.event("extpath", { file: "/home/otheruser/.ssh/id_rsa" })
     );
     assert.ok(!entry.file.includes("/home/otheruser/.ssh/id_rsa"), `external path should be masked: ${entry.file}`);
   });
 
-  it("does NOT mask paths inside SDD_WORK_ROOT", async () => {
+  it("does NOT mask paths inside SENTI_WORK_ROOT", async () => {
     const insidePath = path.join(tmpDir, "specs", "foo.md");
     const entry = await writeAndReadEntry((inst) =>
       inst.event("intpath", { file: insidePath })

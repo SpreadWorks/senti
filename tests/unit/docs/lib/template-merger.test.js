@@ -16,14 +16,14 @@ import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../../helpe
  * Returns { tmpDir, cleanup }.
  */
 function withLocalPreset(presetName, { chapters = null, templateContent = null, lang = "ja" } = {}) {
-  const tmpDir = createTmpDir("sdd-test-local-preset-");
+  const tmpDir = createTmpDir("senti-test-local-preset-");
   writeFile(
     tmpDir,
-    `.sdd-forge/presets/${presetName}/preset.json`,
+    `.senti/presets/${presetName}/preset.json`,
     JSON.stringify({ parent: null, ...(chapters ? { chapters } : {}) }),
   );
   if (templateContent !== null) {
-    writeFile(tmpDir, `.sdd-forge/presets/${presetName}/templates/${lang}/overview.md`, templateContent);
+    writeFile(tmpDir, `.senti/presets/${presetName}/templates/${lang}/overview.md`, templateContent);
   }
   return { tmpDir, cleanup: () => removeTmpDir(tmpDir) };
 }
@@ -301,7 +301,7 @@ describe("buildLayers — projectRoot", () => {
     const { tmpDir, cleanup } = withLocalPreset("mypreset", { templateContent: "# Overview" });
     try {
       const layers = buildLayers("mypreset", "ja", null, tmpDir);
-      const localTemplateDir = path.join(tmpDir, ".sdd-forge", "presets", "mypreset", "templates", "ja");
+      const localTemplateDir = path.join(tmpDir, ".senti", "presets", "mypreset", "templates", "ja");
       assert.ok(
         layers.includes(localTemplateDir),
         `expected local preset template dir in layers, got: ${layers}`,
@@ -315,7 +315,7 @@ describe("buildLayers — projectRoot", () => {
     const { tmpDir, cleanup } = withLocalPreset("mypreset", { templateContent: "# Overview" });
     try {
       const layers = buildLayers("mypreset", "ja", null, tmpDir);
-      const localTemplateDir = path.join(tmpDir, ".sdd-forge", "presets", "mypreset", "templates", "ja");
+      const localTemplateDir = path.join(tmpDir, ".senti", "presets", "mypreset", "templates", "ja");
       // When no projectLocalDir is given, the local preset template should be first
       assert.equal(layers[0], localTemplateDir);
     } finally {
@@ -360,7 +360,7 @@ describe("resolveChaptersOrder — projectRoot", () => {
     const chaptersWithout = resolveChaptersOrder("base");
     const { tmpDir, cleanup } = withLocalPreset("other-preset", {});
     try {
-      // No .sdd-forge/presets/base/ — should return same as without projectRoot
+      // No .senti/presets/base/ — should return same as without projectRoot
       const chaptersWithRoot = resolveChaptersOrder("base", null, tmpDir);
       assert.deepEqual(chaptersWithRoot, chaptersWithout);
     } finally {

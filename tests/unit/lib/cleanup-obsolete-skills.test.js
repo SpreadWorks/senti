@@ -39,64 +39,64 @@ describe("cleanupObsoleteSkills — consolidated flow skill scenario (R10)", () 
   it("removes legacy flow-plan/impl/finalize and preserves unrelated skills", () => {
     tmp = createTmpDir();
     const installed = [
-      "sdd-forge.flow-plan",
-      "sdd-forge.flow-impl",
-      "sdd-forge.flow-finalize",
-      "sdd-forge.flow",
-      "sdd-forge.flow-auto",
+      "senti.flow-plan",
+      "senti.flow-impl",
+      "senti.flow-finalize",
+      "senti.flow",
+      "senti.flow-auto",
     ];
     setupProject(tmp, installed);
 
     const templatesDir = path.join(tmp, "_templates");
     setupActiveTemplates(templatesDir, [
-      "sdd-forge.flow",
-      "sdd-forge.flow-auto",
-      "sdd-forge.flow-resume",
-      "sdd-forge.flow-status",
-      "sdd-forge.flow-sync",
+      "senti.flow",
+      "senti.flow-auto",
+      "senti.flow-resume",
+      "senti.flow-status",
+      "senti.flow-sync",
     ]);
 
     const result = cleanupObsoleteSkills(tmp, [templatesDir]);
 
     const removed = result.map((r) => r.name).sort();
     assert.deepEqual(removed, [
-      "sdd-forge.flow-finalize",
-      "sdd-forge.flow-impl",
-      "sdd-forge.flow-plan",
+      "senti.flow-finalize",
+      "senti.flow-impl",
+      "senti.flow-plan",
     ]);
 
     for (const base of [".claude", ".agents"]) {
-      assert.ok(!fs.existsSync(path.join(tmp, base, "skills", "sdd-forge.flow-plan")));
-      assert.ok(!fs.existsSync(path.join(tmp, base, "skills", "sdd-forge.flow-impl")));
-      assert.ok(!fs.existsSync(path.join(tmp, base, "skills", "sdd-forge.flow-finalize")));
-      assert.ok(fs.existsSync(path.join(tmp, base, "skills", "sdd-forge.flow")));
-      assert.ok(fs.existsSync(path.join(tmp, base, "skills", "sdd-forge.flow-auto")));
+      assert.ok(!fs.existsSync(path.join(tmp, base, "skills", "senti.flow-plan")));
+      assert.ok(!fs.existsSync(path.join(tmp, base, "skills", "senti.flow-impl")));
+      assert.ok(!fs.existsSync(path.join(tmp, base, "skills", "senti.flow-finalize")));
+      assert.ok(fs.existsSync(path.join(tmp, base, "skills", "senti.flow")));
+      assert.ok(fs.existsSync(path.join(tmp, base, "skills", "senti.flow-auto")));
     }
   });
 
   it("dry-run mode reports removals without touching the filesystem", () => {
     tmp = createTmpDir();
-    setupProject(tmp, ["sdd-forge.flow-plan", "sdd-forge.flow"]);
+    setupProject(tmp, ["senti.flow-plan", "senti.flow"]);
     const templatesDir = path.join(tmp, "_templates");
-    setupActiveTemplates(templatesDir, ["sdd-forge.flow"]);
+    setupActiveTemplates(templatesDir, ["senti.flow"]);
 
     const result = cleanupObsoleteSkills(tmp, [templatesDir], { dryRun: true });
     assert.equal(result.length, 1);
-    assert.equal(result[0].name, "sdd-forge.flow-plan");
+    assert.equal(result[0].name, "senti.flow-plan");
 
-    assert.ok(fs.existsSync(path.join(tmp, ".claude", "skills", "sdd-forge.flow-plan")));
-    assert.ok(fs.existsSync(path.join(tmp, ".agents", "skills", "sdd-forge.flow-plan")));
+    assert.ok(fs.existsSync(path.join(tmp, ".claude", "skills", "senti.flow-plan")));
+    assert.ok(fs.existsSync(path.join(tmp, ".agents", "skills", "senti.flow-plan")));
   });
 
-  it("ignores non-sdd-forge skills (does not touch third-party skills)", () => {
+  it("ignores non-senti skills (does not touch third-party skills)", () => {
     tmp = createTmpDir();
-    setupProject(tmp, ["sdd-forge.flow-plan", "my-custom-skill"]);
+    setupProject(tmp, ["senti.flow-plan", "my-custom-skill"]);
     const templatesDir = path.join(tmp, "_templates");
-    setupActiveTemplates(templatesDir, ["sdd-forge.flow"]);
+    setupActiveTemplates(templatesDir, ["senti.flow"]);
 
     const result = cleanupObsoleteSkills(tmp, [templatesDir]);
     const removed = result.map((r) => r.name);
-    assert.deepEqual(removed, ["sdd-forge.flow-plan"]);
+    assert.deepEqual(removed, ["senti.flow-plan"]);
 
     assert.ok(fs.existsSync(path.join(tmp, ".claude", "skills", "my-custom-skill")));
   });

@@ -222,7 +222,7 @@ function runAutoRescue({ mainRepoPath, baseBranch, baseline, featureBranch, spec
   }
 
   // baseBranch locked — fall back to a temporary detached worktree.
-  const tmpWorktree = path.join(os.tmpdir(), `sdd-rescue-tmp-${process.pid}-${Date.now()}`);
+  const tmpWorktree = path.join(os.tmpdir(), `senti-rescue-tmp-${process.pid}-${Date.now()}`);
   const addRes = runGit(["-C", mainRepoPath, "worktree", "add", "--detach", tmpWorktree, baseBranch]);
   if (!addRes.ok) {
     return { ok: false, code: "MAIN_REPO_LOCKED" };
@@ -496,13 +496,13 @@ export class RunFinalizeCleanupCommand extends FlowCommand {
           appendIssueLog(mainRepoPath, state.spec, {
             step: "finalize-cleanup",
             reason: "cherry-pick conflict during auto-rescue (worktree retained for manual recovery)",
-            trigger: "sdd-forge flow run finalize-cleanup --auto-rescue",
+            trigger: "senti flow run finalize-cleanup --auto-rescue",
             resolution:
               "cherry-pick aborted; user must resolve manually via archive + individual cherry-pick",
             taskId: null,
           });
         } catch (err) {
-          process.stderr.write(`[sdd-forge] cleanup: audit log append failed: ${err.message}\n`);
+          process.stderr.write(`[senti] cleanup: audit log append failed: ${err.message}\n`);
         }
       }
       const failPayload = {
@@ -614,7 +614,7 @@ async function runTeardown(ctx, { worktreePath, mainRepoPath, reportRoot, specId
     try {
       syncMetadataFromWorktreeToMain(ctx.root, mainRepoPath, specId);
     } catch (err) {
-      process.stderr.write(`[sdd-forge] cleanup: metadata sync warning: ${err.message}\n`);
+      process.stderr.write(`[senti] cleanup: metadata sync warning: ${err.message}\n`);
     }
   }
 
@@ -640,7 +640,7 @@ async function runTeardown(ctx, { worktreePath, mainRepoPath, reportRoot, specId
     try {
       targetFm.updateStepStatus("finalize-cleanup", "in_progress", { specId });
     } catch (rollbackErr) {
-      process.stderr.write(`[sdd-forge] cleanup rollback failed: ${rollbackErr.message}\n`);
+      process.stderr.write(`[senti] cleanup rollback failed: ${rollbackErr.message}\n`);
     }
     return Envelope.fail("run", "finalize-cleanup", "COMMIT_FAILED", [
       `git commit failed: ${commitRes.stderr || commitRes.stdout || "unknown"}`,
@@ -698,7 +698,7 @@ async function runTeardown(ctx, { worktreePath, mainRepoPath, reportRoot, specId
 }
 
 /**
- * Spec 272: Sync unreflected SDD metadata (runtimeLog only) from worktree to main.
+ * Spec 272: Sync unreflected Spec-Driven Development metadata (runtimeLog only) from worktree to main.
  * Status and other fields are already handled by the post-hook authoritative
  * updates or squash-merge. We only pick up logs from previous successful retries
  * that might have only landed in the worktree's flow.json.
@@ -779,7 +779,7 @@ async function runForcedTeardown(ctx, opts) {
       step: "finalize-cleanup",
       reason:
         "FORCED_ORPHAN_DROP: feature branch deleted via --force despite orphan / divergent state",
-      trigger: "sdd-forge flow run finalize-cleanup --force",
+      trigger: "senti flow run finalize-cleanup --force",
       resolution:
         droppedCommits.length > 0
           ? `dropped ${droppedCount} commit(s); top sha=${droppedCommits[0]?.sha?.slice(0, 12) || "n/a"}`
@@ -789,7 +789,7 @@ async function runForcedTeardown(ctx, opts) {
       taskId: null,
     });
   } catch (err) {
-    process.stderr.write(`[sdd-forge] cleanup: audit log append failed: ${err.message}\n`);
+    process.stderr.write(`[senti] cleanup: audit log append failed: ${err.message}\n`);
   }
 
   const teardown = await runTeardown(ctx, opts);
@@ -799,7 +799,7 @@ async function runForcedTeardown(ctx, opts) {
     try {
       restoreIssueLog(auditTarget, state.spec, snapshot);
     } catch (err) {
-      process.stderr.write(`[sdd-forge] cleanup: audit log rollback failed: ${err.message}\n`);
+      process.stderr.write(`[senti] cleanup: audit log rollback failed: ${err.message}\n`);
     }
     return teardown;
   }

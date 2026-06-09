@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * sdd-forge/docs/commands/enrich.js
+ * senti/docs/commands/enrich.js
  *
  * AI で analysis.json の各エントリーに summary/detail/chapter/role を付与する。
  * scan 後に実行し、enriched analysis.json を生成する。
@@ -12,7 +12,7 @@
 import fs from "fs";
 import path from "path";
 import { parseArgs } from "../../lib/cli.js";
-import { sddOutputDir, resolveConcurrency } from "../../lib/config.js";
+import { sentiOutputDir, resolveConcurrency } from "../../lib/config.js";
 import { resolveWorkDir } from "../../lib/config.js";
 import { minify } from "../lib/minify.js";
 import { mapWithConcurrency } from "../lib/concurrency.js";
@@ -343,7 +343,7 @@ function formatBatchError(err, b, batches) {
  * analysis.json をディスクに保存する。
  */
 function saveAnalysis(root, analysis) {
-  const outputDir = sddOutputDir(root);
+  const outputDir = sentiOutputDir(root);
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
@@ -376,7 +376,7 @@ async function runEnrich(ctx, rawArgs) {
   // Load analysis
   const analysis = loadFullAnalysis(root);
   if (!analysis) {
-    throw new Error("enrich: analysis.json not found. Run 'sdd-forge scan' first.");
+    throw new Error("enrich: analysis.json not found. Run 'senti scan' first.");
   }
 
   // Check for AI agent
@@ -493,7 +493,7 @@ async function runEnrich(ctx, rawArgs) {
 
     const enrichment = parseEnrichResponse(response);
     if (!enrichment) {
-      // Dump failed response for debugging (to workDir, not .sdd-forge/output/)
+      // Dump failed response for debugging (to workDir, not .senti/output/)
       const dumpDir = resolveWorkDir(root, config);
       fs.mkdirSync(dumpDir, { recursive: true });
       const dumpPath = path.join(dumpDir, `enrich-fail-batch${batchIdx + 1}.txt`);

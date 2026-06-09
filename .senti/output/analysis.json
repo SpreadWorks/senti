@@ -23,8 +23,8 @@
         "composerScripts": null,
         "makefileTest": null,
         "id": "451a9f25",
-        "summary": "Package metadata defines `sdd-forge` as a Node.js CLI for spec-driven development and automated documentation generation. It exposes a single executable entrypoint, constrains runtime requirements, and provides scoped test commands.",
-        "detail": "The manifest publishes the package as an ES module and maps both the CLI binary and top-level export to `src/sdd-forge.js`. Distribution is intentionally narrow, shipping `src/` while excluding preset test fixtures from the published tarball. Operational constraints are explicit through the Node.js engine floor and pinned `pnpm` package manager metadata. The script set separates unit, end-to-end, acceptance, agent, and full test runs, reflecting a multi-layer validation strategy for the toolchain.",
+        "summary": "Package metadata defines `senti` as a Node.js CLI for spec-driven development and automated documentation generation. It exposes a single executable entrypoint, constrains runtime requirements, and provides scoped test commands.",
+        "detail": "The manifest publishes the package as an ES module and maps both the CLI binary and top-level export to `src/senti.js`. Distribution is intentionally narrow, shipping `src/` while excluding preset test fixtures from the published tarball. Operational constraints are explicit through the Node.js engine floor and pinned `pnpm` package manager metadata. The script set separates unit, end-to-end, acceptance, agent, and full test runs, reflecting a multi-layer validation strategy for the toolchain.",
         "chapter": "stack_and_ops",
         "role": "Defines package distribution, runtime requirements, CLI entrypoints, and test operations.",
         "enrich": {
@@ -122,7 +122,7 @@
           "src/lib/hooks.js"
         ],
         "id": "1b9f6fe7",
-        "summary": "This command validates `config.json` and reports schema or structure issues in text or JSON format. It is the dedicated configuration health check under `sdd-forge check config`.",
+        "summary": "This command validates `config.json` and reports schema or structure issues in text or JSON format. It is the dedicated configuration health check under `senti check config`.",
         "detail": "The module reads CLI options, supports help output, and verifies output format constraints early. It loads the project config file, parses JSON safely, and runs validation logic tied to preset definitions. Validation errors are capped by `MAX_SCHEMA_ERRORS` to avoid noisy output. Results are emitted in machine-readable JSON or human-readable text, with non-zero exit on failure. The command class adapter forwards raw args and container context into the command runner.",
         "chapter": "configuration",
         "role": "cli",
@@ -227,8 +227,8 @@
           "processedAt": "2026-06-03T03:11:07.310Z",
           "attempts": 15
         },
-        "summary": "Implements the `sdd-forge check scan` command, computing documentation coverage by comparing analyzed source files against configured include/exclude patterns.",
-        "detail": "Reads `analysis.json` from `.sdd-forge/output/` and walks the source tree to count included files versus analyzed files, computing a coverage percentage. Supports text, JSON, and Markdown output formats. Enforces hard traversal limits: depth 32, directory entries 10,000, and total files 100,000. Groups files by extension for the summary report. Exports `groupByExtension`, `computeCoverage`, and `formatText` for reuse.",
+        "summary": "Implements the `senti check scan` command, computing documentation coverage by comparing analyzed source files against configured include/exclude patterns.",
+        "detail": "Reads `analysis.json` from `.senti/output/` and walks the source tree to count included files versus analyzed files, computing a coverage percentage. Supports text, JSON, and Markdown output formats. Enforces hard traversal limits: depth 32, directory entries 10,000, and total files 100,000. Groups files by extension for the summary report. Exports `groupByExtension`, `computeCoverage`, and `formatText` for reuse.",
         "chapter": "cli_commands",
         "role": "command",
         "keywords": [
@@ -270,7 +270,7 @@
           "attempts": 18
         },
         "summary": "Registers an `AgentsSource` DataSource that supplies AGENTS.md template content and project configuration metadata for agents documentation generation.",
-        "detail": "Loads the preset's `AGENTS.sdd.md` template from the base preset's language-specific templates directory, returning a `Paragraph` or null when absent. Exposes the project language setting and raw `config.json` as query methods. Reads `package.json` for project-level metadata. Follows the standard `register(container)` DataSource registration pattern with class definition scoped inside the factory function.",
+        "detail": "Loads the preset's `AGENTS.senti.md` template from the base preset's language-specific templates directory, returning a `Paragraph` or null when absent. Exposes the project language setting and raw `config.json` as query methods. Reads `package.json` for project-level metadata. Follows the standard `register(container)` DataSource registration pattern with class definition scoped inside the factory function.",
         "chapter": "internal_design",
         "role": "data-source",
         "keywords": [
@@ -347,7 +347,7 @@
           "attempts": 18
         },
         "summary": "Registers a `LangSource` DataSource that generates emoji-prefixed language navigation links for multi-language documentation files.",
-        "detail": "Detects the current file's language from its path using a regex match, defaulting to the configured default language. Computes target file paths for each supported language relative to the current file's position in the directory hierarchy. Uses a static `LANG_NAMES` map for human-readable language labels. Loads language configuration from `.sdd-forge/config.json`. Returns a `Paragraph` of pipe-joined links.",
+        "detail": "Detects the current file's language from its path using a regex match, defaulting to the configured default language. Computes target file paths for each supported language relative to the current file's position in the directory hierarchy. Uses a static `LANG_NAMES` map for human-readable language labels. Loads language configuration from `.senti/config.json`. Returns a `Paragraph` of pipe-joined links.",
         "chapter": "internal_design",
         "role": "data-source",
         "keywords": [
@@ -548,7 +548,7 @@
           "src/docs/commands/build.js"
         ],
         "id": "5684c584",
-        "summary": "Implements the `docs agents` command, generating or updating the project's AGENTS.md file by combining analysis data, docs, README, and an SDD template through an AI agent.",
+        "summary": "Implements the `docs agents` command, generating or updating the project's AGENTS.md file by combining analysis data, docs, README, and an Spec-Driven Development template through an AI agent.",
         "detail": "Defines `runAgents` which loads analysis.json, reads chapter files and README, builds a prompt via PromptBuilder including package.json scripts, and resolves `{{data}}` directives. It writes a default AGENTS.md if missing, then invokes the configured AI agent to refine project content and re-injects it via `replaceProjectContent`. Errors propagate when no default agent is configured. Exposed as `DocsAgentsCommand` extending `Command`, with `runAgents` also re-exported for reuse.",
         "chapter": "cli_commands",
         "role": "command",
@@ -1057,7 +1057,7 @@
         ],
         "id": "e229cdd1",
         "summary": "`docs scan` builds or updates `analysis.json` by collecting source-derived entries from presets and data sources. It preserves stable entry IDs and supports category reset operations.",
-        "detail": "The command resolves preset chains, loads scan/data sources, and computes analysis entries with hashes for both source files and data source inputs. It indexes existing entries by match keys so unchanged logical items keep their IDs across rescans, improving downstream diff stability. Reset options can clear selected categories in-place before a new scan run. Results can be printed as full JSON or summary and are persisted under `.sdd-forge/output`, with robust parse-error handling for preexisting artifacts.",
+        "detail": "The command resolves preset chains, loads scan/data sources, and computes analysis entries with hashes for both source files and data source inputs. It indexes existing entries by match keys so unchanged logical items keep their IDs across rescans, improving downstream diff stability. Reset options can clear selected categories in-place before a new scan run. Results can be printed as full JSON or summary and are persisted under `.senti/output`, with robust parse-error handling for preexisting artifacts.",
         "chapter": "cli_commands",
         "role": "source analysis scanner",
         "enrich": {
@@ -1141,7 +1141,7 @@
           "processedAt": "2026-06-03T03:11:07.310Z",
           "attempts": 6
         },
-        "summary": "Implements the `sdd-forge docs text` command, driving an AI agent to fill `{{text(...)}}` directives in documentation files via batch prompt processing.",
+        "summary": "Implements the `senti docs text` command, driving an AI agent to fill `{{text(...)}}` directives in documentation files via batch prompt processing.",
         "detail": "Parses `{{text(...)}}` directives from Markdown files and groups them into batch prompts submitted to the configured AI agent. Uses `mapWithConcurrency` for controlled parallel file processing. Validates batch JSON responses and applies shrinkage detection (warns when output shrinks >50% relative to minimum 20 lines). Detects changed chapters by hashing source files against the analysis entry list to skip unmodified files. Exports individual processing functions (`processTemplate`, `processTemplateFileBatch`, `validateBatchResult`, etc.) for unit testability.",
         "chapter": "cli_commands",
         "role": "command",
@@ -1382,7 +1382,7 @@
           "attempts": 3
         },
         "summary": "Provides shared command-context helpers for loading output JSON, resolving chapter files, and normalizing text input. It centralizes common filesystem reads used by docs commands.",
-        "detail": "Functions in this file load analysis artifacts from the sdd output directory and safely return null when absent or invalid. Chapter discovery supports configured order, existence checks, and fallback scanning while excluding special files. Text utilities read files defensively and strip AI response preambles to keep persisted content clean. This module reduces duplication across CLI command implementations.",
+        "detail": "Functions in this file load analysis artifacts from the senti output directory and safely return null when absent or invalid. Chapter discovery supports configured order, existence checks, and fallback scanning while excluding special files. Text utilities read files defensively and strip AI response preambles to keep persisted content clean. This module reduces duplication across CLI command implementations.",
         "chapter": "cli_commands",
         "role": "lib",
         "keywords": [
@@ -2115,7 +2115,7 @@
           "attempts": 18
         },
         "summary": "Factory module that assembles data resolvers by loading DataSource instances from preset chains and wiring them to analysis data and project overrides.",
-        "detail": "Resolves preset chains with `resolveMultiChains` and loads DataSource files from each preset's `data/` subdirectory via `loadDataSourcesBase`. Applies project-level overrides from `.sdd-forge/overrides.json` for section/key description fallbacks. Emits a deprecation warning for the legacy `.sdd-forge/data/` directory. The returned resolver dispatches calls by preset key, source name, and method, returning null for unknown paths. Exposes `resolverMap.keys()` for introspection of available resolver entries.",
+        "detail": "Resolves preset chains with `resolveMultiChains` and loads DataSource files from each preset's `data/` subdirectory via `loadDataSourcesBase`. Applies project-level overrides from `.senti/overrides.json` for section/key description fallbacks. Emits a deprecation warning for the legacy `.senti/data/` directory. The returned resolver dispatches calls by preset key, source name, and method, returning null for unknown paths. Exposes `resolverMap.keys()` for introspection of available resolver entries.",
         "chapter": "internal_design",
         "role": "factory",
         "keywords": [
@@ -2305,7 +2305,7 @@
         ],
         "id": "88243459",
         "summary": "Provides template resolution and merging utilities supporting layered preset chains, multi-language fallback, and AI-based template translation.",
-        "detail": "`buildLayers` and `resolveTemplates` walk preset chains plus a project-local overrides directory to locate template files, returning ordered sources for additive merging via `mergeResolved`. Block directives (`parseBlocks`, `BLOCK_START_RE`) drive nested merging where child blocks extend or override parent text. `resolveChaptersOrder` honors preset and config-defined chapter ordering, while `translateTemplate` invokes an AI agent with graceful failure logging. Includes special-file handling for README/AGENTS.sdd/layout.",
+        "detail": "`buildLayers` and `resolveTemplates` walk preset chains plus a project-local overrides directory to locate template files, returning ordered sources for additive merging via `mergeResolved`. Block directives (`parseBlocks`, `BLOCK_START_RE`) drive nested merging where child blocks extend or override parent text. `resolveChaptersOrder` honors preset and config-defined chapter ordering, while `translateTemplate` invokes an AI agent with graceful failure logging. Includes special-file handling for README/AGENTS.senti/layout.",
         "chapter": "internal_design",
         "role": "library",
         "enrich": {
@@ -2475,7 +2475,7 @@
           "processedAt": "2026-06-03T03:11:07.310Z",
           "attempts": 8
         },
-        "summary": "Entry-point dispatcher for the `sdd-forge flow` CLI command group, routing subcommands to registered handlers via the shared dispatch infrastructure.",
+        "summary": "Entry-point dispatcher for the `senti flow` CLI command group, routing subcommands to registered handlers via the shared dispatch infrastructure.",
         "detail": "Parses `process.argv` and routes to flow commands registered in `flowCommands` from the command registry. Handles special-cased routing for the `resume` and `prepare` subcommands with their respective envelope types (`run/resume`, `run/prepare-spec`). Initializes the DI container and resolves flow context before delegating to `dispatch()`. Exits with `EXIT_ERROR` for unknown commands or missing command groups.",
         "chapter": "cli_commands",
         "role": "entry-point",
@@ -2981,10 +2981,10 @@
           "src/flow/registry.js"
         ],
         "id": "2cb27b93",
-        "summary": "Defines the flow graph, lifecycle actions, retry limits, and helper APIs that drive the SDD workflow state machine. It centralizes step metadata for both top-level flow execution and task-level execution.",
+        "summary": "Defines the flow graph, lifecycle actions, retry limits, and helper APIs that drive the Spec-Driven Development workflow state machine. It centralizes step metadata for both top-level flow execution and task-level execution.",
         "detail": "The module models flow structure with `FlowNode` objects and dedicated lifecycle action classes instead of loose objects, aligning behavior with invariant-enforcing constructors. It encodes step ordering, gate mappings, prerequisites, side effects, max-attempt policies, and retry behavior for draft, plan, implementation, review, gate, and finalize stages. Helper functions derive leaf IDs, phase maps, next actions, active nodes, branch membership, and initial nested step state from the same canonical definitions. It also includes operational utilities for route artifact initialization and implementation evidence reset, making the definition layer responsible for both navigation and controlled state transitions.",
         "chapter": "internal_design",
-        "role": "Provides the canonical workflow definition, lifecycle model, and step-resolution utilities for SDD flow execution.",
+        "role": "Provides the canonical workflow definition, lifecycle model, and step-resolution utilities for Spec-Driven Development flow execution.",
         "enrich": {
           "processedAt": "2026-06-09T00:10:26.937Z",
           "attempts": 1
@@ -3477,7 +3477,7 @@
           "processedAt": "2026-06-03T11:49:57.400Z",
           "attempts": 2
         },
-        "summary": "Implements the flow judgment contract system, providing structured completion validation, override evidence, and SHA-256 progress signatures for SDD step transitions.",
+        "summary": "Implements the flow judgment contract system, providing structured completion validation, override evidence, and SHA-256 progress signatures for Spec-Driven Development step transitions.",
         "detail": "FlowJudgmentContract encapsulates blocking findings, verdict, target step, and artifact provenance for a review result. StepCompletionPolicy maps step IDs to allowed verdicts and is consulted by CompletionValidator before any step-completion transition. OverrideCompletionEvidence allows manual bypass of normal policies with an explicit FindingDisposition record persisted to `completion-overrides.json`. progressSignature computes a deterministic SHA-256 hash over stable-stringified contract fields. Factory functions (contractFromTestReviewArtifact, contractFromImplReviewArtifact, etc.) build typed contracts from raw JSON artifacts read from the spec directory.",
         "chapter": "internal_design",
         "role": "contract",
@@ -3686,7 +3686,7 @@
           "attempts": 8
         },
         "summary": "Implements the `flow get context` command with keyword, n-gram, and AI-driven search over analysis.json.",
-        "detail": "`GetContextCommand` loads `analysis.json` from the sdd-forge output dir, filtering noisy fields (hash, mtime, lines, id, enrich, detail) per `EXCLUDE_FIELDS`. Offers three search modes: literal `fallbackSearch`, `ngramSearch` using bigram Dice similarity with `NGRAM_THRESHOLD=0.6`, and `aiSearch` that asks the configured agent to pick relevant keywords from up to 2000 entries (`collectAllKeywords`) validated against `KEYWORD_SELECTION_SCHEMA`. Marks hub entries via `isHub` when incoming+outgoing connections exceed 20. Also supports reading specific files within the project root, returning JSON results to the caller.",
+        "detail": "`GetContextCommand` loads `analysis.json` from the senti output dir, filtering noisy fields (hash, mtime, lines, id, enrich, detail) per `EXCLUDE_FIELDS`. Offers three search modes: literal `fallbackSearch`, `ngramSearch` using bigram Dice similarity with `NGRAM_THRESHOLD=0.6`, and `aiSearch` that asks the configured agent to pick relevant keywords from up to 2000 entries (`collectAllKeywords`) validated against `KEYWORD_SELECTION_SCHEMA`. Marks hub entries via `isHub` when incoming+outgoing connections exceed 20. Also supports reading specific files within the project root, returning JSON results to the caller.",
         "chapter": "cli_commands",
         "role": "flow-context-search",
         "keywords": [
@@ -4088,7 +4088,7 @@
           "attempts": 2
         },
         "summary": "Loads per-step instruction markdown from the prompts directory with include resolution.",
-        "detail": "`getStepInstructions(instructionsKey)` parses a `<phase>.<step>` key, validates non-empty string input, and resolves the file path under `SDD_FORGE_NEXT_ACTION_PROMPTS_DIR` (or the default package prompts dir). Reads the markdown synchronously and passes it through `resolveIncludes` so partial markdown can be composed. Throws structured errors (`INSTRUCTIONS_INVALID_KEY`, `INSTRUCTIONS_NOT_FOUND`) when the key is malformed or the file is missing.",
+        "detail": "`getStepInstructions(instructionsKey)` parses a `<phase>.<step>` key, validates non-empty string input, and resolves the file path under `SENTI_NEXT_ACTION_PROMPTS_DIR` (or the default package prompts dir). Reads the markdown synchronously and passes it through `resolveIncludes` so partial markdown can be composed. Throws structured errors (`INSTRUCTIONS_INVALID_KEY`, `INSTRUCTIONS_NOT_FOUND`) when the key is malformed or the file is missing.",
         "chapter": "internal_design",
         "role": "step-instructions-loader",
         "keywords": [
@@ -4616,7 +4616,7 @@
         "summary": "Implements retry-recovery tracking for flow gate and review phases by deciding whether a reset-based retry is allowed and persisting the supporting evidence. It combines validation, evidence fingerprinting, retry-budget checks, and artifact storage into a single recovery subsystem.",
         "detail": "The module defines strict recovery constants, allowed actions and phase sets, then normalizes phases, paths, and counters so gate and review retries follow a consistent internal model. It uses small domain classes such as `RetryRecoveryInput`, `RecoveryTarget`, `RecoveryEvidenceSource`, `EvidenceFingerprint`, and recovery entry/baseline objects to enforce invariants and serialize recovery state cleanly. Recovery eligibility is computed from retry counts and file-based evidence fingerprints derived from changed paths, tracked source locations, and SHA-256 hashes, allowing the system to distinguish unchanged retries from meaningful follow-up attempts. State is persisted through JSON artifacts near the spec directory and updates both recovery metadata and flow state files when a retry grant is applied. The module also exposes view builders and helper functions so CLI-facing code can present retry limits, reasons, and recovery metrics without duplicating the underlying decision logic.",
         "chapter": "internal_design",
-        "role": "Provides the internal retry-recovery engine for SDD flow operations, including validation, evidence comparison, persistence, and eligibility decisions for retry resets.",
+        "role": "Provides the internal retry-recovery engine for Spec-Driven Development flow operations, including validation, evidence comparison, persistence, and eligibility decisions for retry resets.",
         "enrich": {
           "processedAt": "2026-06-05T01:02:25.488Z",
           "attempts": 1
@@ -4676,8 +4676,8 @@
           "processedAt": "2026-06-04T05:32:49.284Z",
           "attempts": 5
         },
-        "summary": "Classifies review failures into typed categories and serializes them as structured marker lines for inter-process communication in the SDD flow.",
-        "detail": "Defines the `ReviewFailure` class with static factory methods for each classification: `providerFailure`, `inputSizeFailure`, `subprocessFailure`, `stopFailure`, and `reviewMarkerFailure`. Uses regex-based heuristics to detect provider rate-limit or quota errors and prompt-too-large conditions from subprocess output. Instances can be emitted as `SDD_FORGE_REVIEW_FAILURE`-prefixed JSON marker lines written to stdout for downstream parsing. Exports `writeReviewStopState`, `clearReviewStopState`, and `buildReviewStopView` for managing stop state within the flow JSON document.",
+        "summary": "Classifies review failures into typed categories and serializes them as structured marker lines for inter-process communication in the Spec-Driven Development flow.",
+        "detail": "Defines the `ReviewFailure` class with static factory methods for each classification: `providerFailure`, `inputSizeFailure`, `subprocessFailure`, `stopFailure`, and `reviewMarkerFailure`. Uses regex-based heuristics to detect provider rate-limit or quota errors and prompt-too-large conditions from subprocess output. Instances can be emitted as `SENTI_REVIEW_FAILURE`-prefixed JSON marker lines written to stdout for downstream parsing. Exports `writeReviewStopState`, `clearReviewStopState`, and `buildReviewStopView` for managing stop state within the flow JSON document.",
         "chapter": "internal_design",
         "role": "failure-classifier",
         "keywords": [
@@ -4689,7 +4689,7 @@
           "stop state",
           "marker",
           "review phase",
-          "SDD flow",
+          "Spec-Driven Development flow",
           "retry"
         ]
       },
@@ -5554,7 +5554,7 @@
         ],
         "id": "3754ab40",
         "summary": "Provides a CLI command to display the latest finalized flow report text from report artifacts. It resolves the report location via a pointer file and validates report integrity before output.",
-        "detail": "The command reads `.sdd-forge/last-finalized-spec` to find the most recently finalized spec and then resolves `report.json` in that spec directory. It emits typed operational errors for missing pointers, empty pointers, missing reports, parse failures, and absent text fields. When test data exists in the report, it enforces artifact consistency by calling validated test-artifact loading logic. The command surface remains minimal: parse, validate, and print the `text` field to stdout. This creates a stable, low-friction way to retrieve the final human-readable report.",
+        "detail": "The command reads `.senti/last-finalized-spec` to find the most recently finalized spec and then resolves `report.json` in that spec directory. It emits typed operational errors for missing pointers, empty pointers, missing reports, parse failures, and absent text fields. When test data exists in the report, it enforces artifact consistency by calling validated test-artifact loading logic. The command surface remains minimal: parse, validate, and print the `text` field to stdout. This creates a stable, low-friction way to retrieve the final human-readable report.",
         "chapter": "cli_commands",
         "role": "Read-only report retrieval command for finalized flow output",
         "enrich": {
@@ -7418,7 +7418,7 @@
         ],
         "id": "9f3f55f7",
         "summary": "agents-md.js loads the preset AGENTS template for a selected language. It resolves fallback language and returns empty content when unavailable.",
-        "detail": "The loader targets `PRESETS_DIR/base/templates/<lang>/AGENTS.sdd.md` using deterministic path construction. It defaults to English when no language is provided. File existence checks prevent exceptions on missing templates and keep callers simple. This module is a small preset-template accessor used in AGENTS generation flows.",
+        "detail": "The loader targets `PRESETS_DIR/base/templates/<lang>/AGENTS.senti.md` using deterministic path construction. It defaults to English when no language is provided. File existence checks prevent exceptions on missing templates and keep callers simple. This module is a small preset-template accessor used in AGENTS generation flows.",
         "chapter": "creating_presets",
         "role": "lib",
         "enrich": {
@@ -7472,7 +7472,7 @@
           "src/lib/dispatcher.js",
           "src/lib/i18n.js",
           "src/lib/skills.js",
-          "src/sdd-forge.js",
+          "src/senti.js",
           "src/setup.js",
           "src/upgrade.js",
           "src/lib/preset-deploy.js",
@@ -7591,9 +7591,9 @@
           "resolveConcurrency",
           "loadJsonFile",
           "loadPackageField",
-          "sddDir",
-          "sddConfigPath",
-          "sddOutputDir",
+          "sentiDir",
+          "sentiConfigPath",
+          "sentiOutputDir",
           "resolveWorkDir",
           "loadLang",
           "isFlowIntegrationEnabled",
@@ -7612,9 +7612,9 @@
           "resolveConcurrency",
           "loadJsonFile",
           "loadPackageField",
-          "sddDir",
-          "sddConfigPath",
-          "sddOutputDir",
+          "sentiDir",
+          "sentiConfigPath",
+          "sentiOutputDir",
           "resolveWorkDir",
           "loadLang",
           "isFlowIntegrationEnabled",
@@ -7642,8 +7642,8 @@
           "src/workflow/index.js"
         ],
         "id": "dff6e5b4",
-        "summary": "Provides configuration loading, path resolution, and schema validation for sdd-forge. It defines default values, resolves key `.sdd-forge` paths, and enforces constraints on flow and test-related settings.",
-        "detail": "This module centralizes config concerns such as concurrency defaults, language defaults, and lookup of package fields and JSON files. It exposes helpers for deriving paths like the config file, output directory, and effective work directory under the `.sdd-forge` root. Validation is schema-driven and augmented with custom checks, including restrictions on unsafe test command syntax and project test path shape. The result is a validated config object used across the application, along with utility checks such as whether flow integration is enabled.",
+        "summary": "Provides configuration loading, path resolution, and schema validation for senti. It defines default values, resolves key `.senti` paths, and enforces constraints on flow and test-related settings.",
+        "detail": "This module centralizes config concerns such as concurrency defaults, language defaults, and lookup of package fields and JSON files. It exposes helpers for deriving paths like the config file, output directory, and effective work directory under the `.senti` root. Validation is schema-driven and augmented with custom checks, including restrictions on unsafe test command syntax and project test path shape. The result is a validated config object used across the application, along with utility checks such as whether flow integration is enabled.",
         "chapter": "configuration",
         "role": "Loads and validates project configuration while exposing canonical config and output paths.",
         "enrich": {
@@ -7695,7 +7695,7 @@
           "src/lib/guardrail.js",
           "src/metrics.js",
           "src/presets-cmd.js",
-          "src/sdd-forge.js",
+          "src/senti.js",
           "src/setup.js",
           "src/spec.js",
           "src/upgrade.js",
@@ -7762,7 +7762,7 @@
           "src/flow.js",
           "src/lib/git-helpers.js",
           "src/metrics.js",
-          "src/sdd-forge.js",
+          "src/senti.js",
           "src/spec.js",
           "src/upgrade.js",
           "src/hook.js"
@@ -7909,7 +7909,7 @@
         ],
         "id": "1223c23c",
         "summary": "Path resolver that relocates worktree-local files to a durable agent-work directory under the main repo during finalize cleanup.",
-        "detail": "Defines the constant `FINALIZE_CLEANUP_DURABLE_AGENT_WORK_DIR` (`.sdd-forge/agent-work`) used as the relocation target outside the worktree. `isPathInside` checks containment via `path.relative` without allowing absolute or parent-relative results. `FinalizeCleanupPathResolver` stores resolved worktree and main roots, exposes an `active` getter requiring both roots to differ, and provides `relocatePath` which translates worktree-relative paths into main-repo equivalents. The class isolates the worktree-to-main path translation so finalize logic can durably persist logs and reports after the worktree is removed.",
+        "detail": "Defines the constant `FINALIZE_CLEANUP_DURABLE_AGENT_WORK_DIR` (`.senti/agent-work`) used as the relocation target outside the worktree. `isPathInside` checks containment via `path.relative` without allowing absolute or parent-relative results. `FinalizeCleanupPathResolver` stores resolved worktree and main roots, exposes an `active` getter requiring both roots to differ, and provides `relocatePath` which translates worktree-relative paths into main-repo equivalents. The class isolates the worktree-to-main path translation so finalize logic can durably persist logs and reports after the worktree is removed.",
         "chapter": "internal_design",
         "role": "Path translator that maps worktree-internal artifacts to durable main-repo locations for finalize cleanup",
         "enrich": {
@@ -8342,7 +8342,7 @@
         ],
         "id": "bb462f4e",
         "summary": "Loads, merges, and filters guardrail definitions from preset chains and project overrides, hydrating each entry with metadata and lint regexes.",
-        "detail": "`loadMergedGuardrails(root)` walks the preset chain via `resolveChainSafe` then layers `.sdd-forge/guardrail.json` on top using `mergeById`, with `preserveAcknowledgedExceptionClauses` ensuring the standard exception clause is reattached to a fixed allowlist (`ACKNOWLEDGED_EXCEPTION_TARGET_IDS`). Hydration enforces required fields and parses `/pattern/flags` lint strings into RegExp via `parseLintString`. `filterByPhase` and `matchScope` (using `patternToRegex` from the docs scanner) provide the filtering primitives consumed by gate and review commands. Default phase is `[\"spec\"]` when an entry omits its phase array, keeping the schema flexible for older preset definitions.",
+        "detail": "`loadMergedGuardrails(root)` walks the preset chain via `resolveChainSafe` then layers `.senti/guardrail.json` on top using `mergeById`, with `preserveAcknowledgedExceptionClauses` ensuring the standard exception clause is reattached to a fixed allowlist (`ACKNOWLEDGED_EXCEPTION_TARGET_IDS`). Hydration enforces required fields and parses `/pattern/flags` lint strings into RegExp via `parseLintString`. `filterByPhase` and `matchScope` (using `patternToRegex` from the docs scanner) provide the filtering primitives consumed by gate and review commands. Default phase is `[\"spec\"]` when an entry omits its phase array, keeping the schema flexible for older preset definitions.",
         "chapter": "internal_design",
         "role": "guardrail loading, merging, and filtering",
         "enrich": {
@@ -8660,7 +8660,7 @@
         ],
         "id": "3d7bb5e6",
         "summary": "This module provides structured logging utilities with masking, prompt snapshot support, and contextual enrichment. It writes daily JSONL logs and optional prompt payload files safely.",
-        "detail": "It generates request IDs, computes text statistics, and derives caller metadata for richer diagnostic records. Sensitive-field masking is applied before persistence, constrained by trusted root paths to avoid leaking unrelated filesystem content. The `Logger` class tracks async write operations, emits agent/git/event records, and attaches flow context (`spec`, `sddPhase`, `taskId`) when available. It separates append-only JSONL entries from per-request prompt files and tolerates write failures with stderr diagnostics. The implementation balances observability with privacy-aware logging behavior.",
+        "detail": "It generates request IDs, computes text statistics, and derives caller metadata for richer diagnostic records. Sensitive-field masking is applied before persistence, constrained by trusted root paths to avoid leaking unrelated filesystem content. The `Logger` class tracks async write operations, emits agent/git/event records, and attaches flow context (`spec`, `sentiPhase`, `taskId`) when available. It separates append-only JSONL entries from per-request prompt files and tolerates write failures with stderr diagnostics. The implementation balances observability with privacy-aware logging behavior.",
         "chapter": "development",
         "role": "lib",
         "enrich": {
@@ -8780,7 +8780,7 @@
         ],
         "id": "14a29a15",
         "summary": "PreparingFlowStore persists temporary pre-init flow state keyed by runId and manages lifecycle cleanup. It provides create/read/update/delete operations plus TTL-based pruning for stale entries.",
-        "detail": "Run identifiers are generated with `crypto.randomUUID()`, and records are stored as JSON files under the SDD directory using the preparing prefix naming convention. The store resolves input fields (issue/request), updates persisted state atomically through read-modify-write, and throws explicit errors when expected preparing files are missing. It supports listing and deletion primitives and includes safe unlink behavior that tolerates missing files (`ENOENT`). A pruning routine scans candidate files, removes entries older than the configured TTL, and returns both deleted and remaining run IDs for observability.",
+        "detail": "Run identifiers are generated with `crypto.randomUUID()`, and records are stored as JSON files under the Spec-Driven Development directory using the preparing prefix naming convention. The store resolves input fields (issue/request), updates persisted state atomically through read-modify-write, and throws explicit errors when expected preparing files are missing. It supports listing and deletion primitives and includes safe unlink behavior that tolerates missing files (`ENOENT`). A pruning routine scans candidate files, removes entries older than the configured TTL, and returns both deleted and remaining run IDs for observability.",
         "chapter": "internal_design",
         "role": "model",
         "enrich": {
@@ -8825,7 +8825,7 @@
           "processedAt": "2026-05-25T04:35:01.585Z",
           "attempts": 3
         },
-        "summary": "Deploys packaged preset assets into a workspace-local .sdd-forge area. It copies guardrail files and injects or updates a guidance note in language-specific preset-creation docs.",
+        "summary": "Deploys packaged preset assets into a workspace-local .senti area. It copies guardrail files and injects or updates a guidance note in language-specific preset-creation docs.",
         "detail": "The module defines preset source roots from the package directory and performs deterministic file copying with parent-directory creation. It conditionally deploys guardrail JSON and guardrail rewrite rubric markdown only when they exist in each preset package. A text upsert helper rewrites the target markdown by replacing prior note blocks using a regex, then appending the current note, ensuring idempotent updates. The deploy function iterates over selected preset keys and languages with defaults and records deployed file destinations. This keeps runtime workspace templates synchronized with packaged preset guidance without external dependencies.",
         "chapter": "creating_presets",
         "role": "Preset asset deployment utility",
@@ -8884,7 +8884,7 @@
         ],
         "id": "ae76d513",
         "summary": "Provides preset discovery, inheritance resolution, and validation utilities for docs generation. It is the central library for resolving built-in and project-local preset chains.",
-        "detail": "The file scans preset directories, parses `preset.json`, and materializes preset metadata including aliases, parent, scan settings, and chapters. It resolves project-local overrides under `.sdd-forge/presets` and merges them with built-in entries where keys match. Chain resolution enforces parent existence and cycle prevention, while safe helpers fall back to defaults when necessary. Validation checks depth, language limits, chapter counts, and chapter template existence across computed search directories. It also emits warnings for project-local templates that are not listed in chapter definitions, supporting preset hygiene.",
+        "detail": "The file scans preset directories, parses `preset.json`, and materializes preset metadata including aliases, parent, scan settings, and chapters. It resolves project-local overrides under `.senti/presets` and merges them with built-in entries where keys match. Chain resolution enforces parent existence and cycle prevention, while safe helpers fall back to defaults when necessary. Validation checks depth, language limits, chapter counts, and chapter template existence across computed search directories. It also emits warnings for project-local templates that are not listed in chapter definitions, supporting preset hygiene.",
         "chapter": "creating_presets",
         "role": "lib",
         "enrich": {
@@ -9287,7 +9287,7 @@
         "extends": null,
         "usedBy": null,
         "id": "e288cfbd",
-        "summary": "Provides loading, saving, validation, and querying utilities for spec.json files, the structured representation of SDD specifications.",
+        "summary": "Provides loading, saving, validation, and querying utilities for spec.json files, the structured representation of Spec-Driven Development specifications.",
         "detail": "resolveSpecJsonPath and resolveSpecDir normalize input paths (file or directory) to canonical spec.json locations. loadSpecJson/saveSpecJson run JSON schema validation against a cached schema and throw descriptive errors on parse or validation failure. Helpers like normalizeRequirements default missing status to 'pending', enumerateUsableRequirementIds collects requirement IDs, and updateSpecRequirementStatus mutates a single requirement by index with bounds checking. specJsonToPromptText renders a spec into plain-text prompt form, and emptySpecStub returns a blank scaffold.",
         "chapter": "internal_design",
         "role": "spec-json-io",
@@ -9614,7 +9614,7 @@
         "usedBy": null,
         "id": "59edeaf2",
         "summary": "Metrics token command aggregating per-spec flow metrics into phase-grouped tables with caching and difficulty scoring.",
-        "detail": "TokenCommand walks specs/*/flow.json (capped at MAX_FLOW_FILES=5000), collecting input/output tokens, cache read/create/hit, call counts, cost, and duration grouped by date and phase. Caches results to .sdd-forge/output/metrics.json keyed by maxFinalizedAt and CACHE_VERSION=3, invalidating on version mismatch or newer flows. Computes per-spec difficulty by combining DIFFICULTY_BASELINES with a precision factor derived from requirement counts, request chars, test file counts, and issue-log entries (clamped to [0.3, 3.0] then averaged). Supports text/json/csv output formats with phase summary aggregation and provider-bucket merging via normalizeAgentMetricDimension.",
+        "detail": "TokenCommand walks specs/*/flow.json (capped at MAX_FLOW_FILES=5000), collecting input/output tokens, cache read/create/hit, call counts, cost, and duration grouped by date and phase. Caches results to .senti/output/metrics.json keyed by maxFinalizedAt and CACHE_VERSION=3, invalidating on version mismatch or newer flows. Computes per-spec difficulty by combining DIFFICULTY_BASELINES with a precision factor derived from requirement counts, request chars, test file counts, and issue-log entries (clamped to [0.3, 3.0] then averaged). Supports text/json/csv output formats with phase summary aggregation and provider-bucket merging via normalizeAgentMetricDimension.",
         "chapter": "cli_commands",
         "role": "metrics token subcommand: tokenization cost/time aggregator with caching",
         "enrich": {
@@ -12510,7 +12510,7 @@
           "attempts": 9
         },
         "summary": "Provides a maintenance script that renames phase and step identifiers across spec artifacts, markdown, and JSON state files. It supports dry-run planning, targeted transformations, and guarded apply mode.",
-        "detail": "The script imports canonical rename mappings and applies them to multiple file formats, including `flow.json`, `issue-log.json`, review markdown, and report or retrospective JSON documents. It performs token replacement in paths, structured objects, and fenced code blocks, while preserving a change list for reporting. Before mutating files in `--apply` mode it verifies that the target is a git repository with a clean worktree, reducing migration risk. It also reads active flow metadata under `.sdd-forge/.active-flow` and prints planned diffs in a human-readable form when not applying changes.",
+        "detail": "The script imports canonical rename mappings and applies them to multiple file formats, including `flow.json`, `issue-log.json`, review markdown, and report or retrospective JSON documents. It performs token replacement in paths, structured objects, and fenced code blocks, while preserving a change list for reporting. Before mutating files in `--apply` mode it verifies that the target is a git repository with a clean worktree, reducing migration risk. It also reads active flow metadata under `.senti/.active-flow` and prints planned diffs in a human-readable form when not applying changes.",
         "chapter": "development",
         "role": "Repository migration script for bulk step rename refactors.",
         "keywords": [
@@ -12525,11 +12525,11 @@
         ]
       },
       {
-        "file": "src/sdd-forge.js",
+        "file": "src/senti.js",
         "hash": "840126fbf93f9d65664d6b07d7da5188",
         "lines": 106,
         "mtime": "2026-06-05T10:54:40.639Z",
-        "className": "sdd-forge",
+        "className": "senti",
         "methods": [],
         "imports": [
           "path",
@@ -12542,10 +12542,10 @@
         "extends": null,
         "usedBy": null,
         "id": "a8608997",
-        "summary": "Serves as the top-level executable that dispatches `sdd-forge` subcommands to namespace scripts or standalone command modules. It handles help/version style entry behavior and standardizes failure exits.",
+        "summary": "Serves as the top-level executable that dispatches `senti` subcommands to namespace scripts or standalone command modules. It handles help/version style entry behavior and standardizes failure exits.",
         "detail": "The script parses the initial CLI arguments, then distinguishes between namespace-based commands and independent commands. For namespace commands it rewrites `process.argv` and dynamically imports the corresponding dispatcher script, while independent commands are loaded as standalone modules and invoked through their exported `main` function. It uses `PKG_DIR` and file URLs to resolve implementation files relative to the package installation. Unknown commands and runtime failures terminate with the shared error exit code, making this file the root of command dispatch.",
         "chapter": "project_structure",
-        "role": "Acts as the main CLI launcher and first-stage dispatcher for all sdd-forge commands.",
+        "role": "Acts as the main CLI launcher and first-stage dispatcher for all senti commands.",
         "enrich": {
           "processedAt": "2026-06-05T10:55:26.400Z",
           "attempts": 1
@@ -12611,7 +12611,7 @@
           "attempts": 7
         },
         "summary": "Implements the interactive project setup command that initializes configuration, directories, agent guidance files, and deployed skills. It combines CLI parsing, wizard prompts, preset resolution, and file generation.",
-        "detail": "The module parses setup flags, loads existing defaults, validates configuration, and optionally runs an interactive wizard to collect project metadata and preset choices. It ensures required project folders such as `.sdd-forge`, `docs`, and `specs` exist, and updates `.gitignore` and `.gitattributes` with managed entries. It creates or updates `AGENTS.md` or `CLAUDE.md` with SDD guidance blocks, fixes legacy Claude symlink cases, and writes a normalized `config.json`. It also merges agent defaults, resolves work directories, and deploys packaged skills into the project as part of initialization.",
+        "detail": "The module parses setup flags, loads existing defaults, validates configuration, and optionally runs an interactive wizard to collect project metadata and preset choices. It ensures required project folders such as `.senti`, `docs`, and `specs` exist, and updates `.gitignore` and `.gitattributes` with managed entries. It creates or updates `AGENTS.md` or `CLAUDE.md` with Spec-Driven Development guidance blocks, fixes legacy Claude symlink cases, and writes a normalized `config.json`. It also merges agent defaults, resolves work directories, and deploys packaged skills into the project as part of initialization.",
         "chapter": "configuration",
         "role": "Project bootstrap and interactive setup command.",
         "keywords": [
@@ -12748,7 +12748,7 @@
         "extends": null,
         "usedBy": null,
         "id": "a631f658",
-        "summary": "Implements the `sdd-forge upgrade` CLI entrypoint, argument parsing, logging, config updates, and optional recording of upgrade artifacts for an active flow. It turns preset and skill deployment results into both user-visible output and machine-readable evidence.",
+        "summary": "Implements the `senti upgrade` CLI entrypoint, argument parsing, logging, config updates, and optional recording of upgrade artifacts for an active flow. It turns preset and skill deployment results into both user-visible output and machine-readable evidence.",
         "detail": "The module parses CLI flags, resolves repository and active-flow context, and constructs a normalized command string for artifact recording. It keeps an in-memory upgrade logger so emitted lines can be preserved as raw output, then derives a high-level result status from exit code and whether files changed. When an active flow exists, it writes an `upgrade-result.json` artifact plus raw log content into the current spec directory through shared artifact helpers. The command also coordinates config loading, preset-chain validation, preset deployment, agent default merging, and localized error handling, making upgrade both an operational command and a flow-integrated evidence producer.",
         "chapter": "cli_commands",
         "role": "CLI implementation for upgrade execution and artifact capture",

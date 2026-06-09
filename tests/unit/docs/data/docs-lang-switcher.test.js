@@ -19,7 +19,7 @@ function setupProject(tmp, docsConfig, repoUrl) {
     docs: docsConfig,
     scan: { include: ["src/**/*.js"], exclude: [] },
   };
-  writeJson(tmp, ".sdd-forge/config.json", config);
+  writeJson(tmp, ".senti/config.json", config);
 
   const pkg = { name: "test-project", version: "1.0.0" };
   if (repoUrl) {

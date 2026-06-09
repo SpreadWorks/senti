@@ -5,7 +5,7 @@ import { createTmpDir, removeTmpDir, writeJson } from "../../../helpers/tmp-dir.
 import { execFileSync } from "child_process";
 import { setupFlow } from "../../../helpers/flow-setup.js";
 
-const SDD_FORGE = join(process.cwd(), "src/sdd-forge.js");
+const SENTI = join(process.cwd(), "src/senti.js");
 
 // Dynamically import gate functions for unit tests
 const { buildGuardrailPrompt, parseGuardrailArticleEvaluation, IMPL_DIFF_SCOPE_LINES } = await import(
@@ -39,13 +39,13 @@ describe("gate guardrail integration", () => {
     execFileSync("git", ["init", tmp], { stdio: "ignore" });
     execFileSync("git", ["-C", tmp, "commit", "--allow-empty", "-m", "init"], { stdio: "ignore" });
     setupFlow(tmp);
-    writeJson(tmp, ".sdd-forge/config.json", config || {
+    writeJson(tmp, ".senti/config.json", config || {
       lang: "en", type: "node-cli",
       docs: { languages: ["en"], defaultLanguage: "en" },
     });
     writeJson(tmp, "spec.json", validSpec);
     if (guardrails) {
-      writeJson(tmp, ".sdd-forge/guardrail.json", { guardrails });
+      writeJson(tmp, ".senti/guardrail.json", { guardrails });
     }
     return tmp;
   }
@@ -57,13 +57,13 @@ describe("gate guardrail integration", () => {
     // errors out unless --phase is passed. The helper centralizes the flag so
     // callers cannot accidentally pass a conflicting --phase via extraArgs.
     return execFileSync("node", [
-      SDD_FORGE, "flow", "run", "gate",
+      SENTI, "flow", "run", "gate",
       "--phase", phase,
       "--spec", join(dir, "spec.json"),
       ...extraArgs,
     ], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: dir },
+      env: { ...process.env, SENTI_WORK_ROOT: dir },
     });
   }
 

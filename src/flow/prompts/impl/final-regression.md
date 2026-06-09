@@ -1,4 +1,4 @@
-   - Run `sdd-forge flow run final-regression`.
+   - Run `senti flow run final-regression`.
    - This step is the only default full project regression point. Do not run full project regression from `test-execute`, `impl-review`, `impl-gate`, or `retro`.
    - On PASS, the registry post-hook marks `final-regression` done and the flow proceeds to `finalize-commit`.
    - On FAIL, read `specs/<spec>/final-regression-result.json`, the attempt log at `rawOutputPath`, and the fields `result`, `failureKind`, `retryable`, and `nextAction` as independent signals; do not infer one from another. Attempt logs use durable retained path pattern `tests/.raw/final-regression-attempt-*.log`; do not delete or overwrite prior attempt logs.

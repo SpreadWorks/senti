@@ -5,7 +5,7 @@ import { join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../helpers/tmp-dir.js";
 
-const CMD = join(process.cwd(), "src/sdd-forge.js");
+const CMD = join(process.cwd(), "src/senti.js");
 const CMD_ARGS = ["docs", "scan"];
 
 describe("scan pipeline redesign — analysis[cat].entries structure", () => {
@@ -14,7 +14,7 @@ describe("scan pipeline redesign — analysis[cat].entries structure", () => {
 
   function setupProject(files = {}) {
     tmp = createTmpDir();
-    writeJson(tmp, ".sdd-forge/config.json", {
+    writeJson(tmp, ".senti/config.json", {
       lang: "ja",
       type: "node-cli",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -29,9 +29,9 @@ describe("scan pipeline redesign — analysis[cat].entries structure", () => {
   function runScan() {
     execFileSync("node", [CMD, ...CMD_ARGS], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
     });
-    const outputPath = join(tmp, ".sdd-forge/output/analysis.json");
+    const outputPath = join(tmp, ".senti/output/analysis.json");
     return JSON.parse(fs.readFileSync(outputPath, "utf8"));
   }
 
@@ -100,7 +100,7 @@ describe("scan pipeline redesign — analysis[cat].entries structure", () => {
     const first = runScan();
 
     // Enrich entries to detect if enrichment is preserved or lost
-    const outputPath = join(tmp, ".sdd-forge/output/analysis.json");
+    const outputPath = join(tmp, ".senti/output/analysis.json");
     const categories = Object.keys(first).filter(
       (k) => typeof first[k] === "object" && first[k] !== null && first[k].entries
     );
@@ -168,7 +168,7 @@ describe("scan pipeline redesign — analysis[cat].entries structure", () => {
     });
 
     // Create corrupted analysis.json
-    const outputDir = join(tmp, ".sdd-forge/output");
+    const outputDir = join(tmp, ".senti/output");
     fs.mkdirSync(outputDir, { recursive: true });
     fs.writeFileSync(join(outputDir, "analysis.json"), "NOT VALID JSON{{{");
 
@@ -176,7 +176,7 @@ describe("scan pipeline redesign — analysis[cat].entries structure", () => {
       () => {
         execFileSync("node", [CMD, ...CMD_ARGS], {
           encoding: "utf8",
-          env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_SOURCE_ROOT: tmp },
+          env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
         });
       },
       (err) => err.status !== 0,

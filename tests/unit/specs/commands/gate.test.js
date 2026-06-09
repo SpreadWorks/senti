@@ -10,7 +10,7 @@ function initGateProject(tmp) {
   execFileSync("git", ["init", tmp], { stdio: "ignore" });
   execFileSync("git", ["-C", tmp, "commit", "--allow-empty", "-m", "init"], { stdio: "ignore" });
   setupFlow(tmp);
-  writeJson(tmp, ".sdd-forge/config.json", {
+  writeJson(tmp, ".senti/config.json", {
     lang: "en", type: "node-cli",
     docs: { languages: ["en"], defaultLanguage: "en" },
   });
@@ -348,11 +348,11 @@ describe("gate CLI", () => {
     // For this CLI test we feed a markdown path directly; phase=task-spec is what
     // the markdown checker is meant for. The CLI accepts --spec for any phase.
     const result = execFileSync("node", [
-      join(process.cwd(), "src/sdd-forge.js"),
+      join(process.cwd(), "src/senti.js"),
       "flow", "run", "gate",
       "--phase", "task-spec",
       "--spec", join(tmp, "spec.md"),
-    ], { encoding: "utf8", env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp } });
+    ], { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } });
     const envelope = JSON.parse(result);
     assert.equal(envelope.ok, true);
   });
@@ -363,11 +363,11 @@ describe("gate CLI", () => {
     writeFile(tmp, "spec.md", "# Empty spec\n");
 
     const result = execFileSync("node", [
-      join(process.cwd(), "src/sdd-forge.js"),
+      join(process.cwd(), "src/senti.js"),
       "flow", "run", "gate",
       "--phase", "task-spec",
       "--spec", join(tmp, "spec.md"),
-    ], { encoding: "utf8", env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp } });
+    ], { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } });
     const envelope = JSON.parse(result);
     assert.equal(envelope.ok, true);
     assert.equal(envelope.data.result, "fail");
@@ -388,12 +388,12 @@ describe("gate CLI", () => {
 
     // Pass spec.md path; resolveSpecJsonPath should resolve to spec.json (R5).
     const result = execFileSync("node", [
-      join(process.cwd(), "src/sdd-forge.js"),
+      join(process.cwd(), "src/senti.js"),
       "flow", "run", "gate",
       "--phase", "spec",
       "--spec", join(specDir, "spec.md"),
       "--skip-guardrail",
-    ], { encoding: "utf8", env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp } });
+    ], { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } });
     const envelope = JSON.parse(result);
     assert.equal(envelope.ok, true);
     assert.equal(envelope.data.result, "pass");
@@ -421,12 +421,12 @@ describe("gate CLI", () => {
     let envelope;
     try {
       const result = execFileSync("node", [
-        join(process.cwd(), "src/sdd-forge.js"),
+        join(process.cwd(), "src/senti.js"),
         "flow", "run", "gate",
         "--phase", "spec",
         "--spec", join(specDir, "spec.json"),
         "--skip-guardrail",
-      ], { encoding: "utf8", env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp } });
+      ], { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } });
       envelope = JSON.parse(result);
     } catch (err) {
       // gate FAIL → exit code 1 (R7). Parse stdout from error.
@@ -462,12 +462,12 @@ describe("gate CLI", () => {
     let envelope;
     try {
       const result = execFileSync("node", [
-        join(process.cwd(), "src/sdd-forge.js"),
+        join(process.cwd(), "src/senti.js"),
         "flow", "run", "gate",
         "--phase", "spec",
         "--spec", join(specDir, "spec.json"),
         "--skip-guardrail",
-      ], { encoding: "utf8", env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp } });
+      ], { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } });
       envelope = JSON.parse(result);
     } catch (err) {
       envelope = JSON.parse(err.stdout.toString());

@@ -27,13 +27,13 @@ import { validateSchema } from "../../../src/lib/schema-validate.js";
 import { PKG_DIR } from "../../../src/lib/cli.js";
 import { resolveIncludes } from "../../../src/lib/include.js";
 
-const CLI = join(process.cwd(), "src/sdd-forge.js");
+const CLI = join(process.cwd(), "src/senti.js");
 
 function runCli(tmp, args) {
   try {
     const out = execFileSync("node", [CLI, ...args], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp },
     });
     return { envelope: JSON.parse(out), exitCode: 0 };
   } catch (err) {

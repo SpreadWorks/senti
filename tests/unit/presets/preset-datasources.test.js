@@ -18,7 +18,7 @@ afterEach(() => {
 
 function setupTmp(name) {
   tmp = createTmpDir(`ds-${name}-`);
-  fs.mkdirSync(path.join(tmp, ".sdd-forge"), { recursive: true });
+  fs.mkdirSync(path.join(tmp, ".senti"), { recursive: true });
   writeJson(tmp, "package.json", { name: "test-pkg", version: "1.0.0" });
   return tmp;
 }

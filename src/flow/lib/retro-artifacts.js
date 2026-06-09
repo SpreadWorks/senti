@@ -12,7 +12,7 @@ function readJsonIfExists(filePath, sourceLabel) {
   try {
     return JSON.parse(fs.readFileSync(filePath, "utf8"));
   } catch (err) {
-    throw new Error(`[sdd-forge] ${sourceLabel}: failed to parse ${filePath}: ${err.message}`);
+    throw new Error(`[senti] ${sourceLabel}: failed to parse ${filePath}: ${err.message}`);
   }
 }
 

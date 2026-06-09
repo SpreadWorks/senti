@@ -4,8 +4,8 @@
      - Do not approve or proceed while any unresolved `requires_user_decision` item remains.
    - Before running the gate, scan requirement-like authored fields in `draft.json` for missing priority marker text. Check `scopeVerification.in`, `scopeVerification.out`, `impactOnExisting`, `decisionMap.decisionPoints`, `decisionMap.requiresUserJudgment`, `decisionMap.deferredToSpec`, `openQuestions`, and `qa[].question`, `qa[].answer`, `qa[].why`, `qa[].droppedReason` when they express required outcomes.
      - Each requirement-like entry MUST carry exactly one accepted priority marker: `must`, `should`, or `nice-to-have`.
-     - Fix all missing priority marker instances before running `sdd-forge flow run gate --phase draft`.
-   - `sdd-forge flow run gate --phase draft` (step status is automatically managed by hooks: pre sets draft-gate to in_progress, post sets done on PASS)
+     - Fix all missing priority marker instances before running `senti flow run gate --phase draft`.
+   - `senti flow run gate --phase draft` (step status is automatically managed by hooks: pre sets draft-gate to in_progress, post sets done on PASS)
    - Checks draft.json for: devType enum, goal, analysis (problem/proposedApproach/validation), decisionMap shape, qa[] lifecycle shape, approval + guardrail AI compliance.
    - If FAIL (`data.result === "fail"`): show every row in `data.artifacts.reasons` (one per violation on FAIL article entries) and every entry in `data.artifacts.issues`.
    - The draft gate is strict. Do not attempt to acknowledge exceptions in draft.json; fix draft-time guardrail violations directly or escalate at the retry limit. Guardrail exception acknowledgments are valid only after spec.json exists and only in `constraints[]`, `clarifications[].q` / `.a`, or `alternatives_considered[].option` / `.reason`.

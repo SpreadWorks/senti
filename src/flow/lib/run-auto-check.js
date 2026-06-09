@@ -1,7 +1,7 @@
 /**
  * src/flow/lib/run-auto-check.js
  *
- * `sdd-forge flow run auto-check` — phase-aware eligibility check for auto mode.
+ * `senti flow run auto-check` — phase-aware eligibility check for auto mode.
  *
  * Flow (spec 220):
  *   - resolve the target flow (active flow.json or preparing record via --run-id)
@@ -32,7 +32,7 @@ import { resolveAutoCheckInput, buildSkipVerdict } from "./resolve-auto-check-in
 import { Envelope } from "../../lib/flow-envelope.js";
 import { PromptBuilder } from "../../lib/prompt-builder.js";
 
-const AUTO_CHECK_ROLE = `You evaluate whether a feature request can safely proceed in SDD "auto mode" —
+const AUTO_CHECK_ROLE = `You evaluate whether a feature request can safely proceed in Spec-Driven Development "auto mode" —
 meaning the AI drafts, specs, and implements without human confirmation loops.`;
 
 const AUTO_CHECK_RULES = `Score the following request on six dimensions (0/1/2 each).

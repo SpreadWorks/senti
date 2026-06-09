@@ -4,7 +4,7 @@ import { join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../../../../tests/helpers/tmp-dir.js";
 
-const CMD = join(process.cwd(), "src/sdd-forge.js");
+const CMD = join(process.cwd(), "src/senti.js");
 const CMD_ARGS = ["docs", "scan"];
 
 describe("Laravel scan integration", () => {
@@ -13,7 +13,7 @@ describe("Laravel scan integration", () => {
 
   it("scans a Laravel project with --stdout", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".sdd-forge/config.json", {
+    writeJson(tmp, ".senti/config.json", {
       lang: "ja",
       type: "laravel",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -64,7 +64,7 @@ Schema::create('users', function (Blueprint \$table) {
 
     const result = execFileSync("node", [CMD, ...CMD_ARGS, "--stdout"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
     });
 
     const analysis = JSON.parse(result);
@@ -101,7 +101,7 @@ Schema::create('users', function (Blueprint \$table) {
 
   it("type alias 'laravel' resolves correctly", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".sdd-forge/config.json", {
+    writeJson(tmp, ".senti/config.json", {
       lang: "ja",
       type: "laravel",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -111,7 +111,7 @@ Schema::create('users', function (Blueprint \$table) {
 
     const result = execFileSync("node", [CMD, ...CMD_ARGS, "--stdout"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
     });
 
     const analysis = JSON.parse(result);

@@ -94,7 +94,7 @@ function specDirFor(spec) {
 
 function recoveryCommandFor(input) {
   const reason = String(input.reason || "").replace(/"/g, '\\"');
-  return `sdd-forge flow set retry reset ${input.kind} ${input.phase} --reason "${reason}" --yes`;
+  return `senti flow set retry reset ${input.kind} ${input.phase} --reason "${reason}" --yes`;
 }
 
 function readJsonIfExists(filePath, fallback) {

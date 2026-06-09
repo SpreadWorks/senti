@@ -61,7 +61,7 @@ function resolveAgent(cfg, commandId) {
   return resolved ? resolved.profile : null;
 }
 
-const FLOW_CMD = join(process.cwd(), "src/sdd-forge.js");
+const FLOW_CMD = join(process.cwd(), "src/senti.js");
 const FLOW_CMD_ARGS_PREFIX = ["flow"];
 
 describe("FLOW_STEPS includes impl-review", () => {
@@ -92,7 +92,7 @@ describe("flow run review CLI", () => {
     try {
       execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "run", "review"], {
         encoding: "utf8",
-        env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+        env: { ...process.env, SENTI_WORK_ROOT: tmp },
       });
       assert.fail("should exit non-zero");
     } catch (err) {
@@ -119,7 +119,7 @@ describe("flow run review --phase test CLI", () => {
     try {
       execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "run", "review", "--phase", "test"], {
         encoding: "utf8",
-        env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+        env: { ...process.env, SENTI_WORK_ROOT: tmp },
       });
       assert.fail("should exit non-zero");
     } catch (err) {

@@ -1,4 +1,4 @@
-   - Run `sdd-forge flow run review --phase draft` once to perform the draft coverage review.
+   - Run `senti flow run review --phase draft` once to perform the draft coverage review.
    - This stage is a one-shot final check after `draft-refine`, not a follow-up question loop. It reads `draft.json.qa[]` entries and checks only whether a blocking user decision is still required before the spec can be written.
    - The review command writes a machine-readable detection artifact to `draft-review-coverage.json`.
    - The review step is detection only: it must not edit `draft.json`, mutate `draft.json.qa[]`, collect answers, or write repair audit files.

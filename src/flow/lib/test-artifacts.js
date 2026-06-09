@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { StringDecoder } from "string_decoder";
-import { sddOutputDir } from "../../lib/config.js";
+import { sentiOutputDir } from "../../lib/config.js";
 import { globToRegex } from "../../lib/glob.js";
 import { runGit } from "../../lib/git-helpers.js";
 import { classifyRegression, listRegressionChangedFiles } from "./test-regression.js";
@@ -787,8 +787,8 @@ export function validateTestExecuteResultEvidence(result, {
     if (regression.raw_output_lines.end_line > rawLines.length) {
       throw new Error("regression.raw_output_lines is outside raw output");
     }
-    const startMarker = `[sdd-forge] project regression start command=${regression.command} mode=${regression.mode}`;
-    const endMarker = `[sdd-forge] project regression end result=${regression.result}`;
+    const startMarker = `[senti] project regression start command=${regression.command} mode=${regression.mode}`;
+    const endMarker = `[senti] project regression end result=${regression.result}`;
     if (!rawOutputText.includes(startMarker) || !rawOutputText.includes(endMarker)) {
       throw new Error("raw output missing project regression start/end markers matching artifact command/result");
     }
@@ -872,7 +872,7 @@ export function assertIntegrationRegressionEvidence({ root, state, specDir, conf
   }
 
   if (regression.required) {
-    const analysisPath = path.join(sddOutputDir(root), "analysis.json");
+    const analysisPath = path.join(sentiOutputDir(root), "analysis.json");
     const analysis = JSON.parse(fs.readFileSync(analysisPath, "utf8"));
     const changedFiles = listRegressionChangedFiles({ root, state });
     const current = classifyRegression({ root, state, analysis, config, changedFiles });

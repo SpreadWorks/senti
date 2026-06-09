@@ -233,7 +233,7 @@ describe("Agent.resolve(commandId) — profile resolution", () => {
     assert.equal(resolved.timeoutMs, 300000);
   });
 
-  it("throws when SDD_FORGE_PROFILE references an undefined profile", () => {
+  it("throws when SENTI_PROFILE references an undefined profile", () => {
     const cfg = { agent: { default: "claude/opus", useProfile: "missing" } };
     const agent = makeAgent(null, { config: cfg });
     assert.throws(() => agent.resolve());

@@ -3,9 +3,9 @@
 <!-- {{data("cli.docs.langSwitcher", {labels: "absolute"})}} -->
 <!-- {{/data}} -->
 
-[![npm version](https://img.shields.io/npm/v/sdd-forge.svg)](https://www.npmjs.com/package/sdd-forge)
-[![license](https://img.shields.io/npm/l/sdd-forge.svg)](https://opensource.org/licenses/MIT)
-[![downloads](https://img.shields.io/npm/dm/sdd-forge.svg)](https://www.npmjs.com/package/sdd-forge)
+[![npm version](https://img.shields.io/npm/v/senti.svg)](https://www.npmjs.com/package/senti)
+[![license](https://img.shields.io/npm/l/senti.svg)](https://opensource.org/licenses/MIT)
+[![downloads](https://img.shields.io/npm/dm/senti.svg)](https://www.npmjs.com/package/senti)
 
 > **Alpha版:** API・コマンド体系・設定フォーマットは予告なく変更される可能性があります。
 
@@ -47,7 +47,7 @@ finalize ──── 終了処理
 
 ソースコードを静的解析し、ファイル構造・クラス・メソッド・設定・依存関係を抽出します。抽出した構造データをテンプレートに注入し、章立てされたドキュメント（`docs/`）と `README.md` を生成します。
 
-SDD フローの終了処理でドキュメントが自動更新されるため、コードとドキュメントの乖離が構造的に起きません。常に最新のドキュメントがあることで、人も AI もソースコード全体を読まずにシステムの構造や依存関係を把握できます。
+Spec-Driven Development フローの終了処理でドキュメントが自動更新されるため、コードとドキュメントの乖離が構造的に起きません。常に最新のドキュメントがあることで、人も AI もソースコード全体を読まずにシステムの構造や依存関係を把握できます。
 
 ## クイックスタート
 
@@ -73,19 +73,19 @@ npm install -g <!-- {{data("cli.project.name")}} --><!-- {{/data}} -->
 <!-- {{data("cli.project.name")}} --><!-- {{/data}} --> docs build
 </pre>
 
-### SDD フローで開発する
+### Spec-Driven Development フローで開発する
 
 **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)** — スキルで各フェーズを実行:
 
 | スキル | フェーズ |
 |---|---|
-| `/sdd-forge.flow` | full SDD flow（計画、実装、finalize） |
+| `/senti.flow` | full Spec-Driven Development flow（計画、実装、finalize） |
 
 **[Codex CLI](https://github.com/openai/codex)** — `$` プレフィックスでツールを呼び出し:
 
 | コマンド | フェーズ |
 |---|---|
-| `$sdd-forge.flow` | full SDD flow（計画、実装、finalize） |
+| `$senti.flow` | full Spec-Driven Development flow（計画、実装、finalize） |
 
 ## コマンド一覧
 
@@ -94,11 +94,11 @@ npm install -g <!-- {{data("cli.project.name")}} --><!-- {{/data}} -->
 | `setup` | プロジェクト登録・設定ファイル生成 |
 | `docs build` | ドキュメント生成パイプラインを一括実行 |
 
-全コマンドの詳細は `sdd-forge help` または[コマンドリファレンス](docs/cli_commands.md)を参照してください。
+全コマンドの詳細は `senti help` または[コマンドリファレンス](docs/cli_commands.md)を参照してください。
 
 ## 設定
 
-`setup` で `.sdd-forge/config.json` が生成されます。
+`setup` で `.senti/config.json` が生成されます。
 
 ```jsonc
 {

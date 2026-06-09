@@ -7,6 +7,7 @@
  */
 
 import fs from "fs";
+import os from "node:os";
 import path from "path";
 import assert from "node:assert/strict";
 import { Agent } from "../../../src/lib/agent.js";
@@ -187,7 +188,7 @@ export function extractQualityData(result) {
  * Run AI quality verification on generated docs.
  *
  * @param {string} tmp - Project root
- * @param {Object} config - SddConfig
+ * @param {Object} config - SentiConfig
  * @param {string} presetName - Preset name for context
  * @returns {{ quality: Object }} Evaluation results (throws on failure)
  */

@@ -40,7 +40,7 @@ describe("validatePresetChain", () => {
 
   it("throws Error when a chapter has no template in any layer", () => {
     // Project-local preset with a chapter that has no matching template.
-    writeJson(tmp, ".sdd-forge/presets/myext/preset.json", {
+    writeJson(tmp, ".senti/presets/myext/preset.json", {
       label: "My Extension",
       chapters: [{ chapter: "missing.md" }],
     });
@@ -61,12 +61,12 @@ describe("validatePresetChain", () => {
   // Project-local templates directory satisfies the requirement
   // ---------------------------------------------------------------------
 
-  it("accepts a template provided under .sdd-forge/templates/<lang>/docs/<chapter>", () => {
-    writeJson(tmp, ".sdd-forge/presets/myext/preset.json", {
+  it("accepts a template provided under .senti/templates/<lang>/docs/<chapter>", () => {
+    writeJson(tmp, ".senti/presets/myext/preset.json", {
       label: "My Extension",
       chapters: [{ chapter: "custom.md" }],
     });
-    writeFile(tmp, ".sdd-forge/templates/ja/docs/custom.md", "# Custom (ja)\n");
+    writeFile(tmp, ".senti/templates/ja/docs/custom.md", "# Custom (ja)\n");
 
     assert.doesNotThrow(() => {
       validatePresetChain("myext", tmp, { languages: ["ja"] });
@@ -104,7 +104,7 @@ describe("validatePresetChain", () => {
   // ---------------------------------------------------------------------
 
   it("includes both chapter name and language in error when multiple languages fail", () => {
-    writeJson(tmp, ".sdd-forge/presets/myext/preset.json", {
+    writeJson(tmp, ".senti/presets/myext/preset.json", {
       label: "My Extension",
       chapters: [{ chapter: "missing.md" }],
     });
@@ -125,13 +125,13 @@ describe("validatePresetChain", () => {
   // ---------------------------------------------------------------------
 
   it("does not throw when a template exists without a matching chapter (warning only)", () => {
-    writeJson(tmp, ".sdd-forge/presets/myext/preset.json", {
+    writeJson(tmp, ".senti/presets/myext/preset.json", {
       label: "My Extension",
       chapters: [{ chapter: "custom.md" }],
     });
-    writeFile(tmp, ".sdd-forge/presets/myext/templates/ja/custom.md", "# Custom\n");
+    writeFile(tmp, ".senti/presets/myext/templates/ja/custom.md", "# Custom\n");
     // Extra template not listed in chapters — should be warned but not fail.
-    writeFile(tmp, ".sdd-forge/presets/myext/templates/ja/extra.md", "# Extra\n");
+    writeFile(tmp, ".senti/presets/myext/templates/ja/extra.md", "# Extra\n");
 
     assert.doesNotThrow(() => {
       validatePresetChain("myext", tmp, { languages: ["ja"] });
@@ -143,7 +143,7 @@ describe("validatePresetChain", () => {
   // ---------------------------------------------------------------------
 
   it("does not throw when languages array is empty", () => {
-    writeJson(tmp, ".sdd-forge/presets/myext/preset.json", {
+    writeJson(tmp, ".senti/presets/myext/preset.json", {
       label: "My Extension",
       chapters: [{ chapter: "missing.md" }],
     });

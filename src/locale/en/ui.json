@@ -1,6 +1,6 @@
 {
   "setup": {
-    "title": "SDD Forge — Setup",
+    "title": "senti — Setup",
     "separator": "========================",
     "questions": {
       "uiLang": "Select your preferred language for UI messages:",
@@ -67,7 +67,7 @@
       "skillsDeployed": "[setup] Skills deployed (.agents/skills/ + .claude/skills/)",
       "summary": "Configuration Summary:",
       "nextSteps": "Next Steps:",
-      "step1": "sdd-forge build  — Generate docs (scan → init → data → text)",
+      "step1": "senti build  — Generate docs (scan → init → data → text)",
       "step2": "Configure test.command for final regression and project test paths for targeted repair-loop regression"
     },
     "prompt": "> "
@@ -77,17 +77,17 @@
     "skillUpdated": "[upgrade] skill updated: {{name}}/SKILL.md",
     "skillUnchanged": "[upgrade] skill unchanged: {{name}}/SKILL.md",
     "skillRemoved": "[upgrade] skill removed (obsolete): {{name}}",
-    "agentsUpdated": "[upgrade] AGENTS.md SDD section updated.",
-    "agentsNotFound": "[upgrade] AGENTS.md not found or has no SDD section. Skipped.",
-    "agentsUnchanged": "[upgrade] AGENTS.md SDD section unchanged.",
+    "agentsUpdated": "[upgrade] AGENTS.md Spec-Driven Development section updated.",
+    "agentsNotFound": "[upgrade] AGENTS.md not found or has no Spec-Driven Development section. Skipped.",
+    "agentsUnchanged": "[upgrade] AGENTS.md Spec-Driven Development section unchanged.",
     "noChanges": "[upgrade] All files are up to date.",
     "dryRunFooter": "[upgrade] DRY-RUN: no files were modified. Run without --dry-run to apply.",
     "done": "[upgrade] Upgrade complete."
   },
   "help": {
     "title": "Commands",
-    "usage": "Usage: sdd-forge <command> [options]",
-    "runHelp": "Run \u001b[1msdd-forge <command> --help\u001b[0m for details.",
+    "usage": "Usage: senti <command> [options]",
+    "runHelp": "Run \u001b[1msenti <command> --help\u001b[0m for details.",
     "commands": {
       "help": "Show this help",
       "setup": "Register project + generate config (interactive)",
@@ -114,7 +114,7 @@
     },
     "cmdHelp": {
       "enrich": {
-        "usage": "Usage: sdd-forge docs enrich [options]",
+        "usage": "Usage: senti docs enrich [options]",
         "desc": "Enrich analysis.json entries with AI-generated summary, detail, chapter, and role.",
         "options": {
           "agent": "--agent <name>  AI agent to use (default: config defaultAgent)",
@@ -124,7 +124,7 @@
         }
       },
       "scan": {
-        "usage": "Usage: sdd-forge docs scan [options]",
+        "usage": "Usage: senti docs scan [options]",
         "desc": "Analyze source code and generate analysis.json.",
         "options": {
           "reset": "--reset [cats]  Clear entry hashes (all or comma-separated categories)",
@@ -134,7 +134,7 @@
         }
       },
       "init": {
-        "usage": "Usage: sdd-forge docs init [options]",
+        "usage": "Usage: senti docs init [options]",
         "desc": "Copy templates to docs/.",
         "options": {
           "type": "--type <type>            Template type (default: config.json type)",
@@ -144,7 +144,7 @@
         }
       },
       "data": {
-        "usage": "Usage: sdd-forge docs data [options]",
+        "usage": "Usage: senti docs data [options]",
         "desc": "Resolve {{data}} directives with analysis data.",
         "options": {
           "dryRun": "--dry-run   Show changes without writing files",
@@ -153,7 +153,7 @@
         }
       },
       "text": {
-        "usage": "Usage: sdd-forge docs text --agent <name> [options]",
+        "usage": "Usage: senti docs text --agent <name> [options]",
         "desc": "Resolve {{text}} directives with AI.",
         "options": {
           "agent": "--agent <name>      AI agent: claude|codex (required)",
@@ -165,14 +165,14 @@
         }
       },
       "forge": {
-        "usage": "Usage: sdd-forge docs forge --prompt \"...\" [options]",
+        "usage": "Usage: senti docs forge --prompt \"...\" [options]",
         "desc": "Iteratively improve docs with an AI agent.",
         "options": {
           "prompt": "--prompt <text>        Initial prompt",
           "promptFile": "--prompt-file <path>   Initial prompt file",
           "spec": "--spec <path>          Input specification (directory / spec.json / legacy spec.md)",
           "maxRuns": "--max-runs <n>         Iteration count (default: 3)",
-          "reviewCmd": "--review-cmd <cmd>     Docs review command (default: sdd-forge review)",
+          "reviewCmd": "--review-cmd <cmd>     Docs review command (default: senti review)",
           "agent": "--agent <name>         AI agent: codex|claude (default: config.json defaultAgent)",
           "mode": "--mode <mode>          Execution mode: local|assist|agent (default: local)",
           "dryRun": "--dry-run              Skip file writes, review, and agent calls (1 round)",
@@ -183,29 +183,29 @@
         "perFileNote": "When the provider has systemPromptFlag set, the agent is called asynchronously per file.\nConcurrency is configurable via config.json limits.concurrency (default: 5)."
       },
       "review": {
-        "usage": "Usage: sdd-forge docs review [<docs-dir>]",
+        "usage": "Usage: senti docs review [<docs-dir>]",
         "desc": "Validate chapter files in docs/.",
-        "descDetail": "Defaults to ${SDD_WORK_ROOT}/docs when no argument is given."
+        "descDetail": "Defaults to ${SENTI_WORK_ROOT}/docs when no argument is given."
       },
       "changelog": {
-        "usage": "Usage: sdd-forge docs changelog [--dry-run] [<output-file>]",
+        "usage": "Usage: senti docs changelog [--dry-run] [<output-file>]",
         "desc": "Scan specs/ and generate change_log.md.",
-        "descDetail": "Defaults to ${SDD_SOURCE_ROOT}/docs/change_log.md when no argument is given.",
+        "descDetail": "Defaults to ${SENTI_SOURCE_ROOT}/docs/change_log.md when no argument is given.",
         "options": {
           "dryRun": "--dry-run   Print result to stdout without writing file"
         }
       },
       "agents": {
-        "usage": "Usage: sdd-forge docs agents [--dry-run]",
+        "usage": "Usage: senti docs agents [--dry-run]",
         "desc": "Update AGENTS.md by resolving {{data}} directives.",
-        "descDetail": "Resolves agents.sdd and agents.project directives (PROJECT is refined by AI).",
+        "descDetail": "Resolves agents.senti and agents.project directives (PROJECT is refined by AI).",
         "options": {
           "dryRun": "--dry-run   Print generated content to stdout without writing"
         }
       },
       "flow": {
-        "usage": "Usage: sdd-forge flow start --request \"...\" [options]",
-        "desc": "Run the SDD flow automatically.",
+        "usage": "Usage: senti flow start --request \"...\" [options]",
+        "desc": "Run the Spec-Driven Development flow automatically.",
         "options": {
           "request": "--request <text>   Implementation request (required)",
           "title": "--title <text>     Spec title (defaults to start of request)",
@@ -214,12 +214,12 @@
           "maxRuns": "--max-runs <n>     docs:forge iteration count",
           "forgeMode": "--forge-mode <m>   docs:forge mode: local|assist|agent (default: local)",
           "noBranch": "--no-branch        Create spec only without creating a branch",
-          "worktree": "--worktree         Create a git worktree for the spec (.sdd-forge/worktree/<branch>/)",
+          "worktree": "--worktree         Create a git worktree for the spec (.senti/worktree/<branch>/)",
           "dryRun": "--dry-run          Run all subcommands in dry-run mode"
         }
       },
       "build": {
-        "usage": "Usage: sdd-forge docs build [options]",
+        "usage": "Usage: senti docs build [options]",
         "desc": "Run the full document generation pipeline:",
         "descDetail": "scan → init → data → text → readme → agents → translate",
         "options": {
@@ -231,7 +231,7 @@
         }
       },
       "readme": {
-        "usage": "Usage: sdd-forge docs readme [options]",
+        "usage": "Usage: senti docs readme [options]",
         "desc": "Auto-generate README.md from docs/ and templates.",
         "options": {
           "lang": "--lang <code>  Template language (default: config.docs.defaultLanguage)",
@@ -241,7 +241,7 @@
         }
       },
       "translate": {
-        "usage": "Usage: sdd-forge docs translate [options]",
+        "usage": "Usage: senti docs translate [options]",
         "desc": "Translate default-language documents to non-default languages.",
         "options": {
           "lang": "--lang <lang>  Translate to specific language only",
@@ -251,7 +251,7 @@
         }
       },
       "setup": {
-        "usage": "Usage: sdd-forge setup [options]",
+        "usage": "Usage: senti setup [options]",
         "desc": "Interactive project setup wizard.",
         "options": {
           "name": "--name <name>               Project name",
@@ -268,8 +268,8 @@
         }
       },
       "upgrade": {
-        "usage": "Usage: sdd-forge upgrade [options]",
-        "desc": "Upgrade template-derived files to match the installed sdd-forge version.",
+        "usage": "Usage: senti upgrade [options]",
+        "desc": "Upgrade template-derived files to match the installed senti version.",
         "descDetail": "Does NOT modify config.json or context.json.",
         "updatedFiles": [
           ".agents/skills/*/SKILL.md        Skill templates",
@@ -281,7 +281,7 @@
         }
       },
       "presets": {
-        "usage": "Usage: sdd-forge presets list",
+        "usage": "Usage: senti presets list",
         "desc": "Display the preset inheritance tree."
       }
     }
@@ -308,7 +308,7 @@
       "artifact": "test-execute-result.json v2",
       "review": "test-result-review.json",
       "projectRegression": "project regression",
-      "config": ".sdd-forge/config.json test.command / test.projectPaths / test.timeout"
+      "config": ".senti/config.json test.command / test.projectPaths / test.timeout"
     }
   }
 }

@@ -1,6 +1,6 @@
 {
   "setup": {
-    "title": "SDD Forge — セットアップ",
+    "title": "senti — セットアップ",
     "separator": "========================",
     "questions": {
       "uiLang": "Select your preferred language for UI messages:",
@@ -67,7 +67,7 @@
       "skillsDeployed": "[setup] Skills を配置しました (.agents/skills/ + .claude/skills/)",
       "summary": "設定サマリ:",
       "nextSteps": "次のステップ:",
-      "step1": "sdd-forge build  — ドキュメント一括生成（scan → init → data → text）",
+      "step1": "senti build  — ドキュメント一括生成（scan → init → data → text）",
       "step2": "final regression 用に test.command、補修ループの targeted regression 用に project test paths を設定してください"
     },
     "prompt": "> "
@@ -77,17 +77,17 @@
     "skillUpdated": "[upgrade] スキル更新: {{name}}/SKILL.md",
     "skillUnchanged": "[upgrade] スキル変更なし: {{name}}/SKILL.md",
     "skillRemoved": "[upgrade] スキル削除（廃止）: {{name}}",
-    "agentsUpdated": "[upgrade] AGENTS.md の SDD セクションを更新しました。",
-    "agentsNotFound": "[upgrade] AGENTS.md が見つからないか SDD セクションがありません。スキップしました。",
-    "agentsUnchanged": "[upgrade] AGENTS.md の SDD セクションに変更はありません。",
+    "agentsUpdated": "[upgrade] AGENTS.md の Spec-Driven Development セクションを更新しました。",
+    "agentsNotFound": "[upgrade] AGENTS.md が見つからないか Spec-Driven Development セクションがありません。スキップしました。",
+    "agentsUnchanged": "[upgrade] AGENTS.md の Spec-Driven Development セクションに変更はありません。",
     "noChanges": "[upgrade] すべてのファイルは最新です。",
     "dryRunFooter": "[upgrade] DRY-RUN: ファイルは変更されませんでした。--dry-run なしで実行してください。",
     "done": "[upgrade] アップグレード完了。"
   },
   "help": {
     "title": "コマンド一覧",
-    "usage": "Usage: sdd-forge <command> [options]",
-    "runHelp": "Run \u001b[1msdd-forge <command> --help\u001b[0m for details.",
+    "usage": "Usage: senti <command> [options]",
+    "runHelp": "Run \u001b[1msenti <command> --help\u001b[0m for details.",
     "commands": {
       "help": "このヘルプを表示",
       "setup": "プロジェクト登録 + 設定生成（対話式）",
@@ -114,7 +114,7 @@
     },
     "cmdHelp": {
       "enrich": {
-        "usage": "Usage: sdd-forge docs enrich [options]",
+        "usage": "Usage: senti docs enrich [options]",
         "desc": "AI で analysis.json の各エントリーに summary/detail/chapter/role を付与する。",
         "options": {
           "agent": "--agent <name>  使用する AI エージェント（デフォルト: config の defaultAgent）",
@@ -124,7 +124,7 @@
         }
       },
       "scan": {
-        "usage": "Usage: sdd-forge docs scan [options]",
+        "usage": "Usage: senti docs scan [options]",
         "desc": "ソースコードを解析し analysis.json を生成する。",
         "options": {
           "reset": "--reset [cats]  エントリの hash をクリア（全体またはカンマ区切りカテゴリ指定）",
@@ -134,7 +134,7 @@
         }
       },
       "init": {
-        "usage": "Usage: sdd-forge docs init [options]",
+        "usage": "Usage: senti docs init [options]",
         "desc": "テンプレートを docs/ にコピーする。",
         "options": {
           "type": "--type <type>            テンプレートタイプ (default: config.json type)",
@@ -144,7 +144,7 @@
         }
       },
       "data": {
-        "usage": "Usage: sdd-forge docs data [options]",
+        "usage": "Usage: senti docs data [options]",
         "desc": "{{data}} ディレクティブを解析データで解決する。",
         "options": {
           "dryRun": "--dry-run   変更内容を表示するだけでファイル書き込みしない",
@@ -153,7 +153,7 @@
         }
       },
       "text": {
-        "usage": "Usage: sdd-forge docs text --agent <name> [options]",
+        "usage": "Usage: senti docs text --agent <name> [options]",
         "desc": "{{text}} ディレクティブを AI で解決する。",
         "options": {
           "agent": "--agent <name>      AIエージェント: claude|codex (必須)",
@@ -165,14 +165,14 @@
         }
       },
       "forge": {
-        "usage": "Usage: sdd-forge docs forge --prompt \"...\" [options]",
+        "usage": "Usage: senti docs forge --prompt \"...\" [options]",
         "desc": "docs を AI エージェントで反復改善する。",
         "options": {
           "prompt": "--prompt <text>        開始プロンプト",
           "promptFile": "--prompt-file <path>   開始プロンプトファイル",
           "spec": "--spec <path>          入力仕様書（ディレクトリ / spec.json / 旧 spec.md）",
           "maxRuns": "--max-runs <n>         反復回数 (default: 3)",
-          "reviewCmd": "--review-cmd <cmd>     docs レビューコマンド (default: sdd-forge review)",
+          "reviewCmd": "--review-cmd <cmd>     docs レビューコマンド (default: senti review)",
           "agent": "--agent <name>         AIエージェント: codex|claude (default: config.json の defaultAgent)",
           "mode": "--mode <mode>          実行モード: local|assist|agent (default: local)",
           "dryRun": "--dry-run              ファイル書き込み・review・agent 呼び出しをスキップ（1 ラウンドで終了）",
@@ -183,29 +183,29 @@
         "perFileNote": "provider に systemPromptFlag が設定されている場合、ファイルごとに非同期で agent を呼び出します。\n同時実行数は config.json の limits.concurrency で設定可能（default: 5）。"
       },
       "review": {
-        "usage": "Usage: sdd-forge docs review [<docs-dir>]",
+        "usage": "Usage: senti docs review [<docs-dir>]",
         "desc": "docs/ 配下の章ファイルを検証する。",
-        "descDetail": "引数なしの場合は ${SDD_WORK_ROOT}/docs を対象とする。"
+        "descDetail": "引数なしの場合は ${SENTI_WORK_ROOT}/docs を対象とする。"
       },
       "changelog": {
-        "usage": "Usage: sdd-forge docs changelog [--dry-run] [<output-file>]",
+        "usage": "Usage: senti docs changelog [--dry-run] [<output-file>]",
         "desc": "specs/ を走査して change_log.md を生成する。",
-        "descDetail": "引数なしの場合は ${SDD_SOURCE_ROOT}/docs/change_log.md に出力する。",
+        "descDetail": "引数なしの場合は ${SENTI_SOURCE_ROOT}/docs/change_log.md に出力する。",
         "options": {
           "dryRun": "--dry-run   ファイル書き込みせず結果を stdout に出力する"
         }
       },
       "agents": {
-        "usage": "Usage: sdd-forge docs agents [--dry-run]",
+        "usage": "Usage: senti docs agents [--dry-run]",
         "desc": "AGENTS.md の {{data}} ディレクティブを解決して更新する。",
-        "descDetail": "agents.sdd / agents.project ディレクティブを解決する（PROJECT は AI で精査）。",
+        "descDetail": "agents.senti / agents.project ディレクティブを解決する（PROJECT は AI で精査）。",
         "options": {
           "dryRun": "--dry-run   ファイル書き込みせず生成内容を stdout に出力"
         }
       },
       "flow": {
-        "usage": "Usage: sdd-forge flow start --request \"...\" [options]",
-        "desc": "SDD フローを自動実行する。",
+        "usage": "Usage: senti flow start --request \"...\" [options]",
+        "desc": "Spec-Driven Development フローを自動実行する。",
         "options": {
           "request": "--request <text>   実装要求（必須）",
           "title": "--title <text>     spec 用タイトル（省略時は request 先頭を利用）",
@@ -214,12 +214,12 @@
           "maxRuns": "--max-runs <n>     docs:forge 反復回数",
           "forgeMode": "--forge-mode <m>   docs:forge mode: local|assist|agent (default: local)",
           "noBranch": "--no-branch        ブランチを作成せず spec のみ作成する",
-          "worktree": "--worktree         git worktree を作成して spec を配置する (.sdd-forge/worktree/<branch>/)",
+          "worktree": "--worktree         git worktree を作成して spec を配置する (.senti/worktree/<branch>/)",
           "dryRun": "--dry-run          全サブコマンドを dry-run モードで実行する"
         }
       },
       "build": {
-        "usage": "Usage: sdd-forge docs build [options]",
+        "usage": "Usage: senti docs build [options]",
         "desc": "ドキュメント生成パイプラインを一括実行する:",
         "descDetail": "scan → init → data → text → readme → agents → translate",
         "options": {
@@ -231,7 +231,7 @@
         }
       },
       "readme": {
-        "usage": "Usage: sdd-forge docs readme [options]",
+        "usage": "Usage: senti docs readme [options]",
         "desc": "docs/ とテンプレートから README.md を自動生成する。",
         "options": {
           "lang": "--lang <code>  テンプレート言語を指定 (default: config.docs.defaultLanguage)",
@@ -241,7 +241,7 @@
         }
       },
       "translate": {
-        "usage": "Usage: sdd-forge docs translate [options]",
+        "usage": "Usage: senti docs translate [options]",
         "desc": "デフォルト言語のドキュメントを他言語に翻訳する。",
         "options": {
           "lang": "--lang <lang>  特定の言語のみ翻訳",
@@ -251,7 +251,7 @@
         }
       },
       "setup": {
-        "usage": "Usage: sdd-forge setup [options]",
+        "usage": "Usage: senti setup [options]",
         "desc": "インタラクティブなプロジェクトセットアップウィザード。",
         "options": {
           "name": "--name <name>               プロジェクト名",
@@ -268,8 +268,8 @@
         }
       },
       "upgrade": {
-        "usage": "Usage: sdd-forge upgrade [options]",
-        "desc": "テンプレート由来のファイルをインストール済み sdd-forge のバージョンに合わせて更新する。",
+        "usage": "Usage: senti upgrade [options]",
+        "desc": "テンプレート由来のファイルをインストール済み senti のバージョンに合わせて更新する。",
         "descDetail": "config.json や context.json は変更しない。",
         "updatedFiles": [
           ".agents/skills/*/SKILL.md        スキルテンプレート",
@@ -281,7 +281,7 @@
         }
       },
       "presets": {
-        "usage": "Usage: sdd-forge presets list",
+        "usage": "Usage: senti presets list",
         "desc": "プリセット継承ツリーを表示する。"
       }
     }
@@ -308,7 +308,7 @@
       "artifact": "test-execute-result.json v2",
       "review": "test-result-review.json",
       "projectRegression": "project regression",
-      "config": ".sdd-forge/config.json test.command / test.projectPaths / test.timeout"
+      "config": ".senti/config.json test.command / test.projectPaths / test.timeout"
     }
   }
 }

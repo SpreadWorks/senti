@@ -4,7 +4,7 @@ import { join } from "path";
 import { execFileSync } from "child_process";
 import { commands } from "../../src/help.js";
 
-const CMD = join(process.cwd(), "src/sdd-forge.js");
+const CMD = join(process.cwd(), "src/senti.js");
 const CMD_ARGS_PREFIX = ["help"];
 
 describe("help", () => {
@@ -38,7 +38,7 @@ describe("help", () => {
 
   it("prints help output via CLI", () => {
     const result = execFileSync("node", [CMD, ...CMD_ARGS_PREFIX], { encoding: "utf8" });
-    assert.match(result, /SDD Forge/);
+    assert.match(result, /senti/);
     assert.match(result, /コマンド一覧/);
   });
 });

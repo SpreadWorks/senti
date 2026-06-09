@@ -111,9 +111,9 @@ function makePreparingState(runId, overrides = {}) {
   };
 }
 
-function writePreparingFile(sddDir, runId, overrides = {}) {
+function writePreparingFile(sentiDir, runId, overrides = {}) {
   const state = makePreparingState(runId, overrides);
-  fs.writeFileSync(join(sddDir, `.active-flow.${runId}`), JSON.stringify(state, null, 2) + "\n");
+  fs.writeFileSync(join(sentiDir, `.active-flow.${runId}`), JSON.stringify(state, null, 2) + "\n");
   return state;
 }
 
@@ -125,14 +125,14 @@ describe("preparing state files (.active-flow.<runId>)", () => {
 
   it(".active-flow.<runId> file uses flow.json schema with null fields", () => {
     tmp = createTmpDir();
-    const sddDir = join(tmp, ".sdd-forge");
-    fs.mkdirSync(sddDir, { recursive: true });
+    const sentiDir = join(tmp, ".senti");
+    fs.mkdirSync(sentiDir, { recursive: true });
 
     const runId = "test-run-id-abc";
-    writePreparingFile(sddDir, runId);
+    writePreparingFile(sentiDir, runId);
 
     // Verify file exists and is valid JSON with expected schema
-    const raw = JSON.parse(fs.readFileSync(join(sddDir, `.active-flow.${runId}`), "utf8"));
+    const raw = JSON.parse(fs.readFileSync(join(sentiDir, `.active-flow.${runId}`), "utf8"));
     assert.equal(raw.runId, runId);
     assert.equal(raw.lifecycle, "preparing");
     assert.equal(raw.spec, null);
@@ -148,13 +148,13 @@ describe("preparing state files (.active-flow.<runId>)", () => {
 
   it("preparing state always has autoApprove false", () => {
     tmp = createTmpDir();
-    const sddDir = join(tmp, ".sdd-forge");
-    fs.mkdirSync(sddDir, { recursive: true });
+    const sentiDir = join(tmp, ".senti");
+    fs.mkdirSync(sentiDir, { recursive: true });
 
     const runId = "test-auto-approve";
-    writePreparingFile(sddDir, runId);
+    writePreparingFile(sentiDir, runId);
 
-    const raw = JSON.parse(fs.readFileSync(join(sddDir, `.active-flow.${runId}`), "utf8"));
+    const raw = JSON.parse(fs.readFileSync(join(sentiDir, `.active-flow.${runId}`), "utf8"));
     assert.equal(raw.autoApprove, false);
   });
 
@@ -162,13 +162,13 @@ describe("preparing state files (.active-flow.<runId>)", () => {
 
   it("stale .active-flow.* files older than TTL can be identified by mtime", () => {
     tmp = createTmpDir();
-    const sddDir = join(tmp, ".sdd-forge");
-    fs.mkdirSync(sddDir, { recursive: true });
+    const sentiDir = join(tmp, ".senti");
+    fs.mkdirSync(sentiDir, { recursive: true });
 
     const staleRunId = "stale-run";
     const freshRunId = "fresh-run";
-    const staleFile = join(sddDir, `.active-flow.${staleRunId}`);
-    const freshFile = join(sddDir, `.active-flow.${freshRunId}`);
+    const staleFile = join(sentiDir, `.active-flow.${staleRunId}`);
+    const freshFile = join(sentiDir, `.active-flow.${freshRunId}`);
 
     fs.writeFileSync(staleFile, JSON.stringify(makePreparingState(staleRunId)));
     fs.writeFileSync(freshFile, JSON.stringify(makePreparingState(freshRunId)));
@@ -180,11 +180,11 @@ describe("preparing state files (.active-flow.<runId>)", () => {
 
     // Verify mtime-based detection works
     const TTL_MS = 24 * 60 * 60 * 1000;
-    const files = fs.readdirSync(sddDir).filter((f) => f.startsWith(".active-flow."));
+    const files = fs.readdirSync(sentiDir).filter((f) => f.startsWith(".active-flow."));
     assert.equal(files.length, 2);
 
     const staleFiles = files.filter((f) => {
-      const stat = fs.statSync(join(sddDir, f));
+      const stat = fs.statSync(join(sentiDir, f));
       return now.getTime() - stat.mtimeMs > TTL_MS;
     });
     assert.equal(staleFiles.length, 1);
@@ -195,12 +195,12 @@ describe("preparing state files (.active-flow.<runId>)", () => {
 
   it(".active-flow.<runId> is deletable after promotion to flow.json", () => {
     tmp = createTmpDir();
-    const sddDir = join(tmp, ".sdd-forge");
-    fs.mkdirSync(sddDir, { recursive: true });
+    const sentiDir = join(tmp, ".senti");
+    fs.mkdirSync(sentiDir, { recursive: true });
 
     const runId = "promote-test";
-    const preparingFile = join(sddDir, `.active-flow.${runId}`);
-    writePreparingFile(sddDir, runId);
+    const preparingFile = join(sentiDir, `.active-flow.${runId}`);
+    writePreparingFile(sentiDir, runId);
     assert.ok(fs.existsSync(preparingFile));
 
     // Simulate promotion: save flow.json + add to .active-flow + delete preparing file
@@ -221,15 +221,15 @@ describe("preparing state files (.active-flow.<runId>)", () => {
 
   it("multiple .active-flow.* files can coexist", () => {
     tmp = createTmpDir();
-    const sddDir = join(tmp, ".sdd-forge");
-    fs.mkdirSync(sddDir, { recursive: true });
+    const sentiDir = join(tmp, ".senti");
+    fs.mkdirSync(sentiDir, { recursive: true });
 
     const runId1 = "run-1";
     const runId2 = "run-2";
-    writePreparingFile(sddDir, runId1);
-    writePreparingFile(sddDir, runId2);
+    writePreparingFile(sentiDir, runId1);
+    writePreparingFile(sentiDir, runId2);
 
-    const files = fs.readdirSync(sddDir).filter((f) => f.startsWith(".active-flow."));
+    const files = fs.readdirSync(sentiDir).filter((f) => f.startsWith(".active-flow."));
     assert.equal(files.length, 2);
   });
 });

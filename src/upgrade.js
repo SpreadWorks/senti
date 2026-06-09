@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * sdd-forge/upgrade.js
+ * senti/upgrade.js
  *
- * Upgrade skill-derived files (skills, AGENTS.md SDD section) to match
- * the currently installed sdd-forge version.
+ * Upgrade skill-derived files (skills, AGENTS.md Spec-Driven Development section) to match
+ * the currently installed senti version.
  *
  * Safe to run repeatedly — only overwrites skill-managed content. config.json
  * is migrated in place additively (chapters format; agent default profiles +
@@ -11,14 +11,14 @@
  * agent `default` / `useProfile` are never touched. context.json is untouched.
  *
  * Usage:
- *   sdd-forge upgrade [--dry-run]
+ *   senti upgrade [--dry-run]
  */
 
 import fs from "fs";
 import path from "path";
 import { repoRoot, parseArgs } from "./lib/cli.js";
 import { EXIT_ERROR } from "./lib/constants.js";
-import { loadConfig, sddConfigPath } from "./lib/config.js";
+import { loadConfig, sentiConfigPath } from "./lib/config.js";
 import { container } from "./lib/container.js";
 import { mergeAgentDefaults } from "./lib/agent-defaults.js";
 import { translate } from "./lib/i18n.js";
@@ -30,6 +30,215 @@ import {
 } from "./lib/skills.js";
 import { deployPresetCopies } from "./lib/preset-deploy.js";
 import { writeUpgradeResultArtifact } from "./flow/lib/test-artifacts.js";
+
+class RenameRule {
+  constructor(from, to) {
+    this.from = from;
+    this.to = to;
+  }
+
+  apply(text) {
+    return text.split(this.from).join(this.to);
+  }
+}
+
+class RenameMigration {
+  constructor(root) {
+    this.root = root;
+    this.textRules = [
+      new RenameRule(".sdd-forge", ".senti"),
+      new RenameRule("sdd-forge", "senti"),
+      new RenameRule("SDD-FORGE", "SENTI"),
+      new RenameRule("SDD_FORGE", "SENTI"),
+      new RenameRule("SDD_WORK_ROOT", "SENTI_WORK_ROOT"),
+      new RenameRule("SDD_SOURCE_ROOT", "SENTI_SOURCE_ROOT"),
+      new RenameRule("sdd_forge", "senti"),
+      new RenameRule("SddForge", "Senti"),
+      new RenameRule("sddForge", "senti"),
+      new RenameRule("SddConfig", "SentiConfig"),
+      new RenameRule("sddConfig", "sentiConfig"),
+      new RenameRule("sddDir", "sentiDir"),
+      new RenameRule("sddOutput", "sentiOutput"),
+      new RenameRule("sddPhase", "sentiPhase"),
+      new RenameRule("agents.sdd", "agents.senti"),
+      new RenameRule("AGENTS.sdd", "AGENTS.senti"),
+      new RenameRule("SDD Forge", "senti"),
+      new RenameRule("SDD section", "Spec-Driven Development section"),
+      new RenameRule("SDD セクション", "Spec-Driven Development セクション"),
+      new RenameRule("The SDD Flow", "The Spec-Driven Development Flow"),
+      new RenameRule("SDD flow", "Spec-Driven Development flow"),
+      new RenameRule("SDD フロー", "Spec-Driven Development フロー"),
+      new RenameRule("sdd:gate", "senti:gate"),
+    ];
+  }
+
+  run({ dryRun = false } = {}) {
+    const changed = [];
+    this.migrateManagedDirectory(changed, { dryRun });
+    this.migrateLegacySkillDirectories(changed, { dryRun });
+    this.migrateRenamedPaths(changed, { dryRun });
+    for (const file of this.listTextTargets()) {
+      const before = fs.readFileSync(file, "utf8");
+      const after = this.renameText(before);
+      if (after !== before) {
+        if (!dryRun) fs.writeFileSync(file, after, "utf8");
+        changed.push(path.relative(this.root, file));
+      }
+    }
+    return changed;
+  }
+
+  recordChange(changed, rel) {
+    if (!changed.includes(rel)) changed.push(rel);
+  }
+
+  renameText(text) {
+    let next = text;
+    for (const rule of this.textRules) next = rule.apply(next);
+    next = next.replace(/\bSDD\b/g, "Spec-Driven Development");
+    next = next.replace(/\bsdd\b/g, "senti");
+    return next;
+  }
+
+  migrateManagedDirectory(changed, { dryRun }) {
+    const legacyDir = path.join(this.root, ".sdd-forge");
+    if (!fs.existsSync(legacyDir)) return;
+
+    for (const rel of this.listFilesUnder(legacyDir)) {
+      const src = path.join(legacyDir, rel);
+      const dest = path.join(this.root, ".senti", rel);
+      if (this.isExcludedPath(src)) continue;
+      if (fs.existsSync(dest)) continue;
+      if (!dryRun) {
+        fs.mkdirSync(path.dirname(dest), { recursive: true });
+        fs.renameSync(src, dest);
+      }
+      this.recordChange(changed, path.relative(this.root, dest));
+    }
+  }
+
+  migrateLegacySkillDirectories(changed, { dryRun }) {
+    for (const base of [".agents", ".claude"]) {
+      const skillsDir = path.join(this.root, base, "skills");
+      if (!fs.existsSync(skillsDir)) continue;
+      for (const entry of fs.readdirSync(skillsDir, { withFileTypes: true })) {
+        if (!entry.isDirectory() || !entry.name.startsWith("sdd-forge.")) continue;
+
+        const src = path.join(skillsDir, entry.name);
+        const destName = this.renamePath(entry.name);
+        const dest = path.join(skillsDir, destName);
+        if (!dryRun) {
+          if (fs.existsSync(dest)) {
+            fs.rmSync(src, { recursive: true, force: true });
+          } else {
+            fs.renameSync(src, dest);
+          }
+        }
+        this.recordChange(changed, path.relative(this.root, dest));
+      }
+    }
+  }
+
+  migrateRenamedPaths(changed, { dryRun }) {
+    const files = this.listFilesUnder(this.root)
+      .map((rel) => path.join(this.root, rel))
+      .filter((file) => !this.isExcludedPath(file))
+      .sort((a, b) => b.length - a.length);
+
+    for (const src of files) {
+      const rel = path.relative(this.root, src).split(path.sep).join("/");
+      const renamedRel = this.renamePath(rel);
+      if (renamedRel === rel) continue;
+
+      const dest = path.join(this.root, ...renamedRel.split("/"));
+      if (fs.existsSync(dest)) continue;
+      if (!dryRun) {
+        fs.mkdirSync(path.dirname(dest), { recursive: true });
+        fs.renameSync(src, dest);
+      }
+      this.recordChange(changed, renamedRel);
+    }
+  }
+
+  renamePath(rel) {
+    return rel
+      .split(".sdd-forge").join(".senti")
+      .split("sdd-forge").join("senti")
+      .split("AGENTS.sdd").join("AGENTS.senti")
+      .split("agents.sdd").join("agents.senti");
+  }
+
+  listTextTargets() {
+    return this.listFilesUnder(this.root)
+      .map((rel) => path.join(this.root, rel))
+      .filter((file) => !this.isExcludedPath(file))
+      .filter((file) => !this.isLegacyManagedFile(file))
+      .filter((file) => !this.isLegacySkillFile(file))
+      .filter((file) => !this.isMigrationSource(file))
+      .filter((file) => this.isTextFile(file));
+  }
+
+  listFilesUnder(dir) {
+    const out = [];
+    if (!fs.existsSync(dir)) return out;
+    const walk = (current, prefix = "") => {
+      for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+        const rel = path.join(prefix, entry.name);
+        const full = path.join(current, entry.name);
+        if (this.isExcludedPath(full)) continue;
+        if (entry.isDirectory()) walk(full, rel);
+        else if (entry.isFile()) out.push(rel);
+      }
+    };
+    walk(dir);
+    return out;
+  }
+
+  isExcludedPath(file) {
+    const rel = path.relative(this.root, file).split(path.sep).join("/");
+    if (rel === ".git" || rel.startsWith(".git/")) return true;
+    if (rel === "node_modules" || rel.startsWith("node_modules/")) return true;
+    if (rel === "docs" || rel.startsWith("docs/")) return true;
+    if (rel === "specs" || rel.startsWith("specs/")) return true;
+    if (rel === ".tmp" || rel.startsWith(".tmp/")) return true;
+    if (rel.startsWith(".claude/projects/")) return true;
+    if (rel.startsWith(".sdd-forge/worktree/")) return true;
+    if (rel.startsWith(".sdd-forge/.tmp/")) return true;
+    if (rel.startsWith(".sdd-forge/agent-work/")) return true;
+    if (rel.startsWith(".sdd-forge/agent-cache/")) return true;
+    if (rel.startsWith(".sdd-forge/tmp/")) return true;
+    if (rel.startsWith(".senti/worktree/")) return true;
+    if (rel.startsWith(".senti/.tmp/")) return true;
+    if (rel.startsWith(".senti/agent-work/")) return true;
+    if (rel.startsWith(".senti/agent-cache/")) return true;
+    if (rel.startsWith(".senti/tmp/")) return true;
+    return false;
+  }
+
+  isMigrationSource(file) {
+    const rel = path.relative(this.root, file).split(path.sep).join("/");
+    return rel === "src/upgrade.js";
+  }
+
+  isLegacyManagedFile(file) {
+    const rel = path.relative(this.root, file).split(path.sep).join("/");
+    return rel.startsWith(".sdd-forge/");
+  }
+
+  isLegacySkillFile(file) {
+    const rel = path.relative(this.root, file).split(path.sep).join("/");
+    return rel.startsWith(".agents/skills/sdd-forge.") || rel.startsWith(".claude/skills/sdd-forge.");
+  }
+
+  isTextFile(file) {
+    try {
+      const buf = fs.readFileSync(file);
+      return !buf.includes(0);
+    } catch (_) {
+      return false;
+    }
+  }
+}
 
 
 // ---------------------------------------------------------------------------
@@ -106,7 +315,8 @@ async function main() {
   const root = repoRoot();
   const activeFlow = resolveActiveUpgradeFlow(root);
   const logger = createUpgradeLogger();
-  const command = ["sdd-forge", "upgrade", ...process.argv.slice(2)].join(" ");
+  const command = ["senti", "upgrade", ...process.argv.slice(2)].join(" ");
+  const dryRun = cli.dryRun;
 
   if (cli.help) {
     const { translate: tr } = await import("./lib/i18n.js");
@@ -123,14 +333,21 @@ async function main() {
     return;
   }
 
-  const config = loadConfig(root);
-  const t = translate();
-  const dryRun = cli.dryRun;
   const summary = {
     skills: { updated: 0, unchanged: 0, removed: 0 },
     presets: { copied: 0 },
     config: { changed: false },
+    rename: { changed: 0 },
   };
+
+  const renameChanges = new RenameMigration(root).run({ dryRun });
+  summary.rename.changed = renameChanges.length;
+  for (const rel of renameChanges) {
+    logger.log(`[upgrade] migrated rename target: ${rel}`);
+  }
+
+  const config = loadConfig(root);
+  const t = translate();
 
   // Fail-fast: chapters ↔ preset chain static integrity check (spec 218).
   if (config.type) {
@@ -191,7 +408,7 @@ async function main() {
   summary.skills.updated = skillResults.filter((r) => r.status === "updated").length;
   summary.skills.unchanged = skillResults.filter((r) => r.status === "unchanged").length;
 
-  // Remove obsolete sdd-forge.* skills no longer in the skill source directory
+  // Remove obsolete senti.* skills no longer in the skill source directory
   const removedSkills = cleanupObsoleteSkills(root, [MAIN_SKILLS_DIR], { dryRun });
   summary.skills.removed = removedSkills.length;
   for (const { name } of removedSkills) {
@@ -207,7 +424,7 @@ async function main() {
   }
 
   // Migrate config.json in place (chapters format + agent defaults). Single read/write.
-  const configPath = sddConfigPath(root);
+  const configPath = sentiConfigPath(root);
   let configChanged = false;
   try {
     const raw = JSON.parse(fs.readFileSync(configPath, "utf8"));
@@ -243,7 +460,7 @@ async function main() {
   summary.config.changed = configChanged;
 
   // Summary
-  const hasChanges = skillResults.some((r) => r.status === "updated") || removedSkills.length > 0 || configChanged;
+  const hasChanges = renameChanges.length > 0 || skillResults.some((r) => r.status === "updated") || removedSkills.length > 0 || configChanged;
   if (!hasChanges) {
     logger.log(t("ui:upgrade.noChanges"));
   } else if (dryRun) {

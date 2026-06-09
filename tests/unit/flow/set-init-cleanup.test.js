@@ -8,7 +8,7 @@ import SetInitCommand from "../../../src/flow/lib/set-init.js";
 import { PREPARING_PREFIX } from "../../../src/lib/flow-helpers.js";
 
 function setupProject(tmp) {
-  writeJson(tmp, ".sdd-forge/config.json", {
+  writeJson(tmp, ".senti/config.json", {
     lang: "ja",
     type: "base",
     docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -18,7 +18,7 @@ function setupProject(tmp) {
 }
 
 function preparingFilePath(tmp, runId) {
-  return path.join(tmp, ".sdd-forge", `${PREPARING_PREFIX}${runId}`);
+  return path.join(tmp, ".senti", `${PREPARING_PREFIX}${runId}`);
 }
 
 function ageFileByMs(filePath, ageMs) {

@@ -57,7 +57,7 @@ export class RunSyncCommand extends FlowCommand {
     }
 
     // Step 3: git add (ignore errors for missing files)
-    runGit(["add", "docs/", "AGENTS.md", "CLAUDE.md", "README.md", ".sdd-forge/output/"], { cwd: root });
+    runGit(["add", "docs/", "AGENTS.md", "CLAUDE.md", "README.md", ".senti/output/"], { cwd: root });
 
     // Collect changed files
     let changed = [];

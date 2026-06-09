@@ -4,7 +4,7 @@
  * These helpers are used only by unit tests (tests/unit/analyzers.test.js).
  * They were previously exported from data/components.js and data/routes.js but
  * have been relocated here so that preset data/ modules do not import
- * sdd-forge internals (spec 191: preset DI container).
+ * senti internals (spec 191: preset DI container).
  */
 
 import fs from "fs";

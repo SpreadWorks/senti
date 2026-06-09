@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * sdd-forge/help.js
+ * senti/help.js
  *
  * Display available commands.
- * Language is determined by .sdd-forge/config.json lang, defaulting to "en".
+ * Language is determined by .senti/config.json lang, defaulting to "en".
  */
 
 import { getPackageVersion } from "./lib/cli.js";
@@ -53,7 +53,7 @@ function main() {
   const maxName = Math.max(...commands.filter((c) => c.name).map((c) => c.name.length));
 
   console.log("");
-  console.log(`  \x1b[1mSDD Forge\x1b[0m v${version} — ${t("ui:help.title")}`);
+  console.log(`  \x1b[1msenti\x1b[0m v${version} — ${t("ui:help.title")}`);
   console.log("");
   console.log(`  ${t("ui:help.usage")}`);
   console.log("");

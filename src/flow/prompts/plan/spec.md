@@ -1,16 +1,16 @@
    - **Before writing spec**:
      - Read draft.json (if exists) and linked GitHub issue content. If draft was completed, treat it as the primary input — do NOT re-read context already gathered in the draft phase.
      - **Context gathering (supplement-first):** Only read additional context when draft + issue are insufficient.
-       - If specific target files are unclear: `sdd-forge flow get context --search "<request text or issue title>" --raw`.
-       - If project structure is still unclear: `sdd-forge flow get context <path> --raw` for specific files; `sdd-forge flow get context --raw` only as a last resort.
-     - If guardrail articles for spec have NOT been loaded in this session: `sdd-forge flow get guardrail spec`. If output is non-empty, follow these principles. Skip if already present in context.
+       - If specific target files are unclear: `senti flow get context --search "<request text or issue title>" --raw`.
+       - If project structure is still unclear: `senti flow get context <path> --raw` for specific files; `senti flow get context --raw` only as a last resort.
+     - If guardrail articles for spec have NOT been loaded in this session: `senti flow get guardrail spec`. If output is non-empty, follow these principles. Skip if already present in context.
    - **Synthesize draft into spec, do not copy or fabricate:** Organize and abstract draft content rather than copying it directly. Do not invent content not present in the draft. Exception: if a draft policy contradicts the source code (verified in the verification step below), treat the spec correction as a `[CORRECTION]`, not a fabrication.
    - **Acknowledged guardrail exceptions:** If the spec intentionally chooses a design that may violate a guardrail article, record the guardrail id directly in `constraints[]`, `clarifications[].q` / `.a`, or `alternatives_considered[].option` / `.reason`. Do not use `design_principles`, approval notes, overview entries, task text, or other fields as an exception-acknowledgment surface. The draft gate remains strict: draft-time guardrail violations must be fixed directly or escalated; exception acknowledgments are a spec.json convention for later spec/implementation review context.
    - **Source verification step (when draft is the primary input):** When `draft.json` includes implementation policy references (file paths, function names, data structures) in `analysis.proposedApproach`, `decisionMap.*`, or `qa[].answer`, cross-reference them against the actual source code. Read minimal source files only for that verification — do not re-read context already gathered in the draft phase.
      - **Recording convention for `[VERIFY]` and `[CORRECTION]` entries (shared):** Write a concise summary in `spec.json.overview.decisions[].text` (≤ 500 chars). Put detailed source references in `evidence` (≤ 1000 chars). Split into multiple decision entries when content overflows. Each entry keeps prefix-based identification.
      - If a draft policy matches the source: record a `[VERIFY]` entry summarising "checked draft policy / referenced file / result=match".
      - If a draft policy contradicts the source: record a `[CORRECTION]` entry summarising "draft policy / referenced file / adopted correction" when the correction is source-verifiable. If the correction needs a user decision that is missing from draft QA, follow the draft-return rule below.
-   - **Draft return when user judgment is missing:** If spec writing discovers a missing user decision that belongs in draft QA, run `sdd-forge flow run reopen-draft --reason "<reason>"` instead of collecting an ad-hoc spec-phase answer. The reason should name the missing decision in one sentence. After reopen succeeds, return to draft so the question can be captured in `draft.json.qa[]` and the normal draft review/gate/spec path can run again.
+   - **Draft return when user judgment is missing:** If spec writing discovers a missing user decision that belongs in draft QA, run `senti flow run reopen-draft --reason "<reason>"` instead of collecting an ad-hoc spec-phase answer. The reason should name the missing decision in one sentence. After reopen succeeds, return to draft so the question can be captured in `draft.json.qa[]` and the normal draft review/gate/spec path can run again.
      - Do not use this for source-verifiable corrections, wording fixes, rationale additions, or details the draft intentionally deferred to spec writing.
      - If `reopen-draft` fails or the flow presents a recovery choice, use Choice Format for that recovery decision.
    - Do not render or edit `spec.md` in this step. `spec.json` is the source of truth; the approval prompt renders the human-readable `spec.md` view when the user needs to read it.
@@ -57,4 +57,4 @@
 
    Empty `tasks[]` or undefined `tasks` causes the spec gate to FAIL. The `task-single-responsibility` guardrail evaluates each task's concern singularity in phase `spec` and `task-spec`.
 
-   - **On complete**: `sdd-forge flow set step spec done`
+   - **On complete**: `senti flow set step spec done`

@@ -11,11 +11,11 @@ import { join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../../../helpers/tmp-dir.js";
 
-const CMD = join(process.cwd(), "src/sdd-forge.js");
+const CMD = join(process.cwd(), "src/senti.js");
 const CMD_ARGS = ["docs", "scan"];
 
 function makeEnv(tmp) {
-  return { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_SOURCE_ROOT: tmp };
+  return { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp };
 }
 
 describe("scan multi-type pattern merging", () => {
@@ -24,7 +24,7 @@ describe("scan multi-type pattern merging", () => {
 
   it("single type with no scan patterns collects 0 files", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".sdd-forge/config.json", {
+    writeJson(tmp, ".senti/config.json", {
       lang: "ja",
       type: "rest",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -45,7 +45,7 @@ describe("scan multi-type pattern merging", () => {
   it("multi-type merges scan patterns from all chains", () => {
     tmp = createTmpDir();
     // rest has no scan patterns, node-cli has scan patterns for src/**/*.js
-    writeJson(tmp, ".sdd-forge/config.json", {
+    writeJson(tmp, ".senti/config.json", {
       lang: "ja",
       type: ["rest", "node-cli"],
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -65,7 +65,7 @@ describe("scan multi-type pattern merging", () => {
   it("multi-type loads DataSources from all chains", () => {
     tmp = createTmpDir();
     // node-cli provides modules scan, cakephp2 provides controllers scan
-    writeJson(tmp, ".sdd-forge/config.json", {
+    writeJson(tmp, ".senti/config.json", {
       lang: "ja",
       type: ["node-cli", "cakephp2"],
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -86,7 +86,7 @@ describe("scan multi-type pattern merging", () => {
 
   it("config.scan overrides all preset patterns", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".sdd-forge/config.json", {
+    writeJson(tmp, ".senti/config.json", {
       lang: "ja",
       type: ["rest", "node-cli"],
       docs: { languages: ["ja"], defaultLanguage: "ja" },

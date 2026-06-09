@@ -16,16 +16,16 @@ const DEFAULT_PACKAGE = {
 };
 
 export function createMockProject(overrides = {}) {
-  const root = createTmpDir("sdd-mock-");
+  const root = createTmpDir("senti-mock-");
   const cfg = { ...DEFAULT_CONFIG, ...overrides.config };
   const pkg = { ...DEFAULT_PACKAGE, ...overrides.package };
 
-  writeJson(root, ".sdd-forge/config.json", cfg);
+  writeJson(root, ".senti/config.json", cfg);
   writeJson(root, "package.json", pkg);
-  writeFile(root, ".sdd-forge/output/.gitkeep");
+  writeFile(root, ".senti/output/.gitkeep");
 
   if (overrides.analysis) {
-    writeJson(root, ".sdd-forge/output/analysis.json", overrides.analysis);
+    writeJson(root, ".senti/output/analysis.json", overrides.analysis);
   }
 
   if (overrides.docs) {

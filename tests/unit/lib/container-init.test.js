@@ -12,8 +12,8 @@ describe("initContainer — config registration contract (R1, #175)", () => {
   beforeEach(() => {
     tmp = createTmpDir();
     savedEnv = { ...process.env };
-    process.env.SDD_FORGE_WORK_ROOT = tmp;
-    delete process.env.SDD_FORGE_SOURCE_ROOT;
+    process.env.SENTI_WORK_ROOT = tmp;
+    delete process.env.SENTI_SOURCE_ROOT;
     container.reset();
   });
 
@@ -23,19 +23,19 @@ describe("initContainer — config registration contract (R1, #175)", () => {
     process.env = savedEnv;
   });
 
-  it("registers null for config when .sdd-forge/config.json is missing", () => {
+  it("registers null for config when .senti/config.json is missing", () => {
     initContainer();
     assert.strictEqual(container.get("config"), null);
   });
 
-  it("registers the loaded config object when .sdd-forge/config.json exists", () => {
-    mkdirSync(join(tmp, ".sdd-forge"), { recursive: true });
+  it("registers the loaded config object when .senti/config.json exists", () => {
+    mkdirSync(join(tmp, ".senti"), { recursive: true });
     const validConfig = {
       lang: "ja",
       type: "node-cli",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
     };
-    writeJson(tmp, ".sdd-forge/config.json", validConfig);
+    writeJson(tmp, ".senti/config.json", validConfig);
     initContainer();
     const got = container.get("config");
     assert.notStrictEqual(got, null);
@@ -69,8 +69,8 @@ describe("initContainer — config registration contract (R1, #175)", () => {
   });
 
   it("uses agentWorkDirOverride for agent work dir and default log dir", () => {
-    mkdirSync(join(tmp, ".sdd-forge"), { recursive: true });
-    writeJson(tmp, ".sdd-forge/config.json", {
+    mkdirSync(join(tmp, ".senti"), { recursive: true });
+    writeJson(tmp, ".senti/config.json", {
       lang: "ja",
       type: "node-cli",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -85,7 +85,7 @@ describe("initContainer — config registration contract (R1, #175)", () => {
   });
 
   it("CLI entrypoint pre-scans flow run --agent-work-dir before initContainer", () => {
-    const source = readFileSync(join(process.cwd(), "src/sdd-forge.js"), "utf8");
+    const source = readFileSync(join(process.cwd(), "src/senti.js"), "utf8");
     assert.match(source, /let agentWorkDirOverride = null/, "entrypoint must have early flow-run scanner state");
     assert.match(source, /agentWorkDirOverride,/, "initContainer must receive the override");
     assert.match(source, /subCmd\s*===\s*"flow"\s*&&\s*rest\[0\]\s*===\s*"run"/, "scanner must be scoped to flow run");

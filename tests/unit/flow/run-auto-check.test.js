@@ -9,7 +9,7 @@ import { writeStubAgentScript, stubAgentConfig } from "../../helpers/stub-agent.
 import { makeFlowManager } from "../../helpers/flow-setup.js";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 
-const CMD = path.join(process.cwd(), "src/sdd-forge.js");
+const CMD = path.join(process.cwd(), "src/senti.js");
 
 function stubResponse({
   specBuildability = 2,
@@ -35,7 +35,7 @@ function stubResponse({
 
 function setupProject(tmp, { aiResponse } = {}) {
   const stubPath = writeStubAgentScript(tmp, ".stub-agent.js", aiResponse ?? stubResponse());
-  writeJson(tmp, ".sdd-forge/config.json", {
+  writeJson(tmp, ".senti/config.json", {
     lang: "ja",
     type: "base",
     docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -65,7 +65,7 @@ function runCli(tmp, args) {
   return spawnSync("node", [CMD, ...args], {
     encoding: "utf8",
     cwd: tmp,
-    env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+    env: { ...process.env, SENTI_WORK_ROOT: tmp },
   });
 }
 

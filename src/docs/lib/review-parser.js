@@ -1,5 +1,5 @@
 /**
- * sdd-forge/docs/lib/review-parser.js
+ * senti/docs/lib/review-parser.js
  *
  * Review output parsing for the forge command.
  */

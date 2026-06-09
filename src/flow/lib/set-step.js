@@ -146,7 +146,7 @@ export default class SetStepCommand extends FlowCommand {
           }
         } catch (err) {
           process.stderr.write(
-            `[sdd-forge] set-step ${id}: task sync failed (${err.message})\n`,
+            `[senti] set-step ${id}: task sync failed (${err.message})\n`,
           );
           if (container.has("logger")) {
             container.get("logger").event("approval-sync-error", { error: err.message });
@@ -182,7 +182,7 @@ export default class SetStepCommand extends FlowCommand {
           }
         } catch (err) {
           process.stderr.write(
-            `[sdd-forge] set-step auto-upgrade re-eval: ${err.message}\n`,
+            `[senti] set-step auto-upgrade re-eval: ${err.message}\n`,
           );
         }
       }

@@ -232,7 +232,7 @@ describe("directive-parser: preset.source.method syntax", () => {
   it("parses 3-part inline data directive", async () => {
     const { parseDirectives } = await import("../../src/docs/lib/directive-parser.js");
     const text =
-      '# <!-- {{data("base.project.name")}} -->sdd-forge<!-- {{/data}} -->';
+      '# <!-- {{data("base.project.name")}} -->senti<!-- {{/data}} -->';
     const result = parseDirectives(text);
     assert.equal(result.length, 1);
     const d = result[0];
@@ -303,7 +303,7 @@ describe("E2E: multi-preset combination", () => {
   it("resolver handles multiple type chains", async () => {
     const { createResolver } = await import("../../src/docs/lib/resolver-factory.js");
     const tmp = createTmpDir("multi-preset");
-    fs.mkdirSync(path.join(tmp, ".sdd-forge"), { recursive: true });
+    fs.mkdirSync(path.join(tmp, ".senti"), { recursive: true });
     writeJson(tmp, "package.json", {
       name: "test-multi",
       version: "1.0.0",
@@ -328,7 +328,7 @@ describe("E2E: multi-preset combination", () => {
   it("single type string still works with createResolver", async () => {
     const { createResolver } = await import("../../src/docs/lib/resolver-factory.js");
     const tmp = createTmpDir("single-preset");
-    fs.mkdirSync(path.join(tmp, ".sdd-forge"), { recursive: true });
+    fs.mkdirSync(path.join(tmp, ".senti"), { recursive: true });
     writeJson(tmp, "package.json", { name: "test-single" });
 
     const resolver = await createResolver("symfony", tmp);

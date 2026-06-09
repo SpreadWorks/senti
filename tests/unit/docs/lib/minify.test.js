@@ -370,7 +370,7 @@ describe("minify mode:essential", () => {
   });
 
   it("keeps export function declarations", () => {
-    const code = 'export function loadConfig(root) {\n  const p = sddConfigPath(root);\n  return validateConfig(raw);\n}\n';
+    const code = 'export function loadConfig(root) {\n  const p = sentiConfigPath(root);\n  return validateConfig(raw);\n}\n';
     const result = minify(code, "file.js", opts);
     assert.ok(result.includes("export function loadConfig(root)"));
   });

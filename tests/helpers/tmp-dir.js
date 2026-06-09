@@ -3,7 +3,7 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { before, after } from "node:test";
 
-export function createTmpDir(prefix = "sdd-test-") {
+export function createTmpDir(prefix = "senti-test-") {
   return mkdtempSync(join(tmpdir(), prefix));
 }
 
@@ -30,7 +30,7 @@ export function writeFile(dir, relPath, content = "") {
  * @param {string} [prefix]
  * @returns {() => string} getter that returns the tmp dir path
  */
-export function useTmpDir(prefix = "sdd-test-") {
+export function useTmpDir(prefix = "senti-test-") {
   let dir;
   before(() => { dir = createTmpDir(prefix); });
   after(() => { removeTmpDir(dir); });

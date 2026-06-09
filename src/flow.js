@@ -20,12 +20,12 @@ const args = process.argv.slice(2);
 const group = args[0];
 const rest = args.slice(1);
 const flowCommandSuggestionByGroup = {
-  status: "sdd-forge flow get status",
+  status: "senti flow get status",
 };
 
 if (!group || group === "-h" || group === "--help") {
   const lines = [
-    "Usage: sdd-forge flow <command> [options]",
+    "Usage: senti flow <command> [options]",
     "",
     "Commands:",
     `  ${"prepare".padEnd(18)} Initialize spec and branch/worktree`,
@@ -42,7 +42,7 @@ if (!group || group === "-h" || group === "--help") {
 async function run(entry, argv, envelopeType, envelopeKey, helpPathOverride) {
   const resolvedEntry = entry?.helpPath
     ? entry
-    : { ...entry, helpPath: helpPathOverride || `sdd-forge flow ${envelopeType} ${envelopeKey} --help` };
+    : { ...entry, helpPath: helpPathOverride || `senti flow ${envelopeType} ${envelopeKey} --help` };
   const runtimeLog = !(group === "get" && envelopeKey === "runtime-log");
   await dispatch({
     container,
@@ -71,12 +71,12 @@ async function dispatchFlow() {
   // Group commands: get / set / run
   const commands = flowCommands[group];
   if (!commands || typeof commands !== "object" || typeof commands.command === "function") {
-    console.error(`sdd-forge flow: unknown command '${group}'`);
+    console.error(`senti flow: unknown command '${group}'`);
     const suggestion = flowCommandSuggestionByGroup[group];
     if (suggestion) {
       console.error(`Did you mean: ${suggestion}`);
     }
-    console.error("Run: sdd-forge flow --help");
+    console.error("Run: senti flow --help");
     process.exit(EXIT_ERROR);
   }
 
@@ -84,7 +84,7 @@ async function dispatchFlow() {
   const cmdArgs = rest.slice(1);
 
   if (!cmd || cmd === "-h" || cmd === "--help") {
-    const lines = [`Usage: sdd-forge flow ${group} <key> [options]`, "", "Keys:"];
+    const lines = [`Usage: senti flow ${group} <key> [options]`, "", "Keys:"];
     for (const name of Object.keys(commands)) lines.push(`  ${name}`);
     console.log(lines.join("\n"));
     if (!cmd) process.exit(EXIT_ERROR);
@@ -93,8 +93,8 @@ async function dispatchFlow() {
 
   const entry = commands[cmd];
   if (!entry) {
-    console.error(`sdd-forge flow ${group}: unknown key '${cmd}'`);
-    console.error(`Run: sdd-forge flow ${group} --help`);
+    console.error(`senti flow ${group}: unknown key '${cmd}'`);
+    console.error(`Run: senti flow ${group} --help`);
     process.exit(EXIT_ERROR);
   }
 

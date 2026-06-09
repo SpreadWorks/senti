@@ -2,7 +2,7 @@
 // Historical-data migration tool for the `<phase>-<concern>-<action>` step-id rename.
 //
 // Converts legacy flow step ids in already-committed spec data under <root>/specs/*.
-// Root resolves to SDD_WORK_ROOT or the current working directory.
+// Root resolves to SENTI_WORK_ROOT or the current working directory.
 //
 // Scope (per spec 269):
 //   - flow.json: structural step-id positions only. steps[] leaves are flow-scope,
@@ -12,7 +12,7 @@
 //   - report.json / retro.json: only path-string values (those containing "/"), 1:1 ids.
 //   - review.md: only fenced code blocks and inline code spans, 1:1 ids.
 //   - Free-text / prose (notes, desc, reason, narrative, ...) is never touched.
-//   - active flow(s) listed in <root>/.sdd-forge/.active-flow are excluded entirely.
+//   - active flow(s) listed in <root>/.senti/.active-flow are excluded entirely.
 //
 // Usage:
 //   node src/scripts/rename-phase-steps.js            # dry-run: print the planned diff
@@ -63,7 +63,7 @@ function transformMarkdownCode(text) {
 
 function readActiveFlowSpecs(root) {
   const set = new Set();
-  const p = path.join(root, ".sdd-forge", ".active-flow");
+  const p = path.join(root, ".senti", ".active-flow");
   if (!fs.existsSync(p)) return set;
   try {
     const arr = JSON.parse(fs.readFileSync(p, "utf8"));
@@ -171,7 +171,7 @@ function main() {
     }
   }
 
-  const root = process.env.SDD_WORK_ROOT || process.cwd();
+  const root = process.env.SENTI_WORK_ROOT || process.cwd();
   if (apply) assertCleanGitTree(root);
 
   const specsDir = path.join(root, "specs");

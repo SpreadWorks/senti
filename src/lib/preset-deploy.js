@@ -40,19 +40,19 @@ export function deployPresetCopies(workRoot, { presetKeys = ["base"], languages 
     const presetDir = path.join(PRESETS_DIR, key);
     const guardrailPath = path.join(presetDir, "guardrail.json");
     if (fs.existsSync(guardrailPath)) {
-      const dest = path.join(workRoot, ".sdd-forge", "presets", key, "guardrail.json");
+      const dest = path.join(workRoot, ".senti", "presets", key, "guardrail.json");
       copyFile(guardrailPath, dest);
       results.push(dest);
     }
     const rubricPath = path.join(presetDir, "guardrail-rewrite-rubric.md");
     if (fs.existsSync(rubricPath)) {
-      const dest = path.join(workRoot, ".sdd-forge", "presets", key, "guardrail-rewrite-rubric.md");
+      const dest = path.join(workRoot, ".senti", "presets", key, "guardrail-rewrite-rubric.md");
       copyFile(rubricPath, dest);
       results.push(dest);
     }
   }
   for (const language of languages) {
-    const dest = path.join(workRoot, ".sdd-forge", "templates", language, "docs", "creating_presets.md");
+    const dest = path.join(workRoot, ".senti", "templates", language, "docs", "creating_presets.md");
     upsertText(dest, CREATING_PRESETS_RUBRIC_NOTE[language] || CREATING_PRESETS_RUBRIC_NOTE.en);
     results.push(dest);
   }

@@ -1,5 +1,5 @@
 /**
- * sdd-forge/lib/schema-validate.js
+ * senti/lib/schema-validate.js
  *
  * Generic JSON Schema subset validator.
  * Supports: type, required, properties, additionalProperties, enum,

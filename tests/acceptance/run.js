@@ -18,7 +18,7 @@ const args = process.argv.slice(2);
 if (args.includes("--help") || args.includes("-h")) {
   console.log(`Usage: node tests/acceptance/run.js [preset ...]
 
-Run acceptance tests for sdd-forge presets.
+Run acceptance tests for senti presets.
 
 Arguments:
   preset    One or more preset names to test (default: all)

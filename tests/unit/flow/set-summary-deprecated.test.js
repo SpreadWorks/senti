@@ -14,16 +14,16 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { makeFlowManager } from "../../helpers/flow-setup.js";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 
-const SDD_FORGE = path.resolve("src/sdd-forge.js");
+const SENTI = path.resolve("src/senti.js");
 
 function createProject() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "set-summary-deprecated-"));
-  fs.mkdirSync(path.join(tmp, ".sdd-forge"), { recursive: true });
+  fs.mkdirSync(path.join(tmp, ".senti"), { recursive: true });
   fs.mkdirSync(path.join(tmp, "specs", "001-test"), { recursive: true });
   execFileSync("git", ["init", tmp], { stdio: "ignore" });
   execFileSync("git", ["-C", tmp, "commit", "--allow-empty", "-m", "init"], { stdio: "ignore" });
   fs.writeFileSync(
-    path.join(tmp, ".sdd-forge", "config.json"),
+    path.join(tmp, ".senti", "config.json"),
     JSON.stringify({
       lang: "ja",
       type: "base",
@@ -69,10 +69,10 @@ function setup(tmp) {
 }
 
 function run(tmp, argv) {
-  return spawnSync("node", [SDD_FORGE, ...argv], {
+  return spawnSync("node", [SENTI, ...argv], {
     encoding: "utf8",
     cwd: tmp,
-    env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+    env: { ...process.env, SENTI_WORK_ROOT: tmp },
   });
 }
 

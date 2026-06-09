@@ -17,7 +17,7 @@ export class RunFinalizeSyncCommand extends FlowCommand {
     if (!buildRes.ok) {
       assertOk(buildRes, "docs build failed");
     }
-    runGit(["add", "docs/", "AGENTS.md", "CLAUDE.md", "README.md", ".sdd-forge/output/analysis.json"], { cwd: syncCwd });
+    runGit(["add", "docs/", "AGENTS.md", "CLAUDE.md", "README.md", ".senti/output/analysis.json"], { cwd: syncCwd });
     let diffStat = null;
     let diffSummary = null;
     const statRes = runGit(["diff", "--cached", "--stat"], { cwd: syncCwd });

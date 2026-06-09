@@ -1,4 +1,4 @@
-   - If guardrail articles for the test phase have NOT been loaded in this session: `sdd-forge flow get guardrail test`. If output is non-empty, follow these principles when writing tests. Skip if already present in context.
+   - If guardrail articles for the test phase have NOT been loaded in this session: `senti flow get guardrail test`. If output is non-empty, follow these principles when writing tests. Skip if already present in context.
    - If code changes exist, implementation verification test is required in principle.
    - AI decides the appropriate test type based on the project's test infrastructure (no separate test-type selection).
    - AI shares briefly which test framework will be used and what will be verified (not a separate approval gate).
@@ -8,7 +8,7 @@
      - **Decision rule:** Ask "If a future change breaks this test, is that always a bug?" — YES → `tests/`, NO → `specs/<spec>/tests/`.
    - Write test code under `specs/<spec>/tests/`. Tests should fail initially (before implementation).
    - **Do NOT run tests here.** The plan-phase `test` step writes test code only. `plan/scenario-validity` verifies expected pre-implementation failures, `plan/test-review` performs static anti-pattern review, post-implementation spec-local verification stays in `impl/test-execute`, and full project regression stays in `impl/final-regression`.
-   - **MUST: If a test reveals a production code bug that is outside the current spec's scope**, record it in issue-log (`sdd-forge flow set issue-log --step test --reason "..."`) before adjusting the test to match current behavior. Do not silently fix or skip the test.
+   - **MUST: If a test reveals a production code bug that is outside the current spec's scope**, record it in issue-log (`senti flow set issue-log --step test --reason "..."`) before adjusting the test to match current behavior. Do not silently fix or skip the test.
    - **MUST: Write a spec coverage header at the top of every spec verification test file.** This header replaces the legacy file-based mapping artifact (spec 249).
      - JS / TS / MJS files: `// spec: R1 R2 ...`
      - Markdown / YAML / shell files (future dcb2 runners): `# spec: R1 R2 ...`
@@ -32,6 +32,6 @@
    - **If test environment needs to be set up**:
      - Treat as a separate spec (out of scope for current feature spec).
    - **On complete**:
-     - `sdd-forge flow set step test done`
+     - `senti flow set step test done`
    - **After test step is done**:
      - Continue to `plan/scenario-validity`. Do not run `plan/test-review` or implementation until scenario-validity has passed.

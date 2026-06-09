@@ -24,7 +24,7 @@ import { resolveIncludes } from "../../lib/include.js";
 const DEFAULT_PROMPTS_DIR = fileURLToPath(new URL("../prompts/", import.meta.url));
 
 function resolvePromptsDir() {
-  return process.env.SDD_FORGE_NEXT_ACTION_PROMPTS_DIR || DEFAULT_PROMPTS_DIR;
+  return process.env.SENTI_NEXT_ACTION_PROMPTS_DIR || DEFAULT_PROMPTS_DIR;
 }
 
 /**

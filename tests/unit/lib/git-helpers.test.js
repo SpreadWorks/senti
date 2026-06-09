@@ -63,7 +63,7 @@ describe("runGit — basic logging", () => {
     assert.equal(typeof result.stderr, "string");
 
     await logger.flush();
-    const jsonl = path.join(tmpDir, "logs", `sdd-forge-${todayLocal()}.jsonl`);
+    const jsonl = path.join(tmpDir, "logs", `senti-${todayLocal()}.jsonl`);
     const lines = readJsonl(jsonl);
     const gitLines = lines.filter((l) => l.type === "git");
     assert.equal(gitLines.length, 1);
@@ -79,7 +79,7 @@ describe("runGit — basic logging", () => {
     assert.ok(result.stderr.length > 0, "stderr should be captured");
 
     await logger.flush();
-    const jsonl = path.join(tmpDir, "logs", `sdd-forge-${todayLocal()}.jsonl`);
+    const jsonl = path.join(tmpDir, "logs", `senti-${todayLocal()}.jsonl`);
     const lines = readJsonl(jsonl);
     const gitLines = lines.filter((l) => l.type === "git");
     assert.equal(gitLines.length, 1);
@@ -116,7 +116,7 @@ describe("runGit — worktree regression (R2)", () => {
     const result = runGit(["status", "--short"], { cwd: worktreeDir });
     assert.equal(result.ok, true);
     await logger.flush();
-    const jsonl = path.join(mainDir, ".tmp", "logs", `sdd-forge-${todayLocal()}.jsonl`);
+    const jsonl = path.join(mainDir, ".tmp", "logs", `senti-${todayLocal()}.jsonl`);
     assert.ok(fs.existsSync(jsonl), `expected log file at ${jsonl}`);
     const lines = readJsonl(jsonl);
     const gitLines = lines.filter((l) => l.type === "git");
@@ -144,7 +144,7 @@ describe("runCmd no longer logs git commands", () => {
     const result = runCmd("git", ["status", "--short"], { cwd: tmpDir });
     assert.equal(result.ok, true);
     await logger.flush();
-    const jsonl = path.join(tmpDir, "logs", `sdd-forge-${todayLocal()}.jsonl`);
+    const jsonl = path.join(tmpDir, "logs", `senti-${todayLocal()}.jsonl`);
     if (fs.existsSync(jsonl)) {
       const lines = readJsonl(jsonl);
       const gitLines = lines.filter((l) => l.type === "git");

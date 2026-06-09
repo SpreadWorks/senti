@@ -11,7 +11,7 @@ import { execFileSync } from "child_process";
 import { join } from "path";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { buildInitialSteps, FLOW_STEPS } from "../../../src/lib/flow-helpers.js";
-const FLOW_CMD = join(process.cwd(), "src/sdd-forge.js");
+const FLOW_CMD = join(process.cwd(), "src/senti.js");
 const FLOW_CMD_ARGS_PREFIX = ["flow"];
 
 describe("flow get status", () => {
@@ -45,7 +45,7 @@ describe("flow get status", () => {
     setupFlowState(tmp);
     const result = execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "status"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp },
     });
     const envelope = JSON.parse(result);
     assert.equal(envelope.ok, true);
@@ -59,7 +59,7 @@ describe("flow get status", () => {
     tmp = createTmpDir();
     const result = execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "status"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp },
     });
     const envelope = JSON.parse(result);
     assert.equal(envelope.ok, true);
@@ -73,7 +73,7 @@ describe("flow get status", () => {
     setupFlowState(tmp);
     const result = execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "status"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp },
     });
     const envelope = JSON.parse(result);
     assert.equal(envelope.data.active, true);
@@ -84,7 +84,7 @@ describe("flow get status", () => {
     setupFlowState(tmp);
     const result = execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "status"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp },
     });
     const envelope = JSON.parse(result);
     assert.equal(envelope.data.active, true);
@@ -100,7 +100,7 @@ describe("flow get status", () => {
     setupFlowState(tmp);
     const result = execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "status", "--details"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp },
     });
     const envelope = JSON.parse(result);
     assert.equal(envelope.data.request, "request belongs in detailed status");

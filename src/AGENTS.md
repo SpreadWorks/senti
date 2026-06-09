@@ -1,31 +1,31 @@
-# sdd-forge — 内部アーキテクチャとルール
+# senti — 内部アーキテクチャとルール
 
 このドキュメントは `src/` 配下のコード（npm パッケージとして配布される）の開発ルールを定義する。
 
 ## プロジェクト概要
 
-- **パッケージ:** `sdd-forge`
-- **説明:** ソースコード解析に基づくドキュメント自動生成と SDD ワークフローを提供する CLI ツール
+- **パッケージ:** `senti`
+- **説明:** ソースコード解析に基づくドキュメント自動生成と Spec-Driven Development ワークフローを提供する CLI ツール
 - **モジュール形式:** ES Modules (`"type": "module"`)
 - **ランタイム:** Node.js >= 18.0.0
 - **外部依存:** なし（Node.js 組み込みモジュールのみ）
-- **エントリポイント:** `./src/sdd-forge.js`
+- **エントリポイント:** `./src/senti.js`
 
 ## ディレクトリ構造
 
 ```
 src/
-├── sdd-forge.js              CLI エントリポイント（トップレベルディスパッチャ）
+├── senti.js              CLI エントリポイント（トップレベルディスパッチャ）
 ├── docs.js                   docs ディスパッチャ
 ├── spec.js                   spec ディスパッチャ
 ├── flow.js                   flow ディスパッチャ
 ├── setup.js / upgrade.js / presets-cmd.js / help.js  独立コマンド
 ├── lib/                      全レイヤー共有ユーティリティ
 │   ├── cli.js                repoRoot, sourceRoot, parseArgs, PKG_DIR
-│   ├── config.js             .sdd-forge/config.json ローダー
+│   ├── config.js             .senti/config.json ローダー
 │   ├── agent.js              AI エージェント呼び出し
 │   ├── presets.js            プリセット自動探索・親チェーン解決
-│   ├── flow-state.js         SDD フロー状態永続化
+│   ├── flow-state.js         Spec-Driven Development フロー状態永続化
 │   ├── flow-envelope.js      flow get/set/run の JSON envelope
 │   ├── git-helpers.js          git/gh 状態取得ヘルパー
 │   ├── include.js            include ディレクティブ展開
@@ -56,12 +56,12 @@ src/
 
 ## コマンドルーティング
 
-ディスパッチ: `sdd-forge.js` → `docs.js`/`spec.js`/`flow.js` → 各ハンドラ
+ディスパッチ: `senti.js` → `docs.js`/`spec.js`/`flow.js` → 各ハンドラ
 
 ```
-sdd-forge <cmd> [args]
+senti <cmd> [args]
     │
-    ├─ sdd-forge.js          # 1. プロジェクトコンテキスト解決 + ディスパッチ
+    ├─ senti.js          # 1. プロジェクトコンテキスト解決 + ディスパッチ
     │   ├─ docs.js           # 2. docs サブコマンドのルーティング
     │   │   └─ docs/commands/*.js   # 3. 実際のコマンド実装
     │   ├─ spec.js           # 2. spec サブコマンドのルーティング
@@ -75,12 +75,12 @@ sdd-forge <cmd> [args]
 
 ### プロジェクトコンテキスト
 
-`sdd-forge.js` は実行時に以下の環境変数を設定する:
+`senti.js` は実行時に以下の環境変数を設定する:
 
 | 環境変数 | 意味 | 設定元 |
 |---|---|---|
-| `SDD_SOURCE_ROOT` | 対象プロジェクトのソースコードルート | `cli.js` で解決 |
-| `SDD_WORK_ROOT` | 作業ディレクトリ（`.sdd-forge/`, `docs/` の親） | `cli.js` で解決 |
+| `SENTI_SOURCE_ROOT` | 対象プロジェクトのソースコードルート | `cli.js` で解決 |
+| `SENTI_WORK_ROOT` | 作業ディレクトリ（`.senti/`, `docs/` の親） | `cli.js` で解決 |
 
 ### flow コマンド返却値方針
 
@@ -99,7 +99,7 @@ flow get/set/run コマンドは「状態クエリ系」と「操作系」の2�
 
 ### flow runtime log
 
-flow commands automatically append visible stdout/stderr to `.tmp/logs/<flowId>.log`; commands without an active flow use `.tmp/logs/no-flow.log`. Use `sdd-forge flow get runtime-log` for flow command failure diagnosis. Explicit shell redirection is only needed for non-flow commands or special cases outside the flow dispatcher.
+flow commands automatically append visible stdout/stderr to `.tmp/logs/<flowId>.log`; commands without an active flow use `.tmp/logs/no-flow.log`. Use `senti flow get runtime-log` for flow command failure diagnosis. Explicit shell redirection is only needed for non-flow commands or special cases outside the flow dispatcher.
 
 ### flow step 命名規則
 
@@ -117,7 +117,7 @@ flow commands automatically append visible stdout/stderr to `.tmp/logs/<flowId>.
 
 ### ドキュメント生成パイプライン
 
-`sdd-forge docs build` は以下のパイプラインを順に実行する:
+`senti docs build` は以下のパイプラインを順に実行する:
 
 ```
 scan → enrich → init → data → text → readme → agents → [translate]
@@ -208,7 +208,7 @@ presets/<key>/
 
 ### MUST: プリセット作成ガイドとの同期
 
-プリセットの仕様・作成手順・契約（`preset.json` スキーマ、DataSource のインターフェース、`match()` / `parse()` の引数契約、resolve メソッドの戻り値型、import ルール、テンプレートディレクティブ、scan/data ペアリング規則等）を変更した場合、**`.sdd-forge/templates/*/docs/creating_presets.md`（全言語）を同じコミット内で必ず更新すること。**
+プリセットの仕様・作成手順・契約（`preset.json` スキーマ、DataSource のインターフェース、`match()` / `parse()` の引数契約、resolve メソッドの戻り値型、import ルール、テンプレートディレクティブ、scan/data ペアリング規則等）を変更した場合、**`.senti/templates/*/docs/creating_presets.md`（全言語）を同じコミット内で必ず更新すること。**
 
 対象となる変更の例:
 
@@ -225,7 +225,7 @@ presets/<key>/
 `src/presets/**/data/*.js` の default export は `register(container)` 形式のファクトリ関数でなければならない。class 直接 export は許可しない。
 
 ```js
-// NG: class を直接 export（読み込み時に import 解決が走るため sdd-forge 内部への相対 import が必要になる）
+// NG: class を直接 export（読み込み時に import 解決が走るため senti 内部への相対 import が必要になる）
 import { DataSource } from "../../../docs/lib/data-source.js";
 export default class FooSource extends DataSource { ... }
 
@@ -243,18 +243,18 @@ Top-level には Node.js 組み込み (`fs`, `path`, `url`, `crypto` 等) のみ
 
 ### 外部 preset のバージョン整合 (spec 191: R7)
 
-外部 preset (npm パッケージとして配布される sdd-forge 互換 preset) は `package.json` の `peerDependencies` のみを用いて sdd-forge との互換性を表現する。
+外部 preset (npm パッケージとして配布される senti 互換 preset) は `package.json` の `peerDependencies` のみを用いて senti との互換性を表現する。
 
 ```json
 {
-  "name": "sdd-forge-preset-foo",
+  "name": "senti-preset-foo",
   "peerDependencies": {
-    "sdd-forge": "^0.1.0-alpha"
+    "senti": "^0.1.0-alpha"
   }
 }
 ```
 
-Container API に独立した version フィールドは設けない。外部 preset 側は peerDependencies で必要な sdd-forge の最小バージョン (Container キーの互換性を表す) を指定する。Container は追加のみ (既存キー不変) で拡張されるため、マイナー/パッチ更新で既存 preset が壊れない構造を維持する。
+Container API に独立した version フィールドは設けない。外部 preset 側は peerDependencies で必要な senti の最小バージョン (Container キーの互換性を表す) を指定する。Container は追加のみ (既存キー不変) で拡張されるため、マイナー/パッチ更新で既存 preset が壊れない構造を維持する。
 
 本ガイドは AI エージェントがプリセットを作成する際の単一の参照ドキュメントである。**ガイドが実装とズレるとプリセット作成が破綻する**ため、実装変更と文書更新を同一 PR で行うこと。別 PR に分割してはならない。
 
@@ -519,7 +519,7 @@ src/docs/lib/
 
 - **禁止**: プロジェクト名、ホスト名、ポート番号、コンテナ名、固有 DB 名
 - **許可**: `presets/` 配下のフレームワーク固有ロジック（汎用的な解析パターン）
-- **設定**: プロジェクト固有の値は `.sdd-forge/config.json` で外部化する
+- **設定**: プロジェクト固有の値は `.senti/config.json` で外部化する
 
 ### 外部依存の禁止
 

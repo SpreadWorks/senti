@@ -1,7 +1,7 @@
 /**
  * src/flow/definition.js
  *
- * Single source of truth for the SDD flow structure.
+ * Single source of truth for the Spec-Driven Development flow structure.
  *
  * Every node carries the attributes that other modules previously derived
  * from context-rules.json, registry hooks, hardcoded constants, or prompt

@@ -30,7 +30,7 @@ describe("MonorepoSource", () => {
       docs: { languages: ["ja"], defaultLanguage: "ja" },
       ...configOverrides,
     };
-    writeJson(tmp, ".sdd-forge/config.json", config);
+    writeJson(tmp, ".senti/config.json", config);
     source.init({ root: tmp, desc: () => "—", loadOverrides: () => ({}) });
     return source;
   }

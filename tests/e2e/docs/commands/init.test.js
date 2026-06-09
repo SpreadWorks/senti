@@ -5,7 +5,7 @@ import { join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../../../helpers/tmp-dir.js";
 
-const CMD = join(process.cwd(), "src/sdd-forge.js");
+const CMD = join(process.cwd(), "src/senti.js");
 const CMD_ARGS = ["docs", "init"];
 
 describe("init CLI", () => {
@@ -14,16 +14,16 @@ describe("init CLI", () => {
 
   it("creates docs/ from template", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".sdd-forge/config.json", { lang: "ja", type: "node-cli", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "node-cli", docs: { languages: ["ja"], defaultLanguage: "ja" } });
     writeJson(tmp, "package.json", { name: "test-proj" });
-    writeJson(tmp, ".sdd-forge/output/analysis.json", {
+    writeJson(tmp, ".senti/output/analysis.json", {
       analyzedAt: "2026-01-01",
       files: { summary: { total: 1 } },
     });
 
     execFileSync("node", [CMD, ...CMD_ARGS, "--type", "node-cli"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
     });
 
     const docsDir = join(tmp, "docs");
@@ -34,16 +34,16 @@ describe("init CLI", () => {
 
   it("--dry-run shows files without writing", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".sdd-forge/config.json", { lang: "ja", type: "node-cli", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "node-cli", docs: { languages: ["ja"], defaultLanguage: "ja" } });
     writeJson(tmp, "package.json", { name: "test-proj" });
-    writeJson(tmp, ".sdd-forge/output/analysis.json", {
+    writeJson(tmp, ".senti/output/analysis.json", {
       analyzedAt: "2026-01-01",
       files: { summary: { total: 1 } },
     });
 
     const result = execFileSync("node", [CMD, ...CMD_ARGS, "--type", "node-cli", "--dry-run"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
     });
     assert.match(result, /DRY-RUN/);
     // docs/ should NOT have chapter files
@@ -56,31 +56,31 @@ describe("init CLI", () => {
 
   it("shows help with --help", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".sdd-forge/config.json", { lang: "ja", type: "node-cli", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "node-cli", docs: { languages: ["ja"], defaultLanguage: "ja" } });
 
     const result = execFileSync("node", [CMD, ...CMD_ARGS, "--help"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
     });
     assert.match(result, /--type/);
   });
 
   it("falls back to ja templates when en templates are missing (multi-lang)", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".sdd-forge/config.json", {
+    writeJson(tmp, ".senti/config.json", {
       lang: "en",
       type: "webapp",
       docs: { languages: ["en", "ja"], defaultLanguage: "en" },
     });
     writeJson(tmp, "package.json", { name: "test-proj" });
-    writeJson(tmp, ".sdd-forge/output/analysis.json", {
+    writeJson(tmp, ".senti/output/analysis.json", {
       analyzedAt: "2026-01-01",
       files: { summary: { total: 1 } },
     });
 
     execFileSync("node", [CMD, ...CMD_ARGS, "--type", "webapp", "--force"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
     });
 
     const docsDir = join(tmp, "docs");
@@ -92,20 +92,20 @@ describe("init CLI", () => {
 
   it("generates all webapp chapters with single lang en (en templates exist)", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".sdd-forge/config.json", {
+    writeJson(tmp, ".senti/config.json", {
       lang: "en",
       type: "webapp",
       docs: { languages: ["en"], defaultLanguage: "en" },
     });
     writeJson(tmp, "package.json", { name: "test-proj" });
-    writeJson(tmp, ".sdd-forge/output/analysis.json", {
+    writeJson(tmp, ".senti/output/analysis.json", {
       analyzedAt: "2026-01-01",
       files: { summary: { total: 1 } },
     });
 
     execFileSync("node", [CMD, ...CMD_ARGS, "--type", "webapp", "--force"], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
     });
 
     const docsDir = join(tmp, "docs");
@@ -118,7 +118,7 @@ describe("init CLI", () => {
   it("uses config.chapters to skip AI filtering and generate only specified chapters", () => {
     tmp = createTmpDir();
     const promptCapture = join(tmp, "prompt.txt");
-    writeJson(tmp, ".sdd-forge/config.json", {
+    writeJson(tmp, ".senti/config.json", {
       lang: "ja",
       type: "node-cli",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -138,7 +138,7 @@ describe("init CLI", () => {
       },
     });
     writeJson(tmp, "package.json", { name: "test-proj" });
-    writeJson(tmp, ".sdd-forge/output/analysis.json", {
+    writeJson(tmp, ".senti/output/analysis.json", {
       analyzedAt: "2026-01-01",
       files: { summary: { total: 1 } },
     });
@@ -147,8 +147,8 @@ describe("init CLI", () => {
       encoding: "utf8",
       env: {
         ...process.env,
-        SDD_FORGE_WORK_ROOT: tmp,
-        SDD_FORGE_SOURCE_ROOT: tmp,
+        SENTI_WORK_ROOT: tmp,
+        SENTI_SOURCE_ROOT: tmp,
         PROMPT_CAPTURE: promptCapture,
       },
     });
@@ -163,7 +163,7 @@ describe("init CLI", () => {
   it("passes docs.style.purpose to AI chapter-selection prompt", () => {
     tmp = createTmpDir();
     const promptCapture = join(tmp, "prompt.txt");
-    writeJson(tmp, ".sdd-forge/config.json", {
+    writeJson(tmp, ".senti/config.json", {
       lang: "ja",
       docs: { languages: ["ja"], defaultLanguage: "ja", style: { purpose: "user-guide", tone: "polite" } },
       type: "node-cli",
@@ -182,7 +182,7 @@ describe("init CLI", () => {
       },
     });
     writeJson(tmp, "package.json", { name: "test-proj" });
-    writeJson(tmp, ".sdd-forge/output/analysis.json", {
+    writeJson(tmp, ".senti/output/analysis.json", {
       analyzedAt: "2026-01-01",
       files: { summary: { total: 1 } },
     });
@@ -191,8 +191,8 @@ describe("init CLI", () => {
       encoding: "utf8",
       env: {
         ...process.env,
-        SDD_FORGE_WORK_ROOT: tmp,
-        SDD_FORGE_SOURCE_ROOT: tmp,
+        SENTI_WORK_ROOT: tmp,
+        SENTI_SOURCE_ROOT: tmp,
         PROMPT_CAPTURE: promptCapture,
       },
     });

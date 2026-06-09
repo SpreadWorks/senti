@@ -9,7 +9,7 @@
 import fs from "fs";
 import path from "path";
 import { parseArgs } from "../../lib/cli.js";
-import { sddOutputDir } from "../../lib/config.js";
+import { sentiOutputDir } from "../../lib/config.js";
 import { Command } from "../../lib/command.js";
 import { translate } from "../../lib/i18n.js";
 import { getChapterFiles } from "../lib/command-context.js";
@@ -209,7 +209,7 @@ function runReview(rawArgs, container) {
   }
 
   // analysis.json existence check
-  const analysisPath = path.join(sddOutputDir(root), "analysis.json");
+  const analysisPath = path.join(sentiOutputDir(root), "analysis.json");
   if (!fs.existsSync(analysisPath)) {
     reportFail("messages:review.analysisNotFound");
   }

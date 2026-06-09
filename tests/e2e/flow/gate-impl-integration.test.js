@@ -1,7 +1,7 @@
 /**
  * spec 202 — integration tests for gate-impl wiring.
  *
- * Invokes the real `sdd-forge` CLI as a subprocess against a throwaway git
+ * Invokes the real `senti` CLI as a subprocess against a throwaway git
  * repo fixture, verifying:
  *   R1: PASS wiring (mechanical test-change check admits multi-line +)
  *   R2: FAIL wiring (mechanical check rejects deletions / single-line +)
@@ -21,7 +21,7 @@ import { initGitRepo, commitAll, checkoutNewBranch } from "../../helpers/git-rep
 import { writeStubAgentScript, stubAgentConfig, defaultPassResponse } from "../../helpers/stub-agent.js";
 import { FLOW_STEPS } from "../../../src/lib/flow-helpers.js";
 
-const CMD = path.join(process.cwd(), "src/sdd-forge.js");
+const CMD = path.join(process.cwd(), "src/senti.js");
 const SPEC_ID = "001-test";
 const SPEC_PATH = `specs/${SPEC_ID}/spec.md`;
 
@@ -85,7 +85,7 @@ function setupFixture(tmp, {
 } = {}) {
   // Stub AI provider
   const stubPath = writeStubAgentScript(tmp, ".stub-agent.js", stubResponse);
-  writeJson(tmp, ".sdd-forge/config.json", {
+  writeJson(tmp, ".senti/config.json", {
     lang: "ja",
     type: "base",
     docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -131,7 +131,7 @@ function setupFixture(tmp, {
   });
 
   // Active flow pointer — format is `[{ spec: <specId>, mode }]`.
-  writeJson(tmp, ".sdd-forge/.active-flow", [
+  writeJson(tmp, ".senti/.active-flow", [
     { spec: SPEC_ID, mode: "local" },
   ]);
 
@@ -154,7 +154,7 @@ function runGate(tmp, extraArgs = []) {
     [CMD, "flow", "run", "gate", "--phase", "task-impl", ...extraArgs],
     {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
     },
   );
 }

@@ -1,7 +1,7 @@
    <!-- include("/flow/prompts/partials/draft-qa-rules.md") -->
 
    **Workflow board integration (experimental — opt-in):**
-   - At the start of the draft step, read `workflow.flowIntegration` from `.sdd-forge/config.json` (the same way `config.lang` is read). Only when it equals `"enable"` AND the flow has a linked GitHub issue (an issue number in flow.json), run `sdd-forge workflow issue-start <issueNumber>` once to move the linked board item into "In Progress".
+   - At the start of the draft step, read `workflow.flowIntegration` from `.senti/config.json` (the same way `config.lang` is read). Only when it equals `"enable"` AND the flow has a linked GitHub issue (an issue number in flow.json), run `senti workflow issue-start <issueNumber>` once to move the linked board item into "In Progress".
    - `issue-start` is idempotent (no-op if already In Progress; `matched=false` when no board item matches) and returns a non-fatal `skipped` result when the board / gh CLI is unavailable. Treat any result as informational and continue the draft step regardless.
    - If `workflow.flowIntegration` is unset or not `"enable"`, or no issue is linked, skip this entirely — do not call the command.
 
@@ -21,7 +21,7 @@
    - Do NOT answer draft questions yourself. Create the question list with `status: "pending"` and follow the Draft QA Rules empty-field requirement.
    - Use Issue content (if linked), `docs/` chapters, guardrail articles, and source code as input.
    - Follow Draft QA Rules premise validation before creating pending questions for requirement areas that need user judgment. Use the shared category list from Draft QA Rules.
-   - **Deep-read trigger:** If the linked Issue body is under 200 characters, read the relevant source code files directly (via Read tool or `sdd-forge flow get context <path> --raw`) to build sufficient understanding before creating the checklist questions.
+   - **Deep-read trigger:** If the linked Issue body is under 200 characters, read the relevant source code files directly (via Read tool or `senti flow get context <path> --raw`) to build sufficient understanding before creating the checklist questions.
    - **MUST: draft.json is created as a skeleton by `flow prepare`.** Fill the existing fields; do not recreate the file from scratch. Required fields checked by draft-gate:
      - `devType` — enum: `feature` / `bugfix` / `refactor` / `docs` / `chore` / `test` / `other`
      - `goal` — non-empty string
@@ -38,15 +38,15 @@
    - Use the shared category list from Draft QA Rules to check coverage.
    - **Before starting draft discussion**:
      1. **If a GitHub Issue number is linked** (saved in flow.json via `--issue`):
-        Fetch the issue content with `sdd-forge flow get issue <number>` and display the title and body before the first question.
+        Fetch the issue content with `senti flow get issue <number>` and display the title and body before the first question.
         Use the issue content as context for the draft discussion.
      2. **Context gathering (supplement-first):** Build understanding in tiers — stop as soon as sufficient. Do NOT re-read material already in context.
-        - If target files/modules are not yet in context: `sdd-forge flow get context --search "<request text or issue title>" --raw` using the request or issue title as the query.
-        - If project structure is still unclear after search: `sdd-forge flow get context --raw` for a broad overview.
-     3. If guardrail articles have NOT been loaded in this session: `sdd-forge flow get guardrail draft`. If output is non-empty, consider these principles as constraints. Skip if already present in context.
+        - If target files/modules are not yet in context: `senti flow get context --search "<request text or issue title>" --raw` using the request or issue title as the query.
+        - If project structure is still unclear after search: `senti flow get context --raw` for a broad overview.
+     3. If guardrail articles have NOT been loaded in this session: `senti flow get guardrail draft`. If output is non-empty, consider these principles as constraints. Skip if already present in context.
    - Fill draft.json fields for the initial question list:
      - `pending` / `approved`: follow the Draft QA Rules empty-field requirement.
      - `answered` / `dropped`: do not create these statuses while generating the initial question list. They are produced only after the one-shot question sanity check, when existing questions are actually answered or intentionally dropped.
    - When the initial question list is complete, proceed to `draft-questions-review`.
    - Keep `draft.json` in `specs/` (do not delete).
-   - **On complete**: `sdd-forge flow set step draft done`
+   - **On complete**: `senti flow set step draft done`

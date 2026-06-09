@@ -10,20 +10,20 @@ import { fileURLToPath } from "url";
 import { runCmd, assertOk } from "./process.js";
 
 /**
- * sdd-forge パッケージの src/ ディレクトリの絶対パス。
+ * senti パッケージの src/ ディレクトリの絶対パス。
  * lib/ から1階層上が src/ であることを利用して解決する。
  */
 export const PKG_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 /**
  * 作業ルートを返す。
- * SDD_FORGE_WORK_ROOT 環境変数が設定されている場合はそれを使用する（プロジェクトモード）。
+ * SENTI_WORK_ROOT 環境変数が設定されている場合はそれを使用する（プロジェクトモード）。
  * それ以外は git rev-parse でリポジトリルートを取得し、失敗時は process.cwd() を返す。
  *
  * @returns {string} 作業ルートの絶対パス
  */
 export function repoRoot() {
-  if (process.env.SDD_FORGE_WORK_ROOT) return process.env.SDD_FORGE_WORK_ROOT;
+  if (process.env.SENTI_WORK_ROOT) return process.env.SENTI_WORK_ROOT;
   // Logger 基盤の依存元のため runCmd を直接使う。runGit に変更してはならない
   // （Logger.git → resolveLogDir → repoRoot → runGit → Logger.git で無限再帰になる）。
   const res = runCmd("git", ["rev-parse", "--show-toplevel"]);
@@ -35,13 +35,13 @@ export function repoRoot() {
 
 /**
  * ソースルートを返す。
- * SDD_FORGE_SOURCE_ROOT 環境変数が設定されている場合はそれを使用する（プロジェクトモード）。
+ * SENTI_SOURCE_ROOT 環境変数が設定されている場合はそれを使用する（プロジェクトモード）。
  * それ以外は repoRoot() と同じ値を返す。
  *
  * @returns {string} ソースルートの絶対パス
  */
 export function sourceRoot() {
-  if (process.env.SDD_FORGE_SOURCE_ROOT) return process.env.SDD_FORGE_SOURCE_ROOT;
+  if (process.env.SENTI_SOURCE_ROOT) return process.env.SENTI_SOURCE_ROOT;
   return repoRoot();
 }
 
@@ -122,7 +122,7 @@ export function getMainRepoPath(root) {
 }
 
 /**
- * sdd-forge パッケージのバージョン文字列を返す。
+ * senti パッケージのバージョン文字列を返す。
  * package.json の読み込みに失敗した場合は "?" を返す。
  *
  * @returns {string}

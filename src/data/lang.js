@@ -104,7 +104,7 @@ export default function register(container) {
 
   _loadConfig() {
     try {
-      return loadJsonFile(path.join(this._root, ".sdd-forge", "config.json"));
+      return loadJsonFile(path.join(this._root, ".senti", "config.json"));
     } catch (_) {
       return {};
     }

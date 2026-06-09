@@ -1,14 +1,14 @@
 /**
- * sdd-forge/lib/log.js
+ * senti/lib/log.js
  *
- * Unified JSONL logger for sdd-forge.
+ * Unified JSONL logger for senti.
  *
  * Container-managed service. Construct once via `initContainer` with a
  * pre-resolved log directory and dependencies; retrieve through
  * `container.get("logger")`. No singleton / getInstance().
  *
  * Two-tier output:
- *   - Daily JSONL `<logDir>/sdd-forge-YYYY-MM-DD.jsonl` (lightweight metadata)
+ *   - Daily JSONL `<logDir>/senti-YYYY-MM-DD.jsonl` (lightweight metadata)
  *   - Per-request prompt JSON `<logDir>/prompts/YYYY-MM-DD/<requestId>.json`
  *
  * Three domains exposed on the instance:
@@ -17,7 +17,7 @@
  *   - logger.event(name, fields)
  *
  * When `enabled` is false the methods are no-ops (no I/O, no throws). Flow
- * context (spec, sddPhase) for agent end events is looked up through the
+ * context (spec, sentiPhase) for agent end events is looked up through the
  * FlowManager passed at construction; metric accumulation is NOT the
  * logger's responsibility (it lives in the agent call path).
  */
@@ -74,7 +74,7 @@ function extractCaller() {
       try {
         file = new URL(file).pathname;
       } catch (err) {
-        process.stderr.write(`[sdd-forge] extractCaller: URL parse failed for ${file}: ${err.message}\n`);
+        process.stderr.write(`[senti] extractCaller: URL parse failed for ${file}: ${err.message}\n`);
       }
     }
     if (path.resolve(file) === path.resolve(SELF_FILE)) continue;
@@ -90,7 +90,7 @@ async function appendJsonlMasked(file, obj, trustedRoots) {
     const masked = maskSensitive(obj, { trustedRoots });
     await fs.promises.appendFile(file, JSON.stringify(masked) + "\n", "utf8");
   } catch (err) {
-    process.stderr.write(`[sdd-forge] log write failed: ${err.message}\n`);
+    process.stderr.write(`[senti] log write failed: ${err.message}\n`);
   }
 }
 
@@ -103,7 +103,7 @@ async function writePromptFileMasked(promptDir, requestId, payload, trustedRoots
     await fs.promises.writeFile(file, JSON.stringify(masked, null, 2) + "\n", "utf8");
     return file;
   } catch (err) {
-    process.stderr.write(`[sdd-forge] prompt file write failed: ${err.message}\n`);
+    process.stderr.write(`[senti] prompt file write failed: ${err.message}\n`);
     return null;
   }
 }
@@ -167,7 +167,7 @@ export class Logger {
 
   #logFiles() {
     return {
-      jsonl: path.join(this.#logDir, `sdd-forge-${todayLocal()}.jsonl`),
+      jsonl: path.join(this.#logDir, `senti-${todayLocal()}.jsonl`),
       promptDir: path.join(this.#logDir, "prompts", todayLocal()),
     };
   }
@@ -199,15 +199,15 @@ export class Logger {
 
   #flowContext() {
     if (!this.#flowManager || this.#resolvingContext) {
-      return { spec: null, sddPhase: null, taskId: null };
+      return { spec: null, sentiPhase: null, taskId: null };
     }
     this.#resolvingContext = true;
     try {
       const ctx = this.#flowManager.resolveCurrentContext();
-      return { spec: ctx.spec ?? null, sddPhase: ctx.sddPhase ?? null, taskId: ctx.taskId ?? null };
+      return { spec: ctx.spec ?? null, sentiPhase: ctx.sentiPhase ?? null, taskId: ctx.taskId ?? null };
     } catch (err) {
-      process.stderr.write(`[sdd-forge] Logger: flow state read failed: ${err.message}\n`);
-      return { spec: null, sddPhase: null, taskId: null };
+      process.stderr.write(`[senti] Logger: flow state read failed: ${err.message}\n`);
+      return { spec: null, sentiPhase: null, taskId: null };
     } finally {
       this.#resolvingContext = false;
     }
@@ -266,7 +266,7 @@ export class Logger {
       context: {
         entryCommand: this.#entryCommand,
         spec: ctx.spec,
-        sddPhase: ctx.sddPhase,
+        sentiPhase: ctx.sentiPhase,
         taskId: ctx.taskId,
         callerFile: caller.callerFile,
         callerLine: caller.callerLine,
@@ -311,7 +311,7 @@ export class Logger {
       phase: "end",
       requestId: entry.requestId,
       spec: ctx.spec,
-      sddPhase: ctx.sddPhase,
+      sentiPhase: ctx.sentiPhase,
       taskId: ctx.taskId,
       callerFile: caller.callerFile,
       callerLine: caller.callerLine,

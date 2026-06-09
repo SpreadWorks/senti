@@ -153,7 +153,7 @@ describe("resolver-factory: parent chain loading", () => {
   it("resolves project.name from common layer", async () => {
     const { createResolver } = await import("../../src/docs/lib/resolver-factory.js");
     const tmp = createTmpDir("resolver-chain");
-    fs.mkdirSync(path.join(tmp, ".sdd-forge"), { recursive: true });
+    fs.mkdirSync(path.join(tmp, ".senti"), { recursive: true });
     writeJson(tmp, "package.json", { name: "test-pkg", version: "1.0.0" });
 
     const resolver = await createResolver("node-cli", tmp);
@@ -165,7 +165,7 @@ describe("resolver-factory: parent chain loading", () => {
   it("cakephp2 resolver works with parent chain", async () => {
     const { createResolver } = await import("../../src/docs/lib/resolver-factory.js");
     const tmp = createTmpDir("resolver-chain");
-    fs.mkdirSync(path.join(tmp, ".sdd-forge"), { recursive: true });
+    fs.mkdirSync(path.join(tmp, ".senti"), { recursive: true });
     writeJson(tmp, "package.json", { name: "test-cakephp" });
 
     const resolver = await createResolver("cakephp2", tmp);
@@ -179,7 +179,7 @@ describe("resolver-factory: parent chain loading", () => {
   it("presetKeys returns the leaf key", async () => {
     const { createResolver } = await import("../../src/docs/lib/resolver-factory.js");
     const tmp = createTmpDir("resolver-chain");
-    fs.mkdirSync(path.join(tmp, ".sdd-forge"), { recursive: true });
+    fs.mkdirSync(path.join(tmp, ".senti"), { recursive: true });
     writeJson(tmp, "package.json", { name: "test-keys" });
 
     const resolver = await createResolver("node-cli", tmp);

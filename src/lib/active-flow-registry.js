@@ -1,8 +1,8 @@
 /**
  * src/lib/active-flow-registry.js
  *
- * Manages `.sdd-forge/.active-flow` — the pointer file listing currently
- * active SDD flows in this repository. Used by FlowManager.
+ * Manages `.senti/.active-flow` — the pointer file listing currently
+ * active Spec-Driven Development flows in this repository. Used by FlowManager.
  *
  * @typedef {Object} ActiveFlowEntry
  * @property {string} spec - spec ID (e.g. "086-migrate-flow-state")
@@ -11,18 +11,18 @@
 
 import fs from "fs";
 import path from "path";
-import { sddDir } from "./config.js";
+import { sentiDir } from "./config.js";
 import { runGit } from "./git-helpers.js";
 import { ACTIVE_FLOW_FILE, STATE_FILE } from "./flow-helpers.js";
 
 function activeFlowPath(mainRoot) {
-  return path.join(sddDir(mainRoot), ACTIVE_FLOW_FILE);
+  return path.join(sentiDir(mainRoot), ACTIVE_FLOW_FILE);
 }
 
 function runGitFailOpenBoolean(args, predicate, contextLabel) {
   const res = runGit(args);
   if (!res.ok) {
-    process.stderr.write(`[sdd-forge] ${contextLabel}: git ${args.join(" ")} failed, assuming exists: ${res.stderr}\n`);
+    process.stderr.write(`[senti] ${contextLabel}: git ${args.join(" ")} failed, assuming exists: ${res.stderr}\n`);
     return true;
   }
   return predicate(res.stdout);

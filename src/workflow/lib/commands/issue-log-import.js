@@ -1,7 +1,7 @@
 /**
  * src/workflow/lib/commands/issue-log-import.js
  *
- * sdd-forge workflow issue-log-import --spec <path>
+ * senti workflow issue-log-import --spec <path>
  *
  * Read a spec's issue-log.json and emit its entries as board-draft *candidates*
  * (JSON only — this command performs NO board writes). User approval and the

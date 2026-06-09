@@ -1,14 +1,14 @@
 /**
  * src/flow/lib/run-report-show.js
  *
- * `sdd-forge flow report show` — stream the most recent finalize Report text
+ * `senti flow report show` — stream the most recent finalize Report text
  * to stdout.
  *
  * Source of truth is `specs/<id>/report.json` (generated from validated
  * test-execute-result.json v2 and test-result-review.json artifacts by the
  * finalize post-commit hook and merged into the base branch). `finalize` writes the
  * relative path of the latest finalized spec to
- * `.sdd-forge/last-finalized-spec` in the main repo; this command reads that
+ * `.senti/last-finalized-spec` in the main repo; this command reads that
  * pointer and echoes the report's `text` field.
  */
 
@@ -17,7 +17,7 @@ import path from "node:path";
 import { Command } from "../../lib/command.js";
 import { loadValidatedTestArtifacts } from "./test-artifacts.js";
 
-export const POINTER_REL_PATH = path.join(".sdd-forge", "last-finalized-spec");
+export const POINTER_REL_PATH = path.join(".senti", "last-finalized-spec");
 
 function reportShowError(code, message) {
   const err = new Error(message);

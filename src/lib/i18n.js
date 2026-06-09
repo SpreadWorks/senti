@@ -1,5 +1,5 @@
 /**
- * sdd-forge/lib/i18n.js
+ * senti/lib/i18n.js
  *
  * Internationalization module.
  *
@@ -7,7 +7,7 @@
  *   import { translate } from "../lib/i18n.js";
  *   const t = translate();
  *   console.log(t("ui:setup.title"));
- *   console.log(t("ui:setup.greet", { name: "SDD" }));
+ *   console.log(t("ui:setup.greet", { name: "Spec-Driven Development" }));
  *
  * Low-level API (for contexts without config, e.g. setup):
  *   import { createI18n } from "../lib/i18n.js";
@@ -18,7 +18,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { DEFAULT_LANG, sddDir, loadConfig } from "./config.js";
+import { DEFAULT_LANG, sentiDir, loadConfig } from "./config.js";
 import { repoRoot } from "./cli.js";
 import { PRESETS_DIR } from "./presets.js";
 
@@ -184,7 +184,7 @@ function buildLocaleDirs(root, presetKey) {
   }
 
   if (root) {
-    const projectLocale = path.join(sddDir(root), "locale");
+    const projectLocale = path.join(sentiDir(root), "locale");
     if (fs.existsSync(projectLocale)) {
       dirs.push(projectLocale);
     }

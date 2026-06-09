@@ -21,7 +21,7 @@ describe("npm pack contents", () => {
 
   it("includes src/ directory files", () => {
     assert.ok(packOutput, "pack output required");
-    assert.match(packOutput, /src\/sdd-forge\.js/);
+    assert.match(packOutput, /src\/senti\.js/);
     assert.match(packOutput, /src\/lib\/i18n\.js/);
   });
 
@@ -35,9 +35,9 @@ describe("npm pack contents", () => {
     assert.doesNotMatch(packOutput, /\btests\//);
   });
 
-  it("does NOT include .sdd-forge/", () => {
+  it("does NOT include .senti/", () => {
     assert.ok(packOutput, "pack output required");
-    assert.doesNotMatch(packOutput, /\.sdd-forge\//);
+    assert.doesNotMatch(packOutput, /\.senti\//);
   });
 
   it("does NOT include top-level specs/ directory", () => {

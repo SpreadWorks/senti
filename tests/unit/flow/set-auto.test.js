@@ -41,13 +41,13 @@ function lowResponse() {
 
 function createTmpProject(agentResponse = passResponse()) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "set-auto-"));
-  fs.mkdirSync(path.join(tmp, ".sdd-forge"), { recursive: true });
+  fs.mkdirSync(path.join(tmp, ".senti"), { recursive: true });
   fs.mkdirSync(path.join(tmp, "specs", "001-test"), { recursive: true });
   execFileSync("git", ["init", tmp], { stdio: "ignore" });
 
   const stubPath = writeStubAgentScript(tmp, ".stub-agent.js", agentResponse);
   fs.writeFileSync(
-    path.join(tmp, ".sdd-forge", "config.json"),
+    path.join(tmp, ".senti", "config.json"),
     JSON.stringify({
       lang: "ja",
       type: "base",
@@ -74,14 +74,14 @@ function createFlowState(tmp, request = "add a progress bar") {
 }
 
 function runSetAuto(tmp, value, extraArgs = []) {
-  const script = path.resolve("src/sdd-forge.js");
+  const script = path.resolve("src/senti.js");
   const args = ["flow", "set", "auto"];
   if (value !== undefined) args.push(value);
   args.push(...extraArgs);
   return spawnSync("node", [script, ...args], {
     encoding: "utf8",
     cwd: tmp,
-    env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+    env: { ...process.env, SENTI_WORK_ROOT: tmp },
   });
 }
 
@@ -203,11 +203,11 @@ describe("flow set auto", () => {
     fm.createPreparingFlow(runIdA, { request: "add a progress bar" });
     fm.createPreparingFlow(runIdB, { request: "add a progress bar" });
 
-    const script = path.resolve("src/sdd-forge.js");
+    const script = path.resolve("src/senti.js");
     const res = spawnSync(
       "node",
       [script, "flow", "set", "auto", "on", "--run-id", runIdB],
-      { encoding: "utf8", cwd: tmp, env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp } },
+      { encoding: "utf8", cwd: tmp, env: { ...process.env, SENTI_WORK_ROOT: tmp } },
     );
     assert.equal(res.status, 0, res.stderr);
     assert.equal(fm.loadPreparingFlow(runIdA).autoApprove, false);
@@ -246,7 +246,7 @@ describe("flow set auto", () => {
 
   it("appends draft.json to auto-check input when draft-gate done (spec 220)", () => {
     tmp = fs.mkdtempSync(path.join(os.tmpdir(), "set-auto-draft-"));
-    fs.mkdirSync(path.join(tmp, ".sdd-forge"), { recursive: true });
+    fs.mkdirSync(path.join(tmp, ".senti"), { recursive: true });
     fs.mkdirSync(path.join(tmp, "specs", "001-test"), { recursive: true });
     execFileSync("git", ["init", tmp], { stdio: "ignore" });
 
@@ -258,7 +258,7 @@ describe("flow set auto", () => {
       passResponse(),
     );
     fs.writeFileSync(
-      path.join(tmp, ".sdd-forge", "config.json"),
+      path.join(tmp, ".senti", "config.json"),
       JSON.stringify({
         lang: "ja",
         type: "base",
@@ -344,7 +344,7 @@ describe("flow set auto", () => {
 
   it("falls back to request+issue input when approval pending and no draft.json (R5)", () => {
     tmp = fs.mkdtempSync(path.join(os.tmpdir(), "set-auto-fallback-"));
-    fs.mkdirSync(path.join(tmp, ".sdd-forge"), { recursive: true });
+    fs.mkdirSync(path.join(tmp, ".senti"), { recursive: true });
     fs.mkdirSync(path.join(tmp, "specs", "001-test"), { recursive: true });
     execFileSync("git", ["init", tmp], { stdio: "ignore" });
 
@@ -356,7 +356,7 @@ describe("flow set auto", () => {
       passResponse(),
     );
     fs.writeFileSync(
-      path.join(tmp, ".sdd-forge", "config.json"),
+      path.join(tmp, ".senti", "config.json"),
       JSON.stringify({
         lang: "ja",
         type: "base",
@@ -401,7 +401,7 @@ describe("flow set auto", () => {
   describe("PREPARING_FLOW_NOT_FOUND for unknown --run-id", () => {
     function createCapturingFixture(prefix) {
       const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
-      fs.mkdirSync(path.join(dir, ".sdd-forge"), { recursive: true });
+      fs.mkdirSync(path.join(dir, ".senti"), { recursive: true });
       execFileSync("git", ["init", dir], { stdio: "ignore" });
       const capturePath = path.join(dir, "captured-prompt.txt");
       const stubPath = writeCapturingStubAgentScript(
@@ -411,7 +411,7 @@ describe("flow set auto", () => {
         passResponse(),
       );
       fs.writeFileSync(
-        path.join(dir, ".sdd-forge", "config.json"),
+        path.join(dir, ".senti", "config.json"),
         JSON.stringify({
           lang: "ja",
           type: "base",
@@ -424,11 +424,11 @@ describe("flow set auto", () => {
     }
 
     function runSetAutoWithRunId(dir, value, runId) {
-      const script = path.resolve("src/sdd-forge.js");
+      const script = path.resolve("src/senti.js");
       return spawnSync(
         "node",
         [script, "flow", "set", "auto", value, "--run-id", runId],
-        { encoding: "utf8", cwd: dir, env: { ...process.env, SDD_FORGE_WORK_ROOT: dir } },
+        { encoding: "utf8", cwd: dir, env: { ...process.env, SENTI_WORK_ROOT: dir } },
       );
     }
 
@@ -486,7 +486,7 @@ describe("flow set auto", () => {
 
   function createCapturingProject() {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "set-auto-trust-"));
-    fs.mkdirSync(path.join(dir, ".sdd-forge"), { recursive: true });
+    fs.mkdirSync(path.join(dir, ".senti"), { recursive: true });
     fs.mkdirSync(path.join(dir, "specs", "001-test"), { recursive: true });
     execFileSync("git", ["init", dir], { stdio: "ignore" });
     const capturePath = path.join(dir, "captured-prompt.txt");
@@ -497,7 +497,7 @@ describe("flow set auto", () => {
       passResponse(),
     );
     fs.writeFileSync(
-      path.join(dir, ".sdd-forge", "config.json"),
+      path.join(dir, ".senti", "config.json"),
       JSON.stringify({
         lang: "ja",
         type: "base",

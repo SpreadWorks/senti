@@ -1,7 +1,7 @@
 /**
  * AgentsSource — DataSource for AGENTS.md section generation.
  *
- * Provides SDD template and PROJECT section skeleton as {{data}} directives.
+ * Provides Spec-Driven Development template and PROJECT section skeleton as {{data}} directives.
  */
 
 import fs from "fs";
@@ -20,11 +20,11 @@ export default function register(container) {
     this._root = ctx.root;
   }
 
-  /** Return SDD section template for the configured language. */
-  sdd(_analysis, _labels) {
+  /** Return Spec-Driven Development section template for the configured language. */
+  senti(_analysis, _labels) {
     const lang = this._lang();
     for (const l of [lang, "en"]) {
-      const p = path.join(PRESETS_DIR, "base", "templates", l, "AGENTS.sdd.md");
+      const p = path.join(PRESETS_DIR, "base", "templates", l, "AGENTS.senti.md");
       if (fs.existsSync(p)) return new Paragraph(fs.readFileSync(p, "utf8"));
     }
     return null;
@@ -124,7 +124,7 @@ export default function register(container) {
 
   _loadConfig() {
     try {
-      return loadJsonFile(path.join(this._root, ".sdd-forge", "config.json"));
+      return loadJsonFile(path.join(this._root, ".senti", "config.json"));
     } catch (_) {
       return {};
     }

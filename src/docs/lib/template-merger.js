@@ -1,5 +1,5 @@
 /**
- * sdd-forge/engine/template-merger.js
+ * senti/engine/template-merger.js
  *
  * テンプレート解決エンジン（ボトムアップ方式）。
  *
@@ -15,7 +15,7 @@ import { parseBlocks, BLOCK_START_RE, BLOCK_END_RE } from "./directive-parser.js
 import { PromptBuilder } from "../../lib/prompt-builder.js";
 import { resolveChainSafe, resolveMultiChains } from "../../lib/presets.js";
 
-const SPECIAL_FILES = new Set(["README.md", "AGENTS.sdd.md", "layout.md"]);
+const SPECIAL_FILES = new Set(["README.md", "AGENTS.senti.md", "layout.md"]);
 
 // ---------------------------------------------------------------------------
 // レイヤー構築（ボトムアップ: 最も具体的な層から）
@@ -28,7 +28,7 @@ const SPECIAL_FILES = new Set(["README.md", "AGENTS.sdd.md", "layout.md"]);
  * @param {string} presetKey - preset 名（例: "cakephp2", "node-cli"）
  * @param {string} lang - ロケール（例: "ja"）
  * @param {string|null} [projectLocalDir] - プロジェクトローカルテンプレートディレクトリ
- * @param {string} [projectRoot] - プロジェクトルート（.sdd-forge/presets/ 検索用）
+ * @param {string} [projectRoot] - プロジェクトルート（.senti/presets/ 検索用）
  * @returns {string[]} レイヤーディレクトリ配列（優先度高い順）
  */
 export function buildLayers(presetKey, lang, projectLocalDir, projectRoot) {
@@ -196,7 +196,7 @@ function mergeSourcesAdditive(sources) {
  * @param {string|null} [opts.projectLocalDir] - プロジェクトローカルテンプレートディレクトリ
  * @param {string[]} [opts.fallbackLangs] - フォールバック言語リスト
  * @param {string[]} [opts.chaptersOrder] - preset.json の chapters 順序配列
- * @param {string} [opts.projectRoot] - プロジェクトルート（.sdd-forge/presets/ 検索用）
+ * @param {string} [opts.projectRoot] - プロジェクトルート（.senti/presets/ 検索用）
  * @returns {FileResolution[]}
  */
 export function resolveTemplates(typePath, lang, opts = {}) {
@@ -362,7 +362,7 @@ function discoverFileNames(layers, fallbackSets, chaptersOrder) {
  *
  * @param {string|string[]} presetKeys - preset 名または配列
  * @param {string[]} [configChapters] - config.json の chapters 配列（最優先）
- * @param {string} [projectRoot] - プロジェクトルート（.sdd-forge/presets/ 検索用）
+ * @param {string} [projectRoot] - プロジェクトルート（.senti/presets/ 検索用）
  * @returns {string[]} 章ファイル名の順序配列
  */
 export function resolveChaptersOrder(presetKeys, configChapters, projectRoot) {
@@ -437,7 +437,7 @@ export async function translateTemplate(content, fromLang, toLang, agent, _root)
       systemPrompt: built.systemPrompt,
     });
   } catch (err) {
-    process.stderr.write(`[sdd-forge] template translation failed: ${err.message}\n`);
+    process.stderr.write(`[senti] template translation failed: ${err.message}\n`);
     return content;
   }
 }

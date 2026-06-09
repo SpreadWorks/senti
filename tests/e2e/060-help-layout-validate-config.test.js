@@ -105,7 +105,7 @@ describe("060-B: validateConfig with nested agent structure", () => {
     assert.throws(() => validate(cfg), /providers/);
   });
 
-  it("accepts full config matching real .sdd-forge/config.json structure", () => {
+  it("accepts full config matching real .senti/config.json structure", () => {
     const cfg = {
       lang: "ja",
       type: "node-cli",

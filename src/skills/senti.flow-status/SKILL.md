@@ -1,20 +1,20 @@
 ---
-name: sdd-forge.flow-status
-description: Show the current SDD flow status including branch, worktree, step progress, requirements, and commit state.
+name: senti.flow-status
+description: Show the current Spec-Driven Development flow status including branch, worktree, step progress, requirements, and commit state.
 ---
 
-# SDD Flow Status
+# Spec-Driven Development Flow Status
 
-Display the current state of the SDD workflow.
+Display the current state of the Spec-Driven Development workflow.
 
 ## Procedure
 
 1. Load flow state.
-   - Run `sdd-forge flow get status`.
+   - Run `senti flow get status`.
    - If the envelope's `data.active` is `false`, tell the user there is no active flow and stop.
 
 2. Gather additional context.
-   - Run `sdd-forge flow get resolve-context` to get `currentBranch`, `dirty`, `dirtyFiles`, `aheadCount`, `lastCommit`, and path information.
+   - Run `senti flow get resolve-context` to get `currentBranch`, `dirty`, `dirtyFiles`, `aheadCount`, `lastCommit`, and path information.
 
 3. Display all of the following:
 
@@ -30,11 +30,11 @@ Display the current state of the SDD workflow.
      - `featureBranch == baseBranch` → "Spec only"
 
    ### Step Progress
-   - Show the step table from `sdd-forge flow get status` output.
+   - Show the step table from `senti flow get status` output.
    - Highlight the current step (first `in_progress` or first `pending` after all `done`).
 
    ### Requirements Progress
-   - Show the requirements table from `sdd-forge flow get status` output.
+   - Show the requirements table from `senti flow get status` output.
    - If no requirements are set yet, note "Requirements not yet defined (set after spec approval)".
 
    ### Spec Summary
@@ -92,5 +92,5 @@ Display the current state of the SDD workflow.
 
 - This skill is read-only. It does not modify any files or state.
 - If spec.json is missing or unreadable, show the path but note it cannot be read.
-- Use `sdd-forge flow get status` as the primary data source for the current execution context only.
-- `flow get status` is not for selecting arbitrary specs. Use `sdd-forge flow resume` when flow discovery/recovery is needed.
+- Use `senti flow get status` as the primary data source for the current execution context only.
+- `flow get status` is not for selecting arbitrary specs. Use `senti flow resume` when flow discovery/recovery is needed.

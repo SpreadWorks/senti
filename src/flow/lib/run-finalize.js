@@ -192,7 +192,7 @@ function buildFinalizePreflightError(err) {
     "Help:",
     "- This environment cannot write under .git (lock file creation failed).",
     "- Run finalize in a writable shell or with elevated permissions.",
-    "- Run: sdd-forge flow run finalize-commit --help",
+    "- Run: senti flow run finalize-commit --help",
   ].join("\n");
   const e = new Error(msg);
   e.code = "FINALIZE_PREFLIGHT_FAILED";

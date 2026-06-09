@@ -1,7 +1,7 @@
 /**
  * tests/unit/flow/set-approval.test.js
  *
- * spec 221 R5, R7: `sdd-forge flow set approval` の挙動を検証する。
+ * spec 221 R5, R7: `senti flow set approval` の挙動を検証する。
  * - --approved を渡すと spec.json.user_approval が更新される
  * - --confirmed-at 省略時は ISO 8601 が自動付与される
  * - --notes は任意
@@ -19,15 +19,15 @@ import { makeFlowManager } from "../../helpers/flow-setup.js";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 import { loadSpecJson } from "../../../src/lib/spec-json.js";
 
-const SDD_FORGE = path.resolve("src/sdd-forge.js");
+const SENTI = path.resolve("src/senti.js");
 
 function createProject() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "set-approval-"));
-  fs.mkdirSync(path.join(tmp, ".sdd-forge"), { recursive: true });
+  fs.mkdirSync(path.join(tmp, ".senti"), { recursive: true });
   execFileSync("git", ["init", tmp], { stdio: "ignore" });
   execFileSync("git", ["-C", tmp, "commit", "--allow-empty", "-m", "init"], { stdio: "ignore" });
   fs.writeFileSync(
-    path.join(tmp, ".sdd-forge", "config.json"),
+    path.join(tmp, ".senti", "config.json"),
     JSON.stringify({
       lang: "ja",
       type: "base",
@@ -71,10 +71,10 @@ function setupSpec(tmp, specId, extras = {}) {
 }
 
 function run(tmp, argv) {
-  return spawnSync("node", [SDD_FORGE, ...argv], {
+  return spawnSync("node", [SENTI, ...argv], {
     encoding: "utf8",
     cwd: tmp,
-    env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+    env: { ...process.env, SENTI_WORK_ROOT: tmp },
   });
 }
 

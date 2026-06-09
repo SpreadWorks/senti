@@ -2,7 +2,7 @@
 /**
  * src/hook.js
  *
- * Hook dispatcher. Routes `sdd-forge hook <command>` to hook management
+ * Hook dispatcher. Routes `senti hook <command>` to hook management
  * commands.
  */
 
@@ -18,17 +18,17 @@ const subCmd = args[0];
 const rest = args.slice(1);
 
 if (!subCmd || subCmd === "-h" || subCmd === "--help") {
-  console.error("Usage: sdd-forge hook <command>\n");
+  console.error("Usage: senti hook <command>\n");
   console.error("Available commands:");
   for (const c of Object.keys(hookCommands)) console.error(`  ${c}`);
-  console.error("\nRun: sdd-forge hook <command> --help");
+  console.error("\nRun: senti hook <command> --help");
   process.exit(subCmd ? 0 : EXIT_ERROR);
 }
 
 const entry = hookCommands[subCmd];
 if (!entry) {
-  console.error(`sdd-forge hook: unknown command '${subCmd}'`);
-  console.error("Run: sdd-forge hook --help");
+  console.error(`senti hook: unknown command '${subCmd}'`);
+  console.error("Run: senti hook --help");
   process.exit(EXIT_ERROR);
 }
 

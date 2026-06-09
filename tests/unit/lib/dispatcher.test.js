@@ -109,7 +109,7 @@ describe("dispatcher (unified runner)", () => {
     });
 
     it("flow run envelope mode writes automatic runtime log without changing stdout envelope", async () => {
-      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sdd-dispatcher-"));
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-"));
       try {
         container.register("paths", {
           root: tmp,
@@ -156,7 +156,7 @@ describe("dispatcher (unified runner)", () => {
     });
 
     it("flow run uses root .tmp/logs/<flowId>.log", async () => {
-      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sdd-dispatcher-"));
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-"));
       try {
         const agentWorkDir = path.join(tmp, ".agent-work");
         container.register("paths", { root: tmp, agentWorkDir });
@@ -196,7 +196,7 @@ describe("dispatcher (unified runner)", () => {
     });
 
     it("runtime log captures dispatcher stderr callback writes", async () => {
-      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sdd-dispatcher-"));
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-"));
       try {
         container.register("paths", {
           root: tmp,
@@ -237,7 +237,7 @@ describe("dispatcher (unified runner)", () => {
     });
 
     it("flow run without active flow uses root .tmp/logs/no-flow.log", async () => {
-      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sdd-dispatcher-"));
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-"));
       try {
         const agentWorkDir = path.join(tmp, ".agent-work");
         container.register("paths", { root: tmp, agentWorkDir });
@@ -276,7 +276,7 @@ describe("dispatcher (unified runner)", () => {
     });
 
     it("runtime log write is best-effort when cleanup removes the log directory", async () => {
-      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sdd-dispatcher-"));
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-"));
       try {
         const agentWorkDir = path.join(tmp, ".agent-work");
         container.register("paths", { root: tmp, agentWorkDir });

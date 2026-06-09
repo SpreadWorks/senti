@@ -6,7 +6,7 @@ import path from "node:path";
 import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../../helpers/tmp-dir.js";
 import { initGitRepo, commitAll } from "../../../helpers/git-repo.js";
 
-const SDD_FORGE = path.join(process.cwd(), "src/sdd-forge.js");
+const SENTI = path.join(process.cwd(), "src/senti.js");
 
 function config(command) {
   return {
@@ -23,11 +23,11 @@ function config(command) {
 }
 
 function setupProject(command) {
-  const root = createTmpDir("sdd-post-worktree-e2e-");
-  writeJson(root, ".sdd-forge/config.json", config(command));
+  const root = createTmpDir("senti-post-worktree-e2e-");
+  writeJson(root, ".senti/config.json", config(command));
   writeJson(root, "package.json", { name: "post-worktree-e2e", version: "1.0.0", type: "module" });
   writeFile(root, "src/index.js", "export const value = 1;\n");
-  writeFile(root, ".sdd-forge/output/.gitkeep", "");
+  writeFile(root, ".senti/output/.gitkeep", "");
   initGitRepo(root);
   commitAll(root, "initial");
   return root;
@@ -35,7 +35,7 @@ function setupProject(command) {
 
 function runPrepare(root, title = "post-worktree") {
   const output = execFileSync("node", [
-    SDD_FORGE,
+    SENTI,
     "flow",
     "prepare",
     "--title",
@@ -46,7 +46,7 @@ function runPrepare(root, title = "post-worktree") {
   ], {
     cwd: root,
     encoding: "utf8",
-    env: { ...process.env, SDD_FORGE_WORK_ROOT: root },
+    env: { ...process.env, SENTI_WORK_ROOT: root },
   });
   return JSON.parse(output);
 }

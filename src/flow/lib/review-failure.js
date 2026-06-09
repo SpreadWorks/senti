@@ -4,7 +4,7 @@
  * Review failure taxonomy and recovery state helpers.
  */
 
-export const REVIEW_FAILURE_MARKER_PREFIX = "SDD_FORGE_REVIEW_FAILURE ";
+export const REVIEW_FAILURE_MARKER_PREFIX = "SENTI_REVIEW_FAILURE ";
 
 const CLASSIFICATIONS = Object.freeze([
   "review_verdict_failure",
@@ -41,13 +41,13 @@ function cleanReason(value, fallback) {
 }
 
 function retryResetCommand(phase) {
-  return `sdd-forge flow set retry reset review ${phase} --reason <text> --yes`;
+  return `senti flow set retry reset review ${phase} --reason <text> --yes`;
 }
 
 function retryReviewCommand(phase) {
   return phase === "impl"
-    ? "sdd-forge flow run review"
-    : `sdd-forge flow run review --phase ${phase}`;
+    ? "senti flow run review"
+    : `senti flow run review --phase ${phase}`;
 }
 
 export function reviewPhaseForStepId(stepId) {

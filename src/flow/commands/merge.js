@@ -28,7 +28,7 @@ const SQUASH_MESSAGE_IGNORED_SUBJECTS = new Set([
 
 /**
  * Resolve push remote from config.
- * @param {Object} cfg - SDD config
+ * @param {Object} cfg - Spec-Driven Development config
  * @returns {string}
  */
 function resolveRemote(cfg) {
@@ -155,7 +155,7 @@ function collectImplementationSubjects({
   if (!cwd || !baseBranch || !featureBranch || boundedLimit === 0) return [];
   const res = runGit(["-C", cwd, "log", `--max-count=${boundedLimit}`, "--format=%s", `${baseBranch}..${featureBranch}`]);
   if (!res.ok) {
-    process.stderr.write(`[sdd-forge] warning: failed to collect implementation commit subjects: ${res.stderr || res.stdout}\n`);
+    process.stderr.write(`[senti] warning: failed to collect implementation commit subjects: ${res.stderr || res.stdout}\n`);
     return [];
   }
   return String(res.stdout || "")
@@ -185,7 +185,7 @@ function buildSquashCommitMessage({ state, spec, fallbackTitle, implementationSu
  * the dry-run `strategy` value matches what would actually be executed.
  *
  * @param {{ baseBranch: string, featureBranch: string }} state
- * @param {Object} config - SDD config
+ * @param {Object} config - Spec-Driven Development config
  * @param {() => boolean} [ghAvailable=isGhAvailable]
  * @returns {"skip"|"pr"|"squash"}
  */
@@ -243,7 +243,7 @@ function runMerge(ctx) {
   try {
     spec = loadSpec(state, root);
   } catch (err) {
-    process.stderr.write(`[sdd-forge] warning: failed to load spec for squash commit message: ${err.message}\n`);
+    process.stderr.write(`[senti] warning: failed to load spec for squash commit message: ${err.message}\n`);
   }
 
   function runSquashMerge(gitPrefix, hint) {
@@ -305,7 +305,7 @@ function runMerge(ctx) {
 
     // baseBranch is locked (e.g. checked out in another worktree) — fall back to
     // a temporary detached worktree, squash-merge there, then update the ref.
-    const tmpWorktree = path.join(os.tmpdir(), `sdd-merge-tmp-${process.pid}-${Date.now()}`);
+    const tmpWorktree = path.join(os.tmpdir(), `senti-merge-tmp-${process.pid}-${Date.now()}`);
     try {
       const addRes = runGit(["-C", mainRepoPath, "worktree", "add", "--detach", tmpWorktree, baseBranch]);
       assertOk(addRes, "failed to create temporary worktree for baseBranch checkout fallback");
@@ -372,7 +372,7 @@ function runPreSync({ worktreePath, baseBranch, featureBranch, remote = "origin"
 
   abortRebase({ cwd: worktreePath });
   const recoveryHint =
-    `Run 'git rebase ${baseBranch}' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'sdd-forge flow run finalize'.`;
+    `Run 'git rebase ${baseBranch}' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'senti flow run finalize'.`;
   return { ok: false, conflictFiles: rebaseRes.conflictFiles, recoveryHint };
 }
 

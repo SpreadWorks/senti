@@ -17,17 +17,17 @@ const subCmd = args[0];
 const rest = args.slice(1);
 
 if (!subCmd || subCmd === "-h" || subCmd === "--help") {
-  console.error("Usage: sdd-forge metrics <command>\n");
+  console.error("Usage: senti metrics <command>\n");
   console.error("Available commands:");
   for (const c of Object.keys(metricsCommands)) console.error(`  ${c}`);
-  console.error("\nRun: sdd-forge metrics <command> --help");
+  console.error("\nRun: senti metrics <command> --help");
   process.exit(subCmd ? 0 : EXIT_ERROR);
 }
 
 const entry = metricsCommands[subCmd];
 if (!entry) {
-  console.error(`sdd-forge metrics: unknown command '${subCmd}'`);
-  console.error("Run: sdd-forge metrics --help");
+  console.error(`senti metrics: unknown command '${subCmd}'`);
+  console.error("Run: senti metrics --help");
   process.exit(EXIT_ERROR);
 }
 

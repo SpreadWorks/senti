@@ -39,13 +39,13 @@ function passResponse() {
 
 function createTmpProject(agentResponse = lowResponse()) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "auto-desired-"));
-  fs.mkdirSync(path.join(tmp, ".sdd-forge"), { recursive: true });
+  fs.mkdirSync(path.join(tmp, ".senti"), { recursive: true });
   fs.mkdirSync(path.join(tmp, "specs", "001-test"), { recursive: true });
   execFileSync("git", ["init", tmp], { stdio: "ignore" });
 
   const stubPath = writeStubAgentScript(tmp, ".stub-agent.js", agentResponse);
   fs.writeFileSync(
-    path.join(tmp, ".sdd-forge", "config.json"),
+    path.join(tmp, ".senti", "config.json"),
     JSON.stringify({
       lang: "ja",
       type: "base",
@@ -73,12 +73,12 @@ function createFlowState(tmp, extra = {}) {
 }
 
 function runSetAuto(tmp, value) {
-  const script = path.resolve("src/sdd-forge.js");
+  const script = path.resolve("src/senti.js");
   const args = ["flow", "set", "auto", value];
   return spawnSync("node", [script, ...args], {
     encoding: "utf8",
     cwd: tmp,
-    env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+    env: { ...process.env, SENTI_WORK_ROOT: tmp },
   });
 }
 
@@ -110,11 +110,11 @@ describe("spec 232: autoDesired persistence (R1)", () => {
     const runId = fm.generateRunId();
     fm.createPreparingFlow(runId, { request: "add a progress bar" });
 
-    const script = path.resolve("src/sdd-forge.js");
+    const script = path.resolve("src/senti.js");
     const res = spawnSync("node", [script, "flow", "set", "auto", "on", "--run-id", runId], {
       encoding: "utf8",
       cwd: tmp,
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp },
     });
     assert.notEqual(res.status, 0, "should exit non-zero on reject");
     const preparing = fm.loadPreparingFlow(runId);

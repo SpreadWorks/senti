@@ -26,7 +26,7 @@ describe("finalize-cleanup robustness", () => {
   afterEach(() => tmp && removeTmpDir(tmp));
 
   it("registry post hooks switch ctx.flowManager to main repo authority", async () => {
-    tmp = createTmpDir("sdd-finalize-auth-switch-");
+    tmp = createTmpDir("senti-finalize-auth-switch-");
     const mainRoot = path.join(tmp, "main");
     const worktreeRoot = path.join(tmp, "worktree");
     fs.mkdirSync(mainRoot);
@@ -59,7 +59,7 @@ describe("finalize-cleanup robustness", () => {
 
   it("syncMetadataFromWorktreeToMain copies runtime logs", async () => {
     const { syncMetadataFromWorktreeToMain } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
-    tmp = createTmpDir("sdd-sync-metadata-");
+    tmp = createTmpDir("senti-sync-metadata-");
     const mainRoot = path.join(tmp, "main");
     const worktreeRoot = path.join(tmp, "worktree");
     const specId = "123";
@@ -92,7 +92,7 @@ describe("finalize-cleanup robustness", () => {
 
   it("validateTeardown detects remaining branch", async () => {
     const { validateTeardown } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
-    tmp = createTmpDir("sdd-validate-teardown-");
+    tmp = createTmpDir("senti-validate-teardown-");
     initGitRepo(tmp);
     const featureBranch = "feature/test";
     execFileSync("git", ["-C", tmp, "checkout", "-b", featureBranch], { encoding: "utf8" });
@@ -109,7 +109,7 @@ describe("finalize-cleanup robustness", () => {
   });
 
   it("runTeardown fails if worktree remove fails (e.g. dirty)", async () => {
-    tmp = createTmpDir("sdd-teardown-fail-");
+    tmp = createTmpDir("senti-teardown-fail-");
     const mainRoot = path.join(tmp, "main");
     initGitRepo(mainRoot);
 

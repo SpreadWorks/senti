@@ -49,7 +49,7 @@ describe("loadConfig", () => {
 
   it("loads and validates config", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".sdd-forge/config.json", { lang: "ja", type: "cli", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "cli", docs: { languages: ["ja"], defaultLanguage: "ja" } });
     const cfg = loadConfig(tmp);
     assert.equal(cfg.lang, "ja");
     assert.equal(cfg.type, "cli");
@@ -58,7 +58,7 @@ describe("loadConfig", () => {
 
   it("validates flow.hooks as a string map", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".sdd-forge/config.json", {
+    writeJson(tmp, ".senti/config.json", {
       lang: "ja",
       type: "cli",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -73,7 +73,7 @@ describe("loadConfig", () => {
     assert.equal(cfg.flow.hooks.PostWorktree, "printf ok");
     assert.equal(cfg.flow.hooks.CustomHook, "printf custom");
 
-    writeJson(tmp, ".sdd-forge/config.json", {
+    writeJson(tmp, ".senti/config.json", {
       lang: "ja",
       type: "cli",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -96,13 +96,13 @@ describe("resolveWorkDir", () => {
   let savedEnv;
 
   afterEach(() => {
-    if (savedEnv === undefined) delete process.env.SDD_FORGE_WORK_DIR;
-    else process.env.SDD_FORGE_WORK_DIR = savedEnv;
+    if (savedEnv === undefined) delete process.env.SENTI_WORK_DIR;
+    else process.env.SENTI_WORK_DIR = savedEnv;
   });
 
-  it("ignores SDD_FORGE_WORK_DIR and uses config.agent.workDir", () => {
-    savedEnv = process.env.SDD_FORGE_WORK_DIR;
-    process.env.SDD_FORGE_WORK_DIR = ".env-work";
+  it("ignores SENTI_WORK_DIR and uses config.agent.workDir", () => {
+    savedEnv = process.env.SENTI_WORK_DIR;
+    process.env.SENTI_WORK_DIR = ".env-work";
     assert.equal(resolveWorkDir("/project", { agent: { workDir: ".config-work" } }), "/project/.config-work");
   });
 

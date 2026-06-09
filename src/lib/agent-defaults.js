@@ -2,7 +2,7 @@
  * src/lib/agent-defaults.js
  *
  * Default agent providers and profiles seeded by `setup` and merged (add-only)
- * by `upgrade`. The content is generic: model tiers plus sdd-forge command ids
+ * by `upgrade`. The content is generic: model tiers plus senti command ids
  * only — no project/environment-specific values (no hostnames, ports, etc.), so
  * it is safe to ship in the package per the src/ project-info rule.
  *

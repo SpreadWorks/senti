@@ -11,7 +11,7 @@ import { execFileSync } from "child_process";
 import { join } from "path";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
-const FLOW_CMD = join(process.cwd(), "src/sdd-forge.js");
+const FLOW_CMD = join(process.cwd(), "src/senti.js");
 const FLOW_CMD_ARGS_PREFIX = ["flow"];
 
 function setupFlowState(dir) {
@@ -41,7 +41,7 @@ describe("flow get unknown options", () => {
     try {
       execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "status", "--spec", "specs/999/spec.md"], {
         encoding: "utf8",
-        env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+        env: { ...process.env, SENTI_WORK_ROOT: tmp },
       });
     } catch (err) {
       threw = true;
@@ -61,7 +61,7 @@ describe("flow get unknown options", () => {
     try {
       execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "qa-count", "--spec", "specs/999/spec.md"], {
         encoding: "utf8",
-        env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+        env: { ...process.env, SENTI_WORK_ROOT: tmp },
       });
     } catch (err) {
       threw = true;

@@ -113,7 +113,7 @@ afterEach(() => {
 
 function setupProject(workflows) {
   tmp = createTmpDir("ci-test-");
-  fs.mkdirSync(path.join(tmp, ".sdd-forge"), { recursive: true });
+  fs.mkdirSync(path.join(tmp, ".senti"), { recursive: true });
   writeJson(tmp, "package.json", { name: "test-pkg", version: "1.0.0" });
   const wfDir = path.join(tmp, ".github", "workflows");
   fs.mkdirSync(wfDir, { recursive: true });

@@ -2,14 +2,14 @@
  * src/lib/container.js
  *
  * Dependency container for CLI-wide initialized services (config, logger, paths,
- * agent, i18n, flowManager, etc.). Built once in src/sdd-forge.js and
+ * agent, i18n, flowManager, etc.). Built once in src/senti.js and
  * referenced by all dispatchers and commands via the module-level `container`
  * export.
  */
 
 import path from "path";
 import { repoRoot, sourceRoot, isInsideWorktree, getMainRepoPath } from "./cli.js";
-import { loadConfig, loadJsonFile, sddConfigPath, sddDir, sddOutputDir, resolveWorkDir } from "./config.js";
+import { loadConfig, loadJsonFile, sentiConfigPath, sentiDir, sentiOutputDir, resolveWorkDir } from "./config.js";
 import { Logger } from "./log.js";
 import { Agent } from "./agent.js";
 import { ProviderRegistry } from "./provider.js";
@@ -112,16 +112,16 @@ function buildPaths(root, config, opts = {}) {
   return Object.freeze({
     root,
     srcRoot: sourceRoot(),
-    sddDir: sddDir(root),
-    outputDir: sddOutputDir(root),
+    sentiDir: sentiDir(root),
+    outputDir: sentiOutputDir(root),
     agentWorkDir,
     logDir,
-    configPath: sddConfigPath(root),
+    configPath: sentiConfigPath(root),
   });
 }
 
 /**
- * Initialize the module-level container. Called once from src/sdd-forge.js.
+ * Initialize the module-level container. Called once from src/senti.js.
  * Subsequent dispatchers and commands import `container` directly.
  *
  * Best-effort initialization: if config is absent (setup not run yet, help-only
@@ -137,7 +137,7 @@ function buildPaths(root, config, opts = {}) {
  *   that would otherwise be written under the deleted worktree.
  */
 export function initContainer(opts = {}) {
-  // Idempotent: if already initialized (e.g. by sdd-forge.js before a
+  // Idempotent: if already initialized (e.g. by senti.js before a
   // dispatcher was imported), do not re-run initialization. This lets
   // each dispatcher safely call initContainer() at its top to support
   // standalone execution (direct `node src/flow.js` invocation in tests)
@@ -152,7 +152,7 @@ export function initContainer(opts = {}) {
     configLoaded = true;
   } catch (err) {
     if (err?.code !== "ERR_MISSING_FILE") {
-      process.stderr.write(`[sdd-forge] config load failed: ${err?.message}\n`);
+      process.stderr.write(`[senti] config load failed: ${err?.message}\n`);
       throw err;
     }
   }
@@ -193,7 +193,7 @@ export function initContainer(opts = {}) {
 
   // Base classes and utilities exposed to presets. Presets access these via
   // container.get("base.DataSource") etc. so they never need to import from
-  // sdd-forge internal paths directly.
+  // senti internal paths directly.
   container.register("base.DataSource", DataSource);
   container.register("base.Scannable", Scannable);
   container.register("base.AnalysisEntry", AnalysisEntry);

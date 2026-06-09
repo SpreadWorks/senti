@@ -1,5 +1,5 @@
 /**
- * sdd-forge/lib/spec-json.js
+ * senti/lib/spec-json.js
  *
  * Spec JSON I/O — the single load path for spec.json.
  * Core wiring (gate / review / retro / merge / finalize / changelog / forge /

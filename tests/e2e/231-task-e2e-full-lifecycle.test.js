@@ -7,12 +7,12 @@ import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../helpers/tmp
 import { initGitRepo, commitAll, checkoutNewBranch } from "../helpers/git-repo.js";
 import { FLOW_STEPS, buildInitialTaskSteps } from "../../src/lib/flow-helpers.js";
 
-const CMD = path.join(process.cwd(), "src/sdd-forge.js");
+const CMD = path.join(process.cwd(), "src/senti.js");
 
 function run(tmp, args) {
   return spawnSync("node", [CMD, ...args], {
     encoding: "utf8",
-    env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_SOURCE_ROOT: tmp },
+    env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
   });
 }
 
@@ -43,7 +43,7 @@ function buildFlowTasks(specTasks) {
 }
 
 function setupBaseFixture(tmp, specId, specTasks) {
-  writeJson(tmp, ".sdd-forge/config.json", {
+  writeJson(tmp, ".senti/config.json", {
     lang: "ja",
     type: "base",
     docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -90,7 +90,7 @@ function setupBaseFixture(tmp, specId, specTasks) {
     metrics: [],
   };
   writeJson(tmp, `specs/${specId}/flow.json`, flowState);
-  writeJson(tmp, ".sdd-forge/.active-flow", [{ spec: specId, mode: "local" }]);
+  writeJson(tmp, ".senti/.active-flow", [{ spec: specId, mode: "local" }]);
 
   initGitRepo(tmp);
   commitAll(tmp, "initial");

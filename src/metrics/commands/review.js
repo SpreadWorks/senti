@@ -25,7 +25,7 @@ const ATTEMPT_LIMIT_THRESHOLD = 5;
 
 function formatUsage() {
   return [
-    "Usage: sdd-forge metrics review [options]",
+    "Usage: senti metrics review [options]",
     "",
     "Options:",
     "  --format <text|json|csv>   Output format (default: text)",

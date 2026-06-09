@@ -38,7 +38,7 @@ export function writeReport(reportPath, report) {
 export function persistReport(projectRoot, report) {
   const reportPath = path.join(
     projectRoot,
-    ".sdd-forge",
+    ".senti",
     "output",
     `acceptance-report-${report.preset}.json`,
   );
@@ -95,7 +95,7 @@ export function acceptanceTest(presetName, opts) {
 
       const reportPath = path.join(
         tmp,
-        ".sdd-forge",
+        ".senti",
         "output",
         "acceptance-report.json",
       );

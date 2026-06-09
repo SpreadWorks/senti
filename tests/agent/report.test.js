@@ -46,9 +46,9 @@ describe("acceptance report: pipeline traceability", { timeout: 300000 }, () => 
     const fixtureDir = getAcceptanceFixtureDir("node");
     const badTmp = copyFixture(fixtureDir, { type: "base" });
 
-    const outputDir = path.join(badTmp, ".sdd-forge", "output");
+    const outputDir = path.join(badTmp, ".senti", "output");
     fs.rmSync(outputDir, { recursive: true });
-    fs.writeFileSync(path.join(badTmp, ".sdd-forge", "output"), "not-a-dir");
+    fs.writeFileSync(path.join(badTmp, ".senti", "output"), "not-a-dir");
 
     try {
       const result = await runPipeline(badTmp);
@@ -71,7 +71,7 @@ describe("acceptance report: pipeline traceability", { timeout: 300000 }, () => 
 describe("acceptance report: JSON output", { timeout: 300000 }, () => {
   let tmp;
 
-  it("report JSON is written to .sdd-forge/output/acceptance-report.json", async () => {
+  it("report JSON is written to .senti/output/acceptance-report.json", async () => {
     const fixtureDir = getAcceptanceFixtureDir("node");
     tmp = copyFixture(fixtureDir, { type: "base" });
 
@@ -86,7 +86,7 @@ describe("acceptance report: JSON output", { timeout: 300000 }, () => {
       quality: null,
     };
 
-    const reportPath = path.join(tmp, ".sdd-forge", "output", "acceptance-report.json");
+    const reportPath = path.join(tmp, ".senti", "output", "acceptance-report.json");
     writeReport(reportPath, report);
 
     assert.ok(fs.existsSync(reportPath), "report JSON should be written");

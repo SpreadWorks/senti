@@ -46,7 +46,7 @@ describe("finalize-merge — failed merge retry contract (spec 251)", () => {
   afterEach(() => tmp && removeTmpDir(tmp));
 
   it("onError marks finalize-sync and finalize-cleanup as skipped", async () => {
-    tmp = createTmpDir("sdd-finalize-merge-retry-");
+    tmp = createTmpDir("senti-finalize-merge-retry-");
     setupFlow(tmp);
     const fm = makeFlowManager(tmp);
 
@@ -64,7 +64,7 @@ describe("finalize-merge — failed merge retry contract (spec 251)", () => {
   });
 
   it("pre hook resets skipped finalize-sync/cleanup back to pending before retry", async () => {
-    tmp = createTmpDir("sdd-finalize-merge-retry-reset-");
+    tmp = createTmpDir("senti-finalize-merge-retry-reset-");
     initGitRepo(tmp);
     const state = setupFlow(tmp);
     commitAll(tmp, "test: initial flow state");
@@ -90,7 +90,7 @@ describe("finalize-merge — failed merge retry contract (spec 251)", () => {
   });
 
   it("post hook on retry success normalizes finalize-merge to done and resets skipped downstream", async () => {
-    tmp = createTmpDir("sdd-finalize-merge-retry-post-");
+    tmp = createTmpDir("senti-finalize-merge-retry-post-");
     setupFlow(tmp);
     const fm = makeFlowManager(tmp);
 
@@ -112,7 +112,7 @@ describe("finalize-merge — failed merge retry contract (spec 251)", () => {
   });
 
   it("post hook does nothing on failed status (no normalization)", async () => {
-    tmp = createTmpDir("sdd-finalize-merge-retry-fail-");
+    tmp = createTmpDir("senti-finalize-merge-retry-fail-");
     setupFlow(tmp);
     const fm = makeFlowManager(tmp);
 

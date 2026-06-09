@@ -22,7 +22,7 @@ function hookConfigFor(context = {}) {
 }
 
 function warn(message) {
-  console.warn(`[sdd-forge] ${message}`);
+  console.warn(`[senti] ${message}`);
 }
 
 export function replaceHookPlaceholders(command, context = {}) {

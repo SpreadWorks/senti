@@ -1,10 +1,10 @@
 /**
  * src/lib/flow-manager.js
  *
- * Facade for SDD flow state management. Owns:
+ * Facade for Spec-Driven Development flow state management. Owns:
  *   - FlowStore             : specs/<NNN>/flow.json I/O + mutations
- *   - ActiveFlowRegistry    : .sdd-forge/.active-flow pointer
- *   - PreparingFlowStore    : .sdd-forge/.active-flow.<runId> transient state
+ *   - ActiveFlowRegistry    : .senti/.active-flow pointer
+ *   - PreparingFlowStore    : .senti/.active-flow.<runId> transient state
  *
  * Constructed once per CLI process by `container.js` with paths already
  * resolved by Container — no `workRoot` argument is needed on any method.
@@ -13,7 +13,7 @@
 import fs from "fs";
 import path from "path";
 import { runGit } from "./git-helpers.js";
-import { sddDir } from "./config.js";
+import { sentiDir } from "./config.js";
 import { FlowStore } from "./flow-store.js";
 import { withSpecIdArgDefault, withSpecIdDefault } from "./flow-options.js";
 import { ActiveFlowRegistry } from "./active-flow-registry.js";
@@ -24,7 +24,7 @@ import { findInProgressLeaf } from "../flow/lib/step-tree.js";
 // Pointer written by `flow run finalize-cleanup` (and read by `flow report
 // show`) to mark the last spec that completed cleanup. Stored relative to the
 // main repo root.
-const LAST_FINALIZED_SPEC_REL_PATH = path.join(".sdd-forge", "last-finalized-spec");
+const LAST_FINALIZED_SPEC_REL_PATH = path.join(".senti", "last-finalized-spec");
 
 export class FlowManager {
   /**
@@ -136,17 +136,17 @@ export class FlowManager {
 
   /**
    * Resolve the current flow context for logging / metric accumulation.
-   * Returns { spec, sddPhase } derived from the active flow.json; both are
-   * null when no active flow is present (expected outside SDD contexts).
+   * Returns { spec, sentiPhase } derived from the active flow.json; both are
+   * null when no active flow is present (expected outside Spec-Driven Development contexts).
    */
   resolveCurrentContext() {
     const state = this.load();
-    if (!state) return { spec: null, sddPhase: null, taskId: null };
+    if (!state) return { spec: null, sentiPhase: null, taskId: null };
     const spec = specIdFromPath(state.spec) ?? null;
     const inProgress = findInProgressLeaf(state.steps);
-    const sddPhase = inProgress?.id ?? null;
+    const sentiPhase = inProgress?.id ?? null;
     const taskId = state.currentTaskId ?? null;
-    return { spec, sddPhase, taskId };
+    return { spec, sentiPhase, taskId };
   }
 
   // ── .active-flow (ActiveFlowRegistry) ───────────────────────────────────────
@@ -259,7 +259,7 @@ export class FlowManager {
               results.push({ specId, mode: "branch", state, location: `branch:${branch}` });
               seen.add(specId);
             } catch (e) {
-              process.stderr.write(`[sdd-forge] scanAllFlows: invalid JSON in ${branch}:specs/${specId}/flow.json: ${e.message}\n`);
+              process.stderr.write(`[senti] scanAllFlows: invalid JSON in ${branch}:specs/${specId}/flow.json: ${e.message}\n`);
             }
           }
         }
@@ -267,14 +267,14 @@ export class FlowManager {
     }
 
     if (truncated) {
-      process.stderr.write(`[sdd-forge] scanAllFlows: truncated at ${SCAN_FLOWS_LIMIT} entries\n`);
+      process.stderr.write(`[senti] scanAllFlows: truncated at ${SCAN_FLOWS_LIMIT} entries\n`);
     }
 
     return results;
   }
 
   /**
-   * Read the spec id stored in `.sdd-forge/last-finalized-spec` (if any).
+   * Read the spec id stored in `.senti/last-finalized-spec` (if any).
    * Returns null when the pointer file does not exist or is empty.
    *
    * Post-cleanup, `.active-flow` is empty and this pointer holds the spec
@@ -369,7 +369,7 @@ export class FlowManager {
     if (!state) {
       const entry = this._activeFlows.load().find((f) => f.spec === specId);
       if (entry?.mode === "worktree") {
-        const probe = path.join(sddDir(this._mainRoot), "worktree", `feature-${specId}`);
+        const probe = path.join(sentiDir(this._mainRoot), "worktree", `feature-${specId}`);
         if (fs.existsSync(probe)) {
           const wtStore = new FlowStore({
             root: probe,

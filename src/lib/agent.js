@@ -3,7 +3,7 @@
  *
  * AI agent service. Built once at Container init time and accessed via
  * `container.get("agent")`. The class encapsulates:
- *   - profile resolution (SDD_FORGE_PROFILE > config.agent.useProfile > default profile > default)
+ *   - profile resolution (SENTI_PROFILE > config.agent.useProfile > default profile > default)
  *   - prompt building (system prompt, JSON output flag, workDir flag injection)
  *   - argv-size based stdin fallback (config-driven threshold)
  *   - spawn-based asynchronous invocation (no blocking on stdin EOF)
@@ -33,7 +33,7 @@ const RETRY_BACKOFF_FACTOR = 2;
 class Agent {
   /**
    * @param {Object} opts
-   * @param {Object} opts.config       - SddConfig
+   * @param {Object} opts.config       - SentiConfig
    * @param {Object} opts.paths        - Container paths ({ root, agentWorkDir, ... })
    * @param {ProviderRegistry} opts.registry
    * @param {Object} opts.logger       - Logger instance
@@ -49,7 +49,7 @@ class Agent {
 
   /**
    * Resolve a profile for the given commandId.
-   * Priority: SDD_FORGE_PROFILE env > config.agent.useProfile > default profile > default.
+   * Priority: SENTI_PROFILE env > config.agent.useProfile > default profile > default.
    * Returns null when no profile is configured.
    */
   resolve(commandId) {
@@ -93,7 +93,7 @@ class Agent {
 
     const resolved = this.resolve(opts.commandId);
     if (!resolved) {
-      throw new Error("No agent configured. Set 'agent.default' in config.json or run 'sdd-forge setup'.");
+      throw new Error("No agent configured. Set 'agent.default' in config.json or run 'senti setup'.");
     }
     ensureWorkDir(this._paths.agentWorkDir);
 
@@ -413,7 +413,7 @@ class AgentPromptCache {
   constructor({ root, specId }) {
     this.root = root;
     this.specId = specId;
-    this.filePath = path.join(root, ".sdd-forge", "agent-cache", `${cacheFileName(specId)}.json`);
+    this.filePath = path.join(root, ".senti", "agent-cache", `${cacheFileName(specId)}.json`);
   }
 
   get(key) {
@@ -471,10 +471,10 @@ function resolvePromptCacheContext(flowManager) {
 }
 
 function recordPromptCacheHit({ flowManager, context, provider, profileKey, text }) {
-  if (!flowManager || !context?.sddPhase) return;
+  if (!flowManager || !context?.sentiPhase) return;
   try {
     flowManager.appendMetric({
-      phase: context.sddPhase,
+      phase: context.sentiPhase,
       kind: "agent-cache",
       provider,
       profileKey,
@@ -483,7 +483,7 @@ function recordPromptCacheHit({ flowManager, context, provider, profileKey, text
       responseChars: textStats(text).chars,
     }, { specId: context.spec, taskId: context.taskId ?? null });
   } catch (err) {
-    process.stderr.write(`[sdd-forge] agent: cache-hit metric failed: ${err.message}\n`);
+    process.stderr.write(`[senti] agent: cache-hit metric failed: ${err.message}\n`);
   }
 }
 
@@ -520,7 +520,7 @@ function matchProfilePrefix(profile, commandId) {
 
 function resolveProfileKey(agentSection, commandId) {
   const defaultKey = agentSection.default;
-  const profileName = process.env.SDD_FORGE_PROFILE || agentSection.useProfile || null;
+  const profileName = process.env.SENTI_PROFILE || agentSection.useProfile || null;
   if (!profileName) return defaultKey;
 
   const profiles = agentSection.profiles;
@@ -598,7 +598,7 @@ function tryParseProvider(provider, stdout) {
   try {
     return provider.parse(stdout);
   } catch (err) {
-    process.stderr.write(`[sdd-forge] agent output parse failed (${provider.constructor.name}): ${err.message}\n`);
+    process.stderr.write(`[senti] agent output parse failed (${provider.constructor.name}): ${err.message}\n`);
     return null;
   }
 }
@@ -643,9 +643,9 @@ async function runWithLogging({ logger, flowManager, command, systemPrompt, prom
     if (flowManager) {
       try {
         const ctx = flowManager.resolveCurrentContext();
-        if (ctx.sddPhase) {
+        if (ctx.sentiPhase) {
           const durationMs = Math.max(0, Math.round(Date.now() - startedAt));
-          flowManager.accumulateAgentMetrics(ctx.sddPhase, {
+          flowManager.accumulateAgentMetrics(ctx.sentiPhase, {
             provider,
             profileKey,
             usage,
@@ -655,7 +655,7 @@ async function runWithLogging({ logger, flowManager, command, systemPrompt, prom
           });
         }
       } catch (metricErr) {
-        process.stderr.write(`[sdd-forge] agent: metric accumulation failed: ${metricErr.message}\n`);
+        process.stderr.write(`[senti] agent: metric accumulation failed: ${metricErr.message}\n`);
       }
     }
   }

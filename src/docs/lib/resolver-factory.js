@@ -1,5 +1,5 @@
 /**
- * sdd-forge/engine/resolvers/index.js
+ * senti/engine/resolvers/index.js
  *
  * リゾルバファクトリ。
  * type に応じて DataSource モジュールをロードし、リゾルバを返す。
@@ -9,7 +9,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { sddDir } from "../../lib/config.js";
+import { sentiDir } from "../../lib/config.js";
 import { loadDataSources as loadDataSourcesBase } from "./data-source-loader.js";
 import { resolveMultiChains, resolveChainSafe } from "../../lib/presets.js";
 import { createLogger } from "../../lib/progress.js";
@@ -34,7 +34,7 @@ let _overridesRoot = null;
 
 function loadOverridesFor(root) {
   if (_overridesCache && _overridesRoot === root) return _overridesCache;
-  const overridesPath = path.join(sddDir(root), "overrides.json");
+  const overridesPath = path.join(sentiDir(root), "overrides.json");
   if (fs.existsSync(overridesPath)) {
     _overridesCache = JSON.parse(fs.readFileSync(overridesPath, "utf8"));
   } else {
@@ -90,11 +90,11 @@ async function loadChainDataSources(chain, ctx) {
  * @returns {Promise<{ resolve: (preset: string, source: string, method: string, analysis: Object, labels: string[]) => string|null }>}
  */
 export async function createResolver(type, root, opts) {
-  // Warn about deprecated .sdd-forge/data/ directory
+  // Warn about deprecated .senti/data/ directory
   if (root) {
-    const deprecatedDataDir = path.join(root, ".sdd-forge", "data");
+    const deprecatedDataDir = path.join(root, ".senti", "data");
     if (fs.existsSync(deprecatedDataDir)) {
-      process.stderr.write(`[sdd-forge] WARN: .sdd-forge/data/ is deprecated. Move DataSources to .sdd-forge/presets/<type>/data/ instead.\n`);
+      process.stderr.write(`[senti] WARN: .senti/data/ is deprecated. Move DataSources to .senti/presets/<type>/data/ instead.\n`);
     }
   }
 

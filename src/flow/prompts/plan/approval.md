@@ -1,10 +1,10 @@
    - **Do NOT re-run gate.** The gate already passed in step 8.
-   - Run `sdd-forge flow get prompt plan.approval`. This renders `spec.md` from the gate-passed `spec.json` for human reading.
+   - Run `senti flow get prompt plan.approval`. This renders `spec.md` from the gate-passed `spec.json` for human reading.
    - Present the FULL rendered spec text (`specs/<spec-id>/spec.md`) to the user.
    - The user reads the gate-passed final spec and approves.
    - Wait for approval before any implementation.
    - Persist the approval to spec.json (do NOT hand-edit `## User Confirmation` — `spec render` regenerates that section from spec.json):
-     - Run `sdd-forge flow set approval --approved [--notes "<text>"]`.
+     - Run `senti flow set approval --approved [--notes "<text>"]`.
      - This command re-renders `spec.md` from `spec.json` after persisting approval.
    - **On complete**: Mark step done. Requirements already live in spec.json (the single source of truth) from the gate step — no manual transfer is needed.
-     - `sdd-forge flow set step approval done`
+     - `senti flow set step approval done`

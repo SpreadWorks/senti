@@ -130,11 +130,11 @@ function tryUpdateStepStatus(target, stepId, status, opts) {
     fm.updateStepStatus(stepId, status, opts);
   } catch (err) {
     if (err?.code === "ERR_MISSING_FILE") {
-      process.stderr.write(`[sdd-forge] step-status update skipped (${stepId}=${status}): ${err.message}\n`);
+      process.stderr.write(`[senti] step-status update skipped (${stepId}=${status}): ${err.message}\n`);
       return;
     }
     if (err.message === "no active flow (flow.json not found)") {
-      process.stderr.write(`[sdd-forge] step-status update skipped (${stepId}=${status}): no active flow\n`);
+      process.stderr.write(`[senti] step-status update skipped (${stepId}=${status}): no active flow\n`);
       return;
     }
     throw err;
@@ -151,7 +151,7 @@ function tryAppendIssueLog(fn) {
     fn();
   } catch (err) {
     if (err?.code === "ERR_MISSING_FILE") {
-      process.stderr.write(`[sdd-forge] issue-log append skipped: ${err.message}\n`);
+      process.stderr.write(`[senti] issue-log append skipped: ${err.message}\n`);
       return;
     }
     throw err;
@@ -237,7 +237,7 @@ class RegistryLifecycleAdapter {
       try {
         gateMod.updateGateRetryCounter(this.ctx, this.result);
       } catch (err) {
-        process.stderr.write(`[sdd-forge] updateGateRetryCounter failed: ${err.message}\n`);
+        process.stderr.write(`[senti] updateGateRetryCounter failed: ${err.message}\n`);
       }
     }
   }
@@ -265,7 +265,7 @@ class RegistryLifecycleAdapter {
       try {
         this.ctx.flowManager.updateStepStatus(id, "skipped");
       } catch (e) {
-        process.stderr.write(`[sdd-forge] finalize-merge onError: step-status update failed (${id}): ${e.message}\n`);
+        process.stderr.write(`[senti] finalize-merge onError: step-status update failed (${id}): ${e.message}\n`);
       }
     }
   }
@@ -350,7 +350,7 @@ class RegistryLifecycleAdapter {
           { specId: this.ctx.specId },
         );
       } catch (err) {
-        process.stderr.write(`[sdd-forge] finalize-merge: setMergeOutcome failed: ${err.message}\n`);
+        process.stderr.write(`[senti] finalize-merge: setMergeOutcome failed: ${err.message}\n`);
       }
       return;
     }
@@ -381,21 +381,21 @@ async function applyLifecycleActionsFromRegistry(ctx, input, result = null, err 
 export const FLOW_COMMANDS = {
   resume: {
     helpKey: "flow.resume",
-    helpPath: "sdd-forge flow resume --help",
+    helpPath: "senti flow resume --help",
     requiresFlow: false,
     command: () => import("./lib/run-resume.js"),
     args: { options: ["--spec"] },
     help: [
-      "Usage: sdd-forge flow resume [--spec <specId>]",
+      "Usage: senti flow resume [--spec <specId>]",
       "",
       "Discover and display active flow context for recovery.",
       "When multiple flows are active concurrently, pass --spec to select one.",
-      "Use `sdd-forge flow get status` for current-context status display.",
+      "Use `senti flow get status` for current-context status display.",
     ].join("\n"),
   },
   prepare: {
     helpKey: "flow.prepare",
-    helpPath: "sdd-forge flow prepare --help",
+    helpPath: "senti flow prepare --help",
     requiresFlow: false,
     requiresConfig: true,
     runtimeLog: { stepId: "prepare-spec" },
@@ -405,7 +405,7 @@ export const FLOW_COMMANDS = {
       options: ["--title", "--base", "--issue", "--request", "--run-id"],
     },
     help: [
-      "Usage: sdd-forge flow prepare [options]",
+      "Usage: senti flow prepare [options]",
       "",
       "Create branch/worktree and initialize spec directory.",
       "",
@@ -427,59 +427,59 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/get-status.js"),
       args: { positional: ["runId"], flags: ["--details"] },
       help: [
-        "Usage: sdd-forge flow get status [runId] [--details]",
+        "Usage: senti flow get status [runId] [--details]",
         "",
         "Return active flow state for the current execution context.",
         "If no active flow exists, returns { active: false }.",
         "If runId is provided, resolve by runId instead of context.",
         "  --details  Include audit fields such as request, notes, metrics, and history.",
-        "Use `sdd-forge flow resume` to discover or recover active flows.",
+        "Use `senti flow resume` to discover or recover active flows.",
       ].join("\n"),
     },
     "resolve-context": {
       helpKey: "flow.get.resolve-context",
       command: () => import("./lib/get-resolve-context.js"),
-      help: "Usage: sdd-forge flow get resolve-context\n\nResolve worktree/repo paths and active flow for context recovery.",
+      help: "Usage: senti flow get resolve-context\n\nResolve worktree/repo paths and active flow for context recovery.",
     },
     check: {
       helpKey: "flow.get.check",
       requiresFlow: false,
       command: () => import("./lib/get-check.js"),
       args: { positional: ["target"] },
-      help: "Usage: sdd-forge flow get check <target>\n\nCheck a condition. Targets: dirty, gh, impl, finalize.",
+      help: "Usage: senti flow get check <target>\n\nCheck a condition. Targets: dirty, gh, impl, finalize.",
     },
     prompt: {
       helpKey: "flow.get.prompt",
       requiresFlow: false,
       command: () => import("./lib/get-prompt.js"),
       args: { positional: ["kind"] },
-      help: "Usage: sdd-forge flow get prompt <kind>\n\nReturn a prompt template by kind.",
+      help: "Usage: senti flow get prompt <kind>\n\nReturn a prompt template by kind.",
     },
     "qa-count": {
       helpKey: "flow.get.qa-count",
       command: () => import("./lib/get-qa-count.js"),
-      help: "Usage: sdd-forge flow get qa-count\n\nReturn the number of answered questions in draft phase.",
+      help: "Usage: senti flow get qa-count\n\nReturn the number of answered questions in draft phase.",
     },
     guardrail: {
       helpKey: "flow.get.guardrail",
       requiresFlow: false,
       command: () => import("./lib/get-guardrail.js"),
       args: { positional: ["phase"], options: ["--format"] },
-      help: `Usage: sdd-forge flow get guardrail <phase> [--format json]\n\nReturn guardrails filtered by phase. Phases: ${VALID_GUARDRAIL_PHASES.join(", ")}. Alias: impl -> task-impl.`,
+      help: `Usage: senti flow get guardrail <phase> [--format json]\n\nReturn guardrails filtered by phase. Phases: ${VALID_GUARDRAIL_PHASES.join(", ")}. Alias: impl -> task-impl.`,
     },
     issue: {
       helpKey: "flow.get.issue",
       requiresFlow: false,
       command: () => import("./lib/get-issue.js"),
       args: { positional: ["number"] },
-      help: "Usage: sdd-forge flow get issue <number>\n\nGet GitHub issue content as JSON.",
+      help: "Usage: senti flow get issue <number>\n\nGet GitHub issue content as JSON.",
     },
     "next-action": {
       helpKey: "flow.get.next-action",
       requiresFlow: false,
       command: () => import("./lib/get-next-action.js"),
       help: [
-        "Usage: sdd-forge flow get next-action",
+        "Usage: senti flow get next-action",
         "",
         "Return the next AI/skill action for the current in_progress step.",
         "Dispatches from static context rules; the response carries an inline",
@@ -492,7 +492,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/get-context.js"),
       args: { positional: ["path"], flags: ["--raw"], options: ["--search"] },
       help: [
-        "Usage: sdd-forge flow get context [path] [--raw] [--search <query>]",
+        "Usage: senti flow get context [path] [--raw] [--search <query>]",
         "",
         "List mode (no path): filtered analysis entries.",
         "File mode (with path): file content + metric increment.",
@@ -521,7 +521,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/get-runtime-log.js"),
       passthroughArgs: true,
       help: [
-        "Usage: sdd-forge flow get runtime-log [--format json] [--sequence <n>] [--run-id <runId[#sequence]>]",
+        "Usage: senti flow get runtime-log [--format json] [--sequence <n>] [--run-id <runId[#sequence]>]",
         "",
         "Return the selected runtime log block. Raw block text is printed by default.",
         "With --format json, prints an envelope containing the block text and metadata.",
@@ -534,51 +534,51 @@ export const FLOW_COMMANDS = {
       runtimeLog: { stepId: (ctx) => ctx.id },
       command: () => import("./lib/set-step.js"),
       args: { positional: ["id", "status"] },
-      help: "Usage: sdd-forge flow set step <id> <status>\n\nUpdate a workflow step's status.",
+      help: "Usage: senti flow set step <id> <status>\n\nUpdate a workflow step's status.",
     },
     request: {
       helpKey: "flow.set.request",
       requiresFlow: false,
       command: () => import("./lib/set-request.js"),
       args: { positional: ["text"], options: ["--run-id"] },
-      help: "Usage: sdd-forge flow set request \"<text>\" [--run-id <id>]\n\nSet the user request field. Works in both active and preparing mode.",
+      help: "Usage: senti flow set request \"<text>\" [--run-id <id>]\n\nSet the user request field. Works in both active and preparing mode.",
     },
     issue: {
       helpKey: "flow.set.issue",
       command: () => import("./lib/set-issue.js"),
       args: { positional: ["number"] },
-      help: "Usage: sdd-forge flow set issue <number>\n\nSet the GitHub issue number in flow.json.",
+      help: "Usage: senti flow set issue <number>\n\nSet the GitHub issue number in flow.json.",
     },
     note: {
       helpKey: "flow.set.note",
       command: () => import("./lib/set-note.js"),
       args: { positional: ["text"], options: ["--task-id", "--run-id"] },
-      help: "Usage: sdd-forge flow set note \"<text>\" [--task-id <id>] [--run-id <id>]\n\nAppend a note entry to state.notes. Works in both active and preparing mode.",
+      help: "Usage: senti flow set note \"<text>\" [--task-id <id>] [--run-id <id>]\n\nAppend a note entry to state.notes. Works in both active and preparing mode.",
     },
     summary: {
       helpKey: "flow.set.summary",
       command: () => import("./lib/set-summary.js"),
       args: { positional: ["json"] },
-      help: "Usage: sdd-forge flow set summary '<json-array>'\n\nSet requirements list from a JSON string array.",
+      help: "Usage: senti flow set summary '<json-array>'\n\nSet requirements list from a JSON string array.",
     },
     req: {
       helpKey: "flow.set.req",
       command: () => import("./lib/set-req.js"),
       args: { positional: ["reqRef", "status"] },
-      help: "Usage: sdd-forge flow set req <reqId|zeroBasedIndex> <status>\n\nUpdate a single requirement's status. Prefer requirement ids like R1; numeric values are 0-based indexes.",
+      help: "Usage: senti flow set req <reqId|zeroBasedIndex> <status>\n\nUpdate a single requirement's status. Prefer requirement ids like R1; numeric values are 0-based indexes.",
     },
     files: {
       helpKey: "flow.set.files",
       command: () => import("./lib/set-files.js"),
       args: { positional: ["reqId"], rest: "paths" },
-      help: "Usage: sdd-forge flow set files <reqId> <path...>\n\nAppend file paths to file-map.json for a requirement. Deduplicates.",
+      help: "Usage: senti flow set files <reqId> <path...>\n\nAppend file paths to file-map.json for a requirement. Deduplicates.",
     },
     broad: {
       helpKey: "flow.set.broad",
       command: () => import("./lib/set-broad.js"),
       args: { positional: ["action"], options: ["--step", "--reason"] },
       help: [
-        "Usage: sdd-forge flow set broad on --step <implement|impl-review|impl-gate> --reason <text>",
+        "Usage: senti flow set broad on --step <implement|impl-review|impl-gate> --reason <text>",
         "",
         "Record an audited broad-mode exception for task-decomposed implementation.",
         "The reason must be non-empty. The record stores step, reason, timestamp,",
@@ -589,14 +589,14 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.set.metric",
       command: () => import("./lib/set-metric.js"),
       args: { positional: ["phase", "counter"], options: ["--task-id"] },
-      help: `Usage: sdd-forge flow set metric <phase> <counter> [--task-id <id>]\n\nAppend a metric entry. Phases: ${VALID_PHASES.join(", ")}. Counters: ${VALID_METRIC_COUNTERS.join(", ")}.`,
+      help: `Usage: senti flow set metric <phase> <counter> [--task-id <id>]\n\nAppend a metric entry. Phases: ${VALID_PHASES.join(", ")}. Counters: ${VALID_METRIC_COUNTERS.join(", ")}.`,
     },
     approval: {
       helpKey: "flow.set.approval",
       command: () => import("./lib/set-approval.js"),
       args: { flags: ["--approved"], options: ["--notes", "--confirmed-at"] },
       help: [
-        "Usage: sdd-forge flow set approval --approved [--notes <text>] [--confirmed-at <iso>]",
+        "Usage: senti flow set approval --approved [--notes <text>] [--confirmed-at <iso>]",
         "",
         "Persist user approval into the active flow's spec.json `user_approval`",
         "field. The renderer reads this field to produce spec.md's",
@@ -613,7 +613,7 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.set.issue-log",
       command: () => import("./lib/set-issue-log.js"),
       args: { options: ["--step", "--reason", "--trigger", "--resolution", "--guardrail-candidate", "--normalized-finding-id", "--repair-ref-commit", "--repair-ref-file", "--task-id"] },
-      help: "Usage: sdd-forge flow set issue-log --step <id> --reason <text> [--trigger <text>] [--resolution <text>] [--guardrail-candidate <text>] [--normalized-finding-id <id>] [--repair-ref-commit <sha>] [--repair-ref-file <path>] [--task-id <id>]\n\nRecord an issue-log entry in issue-log.json. Infers taskId from active task unless --task-id is given.",
+      help: "Usage: senti flow set issue-log --step <id> --reason <text> [--trigger <text>] [--resolution <text>] [--guardrail-candidate <text>] [--normalized-finding-id <id>] [--repair-ref-commit <sha>] [--repair-ref-file <path>] [--task-id <id>]\n\nRecord an issue-log entry in issue-log.json. Infers taskId from active task unless --task-id is given.",
       post(ctx) {
         const phase = deriveActivePhase(ctx);
         if (phase) ctx.flowManager.incrementMetric(phase, "issueLog");
@@ -625,7 +625,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/set-init.js"),
       args: { options: ["--issue", "--request"] },
       help: [
-        "Usage: sdd-forge flow set init [--issue N] [--request \"<text>\"]",
+        "Usage: senti flow set init [--issue N] [--request \"<text>\"]",
         "",
         "Initialize a preparing flow state. Creates .active-flow.<runId>",
         "and returns the runId.",
@@ -640,7 +640,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/set-retry.js"),
       args: { positional: ["action", "kind", "phase"], flags: ["--yes"], options: ["--reason"] },
       help: [
-        "Usage: sdd-forge flow set retry reset <gate|review> <phase> --reason <text> --yes",
+        "Usage: senti flow set retry reset <gate|review> <phase> --reason <text> --yes",
         "",
         "Reset an exhausted retry counter as an audited recovery for <phase>.",
         `  gate   phases: ${RETRY_HELP_GATE_PHASES.join(" | ")}`,
@@ -655,7 +655,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/set-auto.js"),
       args: { positional: ["value"], options: ["--run-id"] },
       help: [
-        "Usage: sdd-forge flow set auto on|off [--run-id <id>]",
+        "Usage: senti flow set auto on|off [--run-id <id>]",
         "",
         "Enable or disable autoApprove mode. Writes to flow.json when an",
         "active flow exists; otherwise writes to the matching preparing",
@@ -688,7 +688,7 @@ export const FLOW_COMMANDS = {
         flags: ["--skip-guardrail"],
       },
       help: [
-        "Usage: sdd-forge flow run gate [options]",
+        "Usage: senti flow run gate [options]",
         "",
         "Run gate check. Resolves target from flow.json if omitted.",
         `Responsibility boundary: ${DRAFT_REVIEW_REGISTRY_RESPONSIBILITY_BOUNDARY.summary}.`,
@@ -722,7 +722,7 @@ export const FLOW_COMMANDS = {
         options: ["--phase", ...FLOW_RUN_RUNTIME_OPTIONS],
       },
       help: [
-        "Usage: sdd-forge flow run review [options]",
+        "Usage: senti flow run review [options]",
         "",
         "Run AI code review on current changes.",
         `Responsibility boundary: ${DRAFT_REVIEW_REGISTRY_RESPONSIBILITY_BOUNDARY.summary}.`,
@@ -751,7 +751,7 @@ export const FLOW_COMMANDS = {
       requiresFlow: false,
       args: { options: ["--run-id", ...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
-        "Usage: sdd-forge flow run auto-check [--run-id <id>]",
+        "Usage: senti flow run auto-check [--run-id <id>]",
         "",
         "Evaluate whether the current request qualifies for auto mode.",
         "Input is derived statically from flow state based on phase:",
@@ -778,7 +778,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-impl-confirm.js"),
       args: { options: ["--mode", ...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
-        "Usage: sdd-forge flow run impl-confirm [options]",
+        "Usage: senti flow run impl-confirm [options]",
         "",
         "Check implementation readiness against requirements.",
         "",
@@ -797,7 +797,7 @@ export const FLOW_COMMANDS = {
         options: ["--message", ...FLOW_RUN_RUNTIME_OPTIONS],
       },
       help: [
-        "Usage: sdd-forge flow run finalize-commit [options]",
+        "Usage: senti flow run finalize-commit [options]",
         "",
         "Commit implementation changes. Post-hook runs retro, report, and issue comment.",
         "",
@@ -824,7 +824,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-finalize-merge.js"),
       args: { options: [...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
-        "Usage: sdd-forge flow run finalize-merge",
+        "Usage: senti flow run finalize-merge",
         "",
         "Squash merge or PR creation. On failure, subsequent steps are skipped.",
       ].join("\n"),
@@ -853,7 +853,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-finalize-sync.js"),
       args: { options: [...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
-        "Usage: sdd-forge flow run finalize-sync",
+        "Usage: senti flow run finalize-sync",
         "",
         "Build docs on main repo after merge and commit.",
       ].join("\n"),
@@ -876,7 +876,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-finalize-cleanup.js"),
       args: { flags: ["--auto-rescue", "--force"], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
-        "Usage: sdd-forge flow run finalize-cleanup [--auto-rescue | --force]",
+        "Usage: senti flow run finalize-cleanup [--auto-rescue | --force]",
         "",
         "Clear flow state, remove worktree/branch, write last-finalized-spec pointer.",
         "",
@@ -911,7 +911,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-sync.js"),
       args: { flags: ["--dry-run"], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
-        "Usage: sdd-forge flow run sync [options]",
+        "Usage: senti flow run sync [options]",
         "",
         "Sync documentation: build -> review -> add -> commit.",
         "",
@@ -925,7 +925,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-reopen-draft.js"),
       args: { options: ["--reason", ...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
-        "Usage: sdd-forge flow run reopen-draft [--reason <text>]",
+        "Usage: senti flow run reopen-draft [--reason <text>]",
         "",
         "Rewind the flow's draft step to in_progress so the user can add",
         "new tasks to the approved spec (draft-return). Preconditions:",
@@ -940,7 +940,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-start-task.js"),
       args: { options: ["--task-id", ...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
-        "Usage: sdd-forge flow run start-task --task-id <id>",
+        "Usage: senti flow run start-task --task-id <id>",
         "",
         "Manually promote a pending task to currentTaskId and transition",
         "it to in_progress. Useful for recovery or manual ordering when",
@@ -953,7 +953,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-complete-task.js"),
       args: { options: ["--task-id", ...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
-        "Usage: sdd-forge flow run complete-task [--task-id <id>]",
+        "Usage: senti flow run complete-task [--task-id <id>]",
         "",
         "Complete currentTaskId (or --task-id if specified), apply parent",
         "propagation, and auto-promote the next pending task. Useful for",
@@ -966,7 +966,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-update-overview.js"),
       args: { options: ["--json", ...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
-        "Usage: sdd-forge flow run update-overview --json '<additions>'",
+        "Usage: senti flow run update-overview --json '<additions>'",
         "",
         "Append this task's overview contribution to the parent spec.json.",
         "Additions JSON shape:",
@@ -984,7 +984,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-lint.js"),
       args: { options: ["--base", ...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
-        "Usage: sdd-forge flow run lint [options]",
+        "Usage: senti flow run lint [options]",
         "",
         "Check changed files against guardrail lint patterns.",
         "",
@@ -998,7 +998,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-test-execute.js"),
       args: { flags: [], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
-        "Usage: sdd-forge flow run test-execute",
+        "Usage: senti flow run test-execute",
         "",
         "Execute the project's test runner via AI agent and persist:",
         "  specs/<spec>/test-execute-result.json (machine-readable summary)",
@@ -1020,7 +1020,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-scenario-validity.js"),
       args: { flags: [], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
-        "Usage: sdd-forge flow run scenario-validity",
+        "Usage: senti flow run scenario-validity",
         "",
         "Execute pre-implementation spec-local tests and persist:",
         "  specs/<spec>/scenario-validity-result.json",
@@ -1036,7 +1036,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-test-result-review.js"),
       args: { flags: [], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
-        "Usage: sdd-forge flow run test-result-review",
+        "Usage: senti flow run test-result-review",
         "",
         "Verify test-execute-result.json integrity against raw output and code.",
         "Persists specs/<spec>/test-result-review.json and test-result-review.md.",
@@ -1057,7 +1057,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-retro.js"),
       args: { flags: ["--force", "--dry-run"], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
-        "Usage: sdd-forge flow run retro [options]",
+        "Usage: senti flow run retro [options]",
         "",
         "Aggregate test-execute results per requirement and save retro.json.",
         "Reads test-result-review.json and test-execute-result.json (produced",
@@ -1077,7 +1077,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-final-regression.js"),
       args: { flags: [], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
-        "Usage: sdd-forge flow run final-regression",
+        "Usage: senti flow run final-regression",
         "",
         "Run the full project-level regression command after retro and before finalize.",
         "Persists specs/<spec>/final-regression-result.json and specs/<spec>/tests/.raw/final-regression-attempt-<N>.log (zero-padded to at least three digits).",
@@ -1100,7 +1100,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-report.js"),
       args: { flags: ["--dry-run"], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
-        "Usage: sdd-forge flow run report [options]",
+        "Usage: senti flow run report [options]",
         "",
         "Generate a work report from the current flow state.",
         "",
@@ -1117,10 +1117,10 @@ export const FLOW_COMMANDS = {
       requiresFlow: false,
       args: { flags: [] },
       help: [
-        "Usage: sdd-forge flow report show",
+        "Usage: senti flow report show",
         "",
         "Stream the most recent finalize Report text to stdout.",
-        "Reads .sdd-forge/last-finalized-spec to locate the latest",
+        "Reads .senti/last-finalized-spec to locate the latest",
         "finalized spec and prints its report.json `text` field.",
         "Exits non-zero if the pointer or report.json is missing.",
       ].join("\n"),

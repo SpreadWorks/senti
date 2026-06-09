@@ -10,11 +10,11 @@ function buildContainer({ root = "/repo", config = {}, flowState = null } = {}) 
   c.register("paths", {
     root,
     srcRoot: root,
-    sddDir: path.join(root, ".sdd-forge"),
-    outputDir: path.join(root, ".sdd-forge/output"),
+    sentiDir: path.join(root, ".senti"),
+    outputDir: path.join(root, ".senti/output"),
     agentWorkDir: path.join(root, ".tmp"),
     logDir: path.join(root, ".tmp/logs"),
-    configPath: path.join(root, ".sdd-forge/config.json"),
+    configPath: path.join(root, ".senti/config.json"),
   });
   c.register("inWorktree", false);
   c.register("mainRoot", root);

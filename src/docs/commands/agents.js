@@ -3,21 +3,21 @@
  * src/docs/commands/agents.js
  *
  * AGENTS.md を更新する。
- * AGENTS.md 内の {{data("agents.sdd")}} / {{data("agents.project")}} ディレクティブを解決し、
+ * AGENTS.md 内の {{data("agents.senti")}} / {{data("agents.project")}} ディレクティブを解決し、
  * PROJECT セクションは AI で精査する。
  */
 
 import fs from "fs";
 import path from "path";
 import { parseArgs } from "../../lib/cli.js";
-import { sddOutputDir } from "../../lib/config.js";
+import { sentiOutputDir } from "../../lib/config.js";
 import { container } from "../../lib/container.js";
 import { translate } from "../../lib/i18n.js";
 import { createResolver } from "../lib/resolver-factory.js";
 import { createLogger } from "../../lib/progress.js";
 import { parseDirectives, replaceBlockDirective, resolveDataDirectives } from "../lib/directive-parser.js";
 import { loadFullAnalysis, getChapterFiles, readText } from "../lib/command-context.js";
-import { loadSddTemplate } from "../../lib/agents-md.js";
+import { loadSpecDrivenDevelopmentTemplate } from "../../lib/agents-md.js";
 import { resolveDocsContext } from "../lib/docs-context.js";
 import { Command } from "../../lib/command.js";
 import { PromptBuilder } from "../../lib/prompt-builder.js";
@@ -28,7 +28,7 @@ const logger = createLogger("agents");
 // AI プロンプト構築
 // ---------------------------------------------------------------------------
 
-function buildAgentsPromptBuilder(projectContent, docsContent, config, srcRoot, sddContent) {
+function buildAgentsPromptBuilder(projectContent, docsContent, config, srcRoot, specDrivenDevelopmentContent) {
   const t = translate();
   const rules = t.raw("prompts:agents.outputRules") || [];
 
@@ -36,8 +36,8 @@ function buildAgentsPromptBuilder(projectContent, docsContent, config, srcRoot, 
   pb.setRole(t("prompts:agents.systemPrompt"));
   pb.setRules("## Output Rules (strict)\n" + rules.map((r) => `- ${r}`).join("\n"));
 
-  if (sddContent) {
-    pb.addUserPrompt("## SDD Section (already present — do not duplicate)", sddContent);
+  if (specDrivenDevelopmentContent) {
+    pb.addUserPrompt("## Spec-Driven Development Section (already present — do not duplicate)", specDrivenDevelopmentContent);
   }
 
   pb.addUserPrompt("## Current PROJECT Section (template-generated)", projectContent);
@@ -73,7 +73,7 @@ function buildAgentsPromptBuilder(projectContent, docsContent, config, srcRoot, 
  * agents.project ディレクティブの解決結果を返す（AI 精査用）。
  */
 function resolveAgentsDirectives(text, resolveFn) {
-  let sddContent = null;
+  let specDrivenDevelopmentContent = null;
   let projectContent = null;
 
   const result = resolveDataDirectives(
@@ -81,13 +81,13 @@ function resolveAgentsDirectives(text, resolveFn) {
     (preset, source, method, labels, params) => resolveFn(preset, source, method, {}, labels, params),
     {
       onResolve(d, rendered) {
-        if (d.source === "agents" && d.method === "sdd") sddContent = rendered;
+        if (d.source === "agents" && d.method === "senti") specDrivenDevelopmentContent = rendered;
         if (d.source === "agents" && d.method === "project") projectContent = rendered;
       },
     },
   );
 
-  return { text: result.text, sddContent, projectContent };
+  return { text: result.text, specDrivenDevelopmentContent, projectContent };
 }
 
 /**
@@ -141,12 +141,12 @@ async function runAgents(ctx, rawArgs) {
   const agentsPath = path.join(srcRoot, "AGENTS.md");
   if (!fs.existsSync(agentsPath)) {
     // Generate from template
-    const sddSection = loadSddTemplate(lang || config?.lang || "en");
+    const specDrivenDevelopmentSection = loadSpecDrivenDevelopmentTemplate(lang || config?.lang || "en");
     const template = [
       `# ${path.basename(srcRoot)}`,
       "",
-      '<!-- {{data("agents.sdd")}} -->',
-      sddSection,
+      '<!-- {{data("agents.senti")}} -->',
+      specDrivenDevelopmentSection,
       "<!-- {{/data}} -->",
       "",
       '<!-- {{data("agents.project")}} -->',
@@ -160,7 +160,7 @@ async function runAgents(ctx, rawArgs) {
   // Load analysis
   const analysis = loadFullAnalysis(root);
   if (!analysis) {
-    throw new Error(t("messages:agents.analysisNotFound", { path: path.join(sddOutputDir(root), "analysis.json") }));
+    throw new Error(t("messages:agents.analysisNotFound", { path: path.join(sentiOutputDir(root), "analysis.json") }));
   }
 
   // Load generated docs as context (instead of raw analysis.json)
@@ -176,18 +176,18 @@ async function runAgents(ctx, rawArgs) {
   const resolveFn = (preset, source, method, a, labels, params) => resolver.resolve(preset, source, method, analysis, labels, params);
 
   let content = fs.readFileSync(agentsPath, "utf8");
-  const { text: resolved, sddContent, projectContent } = resolveAgentsDirectives(content, resolveFn);
+  const { text: resolved, specDrivenDevelopmentContent, projectContent } = resolveAgentsDirectives(content, resolveFn);
   content = resolved;
 
   // AI refinement for PROJECT section
   if (projectContent) {
     const agent = container.get("agent");
     if (!agent.resolve("docs.agents")) {
-      throw new Error("No default agent configured. Set 'agent.default' in config.json or run 'sdd-forge setup'.");
+      throw new Error("No default agent configured. Set 'agent.default' in config.json or run 'senti setup'.");
     }
 
     logger.log(t("messages:agents.refining"));
-    const agentsPb = buildAgentsPromptBuilder(projectContent, combinedDocs, config, srcRoot, sddContent);
+    const agentsPb = buildAgentsPromptBuilder(projectContent, combinedDocs, config, srcRoot, specDrivenDevelopmentContent);
     const agentsBuilt = agentsPb.build();
 
     try {

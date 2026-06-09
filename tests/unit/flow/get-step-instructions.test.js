@@ -81,12 +81,12 @@ describe("getStepInstructions (loader contract)", () => {
     });
 
     it("flow skill source documents runtime log options instead of env prefixes", () => {
-      const content = fs.readFileSync(path.join(PKG_DIR, "skills", "sdd-forge.flow", "SKILL.md"), "utf8");
+      const content = fs.readFileSync(path.join(PKG_DIR, "skills", "senti.flow", "SKILL.md"), "utf8");
       const removedLogOption = `--log-${"file"}`;
       assert.match(content, /--agent-work-dir/);
       assert.match(content, /flow get runtime-log/);
       assert.ok(!content.includes(removedLogOption));
-      assert.doesNotMatch(content, /SDD_FORGE_WORK_DIR/);
+      assert.doesNotMatch(content, /SENTI_WORK_DIR/);
       assert.doesNotMatch(content, />\s*\S+\s+2>&1/);
     });
   });

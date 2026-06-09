@@ -7,15 +7,15 @@ import { createTmpDir, removeTmpDir, writeJson } from "../../../helpers/tmp-dir.
 import { copyFixtureInto } from "../../../acceptance/lib/pipeline.js";
 import { getAcceptanceFixtureDir } from "../../../acceptance/lib/targets.js";
 
-const SCAN_CMD = join(process.cwd(), "src/sdd-forge.js");
+const SCAN_CMD = join(process.cwd(), "src/senti.js");
 const SCAN_CMD_ARGS = ["docs", "scan"];
-const INIT_CMD = join(process.cwd(), "src/sdd-forge.js");
+const INIT_CMD = join(process.cwd(), "src/senti.js");
 const INIT_CMD_ARGS = ["docs", "init"];
-const DATA_CMD = join(process.cwd(), "src/sdd-forge.js");
+const DATA_CMD = join(process.cwd(), "src/senti.js");
 const DATA_CMD_ARGS = ["docs", "data"];
 
 function makeEnv(tmp) {
-  return { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_SOURCE_ROOT: tmp };
+  return { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp };
 }
 
 function setupFromFixture(tmp, fixtureName, configOverrides) {
@@ -86,7 +86,7 @@ describe("parent chain: init", () => {
         { chapter: "cli_commands.md" },
       ],
     });
-    writeJson(tmp, ".sdd-forge/output/analysis.json", {
+    writeJson(tmp, ".senti/output/analysis.json", {
       analyzedAt: "2026-01-01",
       modules: { entries: [{ file: "src/cli.js", className: "cli.js", methods: ["run"] }], summary: { total: 1 } },
     });
@@ -115,7 +115,7 @@ describe("parent chain: init", () => {
         { chapter: "controller_routes.md" },
       ],
     });
-    writeJson(tmp, ".sdd-forge/output/analysis.json", {
+    writeJson(tmp, ".senti/output/analysis.json", {
       analyzedAt: "2026-01-01",
       controllers: { entries: [], summary: { total: 0, totalActions: 0 } },
       models: { entries: [], summary: { total: 0 } },

@@ -1,9 +1,9 @@
 ---
-name: sdd-forge.flow-sync
+name: senti.flow-sync
 description: Sync documentation with code. Use for docs generation, review, and commit.
 ---
 
-# SDD Flow Sync
+# Spec-Driven Development Flow Sync
 
 Sync documentation with the current codebase. Can be invoked from the finalize stage or run standalone.
 
@@ -16,7 +16,7 @@ Sync documentation with the current codebase. Can be invoked from the finalize s
 
 1. Run documentation sync.
    - Display: "Syncing documentation..."
-   - Run `sdd-forge flow run sync`.
+   - Run `senti flow run sync`.
    - Display the JSON result to the user.
 
 2. Handle errors.
@@ -25,11 +25,11 @@ Sync documentation with the current codebase. Can be invoked from the finalize s
 
 ## Hard Stops
 
-- Do not proceed if `sdd-forge flow run sync` reports an error.
-- **NEVER chain or background `sdd-forge` commands.** Each `sdd-forge` command must be run as a separate, foreground Bash invocation. Do not use `&&`, `||`, `;`, pipes, or `run_in_background`.
+- Do not proceed if `senti flow run sync` reports an error.
+- **NEVER chain or background `senti` commands.** Each `senti` command must be run as a separate, foreground Bash invocation. Do not use `&&`, `||`, `;`, pipes, or `run_in_background`.
 
 ## Commands
 
 ```bash
-sdd-forge flow run sync
+senti flow run sync
 ```

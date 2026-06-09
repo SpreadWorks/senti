@@ -1,5 +1,5 @@
 /**
- * sdd-forge/lib/progress.js
+ * senti/lib/progress.js
  *
  * Progress bar and logging utility for the build pipeline.
  *

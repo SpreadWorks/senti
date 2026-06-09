@@ -264,7 +264,7 @@ export async function dispatch({
     const mode = await resolveOutputMode(entry);
     const helpHint = entry.helpPath
       ? `Run: ${entry.helpPath}`
-      : `Run: sdd-forge ${envelopeType || "flow"} ${envelopeKey || ""} --help`.trimEnd();
+      : `Run: senti ${envelopeType || "flow"} ${envelopeKey || ""} --help`.trimEnd();
     if (mode === "envelope") {
       const env = Envelope.fail(envelopeType || "run", envelopeKey || "?", "ARGS_ERROR", [
         String(err.message || err),
@@ -331,7 +331,7 @@ export async function dispatch({
   // 4a. requiresConfig — reject early when the command declares config as a
   // precondition but the container has no config registered (setup not run).
   if (entry.requiresConfig && container.get("config") == null) {
-    emitPreconditionFailure("NO_CONFIG", "config.json not found. Run sdd-forge setup first.");
+    emitPreconditionFailure("NO_CONFIG", "config.json not found. Run senti setup first.");
     closeRuntimeLog();
     persistRuntimeLogMetadata(null);
     if (restoreStreams) restoreStreams();

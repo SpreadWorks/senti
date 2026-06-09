@@ -77,11 +77,11 @@ describe("execute(ctx) signature", () => {
 });
 
 describe("review.js worktree fix", () => {
-  it("run/review.js should not override SDD_FORGE_WORK_ROOT", () => {
+  it("run/review.js should not override SENTI_WORK_ROOT", () => {
     const content = fs.readFileSync(path.join(FLOW_DIR, "lib/run-review.js"), "utf8");
     assert.ok(
-      !content.includes("SDD_FORGE_WORK_ROOT"),
-      "run/review.js must not override SDD_FORGE_WORK_ROOT",
+      !content.includes("SENTI_WORK_ROOT"),
+      "run/review.js must not override SENTI_WORK_ROOT",
     );
   });
 });

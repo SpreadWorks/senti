@@ -182,7 +182,7 @@ export function checkReviewRetryBelowMax(ctx, phase) {
   return Envelope.fail("run", "review", "REVIEW_MAX_ATTEMPTS_EXCEEDED",
     [
       `review retry limit exhausted: ${count}/${max} FAIL attempts recorded for phase "${persistedPhase}".`,
-      "Stop the automatic retry loop and return control to the user. Use `sdd-forge flow set retry reset review <phase> --reason <text> --yes` to recover after changed evidence.",
+      "Stop the automatic retry loop and return control to the user. Use `senti flow set retry reset review <phase> --reason <text> --yes` to recover after changed evidence.",
     ],
     failure.toEnvelopeData());
 }

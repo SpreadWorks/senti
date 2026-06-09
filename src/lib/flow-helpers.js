@@ -1,7 +1,7 @@
 /**
  * src/lib/flow-helpers.js
  *
- * Pure helpers and constants for SDD flow state.
+ * Pure helpers and constants for Spec-Driven Development flow state.
  * No I/O, no git, no environmental coupling — safe to import anywhere.
  *
  * Stateful operations live in `src/lib/flow-manager.js` (and its internal
@@ -25,7 +25,7 @@ export const PREPARING_TTL_MS = 60 * 60 * 1000;
 export const PREPARING_SCAN_LIMIT = 100;
 export const SCAN_FLOWS_LIMIT = 200;
 
-/** SDD workflow step IDs in order (flow level). Derived from definition. */
+/** Spec-Driven Development workflow step IDs in order (flow level). Derived from definition. */
 export const FLOW_STEPS = collectFlowLeafIds();
 
 /** Step ID → phase mapping (flow level). Derived from definition. */

@@ -13,8 +13,8 @@ import { derivePhase } from "../../lib/flow-helpers.js";
 import { loadSpecJson, loadSpecRequirements } from "../../lib/spec-json.js";
 import { flattenSteps } from "./step-tree.js";
 
-const SKILL_BY_PHASE = { sync: "sdd-forge.flow-sync" };
-const DEFAULT_SKILL = "sdd-forge.flow";
+const SKILL_BY_PHASE = { sync: "senti.flow-sync" };
+const DEFAULT_SKILL = "senti.flow";
 
 function phaseToSkill(phase) {
   return SKILL_BY_PHASE[phase] ?? DEFAULT_SKILL;

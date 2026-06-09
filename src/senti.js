@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * src/sdd-forge.js
+ * src/senti.js
  *
- * sdd-forge CLI entry point.
+ * senti CLI entry point.
  * Routes top-level subcommands to dedicated dispatchers:
  *   docs    → src/docs.js
  *   flow    → src/flow.js
@@ -89,7 +89,7 @@ if (NAMESPACE_SCRIPTS[subCmd]) {
   process.argv = [process.argv[0], scriptPath, ...rest];
   const mod = await import(pathToFileURL(scriptPath).href);
   if (typeof mod.main !== "function") {
-    console.error(`sdd-forge: command module does not export main(): ${scriptPath}`);
+    console.error(`senti: command module does not export main(): ${scriptPath}`);
     process.exit(EXIT_ERROR);
   }
   try {
@@ -99,7 +99,7 @@ if (NAMESPACE_SCRIPTS[subCmd]) {
     process.exit(EXIT_ERROR);
   }
 } else {
-  console.error(`sdd-forge: unknown command '${subCmd}'`);
-  console.error("Run: sdd-forge help");
+  console.error(`senti: unknown command '${subCmd}'`);
+  console.error("Run: senti help");
   process.exit(EXIT_ERROR);
 }

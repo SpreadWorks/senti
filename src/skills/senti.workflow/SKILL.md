@@ -1,22 +1,22 @@
 ---
-name: sdd-forge.workflow
+name: senti.workflow
 description: |
-  Manage GitHub Projects board drafts and publish them as issues via the sdd-forge workflow command.
+  Manage GitHub Projects board drafts and publish them as issues via the senti workflow command.
   TRIGGER when the user says any of: "ボードに追加", "タスク化", "メモしておいて", "issue にして",
   "issueにして", "ドラフトを作って", "board に追加", "アイデアをメモ".
-  Also TRIGGER when the user explicitly invokes /sdd-forge.workflow.
+  Also TRIGGER when the user explicitly invokes /senti.workflow.
 ---
 
-# SDD Experimental: Workflow
+# Spec-Driven Development Experimental: Workflow
 
 Experimental workflow for managing GitHub Projects board drafts and publishing them as issues.
-This skill is a thin wrapper around the `sdd-forge workflow` command that ensures the AI follows the
+This skill is a thin wrapper around the `senti workflow` command that ensures the AI follows the
 operational rules when invoking the CLI.
 
 ## CLI Reference
 
 ```bash
-sdd-forge workflow <subcommand> [args]
+senti workflow <subcommand> [args]
 ```
 
 | Subcommand | Purpose |
@@ -49,7 +49,7 @@ sdd-forge workflow <subcommand> [args]
 
 ### Publishing (issue creation)
 - **MUST: To create an issue, always create a draft on the board first and wait for the user's "issue にして" instruction.** Never call `gh issue create` directly without going through a draft.
-- **MUST: When the user says "○○を issue にして", run `sdd-forge workflow publish <hash> [--label ...]`.**
+- **MUST: When the user says "○○を issue にして", run `senti workflow publish <hash> [--label ...]`.**
 - Attach an appropriate label (bug / enhancement / documentation etc.) via `--label`.
 - On successful `publish`, the board item's status is automatically moved to `Todo`.
 
@@ -57,9 +57,9 @@ sdd-forge workflow <subcommand> [args]
 
 1. When the user says "ボードに追加", "タスク化", "メモしておいて", or similar, compose the title and body in the source language.
 2. Ensure the body includes target, problem, cause, improvement direction, and board reason. If the item is not board-ready, do not add it; explain the missing decision material.
-3. Run `sdd-forge workflow add "<title>" [--category ...] [--body <text>]` and check `data.title` in the JSON envelope. Do not pass `--status` (always `Ideas`).
+3. Run `senti workflow add "<title>" [--category ...] [--body <text>]` and check `data.title` in the JSON envelope. Do not pass `--status` (always `Ideas`).
 4. When the user says "issue にして", look up the corresponding hash via `search` or `show`.
-5. Run `sdd-forge workflow publish <hash> --label <label>`.
+5. Run `senti workflow publish <hash> --label <label>`.
 6. Report the resulting `data.issueUrl` back to the user.
 
 ## Output Format

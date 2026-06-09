@@ -1,4 +1,4 @@
-   - Run `sdd-forge flow run review --phase spec` to perform AI-powered spec review.
+   - Run `senti flow run review --phase spec` to perform AI-powered spec review.
    - The review uses a classification pipeline: AI separates blocking findings from non-blocking improvements.
    - Blocking findings are limited to concrete failures: contradiction with verified existing behavior, missing implementation target/integration point required by codebase context, missing observable acceptance/test basis, omitted mandatory error/data/compatibility path, or conflicting spec fields that change what should be implemented.
    - Do not treat clearer wording, extra rationale, additional related-file mentions, or optional alternatives as blocking. Those are non-blocking improvements when they are useful at all.
@@ -10,4 +10,4 @@
    - **If verdict=PASS** (no findings or improvements): display "Review found no required fixes." The post-hook marks `spec-review`, `spec-triage`, and `spec-repair` done.
    - **If verdict=ADVISORY** (non-blocking improvements only): record that the improvements are non-blocking and do not rewrite the spec only to satisfy them. The post-hook marks `spec-review`, `spec-triage`, and `spec-repair` done.
    - **If verdict=FAIL** (blocking findings exist): do not edit the spec in this step and do not re-run review. The post-hook marks `spec-review` done and leaves `spec-triage` pending; the next step classifies findings before one-pass repair.
-   - **REVIEW_MAX_ATTEMPTS_EXCEEDED received:** STOP and return control to the user. Do not set step done. To recover after changed evidence, the user can run `sdd-forge flow set retry reset review spec --reason <text> --yes` and then run exactly one re-review attempt. The reason is required; one re-evaluation is granted and unchanged evidence is rejected.
+   - **REVIEW_MAX_ATTEMPTS_EXCEEDED received:** STOP and return control to the user. Do not set step done. To recover after changed evidence, the user can run `senti flow set retry reset review spec --reason <text> --yes` and then run exactly one re-review attempt. The reason is required; one re-evaluation is granted and unchanged evidence is rejected.

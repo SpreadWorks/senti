@@ -1,8 +1,8 @@
 /**
- * Unit tests for project-local preset resolution (.sdd-forge/presets/).
+ * Unit tests for project-local preset resolution (.senti/presets/).
  *
  * Tests verify:
- * 1. .sdd-forge/presets/<name>/ is preferred over src/presets/<name>/
+ * 1. .senti/presets/<name>/ is preferred over src/presets/<name>/
  * 2. preset.json in project preset takes precedence
  * 3. When preset.json is omitted and built-in exists, built-in settings are inherited
  * 4. When preset.json is omitted and no built-in exists, bare preset is returned
@@ -19,9 +19,9 @@ describe("project-local preset resolution: priority", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  it("uses project preset dir when .sdd-forge/presets/<name>/preset.json exists", () => {
+  it("uses project preset dir when .senti/presets/<name>/preset.json exists", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".sdd-forge/presets/symfony/preset.json", {
+    writeJson(tmp, ".senti/presets/symfony/preset.json", {
       parent: "webapp",
       label: "Symfony (project override)",
       chapters: [],
@@ -30,15 +30,15 @@ describe("project-local preset resolution: priority", () => {
     const chain = resolveChain("symfony", tmp);
     const leaf = chain[chain.length - 1];
     assert.ok(
-      leaf.dir.includes(path.join(tmp, ".sdd-forge", "presets", "symfony")),
-      `Expected dir to be from .sdd-forge/presets/, got: ${leaf.dir}`,
+      leaf.dir.includes(path.join(tmp, ".senti", "presets", "symfony")),
+      `Expected dir to be from .senti/presets/, got: ${leaf.dir}`,
     );
     assert.equal(leaf.label, "Symfony (project override)");
   });
 
   it("project preset takes precedence over built-in for the same name", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".sdd-forge/presets/symfony/preset.json", {
+    writeJson(tmp, ".senti/presets/symfony/preset.json", {
       parent: "base",
       label: "Custom Symfony",
       chapters: ["overview.md"],
@@ -58,22 +58,22 @@ describe("project-local preset resolution: preset.json omitted", () => {
   it("inherits built-in settings when preset.json is omitted and built-in exists", () => {
     tmp = createTmpDir();
     // Only data/ directory, no preset.json
-    writeFile(tmp, ".sdd-forge/presets/symfony/data/.keep", "");
+    writeFile(tmp, ".senti/presets/symfony/data/.keep", "");
 
     const chain = resolveChain("symfony", tmp);
     const leaf = chain[chain.length - 1];
     // Should inherit built-in symfony's parent
     assert.equal(leaf.parent, "php-webapp", "Should inherit built-in parent");
-    // Dir should be from .sdd-forge/presets/
+    // Dir should be from .senti/presets/
     assert.ok(
-      leaf.dir.includes(path.join(tmp, ".sdd-forge", "presets", "symfony")),
-      `Expected dir to be from .sdd-forge/presets/, got: ${leaf.dir}`,
+      leaf.dir.includes(path.join(tmp, ".senti", "presets", "symfony")),
+      `Expected dir to be from .senti/presets/, got: ${leaf.dir}`,
     );
   });
 
   it("returns bare preset when preset.json is omitted and no built-in match", () => {
     tmp = createTmpDir();
-    writeFile(tmp, ".sdd-forge/presets/eccube/data/.keep", "");
+    writeFile(tmp, ".senti/presets/eccube/data/.keep", "");
 
     const chain = resolveChain("eccube", tmp);
     assert.ok(chain.length >= 1);
@@ -84,8 +84,8 @@ describe("project-local preset resolution: preset.json omitted", () => {
 });
 
 describe("project-local preset resolution: no project preset", () => {
-  it("falls back to built-in when .sdd-forge/presets/ does not exist", () => {
-    // Use a tmp dir with no .sdd-forge/presets/
+  it("falls back to built-in when .senti/presets/ does not exist", () => {
+    // Use a tmp dir with no .senti/presets/
     const tmp2 = createTmpDir();
     try {
       const chain = resolveChain("symfony", tmp2);

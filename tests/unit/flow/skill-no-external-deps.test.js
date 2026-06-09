@@ -13,9 +13,9 @@ import path from "path";
 
 const SKILL_SOURCES_DIR = path.join(process.cwd(), "src/skills");
 const SKILL_NAMES = [
-  "sdd-forge.flow",
-  "sdd-forge.flow-status",
-  "sdd-forge.flow-sync",
+  "senti.flow",
+  "senti.flow-status",
+  "senti.flow-sync",
 ];
 
 // Lines containing these patterns are allowed exceptions

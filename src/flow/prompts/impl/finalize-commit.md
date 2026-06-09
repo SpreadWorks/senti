@@ -3,12 +3,12 @@ Commit implementation changes as a finalize sub-step. This is the first step of 
 ## Required Sequence
 
 1. Resolve context.
-   - Run `sdd-forge flow get resolve-context` to get JSON with:
+   - Run `senti flow get resolve-context` to get JSON with:
      - `mainRepoPath`, `worktreePath`, `activeFlow`, `flowJsonPath`
      - `spec`, `baseBranch`, `featureBranch`, `worktree`
      - `dirty`, `dirtyFiles`, `currentBranch`, `ghAvailable`
 
-2. Run `sdd-forge flow run finalize-commit [--message "<msg>"]`.
+2. Run `senti flow run finalize-commit [--message "<msg>"]`.
    - The command performs preflight checks, migration hooks, stages production code (excluding test artifacts under `specs/<spec>/`), and creates the implementation commit.
    - The post-hook generates `report.json`, posts to the linked issue (if any), and creates a separate `chore: add test artifacts` commit holding `retro.json`, `test-execute-result.json`, `test-result-review.json`, `test-result-review.md`, `final-regression-result.json`, and `tests/.raw/`. Retro and final-regression run as mainline impl-phase steps before finalize, not in the post-hook.
    - Display the JSON result to the user.

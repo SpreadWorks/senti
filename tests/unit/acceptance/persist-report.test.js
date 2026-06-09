@@ -14,21 +14,21 @@ import { persistReport } from "../../acceptance/lib/test-template.js";
 describe("persistReport", () => {
   let tmp;
 
-  it("writes report to .sdd-forge/output/acceptance-report-{preset}.json", () => {
+  it("writes report to .senti/output/acceptance-report-{preset}.json", () => {
     tmp = createTmpDir("persist-test-");
     const report = { preset: "cakephp2", timestamp: "2026-03-28T00:00:00.000Z" };
 
     persistReport(tmp, report);
 
-    const outPath = path.join(tmp, ".sdd-forge", "output", "acceptance-report-cakephp2.json");
+    const outPath = path.join(tmp, ".senti", "output", "acceptance-report-cakephp2.json");
     assert.ok(fs.existsSync(outPath), "report file should exist");
     const written = JSON.parse(fs.readFileSync(outPath, "utf8"));
     assert.deepEqual(written, report);
   });
 
-  it("creates .sdd-forge/output/ directory if it does not exist", () => {
+  it("creates .senti/output/ directory if it does not exist", () => {
     tmp = createTmpDir("persist-test-");
-    const outDir = path.join(tmp, ".sdd-forge", "output");
+    const outDir = path.join(tmp, ".senti", "output");
     assert.ok(!fs.existsSync(outDir), "output dir should not exist before");
 
     persistReport(tmp, { preset: "base" });
@@ -40,7 +40,7 @@ describe("persistReport", () => {
     tmp = createTmpDir("persist-test-");
     const oldReport = { preset: "node-cli", timestamp: "2026-03-27T00:00:00.000Z" };
     const newReport = { preset: "node-cli", timestamp: "2026-03-28T00:00:00.000Z" };
-    const outPath = path.join(tmp, ".sdd-forge", "output", "acceptance-report-node-cli.json");
+    const outPath = path.join(tmp, ".senti", "output", "acceptance-report-node-cli.json");
 
     persistReport(tmp, oldReport);
     persistReport(tmp, newReport);
@@ -54,7 +54,7 @@ describe("persistReport", () => {
 
     persistReport(tmp, { preset: "laravel" });
 
-    const outPath = path.join(tmp, ".sdd-forge", "output", "acceptance-report-laravel.json");
+    const outPath = path.join(tmp, ".senti", "output", "acceptance-report-laravel.json");
     assert.ok(fs.existsSync(outPath), "file should use preset name as suffix");
   });
 

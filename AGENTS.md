@@ -1,19 +1,19 @@
-# sdd-forge
+# senti
 
 ソースコード解析に基づくドキュメント自動生成と、Spec-Driven Development ワークフローを提供する CLI ツール。
 
 ## タスク管理
 
-ボード操作は skill `sdd-forge.workflow` を使うこと。skill は `sdd-forge workflow <subcommand>` コマンドを呼ぶ。
+ボード操作は skill `senti.workflow` を使うこと。skill は `senti workflow <subcommand>` コマンドを呼ぶ。
 
-> **`sdd-forge workflow` は experimental である。** 実装は安定しているが運用方法論は未確定で、usage patterns may change（使い方は今後変わる可能性がある）。昇格条件は `src/workflow/AGENTS.md` を参照。
+> **`senti workflow` は experimental である。** 実装は安定しているが運用方法論は未確定で、usage patterns may change（使い方は今後変わる可能性がある）。昇格条件は `src/workflow/AGENTS.md` を参照。
 
 ## プロジェクトルール
 
 ### 開発ワークフロー
 
-- `src/skills/` のスキルソースや `src/presets/` のテンプレートを変更した場合は `sdd-forge upgrade` を実行して、プロジェクトのスキル・設定に反映すること。
-- `sdd-forge upgrade` はスキル（`.claude/skills/`, `.agents/skills/`）やテンプレートの差分を検出し、変更があったファイルのみ更新する。
+- `src/skills/` のスキルソースや `src/presets/` のテンプレートを変更した場合は `senti upgrade` を実行して、プロジェクトのスキル・設定に反映すること。
+- `senti upgrade` はスキル（`.claude/skills/`, `.agents/skills/`）やテンプレートの差分を検出し、変更があったファイルのみ更新する。
 
 ### コーディング
 
@@ -61,27 +61,27 @@
 
 ### npm 公開
 - **MUST: `npm publish` / `npm dist-tag` はユーザーがリリースの意図を明示した場合のみ実行する。** バージョン上げ・コミット・push の指示はリリース指示ではない。
-- pre-release は `npm publish --tag alpha` → `npm dist-tag add sdd-forge@<version> latest` の 2 ステップ。
+- pre-release は `npm publish --tag alpha` → `npm dist-tag add senti@<version> latest` の 2 ステップ。
 - 公開前に `npm pack --dry-run` で機密情報がないことを確認する。
 
 ## ソースコード（src/）
 
 `src/` のアーキテクチャ・プリセット作成ルール・コーディングルールは `src/AGENTS.md` を参照すること。
 
-<!-- {{data("agents.sdd")}} -->
-## SDD (Spec-Driven Development)
+<!-- {{data("agents.senti")}} -->
+## Spec-Driven Development (Spec-Driven Development)
 
-本プロジェクトは sdd-forge による Spec-Driven Development を採用している。
+本プロジェクトは senti による Spec-Driven Development を採用している。
 
-- **MUST: ユーザーから機能追加・修正のリクエストを受けた場合、SDD フロー (`/sdd-forge.flow`) を使用するかユーザーに確認すること。確認なしにコードを変更してはならない。**
-- **MUST: 実装完了後は `/sdd-forge.flow` で finalize まで進めること。**
-- スキルが利用できない環境では `sdd-forge flow --request "<要望>"` を使用すること
+- **MUST: ユーザーから機能追加・修正のリクエストを受けた場合、Spec-Driven Development フロー (`/senti.flow`) を使用するかユーザーに確認すること。確認なしにコードを変更してはならない。**
+- **MUST: 実装完了後は `/senti.flow` で finalize まで進めること。**
+- スキルが利用できない環境では `senti flow --request "<要望>"` を使用すること
 
 ### Worktree の境界を越えない（MUST）
 
 `flow prepare --worktree` で作成した worktree で作業している間、以下を厳守する:
 
-- **MUST: worktree パス外に `cd` してはならない。** 唯一の正当な離脱は `sdd-forge flow run finalize` の cleanup 完了後（finalize skill がその遷移を明示的に案内する）のみ。
+- **MUST: worktree パス外に `cd` してはならない。** 唯一の正当な離脱は `senti flow run finalize` の cleanup 完了後（finalize skill がその遷移を明示的に案内する）のみ。
 - **MUST: active flow 中に main リポジトリで `git stash` / `git stash pop` / `git stash apply` / `git reset --hard` / `git checkout -- <path>` を実行してはならない。** 別ブランチ由来の stale な stash が復元されてコンフリクトを引き起こすなど、共有状態を破壊するリスクがある。
 - **ベースライン比較（base branch でのテスト結果比較など）が必要な場合は main に戻らず、短命の detached worktree (`git worktree add --detach <tmp> <baseBranch>` → 計測 → `git worktree remove <tmp>`) を使う。** もしくは既存の `issue-log.json` の evidence を再利用する。
 
@@ -93,11 +93,11 @@
 **docs とソースコードに矛盾がある場合はソースコードを正とする。**
 
 作業開始前に docs/ とソースコードの更新日時を比較すること。
-ソースが新しい場合は `sdd-forge build` の実行をユーザーに提案すること。
+ソースが新しい場合は `senti build` の実行をユーザーに提案すること。
 
 ### 開発ワークフロー
 
-- `src/skills/` のスキルソースや `src/presets/` のテンプレートを変更した場合は `sdd-forge upgrade` を実行して、プロジェクトのスキル・設定に反映すること。
+- `src/skills/` のスキルソースや `src/presets/` のテンプレートを変更した場合は `senti upgrade` を実行して、プロジェクトのスキル・設定に反映すること。
 
 ### docs/ 編集ルール
 

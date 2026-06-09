@@ -17,19 +17,19 @@ Flow definition leaf step ids were renamed to the `<phase>-<concern>-<action>` c
 | `review-draft-questions` | `draft-questions-review` | `gate-impl` (task) | `task-gate` |
 | `review-draft-coverage` | `draft-coverage-review` | `spec-review-triage` | `spec-triage` |
 
-This is a **breaking** change to the public CLI: `sdd-forge flow set step <id> <status>` and `flow run gate/review --phase <p>` now accept only the new ids. **No backward-compatible aliases are provided** (alpha policy) — the old step names are removed outright.
+This is a **breaking** change to the public CLI: `senti flow set step <id> <status>` and `flow run gate/review --phase <p>` now accept only the new ids. **No backward-compatible aliases are provided** (alpha policy) — the old step names are removed outright.
 
 **Migration of historical spec data:**
 
 - A migration tool ships at `src/scripts/rename-phase-steps.js`. Run `node src/scripts/rename-phase-steps.js` for a dry-run diff, then `node src/scripts/rename-phase-steps.js --apply` to convert `specs/*/flow.json` (structural step-id positions), `issue-log.json` (1:1 `step` ids; collision ids left as-is), and `report.json` / `retro.json` / `review.md` (path and code regions only). Free-text prose is left untouched.
-- `--apply` requires a clean git worktree and excludes any spec listed in `.sdd-forge/.active-flow`.
-- **Concurrent active flows are safe** when this change merges: although the `sdd-forge` CLI is symlinked to the repository source and a merge repoints flows that use it to the new definition, the on-load migration below auto-upgrades any pre-rename `flow.json` the next time it is loaded. A previously-documented hard "no other active flow" merge precondition is therefore **no longer required** — an in-flight flow whose `flow.json` still holds old ids self-heals on its next load instead of failing to resolve its in-progress step.
+- `--apply` requires a clean git worktree and excludes any spec listed in `.senti/.active-flow`.
+- **Concurrent active flows are safe** when this change merges: although the `senti` CLI is symlinked to the repository source and a merge repoints flows that use it to the new definition, the on-load migration below auto-upgrades any pre-rename `flow.json` the next time it is loaded. A previously-documented hard "no other active flow" merge precondition is therefore **no longer required** — an in-flight flow whose `flow.json` still holds old ids self-heals on its next load instead of failing to resolve its in-progress step.
 - **On-load self-heal:** loading any pre-rename `flow.json` auto-migrates its step ids to the new convention (`src/lib/flow-store.js` `migrateFlowState`, sharing `src/lib/step-id-rename.js` with the tool) and persists the upgrade. So an in-flight flow — including the one that implements this rename — keeps working under the new definition without manual steps. Running the migration tool remains the way to clean up committed historical data (and `report.json` / `retro.json` / `review.md`) that is never reloaded.
 - **Existing PRs/branches that contain a `flow.json` must re-run the migration tool after merging** this change, since their committed flow state still carries the old step ids in source control (再走が必要); the on-load migration upgrades it the next time that flow is loaded.
 
 #### `flow run auto-check` input is now phase-aware; `--input` removed (spec 220)
 
-`sdd-forge flow run auto-check` no longer accepts `--input <text>`. The input is now derived statically from flow state based on progress phase:
+`senti flow run auto-check` no longer accepts `--input <text>`. The input is now derived statically from flow state based on progress phase:
 
 - `approval` step done → AI is skipped, verdict is unconditionally `{eligible: true, skipped: true, reason: "spec approved"}`.
 - `gate-draft` step done and `draft.md` present → input is `issue + request + draft body`.
@@ -55,7 +55,7 @@ The implicit JSON flag injection mechanism has been removed. `config.agent.provi
 - `CodexProvider` builtin profiles (`codex/gpt-5.4`, `codex/gpt-5.3`) now include `--json` directly in `args`. This fixes `agent output parse failed (CodexProvider): Unexpected token 'P'...` warnings and restores usage metrics recording for codex-backed agent calls.
 - `Provider.jsonFlag()` / subclass overrides and the `injectJsonFlag` helper in `Agent._buildInvocation` have been removed.
 
-**Migration:** If your `.sdd-forge/config.json` had a custom profile relying on `jsonOutputFlag`, add the corresponding CLI flag directly to that profile's `args` array instead. If you referenced the builtin profiles only, no change is needed — the flag is now already in the args.
+**Migration:** If your `.senti/config.json` had a custom profile relying on `jsonOutputFlag`, add the corresponding CLI flag directly to that profile's `args` array instead. If you referenced the builtin profiles only, no change is needed — the flag is now already in the args.
 
 #### Agent command ID renamed to phase-based hierarchy
 
@@ -72,7 +72,7 @@ If you have custom `agent.profiles` entries with old command IDs, update the key
 | `flow.review.test` | `flow.test.review` |
 | `flow.retro` | `flow.finalize.retro` |
 
-**Migration:** Open `.sdd-forge/config.json` and replace old keys in `agent.profiles.<name>` with the new names shown above. If you used `flow.review` as a prefix for bulk assignment, either set each new ID individually or use the `flow` prefix for all flow commands.
+**Migration:** Open `.senti/config.json` and replace old keys in `agent.profiles.<name>` with the new names shown above. If you used `flow.review` as a prefix for bulk assignment, either set each new ID individually or use the `flow` prefix for all flow commands.
 
 #### Agent configuration redesign — `agent.commands` and `agent.providers.*.profiles` removed
 
@@ -147,12 +147,12 @@ Prefix matching is used: a profile entry `"docs"` matches command IDs `docs`, `d
 "useProfile": "default"
 ```
 
-#### `SDD_FORGE_PROFILE` environment variable
+#### `SENTI_PROFILE` environment variable
 
 Override `agent.useProfile` at runtime without modifying config:
 
 ```bash
-SDD_FORGE_PROFILE=fast sdd-forge docs build
+SENTI_PROFILE=fast senti docs build
 ```
 
 The environment variable takes precedence over `agent.useProfile`.

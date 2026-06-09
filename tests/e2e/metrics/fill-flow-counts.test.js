@@ -16,7 +16,7 @@ describe("fill-flow-counts script", () => {
   afterEach(() => tmp && removeTmpDir(tmp));
 
   it("supports --spec and --dry-run for flow.json backfill", () => {
-    tmp = createTmpDir("sdd-fill-flow-counts-");
+    tmp = createTmpDir("senti-fill-flow-counts-");
     writeFile(tmp, "src/.keep", "");
     writeFile(tmp, "specs/alpha/review.md", [
       "# Code Review Results",
@@ -51,7 +51,7 @@ describe("fill-flow-counts script", () => {
   });
 
   it("fills qaCount/requestChars on write and does not overwrite existing values", () => {
-    tmp = createTmpDir("sdd-fill-flow-counts-write-");
+    tmp = createTmpDir("senti-fill-flow-counts-write-");
     writeFile(tmp, "src/.keep", "");
     writeFile(tmp, "specs/beta/qa.md", [
       "# Clarification Q&A",

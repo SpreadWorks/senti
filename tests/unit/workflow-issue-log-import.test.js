@@ -21,8 +21,8 @@ describe("workflow issue-log-import candidates", () => {
       {
         step: "impl-gate",
         reason: "impl-gate failed before AI evaluation because file-map.json was missing",
-        trigger: "sdd-forge flow run gate returned ARTIFACT_PLACEHOLDER file-map.json missing",
-        resolution: "record requirement-to-file mappings with sdd-forge flow set files before rerunning gate",
+        trigger: "senti flow run gate returned ARTIFACT_PLACEHOLDER file-map.json missing",
+        resolution: "record requirement-to-file mappings with senti flow set files before rerunning gate",
         guardrailCandidate: "record file-map before impl-gate when implementation touches production files",
         timestamp: "2026-06-03T03:03:47.647Z",
       },
@@ -38,7 +38,7 @@ describe("workflow issue-log-import candidates", () => {
       {
         step: "spec-review",
         reason: "spec review provider returned JSON missing blockingFindings and nonBlockingImprovements fields",
-        trigger: "sdd-forge flow run review --phase spec failed schema validation after provider retries",
+        trigger: "senti flow run review --phase spec failed schema validation after provider retries",
         resolution: "recorded tooling failure and retrying the same review step with unchanged spec evidence",
         guardrailCandidate: "review provider outputs must include required structured fields before parsing",
         timestamp: "2026-06-03T02:40:30.557Z",
@@ -51,7 +51,7 @@ describe("workflow issue-log-import candidates", () => {
     assert.match(candidates[0].body, /## 問題\nspec-review provider が必須 field を含む JSON を返せない。/);
     assert.match(candidates[0].body, /観測内容: spec review provider returned JSON missing/);
     assert.match(candidates[0].body, /## 原因\n次の実行結果から確認できる。/);
-    assert.match(candidates[0].body, /根拠: sdd-forge flow run review --phase spec failed schema validation/);
+    assert.match(candidates[0].body, /根拠: senti flow run review --phase spec failed schema validation/);
     assert.match(candidates[0].body, /## 改善方向\n次の再発防止策を検討する。/);
     assert.match(candidates[0].body, /review provider outputs must include required structured fields before parsing/);
     assert.match(candidates[0].body, /現在の対応: recorded tooling failure/);

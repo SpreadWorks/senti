@@ -135,10 +135,9 @@ export function deploySkills(workRoot, opts = {}) {
 }
 
 /**
- * Remove sdd-forge.* skill directories from .claude/skills/ and .agents/skills/
+ * Remove senti.* skill directories from .claude/skills/ and .agents/skills/
  * that are no longer present in any of the provided skill source directories.
  *
- * Only directories whose names start with "sdd-forge." are considered.
  * Skills found in any of the active skill source directories are kept; all others are removed.
  *
  * @param {string} workRoot          Project root directory
@@ -156,7 +155,7 @@ export function cleanupObsoleteSkills(workRoot, activeSkillSourceDirs, opts = {}
   for (const base of SKILL_TARGET_BASES) {
     const deployedDir = deployedSkillsDir(workRoot, base);
     const obsoleteNames = listSkillDirNames(deployedDir)
-      .filter((name) => name.startsWith("sdd-forge."))
+      .filter((name) => name.startsWith("senti."))
       .filter((name) => !validNames.has(name));
     if (obsoleteNames.length > 0) {
       obsoleteNamesByBase.set(base, obsoleteNames);

@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * sdd-forge/setup/setup.js
+ * senti/setup/setup.js
  *
  * Interactive setup wizard.
- * Registers a project and generates .sdd-forge/config.json.
+ * Registers a project and generates .senti/config.json.
  *
  * Usage:
- *   sdd-forge setup
- *   sdd-forge setup --name myapp --path /path/to/src --type webapp/cakephp2
+ *   senti setup
+ *   senti setup --name myapp --path /path/to/src --type webapp/cakephp2
  */
 
 import fs from "fs";
@@ -16,11 +16,11 @@ import readline from "readline";
 import { parseArgs } from "./lib/cli.js";
 import { EXIT_ERROR } from "./lib/constants.js";
 import { validate } from "./lib/config.js";
-import { DEFAULT_LANG, sddDir as sddDirFn } from "./lib/config.js";
+import { DEFAULT_LANG, sentiDir as sentiDirFn } from "./lib/config.js";
 import { createI18n } from "./lib/i18n.js";
 import { PRESETS, resolveMultiChains, validatePresetChain } from "./lib/presets.js";
 import { buildTreeItems, select } from "./lib/multi-select.js";
-import { loadSddTemplate } from "./lib/agents-md.js";
+import { loadSpecDrivenDevelopmentTemplate } from "./lib/agents-md.js";
 import { resolveWorkDir } from "./lib/config.js";
 import { mergeAgentDefaults } from "./lib/agent-defaults.js";
 import { deploySkills } from "./lib/skills.js";
@@ -88,7 +88,7 @@ function readConfigFile(configPath) {
 // ---------------------------------------------------------------------------
 
 function loadExistingDefaults(workRoot) {
-  const configPath = path.join(sddDirFn(workRoot), "config.json");
+  const configPath = path.join(sentiDirFn(workRoot), "config.json");
   const cfg = readConfigFile(configPath);
   if (!cfg) return null;
   const types = Array.isArray(cfg.type) ? cfg.type : cfg.type ? [cfg.type] : [];
@@ -110,11 +110,11 @@ function loadExistingDefaults(workRoot) {
 // ---------------------------------------------------------------------------
 
 function ensureProjectDirs(workRoot) {
-  const sddDir = path.join(workRoot, ".sdd-forge");
-  const outputDir = path.join(sddDir, "output");
+  const sentiDir = path.join(workRoot, ".senti");
+  const outputDir = path.join(sentiDir, "output");
   const docsDir = path.join(workRoot, "docs");
   const specsDir = path.join(workRoot, "specs");
-  [sddDir, outputDir, docsDir, specsDir].forEach((d) =>
+  [sentiDir, outputDir, docsDir, specsDir].forEach((d) =>
     fs.mkdirSync(d, { recursive: true }),
   );
   fs.writeFileSync(path.join(outputDir, ".gitkeep"), "");
@@ -125,12 +125,12 @@ function ensureGitignore(workRoot) {
   const block = [
     ".tmp/",
     "",
-    ".sdd-forge/*",
-    "!.sdd-forge/config.json",
-    "!.sdd-forge/templates/",
-    "!.sdd-forge/output/",
-    "!.sdd-forge/presets/",
-    ".sdd-forge/output/acceptance-report-*.json",
+    ".senti/*",
+    "!.senti/config.json",
+    "!.senti/templates/",
+    "!.senti/output/",
+    "!.senti/presets/",
+    ".senti/output/acceptance-report-*.json",
     "",
     ".agents/*",
     "!.agents/skills*",
@@ -138,7 +138,7 @@ function ensureGitignore(workRoot) {
     "!.claude/skills*",
     ".codex",
   ];
-  const sentinel = ".sdd-forge/*";
+  const sentinel = ".senti/*";
   if (fs.existsSync(rootGitignore)) {
     const content = fs.readFileSync(rootGitignore, "utf8");
     if (content.split("\n").some((l) => l.trim() === sentinel)) return;
@@ -151,7 +151,7 @@ function ensureGitignore(workRoot) {
 
 function ensureGitattributes(workRoot) {
   const gitattributesPath = path.join(workRoot, ".gitattributes");
-  const entry = ".sdd-forge/output/analysis.json merge=ours";
+  const entry = ".senti/output/analysis.json merge=ours";
   if (fs.existsSync(gitattributesPath)) {
     const content = fs.readFileSync(gitattributesPath, "utf8");
     if (!content.includes(entry)) {
@@ -181,10 +181,10 @@ function registerProject(projectName, sourcePath, workRootPath, t) {
 // ---------------------------------------------------------------------------
 
 function buildAgentContent(lang) {
-  const sddContent = loadSddTemplate(lang);
+  const specDrivenDevelopmentContent = loadSpecDrivenDevelopmentTemplate(lang);
   const lines = [];
-  lines.push('<!-- {{data("agents.sdd")}} -->');
-  if (sddContent) lines.push(sddContent.trimEnd());
+  lines.push('<!-- {{data("agents.senti")}} -->');
+  if (specDrivenDevelopmentContent) lines.push(specDrivenDevelopmentContent.trimEnd());
   lines.push('<!-- {{/data}} -->');
   lines.push('');
   lines.push('<!-- {{data("agents.project")}} -->');
@@ -192,7 +192,7 @@ function buildAgentContent(lang) {
   return lines.join("\n");
 }
 
-const SDD_DIRECTIVE_RE = /<!-- \{\{data\("agents\.sdd"\)\}\} -->[\s\S]*?<!-- \{\{\/data\}\} -->/;
+const SENTI_DIRECTIVE_RE = /<!-- \{\{data\("agents\.senti"\)\}\} -->[\s\S]*?<!-- \{\{\/data\}\} -->/;
 
 function ensureAgentConfigFile(filePath, lang, t) {
   const fileName = path.basename(filePath);
@@ -206,10 +206,10 @@ function ensureAgentConfigFile(filePath, lang, t) {
 
   const content = fs.readFileSync(filePath, "utf8");
 
-  if (SDD_DIRECTIVE_RE.test(content)) {
-    const sddBlock = agentContent.match(SDD_DIRECTIVE_RE)?.[0];
-    if (sddBlock) {
-      const updated = content.replace(SDD_DIRECTIVE_RE, sddBlock);
+  if (SENTI_DIRECTIVE_RE.test(content)) {
+    const sentiBlock = agentContent.match(SENTI_DIRECTIVE_RE)?.[0];
+    if (sentiBlock) {
+      const updated = content.replace(SENTI_DIRECTIVE_RE, sentiBlock);
       if (updated !== content) {
         fs.writeFileSync(filePath, updated, "utf8");
         console.log(t("setup.messages.agentFileUpdated", { file: fileName }));
@@ -480,7 +480,7 @@ async function main() {
   const t = createI18n(settings.lang);
 
   // Build config: merge wizard values into existing config to preserve customizations
-  const configPath = path.join(workRoot, ".sdd-forge", "config.json");
+  const configPath = path.join(workRoot, ".senti", "config.json");
   let config = readConfigFile(configPath) || {};
 
   // Minimize type array: remove parents that are already implied by children

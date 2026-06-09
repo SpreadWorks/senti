@@ -4,11 +4,11 @@ import { join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson } from "../helpers/tmp-dir.js";
 
-const SDD_FORGE = join(process.cwd(), "src/sdd-forge.js");
+const SENTI = join(process.cwd(), "src/senti.js");
 
 function createHookConfigProject(command) {
-  const root = createTmpDir("sdd-hook-list-e2e-");
-  writeJson(root, ".sdd-forge/config.json", {
+  const root = createTmpDir("senti-hook-list-e2e-");
+  writeJson(root, ".senti/config.json", {
     lang: "en",
     type: "node-cli",
     docs: { languages: ["en"], defaultLanguage: "en" },
@@ -24,7 +24,7 @@ function createHookConfigProject(command) {
 function expectDispatcherFailure(args, assertions, message = "should exit non-zero") {
   let failure;
   try {
-    execFileSync("node", [SDD_FORGE, ...args], { encoding: "utf8" });
+    execFileSync("node", [SENTI, ...args], { encoding: "utf8" });
   } catch (err) {
     failure = err;
   }
@@ -38,17 +38,17 @@ function expectUnknownCommand(args, message) {
   }, message);
 }
 
-describe("sdd-forge dispatcher", () => {
+describe("senti dispatcher", () => {
   it("routes 'help' to help output", () => {
-    const result = execFileSync("node", [SDD_FORGE, "help"], { encoding: "utf8" });
-    assert.match(result, /SDD Forge/);
+    const result = execFileSync("node", [SENTI, "help"], { encoding: "utf8" });
+    assert.match(result, /senti/);
     assert.match(result, /コマンド一覧/);
   });
 
   it("routes 'docs build' through docs dispatcher", () => {
     // build requires analysis.json etc, but should at least start the pipeline
     try {
-      execFileSync("node", [SDD_FORGE, "docs", "build", "--help"], { encoding: "utf8" });
+      execFileSync("node", [SENTI, "docs", "build", "--help"], { encoding: "utf8" });
     } catch (err) {
       // --help may exit 0 or non-zero depending on implementation
       const out = `${err.stdout || ""}${err.stderr || ""}`;
@@ -62,7 +62,7 @@ describe("sdd-forge dispatcher", () => {
 
   it("routes 'docs review' correctly", () => {
     try {
-      execFileSync("node", [SDD_FORGE, "docs", "review"], { encoding: "utf8" });
+      execFileSync("node", [SENTI, "docs", "review"], { encoding: "utf8" });
     } catch (err) {
       // review may fail if no docs dir, but it should have run the review command
       const out = `${err.stdout || ""}${err.stderr || ""}`;
@@ -71,13 +71,13 @@ describe("sdd-forge dispatcher", () => {
   });
 
   it("routes 'setup --help' as independent command", () => {
-    const result = execFileSync("node", [SDD_FORGE, "setup", "--help"], { encoding: "utf8" });
+    const result = execFileSync("node", [SENTI, "setup", "--help"], { encoding: "utf8" });
     assert.match(result, /setup/i);
   });
 
   it("routes 'flow' to flow dispatcher", () => {
     try {
-      execFileSync("node", [SDD_FORGE, "flow"], { encoding: "utf8" });
+      execFileSync("node", [SENTI, "flow"], { encoding: "utf8" });
       assert.fail("should exit non-zero without subcommand");
     } catch (err) {
       const out = `${err.stdout || ""}${err.stderr || ""}`;
@@ -87,7 +87,7 @@ describe("sdd-forge dispatcher", () => {
 
   it("shows docs subcommand list when 'docs' has no args", () => {
     try {
-      execFileSync("node", [SDD_FORGE, "docs"], { encoding: "utf8" });
+      execFileSync("node", [SENTI, "docs"], { encoding: "utf8" });
     } catch (err) {
       const out = `${err.stdout || ""}${err.stderr || ""}`;
       assert.match(out, /build|scan|forge/);
@@ -96,17 +96,17 @@ describe("sdd-forge dispatcher", () => {
 
   it("shows spec subcommand usage when 'spec' has no args", () => {
     try {
-      execFileSync("node", [SDD_FORGE, "spec"], { encoding: "utf8" });
+      execFileSync("node", [SENTI, "spec"], { encoding: "utf8" });
       assert.fail("should exit non-zero without subcommand");
     } catch (err) {
       const out = `${err.stdout || ""}${err.stderr || ""}`;
-      assert.match(out, /Usage: sdd-forge spec/);
+      assert.match(out, /Usage: senti spec/);
       assert.match(out, /render/);
     }
   });
 
   it("routes 'hook list' through hook dispatcher", () => {
-    const result = execFileSync("node", [SDD_FORGE, "hook", "list"], { encoding: "utf8" });
+    const result = execFileSync("node", [SENTI, "hook", "list"], { encoding: "utf8" });
     assert.match(result, /PostWorktree/);
     assert.match(result, /worktree/i);
   });
@@ -114,9 +114,9 @@ describe("sdd-forge dispatcher", () => {
   it("routes 'hook list --json' and includes the current configured command", () => {
     const tmp = createHookConfigProject("printf hook-json");
     try {
-      const result = execFileSync("node", [SDD_FORGE, "hook", "list", "--json"], {
+      const result = execFileSync("node", [SENTI, "hook", "list", "--json"], {
         encoding: "utf8",
-        env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+        env: { ...process.env, SENTI_WORK_ROOT: tmp },
       });
       const hooks = JSON.parse(result);
       const postWorktree = hooks.find((hook) => hook.name === "PostWorktree");
@@ -135,8 +135,8 @@ describe("sdd-forge dispatcher", () => {
   });
 
   it("shows help when no subcommand", () => {
-    const result = execFileSync("node", [SDD_FORGE], { encoding: "utf8" });
-    assert.match(result, /SDD Forge/);
+    const result = execFileSync("node", [SENTI], { encoding: "utf8" });
+    assert.match(result, /senti/);
   });
 
   it("exits non-zero for unknown subcommand", () => {
@@ -146,7 +146,7 @@ describe("sdd-forge dispatcher", () => {
   it("suggests the canonical status command for mistyped flow status", () => {
     expectDispatcherFailure(["flow", "status"], (err) => {
       assert.match(err.stderr, /unknown command 'status'/);
-      assert.match(err.stderr, /Did you mean: sdd-forge flow get status/);
+      assert.match(err.stderr, /Did you mean: senti flow get status/);
     });
   });
 

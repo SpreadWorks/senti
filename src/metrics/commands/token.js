@@ -31,7 +31,7 @@ const PRECISION_MAX = 3.0;
 
 function formatUsage() {
   return [
-    "Usage: sdd-forge metrics token [options]",
+    "Usage: senti metrics token [options]",
     "",
     "Options:",
     "  --format <text|json|csv>   Output format (default: text)",
@@ -396,9 +396,9 @@ async function isCacheFresh(metricsOutputPath, maxFinalizedAt) {
   } catch (err) {
     if (err.code === "ENOENT") {
       // Cache miss on first run is expected; rebuild silently-but-visibly.
-      process.stderr.write(`sdd-forge metrics token: cache miss (first run), rebuilding\n`);
+      process.stderr.write(`senti metrics token: cache miss (first run), rebuilding\n`);
     } else {
-      process.stderr.write(`sdd-forge metrics token: cache read failed (${err.code || err.message}), rebuilding\n`);
+      process.stderr.write(`senti metrics token: cache read failed (${err.code || err.message}), rebuilding\n`);
     }
     return false;
   }
@@ -406,12 +406,12 @@ async function isCacheFresh(metricsOutputPath, maxFinalizedAt) {
   try {
     parsed = JSON.parse(text);
   } catch (err) {
-    process.stderr.write(`sdd-forge metrics token: cache parse failed (${err.message}), rebuilding\n`);
+    process.stderr.write(`senti metrics token: cache parse failed (${err.message}), rebuilding\n`);
     return false;
   }
   if (typeof parsed?.maxFinalizedAt !== "string") return false;
   if (parsed.version !== CACHE_VERSION) {
-    process.stderr.write(`sdd-forge metrics token: cache version mismatch (got ${parsed.version}, expected ${CACHE_VERSION}), rebuilding\n`);
+    process.stderr.write(`senti metrics token: cache version mismatch (got ${parsed.version}, expected ${CACHE_VERSION}), rebuilding\n`);
     return false;
   }
   return parsed.maxFinalizedAt >= maxFinalizedAt;
@@ -652,7 +652,7 @@ async function buildRows(flowEntries) {
     const { path: filePath, parsed } = entry;
     const date = isoDateFromFinalizedAt(parsed?.state?.finalizedAt);
     if (!date) {
-      process.stderr.write(`sdd-forge metrics token: skipping ${filePath} — missing state.finalizedAt\n`);
+      process.stderr.write(`senti metrics token: skipping ${filePath} — missing state.finalizedAt\n`);
       continue;
     }
     const specDir = path.dirname(filePath);
@@ -719,7 +719,7 @@ async function runToken(rawArgs, container) {
 
   const root = container.get("root");
   const specsDir = path.join(root, "specs");
-  const metricsOutputPath = path.join(root, ".sdd-forge", "output", "metrics.json");
+  const metricsOutputPath = path.join(root, ".senti", "output", "metrics.json");
 
   let specsStat;
   try {

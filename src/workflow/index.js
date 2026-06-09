@@ -2,7 +2,7 @@
 /**
  * src/workflow/index.js
  *
- * Workflow CLI dispatcher (sdd-forge workflow <subcommand>). Loads sdd-forge
+ * Workflow CLI dispatcher (senti workflow <subcommand>). Loads senti
  * config, parses subcommand args via the registry, and dispatches to a command
  * class implementing execute(ctx).
  *
@@ -12,9 +12,9 @@
  * Output: JSON envelope ({ ok, type, key, data, errors }).
  *
  * Routing:
- *   sdd-forge workflow <subcommand> [args]
- *   sdd-forge workflow add "タイトル" --category BUG
- *   sdd-forge workflow publish <hash> --label enhancement
+ *   senti workflow <subcommand> [args]
+ *   senti workflow add "タイトル" --category BUG
+ *   senti workflow publish <hash> --label enhancement
  */
 
 import { repoRoot, parseArgs } from "../lib/cli.js";
@@ -27,9 +27,9 @@ import { loadBoardConfig } from "./lib/config.js";
 
 function printHelp() {
   const lines = [
-    "[EXPERIMENTAL] sdd-forge workflow — usage patterns may change.",
+    "[EXPERIMENTAL] senti workflow — usage patterns may change.",
     "",
-    "Usage: sdd-forge workflow <subcommand> [args]",
+    "Usage: senti workflow <subcommand> [args]",
     "",
     "Subcommands:",
   ];
@@ -40,7 +40,7 @@ function printHelp() {
 }
 
 function firstLine(text) {
-  return String(text).split("\n")[0].replace(/^Usage: sdd-forge workflow \w+ ?/, "");
+  return String(text).split("\n")[0].replace(/^Usage: senti workflow \w+ ?/, "");
 }
 
 function parseEntryArgs(entry, rawArgs, ctx) {
