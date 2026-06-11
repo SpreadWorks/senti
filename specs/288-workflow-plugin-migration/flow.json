@@ -384,16 +384,39 @@
             },
             {
               "id": "finalize-merge",
-              "status": "in_progress",
-              "startedAt": "2026-06-11T10:00:56.645Z"
+              "status": "done",
+              "startedAt": "2026-06-11T10:00:56.645Z",
+              "finishedAt": "2026-06-11T10:01:13.917Z",
+              "runtimeLog": {
+                "runId": "61a35bd6-b1d3-4942-9cfe-af4c094249f0",
+                "sequence": 255,
+                "attempt": 1,
+                "command": "flow run finalize-merge",
+                "startedAt": "2026-06-11T10:01:11.611Z",
+                "endedAt": "2026-06-11T10:01:13.924Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-sync",
-              "status": "pending"
+              "status": "done",
+              "startedAt": "2026-06-11T10:01:13.917Z",
+              "finishedAt": "2026-06-11T10:06:00.222Z",
+              "runtimeLog": {
+                "runId": "61a35bd6-b1d3-4942-9cfe-af4c094249f0",
+                "sequence": 258,
+                "attempt": 1,
+                "command": "flow run finalize-sync",
+                "startedAt": "2026-06-11T10:01:27.469Z",
+                "endedAt": "2026-06-11T10:06:00.225Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-cleanup",
-              "status": "pending"
+              "status": "done",
+              "startedAt": "2026-06-11T10:06:00.222Z",
+              "finishedAt": "2026-06-11T10:06:12.290Z"
             }
           ]
         }
@@ -2249,6 +2272,91 @@
       "reset": true,
       "taskId": null,
       "ts": "2026-06-11T09:42:44.880Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.4",
+      "callCount": 1,
+      "responseChars": 5864,
+      "durationMs": 42617,
+      "tokens": {
+        "input": 17720,
+        "output": 1907,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T10:02:10.824Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.4",
+      "callCount": 1,
+      "responseChars": 2340,
+      "durationMs": 21579,
+      "tokens": {
+        "input": 10650,
+        "output": 960,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T10:02:32.415Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.4",
+      "callCount": 1,
+      "responseChars": 16084,
+      "durationMs": 68915,
+      "tokens": {
+        "input": 18166,
+        "output": 3370,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T10:02:37.125Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.4",
+      "callCount": 1,
+      "responseChars": 49801,
+      "durationMs": 257998,
+      "tokens": {
+        "input": 18159,
+        "output": 13674,
+        "cacheRead": 4480,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T10:05:46.210Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.4",
+      "callCount": 1,
+      "responseChars": 52852,
+      "durationMs": 271354,
+      "tokens": {
+        "input": 19969,
+        "output": 14616,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T10:05:59.567Z"
     }
   ],
   "reviewRecoveryBaselines": [
@@ -3226,6 +3334,8 @@
     ]
   },
   "state": {
-    "finalizedAt": "2026-06-11T10:00:56.463Z"
+    "finalizedAt": "2026-06-11T10:00:56.463Z",
+    "mergeStrategy": "squash",
+    "featureBranchSquashedSha": "edb705be689afcf92133eaca81e716088c263cca"
   }
 }
