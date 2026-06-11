@@ -1,12 +1,12 @@
 {
-  "analyzedAt": "2026-06-11T00:15:41.360Z",
+  "analyzedAt": "2026-06-11T02:26:24.204Z",
   "package": {
     "entries": [
       {
         "file": "package.json",
-        "hash": "6c54e4e4d52cb5920cd0f4a8c3713c34",
+        "hash": "d6314eb407089c16d9094226c302baf6",
         "lines": 42,
-        "mtime": "2026-06-09T11:43:03.972Z",
+        "mtime": "2026-06-10T00:44:59.905Z",
         "packageDeps": {
           "dependencies": {},
           "devDependencies": {}
@@ -23,21 +23,22 @@
         "composerScripts": null,
         "makefileTest": null,
         "id": "451a9f25",
-        "summary": "The package manifest defines `@spreadworks/senti` as an ESM-based CLI for Spec-Driven Development and automated documentation generation. It also pins the runtime, published files, and test entrypoints.",
-        "detail": "The manifest exposes a single `senti` executable from `src/senti.js` and mirrors that path through the package `exports` field. It targets Node.js 18.19.0 or newer, declares no external runtime dependencies, and restricts published contents to `src/` while excluding preset test folders. Test scripts are split by scope, including unit, end-to-end, acceptance, and agent-backed runs, which matches the project's staged verification model. The alpha versioning and pinned pnpm package manager show a tightly controlled release setup.",
+        "summary": "This package manifest defines the `@spreadworks/senti` CLI as a Node.js ESM tool for spec-driven documentation generation. It exposes the main executable, runtime requirements, publishable files, and test entry points.",
+        "detail": "The manifest configures the package as an ES module and maps both the binary and package export to `src/senti.js`, making the CLI the primary public interface. It limits published contents to `src/` while explicitly excluding test directories under preset trees. The runtime contract requires Node.js 18.19.0 or newer and uses `pnpm` as the package manager. Test scripts are organized by scope, including unit, end-to-end, acceptance, agent-assisted, and aggregate runs.",
         "chapter": "stack_and_ops",
         "role": "package manifest",
         "enrich": {
-          "processedAt": "2026-06-09T11:45:10.652Z",
+          "processedAt": "2026-06-11T02:27:40.580Z",
           "attempts": 1
         },
         "keywords": [
           "package manifest",
-          "Node.js CLI",
-          "ES modules",
+          "CLI entry point",
+          "Node.js ESM",
+          "pnpm",
           "runtime requirements",
           "test scripts",
-          "npm publishing"
+          "spec-driven tooling"
         ]
       }
     ],
@@ -1025,8 +1026,22 @@
         ],
         "id": "e229cdd1",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-06-11T02:27:40.580Z",
+          "attempts": 2
+        },
+        "summary": "This module implements the `docs scan` command that builds or updates structured analysis data for documentation generation. It handles preset resolution, source loading, reset behavior, ID stability, and output persistence.",
+        "detail": "The command reads CLI flags, resolves preset chains, and loads DataSources from project and preset locations before collecting scannable files. It preserves stable entry identifiers by indexing existing analysis items with category, file, and optional subkeys, while generating new IDs when needed. It can selectively reset categories in the existing `analysis.json` file and computes content hashes for source files and linked data sources. After scanning, it emits either a full analysis payload or a summary and writes the result into the configured output directory.",
+        "chapter": "cli_commands",
+        "role": "docs scan command",
+        "keywords": [
+          "scan command",
+          "analysis generation",
+          "source scanning",
+          "preset chain",
+          "data source loading",
+          "analysis.json",
+          "stable IDs"
+        ]
       },
       {
         "file": "src/docs/commands/text.js",
@@ -1144,8 +1159,22 @@
         ],
         "id": "fd496e07",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-06-11T02:27:40.580Z",
+          "attempts": 3
+        },
+        "summary": "This module implements the `docs translate` command for translating generated documentation into target languages. It builds translation tasks, skips unchanged targets by default, and runs agent calls with controlled concurrency.",
+        "detail": "The command validates that an agent is configured and that the `docs/` directory exists before assembling per-language and per-file translation work. It compares source and target modification times to avoid unnecessary rewrites unless forced. Translation requests are shaped with a tone-aware prompt and cleaned with preamble stripping to normalize agent output. Results are written into language-specific directories, including translated chapter files and optionally a translated root README.",
+        "chapter": "cli_commands",
+        "role": "docs translation command",
+        "keywords": [
+          "document translation",
+          "localization",
+          "concurrency",
+          "agent prompt",
+          "README translation",
+          "mtime check",
+          "docs command"
+        ]
       },
       {
         "file": "src/docs/lib/analysis-entry.js",
@@ -1314,8 +1343,21 @@
         ],
         "id": "10a78227",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-06-11T02:27:40.580Z",
+          "attempts": 3
+        },
+        "summary": "This helper module provides shared file and text utilities for documentation commands. It loads analysis output, discovers chapter files, reads text safely, and strips noisy AI response preambles.",
+        "detail": "The JSON loaders centralize access to generated files under the Senti output directory and return `null` when outputs are absent. Chapter discovery filters out special files such as `README.md`, `AGENTS.senti.md`, and `layout.md`, then respects an ordered chapter list when available. The text reader offers a safe empty-string fallback for missing files. The response cleaner scans the first lines of agent output and removes conversational or formatting preambles before the content is persisted.",
+        "chapter": "internal_design",
+        "role": "docs command utilities",
+        "keywords": [
+          "command context",
+          "chapter discovery",
+          "analysis loader",
+          "response cleanup",
+          "file utilities",
+          "documentation helpers"
+        ]
       },
       {
         "file": "src/docs/lib/concurrency.js",
@@ -1373,8 +1415,22 @@
         ],
         "id": "d1cdb1d8",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-06-11T02:27:40.580Z",
+          "attempts": 3
+        },
+        "summary": "This module loads DataSource implementations from a directory and validates them before use. It enforces file limits, dynamic import behavior, and container initialization requirements.",
+        "detail": "The loader reads a data directory, filters candidate JavaScript files, and caps the number of loadable sources to guard against runaway input. Each file is imported via `pathToFileURL`, then checked to ensure it exposes a valid default export. The module integrates with the dependency container so DataSources can be initialized against shared runtime services. Errors are rethrown with file-level context to make misconfigured preset or project DataSources easier to diagnose.",
+        "chapter": "creating_presets",
+        "role": "DataSource loader",
+        "keywords": [
+          "DataSource",
+          "dynamic import",
+          "plugin loading",
+          "preset data",
+          "dependency container",
+          "module validation",
+          "source registry"
+        ]
       },
       {
         "file": "src/docs/lib/data-source.js",
@@ -1542,8 +1598,22 @@
         "usedBy": null,
         "id": "42300b03",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-06-11T02:27:40.580Z",
+          "attempts": 3
+        },
+        "summary": "This module builds prompt text for documentation forging workflows and converts analysis data into prompt-ready summaries. It centralizes how structured scan results are serialized into LLM input.",
+        "detail": "The summary helpers walk analysis categories and compose compact textual representations, including enriched variants when additional metadata is available. Prompt builders separate system-level instructions from per-file generation instructions so multi-round workflows can be staged consistently. The file prompt includes run counters and optional review feedback to support iterative refinement. The combined prompt builder packages language, specification text, target files, and analysis summaries into a predictable agent-facing format.",
+        "chapter": "internal_design",
+        "role": "prompt construction utilities",
+        "keywords": [
+          "prompt builder",
+          "LLM prompt",
+          "analysis summary",
+          "documentation generation",
+          "system prompt",
+          "file prompt",
+          "review feedback"
+        ]
       },
       {
         "file": "src/docs/lib/lang-factory.js",
@@ -2012,8 +2082,22 @@
         "usedBy": null,
         "id": "cb355898",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-06-11T02:27:40.580Z",
+          "attempts": 2
+        },
+        "summary": "This module creates resolver objects that expose preset-backed documentation data and override-aware descriptions. It combines preset chains, DataSource loading, and method dispatch into a single factory.",
+        "detail": "The factory loads project overrides from `.senti/overrides.json` with caching and exposes a description helper that falls back to a placeholder when values are missing. It resolves one or more preset chains, loads DataSources from each preset, and warns about deprecated project-level data directories. The resulting resolver object dynamically dispatches methods onto matching DataSources when they exist and returns `null` when a capability is unavailable. It also exposes a way to enumerate supported resolver methods across the aggregated source set.",
+        "chapter": "creating_presets",
+        "role": "resolver factory",
+        "keywords": [
+          "resolver factory",
+          "preset inheritance",
+          "overrides",
+          "DataSource dispatch",
+          "preset chain",
+          "documentation resolver",
+          "method registry"
+        ]
       },
       {
         "file": "src/docs/lib/review-parser.js",
@@ -2038,8 +2122,21 @@
         "usedBy": null,
         "id": "0806e627",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-06-11T02:27:40.580Z",
+          "attempts": 3
+        },
+        "summary": "This module parses review output from automated documentation checks and extracts actionable status information. It identifies questions, summarizes failures, and maps review results back to files.",
+        "detail": "The parser includes a lightweight extractor for prompts that indicate the agent needs more user input. It reduces noisy review text into a smaller failure summary suitable for command output or retry logic. File-level parsing matches reported failures against known documentation targets, including basename-based matching when full paths are not present. The result separates passed and failed files so later steps can scope reruns or feedback precisely.",
+        "chapter": "internal_design",
+        "role": "review output parser",
+        "keywords": [
+          "review parser",
+          "failure summary",
+          "file result mapping",
+          "needs input",
+          "quality gate",
+          "document review"
+        ]
       },
       {
         "file": "src/docs/lib/scan-source.js",
@@ -2063,8 +2160,21 @@
         ],
         "id": "6b08f3c0",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-06-11T02:27:40.580Z",
+          "attempts": 3
+        },
+        "summary": "This module defines a small mixin that marks classes as scannable and standardizes entry construction. It provides a shared convention for analysis-oriented model types.",
+        "detail": "The `Scannable` higher-order class wraps a base class and adds minimal behavior used by the scan pipeline. One method explicitly reports whether a type is scannable, enabling reflective checks without custom wiring on every class. Another creates a new instance of the type's associated `Entry` class, giving scanners a uniform entry creation path. The implementation is intentionally small and convention-driven rather than policy-heavy.",
+        "chapter": "internal_design",
+        "role": "scannable mixin",
+        "keywords": [
+          "mixin",
+          "scannable type",
+          "entry factory",
+          "analysis entry",
+          "class wrapper",
+          "scan convention"
+        ]
       },
       {
         "file": "src/docs/lib/scanner.js",
@@ -2104,8 +2214,22 @@
         "usedBy": null,
         "id": "cf9f71e2",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-06-11T02:27:40.580Z",
+          "attempts": 3
+        },
+        "summary": "This module contains the low-level file scanning and parsing utilities used by the documentation analysis pipeline. It supports directory walking, glob-style filtering, file hashing, and language-specific parsing.",
+        "detail": "The scanner can convert glob-like patterns into regular expressions, recursively discover files, and exclude unwanted paths while producing stable sorted results. It computes file metadata such as size, timestamps, content hashes, and raw content for downstream analysis. Language-specific helpers parse PHP and JavaScript sources into structural summaries, while a generic path delegates to registered language handlers when available. The module also exports utility helpers related to naming transformations from adjacent parser logic.",
+        "chapter": "internal_design",
+        "role": "file scanner and parser",
+        "keywords": [
+          "file scanner",
+          "directory traversal",
+          "glob matching",
+          "source parser",
+          "PHP parsing",
+          "JavaScript parsing",
+          "content hash"
+        ]
       },
       {
         "file": "src/docs/lib/template-merger.js",
@@ -2150,8 +2274,22 @@
         ],
         "id": "88243459",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-06-11T02:27:40.580Z",
+          "attempts": 3
+        },
+        "summary": "This module resolves and merges template files across preset chains, project overrides, and language fallbacks. It is the core of Senti's layered template inheritance mechanism.",
+        "detail": "It builds template layer stacks from project-local and preset-provided directories, then resolves files by walking those layers in precedence order. Merge behavior supports both additive composition and block-aware inheritance so child templates can extend or replace specific regions. The resolver can also combine multiple preset chains, discover chapter file names, and honor configured chapter ordering. A translation helper allows templates themselves to be machine-translated while preserving the surrounding workflow contract.",
+        "chapter": "internal_design",
+        "role": "template resolver and merger",
+        "keywords": [
+          "template inheritance",
+          "layered templates",
+          "preset fallback",
+          "block merge",
+          "chapter order",
+          "template translation",
+          "documentation layout"
+        ]
       },
       {
         "file": "src/docs/lib/test-env-detection.js",
@@ -2303,8 +2441,21 @@
         "usedBy": null,
         "id": "1ab08f2b",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-06-11T02:27:40.580Z",
+          "attempts": 3
+        },
+        "summary": "This is the entry module for the `flow` command group and its subcommand dispatcher. It parses top-level arguments, resolves the execution context, and forwards control to registered flow commands.",
+        "detail": "The module initializes the shared container, constructs a flow-specific context, and invokes the generic dispatcher with the appropriate envelope metadata. It supports grouped commands such as `resume` and `prepare-spec` with dedicated routing, while falling back to registry-based lookup for other commands. Exit behavior is explicit, using success and error codes rather than relying on uncaught control flow. The structure mirrors the broader multi-layer CLI architecture used throughout the project.",
+        "chapter": "cli_commands",
+        "role": "flow CLI entrypoint",
+        "keywords": [
+          "flow CLI",
+          "command dispatcher",
+          "subcommand routing",
+          "process exit codes",
+          "command registry",
+          "execution context"
+        ]
       },
       {
         "file": "src/flow/commands/merge.js",
@@ -2349,8 +2500,22 @@
         "usedBy": null,
         "id": "3a0db928",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-06-11T02:27:40.580Z",
+          "attempts": 3
+        },
+        "summary": "This module implements flow merge behavior, including squash-based merges and GitHub PR-based strategies. It derives merge metadata from specs and git history, then executes the selected synchronization path.",
+        "detail": "The command builds PR titles, PR bodies, and squash commit messages from spec metadata, issue references, requirements, and scoped implementation subjects. It can collect commit subjects from the implementation branch with filtering to remove noisy or irrelevant lines. Merge strategy selection depends on configuration and GitHub availability, falling back to a local squash path when PR automation is not appropriate. The module also handles rebases, temporary worktrees, conflict reporting, and cleanup around pre-sync operations.",
+        "chapter": "cli_commands",
+        "role": "flow merge command",
+        "keywords": [
+          "merge strategy",
+          "squash merge",
+          "GitHub PR",
+          "rebase workflow",
+          "commit message generation",
+          "worktree sync",
+          "spec metadata"
+        ]
       },
       {
         "file": "src/flow/commands/report.js",
@@ -5216,19 +5381,21 @@
       },
       {
         "file": "src/flow/lib/run-prepare-spec.js",
-        "hash": "b2870da4514280dc9715fba68c56b4f8",
-        "lines": 358,
-        "mtime": "2026-06-09T08:02:50.456Z",
+        "hash": "7b1a753e8e6b34185f0d10414e58022b",
+        "lines": 389,
+        "mtime": "2026-06-11T02:26:13.975Z",
         "className": "run-prepare-spec",
         "methods": [
           "buildDraftTemplate",
+          "runPrepareWithPluginHooks",
           "RunPrepareSpecCommand",
           "runGitTrim",
           "slugify",
           "nextIndex",
           "ensureBaseBranch",
           "detectBaseBranch",
-          "runDocsScanAndValidate"
+          "runDocsScanAndValidate",
+          "hookSnapshotFor"
         ],
         "imports": [
           "fs",
@@ -5243,33 +5410,34 @@
           "../../lib/spec-json.js",
           "../../lib/hooks.js",
           "./base-command.js",
-          "./issue-body-cache.js"
+          "./issue-body-cache.js",
+          "../../lib/plugin-registry.js"
         ],
         "exports": [
           "buildDraftTemplate",
+          "runPrepareWithPluginHooks",
           "RunPrepareSpecCommand",
           "default"
         ],
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "59eeacc6",
-        "summary": "Prepares a new spec workspace by creating spec files, initializing flow state, and optionally provisioning an isolated git worktree. It also validates repository readiness and refreshes analysis data used by the spec flow.",
-        "detail": "The command generates the spec directory name from an incrementing index and a slugified title, then writes core files such as spec.json, draft.json, and issue.md when they are missing. It checks repository cleanliness before starting, unless the user requests worktree isolation, and resolves or validates the base branch for that setup. A docs scan is executed through the CLI package entrypoint, and the resulting analysis.json is parsed and validated before the spec is considered ready. The implementation also writes initial workflow steps, stores flow state, and triggers post-worktree hooks so preparation is both reproducible and extensible.",
+        "summary": "This module drives the `flow prepare-spec` workflow, creating spec scaffolding and validating the workspace before work begins. It also integrates plugin hooks, worktree support, and an initial documentation scan.",
+        "detail": "It generates numbered spec directories, derives branch-safe slugs, detects or validates the base branch, and writes initial files such as `spec.json`, `draft.json`, and issue notes. Before proceeding, it checks for configuration presence, dirty-worktree constraints, and whether the command is being run from the correct repository location. The workflow can invoke `docs scan` to ensure `analysis.json` exists and is parseable before authoring begins. Hook integration and optional isolated worktree setup let plugins or repository policy extend preparation behavior without changing the command core.",
         "chapter": "cli_commands",
-        "role": "spec preparation and worktree setup command",
+        "role": "prepare-spec workflow",
         "enrich": {
-          "processedAt": "2026-06-09T11:44:21.159Z",
+          "processedAt": "2026-06-11T02:27:40.580Z",
           "attempts": 1
         },
         "keywords": [
           "prepare spec",
           "worktree setup",
-          "spec bootstrap",
-          "analysis scan",
-          "base branch detection",
-          "flow initialization",
-          "draft template",
-          "repository readiness"
+          "spec scaffold",
+          "branch detection",
+          "analysis bootstrap",
+          "plugin hooks",
+          "flow initialization"
         ]
       },
       {
@@ -6111,7 +6279,8 @@
           "src/flow/lib/run-review.js",
           "src/flow/lib/run-test-execute.js",
           "src/lib/agent.js",
-          "src/lib/container.js"
+          "src/lib/container.js",
+          "src/flow/registry.js"
         ],
         "id": "65ac9e4f",
         "summary": "Provides issue-log load/save utilities and a command for appending validated issue entries. It enforces minimum content quality and structured repair references.",
@@ -6343,8 +6512,22 @@
         "usedBy": null,
         "id": "ee559b7a",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-06-11T02:27:40.580Z",
+          "attempts": 4
+        },
+        "summary": "This module implements retry-state mutation for flow review and gate phases. It validates retry targets, resets related counters, and returns structured envelope responses.",
+        "detail": "It maps retry kinds to counter fields, counting functions, and maximum retry resolvers so the command can handle multiple phase families consistently. Review-phase resets support grouped semantics, where one requested phase may expand into several concrete reset targets. The module also contains compatibility logic for state migrations that affect how retry bookkeeping is stored. Its command handler validates usage and emits a normalized result describing the action, affected phases, and reset grants.",
+        "chapter": "cli_commands",
+        "role": "retry state command",
+        "keywords": [
+          "retry reset",
+          "flow state",
+          "review retry",
+          "gate retry",
+          "counter reset",
+          "phase control",
+          "envelope response"
+        ]
       },
       {
         "file": "src/flow/lib/set-step.js",
@@ -6379,8 +6562,22 @@
         "usedBy": null,
         "id": "d4cb8d93",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-06-11T02:27:40.580Z",
+          "attempts": 3
+        },
+        "summary": "This module implements manual step status changes within a flow and enforces related validation rules. It coordinates spec synchronization, auto-check side effects, and guardrails around managed steps.",
+        "detail": "Before applying a step transition, it checks command usage, step validity, and whether certain test-oriented or post-hook-managed steps have the required artifact files on disk. It loads spec data, validates completion transitions, and can trigger synchronization or auto-check logic based on the target step and status. Side effects are derived from flow definitions rather than hardcoded in the command, which keeps orchestration rules centralized. Failures are returned through structured envelopes so callers receive machine-readable diagnostics.",
+        "chapter": "cli_commands",
+        "role": "step status command",
+        "keywords": [
+          "step transition",
+          "flow state update",
+          "validation",
+          "auto check",
+          "spec sync",
+          "managed step",
+          "status command"
+        ]
       },
       {
         "file": "src/flow/lib/set-summary.js",
@@ -6400,8 +6597,20 @@
         "usedBy": null,
         "id": "f62c866f",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-06-11T02:27:40.580Z",
+          "attempts": 3
+        },
+        "summary": "This module provides a small command for updating a flow summary field. It wraps validation and error reporting in the same envelope protocol used by other flow commands.",
+        "detail": "The implementation is intentionally narrow, focusing on one mutable field rather than broader workflow changes. It subclasses the common flow command base so it inherits standard context and dispatch behavior. Invalid usage is reported with a failure envelope instead of throwing raw exceptions. This keeps lightweight metadata updates consistent with the project's structured command model.",
+        "chapter": "cli_commands",
+        "role": "summary update command",
+        "keywords": [
+          "summary command",
+          "flow metadata",
+          "envelope error",
+          "state update",
+          "command handler"
+        ]
       },
       {
         "file": "src/flow/lib/step-tree.js",
@@ -6442,8 +6651,21 @@
         ],
         "id": "bc04b8b6",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-06-11T02:27:40.580Z",
+          "attempts": 4
+        },
+        "summary": "This module implements traversal helpers for nested flow step trees. It flattens steps, locates specific nodes, and promotes the next actionable leaf while enforcing a depth limit.",
+        "detail": "A maximum depth guard protects the tree walker from pathological or malformed nesting. The flattening and search helpers recurse through child steps to find nodes by ID, the first pending leaf, or the current in-progress leaf. Promotion logic advances work by marking the next pending actionable leaf while respecting the existing step structure. These utilities provide the core tree semantics used by several flow-state commands.",
+        "chapter": "internal_design",
+        "role": "step tree utilities",
+        "keywords": [
+          "step tree",
+          "tree traversal",
+          "pending leaf",
+          "in-progress step",
+          "workflow hierarchy",
+          "depth guard"
+        ]
       },
       {
         "file": "src/flow/lib/sync-spec-tasks.js",
@@ -6537,8 +6759,22 @@
         ],
         "id": "5fd87c16",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-06-11T02:27:40.580Z",
+          "attempts": 3
+        },
+        "summary": "This module evaluates whether a flow operation should run in flow-wide, task-scoped, broad, or blocked mode. It encapsulates task progression rules, broad-mode auditing, and current task resolution.",
+        "detail": "The `TaskScopeDecision` type exposes predicates that simplify downstream handling of allowed, promotable, or blocked execution states. Helper functions inspect tasks for actionable specs, in-progress work, terminal states, and recent broad-mode history. Broad operations require explicit audit records, and the module can create, validate, and bound those records over time. It also resolves the current task's spec file from disk and emits detailed violation messages when a command is run against the wrong scope.",
+        "chapter": "internal_design",
+        "role": "task scope evaluator",
+        "keywords": [
+          "task scope",
+          "workflow mode",
+          "broad mode",
+          "current task",
+          "scope validation",
+          "task promotion",
+          "execution policy"
+        ]
       },
       {
         "file": "src/flow/lib/test-artifacts.js",
@@ -6692,7 +6928,7 @@
         ],
         "id": "0b1b96b3",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -6821,14 +7057,14 @@
         ],
         "id": "2980d983",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "aadd3e9f5e5b2606443e84f51a752ea9",
-        "lines": 1130,
-        "mtime": "2026-06-09T08:02:50.459Z",
+        "hash": "8122f34d7e4194694b6a465aade07c19",
+        "lines": 1183,
+        "mtime": "2026-06-11T02:26:13.975Z",
         "className": "registry",
         "methods": [
           "assertDraftReviewRegistryHookBoundary",
@@ -6843,7 +7079,9 @@
           "draftReviewRuntimeLogStepId",
           "reviewRuntimeLogStepId",
           "finalizeCommand",
-          "applyLifecycleActionsFromRegistry"
+          "applyLifecycleActionsFromRegistry",
+          "pluginHookForLifecycle",
+          "pluginCommandName"
         ],
         "imports": [
           "../lib/flow-helpers.js",
@@ -6853,7 +7091,9 @@
           "./definition.js",
           "./lib/step-tree.js",
           "./lib/draft-review-routes.js",
-          "./lib/flow-judgment-contract.js"
+          "./lib/flow-judgment-contract.js",
+          "../lib/plugin-registry.js",
+          "./lib/set-issue-log.js"
         ],
         "exports": [
           "assertDraftReviewRegistryHookBoundary",
@@ -6866,23 +7106,28 @@
         ],
         "id": "d64f4095",
         "enrich": {
-          "attempts": 2
+          "attempts": 1
         }
       },
       {
         "file": "src/help.js",
-        "hash": "23174cb58199d4dd71c379f29b940ce0",
-        "lines": 78,
-        "mtime": "2026-06-09T11:43:03.983Z",
+        "hash": "8fe8b2138ad7878ba76cf177e8f45480",
+        "lines": 132,
+        "mtime": "2026-06-11T02:26:13.976Z",
         "className": "help",
         "methods": [
+          "renderHelp",
+          "localizedCommand",
+          "pluginCommands",
           "main"
         ],
         "imports": [
           "./lib/cli.js",
-          "./lib/i18n.js"
+          "./lib/i18n.js",
+          "./lib/plugin-registry.js"
         ],
         "exports": [
+          "renderHelp",
           "main",
           "commands"
         ],
@@ -6890,7 +7135,7 @@
         "usedBy": null,
         "id": "4ac07fa0",
         "enrich": {
-          "attempts": 2
+          "attempts": 1
         }
       },
       {
@@ -6911,7 +7156,7 @@
         "usedBy": null,
         "id": "fa47a601",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -6981,7 +7226,7 @@
         ],
         "id": "7463ee9a",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -7010,7 +7255,7 @@
         ],
         "id": "1af31edd",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -7051,11 +7296,12 @@
       },
       {
         "file": "src/lib/agent.js",
-        "hash": "00b6a2c2c50ce8a0b2dc0f533eb25402",
-        "lines": 671,
-        "mtime": "2026-06-09T08:02:50.460Z",
+        "hash": "58f3a2b037728def75e198f01614749d",
+        "lines": 698,
+        "mtime": "2026-06-11T02:26:13.976Z",
         "className": "agent",
         "methods": [
+          "createPluginAgentApi",
           "resolvePromptCacheContext",
           "recordPromptCacheHit",
           "sha256",
@@ -7063,6 +7309,7 @@
           "stableStringify",
           "matchProfilePrefix",
           "resolveProfileKey",
+          "resolveProviderOverrideKey",
           "matchDefaultProfileFallback",
           "substitutePromptToken",
           "stripPromptArgs",
@@ -7084,6 +7331,7 @@
           "./error-preview.js"
         ],
         "exports": [
+          "createPluginAgentApi",
           "Agent",
           "filterStreamingEvents"
         ],
@@ -7093,7 +7341,7 @@
         ],
         "id": "13ddf392",
         "enrich": {
-          "attempts": 2
+          "attempts": 1
         }
       },
       {
@@ -7119,7 +7367,7 @@
         ],
         "id": "9f3f55f7",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -7172,7 +7420,7 @@
         ],
         "id": "f351ecc4",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -7209,7 +7457,7 @@
         ],
         "id": "0d680f4f",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -7248,9 +7496,9 @@
       },
       {
         "file": "src/lib/config.js",
-        "hash": "04a7cc101a56c6cfbcefd5b4ecb2ecc9",
-        "lines": 527,
-        "mtime": "2026-06-09T11:43:03.983Z",
+        "hash": "7f3c3b25d2bfb4338cbe5db968703ab0",
+        "lines": 577,
+        "mtime": "2026-06-11T02:26:13.976Z",
         "className": "config",
         "methods": [
           "resolveConcurrency",
@@ -7268,7 +7516,9 @@
           "validateTestCommand",
           "validateProjectTestPath",
           "loadEnabledPluginConfig",
+          "migratePluginDefaultNamespaces",
           "mergeConfigSchemas",
+          "mergeSchemaNode",
           "mergeDefaults",
           "mergeMissing"
         ],
@@ -7314,23 +7564,9 @@
           "src/workflow/index.js"
         ],
         "id": "dff6e5b4",
-        "summary": "Loads and validates project configuration, including default values and path resolution. It also merges plugin-provided schemas and default fragments into the final config.",
-        "detail": "This module defines core defaults such as concurrency and language, plus helpers for locating `.senti` directories and output paths. It reads JSON files and package fields from disk, then resolves runtime directories like the work directory from config and options. Validation is performed with a base schema and additional plugin schemas, and malformed structures are rejected with aggregated error messages. The plugin path also loads per-plugin manifests, schemas, and defaults so project config can be extended without changing the core schema.",
-        "chapter": "configuration",
-        "role": "Configuration loader and validator",
         "enrich": {
-          "processedAt": "2026-06-09T11:46:36.602Z",
           "attempts": 1
-        },
-        "keywords": [
-          "configuration loader",
-          "config schema",
-          "plugin defaults",
-          "schema validation",
-          "work directory",
-          "concurrency settings",
-          "project config"
-        ]
+        }
       },
       {
         "file": "src/lib/constants.js",
@@ -7393,9 +7629,9 @@
       },
       {
         "file": "src/lib/container.js",
-        "hash": "2835a041598f2edc4393b4b3ed1d1399",
-        "lines": 231,
-        "mtime": "2026-06-09T08:02:50.461Z",
+        "hash": "274e9ea6b001e3289a39cbc5b7083f7e",
+        "lines": 238,
+        "mtime": "2026-06-11T02:26:13.976Z",
         "className": "container",
         "methods": [
           "Container",
@@ -7440,23 +7676,9 @@
           "src/upgrade.js"
         ],
         "id": "fc4eae43",
-        "summary": "Initializes the runtime container that wires together configuration, paths, and shared services. It acts as the central dependency registry for CLI and documentation features.",
-        "detail": "The module defines a `Container` class with registration and lookup APIs for runtime dependencies and preset instances. During initialization it loads config, computes derived paths, and prepares services such as logging, providers, flow management, cleanup path resolution, and document analysis helpers. The path builder accounts for worktree-aware log relocation and `.senti` output layout. This design keeps command code thin by resolving common dependencies from one initialized container.",
-        "chapter": "internal_design",
-        "role": "Dependency injection container",
         "enrich": {
-          "processedAt": "2026-06-09T11:46:36.602Z",
           "attempts": 1
-        },
-        "keywords": [
-          "service container",
-          "dependency injection",
-          "runtime registry",
-          "path builder",
-          "flow manager",
-          "shared services",
-          "application bootstrap"
-        ]
+        }
       },
       {
         "file": "src/lib/dispatcher.js",
@@ -7608,7 +7830,8 @@
         ],
         "extends": null,
         "usedBy": [
-          "src/lib/dispatcher.js"
+          "src/lib/dispatcher.js",
+          "src/lib/plugin-registry.js"
         ],
         "id": "4f01cb50",
         "summary": "Defines the envelope abstraction used for consistent command success/failure payloads and process exit signaling. It standardizes the JSON shape exchanged across CLI modules.",
@@ -7978,6 +8201,32 @@
           "changed files detail",
           "GitHub CLI integration"
         ]
+      },
+      {
+        "file": "src/lib/gitignore.js",
+        "hash": "03d136be877da63841d2979ba32c8b33",
+        "lines": 47,
+        "mtime": "2026-06-11T02:20:24.414Z",
+        "className": "gitignore",
+        "methods": [
+          "hasSentiGitignore",
+          "normalizeSentiGitignore"
+        ],
+        "imports": [],
+        "exports": [
+          "hasSentiGitignore",
+          "normalizeSentiGitignore",
+          "SENTI_GITIGNORE_LINES"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/setup.js",
+          "src/upgrade.js"
+        ],
+        "id": "f57238a6",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/lib/glob.js",
@@ -8496,14 +8745,14 @@
         ],
         "id": "d79c8794",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
         "file": "src/lib/plugin-registry.js",
-        "hash": "bfed5405e1a9ad52c76f2ce3d395748a",
-        "lines": 592,
-        "mtime": "2026-06-09T17:06:44.554Z",
+        "hash": "607684986addf357ec88a27309593f2b",
+        "lines": 738,
+        "mtime": "2026-06-11T02:26:13.976Z",
         "className": "plugin-registry",
         "methods": [
           "readProjectConfig",
@@ -8522,29 +8771,44 @@
           "syncInstalledPlugins",
           "listInstalledPlugins",
           "setPluginEnabled",
+          "resolvePluginPackageSources",
+          "FlowCommandHook",
+          "discoverFlowCommandHooks",
+          "writeFlowCommandHookSnapshot",
+          "loadFlowCommandHookSnapshot",
           "dispatchPluginCommand",
+          "runFlowCommandHooks",
+          "runFlowCommandWithPluginLifecycle",
           "ensureOfficialPackage",
           "readJson",
           "writeJson",
           "ensurePluginConfig",
+          "sourceLocation",
           "normalizeRel",
           "assertId",
           "isUnderFileAllowlist",
           "walkFiles",
           "validatePackageJson",
-          "pluginReposDir",
+          "pluginSourcesDir",
           "installedPluginsDir",
           "runGit",
           "localRepoHead",
-          "checkedOutRepoRoot",
-          "syncGitUrlRepo",
-          "resolveRepo",
-          "packageEntriesFromRepo",
-          "nextRepoId",
+          "checkedOutSourceRoot",
+          "syncGitUrlSource",
+          "resolveSource",
+          "nextSourceId",
           "materializeCommit",
+          "existingKnownPluginPaths",
           "copyAllowlistedFiles",
           "validateSourceTree",
-          "installFromSource"
+          "installFromSource",
+          "buildPluginApi",
+          "validateHookClass",
+          "pluginConfigFor",
+          "artifactHelpers",
+          "buildPluginContext",
+          "isEnvelopeLike",
+          "loadHookClass"
         ],
         "imports": [
           "fs",
@@ -8552,6 +8816,7 @@
           "url",
           "./cli.js",
           "./config.js",
+          "./flow-envelope.js",
           "./process.js"
         ],
         "exports": [
@@ -8571,11 +8836,20 @@
           "syncInstalledPlugins",
           "listInstalledPlugins",
           "setPluginEnabled",
+          "resolvePluginPackageSources",
+          "FlowCommandHook",
+          "discoverFlowCommandHooks",
+          "writeFlowCommandHookSnapshot",
+          "loadFlowCommandHookSnapshot",
           "dispatchPluginCommand",
-          "ensureOfficialPackage"
+          "runFlowCommandHooks",
+          "runFlowCommandWithPluginLifecycle",
+          "ensureOfficialPackage",
+          "default"
         ],
         "extends": null,
         "usedBy": [
+          "src/help.js",
           "src/lib/presets.js",
           "src/plugin.js",
           "src/upgrade.js",
@@ -8672,9 +8946,9 @@
       },
       {
         "file": "src/lib/presets.js",
-        "hash": "9219dad8c8e1b4c904bdf22a3c0ee615",
+        "hash": "e7160fb83a8c196b554cddcf68a4f8d6",
         "lines": 431,
-        "mtime": "2026-06-09T17:06:44.554Z",
+        "mtime": "2026-06-11T02:26:13.977Z",
         "className": "presets",
         "methods": [
           "resolveChain",
@@ -8799,7 +9073,7 @@
         ],
         "id": "fa23a1ba",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -8835,9 +9109,9 @@
       },
       {
         "file": "src/lib/provider.js",
-        "hash": "f93a5640e5bf1cce1acc70bb93cf3a79",
-        "lines": 230,
-        "mtime": "2026-05-29T01:36:40.517Z",
+        "hash": "49d00b450c76b52547090d691b449996",
+        "lines": 242,
+        "mtime": "2026-06-11T02:26:13.977Z",
         "className": "provider",
         "methods": [],
         "imports": [],
@@ -8855,23 +9129,8 @@
         ],
         "id": "0e966da6",
         "enrich": {
-          "processedAt": "2026-05-29T02:08:40.284Z",
-          "attempts": 2
-        },
-        "summary": "Defines provider classes and registry logic that adapt agent execution to Claude, Codex, and generic user providers. It encapsulates command argument generation, output parsing, and optional flag conventions.",
-        "detail": "The abstract `Provider` specifies the parse/flag contract, while concrete providers implement model arguments, structured-output handling, and usage extraction. Claude parsing expects JSON envelopes and extracts result text plus token counters, whereas Codex parsing handles event-stream style lines. Providers can expose system-prompt and workdir flags, allowing agent invocation to stay provider-agnostic. `ProviderRegistry` merges profile settings and resolves a provider/profile tuple for a command. This design isolates vendor-specific protocol differences behind stable runtime interfaces.",
-        "chapter": "configuration",
-        "role": "Agent provider adapter layer",
-        "keywords": [
-          "provider registry",
-          "claude adapter",
-          "codex adapter",
-          "output parsing",
-          "model arguments",
-          "system prompt flag",
-          "workdir flag",
-          "llm abstraction"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/lib/runtime-log.js",
@@ -8947,7 +9206,7 @@
         ],
         "id": "8bb94bbb",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -8992,7 +9251,7 @@
         ],
         "id": "a3560f5e",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -9031,7 +9290,7 @@
         ],
         "id": "a1344e4a",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9077,7 +9336,7 @@
         "usedBy": null,
         "id": "e288cfbd",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9161,9 +9420,9 @@
       },
       {
         "file": "src/lib/types.js",
-        "hash": "291489621a5d6349e56de24d7af2591b",
+        "hash": "fd124cbafcc5b2b1a5ba9f106a015b49",
         "lines": 109,
-        "mtime": "2026-06-09T08:02:50.463Z",
+        "mtime": "2026-06-11T02:26:13.977Z",
         "className": "types",
         "methods": [],
         "imports": [],
@@ -9172,7 +9431,7 @@
         "usedBy": null,
         "id": "69d5afb4",
         "enrich": {
-          "attempts": 2
+          "attempts": 1
         }
       },
       {
@@ -9193,7 +9452,7 @@
         "usedBy": null,
         "id": "0230d610",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9265,7 +9524,7 @@
         "usedBy": null,
         "id": "c060be7e",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9346,7 +9605,7 @@
         "usedBy": null,
         "id": "59edeaf2",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9368,7 +9627,7 @@
         "usedBy": null,
         "id": "610d9db9",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9391,7 +9650,7 @@
         "usedBy": null,
         "id": "e93ead84",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9431,7 +9690,7 @@
         ],
         "id": "7d498c2d",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9458,7 +9717,7 @@
         ],
         "id": "09180f7a",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9484,7 +9743,7 @@
         "usedBy": null,
         "id": "0335b588",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9510,7 +9769,7 @@
         ],
         "id": "11017e14",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9528,7 +9787,7 @@
         "usedBy": null,
         "id": "c9fb7b98",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9548,7 +9807,7 @@
         "usedBy": null,
         "id": "b970b682",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9584,7 +9843,7 @@
         ],
         "id": "77a6b299",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9604,7 +9863,7 @@
         "usedBy": null,
         "id": "8f10f543",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9622,7 +9881,7 @@
         "usedBy": null,
         "id": "8f450066",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9642,7 +9901,7 @@
         "usedBy": null,
         "id": "b0f8f889",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9662,7 +9921,7 @@
         "usedBy": null,
         "id": "4892bc67",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9682,7 +9941,7 @@
         "usedBy": null,
         "id": "1a761ec5",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9702,7 +9961,7 @@
         "usedBy": null,
         "id": "69990146",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9720,7 +9979,7 @@
         "usedBy": null,
         "id": "4ce12b68",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9740,7 +9999,7 @@
         "usedBy": null,
         "id": "067eb8ea",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9758,7 +10017,7 @@
         "usedBy": null,
         "id": "637f5458",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9823,7 +10082,7 @@
         "usedBy": null,
         "id": "9e5dc0f4",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9844,7 +10103,7 @@
         "usedBy": null,
         "id": "b619fac4",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9866,7 +10125,7 @@
         "usedBy": null,
         "id": "31519123",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9887,7 +10146,7 @@
         "usedBy": null,
         "id": "f4aeb340",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9908,7 +10167,7 @@
         "usedBy": null,
         "id": "06385296",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9931,7 +10190,7 @@
         "usedBy": null,
         "id": "d36783a1",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9949,7 +10208,7 @@
         "usedBy": null,
         "id": "fc850b5c",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9969,7 +10228,7 @@
         "usedBy": null,
         "id": "a156eb96",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10006,7 +10265,7 @@
         ],
         "id": "0f14eba0",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10037,7 +10296,7 @@
         ],
         "id": "4cd40de0",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10069,7 +10328,7 @@
         ],
         "id": "77570238",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10097,7 +10356,7 @@
         ],
         "id": "5ab85a7b",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10126,7 +10385,7 @@
         ],
         "id": "67be0cde",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10164,7 +10423,7 @@
         ],
         "id": "2a0239d4",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10190,7 +10449,7 @@
         "usedBy": null,
         "id": "b44b1f6d",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10210,7 +10469,7 @@
         "usedBy": null,
         "id": "4aed4546",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10234,7 +10493,7 @@
         ],
         "id": "555b424b",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10258,7 +10517,7 @@
         ],
         "id": "8c8019c6",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10282,7 +10541,7 @@
         ],
         "id": "f3640aba",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10306,7 +10565,7 @@
         ],
         "id": "077841bf",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10330,7 +10589,7 @@
         ],
         "id": "047801d3",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10348,7 +10607,7 @@
         "usedBy": null,
         "id": "8b8574e8",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10366,7 +10625,7 @@
         "usedBy": null,
         "id": "949943f2",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10388,7 +10647,7 @@
         "usedBy": null,
         "id": "ef3e174a",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10415,7 +10674,7 @@
         "usedBy": null,
         "id": "46b3a8ca",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10455,7 +10714,7 @@
         "usedBy": null,
         "id": "28c8bebb",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10476,7 +10735,7 @@
         "usedBy": null,
         "id": "7d1ae163",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10502,7 +10761,7 @@
         "usedBy": null,
         "id": "3d150f2b",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10526,7 +10785,7 @@
         "usedBy": null,
         "id": "c4eb1579",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10548,7 +10807,7 @@
         "usedBy": null,
         "id": "16c764e7",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10573,7 +10832,7 @@
         "usedBy": null,
         "id": "5c2be5a4",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10594,7 +10853,7 @@
         "usedBy": null,
         "id": "7a46897e",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10614,7 +10873,7 @@
         "usedBy": null,
         "id": "42734f2d",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10651,7 +10910,7 @@
         "usedBy": null,
         "id": "f183e3be",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10691,7 +10950,7 @@
         ],
         "id": "5f3cf81b",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10718,7 +10977,7 @@
         ],
         "id": "bcc4aec4",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10744,7 +11003,7 @@
         "usedBy": null,
         "id": "805128d9",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10770,7 +11029,7 @@
         ],
         "id": "f52fc93a",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10788,7 +11047,7 @@
         "usedBy": null,
         "id": "860eaa68",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10806,7 +11065,7 @@
         "usedBy": null,
         "id": "cda517e7",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10842,7 +11101,7 @@
         ],
         "id": "0e2d19e4",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10862,7 +11121,7 @@
         "usedBy": null,
         "id": "e31b415e",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10882,7 +11141,7 @@
         "usedBy": null,
         "id": "984362a2",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10902,7 +11161,7 @@
         "usedBy": null,
         "id": "affdd67a",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10922,7 +11181,7 @@
         "usedBy": null,
         "id": "8c003752",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10940,7 +11199,7 @@
         "usedBy": null,
         "id": "50caf0ff",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10992,7 +11251,7 @@
         "usedBy": null,
         "id": "a0531819",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11014,7 +11273,7 @@
         "usedBy": null,
         "id": "f98c59e8",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11036,7 +11295,7 @@
         "usedBy": null,
         "id": "709be1a1",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11057,7 +11316,7 @@
         "usedBy": null,
         "id": "745cd2f0",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11080,7 +11339,7 @@
         "usedBy": null,
         "id": "4cf3f8a7",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11103,7 +11362,7 @@
         "usedBy": null,
         "id": "6f2217a0",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11128,7 +11387,7 @@
         "usedBy": null,
         "id": "a105caf5",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11156,7 +11415,7 @@
         "usedBy": null,
         "id": "3f541c46",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11181,7 +11440,7 @@
         "usedBy": null,
         "id": "578aeee2",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11209,7 +11468,7 @@
         "usedBy": null,
         "id": "242e9231",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11231,7 +11490,7 @@
         "usedBy": null,
         "id": "ef3bd76b",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11255,7 +11514,7 @@
         ],
         "id": "53062c55",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11277,7 +11536,7 @@
         ],
         "id": "d409acc6",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11301,7 +11560,7 @@
         ],
         "id": "3a83d7fb",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11325,7 +11584,7 @@
         ],
         "id": "57b6cad6",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11349,7 +11608,7 @@
         ],
         "id": "cfe489eb",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11371,7 +11630,7 @@
         ],
         "id": "001ae5a0",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11395,7 +11654,7 @@
         ],
         "id": "c40c2149",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11417,7 +11676,7 @@
         ],
         "id": "46e5d152",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11437,7 +11696,7 @@
         "usedBy": null,
         "id": "ba16fdc4",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11455,7 +11714,7 @@
         "usedBy": null,
         "id": "65b6ce47",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11475,7 +11734,7 @@
         "usedBy": null,
         "id": "347d776b",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11498,7 +11757,7 @@
         "usedBy": null,
         "id": "5298695e",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11524,7 +11783,7 @@
         "usedBy": null,
         "id": "3a21a48e",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11556,7 +11815,7 @@
         "usedBy": null,
         "id": "bc2eea02",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11591,7 +11850,7 @@
         "usedBy": null,
         "id": "92e4fc0e",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11628,7 +11887,7 @@
         ],
         "id": "8971b3a9",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11659,7 +11918,7 @@
         ],
         "id": "b8b4b356",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11691,7 +11950,7 @@
         ],
         "id": "bec0cbc5",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11719,7 +11978,7 @@
         ],
         "id": "0c27b843",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11748,7 +12007,7 @@
         ],
         "id": "74ec7555",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11786,7 +12045,7 @@
         ],
         "id": "3d6a704a",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11812,7 +12071,7 @@
         "usedBy": null,
         "id": "6a9476e8",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11832,7 +12091,7 @@
         "usedBy": null,
         "id": "79bf9d9a",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11856,7 +12115,7 @@
         ],
         "id": "121ea72d",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11880,7 +12139,7 @@
         ],
         "id": "0253726f",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11904,7 +12163,7 @@
         ],
         "id": "895145b6",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11928,7 +12187,7 @@
         ],
         "id": "01f3c1bb",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11952,7 +12211,7 @@
         ],
         "id": "dd504f20",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11970,7 +12229,7 @@
         "usedBy": null,
         "id": "3ab73d73",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11988,7 +12247,7 @@
         "usedBy": null,
         "id": "50428795",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12006,7 +12265,7 @@
         "usedBy": null,
         "id": "1231379a",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12027,7 +12286,7 @@
         "usedBy": null,
         "id": "f1870f47",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12045,7 +12304,7 @@
         "usedBy": null,
         "id": "acece93e",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12065,7 +12324,7 @@
         "usedBy": null,
         "id": "bd8fecb4",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12104,7 +12363,7 @@
         ],
         "id": "46be519f",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12125,7 +12384,7 @@
         "usedBy": null,
         "id": "1973aa0d",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12146,7 +12405,7 @@
         "usedBy": null,
         "id": "35e38bd0",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12168,7 +12427,7 @@
         "usedBy": null,
         "id": "b03f6bd4",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12193,7 +12452,7 @@
         "usedBy": null,
         "id": "2be8901a",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12211,7 +12470,7 @@
         "usedBy": null,
         "id": "e561bf3d",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12259,7 +12518,7 @@
         "usedBy": null,
         "id": "fc17fa00",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12281,7 +12540,7 @@
         "usedBy": null,
         "id": "8a0fd432",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12303,7 +12562,7 @@
         "usedBy": null,
         "id": "68ad7707",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12324,7 +12583,7 @@
         "usedBy": null,
         "id": "c12b2c1d",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12347,7 +12606,7 @@
         "usedBy": null,
         "id": "6018c37c",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12368,7 +12627,7 @@
         "usedBy": null,
         "id": "da4b0495",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12386,7 +12645,7 @@
         "usedBy": null,
         "id": "ca0c5d13",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12404,7 +12663,7 @@
         "usedBy": null,
         "id": "6c8b62b7",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12422,7 +12681,7 @@
         "usedBy": null,
         "id": "08a9a14a",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12442,7 +12701,7 @@
         "usedBy": null,
         "id": "3cb088fe",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12460,7 +12719,7 @@
         "usedBy": null,
         "id": "394e3450",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12480,7 +12739,7 @@
         ],
         "id": "3e848e11",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12498,7 +12757,7 @@
         "usedBy": null,
         "id": "ce786474",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12519,7 +12778,7 @@
         "usedBy": null,
         "id": "617dccae",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12543,7 +12802,7 @@
         "usedBy": null,
         "id": "8f6a9dae",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12564,24 +12823,22 @@
         "usedBy": null,
         "id": "ac06edc0",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
         "file": "src/official-plugins/senti-workflow-plugin/commands/workflow.js",
-        "hash": "c6e7ebef4ddf0be13a79d6a6db1ccec4",
-        "lines": 11,
-        "mtime": "2026-06-09T17:06:44.555Z",
+        "hash": "e950e494471d0f099e0479ffe06e1082",
+        "lines": 16,
+        "mtime": "2026-06-11T02:26:13.977Z",
         "className": "workflow",
-        "methods": [
-          "main"
-        ],
+        "methods": [],
         "imports": [
           "path",
           "url"
         ],
         "exports": [
-          "main"
+          "default"
         ],
         "extends": null,
         "usedBy": null,
@@ -12591,12 +12848,32 @@
         }
       },
       {
+        "file": "src/official-plugins/senti-workflow-plugin/hooks/issue-start.js",
+        "hash": "9e04e7103b9380bdcf827ab0fc25aa35",
+        "lines": 28,
+        "mtime": "2026-06-11T02:26:13.977Z",
+        "className": "issue-start",
+        "methods": [],
+        "imports": [],
+        "exports": [
+          "default"
+        ],
+        "extends": "api",
+        "usedBy": null,
+        "id": "194cae7d",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
         "file": "src/plugin.js",
-        "hash": "0042f210034c1885c02aba72c41e80ca",
-        "lines": 167,
-        "mtime": "2026-06-09T11:43:04.005Z",
+        "hash": "438e364bbdcc14e2da673ca29961c240",
+        "lines": 187,
+        "mtime": "2026-06-11T02:26:13.978Z",
         "className": "plugin",
         "methods": [
+          "renderPluginList",
+          "renderPluginSourceMigrationGuide",
           "main",
           "printHelp",
           "printRepoHelp",
@@ -12612,13 +12889,15 @@
           "./lib/plugin-registry.js"
         ],
         "exports": [
+          "renderPluginList",
+          "renderPluginSourceMigrationGuide",
           "main"
         ],
         "extends": null,
         "usedBy": null,
         "id": "ae80e38f",
         "enrich": {
-          "attempts": 2
+          "attempts": 1
         }
       },
       {
@@ -12644,7 +12923,7 @@
         "usedBy": null,
         "id": "85926390",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12842,14 +13121,14 @@
         "usedBy": null,
         "id": "acdc1ca9",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
         "file": "src/senti.js",
-        "hash": "58228bd1219c52de7f21df6374ffd6d1",
-        "lines": 113,
-        "mtime": "2026-06-09T11:43:04.007Z",
+        "hash": "68fb2011c1952e1d8bc4747dee0b31c0",
+        "lines": 120,
+        "mtime": "2026-06-11T02:26:13.978Z",
         "className": "senti",
         "methods": [],
         "imports": [
@@ -12864,14 +13143,14 @@
         "usedBy": null,
         "id": "a8608997",
         "enrich": {
-          "attempts": 2
+          "attempts": 1
         }
       },
       {
         "file": "src/setup.js",
-        "hash": "3455081dfd8d251967c92395716081dd",
-        "lines": 575,
-        "mtime": "2026-06-09T08:02:50.483Z",
+        "hash": "dcb586f413ad595805b1a9b4c9876a5e",
+        "lines": 574,
+        "mtime": "2026-06-11T02:19:08.033Z",
         "className": "setup",
         "methods": [
           "ask",
@@ -12904,7 +13183,8 @@
           "./lib/agents-md.js",
           "./lib/config.js",
           "./lib/agent-defaults.js",
-          "./lib/skills.js"
+          "./lib/skills.js",
+          "./lib/gitignore.js"
         ],
         "exports": [
           "main"
@@ -12913,7 +13193,7 @@
         "usedBy": null,
         "id": "9820c9db",
         "enrich": {
-          "attempts": 2
+          "attempts": 1
         }
       },
       {
@@ -12934,7 +13214,7 @@
         "usedBy": null,
         "id": "dca811d6",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -12974,17 +13254,18 @@
         "usedBy": null,
         "id": "d63c4335",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
         "file": "src/upgrade.js",
-        "hash": "ab43bca1011ef467f9b37c97b6de28dc",
-        "lines": 551,
-        "mtime": "2026-06-09T11:43:04.007Z",
+        "hash": "d2c8af41457e51a69d65cf43215e35cf",
+        "lines": 609,
+        "mtime": "2026-06-11T02:26:13.978Z",
         "className": "upgrade",
         "methods": [
           "parseUpgradeArgs",
+          "migratePluginConfigNamespaces",
           "resolveActiveUpgradeFlow",
           "createUpgradeLogger",
           "resultFromSummary",
@@ -13006,17 +13287,19 @@
           "./lib/plugin-registry.js",
           "./lib/skills.js",
           "./lib/preset-deploy.js",
-          "./flow/lib/test-artifacts.js"
+          "./flow/lib/test-artifacts.js",
+          "./lib/gitignore.js"
         ],
         "exports": [
           "parseUpgradeArgs",
+          "migratePluginConfigNamespaces",
           "main"
         ],
         "extends": null,
         "usedBy": null,
         "id": "a631f658",
         "enrich": {
-          "attempts": 2
+          "attempts": 1
         }
       },
       {
@@ -13045,7 +13328,7 @@
         "usedBy": null,
         "id": "cc286b88",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -13288,7 +13571,7 @@
         "usedBy": null,
         "id": "970e6266",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -13314,7 +13597,7 @@
         "usedBy": null,
         "id": "27d732ed",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -13706,15 +13989,15 @@
         ],
         "id": "780bd655",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       }
     ],
     "summary": {
-      "total": 353,
-      "totalMethods": 1825
+      "total": 355,
+      "totalMethods": 1855
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-09T17:11:56.852Z"
+  "enrichedAt": "2026-06-11T02:31:51.737Z"
 }
