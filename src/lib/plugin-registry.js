@@ -736,19 +736,20 @@ function artifactHelpers(root, pluginId, flow = {}, options = {}) {
 function buildPluginContext({ root, pluginId, pluginRoot, commandPath, flow = {}, result = {}, requireSpecArtifacts = false }) {
   const rootConfig = readProjectConfig(root);
   const pluginConfig = pluginConfigFor(root, pluginId);
+  const agent = globalThis.__sentiPluginAgent || {
+    resolve() {
+      return false;
+    },
+    async call() {
+      throw new Error("plugin agent context is not configured for this invocation");
+    },
+  };
   return {
     project: { root },
     plugin: { id: pluginId, root: pluginRoot, commandPath },
     config: pluginConfig,
     rootConfig: { lang: rootConfig.lang || "en" },
-    agent: {
-      resolve() {
-        return false;
-      },
-      async call() {
-        throw new Error("plugin agent context is not configured for this invocation");
-      },
-    },
+    agent,
     flow,
     result,
     artifacts: artifactHelpers(root, pluginId, flow, { requireSpec: requireSpecArtifacts }),

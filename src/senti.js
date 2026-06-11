@@ -105,6 +105,10 @@ if (NAMESPACE_SCRIPTS[subCmd]) {
     const handled = await dispatchPluginCommand(repoRoot(), subCmd, rest);
     if (handled) {
       if (handled.ok != null) {
+        if (handled.ok && handled.key === "help" && typeof handled.data?.help === "string") {
+          console.log(handled.data.help);
+          process.exit(0);
+        }
         console.log(JSON.stringify(handled, null, 2));
         process.exit(handled.ok ? 0 : (handled.exitCode || EXIT_ERROR));
       }

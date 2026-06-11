@@ -113,16 +113,6 @@ export function loadLang(root) {
   }
 }
 
-/**
- * Whether the plugin-owned flow integration is enabled.
- * Missing plugin config or a null/undefined config means disabled.
- * @param {object} [config]
- * @returns {boolean}
- */
-export function isFlowIntegrationEnabled(config) {
-  return config?.plugin?.config?.workflow?.flowIntegration === "enable";
-}
-
 // ---------------------------------------------------------------------------
 // Config schema (JSON Schema subset — private, not exported)
 // ---------------------------------------------------------------------------

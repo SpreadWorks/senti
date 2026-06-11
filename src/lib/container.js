@@ -194,7 +194,9 @@ export function initContainer(opts = {}) {
   }
 
   const registry = new ProviderRegistry(config?.agent?.providers || {});
-  container.register("agent", new Agent({ config, paths, registry, logger, flowManager }));
+  const agent = new Agent({ config, paths, registry, logger, flowManager });
+  container.register("agent", agent);
+  globalThis.__sentiPluginAgent = agent;
   container.register("i18n", translate());
   container.register("lang", config?.lang);
 

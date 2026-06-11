@@ -24,7 +24,7 @@ import { mergeAgentDefaults } from "./lib/agent-defaults.js";
 import { translate } from "./lib/i18n.js";
 import { validatePresetChain } from "./lib/presets.js";
 import { officialPresetPluginRoot } from "./lib/official-plugins.js";
-import { ensureOfficialPackage } from "./lib/plugin-registry.js";
+import { ensureOfficialPackage, loadPluginRegistry } from "./lib/plugin-registry.js";
 import {
   deploySkills,
   deploySkillsFromDir,
