@@ -562,6 +562,8 @@ runIfDirect(import.meta.url, main);
 
 ### AI エージェント呼び出し (`lib/agent.js`)
 
+**MUST: AI を実行するすべての呼び出し箇所は、config から provider/profile を変更できる設定キーを持つこと。** 新しい AI 呼び出しを追加する場合、コード内に特定 provider/model を固定してはならない。core command は既存の `agent.profiles` / command id 解決に乗せ、plugin command/hook は `plugin.config.<pluginId>.agent.<name>` の override を解決できる public API 経由で呼び出すこと。未設定時だけ通常の agent default にフォールバックする。
+
 **非同期呼び出しで `execFile` を使ってはならない。**
 
 `child_process.spawn` を使い、`stdio: ["ignore", "pipe", "pipe"]` を明示する。
