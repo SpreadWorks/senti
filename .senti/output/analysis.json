@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-11T05:55:08.285Z",
+  "analyzedAt": "2026-06-11T10:01:28.065Z",
   "package": {
     "entries": [
       {
@@ -4479,9 +4479,9 @@
       },
       {
         "file": "src/flow/lib/retry-recovery.js",
-        "hash": "dafaf65e1ddd79d7fbd792614557d7cf",
+        "hash": "4f23a2584ad36295e7a2925b4d9afe38",
         "lines": 774,
-        "mtime": "2026-06-09T08:02:50.454Z",
+        "mtime": "2026-06-11T10:01:13.812Z",
         "className": "retry-recovery",
         "methods": [
           "resolveRecoveryMaxAttempts",
@@ -4572,23 +4572,8 @@
         ],
         "id": "3de0db3f",
         "enrich": {
-          "processedAt": "2026-06-09T17:08:05.013Z",
-          "attempts": 2
-        },
-        "summary": "Implements the retry recovery system used to decide whether failed gate or review phases may be retried or reset. It records baselines, fingerprints changed evidence, enforces budgets, and persists recovery artifacts back into flow state.",
-        "detail": "The file defines limits, allowed actions, recoverable phases, and multiple helper functions for normalizing paths, counting retries, and resolving canonical phases. Several small classes represent recovery inputs, targets, evidence sources, fingerprints, baselines, and recorded recovery entries, giving the feature stronger invariants without TypeScript. Eligibility decisions compare current evidence against persisted baselines, using file path filters and SHA-256 hashes to detect meaningful changes instead of relying only on counters. The module also writes structured JSON artifacts, updates issue logs, computes metrics for granted attempts, and exposes high-level functions that other commands use to apply recovery grants and evaluate repeated failures.",
-        "chapter": "internal_design",
-        "role": "Recovery policy engine for gated retries and evidence-based resets.",
-        "keywords": [
-          "retry recovery",
-          "recovery baseline",
-          "evidence fingerprint",
-          "retry budget",
-          "gate retry",
-          "review retry",
-          "sha256 diff",
-          "flow recovery"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/review-failure.js",
@@ -4811,9 +4796,9 @@
       },
       {
         "file": "src/flow/lib/run-finalize-cleanup.js",
-        "hash": "99d0b669b388ea4e50517d31729ad2d7",
-        "lines": 824,
-        "mtime": "2026-06-09T08:02:50.455Z",
+        "hash": "d75a0f48aa2ff3ff91369593940b296f",
+        "lines": 854,
+        "mtime": "2026-06-11T10:01:13.812Z",
         "className": "run-finalize-cleanup",
         "methods": [
           "RunFinalizeCleanupCommand",
@@ -4843,7 +4828,8 @@
           "./run-finalize.js",
           "./run-report-show.js",
           "./step-tree.js",
-          "./set-issue-log.js"
+          "./set-issue-log.js",
+          "../../lib/plugin-registry.js"
         ],
         "exports": [
           "RunFinalizeCleanupCommand",
@@ -4855,24 +4841,9 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "40e4daa5",
-        "summary": "Implements final cleanup for a completed flow, including teardown, metadata sync, and recovery handling. It also enriches failure responses with the latest report and recovery guidance.",
-        "detail": "This module centers on RunFinalizeCleanupCommand, which coordinates worktree teardown after finalize and validates that branch and worktree cleanup really completed. It synchronizes selected flow metadata back to the main repository, records audit entries in the issue log, and attaches the latest report text to envelopes when available. When normal cleanup is blocked, it inspects orphan commits, dirty files, and branch state to choose recovery options and can attempt an automatic rescue flow based on cherry-picking work into a temporary worktree. The implementation treats cleanup as a controlled state transition, with rollback paths, explicit error codes, and post-action validation rather than best-effort deletion.",
-        "chapter": "internal_design",
-        "role": "finalize cleanup and recovery command",
         "enrich": {
-          "processedAt": "2026-06-09T11:44:21.159Z",
           "attempts": 1
-        },
-        "keywords": [
-          "finalize cleanup",
-          "worktree teardown",
-          "metadata sync",
-          "orphan commits",
-          "auto rescue",
-          "cherry-pick recovery",
-          "issue log",
-          "flow finalization"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/run-finalize-commit.js",
@@ -5381,9 +5352,9 @@
       },
       {
         "file": "src/flow/lib/run-prepare-spec.js",
-        "hash": "7b1a753e8e6b34185f0d10414e58022b",
-        "lines": 389,
-        "mtime": "2026-06-11T02:26:13.975Z",
+        "hash": "d7e898cab8e69dba3e1bd4d29d89d113",
+        "lines": 400,
+        "mtime": "2026-06-11T10:01:13.812Z",
         "className": "run-prepare-spec",
         "methods": [
           "buildDraftTemplate",
@@ -5422,23 +5393,9 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "59eeacc6",
-        "summary": "This module drives the `flow prepare-spec` workflow, creating spec scaffolding and validating the workspace before work begins. It also integrates plugin hooks, worktree support, and an initial documentation scan.",
-        "detail": "It generates numbered spec directories, derives branch-safe slugs, detects or validates the base branch, and writes initial files such as `spec.json`, `draft.json`, and issue notes. Before proceeding, it checks for configuration presence, dirty-worktree constraints, and whether the command is being run from the correct repository location. The workflow can invoke `docs scan` to ensure `analysis.json` exists and is parseable before authoring begins. Hook integration and optional isolated worktree setup let plugins or repository policy extend preparation behavior without changing the command core.",
-        "chapter": "cli_commands",
-        "role": "prepare-spec workflow",
         "enrich": {
-          "processedAt": "2026-06-11T02:27:40.580Z",
           "attempts": 1
-        },
-        "keywords": [
-          "prepare spec",
-          "worktree setup",
-          "spec scaffold",
-          "branch detection",
-          "analysis bootstrap",
-          "plugin hooks",
-          "flow initialization"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/run-reopen-draft.js",
@@ -6928,7 +6885,7 @@
         ],
         "id": "0b1b96b3",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -7057,7 +7014,7 @@
         ],
         "id": "2980d983",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -7106,7 +7063,7 @@
         ],
         "id": "d64f4095",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -7135,7 +7092,7 @@
         "usedBy": null,
         "id": "4ac07fa0",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -7156,7 +7113,7 @@
         "usedBy": null,
         "id": "fa47a601",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -7226,14 +7183,14 @@
         ],
         "id": "7463ee9a",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
         "file": "src/lib/agent-defaults.js",
-        "hash": "104651ccac37ce842523697bac0f231e",
-        "lines": 225,
-        "mtime": "2026-06-09T08:02:50.460Z",
+        "hash": "c4f44c91dafec6ddc3c72d9a2cb7d252",
+        "lines": 222,
+        "mtime": "2026-06-11T10:01:13.813Z",
         "className": "agent-defaults",
         "methods": [
           "defaultAgentProfiles",
@@ -7255,7 +7212,7 @@
         ],
         "id": "1af31edd",
         "enrich": {
-          "attempts": 4
+          "attempts": 1
         }
       },
       {
@@ -7341,7 +7298,7 @@
         ],
         "id": "13ddf392",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -7367,7 +7324,7 @@
         ],
         "id": "9f3f55f7",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -7420,7 +7377,7 @@
         ],
         "id": "f351ecc4",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -7457,7 +7414,7 @@
         ],
         "id": "0d680f4f",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -7496,9 +7453,9 @@
       },
       {
         "file": "src/lib/config.js",
-        "hash": "7f3c3b25d2bfb4338cbe5db968703ab0",
-        "lines": 577,
-        "mtime": "2026-06-11T02:26:13.976Z",
+        "hash": "e73197eac355547c3c4e9ac1cf40389f",
+        "lines": 543,
+        "mtime": "2026-06-11T10:01:13.813Z",
         "className": "config",
         "methods": [
           "resolveConcurrency",
@@ -7560,28 +7517,12 @@
           "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
           "src/presets/base/tests/acceptance/fixtures/src/index.js",
           "src/setup.js",
-          "src/upgrade.js",
-          "src/workflow/index.js"
+          "src/upgrade.js"
         ],
         "id": "dff6e5b4",
         "enrich": {
-          "processedAt": "2026-06-11T04:00:32.862Z",
-          "attempts": 2
-        },
-        "summary": "Central configuration utilities for Senti, including path resolution, defaults, and config validation. It also merges plugin-provided schemas and default values into the project config.",
-        "detail": "The module defines base defaults such as concurrency and language, plus helper functions that resolve standard `.senti` paths, working directories, and package metadata. It loads JSON files defensively and exposes convenience checks like whether workflow flow integration is enabled. Validation is schema-driven and adds custom guards for plugin identifiers, commit hashes, test commands, and safe relative paths. When loading config, it also discovers enabled plugins, imports their schema and defaults, migrates legacy namespaces, and validates the merged result as a final typed config object.",
-        "chapter": "configuration",
-        "role": "Configuration loader and validator",
-        "keywords": [
-          "config loader",
-          "config validation",
-          "schema merge",
-          "plugin defaults",
-          "work directory",
-          "language setting",
-          "JSON config",
-          "project settings"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/lib/constants.js",
@@ -8760,14 +8701,13 @@
       },
       {
         "file": "src/lib/official-plugins.js",
-        "hash": "8a70dac20c77ee95f31507a5317ad364",
-        "lines": 37,
-        "mtime": "2026-06-09T17:06:44.554Z",
+        "hash": "5479881a84251f2091161533dafb47e6",
+        "lines": 33,
+        "mtime": "2026-06-11T10:01:13.813Z",
         "className": "official-plugins",
         "methods": [
           "bundledOfficialPresetPluginRoot",
           "officialPresetPluginRoot",
-          "officialWorkflowPluginRoot",
           "findSiblingPluginRoot",
           "officialPluginRoot",
           "bundledOfficialPluginRoot"
@@ -8779,8 +8719,7 @@
         ],
         "exports": [
           "bundledOfficialPresetPluginRoot",
-          "officialPresetPluginRoot",
-          "officialWorkflowPluginRoot"
+          "officialPresetPluginRoot"
         ],
         "extends": null,
         "usedBy": [
@@ -8789,28 +8728,14 @@
         ],
         "id": "d79c8794",
         "enrich": {
-          "processedAt": "2026-06-11T04:00:32.862Z",
-          "attempts": 3
-        },
-        "summary": "Resolver functions for locating official plugin repositories or bundled plugin copies. It supports environment overrides, sibling repository discovery, and packaged fallbacks.",
-        "detail": "The module walks upward from the package directory to search for sibling repositories that contain a `plugin.json` manifest. It provides a generic `officialPluginRoot` resolver that first checks an environment variable, then a sibling repo, then a bundled path under `official-plugins`. Dedicated helpers expose the official preset plugin and workflow plugin locations as stable entry points. This design lets local development use checked-out repositories while production or packaged installs use bundled assets.",
-        "chapter": "project_structure",
-        "role": "Official plugin path resolver",
-        "keywords": [
-          "official plugins",
-          "plugin path",
-          "bundled plugin",
-          "environment override",
-          "sibling repository",
-          "plugin manifest",
-          "repo discovery"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/lib/plugin-registry.js",
-        "hash": "92a11458cadbf8ac50e8575a5fc6dfe0",
-        "lines": 834,
-        "mtime": "2026-06-11T03:58:57.916Z",
+        "hash": "0784bd861b9b890a339b9d1b35c3c6a8",
+        "lines": 887,
+        "mtime": "2026-06-11T10:01:13.813Z",
         "className": "plugin-registry",
         "methods": [
           "readProjectConfig",
@@ -8860,6 +8785,7 @@
           "resolveSource",
           "nextSourceId",
           "materializeCommit",
+          "hashPackageTree",
           "existingKnownPluginPaths",
           "copyAllowlistedFiles",
           "validateSourceTree",
@@ -8878,6 +8804,7 @@
         "imports": [
           "fs",
           "path",
+          "crypto",
           "url",
           "./cli.js",
           "./config.js",
@@ -8917,28 +8844,12 @@
           "src/help.js",
           "src/lib/presets.js",
           "src/plugin.js",
-          "src/upgrade.js",
-          "src/workflow/index.js"
+          "src/upgrade.js"
         ],
         "id": "bfaf1dcd",
-        "summary": "Comprehensive plugin registry and lifecycle manager for discovery, installation, validation, command dispatch, and flow hooks. It is the core of Senti's plugin system.",
-        "detail": "The module defines strict safety limits for plugin packages, including file counts, JSON size, path depth, allowed IDs, and safe relative paths. It models plugin manifests and registries, reads and writes project plugin config, resolves plugin sources from local paths or Git URLs, and materializes allowlisted files into installed plugin directories. It also validates plugin packages, prevents hooks from importing core internals, discovers preset/data/command contributions, and synchronizes installed plugins from configured sources. On the runtime side, it discovers flow-command hooks, snapshots hook metadata, builds plugin execution contexts with artifact helpers, dispatches plugin commands, and wraps flow execution with plugin lifecycle hooks.",
-        "chapter": "internal_design",
-        "role": "Plugin system registry and lifecycle engine",
         "enrich": {
-          "processedAt": "2026-06-11T04:00:32.862Z",
           "attempts": 1
-        },
-        "keywords": [
-          "plugin registry",
-          "plugin installation",
-          "Git source sync",
-          "plugin manifest",
-          "hook discovery",
-          "command dispatch",
-          "artifact storage",
-          "extension system"
-        ]
+        }
       },
       {
         "file": "src/lib/preparing-flow-store.js",
@@ -9600,9 +9511,9 @@
       },
       {
         "file": "src/lib/types.js",
-        "hash": "fd124cbafcc5b2b1a5ba9f106a015b49",
-        "lines": 109,
-        "mtime": "2026-06-11T02:26:13.977Z",
+        "hash": "50d193a64e8bd7fe718ed6a4366262ed",
+        "lines": 97,
+        "mtime": "2026-06-11T10:01:13.813Z",
         "className": "types",
         "methods": [],
         "imports": [],
@@ -9611,22 +9522,8 @@
         "usedBy": null,
         "id": "69d5afb4",
         "enrich": {
-          "processedAt": "2026-06-11T04:00:32.862Z",
-          "attempts": 2
-        },
-        "summary": "Type definition module referenced by other files, but no implementation is shown in the provided extract. Its likely purpose is to centralize shared runtime and config type declarations.",
-        "detail": "The extract contains only the file path, so no concrete exports or internal structure can be verified. Based on imports elsewhere, this module is probably used for JSDoc-backed shared types such as `SentiConfig` and related runtime objects. That suggests a documentation and tooling role rather than executable logic. Any finer behavioral description would be speculative without the file contents.",
-        "chapter": "project_structure",
-        "role": "Shared type declaration module",
-        "keywords": [
-          "type definitions",
-          "shared types",
-          "JSDoc types",
-          "interfaces",
-          "SentiConfig",
-          "static typing",
-          "module contract"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/metrics.js",
@@ -9827,7 +9724,7 @@
         "usedBy": null,
         "id": "59edeaf2",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -9849,7 +9746,7 @@
         "usedBy": null,
         "id": "610d9db9",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -9872,7 +9769,7 @@
         "usedBy": null,
         "id": "e93ead84",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -9912,7 +9809,7 @@
         ],
         "id": "7d498c2d",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -9939,7 +9836,7 @@
         ],
         "id": "09180f7a",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -9965,7 +9862,7 @@
         "usedBy": null,
         "id": "0335b588",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -9991,7 +9888,7 @@
         ],
         "id": "11017e14",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10009,7 +9906,7 @@
         "usedBy": null,
         "id": "c9fb7b98",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10029,7 +9926,7 @@
         "usedBy": null,
         "id": "b970b682",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10065,7 +9962,7 @@
         ],
         "id": "77a6b299",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10085,7 +9982,7 @@
         "usedBy": null,
         "id": "8f10f543",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10103,7 +10000,7 @@
         "usedBy": null,
         "id": "8f450066",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10123,7 +10020,7 @@
         "usedBy": null,
         "id": "b0f8f889",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10143,7 +10040,7 @@
         "usedBy": null,
         "id": "4892bc67",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10163,7 +10060,7 @@
         "usedBy": null,
         "id": "1a761ec5",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10183,7 +10080,7 @@
         "usedBy": null,
         "id": "69990146",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10201,7 +10098,7 @@
         "usedBy": null,
         "id": "4ce12b68",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10221,7 +10118,7 @@
         "usedBy": null,
         "id": "067eb8ea",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10239,7 +10136,7 @@
         "usedBy": null,
         "id": "637f5458",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10304,7 +10201,7 @@
         "usedBy": null,
         "id": "9e5dc0f4",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10325,7 +10222,7 @@
         "usedBy": null,
         "id": "b619fac4",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10347,7 +10244,7 @@
         "usedBy": null,
         "id": "31519123",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10368,7 +10265,7 @@
         "usedBy": null,
         "id": "f4aeb340",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10389,7 +10286,7 @@
         "usedBy": null,
         "id": "06385296",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10412,7 +10309,7 @@
         "usedBy": null,
         "id": "d36783a1",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10430,7 +10327,7 @@
         "usedBy": null,
         "id": "fc850b5c",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10450,7 +10347,7 @@
         "usedBy": null,
         "id": "a156eb96",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10487,7 +10384,7 @@
         ],
         "id": "0f14eba0",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10518,7 +10415,7 @@
         ],
         "id": "4cd40de0",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10550,7 +10447,7 @@
         ],
         "id": "77570238",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10578,7 +10475,7 @@
         ],
         "id": "5ab85a7b",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10607,7 +10504,7 @@
         ],
         "id": "67be0cde",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10645,7 +10542,7 @@
         ],
         "id": "2a0239d4",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10671,7 +10568,7 @@
         "usedBy": null,
         "id": "b44b1f6d",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10691,7 +10588,7 @@
         "usedBy": null,
         "id": "4aed4546",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10715,7 +10612,7 @@
         ],
         "id": "555b424b",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10739,7 +10636,7 @@
         ],
         "id": "8c8019c6",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10763,7 +10660,7 @@
         ],
         "id": "f3640aba",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10787,7 +10684,7 @@
         ],
         "id": "077841bf",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10811,7 +10708,7 @@
         ],
         "id": "047801d3",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10829,7 +10726,7 @@
         "usedBy": null,
         "id": "8b8574e8",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10847,7 +10744,7 @@
         "usedBy": null,
         "id": "949943f2",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10869,7 +10766,7 @@
         "usedBy": null,
         "id": "ef3e174a",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10896,7 +10793,7 @@
         "usedBy": null,
         "id": "46b3a8ca",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10936,7 +10833,7 @@
         "usedBy": null,
         "id": "28c8bebb",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10957,7 +10854,7 @@
         "usedBy": null,
         "id": "7d1ae163",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10983,7 +10880,7 @@
         "usedBy": null,
         "id": "3d150f2b",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11007,7 +10904,7 @@
         "usedBy": null,
         "id": "c4eb1579",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11029,7 +10926,7 @@
         "usedBy": null,
         "id": "16c764e7",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11054,7 +10951,7 @@
         "usedBy": null,
         "id": "5c2be5a4",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11075,7 +10972,7 @@
         "usedBy": null,
         "id": "7a46897e",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11095,7 +10992,7 @@
         "usedBy": null,
         "id": "42734f2d",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11132,7 +11029,7 @@
         "usedBy": null,
         "id": "f183e3be",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11172,7 +11069,7 @@
         ],
         "id": "5f3cf81b",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11199,7 +11096,7 @@
         ],
         "id": "bcc4aec4",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11225,7 +11122,7 @@
         "usedBy": null,
         "id": "805128d9",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11251,7 +11148,7 @@
         ],
         "id": "f52fc93a",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11269,7 +11166,7 @@
         "usedBy": null,
         "id": "860eaa68",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11287,7 +11184,7 @@
         "usedBy": null,
         "id": "cda517e7",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11323,7 +11220,7 @@
         ],
         "id": "0e2d19e4",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11343,7 +11240,7 @@
         "usedBy": null,
         "id": "e31b415e",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11363,7 +11260,7 @@
         "usedBy": null,
         "id": "984362a2",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11383,7 +11280,7 @@
         "usedBy": null,
         "id": "affdd67a",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11403,7 +11300,7 @@
         "usedBy": null,
         "id": "8c003752",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11421,7 +11318,7 @@
         "usedBy": null,
         "id": "50caf0ff",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11473,7 +11370,7 @@
         "usedBy": null,
         "id": "a0531819",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11495,7 +11392,7 @@
         "usedBy": null,
         "id": "f98c59e8",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11517,7 +11414,7 @@
         "usedBy": null,
         "id": "709be1a1",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11538,7 +11435,7 @@
         "usedBy": null,
         "id": "745cd2f0",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11561,7 +11458,7 @@
         "usedBy": null,
         "id": "4cf3f8a7",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11584,7 +11481,7 @@
         "usedBy": null,
         "id": "6f2217a0",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11609,7 +11506,7 @@
         "usedBy": null,
         "id": "a105caf5",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11637,7 +11534,7 @@
         "usedBy": null,
         "id": "3f541c46",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11662,7 +11559,7 @@
         "usedBy": null,
         "id": "578aeee2",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11690,7 +11587,7 @@
         "usedBy": null,
         "id": "242e9231",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11712,7 +11609,7 @@
         "usedBy": null,
         "id": "ef3bd76b",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11736,7 +11633,7 @@
         ],
         "id": "53062c55",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11758,7 +11655,7 @@
         ],
         "id": "d409acc6",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11782,7 +11679,7 @@
         ],
         "id": "3a83d7fb",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11806,7 +11703,7 @@
         ],
         "id": "57b6cad6",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11830,7 +11727,7 @@
         ],
         "id": "cfe489eb",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11852,7 +11749,7 @@
         ],
         "id": "001ae5a0",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11876,7 +11773,7 @@
         ],
         "id": "c40c2149",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11898,7 +11795,7 @@
         ],
         "id": "46e5d152",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11918,7 +11815,7 @@
         "usedBy": null,
         "id": "ba16fdc4",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11936,7 +11833,7 @@
         "usedBy": null,
         "id": "65b6ce47",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11956,7 +11853,7 @@
         "usedBy": null,
         "id": "347d776b",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -11979,7 +11876,7 @@
         "usedBy": null,
         "id": "5298695e",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12005,7 +11902,7 @@
         "usedBy": null,
         "id": "3a21a48e",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12037,7 +11934,7 @@
         "usedBy": null,
         "id": "bc2eea02",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12072,7 +11969,7 @@
         "usedBy": null,
         "id": "92e4fc0e",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12109,7 +12006,7 @@
         ],
         "id": "8971b3a9",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12140,7 +12037,7 @@
         ],
         "id": "b8b4b356",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12172,7 +12069,7 @@
         ],
         "id": "bec0cbc5",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12200,7 +12097,7 @@
         ],
         "id": "0c27b843",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12229,7 +12126,7 @@
         ],
         "id": "74ec7555",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12267,7 +12164,7 @@
         ],
         "id": "3d6a704a",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12293,7 +12190,7 @@
         "usedBy": null,
         "id": "6a9476e8",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12313,7 +12210,7 @@
         "usedBy": null,
         "id": "79bf9d9a",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12337,7 +12234,7 @@
         ],
         "id": "121ea72d",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12361,7 +12258,7 @@
         ],
         "id": "0253726f",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12385,7 +12282,7 @@
         ],
         "id": "895145b6",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12409,7 +12306,7 @@
         ],
         "id": "01f3c1bb",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12433,7 +12330,7 @@
         ],
         "id": "dd504f20",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12451,7 +12348,7 @@
         "usedBy": null,
         "id": "3ab73d73",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12469,7 +12366,7 @@
         "usedBy": null,
         "id": "50428795",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12487,7 +12384,7 @@
         "usedBy": null,
         "id": "1231379a",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12508,7 +12405,7 @@
         "usedBy": null,
         "id": "f1870f47",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12526,7 +12423,7 @@
         "usedBy": null,
         "id": "acece93e",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12546,7 +12443,7 @@
         "usedBy": null,
         "id": "bd8fecb4",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12585,7 +12482,7 @@
         ],
         "id": "46be519f",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12606,7 +12503,7 @@
         "usedBy": null,
         "id": "1973aa0d",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12627,7 +12524,7 @@
         "usedBy": null,
         "id": "35e38bd0",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12649,7 +12546,7 @@
         "usedBy": null,
         "id": "b03f6bd4",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12674,7 +12571,7 @@
         "usedBy": null,
         "id": "2be8901a",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12692,7 +12589,7 @@
         "usedBy": null,
         "id": "e561bf3d",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12740,7 +12637,7 @@
         "usedBy": null,
         "id": "fc17fa00",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12762,7 +12659,7 @@
         "usedBy": null,
         "id": "8a0fd432",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12784,7 +12681,7 @@
         "usedBy": null,
         "id": "68ad7707",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12805,7 +12702,7 @@
         "usedBy": null,
         "id": "c12b2c1d",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12828,7 +12725,7 @@
         "usedBy": null,
         "id": "6018c37c",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12849,7 +12746,7 @@
         "usedBy": null,
         "id": "da4b0495",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12867,7 +12764,7 @@
         "usedBy": null,
         "id": "ca0c5d13",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12885,7 +12782,7 @@
         "usedBy": null,
         "id": "6c8b62b7",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12903,7 +12800,7 @@
         "usedBy": null,
         "id": "08a9a14a",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12923,7 +12820,7 @@
         "usedBy": null,
         "id": "3cb088fe",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12941,7 +12838,7 @@
         "usedBy": null,
         "id": "394e3450",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12961,7 +12858,7 @@
         ],
         "id": "3e848e11",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -12979,7 +12876,7 @@
         "usedBy": null,
         "id": "ce786474",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -13000,7 +12897,7 @@
         "usedBy": null,
         "id": "617dccae",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -13024,7 +12921,7 @@
         "usedBy": null,
         "id": "8f6a9dae",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -13045,53 +12942,14 @@
         "usedBy": null,
         "id": "ac06edc0",
         "enrich": {
-          "attempts": 4
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-workflow-plugin/commands/workflow.js",
-        "hash": "e950e494471d0f099e0479ffe06e1082",
-        "lines": 16,
-        "mtime": "2026-06-11T02:26:13.977Z",
-        "className": "workflow",
-        "methods": [],
-        "imports": [
-          "path",
-          "url"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": null,
-        "usedBy": null,
-        "id": "3ce84d89",
-        "enrich": {
-          "attempts": 2
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-workflow-plugin/hooks/issue-start.js",
-        "hash": "9e04e7103b9380bdcf827ab0fc25aa35",
-        "lines": 28,
-        "mtime": "2026-06-11T02:26:13.977Z",
-        "className": "issue-start",
-        "methods": [],
-        "imports": [],
-        "exports": [
-          "default"
-        ],
-        "extends": "api",
-        "usedBy": null,
-        "id": "194cae7d",
-        "enrich": {
-          "attempts": 2
+          "attempts": 5
         }
       },
       {
         "file": "src/plugin.js",
-        "hash": "438e364bbdcc14e2da673ca29961c240",
-        "lines": 187,
-        "mtime": "2026-06-11T02:26:13.978Z",
+        "hash": "1c61bedc958bd411ae9581177bc0e726",
+        "lines": 186,
+        "mtime": "2026-06-11T10:01:13.814Z",
         "className": "plugin",
         "methods": [
           "renderPluginList",
@@ -13119,7 +12977,7 @@
         "usedBy": null,
         "id": "ae80e38f",
         "enrich": {
-          "attempts": 2
+          "attempts": 1
         }
       },
       {
@@ -13145,7 +13003,7 @@
         "usedBy": null,
         "id": "85926390",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -13343,7 +13201,7 @@
         "usedBy": null,
         "id": "acdc1ca9",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -13365,7 +13223,7 @@
         "usedBy": null,
         "id": "a8608997",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -13415,7 +13273,7 @@
         "usedBy": null,
         "id": "9820c9db",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -13436,7 +13294,7 @@
         "usedBy": null,
         "id": "dca811d6",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -13476,14 +13334,14 @@
         "usedBy": null,
         "id": "d63c4335",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
         "file": "src/upgrade.js",
-        "hash": "d2c8af41457e51a69d65cf43215e35cf",
-        "lines": 609,
-        "mtime": "2026-06-11T02:26:13.978Z",
+        "hash": "c92084f0cec768f2a6af1e0ca5f09cdd",
+        "lines": 581,
+        "mtime": "2026-06-11T10:01:13.814Z",
         "className": "upgrade",
         "methods": [
           "parseUpgradeArgs",
@@ -13521,705 +13379,15 @@
         "usedBy": null,
         "id": "a631f658",
         "enrich": {
-          "attempts": 2
-        }
-      },
-      {
-        "file": "src/workflow/index.js",
-        "hash": "9772004763f02b4a926d4d7d7c65138d",
-        "lines": 161,
-        "mtime": "2026-06-09T08:02:50.485Z",
-        "className": "index",
-        "methods": [
-          "printHelp",
-          "firstLine",
-          "parseEntryArgs",
-          "dispatch"
-        ],
-        "imports": [
-          "../lib/cli.js",
-          "../lib/config.js",
-          "../lib/container.js",
-          "../lib/flow-envelope.js",
-          "../lib/constants.js",
-          "./registry.js",
-          "./lib/config.js"
-        ],
-        "exports": [],
-        "extends": null,
-        "usedBy": null,
-        "id": "cc286b88",
-        "enrich": {
-          "attempts": 4
-        }
-      },
-      {
-        "file": "src/workflow/lib/base-command.js",
-        "hash": "60c303e20460cefc6c66b2d1876a07bc",
-        "lines": 11,
-        "mtime": "2026-05-29T12:02:35.117Z",
-        "className": "base-command",
-        "methods": [
-          "WorkflowCommand"
-        ],
-        "imports": [],
-        "exports": [
-          "WorkflowCommand"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/flow/lib/get-check.js",
-          "src/flow/lib/get-context.js",
-          "src/flow/lib/get-guardrail.js",
-          "src/flow/lib/get-issue.js",
-          "src/flow/lib/get-next-action.js",
-          "src/flow/lib/get-prompt.js",
-          "src/flow/lib/get-qa-count.js",
-          "src/flow/lib/get-resolve-context.js",
-          "src/flow/lib/get-status.js",
-          "src/flow/lib/run-auto-check.js",
-          "src/flow/lib/run-complete-task.js",
-          "src/flow/lib/run-final-regression.js",
-          "src/flow/lib/run-finalize-cleanup.js",
-          "src/flow/lib/run-finalize-commit.js",
-          "src/flow/lib/run-finalize-merge.js",
-          "src/flow/lib/run-finalize-sync.js",
-          "src/flow/lib/run-gate.js",
-          "src/flow/lib/run-impl-confirm.js",
-          "src/flow/lib/run-lint.js",
-          "src/flow/lib/run-prepare-spec.js",
-          "src/flow/lib/run-reopen-draft.js",
-          "src/flow/lib/run-report.js",
-          "src/flow/lib/run-resume.js",
-          "src/flow/lib/run-retro.js",
-          "src/flow/lib/run-review.js",
-          "src/flow/lib/run-scenario-validity.js",
-          "src/flow/lib/run-start-task.js",
-          "src/flow/lib/run-sync.js",
-          "src/flow/lib/run-test-execute.js",
-          "src/flow/lib/run-test-result-review.js",
-          "src/flow/lib/run-update-overview.js",
-          "src/flow/lib/set-approval.js",
-          "src/flow/lib/set-auto.js",
-          "src/flow/lib/set-broad.js",
-          "src/flow/lib/set-files.js",
-          "src/flow/lib/set-init.js",
-          "src/flow/lib/set-issue-log.js",
-          "src/flow/lib/set-issue.js",
-          "src/flow/lib/set-metric.js",
-          "src/flow/lib/set-note.js",
-          "src/flow/lib/set-req.js",
-          "src/flow/lib/set-request.js",
-          "src/flow/lib/set-retry.js",
-          "src/flow/lib/set-step.js",
-          "src/flow/lib/set-summary.js",
-          "src/lib/dispatcher.js"
-        ],
-        "id": "c9908fa4",
-        "enrich": {
-          "processedAt": "2026-06-04T12:58:47.869Z",
-          "attempts": 10
-        },
-        "summary": "Provides the abstract base class for workflow commands. It establishes a common invocation contract centered on `execute(ctx)`.",
-        "detail": "The class exposes a standard entry method that delegates directly to `execute`, allowing callers to treat command instances uniformly. Its default `execute` implementation throws, forcing subclasses to provide concrete behavior. This pattern gives the workflow subsystem a simple object-oriented command model without relying on TypeScript interfaces. The result is a consistent extension point for all workflow actions.",
-        "chapter": "internal_design",
-        "role": "Base command abstraction for workflow subcommands.",
-        "keywords": [
-          "base class",
-          "command pattern",
-          "workflow command",
-          "execute contract",
-          "object-oriented API",
-          "shared abstraction"
-        ]
-      },
-      {
-        "file": "src/workflow/lib/board-helpers.js",
-        "hash": "9f89379e75071ce6353f9ce91f445250",
-        "lines": 68,
-        "mtime": "2026-05-29T12:02:35.117Z",
-        "className": "board-helpers",
-        "methods": [
-          "ensureStatusOption",
-          "findItem",
-          "formatItem",
-          "parseJsonResponse"
-        ],
-        "imports": [
-          "./hash.js",
-          "./graphql.js"
-        ],
-        "exports": [
-          "ensureStatusOption",
-          "findItem",
-          "formatItem",
-          "parseJsonResponse"
-        ],
-        "extends": null,
-        "usedBy": null,
-        "id": "4e4593ba",
-        "enrich": {
-          "processedAt": "2026-06-04T12:58:47.869Z",
-          "attempts": 10
-        },
-        "summary": "Supplies helper utilities for workflow board operations, including status option management, item lookup, formatting, and JSON response parsing. It encapsulates shared validation and board-specific conventions.",
-        "detail": "The module validates status names against length and control-character constraints before creating or reusing single-select options on a project board. It provides lookup helpers that locate items by hashed title prefix and normalizes board nodes into compact formatted objects for display. Another helper parses JSON responses that may be wrapped in surrounding text, improving tolerance for command output formatting. These utilities reduce duplication across multiple workflow commands that interact with GitHub Projects data.",
-        "chapter": "internal_design",
-        "role": "Shared board utility layer for workflow commands.",
-        "keywords": [
-          "board helpers",
-          "status option",
-          "GitHub Projects",
-          "item lookup",
-          "JSON parsing",
-          "shared utilities",
-          "title hash"
-        ]
-      },
-      {
-        "file": "src/workflow/lib/category.js",
-        "hash": "9a23503c531471855b16ec920e6ca333",
-        "lines": 16,
-        "mtime": "2026-05-29T12:02:35.117Z",
-        "className": "category",
-        "methods": [
-          "prefixCategory"
-        ],
-        "imports": [],
-        "exports": [
-          "prefixCategory",
-          "VALID_CATEGORIES"
-        ],
-        "extends": null,
-        "usedBy": null,
-        "id": "11e11b10",
-        "enrich": {
-          "processedAt": "2026-06-04T12:58:47.869Z",
-          "attempts": 10
-        },
-        "summary": "Defines valid workflow categories and a helper to prefix titles with a normalized category tag. It enforces a small fixed taxonomy for board draft items.",
-        "detail": "The module exposes a `Set` of allowed category values and a regular expression for matching category-prefixed titles. Its prefixing helper validates the category and constructs a standardized `[CATEGORY] title` string. By centralizing category formatting, the workflow system can apply consistent labels across draft creation and updates. The implementation is intentionally minimal and policy-driven.",
-        "chapter": "internal_design",
-        "role": "Category taxonomy and title prefix formatter for workflow items.",
-        "keywords": [
-          "category tagging",
-          "title prefix",
-          "workflow taxonomy",
-          "BUG",
-          "ENHANCE",
-          "RESEARCH",
-          "label normalization"
-        ]
-      },
-      {
-        "file": "src/workflow/lib/commands/add.js",
-        "hash": "b270ca537ac80c4a836023a2f67b3b21",
-        "lines": 41,
-        "mtime": "2026-05-29T12:02:35.117Z",
-        "className": "add",
-        "methods": [],
-        "imports": [
-          "node:child_process",
-          "../base-command.js",
-          "../hash.js",
-          "../category.js",
-          "../validation.js",
-          "../graphql.js",
-          "../board-helpers.js"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "WorkflowCommand",
-        "usedBy": null,
-        "id": "9219bc6c",
-        "enrich": {
-          "processedAt": "2026-06-04T12:58:47.869Z",
-          "attempts": 10
-        },
-        "summary": "Implements the workflow command that creates a new board draft item from a validated title, category, and status. It integrates title hashing, Japanese content validation, and board status assignment.",
-        "detail": "The command inherits from the workflow base class and requires a non-empty title before proceeding. It prefixes the title with both a generated hash and a category marker, validates draft text according to the workflow's Japanese-language rules, and then invokes `gh`-backed creation logic. After creating the draft item it ensures the requested board status option exists and applies it through a project field update. The return payload includes the created item identifier and the normalized metadata used during creation.",
-        "chapter": "cli_commands",
-        "role": "Workflow command for adding categorized board draft items.",
-        "keywords": [
-          "add command",
-          "draft issue",
-          "board item creation",
-          "status assignment",
-          "Japanese validation",
-          "title hash",
-          "workflow add"
-        ]
-      },
-      {
-        "file": "src/workflow/lib/commands/issue-log-import.js",
-        "hash": "2a005e30ab19d279e0764fc6a842ca08",
-        "lines": 338,
-        "mtime": "2026-06-09T08:02:50.485Z",
-        "className": "issue-log-import",
-        "methods": [
-          "validateSpecPath",
-          "buildCandidates",
-          "labelsFor",
-          "text",
-          "normalizeCategory",
-          "classifyCategory",
-          "knownJapaneseSummary",
-          "buildTitle",
-          "buildTarget",
-          "buildProblem",
-          "buildCause",
-          "buildImprovement",
-          "isRawDiagnosticEntry",
-          "isDecisionReadyEntry",
-          "entryToCandidate",
-          "refineWithAi"
-        ],
-        "imports": [
-          "node:fs",
-          "node:path",
-          "../base-command.js",
-          "../board-helpers.js",
-          "../../../lib/container.js"
-        ],
-        "exports": [
-          "validateSpecPath",
-          "buildCandidates",
-          "default",
-          "DEFAULT_MAX_CANDIDATES",
-          "ISSUE_LOG_IMPORT_COMMAND_IDS"
-        ],
-        "extends": "WorkflowCommand",
-        "usedBy": null,
-        "id": "970e6266",
-        "enrich": {
-          "attempts": 4
-        }
-      },
-      {
-        "file": "src/workflow/lib/commands/issue-start.js",
-        "hash": "255eb40bdea92a13a086ad4d56d480a2",
-        "lines": 70,
-        "mtime": "2026-06-09T08:02:50.485Z",
-        "className": "issue-start",
-        "methods": [
-          "validateIssueNumber"
-        ],
-        "imports": [
-          "../base-command.js",
-          "../../../lib/config.js",
-          "../graphql.js",
-          "../board-helpers.js"
-        ],
-        "exports": [
-          "validateIssueNumber",
-          "default"
-        ],
-        "extends": "WorkflowCommand",
-        "usedBy": null,
-        "id": "27d732ed",
-        "enrich": {
-          "attempts": 4
-        }
-      },
-      {
-        "file": "src/workflow/lib/commands/list.js",
-        "hash": "b9920ba28133ae4b99113453f711291e",
-        "lines": 24,
-        "mtime": "2026-05-29T12:02:35.117Z",
-        "className": "list",
-        "methods": [],
-        "imports": [
-          "../base-command.js",
-          "../graphql.js",
-          "../board-helpers.js"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "WorkflowCommand",
-        "usedBy": null,
-        "id": "8dd05cbb",
-        "enrich": {
-          "processedAt": "2026-06-04T12:58:47.869Z",
-          "attempts": 10
-        },
-        "summary": "Implements the workflow command that lists board items in a normalized output shape. It delegates retrieval to the GraphQL layer and presentation shaping to shared helpers.",
-        "detail": "The command extends the workflow base class and calls the board GraphQL helper to fetch project items. It then maps raw nodes through a formatter that extracts hash, title, status, and publication details into a cleaner object model. This keeps the command thin while making the output stable for downstream consumers or CLI presentation. The result structure includes both items and overall board counts.",
-        "chapter": "cli_commands",
-        "role": "Workflow command for listing board items.",
-        "keywords": [
-          "list command",
-          "board items",
-          "project listing",
-          "formatted output",
-          "workflow list",
-          "GraphQL query"
-        ]
-      },
-      {
-        "file": "src/workflow/lib/commands/publish.js",
-        "hash": "b933618e39f8d804cd8d6846ade46623",
-        "lines": 129,
-        "mtime": "2026-05-29T12:02:35.117Z",
-        "className": "publish",
-        "methods": [],
-        "imports": [
-          "node:child_process",
-          "../base-command.js",
-          "../graphql.js",
-          "../board-helpers.js",
-          "../validation.js",
-          "../../../lib/container.js"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "WorkflowCommand",
-        "usedBy": null,
-        "id": "c1034289",
-        "enrich": {
-          "processedAt": "2026-06-04T12:58:47.869Z",
-          "attempts": 10
-        },
-        "summary": "Implements publishing of a draft board item into a GitHub issue, with retries, validation, and post-publish status updates. It coordinates board lookup, agent-assisted content handling, and conversion through GraphQL.",
-        "detail": "The command prevents republishing items that are already linked to issues and requires a configured agent for its publish workflow. It locates the target board item, validates Japanese draft fields, and uses retry logic around the publishing sequence to tolerate transient failures. After converting the draft to an issue it can update board status metadata so the project state reflects publication. The command returns publish details including issue linkage after the conversion completes.",
-        "chapter": "cli_commands",
-        "role": "Workflow command for converting board drafts into GitHub issues.",
-        "keywords": [
-          "publish command",
-          "draft to issue",
-          "GitHub issue conversion",
-          "retry logic",
-          "board status update",
-          "Japanese draft validation"
-        ]
-      },
-      {
-        "file": "src/workflow/lib/commands/search.js",
-        "hash": "6bf985b00462359c044b108dffbadf4d",
-        "lines": 26,
-        "mtime": "2026-05-29T12:02:35.117Z",
-        "className": "search",
-        "methods": [],
-        "imports": [
-          "../base-command.js",
-          "../graphql.js",
-          "../board-helpers.js"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "WorkflowCommand",
-        "usedBy": null,
-        "id": "b70ba15e",
-        "enrich": {
-          "processedAt": "2026-06-04T12:58:47.869Z",
-          "attempts": 10
-        },
-        "summary": "Implements a workflow command that searches board items and returns formatted results. It combines the GraphQL search helper with shared item normalization.",
-        "detail": "The command subclasses the workflow base class and delegates matching logic to the board search function. Retrieved nodes are converted through the same formatting helper used by other list-oriented commands, keeping result shape consistent. This design isolates query mechanics in the GraphQL layer while keeping the command focused on request handling. The output is structured for CLI consumption rather than raw API passthrough.",
-        "chapter": "cli_commands",
-        "role": "Workflow command for querying board items by text.",
-        "keywords": [
-          "search command",
-          "board search",
-          "workflow search",
-          "formatted items",
-          "project query",
-          "GraphQL search"
-        ]
-      },
-      {
-        "file": "src/workflow/lib/commands/show.js",
-        "hash": "1c5e4f51178b1554d7f3f8b737cbd66e",
-        "lines": 28,
-        "mtime": "2026-05-29T12:02:35.117Z",
-        "className": "show",
-        "methods": [],
-        "imports": [
-          "../base-command.js",
-          "../graphql.js",
-          "../board-helpers.js"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "WorkflowCommand",
-        "usedBy": null,
-        "id": "7752e8c4",
-        "enrich": {
-          "processedAt": "2026-06-04T12:58:47.869Z",
-          "attempts": 10
-        },
-        "summary": "Implements a workflow command that shows a single board item identified by its hash prefix. It searches the board and raises an error when the requested hash is absent.",
-        "detail": "The command executes a board search and uses the shared hash-based finder to locate a matching item among the returned nodes. If no item carries the requested prefixed identifier, it throws a clear not-found error. When successful it returns the selected item in a structured form appropriate for detailed display. This keeps item addressing stable even when human-readable titles change.",
-        "chapter": "cli_commands",
-        "role": "Workflow command for retrieving one board item by hash.",
-        "keywords": [
-          "show command",
-          "hash lookup",
-          "board item detail",
-          "workflow show",
-          "item retrieval",
-          "title prefix"
-        ]
-      },
-      {
-        "file": "src/workflow/lib/commands/update.js",
-        "hash": "7df32c451e83ad7e60d5d63e6bcf64cd",
-        "lines": 49,
-        "mtime": "2026-05-29T12:02:35.117Z",
-        "className": "update",
-        "methods": [],
-        "imports": [
-          "../base-command.js",
-          "../graphql.js",
-          "../board-helpers.js",
-          "../validation.js"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "WorkflowCommand",
-        "usedBy": null,
-        "id": "e75cf809",
-        "enrich": {
-          "processedAt": "2026-06-04T12:58:47.869Z",
-          "attempts": 10
-        },
-        "summary": "Implements updating of existing board draft items, including title, body, and status changes with validation rules. It blocks edits that are incompatible with already-published issues.",
-        "detail": "The command requires at least one mutable field to be specified and refuses title or body edits when the target item has already been converted to a GitHub issue. It looks up the item, validates Japanese draft content where applicable, and uses GraphQL helpers to update the draft issue and/or board status field. Shared status-option helpers ensure requested statuses exist before assignment. The result summarizes the applied changes for the caller.",
-        "chapter": "cli_commands",
-        "role": "Workflow command for editing board draft items.",
-        "keywords": [
-          "update command",
-          "draft issue update",
-          "status change",
-          "validation",
-          "published issue guard",
-          "workflow update"
-        ]
-      },
-      {
-        "file": "src/workflow/lib/config.js",
-        "hash": "5774b437b5febedabb97aed621ab5e4e",
-        "lines": 24,
-        "mtime": "2026-05-29T12:02:35.117Z",
-        "className": "config",
-        "methods": [
-          "loadBoardConfig",
-          "gh"
-        ],
-        "imports": [
-          "node:child_process"
-        ],
-        "exports": [
-          "loadBoardConfig"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/lib/active-flow-registry.js",
-          "src/lib/container.js",
-          "src/lib/flow-manager.js",
-          "src/lib/flow-store.js",
-          "src/lib/guardrail.js",
-          "src/lib/i18n.js",
-          "src/lib/preparing-flow-store.js",
-          "src/presets/base/tests/acceptance/fixtures/src/index.js",
-          "src/presets/cli/tests/acceptance/fixtures/src/cli.js",
-          "src/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
-          "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
-          "src/setup.js",
-          "src/upgrade.js",
-          "src/workflow/index.js",
-          "src/lib/hooks.js",
-          "src/lib/plugin-registry.js",
-          "src/official-plugins/senti-presets/presets/base/tests/acceptance/fixtures/src/index.js",
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/cli.js",
-          "src/official-plugins/senti-presets/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/cli.js"
-        ],
-        "id": "60bcd438",
-        "enrich": {
-          "processedAt": "2026-06-04T12:58:47.869Z",
-          "attempts": 10
-        },
-        "summary": "Loads workflow board configuration by querying GitHub CLI for repository and project metadata. It resolves the current owner, repository, and the configured project number.",
-        "detail": "The module wraps `gh` CLI execution in a small helper and uses JSON output from `gh repo view` and `gh project list` to discover board settings. It matches the expected project and throws if the required board configuration cannot be found. The returned object contains the GitHub owner, project number, and fully qualified repository name. This configuration is then consumed by workflow commands that operate against GitHub Projects.",
-        "chapter": "configuration",
-        "role": "GitHub board configuration loader for workflow features.",
-        "keywords": [
-          "board config",
-          "GitHub CLI",
-          "project number",
-          "repository metadata",
-          "workflow configuration",
-          "gh integration"
-        ]
-      },
-      {
-        "file": "src/workflow/lib/graphql.js",
-        "hash": "c82cda409c94dd4af9ac115bbc9ba58e",
-        "lines": 202,
-        "mtime": "2026-05-29T12:02:35.118Z",
-        "className": "graphql",
-        "methods": [
-          "searchItems",
-          "listItems",
-          "getProjectMeta",
-          "updateDraftIssue",
-          "convertDraftToIssue",
-          "getRepositoryId",
-          "addSingleSelectOption",
-          "setItemStatus",
-          "ghGraphQL"
-        ],
-        "imports": [
-          "node:child_process"
-        ],
-        "exports": [
-          "searchItems",
-          "listItems",
-          "getProjectMeta",
-          "updateDraftIssue",
-          "convertDraftToIssue",
-          "getRepositoryId",
-          "addSingleSelectOption",
-          "setItemStatus"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/workflow/lib/board-helpers.js"
-        ],
-        "id": "731ada65",
-        "enrich": {
-          "processedAt": "2026-06-04T12:58:47.869Z",
-          "attempts": 10
-        },
-        "summary": "Provides the GraphQL integration layer for workflow board operations against GitHub Projects and issues. It wraps `gh api graphql` calls and exposes focused helpers for search, listing, status updates, and draft conversion.",
-        "detail": "The module centralizes GraphQL execution, error extraction, and commonly reused field selections for project items. It offers read helpers for searching items, listing paginated project contents, fetching project metadata, and resolving repository IDs. On the mutation side it updates draft issues, converts project draft items into issues, creates single-select status options, and assigns status values to items. This layer keeps GraphQL text and GitHub-specific mechanics out of higher-level workflow commands.",
-        "chapter": "internal_design",
-        "role": "GraphQL data access layer for GitHub Projects workflow automation.",
-        "keywords": [
-          "GraphQL client",
-          "GitHub Projects",
-          "draft issue mutation",
-          "status field",
-          "project items",
-          "gh api",
-          "data access layer"
-        ]
-      },
-      {
-        "file": "src/workflow/lib/hash.js",
-        "hash": "25230f01665985f56b80937b80e32888",
-        "lines": 16,
-        "mtime": "2026-05-29T12:02:35.118Z",
-        "className": "hash",
-        "methods": [
-          "generateId",
-          "prefixTitle",
-          "extractId"
-        ],
-        "imports": [
-          "node:crypto"
-        ],
-        "exports": [
-          "generateId",
-          "prefixTitle",
-          "extractId"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/workflow/lib/board-helpers.js",
-          "src/workflow/lib/validation.js"
-        ],
-        "id": "d5313dab",
-        "enrich": {
-          "processedAt": "2026-06-04T12:58:47.869Z",
-          "attempts": 10
-        },
-        "summary": "Implements compact hash generation and title prefix helpers for workflow item identification. It gives draft items a stable short ID embedded in their title.",
-        "detail": "The module generates a small hexadecimal identifier using cryptographic random bytes, then prepends it to titles in a `id: title` format. A companion extractor parses that prefix back out of stored titles using a regular expression. This approach provides lightweight item addressing without separate persistence. Other workflow modules rely on these helpers for lookup, display, and title normalization.",
-        "chapter": "internal_design",
-        "role": "Short identifier utility for workflow item titles.",
-        "keywords": [
-          "hash prefix",
-          "random ID",
-          "title identifier",
-          "extractId",
-          "workflow hash",
-          "short token"
-        ]
-      },
-      {
-        "file": "src/workflow/lib/validation.js",
-        "hash": "f45a0d5e5efb29d93f61205c5dfe1733",
-        "lines": 31,
-        "mtime": "2026-05-29T12:02:35.118Z",
-        "className": "validation",
-        "methods": [
-          "containsJapanese",
-          "stripHashPrefix",
-          "assertJapaneseDraftField",
-          "assertJapaneseDraft"
-        ],
-        "imports": [
-          "./hash.js"
-        ],
-        "exports": [
-          "containsJapanese",
-          "stripHashPrefix",
-          "assertJapaneseDraftField",
-          "assertJapaneseDraft"
-        ],
-        "extends": null,
-        "usedBy": null,
-        "id": "e88a4b0e",
-        "enrich": {
-          "processedAt": "2026-06-04T12:58:47.869Z",
-          "attempts": 10
-        },
-        "summary": "Defines Japanese-language validation helpers for workflow draft titles and bodies. It detects Japanese script usage, strips hash prefixes, and enforces localized input requirements.",
-        "detail": "The module uses a Unicode regular expression covering Hiragana, Katakana, and Han characters to determine whether text contains Japanese. It can remove the generated hash prefix from titles before validating user-facing content. Validation helpers enforce non-empty constraints and throw localized error messages when required fields lack Japanese text. These checks are reused by commands that create, update, or publish workflow draft items.",
-        "chapter": "internal_design",
-        "role": "Localized content validation layer for workflow drafts.",
-        "keywords": [
-          "Japanese validation",
-          "Unicode regex",
-          "draft content rules",
-          "strip prefix",
-          "localized errors",
-          "text validation"
-        ]
-      },
-      {
-        "file": "src/workflow/registry.js",
-        "hash": "e3257db3e8e5bce2d4d8646d3f82a2c7",
-        "lines": 94,
-        "mtime": "2026-06-09T08:02:50.485Z",
-        "className": "registry",
-        "methods": [],
-        "imports": [],
-        "exports": [
-          "WORKFLOW_COMMANDS"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/workflow/index.js"
-        ],
-        "id": "780bd655",
-        "enrich": {
-          "attempts": 4
+          "attempts": 1
         }
       }
     ],
     "summary": {
-      "total": 355,
-      "totalMethods": 1862
+      "total": 336,
+      "totalMethods": 1817
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-11T04:03:31.368Z"
+  "enrichedAt": "2026-06-11T10:05:59.575Z"
 }
