@@ -1,0 +1,247 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".senti/presets/base/guardrail.json                 |   12 +\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-questions-repair.json                    |   17 +\n .../draft-questions-triage.json                    |   15 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   19 +\n specs/289-migration-parity-guardrail/draft.json    |   68 +\n specs/289-migration-parity-guardrail/file-map.json |   28 +\n specs/289-migration-parity-guardrail/flow.json     | 1021 +++++++++++++++\n .../impl-review.json                               |  597 +++++++++\n .../289-migration-parity-guardrail/issue-log.json  |  156 +++\n specs/289-migration-parity-guardrail/issue.md      |   54 +\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |   33 +\n .../review-history/impl-attempt-001.json           |   69 ++\n .../review-history/impl-attempt-001.md             |   29 +\n .../review-history/impl-attempt-002.json           | 1311 ++++++++++++++++++++\n .../review-history/impl-attempt-002.md             |  796 ++++++++++++\n .../review-history/spec-attempt-001.json           |   72 ++\n .../review-history/spec-attempt-001.md             |   24 +\n .../review-history/test-attempt-001.json           |   28 +\n .../review-history/test-attempt-001.md             |   13 +\n specs/289-migration-parity-guardrail/review.md     |  796 ++++++++++++\n .../spec-review.json                               |   38 +\n .../289-migration-parity-guardrail/spec-review.md  |   24 +\n specs/289-migration-parity-guardrail/spec.json     |  208 ++++\n specs/289-migration-parity-guardrail/spec.md       |  109 ++\n specs/289-migration-parity-guardrail/tasks/T-1.md  |   18 +\n specs/289-migration-parity-guardrail/tasks/T-2.md  |   18 +\n specs/289-migration-parity-guardrail/tasks/T-3.md  |   18 +\n .../test-coverage.json                             |   75 ++\n .../test-review.json                               |   25 +\n .../289-migration-parity-guardrail/test-review.md  |   13 +\n .../tests/migration-parity-guardrail.test.js       |  140 +++\n src/flow/lib/test-artifacts.js                     |   10 +-\n src/presets/base/guardrail.json                    |   12 +\n .../flow/upgrade-required-changed-paths.test.js    |   51 +\n .../base/migration-parity-guardrail.test.js        |  118 ++\n 39 files changed, 6070 insertions(+), 6 deletions(-)",
+      "commits": [
+        "feat: add migration parity guardrail"
+      ]
+    },
+    "retro": {
+      "total": 5,
+      "done": 5,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "`src/presets/base/guardrail.json` must contain exactly one guardrail with id `migration-parity`, title `Migration Parity`, `meta.phase` equal to `[\"draft\", \"spec\"]`, and `meta.category` equal to `process`.",
+          "status": "done",
+          "note": "R1: base guardrail metadata defines migration-parity for draft and spec"
+        },
+        {
+          "desc": "The `migration-parity` body must state that changes moving, splitting, extracting, replacing, or externalizing existing behavior require migration parity before implementation; it must require existing public behavior inventory, affected public surface listing, retained-behavior owner mapping or explicit removal decision, acceptance criteria for retained behavior, at least one behavior-level verification per retained public surface, and explicit user-visible impact for intentional removals.",
+          "status": "done",
+          "note": "R2: migration-parity body requires migration behavior parity evidence"
+        },
+        {
+          "desc": "The `migration-parity` body must state that registration, discovery, help output, or mock routing alone is insufficient evidence, and it must include the literal section labels `Violation:`, `Diff-verification conditions:`, `Blocking when:`, and `Advisory when:`.",
+          "status": "done",
+          "note": "R3: migration-parity body includes evidence limits and rewrite-rubric sections"
+        },
+        {
+          "desc": "Tests must verify the new guardrail exists, has draft/spec phase inclusion, has task-impl exclusion, uses category `process`, contains the R2 and R3 body concepts, contains no workflow plugin or board item wording, and preserves representative pre-existing base guardrail ids.",
+          "status": "done",
+          "note": "R4: migration-parity phase filtering, generic wording, and base regression hold"
+        },
+        {
+          "desc": "After modifying `src/presets/base/guardrail.json`, `senti upgrade` must be executed and its resulting artifact changes or no-change evidence must be present in the flow artifacts.",
+          "status": "done",
+          "note": "R5: upgrade evidence path detection includes uncommitted base preset changes"
+        }
+      ]
+    },
+    "upgrade": {
+      "result": "success-updated",
+      "summary": {
+        "skills": {
+          "updated": 0,
+          "unchanged": 6,
+          "removed": 0
+        },
+        "presets": {
+          "copied": 4
+        },
+        "plugins": {
+          "changed": true
+        },
+        "config": {
+          "changed": false
+        },
+        "rename": {
+          "changed": 0
+        }
+      },
+      "rawLogPath": "tests/.raw/upgrade.log"
+    },
+    "issueLog": {
+      "count": 7,
+      "fullLogPath": "specs/289-migration-parity-guardrail/issue-log.json",
+      "importantTotal": 5,
+      "importantShown": 5,
+      "importantOmitted": 0,
+      "recentOtherTotal": 2,
+      "recentOtherShown": 2,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "The requirement says ‘New or changed behavior must have focused spec-local test coverage and relevant project regression coverage,’ which uses subjective terms without explicit, measurable criteria.; The same phrase relies on vague notio...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "Draft gate failed because draft wording left vague coverage terms, empty impactOnExisting, and QA evidence without the required recommendation basis.",
+          "resolution": "Rewrite draft.json to use measurable test wording, explicit impact statement, and QA evidence tied to issue context, guardrail principles, docs, and existing code patterns."
+        },
+        {
+          "classification": "important",
+          "step": "implement",
+          "reason": "senti upgrade failed after the base preset guardrail edit because preset/template validation reported missing preset chains and missing chapter templates before completion.",
+          "resolution": "Inspect upgrade artifacts and worktree changes, then decide whether a source/template correction is required or whether the failure is pre-existing environment/config state."
+        },
+        {
+          "classification": "important",
+          "step": "test-execute",
+          "reason": "R5 spec-local test asserted upgrade-result.json existence, but test-execute removes rebuildable artifacts before running spec-local tests, so the assertion checked the wrong responsibility.",
+          "resolution": "Changed R5 spec-local coverage to verify upgrade evidence path detection code, and will rerun upgrade after test-execute to recreate the integration gate trust artifact."
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "provider=codex | profile=codex/gpt-5.3-spark | exit=1 | Reading prompt from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019eb78c-34d9-7e81-94bf-de24b8d752af\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"Codex ra...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "implement",
+          "reason": "The first successful upgrade artifact still had empty checkedPaths because the globally resolved senti executable used main-repo code before the worktree fix to listUpgradeRequiredChangedPaths was available.",
+          "resolution": "Updated listUpgradeRequiredChangedPaths to include worktree status changes, added regression coverage, synced installed plugins, and reran upgrade through node src/senti.js upgrade so the worktree implementation wrote checkedPaths correc..."
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: refreshed stale regression and upgrade artifacts",
+          "resolution": "Re-ran test-execute and test-result-review after staging changed the diff snapshot, then reran node src/senti.js upgrade so R5 upgrade-result.json and raw upgrade log are present with src/presets/base/guardrail.json in checkedPaths."
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 5
+    },
+    "tokenMetrics": {
+      "input": 604640,
+      "output": 47652,
+      "cacheRead": 765696,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 28,
+      "durationMs": 813660,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 10743
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 7930
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 19404
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 203688
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 14050
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 19133
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 487592
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 51120
+        }
+      ]
+    },
+    "tests": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/289-migration-parity-guardrail/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 60,
+          "end_line": 5072
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-artifacts.js"
+          },
+          {
+            "status": "added",
+            "path": "tests/unit/flow/upgrade-required-changed-paths.test.js"
+          },
+          {
+            "status": "added",
+            "path": "tests/unit/presets/base/migration-parity-guardrail.test.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-artifacts.js"
+          },
+          {
+            "status": "added",
+            "path": "tests/unit/flow/upgrade-required-changed-paths.test.js"
+          },
+          {
+            "status": "added",
+            "path": "tests/unit/presets/base/migration-parity-guardrail.test.js"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/289-migration-parity-guardrail/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: add migration parity guardrail\n    39 files changed, 6070 insertions(+), 6 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (5 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 5\n    agent calls ................. 28\n    input tokens ................ 604,640\n    output tokens ............... 47,652\n    cache-read tokens ........... 765,696\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 813.7s\n      draft-questions-review .... 10.7s\n      draft-coverage-review ..... 7.9s\n      draft-gate ................ 19.4s\n      spec-review ............... 203.7s\n      spec-gate ................. 14.1s\n      test-review ............... 19.1s\n      impl-review ............... 487.6s\n      impl-gate ................. 51.1s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 5  passed 5  failed 0 verdict=pass\n    raw_output: specs/289-migration-parity-guardrail/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (7 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/289-migration-parity-guardrail/issue-log.json\n\n    Important (5)\n    - [draft-gate] The requirement says ‘New or changed behavior must have focused spec-local test coverage and relevant project regression coverage,’ which uses subjective terms without explicit, measurable criteria.; The same phrase relies on vague notio...\n    - [draft-gate] Draft gate failed because draft wording left vague coverage terms, empty impactOnExisting, and QA evidence without the required recommendation basis.\n    - [implement] senti upgrade failed after the base preset guardrail edit because preset/template validation reported missing preset chains and missing chapter templates before completion.\n    - [test-execute] R5 spec-local test asserted upgrade-result.json existence, but test-execute removes rebuildable artifacts before running spec-local tests, so the assertion checked the wrong responsibility.\n    - [spec-gate] provider=codex | profile=codex/gpt-5.3-spark | exit=1 | Reading prompt from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019eb78c-34d9-7e81-94bf-de24b8d752af\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"Codex ra...\n\n    Recent Other (2)\n    - [implement] The first successful upgrade artifact still had empty checkedPaths because the globally resolved senti executable used main-repo code before the worktree fix to listUpgradeRequiredChangedPaths was available.\n    - [impl-gate] fix: refreshed stale regression and upgrade artifacts"
+}

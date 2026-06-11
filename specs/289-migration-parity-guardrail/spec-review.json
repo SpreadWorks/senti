@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "generatedAt": "2026-06-11T16:03:21.290Z",
+  "verdict": "ADVISORY",
+  "counts": {
+    "blocking": 0,
+    "nonBlocking": 3,
+    "total": 3
+  },
+  "blockingFindings": [],
+  "nonBlockingImprovements": [
+    {
+      "kind": "improvement",
+      "title": "Name upgrade evidence paths",
+      "target": "R5 / AC8",
+      "body": "**Target:** R5 / AC8\n**Improvement:** The spec could identify the existing upgrade evidence files as specs/289-migration-parity-guardrail/upgrade-result.json and specs/289-migration-parity-guardrail/tests/.raw/upgrade.log, matching src/flow/lib/test-artifacts.js.\n**Why non-blocking:** R5 and AC8 already require upgrade evidence, and existing gate code can validate it; naming the paths would only make evidence collection more direct.",
+      "improvement": "The spec could identify the existing upgrade evidence files as specs/289-migration-parity-guardrail/upgrade-result.json and specs/289-migration-parity-guardrail/tests/.raw/upgrade.log, matching src/flow/lib/test-artifacts.js.",
+      "whyNonBlocking": "R5 and AC8 already require upgrade evidence, and existing gate code can validate it; naming the paths would only make evidence collection more direct."
+    },
+    {
+      "kind": "improvement",
+      "title": "Clarify official base duplicate scope",
+      "target": "Overview / related files",
+      "body": "**Target:** Overview / related files\n**Improvement:** The codebase also contains src/official-plugins/senti-presets/presets/base/guardrail.json. The spec could note that it is not an implementation target because the official plugin manifest does not contribute a base preset and runtime resolution uses src/presets/base for the base parent.\n**Why non-blocking:** Verified preset resolution consumes src/presets/base for the base guardrail, so omitting the duplicate does not block implementation or testing.",
+      "improvement": "The codebase also contains src/official-plugins/senti-presets/presets/base/guardrail.json. The spec could note that it is not an implementation target because the official plugin manifest does not contribute a base preset and runtime resolution uses src/presets/base for the base parent.",
+      "whyNonBlocking": "Verified preset resolution consumes src/presets/base for the base guardrail, so omitting the duplicate does not block implementation or testing."
+    },
+    {
+      "kind": "improvement",
+      "title": "Separate project regression file",
+      "target": "T-2 / implementationTargets",
+      "body": "**Target:** T-2 / implementationTargets\n**Improvement:** The spec could suggest a new sibling test file under tests/unit/presets/base/ for migration-parity instead of only citing req-diff-verifiability-guardrail.test.js as the existing pattern.\n**Why non-blocking:** The current target directory and required assertions are sufficient to design tests; this only reduces the chance of mixing spec 289 coverage into an older spec 212 regression file.",
+      "improvement": "The spec could suggest a new sibling test file under tests/unit/presets/base/ for migration-parity instead of only citing req-diff-verifiability-guardrail.test.js as the existing pattern.",
+      "whyNonBlocking": "The current target directory and required assertions are sufficient to design tests; this only reduces the chance of mixing spec 289 coverage into an older spec 212 regression file."
+    }
+  ]
+}

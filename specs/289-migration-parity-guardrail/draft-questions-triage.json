@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "One repair target applies: the draft should retain a QA entry that records the user-approved goal confirmation from preflight.",
+  "items": [
+    {
+      "title": "1. Empty Initial QA List",
+      "target": "qa[]",
+      "decision": "apply",
+      "rationale": "The current draft has no QA entries. The user already approved the Goal, Scope, and Out of Scope in the auto-mode preflight, so this can be repaired without new user input by recording that confirmation as an answered QA entry.",
+      "evidence": "draft.json qa[] is empty; draft.json approval.notes records that the user selected auto mode after reviewing the preflight summary."
+    }
+  ]
+}

@@ -4,7 +4,7 @@ import crypto from "crypto";
 import { StringDecoder } from "string_decoder";
 import { sentiOutputDir } from "../../lib/config.js";
 import { globToRegex } from "../../lib/glob.js";
-import { runGit } from "../../lib/git-helpers.js";
+import { listChangedFilesDetailed } from "../../lib/git-helpers.js";
 import { classifyRegression, listRegressionChangedFiles } from "./test-regression.js";
 
 export const TEST_EXECUTE_RESULT_FILE = "test-execute-result.json";
@@ -120,11 +120,9 @@ export function matchUpgradeRequiredSourcePaths(filePaths = []) {
 
 export function listUpgradeRequiredChangedPaths({ root, baseBranch }) {
   if (!baseBranch) return [];
-  const res = runGit(["diff", "--name-only", `${baseBranch}...HEAD`], { cwd: root });
-  if (!res.ok) {
-    throw new Error(`failed to list upgrade-required changed paths: ${res.stderr || res.stdout}`);
-  }
-  return matchUpgradeRequiredSourcePaths(res.stdout.split(/\r?\n/).filter(Boolean));
+  const files = listChangedFilesDetailed({ cwd: root, baseBranch })
+    .flatMap((entry) => [entry.path, entry.old_path].filter(Boolean));
+  return matchUpgradeRequiredSourcePaths(files);
 }
 
 export function upgradeResultPath(specDir) {

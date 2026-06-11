@@ -109,6 +109,18 @@
       }
     },
     {
+      "id": "migration-parity",
+      "title": "Migration Parity",
+      "body": "When a change moves, splits, extracts, replaces, or externalizes existing behavior, the draft/spec shall define migration parity before implementation. It shall inventory the existing public behavior being moved or replaced; list affected user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects; map each retained behavior to its new owner or an explicit decision to remove it; define acceptance criteria proving retained behavior still works through the new path; and include at least one behavior-level verification for each retained public surface. Registration, discovery, help output, or mock routing alone are not sufficient evidence of migration parity. Intentional behavior removal shall state the user-visible impact and compatibility expectation.\n\nViolation: missing migration parity definition\nDiff-verification conditions:\n- The diff moves, splits, extracts, replaces, or externalizes existing behavior.\n- The draft/spec lacks an inventory of the existing public behavior being moved or replaced.\n- The draft/spec lacks a mapping from each retained behavior to its new owner or an explicit removal decision.\n- The draft/spec relies only on registration, discovery, help output, or mock routing checks for parity evidence.\nBlocking when: retained public behavior lacks behavior-level verification through the new path, or an intentional removal lacks user-visible impact and compatibility expectations.\nAdvisory when: the migration inventory and mapping exist, but an additional retained surface would benefit from clearer acceptance wording without changing the implementation target.",
+      "meta": {
+        "phase": [
+          "draft",
+          "spec"
+        ],
+        "category": "process"
+      }
+    },
+    {
       "id": "bounded-resource-usage",
       "title": "Bounded Resource Usage",
       "body": "Recursive processing, retries, and bulk data loading shall have explicit upper bounds (depth, count, size). Designs that allow unbounded processing are prohibited. acknowledged-exception handling: when a `## Matched Spec Acknowledgment Rationale` section is present for this guardrail, an intentional exception MAY pass only if the matched rationale comes from spec.json constraints, clarifications, or alternatives_considered, includes this guardrail_id at least once, and contains at least 20 non-whitespace characters after removing the guardrail_id. Example: `bounded-resource-usage` is acknowledged because the prompt section caps entries per guardrail, characters per entry, and total section size.",

@@ -1,0 +1,68 @@
+{
+  "devType": "feature",
+  "goal": "Add a generic `migration-parity` guardrail to the base preset so migration-related changes must define behavior parity before implementation.",
+  "analysis": {
+    "problem": "Existing base guardrails require impact listing and compatibility awareness, but they do not explicitly require a must-level inventory, mapping, and behavior-level verification when existing public behavior is moved, split, extracted, replaced, or externalized.",
+    "proposedApproach": "Add one base preset guardrail with id `migration-parity`, title `Migration Parity`, phase `draft` and `spec`, category `process`, and generic body text that excludes project-specific workflow plugin or board-item context.",
+    "validation": "Issue #379 provides the target id, title, phase, category, body intent, excluded context, and implementation note to run `senti upgrade`; existing `src/presets/base/guardrail.json` contains comparable cross-cutting process guardrails."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #379 states that Migration Parity Guardrail is generic and belongs in the base preset.",
+      "must: Existing base guardrails include cross-cutting process rules such as `single-responsibility`, `impact-on-existing-features`, and `req-diff-verifiability`.",
+      "must: The guardrail text must not include workflow plugin background, board item references, or other project-specific context because `src/` is distributed as an npm package."
+    ],
+    "decisionPoints": [
+      "must: Add exactly one base guardrail entry for migration parity rather than creating a project-specific or plugin-specific rule.",
+      "must: Use `phase: [\"draft\", \"spec\"]` and `category: \"process\"` so the rule applies before implementation and during specification.",
+      "must: Keep `task-impl` out of scope for this change."
+    ],
+    "resolvedByProjectRules": [
+      "must: Changing `src/presets/` requires running `senti upgrade` before completion.",
+      "must: Add one spec-local test file under `specs/289-migration-parity-guardrail/tests/` that fails before the `migration-parity` guardrail exists and passes after it is added.",
+      "must: Add or update one project regression test under `tests/unit/presets/base/` that reads `src/presets/base/guardrail.json` and asserts the new guardrail metadata and body concepts.",
+      "must: Guardrail prose should follow the base guardrail rewrite rubric where applicable: named violation, diff-verification conditions, and severity policy."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: Specify exact acceptance criteria for the new guardrail metadata, body content, phase filtering, generic wording, upgrade artifact, and tests.",
+      "must: Decide whether the project regression test should extend `req-diff-verifiability-guardrail.test.js` or use a new sibling test file after checking existing base guardrail test patterns."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: Update `src/presets/base/guardrail.json` with `migration-parity`.",
+      "must: Add or update focused tests that verify the guardrail exists, has `draft` and `spec` phases only, uses `process`, and contains the required migration parity concepts.",
+      "must: Run `senti upgrade` after changing the base preset."
+    ],
+    "out": [
+      "must: Do not include workflow plugin-specific background, board item identifiers, or repository-specific migration history in `src/` guardrail text.",
+      "must: Do not apply the new guardrail to `task-impl` in this change.",
+      "must: Do not change guardrail loader semantics unless tests reveal existing code cannot represent the requested metadata."
+    ]
+  },
+  "impactOnExisting": [
+    "must: Existing guardrail loader behavior remains unchanged; this change adds one data entry consumed by the existing merge and phase-filter paths.",
+    "must: Existing base guardrail ids and metadata remain present; regression tests must check representative pre-existing ids are not deleted or renamed.",
+    "must: Projects using the base preset will receive one additional draft/spec guardrail after `senti upgrade` deploys preset updates."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "must: Should Issue #379 add a generic `migration-parity` guardrail to the base preset with draft/spec phases, process category, generic wording, focused tests, and `senti upgrade`, while excluding workflow-plugin background, board item references, and task-impl phase coverage?",
+      "answer": "Yes. The user selected auto mode after reviewing the preflight Goal, Scope, and Out of Scope for Issue #379.",
+      "evidence": "Issue #379 body specifies id `migration-parity`, title `Migration Parity`, phase `draft, spec`, category `process`, generic guardrail body text, no project-specific context, and `senti upgrade` after base preset changes. Exploration evidence: `senti flow get guardrail draft` showed existing draft guardrails, `senti flow get context --search \"migration parity guardrail base guardrail json req-diff-verifiability\" --raw` identified guardrail loader and base preset context, and `tests/unit/presets/base/req-diff-verifiability-guardrail.test.js` shows the existing base guardrail test pattern.",
+      "why": "Recommendation basis: guardrail principles and existing code patterns. The request maps to a cross-cutting process guardrail, and existing base guardrail tests can verify metadata, phase filtering, body terms, and representative pre-existing ids without new loader behavior.",
+      "considered": "Leaving `qa[]` empty was rejected because draft question review requires an initial QA list before answer processing.",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-11T15:54:15Z",
+    "notes": "User selected auto mode after reviewing the preflight Goal, Scope, and Out of Scope for Issue #379."
+  }
+}
