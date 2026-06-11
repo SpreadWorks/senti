@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-11T10:01:28.065Z",
+  "analyzedAt": "2026-06-11T16:46:33.153Z",
   "package": {
     "entries": [
       {
@@ -4572,7 +4572,7 @@
         ],
         "id": "3de0db3f",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4842,7 +4842,7 @@
         "usedBy": null,
         "id": "40e4daa5",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -5394,7 +5394,7 @@
         "usedBy": null,
         "id": "59eeacc6",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -6735,9 +6735,9 @@
       },
       {
         "file": "src/flow/lib/test-artifacts.js",
-        "hash": "5bdf1ac12061fc248abdfbdf9f4cc618",
-        "lines": 1118,
-        "mtime": "2026-06-09T08:02:50.457Z",
+        "hash": "c629188a3614cf157bf6eee21837bd53",
+        "lines": 1116,
+        "mtime": "2026-06-11T16:46:17.262Z",
         "className": "test-artifacts",
         "methods": [
           "matchUpgradeRequiredSourcePaths",
@@ -6885,7 +6885,7 @@
         ],
         "id": "0b1b96b3",
         "enrich": {
-          "attempts": 5
+          "attempts": 1
         }
       },
       {
@@ -7014,7 +7014,7 @@
         ],
         "id": "2980d983",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -7063,7 +7063,7 @@
         ],
         "id": "d64f4095",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -7092,7 +7092,7 @@
         "usedBy": null,
         "id": "4ac07fa0",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -7113,7 +7113,7 @@
         "usedBy": null,
         "id": "fa47a601",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -7183,7 +7183,7 @@
         ],
         "id": "7463ee9a",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -7212,7 +7212,7 @@
         ],
         "id": "1af31edd",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -7298,7 +7298,7 @@
         ],
         "id": "13ddf392",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -7324,7 +7324,7 @@
         ],
         "id": "9f3f55f7",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -7377,7 +7377,7 @@
         ],
         "id": "f351ecc4",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -7414,7 +7414,7 @@
         ],
         "id": "0d680f4f",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -7453,9 +7453,9 @@
       },
       {
         "file": "src/lib/config.js",
-        "hash": "e73197eac355547c3c4e9ac1cf40389f",
-        "lines": 543,
-        "mtime": "2026-06-11T10:01:13.813Z",
+        "hash": "0bf736829e7f39628012d83cfac23a70",
+        "lines": 579,
+        "mtime": "2026-06-11T15:10:44.154Z",
         "className": "config",
         "methods": [
           "resolveConcurrency",
@@ -7463,15 +7463,18 @@
           "loadPackageField",
           "sentiDir",
           "sentiConfigPath",
+          "sentiLocalConfigPath",
           "sentiOutputDir",
           "resolveWorkDir",
           "loadLang",
-          "isFlowIntegrationEnabled",
           "validate",
           "loadConfig",
+          "loadRawConfig",
           "validatePluginConfig",
           "validateTestCommand",
           "validateProjectTestPath",
+          "mergeConfigOverlay",
+          "mergeEntriesById",
           "loadEnabledPluginConfig",
           "migratePluginDefaultNamespaces",
           "mergeConfigSchemas",
@@ -7491,12 +7494,13 @@
           "loadPackageField",
           "sentiDir",
           "sentiConfigPath",
+          "sentiLocalConfigPath",
           "sentiOutputDir",
           "resolveWorkDir",
           "loadLang",
-          "isFlowIntegrationEnabled",
           "validate",
           "loadConfig",
+          "loadRawConfig",
           "DEFAULT_CONCURRENCY",
           "DEFAULT_LANG"
         ],
@@ -7585,9 +7589,9 @@
       },
       {
         "file": "src/lib/container.js",
-        "hash": "274e9ea6b001e3289a39cbc5b7083f7e",
-        "lines": 238,
-        "mtime": "2026-06-11T02:26:13.976Z",
+        "hash": "83d9ad63ee7802ad8551ea279daf2f58",
+        "lines": 240,
+        "mtime": "2026-06-11T14:20:13.607Z",
         "className": "container",
         "methods": [
           "Container",
@@ -7633,23 +7637,8 @@
         ],
         "id": "fc4eae43",
         "enrich": {
-          "processedAt": "2026-06-11T04:00:32.862Z",
-          "attempts": 2
-        },
-        "summary": "Dependency container bootstrap for the application runtime. It wires config, paths, logging, providers, flow support, and document-scanning services into a shared registry.",
-        "detail": "The `Container` class wraps named dependency registration and lookup with a simple map-based API, and a singleton instance is exported for global use. `buildPaths` derives runtime directories such as logs and output, with support for cleanup-path relocation and agent work directories. The module imports most of the core subsystems, showing that container initialization is the composition point for scanning, analysis, translation, providers, and flow management. `initContainer` loads config early, reports config errors to stderr in a CLI-friendly way, and then assembles the runtime object graph.",
-        "chapter": "internal_design",
-        "role": "Application container and bootstrapper",
-        "keywords": [
-          "dependency injection",
-          "service container",
-          "bootstrap",
-          "runtime paths",
-          "application wiring",
-          "logger setup",
-          "flow manager",
-          "provider registry"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/lib/dispatcher.js",
@@ -8728,14 +8717,14 @@
         ],
         "id": "d79c8794",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
         "file": "src/lib/plugin-registry.js",
-        "hash": "0784bd861b9b890a339b9d1b35c3c6a8",
-        "lines": 887,
-        "mtime": "2026-06-11T10:01:13.813Z",
+        "hash": "424affe7afaa6b1059a927ed4beebf09",
+        "lines": 903,
+        "mtime": "2026-06-11T15:12:46.835Z",
         "className": "plugin-registry",
         "methods": [
           "readProjectConfig",
@@ -8766,6 +8755,7 @@
           "readJson",
           "writeJson",
           "ensurePluginConfig",
+          "readStoredProjectConfig",
           "sourceLocation",
           "normalizeRel",
           "isUnderPath",
@@ -9522,7 +9512,7 @@
         "usedBy": null,
         "id": "69d5afb4",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -9724,7 +9714,7 @@
         "usedBy": null,
         "id": "59edeaf2",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -9746,7 +9736,7 @@
         "usedBy": null,
         "id": "610d9db9",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -9769,7 +9759,7 @@
         "usedBy": null,
         "id": "e93ead84",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -9809,7 +9799,7 @@
         ],
         "id": "7d498c2d",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -9836,7 +9826,7 @@
         ],
         "id": "09180f7a",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -9862,7 +9852,7 @@
         "usedBy": null,
         "id": "0335b588",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -9888,7 +9878,7 @@
         ],
         "id": "11017e14",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -9906,7 +9896,7 @@
         "usedBy": null,
         "id": "c9fb7b98",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -9926,7 +9916,7 @@
         "usedBy": null,
         "id": "b970b682",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -9962,7 +9952,7 @@
         ],
         "id": "77a6b299",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -9982,7 +9972,7 @@
         "usedBy": null,
         "id": "8f10f543",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10000,7 +9990,7 @@
         "usedBy": null,
         "id": "8f450066",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10020,7 +10010,7 @@
         "usedBy": null,
         "id": "b0f8f889",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10040,7 +10030,7 @@
         "usedBy": null,
         "id": "4892bc67",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10060,7 +10050,7 @@
         "usedBy": null,
         "id": "1a761ec5",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10080,7 +10070,7 @@
         "usedBy": null,
         "id": "69990146",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10098,7 +10088,7 @@
         "usedBy": null,
         "id": "4ce12b68",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10118,7 +10108,7 @@
         "usedBy": null,
         "id": "067eb8ea",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10136,7 +10126,7 @@
         "usedBy": null,
         "id": "637f5458",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10201,7 +10191,7 @@
         "usedBy": null,
         "id": "9e5dc0f4",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10222,7 +10212,7 @@
         "usedBy": null,
         "id": "b619fac4",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10244,7 +10234,7 @@
         "usedBy": null,
         "id": "31519123",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10265,7 +10255,7 @@
         "usedBy": null,
         "id": "f4aeb340",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10286,7 +10276,7 @@
         "usedBy": null,
         "id": "06385296",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10309,7 +10299,7 @@
         "usedBy": null,
         "id": "d36783a1",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10327,7 +10317,7 @@
         "usedBy": null,
         "id": "fc850b5c",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10347,7 +10337,7 @@
         "usedBy": null,
         "id": "a156eb96",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10384,7 +10374,7 @@
         ],
         "id": "0f14eba0",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10415,7 +10405,7 @@
         ],
         "id": "4cd40de0",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10447,7 +10437,7 @@
         ],
         "id": "77570238",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10475,7 +10465,7 @@
         ],
         "id": "5ab85a7b",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10504,7 +10494,7 @@
         ],
         "id": "67be0cde",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10542,7 +10532,7 @@
         ],
         "id": "2a0239d4",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10568,7 +10558,7 @@
         "usedBy": null,
         "id": "b44b1f6d",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10588,7 +10578,7 @@
         "usedBy": null,
         "id": "4aed4546",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10612,7 +10602,7 @@
         ],
         "id": "555b424b",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10636,7 +10626,7 @@
         ],
         "id": "8c8019c6",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10660,7 +10650,7 @@
         ],
         "id": "f3640aba",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10684,7 +10674,7 @@
         ],
         "id": "077841bf",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10708,7 +10698,7 @@
         ],
         "id": "047801d3",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10726,7 +10716,7 @@
         "usedBy": null,
         "id": "8b8574e8",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10744,7 +10734,7 @@
         "usedBy": null,
         "id": "949943f2",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10766,7 +10756,7 @@
         "usedBy": null,
         "id": "ef3e174a",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10793,7 +10783,7 @@
         "usedBy": null,
         "id": "46b3a8ca",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10833,7 +10823,7 @@
         "usedBy": null,
         "id": "28c8bebb",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10854,7 +10844,7 @@
         "usedBy": null,
         "id": "7d1ae163",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10880,7 +10870,7 @@
         "usedBy": null,
         "id": "3d150f2b",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10904,7 +10894,7 @@
         "usedBy": null,
         "id": "c4eb1579",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10926,7 +10916,7 @@
         "usedBy": null,
         "id": "16c764e7",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10951,7 +10941,7 @@
         "usedBy": null,
         "id": "5c2be5a4",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10972,7 +10962,7 @@
         "usedBy": null,
         "id": "7a46897e",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10992,7 +10982,7 @@
         "usedBy": null,
         "id": "42734f2d",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11029,7 +11019,7 @@
         "usedBy": null,
         "id": "f183e3be",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11069,7 +11059,7 @@
         ],
         "id": "5f3cf81b",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11096,7 +11086,7 @@
         ],
         "id": "bcc4aec4",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11122,7 +11112,7 @@
         "usedBy": null,
         "id": "805128d9",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11148,7 +11138,7 @@
         ],
         "id": "f52fc93a",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11166,7 +11156,7 @@
         "usedBy": null,
         "id": "860eaa68",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11184,7 +11174,7 @@
         "usedBy": null,
         "id": "cda517e7",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11220,7 +11210,7 @@
         ],
         "id": "0e2d19e4",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11240,7 +11230,7 @@
         "usedBy": null,
         "id": "e31b415e",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11260,7 +11250,7 @@
         "usedBy": null,
         "id": "984362a2",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11280,7 +11270,7 @@
         "usedBy": null,
         "id": "affdd67a",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11300,7 +11290,7 @@
         "usedBy": null,
         "id": "8c003752",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11318,7 +11308,7 @@
         "usedBy": null,
         "id": "50caf0ff",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11370,7 +11360,7 @@
         "usedBy": null,
         "id": "a0531819",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11392,7 +11382,7 @@
         "usedBy": null,
         "id": "f98c59e8",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11414,7 +11404,7 @@
         "usedBy": null,
         "id": "709be1a1",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11435,7 +11425,7 @@
         "usedBy": null,
         "id": "745cd2f0",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11458,7 +11448,7 @@
         "usedBy": null,
         "id": "4cf3f8a7",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11481,7 +11471,7 @@
         "usedBy": null,
         "id": "6f2217a0",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11506,7 +11496,7 @@
         "usedBy": null,
         "id": "a105caf5",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11534,7 +11524,7 @@
         "usedBy": null,
         "id": "3f541c46",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11559,7 +11549,7 @@
         "usedBy": null,
         "id": "578aeee2",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11587,7 +11577,7 @@
         "usedBy": null,
         "id": "242e9231",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11609,7 +11599,7 @@
         "usedBy": null,
         "id": "ef3bd76b",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11633,7 +11623,7 @@
         ],
         "id": "53062c55",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11655,7 +11645,7 @@
         ],
         "id": "d409acc6",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11679,7 +11669,7 @@
         ],
         "id": "3a83d7fb",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11703,7 +11693,7 @@
         ],
         "id": "57b6cad6",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11727,7 +11717,7 @@
         ],
         "id": "cfe489eb",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11749,7 +11739,7 @@
         ],
         "id": "001ae5a0",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11773,7 +11763,7 @@
         ],
         "id": "c40c2149",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11795,7 +11785,7 @@
         ],
         "id": "46e5d152",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11815,7 +11805,7 @@
         "usedBy": null,
         "id": "ba16fdc4",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11833,7 +11823,7 @@
         "usedBy": null,
         "id": "65b6ce47",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11853,7 +11843,7 @@
         "usedBy": null,
         "id": "347d776b",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11876,7 +11866,7 @@
         "usedBy": null,
         "id": "5298695e",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11902,7 +11892,7 @@
         "usedBy": null,
         "id": "3a21a48e",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11934,7 +11924,7 @@
         "usedBy": null,
         "id": "bc2eea02",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -11969,7 +11959,7 @@
         "usedBy": null,
         "id": "92e4fc0e",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12006,7 +11996,7 @@
         ],
         "id": "8971b3a9",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12037,7 +12027,7 @@
         ],
         "id": "b8b4b356",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12069,7 +12059,7 @@
         ],
         "id": "bec0cbc5",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12097,7 +12087,7 @@
         ],
         "id": "0c27b843",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12126,7 +12116,7 @@
         ],
         "id": "74ec7555",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12164,7 +12154,7 @@
         ],
         "id": "3d6a704a",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12190,7 +12180,7 @@
         "usedBy": null,
         "id": "6a9476e8",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12210,7 +12200,7 @@
         "usedBy": null,
         "id": "79bf9d9a",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12234,7 +12224,7 @@
         ],
         "id": "121ea72d",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12258,7 +12248,7 @@
         ],
         "id": "0253726f",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12282,7 +12272,7 @@
         ],
         "id": "895145b6",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12306,7 +12296,7 @@
         ],
         "id": "01f3c1bb",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12330,7 +12320,7 @@
         ],
         "id": "dd504f20",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12348,7 +12338,7 @@
         "usedBy": null,
         "id": "3ab73d73",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12366,7 +12356,7 @@
         "usedBy": null,
         "id": "50428795",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12384,7 +12374,7 @@
         "usedBy": null,
         "id": "1231379a",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12405,7 +12395,7 @@
         "usedBy": null,
         "id": "f1870f47",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12423,7 +12413,7 @@
         "usedBy": null,
         "id": "acece93e",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12443,7 +12433,7 @@
         "usedBy": null,
         "id": "bd8fecb4",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12482,7 +12472,7 @@
         ],
         "id": "46be519f",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12503,7 +12493,7 @@
         "usedBy": null,
         "id": "1973aa0d",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12524,7 +12514,7 @@
         "usedBy": null,
         "id": "35e38bd0",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12546,7 +12536,7 @@
         "usedBy": null,
         "id": "b03f6bd4",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12571,7 +12561,7 @@
         "usedBy": null,
         "id": "2be8901a",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12589,7 +12579,7 @@
         "usedBy": null,
         "id": "e561bf3d",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12637,7 +12627,7 @@
         "usedBy": null,
         "id": "fc17fa00",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12659,7 +12649,7 @@
         "usedBy": null,
         "id": "8a0fd432",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12681,7 +12671,7 @@
         "usedBy": null,
         "id": "68ad7707",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12702,7 +12692,7 @@
         "usedBy": null,
         "id": "c12b2c1d",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12725,7 +12715,7 @@
         "usedBy": null,
         "id": "6018c37c",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12746,7 +12736,7 @@
         "usedBy": null,
         "id": "da4b0495",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12764,7 +12754,7 @@
         "usedBy": null,
         "id": "ca0c5d13",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12782,7 +12772,7 @@
         "usedBy": null,
         "id": "6c8b62b7",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12800,7 +12790,7 @@
         "usedBy": null,
         "id": "08a9a14a",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12820,7 +12810,7 @@
         "usedBy": null,
         "id": "3cb088fe",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12838,7 +12828,7 @@
         "usedBy": null,
         "id": "394e3450",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12858,7 +12848,7 @@
         ],
         "id": "3e848e11",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12876,7 +12866,7 @@
         "usedBy": null,
         "id": "ce786474",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12897,7 +12887,7 @@
         "usedBy": null,
         "id": "617dccae",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12921,7 +12911,7 @@
         "usedBy": null,
         "id": "8f6a9dae",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12942,7 +12932,7 @@
         "usedBy": null,
         "id": "ac06edc0",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -12977,7 +12967,7 @@
         "usedBy": null,
         "id": "ae80e38f",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -13003,7 +12993,7 @@
         "usedBy": null,
         "id": "85926390",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -13201,14 +13191,28 @@
         "usedBy": null,
         "id": "acdc1ca9",
         "enrich": {
-          "attempts": 5
-        }
+          "processedAt": "2026-06-11T16:48:11.720Z",
+          "attempts": 6
+        },
+        "summary": "This maintenance script renames phase and step identifiers across spec artifacts and review documents. It supports preview and in-place application modes while guarding writes behind a clean Git worktree check.",
+        "detail": "The module centralizes one-to-one token replacement and structured step ID migration through helpers imported from the rename library. It traverses JSON-like structures and Markdown content so that path strings, review notes, reports, and flow state files are updated consistently. Separate handlers target `flow.json`, `issue-log.json`, report/retro JSON files, and `review.md`, which keeps file-specific rewrite logic isolated. Before applying changes, it verifies that the repository exists and that the working tree is clean, then prints planned diffs or writes normalized JSON back to disk.",
+        "chapter": "development",
+        "role": "step ID migration script",
+        "keywords": [
+          "step id rename",
+          "phase step migration",
+          "flow artifact update",
+          "markdown rewrite",
+          "JSON transformation",
+          "dry run",
+          "git worktree check"
+        ]
       },
       {
         "file": "src/senti.js",
-        "hash": "68fb2011c1952e1d8bc4747dee0b31c0",
-        "lines": 120,
-        "mtime": "2026-06-11T02:26:13.978Z",
+        "hash": "181628f89fec2a45d61989be63b37ffb",
+        "lines": 124,
+        "mtime": "2026-06-11T14:37:10.220Z",
         "className": "senti",
         "methods": [],
         "imports": [
@@ -13222,9 +13226,23 @@
         "extends": null,
         "usedBy": null,
         "id": "a8608997",
+        "summary": "This file is the main CLI entrypoint for `senti`. It routes top-level arguments to namespace dispatchers, standalone scripts, or the container-backed command system.",
+        "detail": "The module reads raw CLI arguments early and handles help-style invocations by redirecting execution to a dedicated help script. It maintains explicit maps for namespace commands and independent scripts, then loads the target module dynamically with `import()` and adjusted `process.argv` values. For the remaining command surface, it initializes the dependency container and executes the shared handler pipeline. Exit behavior is normalized through explicit success and error codes, including JSON output for handled command results.",
+        "chapter": "project_structure",
+        "role": "top-level CLI dispatcher",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-06-11T16:48:11.720Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "CLI entrypoint",
+          "command dispatcher",
+          "dynamic import",
+          "subcommand routing",
+          "namespace script",
+          "process argv",
+          "dependency container"
+        ]
       },
       {
         "file": "src/setup.js",
@@ -13273,8 +13291,22 @@
         "usedBy": null,
         "id": "9820c9db",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-06-11T16:48:11.720Z",
+          "attempts": 4
+        },
+        "summary": "This command bootstraps a project for senti and writes the initial configuration. It combines interactive prompts with filesystem setup, agent document generation, and preset or skill deployment.",
+        "detail": "The module wraps generic argument parsing with setup-specific options and can also read existing defaults from `.senti/config.json` to prefill the wizard. It creates required directories such as `.senti`, `docs`, `specs`, and output folders, while also maintaining `.gitignore` and `.gitattributes` entries needed by the toolchain. Agent-facing files like `AGENTS.md` or `CLAUDE.md` are generated or patched through marker-based insertion so the senti section can be updated idempotently. The main flow merges defaults, validates preset chains and configuration, writes the final config file, prepares the work directory, deploys skills, and exits with a controlled error code on failure.",
+        "chapter": "configuration",
+        "role": "project setup command",
+        "keywords": [
+          "project bootstrap",
+          "interactive wizard",
+          "config initialization",
+          "agent file generation",
+          "preset selection",
+          "gitignore update",
+          "workspace setup"
+        ]
       },
       {
         "file": "src/spec.js",
@@ -13294,8 +13326,21 @@
         "usedBy": null,
         "id": "dca811d6",
         "enrich": {
-          "attempts": 5
-        }
+          "processedAt": "2026-06-11T16:48:11.720Z",
+          "attempts": 6
+        },
+        "summary": "This is a thin entrypoint for the `senti spec` command namespace. It initializes shared runtime state and forwards execution to the registered spec subcommand dispatcher.",
+        "detail": "The file extracts the first positional argument as the spec subcommand and exits with an error when none is provided. It imports the spec command registry and the generic dispatch helper rather than implementing command logic inline. Before dispatching, it initializes the shared container so downstream handlers can resolve dependencies consistently. Its main responsibility is namespace wiring, argument forwarding, and standardized exit handling.",
+        "chapter": "cli_commands",
+        "role": "spec command namespace entrypoint",
+        "keywords": [
+          "spec subcommand",
+          "CLI namespace",
+          "command registry",
+          "dispatch wrapper",
+          "container initialization",
+          "exit handling"
+        ]
       },
       {
         "file": "src/spec/commands/render.js",
@@ -13334,14 +13379,28 @@
         "usedBy": null,
         "id": "d63c4335",
         "enrich": {
-          "attempts": 5
-        }
+          "processedAt": "2026-06-11T16:48:11.720Z",
+          "attempts": 6
+        },
+        "summary": "This command renders `spec.json` into human-readable Markdown files. It validates the source data against the flow schema and emits both a main spec document and per-task task sheets.",
+        "detail": "The module defines small rendering helpers for requirements, sections, and approval blocks so Markdown generation stays structured and predictable. It resolves the target spec directory either from an explicit option or from the currently active flow, then validates paths and required files before continuing. The JSON payload is checked against the bundled schema, and any validation errors are printed clearly to stderr before the process exits. On success, it writes `spec.md` plus individual task documents under `tasks/`, using asynchronous writes for task pages and reporting generated paths relative to the workspace root.",
+        "chapter": "cli_commands",
+        "role": "spec Markdown renderer",
+        "keywords": [
+          "spec render",
+          "Markdown generation",
+          "schema validation",
+          "task documents",
+          "active flow",
+          "spec.json",
+          "CLI output"
+        ]
       },
       {
         "file": "src/upgrade.js",
-        "hash": "c92084f0cec768f2a6af1e0ca5f09cdd",
+        "hash": "6840c78feccd1b3885994f7c49599bed",
         "lines": 581,
-        "mtime": "2026-06-11T10:01:13.814Z",
+        "mtime": "2026-06-11T14:45:14.777Z",
         "className": "upgrade",
         "methods": [
           "parseUpgradeArgs",
@@ -13378,16 +13437,30 @@
         "extends": null,
         "usedBy": null,
         "id": "a631f658",
+        "summary": "This upgrade command migrates older `sdd-forge` projects to the current `senti` naming and layout. It rewrites text references, moves legacy directories, normalizes config namespaces, and records upgrade results.",
+        "detail": "The module models rename behavior with small rule objects and then applies a large legacy-to-current mapping across environment variables, directive keys, filenames, and human-readable labels. Its migration class handles both content rewrites and filesystem moves, including `.sdd-forge` to `.senti` relocation and skill directory renames, while skipping binary files and known exclusions. It also contains upgrade-specific helpers for parsing arguments, detecting the active flow context, collecting logs, and emitting artifact summaries for test or flow tracking. Configuration migration is handled separately so plugin namespace keys can be rewritten safely before validation. The main routine coordinates config loading, preset or plugin preparation, migration execution, result logging, and controlled termination on errors.",
+        "chapter": "development",
+        "role": "legacy project upgrade command",
         "enrich": {
+          "processedAt": "2026-06-11T16:48:11.720Z",
           "attempts": 1
-        }
+        },
+        "keywords": [
+          "upgrade migration",
+          "legacy rename",
+          "sdd-forge to senti",
+          "config namespace rewrite",
+          "filesystem migration",
+          "artifact logging",
+          "backward compatibility"
+        ]
       }
     ],
     "summary": {
       "total": 336,
-      "totalMethods": 1817
+      "totalMethods": 1821
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-11T10:05:59.575Z"
+  "enrichedAt": "2026-06-11T16:51:22.530Z"
 }
