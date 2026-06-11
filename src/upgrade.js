@@ -23,8 +23,8 @@ import { container } from "./lib/container.js";
 import { mergeAgentDefaults } from "./lib/agent-defaults.js";
 import { translate } from "./lib/i18n.js";
 import { validatePresetChain } from "./lib/presets.js";
-import { officialPresetPluginRoot, officialWorkflowPluginRoot } from "./lib/official-plugins.js";
-import { ensureOfficialPackage, loadPluginRegistry } from "./lib/plugin-registry.js";
+import { officialPresetPluginRoot } from "./lib/official-plugins.js";
+import { ensureOfficialPackage } from "./lib/plugin-registry.js";
 import {
   deploySkills,
   deploySkillsFromDir,
@@ -360,16 +360,6 @@ export function migratePluginConfigNamespaces(raw) {
       return out;
     });
   }
-  if (next.workflow?.flowIntegration != null) {
-    next.plugin.config.workflow = {
-      ...(next.plugin.config.workflow || {}),
-      flowIntegration: next.workflow.flowIntegration,
-    };
-    const remaining = { ...next.workflow };
-    delete remaining.flowIntegration;
-    if (Object.keys(remaining).length === 0) delete next.workflow;
-    else next.workflow = remaining;
-  }
   return next;
 }
 
@@ -436,32 +426,14 @@ async function main() {
     return types.some((type) => type && type !== "base");
   }
 
-  function hasWorkflowProvider() {
-    try {
-      return Boolean(loadPluginRegistry(root).resolveCommand("workflow"));
-    } catch (_) {
-      return false;
-    }
-  }
-
   if (!dryRun) {
     if (needsOfficialPresets()) {
       ensureOfficialPackage(root, {
         id: "official-presets",
         sourceRoot: officialPresetPluginRoot(),
-        type: "preset",
       });
       summary.plugins.changed = true;
       logger.log("[upgrade] enabled official preset plugin");
-    }
-    if (!hasWorkflowProvider()) {
-      ensureOfficialPackage(root, {
-        id: "workflow",
-        sourceRoot: officialWorkflowPluginRoot(),
-        type: "workflow",
-      });
-      summary.plugins.changed = true;
-      logger.log("[upgrade] enabled official workflow plugin");
     }
   }
 

@@ -40,6 +40,7 @@ import { writeLastFinalizedPointer } from "./run-finalize.js";
 import { resolveLatestReportPath, readReportText } from "./run-report-show.js";
 import { flattenSteps } from "./step-tree.js";
 import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
+import { runFlowCommandWithPluginLifecycle } from "../../lib/plugin-registry.js";
 
 const ORPHAN_COMMIT_LIST_LIMIT = 50;
 const RECOVERY_OPTIONS_DETECT = ["cherry-pick", "abort", "force-continue"];
@@ -603,6 +604,7 @@ export class RunFinalizeCleanupCommand extends FlowCommand {
 async function runTeardown(ctx, { worktreePath, mainRepoPath, reportRoot, specId }) {
   const state = ctx.flowState;
   const { featureBranch, worktree, baseBranch } = state;
+  let pluginLifecycle = { warnings: [], issueLogEntries: [], data: {} };
 
   // (i) metadata sync + finalize-cleanup → 'done'.
   const targetRoot = (worktree && mainRepoPath) ? mainRepoPath : ctx.root;
@@ -616,6 +618,27 @@ async function runTeardown(ctx, { worktreePath, mainRepoPath, reportRoot, specId
     } catch (err) {
       process.stderr.write(`[senti] cleanup: metadata sync warning: ${err.message}\n`);
     }
+  }
+
+  try {
+    pluginLifecycle = await runFlowCommandWithPluginLifecycle(ctx.root, state.plugins?.flowCommandHooks || [], {
+      command: "finalize-cleanup",
+      flow: state,
+      main: async () => ({
+        ok: true,
+        data: {
+          specPath: state.spec,
+          issueLogPath: `specs/${specId}/issue-log.json`,
+          artifactPath: `specs/${specId}`,
+        },
+      }),
+    });
+  } catch (err) {
+    pluginLifecycle = {
+      warnings: [{ code: "PLUGIN_LIFECYCLE_FAILED", message: err.message }],
+      issueLogEntries: [{ reason: `plugin finalize-cleanup lifecycle failed: ${err.message}`, payload: { code: "PLUGIN_LIFECYCLE_FAILED" } }],
+      data: {},
+    };
   }
 
   const flowJsonRel = `specs/${specId}/flow.json`;
@@ -688,9 +711,16 @@ async function runTeardown(ctx, { worktreePath, mainRepoPath, reportRoot, specId
   }
 
   const env = attachReport(
-    Envelope.ok("run", "finalize-cleanup", { status: "done" }),
+    Envelope.ok("run", "finalize-cleanup", {
+      status: "done",
+      pluginHooks: pluginLifecycle.data?.pluginHooks || [],
+      followUps: pluginLifecycle.data?.followUps || [],
+    }),
     reportRoot,
   );
+  for (const warning of pluginLifecycle.warnings || []) {
+    env.addWarning(warning.code || "PLUGIN_HOOK_WARNING", warning.message || JSON.stringify(warning));
+  }
   if (worktree && mainRepoPath) {
     attachOtherFlowMetadataWarning(env, mainRepoPath, specId);
   }

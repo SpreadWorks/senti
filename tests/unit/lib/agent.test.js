@@ -172,7 +172,7 @@ describe("Agent.resolve(commandId) — profile resolution", () => {
         useProfile: "codex",
         profiles: {
           default: {
-            "experimental.workflow.publish": "claude/sonnet",
+            "plugin.sample.publish": "claude/sonnet",
           },
           codex: {
             flow: "codex/gpt-5.4",
@@ -181,7 +181,7 @@ describe("Agent.resolve(commandId) — profile resolution", () => {
       },
     };
     const agent = makeAgent(null, { config: cfg });
-    const resolved = agent.resolve("experimental.workflow.publish");
+    const resolved = agent.resolve("plugin.sample.publish");
     assert.equal(resolved.profile.command, "claude");
     assert.ok(resolved.profile.args.includes("sonnet"));
   });
@@ -193,16 +193,16 @@ describe("Agent.resolve(commandId) — profile resolution", () => {
         useProfile: "codex",
         profiles: {
           default: {
-            "experimental.workflow.publish": "claude/sonnet",
+            "plugin.sample.publish": "claude/sonnet",
           },
           codex: {
-            "experimental.workflow.publish": "codex/gpt-5.4",
+            "plugin.sample.publish": "codex/gpt-5.4",
           },
         },
       },
     };
     const agent = makeAgent(null, { config: cfg });
-    const resolved = agent.resolve("experimental.workflow.publish");
+    const resolved = agent.resolve("plugin.sample.publish");
     assert.equal(resolved.profile.command, "codex");
   });
 

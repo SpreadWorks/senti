@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-11T07:36:52.766Z",
+  "verdict": "ADVISORY",
+  "counts": {
+    "blocking": 0,
+    "advisory": 1,
+    "total": 1
+  },
+  "coverageArtifact": "specs/288-workflow-plugin-migration/test-coverage.json",
+  "blockingFindings": [],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R7 locale/help cleanup scan is narrow",
+      "target": "specs/288-workflow-plugin-migration/tests/workflow-plugin-migration.test.js",
+      "improvement": "Broaden the R7 assertion to scan all relevant core help and locale files for workflow-specific command/help text, not only two exact strings in ui.json.",
+      "whyNonBlocking": "The existing test does cover major config/bootstrap/default removal and checks known locale strings, but broader scanning would reduce the chance of missed workflow wording."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/288-workflow-plugin-migration/test-review.json",
+    "verdict": "ADVISORY",
+    "result": "ADVISORY",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": "implement",
+    "completionKind": "normal",
+    "progressSignature": "5d28185870b9a0b86dc87b2a413edd9c4cdc38f047094e1b834b54897bd5f2c4"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 9,
+  "findings": [
+    {
+      "id": "test-009-non-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 9,
+      "severity": "non-blocking",
+      "title": "R7 locale/help cleanup scan is narrow",
+      "body": "R7 locale/help cleanup scan is narrow",
+      "category": "unknown"
+    }
+  ]
+}

@@ -30,7 +30,3 @@ export function bundledOfficialPresetPluginRoot() {
 export function officialPresetPluginRoot() {
   return officialPluginRoot("SENTI_OFFICIAL_PRESETS_REPO", "senti-presets", "senti-presets");
 }
-
-export function officialWorkflowPluginRoot() {
-  return officialPluginRoot("SENTI_OFFICIAL_WORKFLOW_PLUGIN_REPO", "senti-workflow-plugin", "senti-workflow-plugin");
-}

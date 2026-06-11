@@ -114,8 +114,7 @@ export function loadLang(root) {
 }
 
 /**
- * Whether the experimental workflow↔flow integration is enabled.
- * True only when config.plugin.config.workflow.flowIntegration === "enable".
+ * Whether the plugin-owned flow integration is enabled.
  * Missing plugin config or a null/undefined config means disabled.
  * @param {object} [config]
  * @returns {boolean}
@@ -320,20 +319,6 @@ const CONFIG_SCHEMA = {
       },
     },
 
-    workflow: {
-      type: "object",
-      properties: {
-        languages: {
-          type: "object",
-          properties: {
-            source: { type: "string" },
-            publish: { type: "string" },
-          },
-        },
-        flowIntegration: { type: "string", enum: ["enable", "disable"] },
-      },
-    },
-
     logs: {
       type: "object",
       properties: {
@@ -408,10 +393,6 @@ export function validate(raw, options = {}) {
   }
 
   if (raw.plugin) validatePluginConfig(raw.plugin, errors);
-  if (raw.workflow?.flowIntegration != null) {
-    errors.push("'workflow.flowIntegration': migrate to 'plugin.config.workflow.flowIntegration' with senti upgrade");
-  }
-
   if (errors.length > 0) {
     throw new Error(`Config validation failed:\n  - ${errors.join("\n  - ")}`);
   }
@@ -481,9 +462,6 @@ function validateProjectTestPath(entry, index, errors) {
  */
 export function loadConfig(root, options = {}) {
   const raw = loadJsonFile(sentiConfigPath(root));
-  if (raw.workflow?.flowIntegration != null) {
-    throw new Error("Config validation failed:\n  - 'workflow.flowIntegration': migrate to 'plugin.config.workflow.flowIntegration' with senti upgrade");
-  }
   const pluginConfig = loadEnabledPluginConfig(root, raw);
   const merged = mergeDefaults(raw, pluginConfig.defaults);
   return validate(merged, { ...options, schema: mergeConfigSchemas(CONFIG_SCHEMA, pluginConfig.schemas) });
@@ -510,19 +488,7 @@ function loadEnabledPluginConfig(root, raw) {
 }
 
 function migratePluginDefaultNamespaces(raw) {
-  const next = structuredClone(raw || {});
-  if (next.workflow?.flowIntegration == null) return next;
-  if (!next.plugin || typeof next.plugin !== "object") next.plugin = {};
-  if (!next.plugin.config || typeof next.plugin.config !== "object") next.plugin.config = {};
-  next.plugin.config.workflow = {
-    ...(next.plugin.config.workflow || {}),
-    flowIntegration: next.workflow.flowIntegration,
-  };
-  const remaining = { ...next.workflow };
-  delete remaining.flowIntegration;
-  if (Object.keys(remaining).length === 0) delete next.workflow;
-  else next.workflow = remaining;
-  return next;
+  return structuredClone(raw || {});
 }
 
 function mergeConfigSchemas(base, schemas) {

@@ -102,7 +102,6 @@ export function renderPluginSourceMigrationGuide() {
     "Plugin source config migration:",
     "- Replace plugin.repos[] with plugin.sources[].",
     "- Replace plugin.packages[].repo with plugin.packages[].source.",
-    "- Run senti upgrade to migrate workflow.flowIntegration to plugin.config.workflow.flowIntegration.",
   ].join("\n");
 }
 

@@ -1,0 +1,660 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".senti/config.json                                 |   32 +-\n .senti/output/analysis.json                        |    2 +-\n plugins/senti-workflow-plugin/commands/workflow.js |  134 +\n .../senti-workflow-plugin/config.defaults.json     |    0\n .../senti-workflow-plugin/config.schema.json       |    3 +\n .../hooks/finalize-cleanup.js                      |   54 +\n plugins/senti-workflow-plugin/hooks/prepare.js     |   29 +\n .../senti-workflow-plugin/lib/services/agent.js    |   34 +\n .../senti-workflow-plugin/lib/services/context.js  |   16 +\n .../senti-workflow-plugin/lib/services/index.js    |  258 ++\n .../lib/services/validation.js                     |   51 +\n plugins/senti-workflow-plugin/plugin.json          |   42 +\n .../skills/senti.workflow/SKILL.md                 |   22 +\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-questions-repair.json                    |    8 +\n .../draft-questions-triage.json                    |    8 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   11 +\n specs/288-workflow-plugin-migration/draft.json     |  135 +\n specs/288-workflow-plugin-migration/file-map.json  |   78 +\n specs/288-workflow-plugin-migration/flow.json      | 3220 ++++++++++++++++++++\n .../288-workflow-plugin-migration/impl-review.json |  309 ++\n specs/288-workflow-plugin-migration/issue-log.json | 1552 ++++++++++\n specs/288-workflow-plugin-migration/issue.md       |  392 +++\n .../plugin-workspace.json                          |    6 +\n .../retry-recovery.json                            |  533 ++++\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |   14 +\n .../review-history/impl-attempt-001.json           |  663 ++++\n .../review-history/impl-attempt-001.md             |  400 +++\n .../review-history/spec-attempt-001.json           |  112 +\n .../review-history/spec-attempt-001.md             |   36 +\n .../review-history/test-attempt-001.json           |  156 +\n .../review-history/test-attempt-001.md             |   54 +\n .../review-history/test-attempt-002.json           |  138 +\n .../review-history/test-attempt-002.md             |   45 +\n .../review-history/test-attempt-003.json           |  102 +\n .../review-history/test-attempt-003.md             |   33 +\n .../review-history/test-attempt-004.json           |  102 +\n .../review-history/test-attempt-004.md             |   33 +\n .../review-history/test-attempt-005.json           |   66 +\n .../review-history/test-attempt-005.md             |   21 +\n .../review-history/test-attempt-006.json           |  102 +\n .../review-history/test-attempt-006.md             |   33 +\n .../review-history/test-attempt-007.json           |   66 +\n .../review-history/test-attempt-007.md             |   21 +\n .../review-history/test-attempt-008.json           |   84 +\n .../review-history/test-attempt-008.md             |   27 +\n .../review-history/test-attempt-009.json           |   47 +\n .../review-history/test-attempt-009.md             |   16 +\n specs/288-workflow-plugin-migration/review.md      |  400 +++\n .../288-workflow-plugin-migration/spec-repair.json |   51 +\n .../288-workflow-plugin-migration/spec-review.json |   58 +\n specs/288-workflow-plugin-migration/spec-review.md |   36 +\n .../288-workflow-plugin-migration/spec-triage.json |   29 +\n specs/288-workflow-plugin-migration/spec.json      |  426 +++\n specs/288-workflow-plugin-migration/spec.md        |  176 ++\n specs/288-workflow-plugin-migration/tasks/T-1.md   |   20 +\n specs/288-workflow-plugin-migration/tasks/T-2.md   |   20 +\n specs/288-workflow-plugin-migration/tasks/T-3.md   |   21 +\n specs/288-workflow-plugin-migration/tasks/T-4.md   |   21 +\n specs/288-workflow-plugin-migration/tasks/T-5.md   |   20 +\n specs/288-workflow-plugin-migration/tasks/T-6.md   |   20 +\n specs/288-workflow-plugin-migration/tasks/T-7.md   |   20 +\n .../test-coverage.json                             |  152 +\n .../288-workflow-plugin-migration/test-review.json |   33 +\n specs/288-workflow-plugin-migration/test-review.md |   16 +\n .../tests/workflow-plugin-migration.test.js        |  781 +++++\n .../upgrade-not-required.json                      |    6 +\n src/AGENTS.md                                      |    4 +-\n src/flow/lib/retry-recovery.js                     |    2 +-\n src/flow/lib/run-finalize-cleanup.js               |   32 +-\n src/flow/lib/run-prepare-spec.js                   |   17 +-\n src/flow/prompts/plan/draft.md                     |    5 -\n src/lib/agent-defaults.js                          |    3 -\n src/lib/config.js                                  |   38 +-\n src/lib/official-plugins.js                        |    4 -\n src/lib/plugin-registry.js                         |   83 +-\n src/lib/types.js                                   |   12 -\n src/locale/en/ui.json                              |    3 +-\n src/locale/ja/ui.json                              |    3 +-\n .../senti-workflow-plugin/commands/workflow.js     |   15 -\n .../senti-workflow-plugin/hooks/issue-start.js     |   27 -\n .../senti-workflow-plugin/plugin.json              |   19 -\n .../skills/senti.workflow/SKILL.md                 |   68 -\n src/plugin.js                                      |    1 -\n src/upgrade.js                                     |   32 +-\n src/workflow/AGENTS.md                             |   30 -\n src/workflow/index.js                              |  160 -\n src/workflow/lib/base-command.js                   |   10 -\n src/workflow/lib/board-helpers.js                  |   67 -\n src/workflow/lib/category.js                       |   15 -\n src/workflow/lib/commands/add.js                   |   40 -\n src/workflow/lib/commands/issue-log-import.js      |  337 --\n src/workflow/lib/commands/issue-start.js           |   69 -\n src/workflow/lib/commands/list.js                  |   23 -\n src/workflow/lib/commands/publish.js               |  128 -\n src/workflow/lib/commands/search.js                |   25 -\n src/workflow/lib/commands/show.js                  |   27 -\n src/workflow/lib/commands/update.js                |   48 -\n src/workflow/lib/config.js                         |   23 -\n src/workflow/lib/graphql.js                        |  201 --\n src/workflow/lib/hash.js                           |   15 -\n src/workflow/lib/validation.js                     |   30 -\n src/workflow/registry.js                           |   93 -\n tests/unit/lib/agent.test.js                       |   10 +-\n .../unit/workflow-board-candidate-guidance.test.js |   42 -\n tests/unit/workflow-category.test.js               |   39 -\n tests/unit/workflow-config-validation.test.js      |   60 -\n tests/unit/workflow-dispatcher.test.js             |   56 -\n tests/unit/workflow-graphql-option.test.js         |   21 -\n tests/unit/workflow-issue-log-import.test.js       |   79 -\n tests/unit/workflow-validation.test.js             |   39 -\n 114 files changed, 11754 insertions(+), 1948 deletions(-)",
+      "commits": [
+        "feat: feature/288-workflow-plugin-migration"
+      ]
+    },
+    "retro": {
+      "total": 12,
+      "done": 12,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "Prepare the external workflow plugin repository under the active flow worktree and perform plugin-side implementation and verification from that in-boundary location.",
+          "status": "done",
+          "note": "R1: external workflow plugin workspace is recorded inside the active flow worktree"
+        },
+        {
+          "desc": "The workflow plugin must own the `senti workflow` top-level command and existing add, update, show, search, list, publish, and ideas behavior without importing core src/workflow modules or relying on a bundled compatibility copy. Each user-facing argument and option must be validated at the plugin command entry point according to the validation contract in clarifications.",
+          "status": "done",
+          "note": "R2: workflow command validates every public subcommand before routing to plugin services"
+        },
+        {
+          "desc": "The workflow plugin must provide plugin-owned services shared by commands and hooks for board item operations, issue publishing, issue-start behavior, and board idea candidate extraction.",
+          "status": "done",
+          "note": "R3: workflow plugin exposes real shared service modules for command and hook use"
+        },
+        {
+          "desc": "The workflow plugin must provide prepare.post and finalize-cleanup.post hooks for flow integration. Generic core lifecycle must run prepare.post with the newly written flow state including hook snapshot, spec path, runId, and linked issue, and must run finalize-cleanup.post while a durable spec/issue-log/artifact path is available. Hook business failures such as board config missing, gh failure, or AI refinement failure must produce warnings, issue-log entries, or follow-ups without failing the main flow command.",
+          "status": "done",
+          "note": "R4: generic flow hook lifecycle passes durable flow context and records non-fatal warnings"
+        },
+        {
+          "desc": "Workflow plugin AI call sites for publish, idea candidate classification, similarity, and composition must resolve provider/profile overrides from plugin.config.workflow.agent.<name> and otherwise use a workflow-neutral public plugin agent API/context that exposes generic agent resolve/call capability and needed root config values such as lang.",
+          "status": "done",
+          "note": "R5: workflow plugin agent adapter resolves publish and ideas overrides through public context"
+        },
+        {
+          "desc": "Core must remove workflow-owned runtime implementation and bundled workflow compatibility artifacts, including src/workflow and src/official-plugins/senti-workflow-plugin, after their behavior is available from the external plugin.",
+          "status": "done",
+          "note": "R6: core workflow runtime and bundled workflow compatibility copy are removed"
+        },
+        {
+          "desc": "Core must remove workflow-specific config schema/defaults/migration, workflow.publish default agent profile entries, official workflow bootstrap special-cases, and workflow-specific help/locale entries, while preserving generic plugin and preset behavior.",
+          "status": "done",
+          "note": "R7: core has no workflow-specific config, bootstrap, help, locale, or agent defaults"
+        },
+        {
+          "desc": "Core flow prompt and skill source must stop hardcoding workflow board integration, issue-start, issue-log-import, workflow add, or workflow.flowIntegration instructions. Equivalent behavior must be provided through workflow plugin hooks and plugin-owned follow-up text.",
+          "status": "done",
+          "note": "R8: core flow prompts and skills do not hardcode workflow integration commands"
+        },
+        {
+          "desc": "Public workflow subcommands issue-start and issue-log-import must be removed without compatibility aliases. The migration plan must replace issue-start with prepare.post hook behavior and issue-log-import with the ideas command and updated skill/help guidance.",
+          "status": "done",
+          "note": "R9: removed workflow subcommands fail before any service call and ideas remains public"
+        },
+        {
+          "desc": "Core tests must not contain workflow-specific feature fixtures or expectations after migration. Core may keep generic plugin contract tests using non-workflow sample plugins, and workflow behavior tests must live with the workflow plugin.",
+          "status": "done",
+          "note": "R10: core tests use generic plugin fixtures instead of workflow feature expectations"
+        },
+        {
+          "desc": "The migrated workflow plugin must be installable/enabled for this repository from the external plugin repository and provide a smoke-verifiable `senti workflow` command plus flow hook behavior.",
+          "status": "done",
+          "note": "R11: external workflow plugin is enabled, discoverable, and smoke-runnable"
+        },
+        {
+          "desc": "If migration changes src/skills, src/presets, source templates, or deployed skill artifacts, the implementation must run senti upgrade and include evidence that generated artifacts match source changes.",
+          "status": "done",
+          "note": "R12: changed skills and templates have upgrade evidence"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 53,
+      "fullLogPath": "specs/288-workflow-plugin-migration/issue-log.json",
+      "importantTotal": 28,
+      "importantShown": 10,
+      "importantOmitted": 18,
+      "recentOtherTotal": 25,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 20,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "draft gate failed because one QA entry used a category outside the allowed draft enum",
+          "resolution": "changed q5 category from test-strategy to acceptance-criteria and verified category values without shell template expansion"
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "draft gate failed because removed workflow subcommands lacked a CLI migration plan",
+          "resolution": "added migration plan: issue-start moves to prepare.post hook, issue-log-import replacement is ideas, and skill/help/prompt guidance drops old subcommands"
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "spec gate failed because workflow command validation contracts and resource bounds were underspecified",
+          "resolution": "added explicit command argument validation contracts, ideas and board pagination bounds, and acceptance criteria for validation and resource limits"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Scenario-validity rerun rejected updated tests because combined requirement test names were not discoverable by the requirement mapper.",
+          "resolution": "Renamed combined test names to explicit R2 and R3 entries and added an explicit R9 test."
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Static test review found remaining blockers: temp hook ESM loading, real service module coverage, command input mapping, agent provider resolution, and plugin-root verification evidence.",
+          "resolution": "Added package.json type module for temp lifecycle hook, production service factory coverage, exact command input assertions and invalid cases, provider/resolve and service-level agent assertions, and plugin-root syntax verification."
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Static test review still found gaps in real service behavior, finalize-cleanup lifecycle coverage, and non-JS workflow fixture scanning.",
+          "resolution": "Added service-level client behavior checks, finalize-cleanup lifecycle synthetic hook coverage, and expanded R10 scanning across all tests and fixtures with GitHub Actions exclusions."
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Static test review still found production command/hook service construction, newly written prepare state, and agent fallback path coverage missing.",
+          "resolution": "Added production command path tests using clients, added agent fallback assertions, and changed lifecycle coverage to use runPrepareWithPluginHooks written flow state before running prepare.post."
+        },
+        {
+          "classification": "important",
+          "step": "retry-recovery",
+          "reason": "Spec-local workflow migration tests changed after the last R2 public option surface blocker; publicSurface and wrong-surface validation cases were added.",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Reset-after-review blockers required stronger R1 provenance, R4 linked issue propagation, and R8 forbidden prompt guidance coverage.",
+          "resolution": "Added external workflow plugin source identity assertions, required prepare helper to write issue and run prepare.post artifact, and broadened R8 prompt/skill forbidden guidance scan."
+        },
+        {
+          "classification": "important",
+          "step": "retry-recovery",
+          "reason": "Spec-local tests changed after the three remaining blockers: external plugin provenance, linked issue prepare.post artifact, and broader forbidden prompt guidance scan were added.",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: gate found duplicate Japanese text validation in command entry and board service layer",
+          "resolution": "kept add/update text validation at the workflow command entry point and removed the repeated service-layer assertions so services trust validated command inputs"
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "Four named proxy methods each contain the identical statement `return this.call(\"name\", prompt, data)`. The repeated shape performs the same transformation (delegate to `this.call` with the method name as a string argument) and appears i...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: gate found repeated agent proxy and board delegation methods",
+          "resolution": "generated WorkflowAgentResolver proxy methods from a method list and replaced repeated board pass-through methods with createBoardServices delegation helper"
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "The check `fs.existsSync(path.join(root, '.git'))` is introduced here as a new `+` line to branch between git and non-git plugin sources. The same determination is introduced again in `installFromSource` (also a new `+` line: `const sour...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: gate found duplicated .git source detection in plugin registry install path",
+          "resolution": "threaded resolveSource materialized state into installFromSource and removed the second filesystem .git check while preserving archive for git sources and direct copy for materialized local sources"
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 29
+    },
+    "tokenMetrics": {
+      "input": 1261824,
+      "output": 218312,
+      "cacheRead": 3445328,
+      "cacheCreation": 1236646,
+      "cost": 6.4888477,
+      "callCount": 65,
+      "durationMs": 2776306,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 17128
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 20067
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 73832
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 308262
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 34910
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 661962
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 303363
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 1356782
+        }
+      ]
+    },
+    "tests": {
+      "total": 12,
+      "passed": 12,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/288-workflow-plugin-migration/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 117,
+          "end_line": 5130
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "modified",
+            "path": ".senti/config.json"
+          },
+          {
+            "status": "added",
+            "path": "plugins/senti-workflow-plugin/commands/workflow.js"
+          },
+          {
+            "status": "added",
+            "path": "plugins/senti-workflow-plugin/hooks/finalize-cleanup.js"
+          },
+          {
+            "status": "added",
+            "path": "plugins/senti-workflow-plugin/hooks/prepare.js"
+          },
+          {
+            "status": "added",
+            "path": "plugins/senti-workflow-plugin/lib/services/agent.js"
+          },
+          {
+            "status": "added",
+            "path": "plugins/senti-workflow-plugin/lib/services/context.js"
+          },
+          {
+            "status": "added",
+            "path": "plugins/senti-workflow-plugin/lib/services/index.js"
+          },
+          {
+            "status": "added",
+            "path": "plugins/senti-workflow-plugin/lib/services/validation.js"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/288-workflow-plugin-migration/review-history/"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/288-workflow-plugin-migration/tasks/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/retry-recovery.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-finalize-cleanup.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-prepare-spec.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/agent-defaults.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/config.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/official-plugins.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/plugin-registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/types.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-workflow-plugin/commands/workflow.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-workflow-plugin/hooks/issue-start.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/plugin.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/upgrade.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/index.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/lib/base-command.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/lib/board-helpers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/lib/category.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/lib/commands/add.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/lib/commands/issue-log-import.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/lib/commands/issue-start.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/lib/commands/list.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/lib/commands/publish.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/lib/commands/search.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/lib/commands/show.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/lib/commands/update.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/lib/config.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/lib/graphql.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/lib/hash.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/lib/validation.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/agent.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "tests/unit/workflow-board-candidate-guidance.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "tests/unit/workflow-category.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "tests/unit/workflow-config-validation.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "tests/unit/workflow-dispatcher.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "tests/unit/workflow-graphql-option.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "tests/unit/workflow-issue-log-import.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "tests/unit/workflow-validation.test.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "modified",
+            "path": ".senti/config.json"
+          },
+          {
+            "status": "added",
+            "path": "plugins/senti-workflow-plugin/commands/workflow.js"
+          },
+          {
+            "status": "added",
+            "path": "plugins/senti-workflow-plugin/hooks/finalize-cleanup.js"
+          },
+          {
+            "status": "added",
+            "path": "plugins/senti-workflow-plugin/hooks/prepare.js"
+          },
+          {
+            "status": "added",
+            "path": "plugins/senti-workflow-plugin/lib/services/agent.js"
+          },
+          {
+            "status": "added",
+            "path": "plugins/senti-workflow-plugin/lib/services/context.js"
+          },
+          {
+            "status": "added",
+            "path": "plugins/senti-workflow-plugin/lib/services/index.js"
+          },
+          {
+            "status": "added",
+            "path": "plugins/senti-workflow-plugin/lib/services/validation.js"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/288-workflow-plugin-migration/review-history/"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/288-workflow-plugin-migration/tasks/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/retry-recovery.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-finalize-cleanup.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-prepare-spec.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/agent-defaults.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/config.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/official-plugins.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/plugin-registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/types.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-workflow-plugin/commands/workflow.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-workflow-plugin/hooks/issue-start.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/plugin.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/upgrade.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/index.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/lib/base-command.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/lib/board-helpers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/lib/category.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/lib/commands/add.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/lib/commands/issue-log-import.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/lib/commands/issue-start.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/lib/commands/list.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/lib/commands/publish.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/lib/commands/search.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/lib/commands/show.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/lib/commands/update.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/lib/config.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/lib/graphql.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/lib/hash.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/lib/validation.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/workflow/registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/agent.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "tests/unit/workflow-board-candidate-guidance.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "tests/unit/workflow-category.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "tests/unit/workflow-config-validation.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "tests/unit/workflow-dispatcher.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "tests/unit/workflow-graphql-option.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "tests/unit/workflow-issue-log-import.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "tests/unit/workflow-validation.test.js"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/288-workflow-plugin-migration/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/288-workflow-plugin-migration\n    114 files changed, 11754 insertions(+), 1948 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (12 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 29\n    agent calls ................. 65\n    input tokens ................ 1,261,824\n    output tokens ............... 218,312\n    cache-read tokens ........... 3,445,328\n    cache-create tokens ......... 1,236,646\n    cost ........................ $6.4888\n    duration (total) ............ 2776.3s\n      draft-questions-review .... 17.1s\n      draft-coverage-review ..... 20.1s\n      draft-gate ................ 73.8s\n      spec-review ............... 308.3s\n      spec-gate ................. 34.9s\n      test-review ............... 662.0s\n      impl-review ............... 303.4s\n      impl-gate ................. 1356.8s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 12  passed 12  failed 0 verdict=pass\n    raw_output: specs/288-workflow-plugin-migration/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (53 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/288-workflow-plugin-migration/issue-log.json\n\n    Important (10 of 28)\n    - [draft-gate] draft gate failed because one QA entry used a category outside the allowed draft enum\n    - [draft-gate] draft gate failed because removed workflow subcommands lacked a CLI migration plan\n    - [spec-gate] spec gate failed because workflow command validation contracts and resource bounds were underspecified\n    - [test-review] Scenario-validity rerun rejected updated tests because combined requirement test names were not discoverable by the requirement mapper.\n    - [test-review] Static test review found remaining blockers: temp hook ESM loading, real service module coverage, command input mapping, agent provider resolution, and plugin-root verification evidence.\n    - [test-review] Static test review still found gaps in real service behavior, finalize-cleanup lifecycle coverage, and non-JS workflow fixture scanning.\n    - [test-review] Static test review still found production command/hook service construction, newly written prepare state, and agent fallback path coverage missing.\n    - [retry-recovery] Spec-local workflow migration tests changed after the last R2 public option surface blocker; publicSurface and wrong-surface validation cases were added.\n    - [test-review] Reset-after-review blockers required stronger R1 provenance, R4 linked issue propagation, and R8 forbidden prompt guidance coverage.\n    - [retry-recovery] Spec-local tests changed after the three remaining blockers: external plugin provenance, linked issue prepare.post artifact, and broader forbidden prompt guidance scan were added.\n    ... 18 important issue-log entries omitted\n\n    Recent Other (5 of 25)\n    - [impl-gate] fix: gate found duplicate Japanese text validation in command entry and board service layer\n    - [spec-gate] Four named proxy methods each contain the identical statement `return this.call(\"name\", prompt, data)`. The repeated shape performs the same transformation (delegate to `this.call` with the method name as a string argument) and appears i...\n    - [impl-gate] fix: gate found repeated agent proxy and board delegation methods\n    - [spec-gate] The check `fs.existsSync(path.join(root, '.git'))` is introduced here as a new `+` line to branch between git and non-git plugin sources. The same determination is introduced again in `installFromSource` (also a new `+` line: `const sour...\n    - [impl-gate] fix: gate found duplicated .git source detection in plugin registry install path\n    ... 20 other issue-log entries omitted"
+}

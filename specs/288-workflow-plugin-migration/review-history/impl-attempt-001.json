@@ -1,0 +1,663 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-11T08:24:20.006Z",
+  "verdict": "ADVISORY",
+  "summary": {
+    "blocking": 0,
+    "nonBlocking": 35,
+    "total": 35
+  },
+  "blockingFindings": [],
+  "nonBlockingImprovements": [
+    {
+      "title": "1. Reuse spec path constants",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-finalize-cleanup.js",
+      "issue": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** `specs/${specId}` is rebuilt in multiple places for `issueLogPath`, `artifactPath`, and `flowJsonRel`, which makes future path changes easy to miss.  \n**Suggestion:** Define shared constants near the start of `runTeardown`, e.g. `specDirRel`, `issueLogRel`, and `flowJsonRel`, then reuse them in the plugin lifecycle payload and metadata update logic.",
+      "suggestion": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** `specs/${specId}` is rebuilt in multiple places for `issueLogPath`, `artifactPath`, and `flowJsonRel`, which makes future path changes easy to miss.  \n**Suggestion:** Define shared constants near the start of `runTeardown`, e.g. `specDirRel`, `issueLogRel`, and `flowJsonRel`, then reuse them in the plugin lifecycle payload and metadata update logic.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Rename lifecycle result variable",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-finalize-cleanup.js",
+      "issue": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** `pluginLifecycle` reads like a lifecycle object or runner, but it actually stores the result of running lifecycle hooks.  \n**Suggestion:** Rename it to `pluginLifecycleResult` or `pluginHookResult` to make later uses like `pluginLifecycleResult.warnings` and `pluginLifecycleResult.data` clearer.",
+      "suggestion": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** `pluginLifecycle` reads like a lifecycle object or runner, but it actually stores the result of running lifecycle hooks.  \n**Suggestion:** Rename it to `pluginLifecycleResult` or `pluginHookResult` to make later uses like `pluginLifecycleResult.warnings` and `pluginLifecycleResult.data` clearer.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Extract plugin lifecycle fallback construction",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-finalize-cleanup.js",
+      "issue": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** The catch block manually constructs the fallback lifecycle result inline, including duplicated error-code strings and result shape details.  \n**Suggestion:** Move this into a small helper such as `pluginLifecycleFailureResult(err)`, returning `{ warnings, issueLogEntries, data }`. This keeps `runTeardown` focused on teardown flow and centralizes the fallback shape.",
+      "suggestion": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** The catch block manually constructs the fallback lifecycle result inline, including duplicated error-code strings and result shape details.  \n**Suggestion:** Move this into a small helper such as `pluginLifecycleFailureResult(err)`, returning `{ warnings, issueLogEntries, data }`. This keeps `runTeardown` focused on teardown flow and centralizes the fallback shape.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "4. Normalize plugin lifecycle result once",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-finalize-cleanup.js",
+      "issue": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** Later code defensively reads `pluginLifecycle.data?.pluginHooks || []`, `pluginLifecycle.data?.followUps || []`, and `pluginLifecycle.warnings || []`. That spreads result-shape assumptions through the teardown logic.  \n**Suggestion:** Normalize immediately after the lifecycle call/catch, e.g. ensure `warnings`, `issueLogEntries`, `data.pluginHooks`, and `data.followUps` are arrays. Then downstream code can read plain properties without repeated fallback logic.",
+      "suggestion": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** Later code defensively reads `pluginLifecycle.data?.pluginHooks || []`, `pluginLifecycle.data?.followUps || []`, and `pluginLifecycle.warnings || []`. That spreads result-shape assumptions through the teardown logic.  \n**Suggestion:** Normalize immediately after the lifecycle call/catch, e.g. ensure `warnings`, `issueLogEntries`, `data.pluginHooks`, and `data.followUps` are arrays. Then downstream code can read plain properties without repeated fallback logic.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Reuse spec path constants",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-finalize-cleanup.js",
+      "issue": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** `specs/${specId}` is rebuilt in multiple places for `issueLogPath`, `artifactPath`, and `flowJsonRel`, which makes future path changes easy to miss.  \n**Suggestion:** Define shared constants near the start of `runTeardown`, e.g. `specDirRel`, `issueLogRel`, and `flowJsonRel`, then reuse them in the plugin lifecycle payload and metadata update logic.",
+      "suggestion": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** `specs/${specId}` is rebuilt in multiple places for `issueLogPath`, `artifactPath`, and `flowJsonRel`, which makes future path changes easy to miss.  \n**Suggestion:** Define shared constants near the start of `runTeardown`, e.g. `specDirRel`, `issueLogRel`, and `flowJsonRel`, then reuse them in the plugin lifecycle payload and metadata update logic.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Rename lifecycle result variable",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-finalize-cleanup.js",
+      "issue": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** `pluginLifecycle` reads like a lifecycle object or runner, but it actually stores the result of running lifecycle hooks.  \n**Suggestion:** Rename it to `pluginLifecycleResult` or `pluginHookResult` to make later uses like `pluginLifecycleResult.warnings` and `pluginLifecycleResult.data` clearer.",
+      "suggestion": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** `pluginLifecycle` reads like a lifecycle object or runner, but it actually stores the result of running lifecycle hooks.  \n**Suggestion:** Rename it to `pluginLifecycleResult` or `pluginHookResult` to make later uses like `pluginLifecycleResult.warnings` and `pluginLifecycleResult.data` clearer.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Extract plugin lifecycle fallback construction",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-finalize-cleanup.js",
+      "issue": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** The catch block manually constructs the fallback lifecycle result inline, including duplicated error-code strings and result shape details.  \n**Suggestion:** Move this into a small helper such as `pluginLifecycleFailureResult(err)`, returning `{ warnings, issueLogEntries, data }`. This keeps `runTeardown` focused on teardown flow and centralizes the fallback shape.",
+      "suggestion": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** The catch block manually constructs the fallback lifecycle result inline, including duplicated error-code strings and result shape details.  \n**Suggestion:** Move this into a small helper such as `pluginLifecycleFailureResult(err)`, returning `{ warnings, issueLogEntries, data }`. This keeps `runTeardown` focused on teardown flow and centralizes the fallback shape.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "4. Normalize plugin lifecycle result once",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-finalize-cleanup.js",
+      "issue": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** Later code defensively reads `pluginLifecycle.data?.pluginHooks || []`, `pluginLifecycle.data?.followUps || []`, and `pluginLifecycle.warnings || []`. That spreads result-shape assumptions through the teardown logic.  \n**Suggestion:** Normalize immediately after the lifecycle call/catch, e.g. ensure `warnings`, `issueLogEntries`, `data.pluginHooks`, and `data.followUps` are arrays. Then downstream code can read plain properties without repeated fallback logic.",
+      "suggestion": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** Later code defensively reads `pluginLifecycle.data?.pluginHooks || []`, `pluginLifecycle.data?.followUps || []`, and `pluginLifecycle.warnings || []`. That spreads result-shape assumptions through the teardown logic.  \n**Suggestion:** Normalize immediately after the lifecycle call/catch, e.g. ensure `warnings`, `issueLogEntries`, `data.pluginHooks`, and `data.followUps` are arrays. Then downstream code can read plain properties without repeated fallback logic.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Reuse spec path constants",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-finalize-cleanup.js",
+      "issue": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** `specs/${specId}` is rebuilt in multiple places for `issueLogPath`, `artifactPath`, and `flowJsonRel`, which makes future path changes easy to miss.  \n**Suggestion:** Define shared constants near the start of `runTeardown`, e.g. `specDirRel`, `issueLogRel`, and `flowJsonRel`, then reuse them in the plugin lifecycle payload and metadata update logic.",
+      "suggestion": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** `specs/${specId}` is rebuilt in multiple places for `issueLogPath`, `artifactPath`, and `flowJsonRel`, which makes future path changes easy to miss.  \n**Suggestion:** Define shared constants near the start of `runTeardown`, e.g. `specDirRel`, `issueLogRel`, and `flowJsonRel`, then reuse them in the plugin lifecycle payload and metadata update logic.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Rename lifecycle result variable",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-finalize-cleanup.js",
+      "issue": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** `pluginLifecycle` reads like a lifecycle object or runner, but it actually stores the result of running lifecycle hooks.  \n**Suggestion:** Rename it to `pluginLifecycleResult` or `pluginHookResult` to make later uses like `pluginLifecycleResult.warnings` and `pluginLifecycleResult.data` clearer.",
+      "suggestion": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** `pluginLifecycle` reads like a lifecycle object or runner, but it actually stores the result of running lifecycle hooks.  \n**Suggestion:** Rename it to `pluginLifecycleResult` or `pluginHookResult` to make later uses like `pluginLifecycleResult.warnings` and `pluginLifecycleResult.data` clearer.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Extract plugin lifecycle fallback construction",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-finalize-cleanup.js",
+      "issue": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** The catch block manually constructs the fallback lifecycle result inline, including duplicated error-code strings and result shape details.  \n**Suggestion:** Move this into a small helper such as `pluginLifecycleFailureResult(err)`, returning `{ warnings, issueLogEntries, data }`. This keeps `runTeardown` focused on teardown flow and centralizes the fallback shape.",
+      "suggestion": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** The catch block manually constructs the fallback lifecycle result inline, including duplicated error-code strings and result shape details.  \n**Suggestion:** Move this into a small helper such as `pluginLifecycleFailureResult(err)`, returning `{ warnings, issueLogEntries, data }`. This keeps `runTeardown` focused on teardown flow and centralizes the fallback shape.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "4. Normalize plugin lifecycle result once",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-finalize-cleanup.js",
+      "issue": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** Later code defensively reads `pluginLifecycle.data?.pluginHooks || []`, `pluginLifecycle.data?.followUps || []`, and `pluginLifecycle.warnings || []`. That spreads result-shape assumptions through the teardown logic.  \n**Suggestion:** Normalize immediately after the lifecycle call/catch, e.g. ensure `warnings`, `issueLogEntries`, `data.pluginHooks`, and `data.followUps` are arrays. Then downstream code can read plain properties without repeated fallback logic.",
+      "suggestion": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** Later code defensively reads `pluginLifecycle.data?.pluginHooks || []`, `pluginLifecycle.data?.followUps || []`, and `pluginLifecycle.warnings || []`. That spreads result-shape assumptions through the teardown logic.  \n**Suggestion:** Normalize immediately after the lifecycle call/catch, e.g. ensure `warnings`, `issueLogEntries`, `data.pluginHooks`, and `data.followUps` are arrays. Then downstream code can read plain properties without repeated fallback logic.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Extract prepare lifecycle payload construction",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-prepare-spec.js",
+      "issue": "**File:** `src/flow/lib/run-prepare-spec.js`  \n**Issue:** The `runFlowCommandWithPluginLifecycle(...)` call duplicates the same `command`, `flow`, and `main` payload in both `runPrepareWithPluginHooks` and `RunPrepareSpecCommand`.  \n**Suggestion:** Add a small helper such as `runPrepareLifecycle(root, plans, state)` that wraps the shared call and returns the lifecycle result. This keeps prepare hook behavior consistent and reduces drift risk.",
+      "suggestion": "**File:** `src/flow/lib/run-prepare-spec.js`  \n**Issue:** The `runFlowCommandWithPluginLifecycle(...)` call duplicates the same `command`, `flow`, and `main` payload in both `runPrepareWithPluginHooks` and `RunPrepareSpecCommand`.  \n**Suggestion:** Add a small helper such as `runPrepareLifecycle(root, plans, state)` that wraps the shared call and returns the lifecycle result. This keeps prepare hook behavior consistent and reduces drift risk.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Rename and validate the optional issue argument",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-prepare-spec.js",
+      "issue": "**File:** `src/flow/lib/run-prepare-spec.js`  \n**Issue:** The new `issue` parameter is converted with `Number(issue)` only when truthy. That makes the name slightly ambiguous and can silently store `NaN` for invalid non-empty input.  \n**Suggestion:** Rename it to `issueNumber` or `linkedIssueNumber`, parse once, and only include it when `Number.isFinite(parsedIssue)` is true. This makes the state shape clearer and avoids invalid lifecycle payload data.",
+      "suggestion": "**File:** `src/flow/lib/run-prepare-spec.js`  \n**Issue:** The new `issue` parameter is converted with `Number(issue)` only when truthy. That makes the name slightly ambiguous and can silently store `NaN` for invalid non-empty input.  \n**Suggestion:** Rename it to `issueNumber` or `linkedIssueNumber`, parse once, and only include it when `Number.isFinite(parsedIssue)` is true. This makes the state shape clearer and avoids invalid lifecycle payload data.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Extract prepare lifecycle payload construction",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-prepare-spec.js",
+      "issue": "**File:** `src/flow/lib/run-prepare-spec.js`  \n**Issue:** The `runFlowCommandWithPluginLifecycle(...)` call duplicates the same `command`, `flow`, and `main` payload in both `runPrepareWithPluginHooks` and `RunPrepareSpecCommand`.  \n**Suggestion:** Add a small helper such as `runPrepareLifecycle(root, plans, state)` that wraps the shared call and returns the lifecycle result. This keeps prepare hook behavior consistent and reduces drift risk.",
+      "suggestion": "**File:** `src/flow/lib/run-prepare-spec.js`  \n**Issue:** The `runFlowCommandWithPluginLifecycle(...)` call duplicates the same `command`, `flow`, and `main` payload in both `runPrepareWithPluginHooks` and `RunPrepareSpecCommand`.  \n**Suggestion:** Add a small helper such as `runPrepareLifecycle(root, plans, state)` that wraps the shared call and returns the lifecycle result. This keeps prepare hook behavior consistent and reduces drift risk.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Rename and validate the optional issue argument",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-prepare-spec.js",
+      "issue": "**File:** `src/flow/lib/run-prepare-spec.js`  \n**Issue:** The new `issue` parameter is converted with `Number(issue)` only when truthy. That makes the name slightly ambiguous and can silently store `NaN` for invalid non-empty input.  \n**Suggestion:** Rename it to `issueNumber` or `linkedIssueNumber`, parse once, and only include it when `Number.isFinite(parsedIssue)` is true. This makes the state shape clearer and avoids invalid lifecycle payload data.",
+      "suggestion": "**File:** `src/flow/lib/run-prepare-spec.js`  \n**Issue:** The new `issue` parameter is converted with `Number(issue)` only when truthy. That makes the name slightly ambiguous and can silently store `NaN` for invalid non-empty input.  \n**Suggestion:** Rename it to `issueNumber` or `linkedIssueNumber`, parse once, and only include it when `Number.isFinite(parsedIssue)` is true. This makes the state shape clearer and avoids invalid lifecycle payload data.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Extract prepare lifecycle payload construction",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-prepare-spec.js",
+      "issue": "**File:** `src/flow/lib/run-prepare-spec.js`  \n**Issue:** The `runFlowCommandWithPluginLifecycle(...)` call duplicates the same `command`, `flow`, and `main` payload in both `runPrepareWithPluginHooks` and `RunPrepareSpecCommand`.  \n**Suggestion:** Add a small helper such as `runPrepareLifecycle(root, plans, state)` that wraps the shared call and returns the lifecycle result. This keeps prepare hook behavior consistent and reduces drift risk.",
+      "suggestion": "**File:** `src/flow/lib/run-prepare-spec.js`  \n**Issue:** The `runFlowCommandWithPluginLifecycle(...)` call duplicates the same `command`, `flow`, and `main` payload in both `runPrepareWithPluginHooks` and `RunPrepareSpecCommand`.  \n**Suggestion:** Add a small helper such as `runPrepareLifecycle(root, plans, state)` that wraps the shared call and returns the lifecycle result. This keeps prepare hook behavior consistent and reduces drift risk.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Rename and validate the optional issue argument",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-prepare-spec.js",
+      "issue": "**File:** `src/flow/lib/run-prepare-spec.js`  \n**Issue:** The new `issue` parameter is converted with `Number(issue)` only when truthy. That makes the name slightly ambiguous and can silently store `NaN` for invalid non-empty input.  \n**Suggestion:** Rename it to `issueNumber` or `linkedIssueNumber`, parse once, and only include it when `Number.isFinite(parsedIssue)` is true. This makes the state shape clearer and avoids invalid lifecycle payload data.",
+      "suggestion": "**File:** `src/flow/lib/run-prepare-spec.js`  \n**Issue:** The new `issue` parameter is converted with `Number(issue)` only when truthy. That makes the name slightly ambiguous and can silently store `NaN` for invalid non-empty input.  \n**Suggestion:** Rename it to `issueNumber` or `linkedIssueNumber`, parse once, and only include it when `Number.isFinite(parsedIssue)` is true. This makes the state shape clearer and avoids invalid lifecycle payload data.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Rename or inline obsolete migration helper",
+      "failureMode": "refactor",
+      "file": "src/lib/config.js",
+      "issue": "**File:** `src/lib/config.js`\n**Issue:** `migratePluginDefaultNamespaces()` no longer migrates anything; it only clones config. The name now implies workflow migration behavior that was intentionally removed.\n**Suggestion:** Inline `structuredClone(raw || {})` at the call site, or rename the helper to something neutral like `cloneConfigForPluginDefaults()`.",
+      "suggestion": "**File:** `src/lib/config.js`\n**Issue:** `migratePluginDefaultNamespaces()` no longer migrates anything; it only clones config. The name now implies workflow migration behavior that was intentionally removed.\n**Suggestion:** Inline `structuredClone(raw || {})` at the call site, or rename the helper to something neutral like `cloneConfigForPluginDefaults()`.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Rename or inline obsolete migration helper",
+      "failureMode": "refactor",
+      "file": "src/lib/config.js",
+      "issue": "**File:** `src/lib/config.js`\n**Issue:** `migratePluginDefaultNamespaces()` no longer migrates anything; it only clones config. The name now implies workflow migration behavior that was intentionally removed.\n**Suggestion:** Inline `structuredClone(raw || {})` at the call site, or rename the helper to something neutral like `cloneConfigForPluginDefaults()`.",
+      "suggestion": "**File:** `src/lib/config.js`\n**Issue:** `migratePluginDefaultNamespaces()` no longer migrates anything; it only clones config. The name now implies workflow migration behavior that was intentionally removed.\n**Suggestion:** Inline `structuredClone(raw || {})` at the call site, or rename the helper to something neutral like `cloneConfigForPluginDefaults()`.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Replace placeholder agent API with a real implementation or remove it",
+      "failureMode": "refactor",
+      "file": "src/lib/plugin-registry.js",
+      "issue": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `buildPluginContext()` exposes `agent.resolve()` and `agent.call()`, but they are hardcoded placeholders. That creates a misleading public plugin API surface and is inconsistent with the requirement that plugins use a workflow-neutral agent API/context.\n**Suggestion:** Wire these methods to the existing generic agent resolve/call implementation, including plugin/root config inputs, or omit `agent` from the context until it is actually functional.",
+      "suggestion": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `buildPluginContext()` exposes `agent.resolve()` and `agent.call()`, but they are hardcoded placeholders. That creates a misleading public plugin API surface and is inconsistent with the requirement that plugins use a workflow-neutral agent API/context.\n**Suggestion:** Wire these methods to the existing generic agent resolve/call implementation, including plugin/root config inputs, or omit `agent` from the context until it is actually functional.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Reduce repeated hook metadata construction",
+      "failureMode": "refactor",
+      "file": "src/lib/plugin-registry.js",
+      "issue": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `runFlowCommandHooks()` repeatedly constructs `{ pluginId: plan.pluginId, command, hook, ... }` across `hookData`, warnings, follow-ups, and failures.\n**Suggestion:** Introduce a local `const hookMeta = { pluginId: plan.pluginId, command, hook };` inside the loop and reuse it when building hook result objects.",
+      "suggestion": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `runFlowCommandHooks()` repeatedly constructs `{ pluginId: plan.pluginId, command, hook, ... }` across `hookData`, warnings, follow-ups, and failures.\n**Suggestion:** Introduce a local `const hookMeta = { pluginId: plan.pluginId, command, hook };` inside the loop and reuse it when building hook result objects.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "4. Use clearer names for hook result collections",
+      "failureMode": "refactor",
+      "file": "src/lib/plugin-registry.js",
+      "issue": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `hookData` is vague and later becomes `pluginHooks`, while `followUps` contains normalized hook follow-up records. The names obscure whether these are raw hook outputs, summaries, or user-facing follow-up actions.\n**Suggestion:** Rename `hookData` to `hookResults` or `pluginHookResults`, and consider `hookFollowUps` for the follow-up collection to distinguish it from any main command follow-ups.",
+      "suggestion": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `hookData` is vague and later becomes `pluginHooks`, while `followUps` contains normalized hook follow-up records. The names obscure whether these are raw hook outputs, summaries, or user-facing follow-up actions.\n**Suggestion:** Rename `hookData` to `hookResults` or `pluginHookResults`, and consider `hookFollowUps` for the follow-up collection to distinguish it from any main command follow-ups.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Replace placeholder agent API with a real implementation or remove it",
+      "failureMode": "refactor",
+      "file": "src/lib/plugin-registry.js",
+      "issue": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `buildPluginContext()` exposes `agent.resolve()` and `agent.call()`, but they are hardcoded placeholders. That creates a misleading public plugin API surface and is inconsistent with the requirement that plugins use a workflow-neutral agent API/context.\n**Suggestion:** Wire these methods to the existing generic agent resolve/call implementation, including plugin/root config inputs, or omit `agent` from the context until it is actually functional.",
+      "suggestion": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `buildPluginContext()` exposes `agent.resolve()` and `agent.call()`, but they are hardcoded placeholders. That creates a misleading public plugin API surface and is inconsistent with the requirement that plugins use a workflow-neutral agent API/context.\n**Suggestion:** Wire these methods to the existing generic agent resolve/call implementation, including plugin/root config inputs, or omit `agent` from the context until it is actually functional.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Reduce repeated hook metadata construction",
+      "failureMode": "refactor",
+      "file": "src/lib/plugin-registry.js",
+      "issue": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `runFlowCommandHooks()` repeatedly constructs `{ pluginId: plan.pluginId, command, hook, ... }` across `hookData`, warnings, follow-ups, and failures.\n**Suggestion:** Introduce a local `const hookMeta = { pluginId: plan.pluginId, command, hook };` inside the loop and reuse it when building hook result objects.",
+      "suggestion": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `runFlowCommandHooks()` repeatedly constructs `{ pluginId: plan.pluginId, command, hook, ... }` across `hookData`, warnings, follow-ups, and failures.\n**Suggestion:** Introduce a local `const hookMeta = { pluginId: plan.pluginId, command, hook };` inside the loop and reuse it when building hook result objects.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "4. Use clearer names for hook result collections",
+      "failureMode": "refactor",
+      "file": "src/lib/plugin-registry.js",
+      "issue": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `hookData` is vague and later becomes `pluginHooks`, while `followUps` contains normalized hook follow-up records. The names obscure whether these are raw hook outputs, summaries, or user-facing follow-up actions.\n**Suggestion:** Rename `hookData` to `hookResults` or `pluginHookResults`, and consider `hookFollowUps` for the follow-up collection to distinguish it from any main command follow-ups.",
+      "suggestion": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `hookData` is vague and later becomes `pluginHooks`, while `followUps` contains normalized hook follow-up records. The names obscure whether these are raw hook outputs, summaries, or user-facing follow-up actions.\n**Suggestion:** Rename `hookData` to `hookResults` or `pluginHookResults`, and consider `hookFollowUps` for the follow-up collection to distinguish it from any main command follow-ups.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "I’ll check the touched code context so the review is grounded in the current implementation, especially the `ensureOfficialPackage` call shape after the workflow cleanup.The provided `cwd` doesn’t contain `src/` directly. I’ll locate the repository layout first, then read only the files named in the diff.Only temporary artifacts are under the current directory. I’m going to inspect the surrounding worktree path for the actual source checkout without modifying anything.I found the full worktree. I’ll keep the review scoped to the three files in the supplied diff, as requested.The remaining official preset enablement no longer passes a `type`, and the registry signature confirms that argument is no longer accepted. I’m checking the surrounding imports for newly dead dependencies before forming the final review.One important context detail showed up: `loadPluginRegistry` is still referenced elsewhere in `src/upgrade.js`, even though this diff removes its import. I’ll verify that exact block because that is a concrete cleanup regression within the touched file.### 1. Restore Still-Used Registry Import",
+      "failureMode": "refactor",
+      "file": "src/upgrade.js",
+      "issue": "**File:** `src/upgrade.js`  \n**Issue:** `loadPluginRegistry` was removed from the import list, but `pluginSkillSourceDirs()` still calls `loadPluginRegistry(root)`. This leaves a runtime `ReferenceError`.  \n**Suggestion:** Keep the import as `import { ensureOfficialPackage, loadPluginRegistry } from \"./lib/plugin-registry.js\";` unless `pluginSkillSourceDirs()` is also being removed or rewritten.",
+      "suggestion": "**File:** `src/upgrade.js`  \n**Issue:** `loadPluginRegistry` was removed from the import list, but `pluginSkillSourceDirs()` still calls `loadPluginRegistry(root)`. This leaves a runtime `ReferenceError`.  \n**Suggestion:** Keep the import as `import { ensureOfficialPackage, loadPluginRegistry } from \"./lib/plugin-registry.js\";` unless `pluginSkillSourceDirs()` is also being removed or rewritten.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Collapse Now-Single Nested Branch",
+      "failureMode": "refactor",
+      "file": "src/upgrade.js",
+      "issue": "**File:** `src/upgrade.js`  \n**Issue:** After removing the workflow bootstrap block, the `if (!dryRun) { if (needsOfficialPresets()) { ... } }` structure has only one inner branch.  \n**Suggestion:** Simplify to `if (!dryRun && needsOfficialPresets()) { ... }` to reduce nesting left behind by the workflow cleanup.",
+      "suggestion": "**File:** `src/upgrade.js`  \n**Issue:** After removing the workflow bootstrap block, the `if (!dryRun) { if (needsOfficialPresets()) { ... } }` structure has only one inner branch.  \n**Suggestion:** Simplify to `if (!dryRun && needsOfficialPresets()) { ... }` to reduce nesting left behind by the workflow cleanup.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "I’ll check the touched code context so the review is grounded in the current implementation, especially the `ensureOfficialPackage` call shape after the workflow cleanup.The provided `cwd` doesn’t contain `src/` directly. I’ll locate the repository layout first, then read only the files named in the diff.Only temporary artifacts are under the current directory. I’m going to inspect the surrounding worktree path for the actual source checkout without modifying anything.I found the full worktree. I’ll keep the review scoped to the three files in the supplied diff, as requested.The remaining official preset enablement no longer passes a `type`, and the registry signature confirms that argument is no longer accepted. I’m checking the surrounding imports for newly dead dependencies before forming the final review.One important context detail showed up: `loadPluginRegistry` is still referenced elsewhere in `src/upgrade.js`, even though this diff removes its import. I’ll verify that exact block because that is a concrete cleanup regression within the touched file.### 1. Restore Still-Used Registry Import",
+      "failureMode": "refactor",
+      "file": "src/upgrade.js",
+      "issue": "**File:** `src/upgrade.js`  \n**Issue:** `loadPluginRegistry` was removed from the import list, but `pluginSkillSourceDirs()` still calls `loadPluginRegistry(root)`. This leaves a runtime `ReferenceError`.  \n**Suggestion:** Keep the import as `import { ensureOfficialPackage, loadPluginRegistry } from \"./lib/plugin-registry.js\";` unless `pluginSkillSourceDirs()` is also being removed or rewritten.",
+      "suggestion": "**File:** `src/upgrade.js`  \n**Issue:** `loadPluginRegistry` was removed from the import list, but `pluginSkillSourceDirs()` still calls `loadPluginRegistry(root)`. This leaves a runtime `ReferenceError`.  \n**Suggestion:** Keep the import as `import { ensureOfficialPackage, loadPluginRegistry } from \"./lib/plugin-registry.js\";` unless `pluginSkillSourceDirs()` is also being removed or rewritten.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Collapse Now-Single Nested Branch",
+      "failureMode": "refactor",
+      "file": "src/upgrade.js",
+      "issue": "**File:** `src/upgrade.js`  \n**Issue:** After removing the workflow bootstrap block, the `if (!dryRun) { if (needsOfficialPresets()) { ... } }` structure has only one inner branch.  \n**Suggestion:** Simplify to `if (!dryRun && needsOfficialPresets()) { ... }` to reduce nesting left behind by the workflow cleanup.",
+      "suggestion": "**File:** `src/upgrade.js`  \n**Issue:** After removing the workflow bootstrap block, the `if (!dryRun) { if (needsOfficialPresets()) { ... } }` structure has only one inner branch.  \n**Suggestion:** Simplify to `if (!dryRun && needsOfficialPresets()) { ... }` to reduce nesting left behind by the workflow cleanup.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "I’ll check the touched code context so the review is grounded in the current implementation, especially the `ensureOfficialPackage` call shape after the workflow cleanup.The provided `cwd` doesn’t contain `src/` directly. I’ll locate the repository layout first, then read only the files named in the diff.Only temporary artifacts are under the current directory. I’m going to inspect the surrounding worktree path for the actual source checkout without modifying anything.I found the full worktree. I’ll keep the review scoped to the three files in the supplied diff, as requested.The remaining official preset enablement no longer passes a `type`, and the registry signature confirms that argument is no longer accepted. I’m checking the surrounding imports for newly dead dependencies before forming the final review.One important context detail showed up: `loadPluginRegistry` is still referenced elsewhere in `src/upgrade.js`, even though this diff removes its import. I’ll verify that exact block because that is a concrete cleanup regression within the touched file.### 1. Restore Still-Used Registry Import",
+      "failureMode": "refactor",
+      "file": "src/upgrade.js",
+      "issue": "**File:** `src/upgrade.js`  \n**Issue:** `loadPluginRegistry` was removed from the import list, but `pluginSkillSourceDirs()` still calls `loadPluginRegistry(root)`. This leaves a runtime `ReferenceError`.  \n**Suggestion:** Keep the import as `import { ensureOfficialPackage, loadPluginRegistry } from \"./lib/plugin-registry.js\";` unless `pluginSkillSourceDirs()` is also being removed or rewritten.",
+      "suggestion": "**File:** `src/upgrade.js`  \n**Issue:** `loadPluginRegistry` was removed from the import list, but `pluginSkillSourceDirs()` still calls `loadPluginRegistry(root)`. This leaves a runtime `ReferenceError`.  \n**Suggestion:** Keep the import as `import { ensureOfficialPackage, loadPluginRegistry } from \"./lib/plugin-registry.js\";` unless `pluginSkillSourceDirs()` is also being removed or rewritten.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Collapse Now-Single Nested Branch",
+      "failureMode": "refactor",
+      "file": "src/upgrade.js",
+      "issue": "**File:** `src/upgrade.js`  \n**Issue:** After removing the workflow bootstrap block, the `if (!dryRun) { if (needsOfficialPresets()) { ... } }` structure has only one inner branch.  \n**Suggestion:** Simplify to `if (!dryRun && needsOfficialPresets()) { ... }` to reduce nesting left behind by the workflow cleanup.",
+      "suggestion": "**File:** `src/upgrade.js`  \n**Issue:** After removing the workflow bootstrap block, the `if (!dryRun) { if (needsOfficialPresets()) { ... } }` structure has only one inner branch.  \n**Suggestion:** Simplify to `if (!dryRun && needsOfficialPresets()) { ... }` to reduce nesting left behind by the workflow cleanup.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Use a Neutral, Shared Sample Command ID",
+      "failureMode": "refactor",
+      "file": "tests/unit/lib/agent.test.js",
+      "issue": "**File:** `tests/unit/lib/agent.test.js`  \n**Issue:** The repeated literal `plugin.sample.publish` still carries “publish” terminology from the migrated workflow feature, and duplicating it across tests makes future fixture drift easier.  \n**Suggestion:** Define a local constant such as `const SAMPLE_PLUGIN_COMMAND_ID = \"plugin.sample.run\";` and use it in both profile-resolution tests. This keeps the core test clearly generic and removes duplicate string literals.",
+      "suggestion": "**File:** `tests/unit/lib/agent.test.js`  \n**Issue:** The repeated literal `plugin.sample.publish` still carries “publish” terminology from the migrated workflow feature, and duplicating it across tests makes future fixture drift easier.  \n**Suggestion:** Define a local constant such as `const SAMPLE_PLUGIN_COMMAND_ID = \"plugin.sample.run\";` and use it in both profile-resolution tests. This keeps the core test clearly generic and removes duplicate string literals.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Use a Neutral, Shared Sample Command ID",
+      "failureMode": "refactor",
+      "file": "tests/unit/lib/agent.test.js",
+      "issue": "**File:** `tests/unit/lib/agent.test.js`  \n**Issue:** The repeated literal `plugin.sample.publish` still carries “publish” terminology from the migrated workflow feature, and duplicating it across tests makes future fixture drift easier.  \n**Suggestion:** Define a local constant such as `const SAMPLE_PLUGIN_COMMAND_ID = \"plugin.sample.run\";` and use it in both profile-resolution tests. This keeps the core test clearly generic and removes duplicate string literals.",
+      "suggestion": "**File:** `tests/unit/lib/agent.test.js`  \n**Issue:** The repeated literal `plugin.sample.publish` still carries “publish” terminology from the migrated workflow feature, and duplicating it across tests makes future fixture drift easier.  \n**Suggestion:** Define a local constant such as `const SAMPLE_PLUGIN_COMMAND_ID = \"plugin.sample.run\";` and use it in both profile-resolution tests. This keeps the core test clearly generic and removes duplicate string literals.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Use a Neutral, Shared Sample Command ID",
+      "failureMode": "refactor",
+      "file": "tests/unit/lib/agent.test.js",
+      "issue": "**File:** `tests/unit/lib/agent.test.js`  \n**Issue:** The repeated literal `plugin.sample.publish` still carries “publish” terminology from the migrated workflow feature, and duplicating it across tests makes future fixture drift easier.  \n**Suggestion:** Define a local constant such as `const SAMPLE_PLUGIN_COMMAND_ID = \"plugin.sample.run\";` and use it in both profile-resolution tests. This keeps the core test clearly generic and removes duplicate string literals.",
+      "suggestion": "**File:** `tests/unit/lib/agent.test.js`  \n**Issue:** The repeated literal `plugin.sample.publish` still carries “publish” terminology from the migrated workflow feature, and duplicating it across tests makes future fixture drift easier.  \n**Suggestion:** Define a local constant such as `const SAMPLE_PLUGIN_COMMAND_ID = \"plugin.sample.run\";` and use it in both profile-resolution tests. This keeps the core test clearly generic and removes duplicate string literals.",
+      "rationale": "Loop review proposal."
+    }
+  ],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/288-workflow-plugin-migration/impl-review.json",
+    "verdict": "ADVISORY",
+    "result": "ADVISORY",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": "impl-gate",
+    "completionKind": "normal",
+    "progressSignature": "ad3a12d10fdbcd042e2434a3138a6e1056a7ba4d714cfa9fc91d0d99244e36e3"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "impl-001-non-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Reuse spec path constants",
+      "body": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** `specs/${specId}` is rebuilt in multiple places for `issueLogPath`, `artifactPath`, and `flowJsonRel`, which makes future path changes easy to miss.  \n**Suggestion:** Define shared constants near the start of `runTeardown`, e.g. `specDirRel`, `issueLogRel`, and `flowJsonRel`, then reuse them in the plugin lifecycle payload and metadata update logic.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-002",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Rename lifecycle result variable",
+      "body": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** `pluginLifecycle` reads like a lifecycle object or runner, but it actually stores the result of running lifecycle hooks.  \n**Suggestion:** Rename it to `pluginLifecycleResult` or `pluginHookResult` to make later uses like `pluginLifecycleResult.warnings` and `pluginLifecycleResult.data` clearer.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-003",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "3. Extract plugin lifecycle fallback construction",
+      "body": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** The catch block manually constructs the fallback lifecycle result inline, including duplicated error-code strings and result shape details.  \n**Suggestion:** Move this into a small helper such as `pluginLifecycleFailureResult(err)`, returning `{ warnings, issueLogEntries, data }`. This keeps `runTeardown` focused on teardown flow and centralizes the fallback shape.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-004",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "4. Normalize plugin lifecycle result once",
+      "body": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** Later code defensively reads `pluginLifecycle.data?.pluginHooks || []`, `pluginLifecycle.data?.followUps || []`, and `pluginLifecycle.warnings || []`. That spreads result-shape assumptions through the teardown logic.  \n**Suggestion:** Normalize immediately after the lifecycle call/catch, e.g. ensure `warnings`, `issueLogEntries`, `data.pluginHooks`, and `data.followUps` are arrays. Then downstream code can read plain properties without repeated fallback logic.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-005",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Reuse spec path constants",
+      "body": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** `specs/${specId}` is rebuilt in multiple places for `issueLogPath`, `artifactPath`, and `flowJsonRel`, which makes future path changes easy to miss.  \n**Suggestion:** Define shared constants near the start of `runTeardown`, e.g. `specDirRel`, `issueLogRel`, and `flowJsonRel`, then reuse them in the plugin lifecycle payload and metadata update logic.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-006",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Rename lifecycle result variable",
+      "body": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** `pluginLifecycle` reads like a lifecycle object or runner, but it actually stores the result of running lifecycle hooks.  \n**Suggestion:** Rename it to `pluginLifecycleResult` or `pluginHookResult` to make later uses like `pluginLifecycleResult.warnings` and `pluginLifecycleResult.data` clearer.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-007",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "3. Extract plugin lifecycle fallback construction",
+      "body": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** The catch block manually constructs the fallback lifecycle result inline, including duplicated error-code strings and result shape details.  \n**Suggestion:** Move this into a small helper such as `pluginLifecycleFailureResult(err)`, returning `{ warnings, issueLogEntries, data }`. This keeps `runTeardown` focused on teardown flow and centralizes the fallback shape.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-008",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "4. Normalize plugin lifecycle result once",
+      "body": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** Later code defensively reads `pluginLifecycle.data?.pluginHooks || []`, `pluginLifecycle.data?.followUps || []`, and `pluginLifecycle.warnings || []`. That spreads result-shape assumptions through the teardown logic.  \n**Suggestion:** Normalize immediately after the lifecycle call/catch, e.g. ensure `warnings`, `issueLogEntries`, `data.pluginHooks`, and `data.followUps` are arrays. Then downstream code can read plain properties without repeated fallback logic.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-009",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Reuse spec path constants",
+      "body": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** `specs/${specId}` is rebuilt in multiple places for `issueLogPath`, `artifactPath`, and `flowJsonRel`, which makes future path changes easy to miss.  \n**Suggestion:** Define shared constants near the start of `runTeardown`, e.g. `specDirRel`, `issueLogRel`, and `flowJsonRel`, then reuse them in the plugin lifecycle payload and metadata update logic.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-010",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Rename lifecycle result variable",
+      "body": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** `pluginLifecycle` reads like a lifecycle object or runner, but it actually stores the result of running lifecycle hooks.  \n**Suggestion:** Rename it to `pluginLifecycleResult` or `pluginHookResult` to make later uses like `pluginLifecycleResult.warnings` and `pluginLifecycleResult.data` clearer.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-011",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "3. Extract plugin lifecycle fallback construction",
+      "body": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** The catch block manually constructs the fallback lifecycle result inline, including duplicated error-code strings and result shape details.  \n**Suggestion:** Move this into a small helper such as `pluginLifecycleFailureResult(err)`, returning `{ warnings, issueLogEntries, data }`. This keeps `runTeardown` focused on teardown flow and centralizes the fallback shape.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-012",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "4. Normalize plugin lifecycle result once",
+      "body": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Issue:** Later code defensively reads `pluginLifecycle.data?.pluginHooks || []`, `pluginLifecycle.data?.followUps || []`, and `pluginLifecycle.warnings || []`. That spreads result-shape assumptions through the teardown logic.  \n**Suggestion:** Normalize immediately after the lifecycle call/catch, e.g. ensure `warnings`, `issueLogEntries`, `data.pluginHooks`, and `data.followUps` are arrays. Then downstream code can read plain properties without repeated fallback logic.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-013",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Extract prepare lifecycle payload construction",
+      "body": "**File:** `src/flow/lib/run-prepare-spec.js`  \n**Issue:** The `runFlowCommandWithPluginLifecycle(...)` call duplicates the same `command`, `flow`, and `main` payload in both `runPrepareWithPluginHooks` and `RunPrepareSpecCommand`.  \n**Suggestion:** Add a small helper such as `runPrepareLifecycle(root, plans, state)` that wraps the shared call and returns the lifecycle result. This keeps prepare hook behavior consistent and reduces drift risk.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-014",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Rename and validate the optional issue argument",
+      "body": "**File:** `src/flow/lib/run-prepare-spec.js`  \n**Issue:** The new `issue` parameter is converted with `Number(issue)` only when truthy. That makes the name slightly ambiguous and can silently store `NaN` for invalid non-empty input.  \n**Suggestion:** Rename it to `issueNumber` or `linkedIssueNumber`, parse once, and only include it when `Number.isFinite(parsedIssue)` is true. This makes the state shape clearer and avoids invalid lifecycle payload data.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-015",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Extract prepare lifecycle payload construction",
+      "body": "**File:** `src/flow/lib/run-prepare-spec.js`  \n**Issue:** The `runFlowCommandWithPluginLifecycle(...)` call duplicates the same `command`, `flow`, and `main` payload in both `runPrepareWithPluginHooks` and `RunPrepareSpecCommand`.  \n**Suggestion:** Add a small helper such as `runPrepareLifecycle(root, plans, state)` that wraps the shared call and returns the lifecycle result. This keeps prepare hook behavior consistent and reduces drift risk.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-016",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Rename and validate the optional issue argument",
+      "body": "**File:** `src/flow/lib/run-prepare-spec.js`  \n**Issue:** The new `issue` parameter is converted with `Number(issue)` only when truthy. That makes the name slightly ambiguous and can silently store `NaN` for invalid non-empty input.  \n**Suggestion:** Rename it to `issueNumber` or `linkedIssueNumber`, parse once, and only include it when `Number.isFinite(parsedIssue)` is true. This makes the state shape clearer and avoids invalid lifecycle payload data.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-017",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Extract prepare lifecycle payload construction",
+      "body": "**File:** `src/flow/lib/run-prepare-spec.js`  \n**Issue:** The `runFlowCommandWithPluginLifecycle(...)` call duplicates the same `command`, `flow`, and `main` payload in both `runPrepareWithPluginHooks` and `RunPrepareSpecCommand`.  \n**Suggestion:** Add a small helper such as `runPrepareLifecycle(root, plans, state)` that wraps the shared call and returns the lifecycle result. This keeps prepare hook behavior consistent and reduces drift risk.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-018",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Rename and validate the optional issue argument",
+      "body": "**File:** `src/flow/lib/run-prepare-spec.js`  \n**Issue:** The new `issue` parameter is converted with `Number(issue)` only when truthy. That makes the name slightly ambiguous and can silently store `NaN` for invalid non-empty input.  \n**Suggestion:** Rename it to `issueNumber` or `linkedIssueNumber`, parse once, and only include it when `Number.isFinite(parsedIssue)` is true. This makes the state shape clearer and avoids invalid lifecycle payload data.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-019",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Rename or inline obsolete migration helper",
+      "body": "**File:** `src/lib/config.js`\n**Issue:** `migratePluginDefaultNamespaces()` no longer migrates anything; it only clones config. The name now implies workflow migration behavior that was intentionally removed.\n**Suggestion:** Inline `structuredClone(raw || {})` at the call site, or rename the helper to something neutral like `cloneConfigForPluginDefaults()`.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-020",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Rename or inline obsolete migration helper",
+      "body": "**File:** `src/lib/config.js`\n**Issue:** `migratePluginDefaultNamespaces()` no longer migrates anything; it only clones config. The name now implies workflow migration behavior that was intentionally removed.\n**Suggestion:** Inline `structuredClone(raw || {})` at the call site, or rename the helper to something neutral like `cloneConfigForPluginDefaults()`.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-021",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Replace placeholder agent API with a real implementation or remove it",
+      "body": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `buildPluginContext()` exposes `agent.resolve()` and `agent.call()`, but they are hardcoded placeholders. That creates a misleading public plugin API surface and is inconsistent with the requirement that plugins use a workflow-neutral agent API/context.\n**Suggestion:** Wire these methods to the existing generic agent resolve/call implementation, including plugin/root config inputs, or omit `agent` from the context until it is actually functional.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-022",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "3. Reduce repeated hook metadata construction",
+      "body": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `runFlowCommandHooks()` repeatedly constructs `{ pluginId: plan.pluginId, command, hook, ... }` across `hookData`, warnings, follow-ups, and failures.\n**Suggestion:** Introduce a local `const hookMeta = { pluginId: plan.pluginId, command, hook };` inside the loop and reuse it when building hook result objects.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-023",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "4. Use clearer names for hook result collections",
+      "body": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `hookData` is vague and later becomes `pluginHooks`, while `followUps` contains normalized hook follow-up records. The names obscure whether these are raw hook outputs, summaries, or user-facing follow-up actions.\n**Suggestion:** Rename `hookData` to `hookResults` or `pluginHookResults`, and consider `hookFollowUps` for the follow-up collection to distinguish it from any main command follow-ups.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-024",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Replace placeholder agent API with a real implementation or remove it",
+      "body": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `buildPluginContext()` exposes `agent.resolve()` and `agent.call()`, but they are hardcoded placeholders. That creates a misleading public plugin API surface and is inconsistent with the requirement that plugins use a workflow-neutral agent API/context.\n**Suggestion:** Wire these methods to the existing generic agent resolve/call implementation, including plugin/root config inputs, or omit `agent` from the context until it is actually functional.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-025",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "3. Reduce repeated hook metadata construction",
+      "body": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `runFlowCommandHooks()` repeatedly constructs `{ pluginId: plan.pluginId, command, hook, ... }` across `hookData`, warnings, follow-ups, and failures.\n**Suggestion:** Introduce a local `const hookMeta = { pluginId: plan.pluginId, command, hook };` inside the loop and reuse it when building hook result objects.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-026",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "4. Use clearer names for hook result collections",
+      "body": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `hookData` is vague and later becomes `pluginHooks`, while `followUps` contains normalized hook follow-up records. The names obscure whether these are raw hook outputs, summaries, or user-facing follow-up actions.\n**Suggestion:** Rename `hookData` to `hookResults` or `pluginHookResults`, and consider `hookFollowUps` for the follow-up collection to distinguish it from any main command follow-ups.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-027",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "I’ll check the touched code context so the review is grounded in the current implementation, especially the `ensureOfficialPackage` call shape after the workflow cleanup.The provided `cwd` doesn’t contain `src/` directly. I’ll locate the repository layout first, then read only the files named in the diff.Only temporary artifacts are under the current directory. I’m going to inspect the surrounding worktree path for the actual source checkout without modifying anything.I found the full worktree. I’ll keep the review scoped to the three files in the supplied diff, as requested.The remaining official preset enablement no longer passes a `type`, and the registry signature confirms that argument is no longer accepted. I’m checking the surrounding imports for newly dead dependencies before forming the final review.One important context detail showed up: `loadPluginRegistry` is still referenced elsewhere in `src/upgrade.js`, even though this diff removes its import. I’ll verify that exact block because that is a concrete cleanup regression within the touched file.### 1. Restore Still-Used Registry Import",
+      "body": "**File:** `src/upgrade.js`  \n**Issue:** `loadPluginRegistry` was removed from the import list, but `pluginSkillSourceDirs()` still calls `loadPluginRegistry(root)`. This leaves a runtime `ReferenceError`.  \n**Suggestion:** Keep the import as `import { ensureOfficialPackage, loadPluginRegistry } from \"./lib/plugin-registry.js\";` unless `pluginSkillSourceDirs()` is also being removed or rewritten.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-028",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Collapse Now-Single Nested Branch",
+      "body": "**File:** `src/upgrade.js`  \n**Issue:** After removing the workflow bootstrap block, the `if (!dryRun) { if (needsOfficialPresets()) { ... } }` structure has only one inner branch.  \n**Suggestion:** Simplify to `if (!dryRun && needsOfficialPresets()) { ... }` to reduce nesting left behind by the workflow cleanup.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-029",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "I’ll check the touched code context so the review is grounded in the current implementation, especially the `ensureOfficialPackage` call shape after the workflow cleanup.The provided `cwd` doesn’t contain `src/` directly. I’ll locate the repository layout first, then read only the files named in the diff.Only temporary artifacts are under the current directory. I’m going to inspect the surrounding worktree path for the actual source checkout without modifying anything.I found the full worktree. I’ll keep the review scoped to the three files in the supplied diff, as requested.The remaining official preset enablement no longer passes a `type`, and the registry signature confirms that argument is no longer accepted. I’m checking the surrounding imports for newly dead dependencies before forming the final review.One important context detail showed up: `loadPluginRegistry` is still referenced elsewhere in `src/upgrade.js`, even though this diff removes its import. I’ll verify that exact block because that is a concrete cleanup regression within the touched file.### 1. Restore Still-Used Registry Import",
+      "body": "**File:** `src/upgrade.js`  \n**Issue:** `loadPluginRegistry` was removed from the import list, but `pluginSkillSourceDirs()` still calls `loadPluginRegistry(root)`. This leaves a runtime `ReferenceError`.  \n**Suggestion:** Keep the import as `import { ensureOfficialPackage, loadPluginRegistry } from \"./lib/plugin-registry.js\";` unless `pluginSkillSourceDirs()` is also being removed or rewritten.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-030",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Collapse Now-Single Nested Branch",
+      "body": "**File:** `src/upgrade.js`  \n**Issue:** After removing the workflow bootstrap block, the `if (!dryRun) { if (needsOfficialPresets()) { ... } }` structure has only one inner branch.  \n**Suggestion:** Simplify to `if (!dryRun && needsOfficialPresets()) { ... }` to reduce nesting left behind by the workflow cleanup.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-031",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "I’ll check the touched code context so the review is grounded in the current implementation, especially the `ensureOfficialPackage` call shape after the workflow cleanup.The provided `cwd` doesn’t contain `src/` directly. I’ll locate the repository layout first, then read only the files named in the diff.Only temporary artifacts are under the current directory. I’m going to inspect the surrounding worktree path for the actual source checkout without modifying anything.I found the full worktree. I’ll keep the review scoped to the three files in the supplied diff, as requested.The remaining official preset enablement no longer passes a `type`, and the registry signature confirms that argument is no longer accepted. I’m checking the surrounding imports for newly dead dependencies before forming the final review.One important context detail showed up: `loadPluginRegistry` is still referenced elsewhere in `src/upgrade.js`, even though this diff removes its import. I’ll verify that exact block because that is a concrete cleanup regression within the touched file.### 1. Restore Still-Used Registry Import",
+      "body": "**File:** `src/upgrade.js`  \n**Issue:** `loadPluginRegistry` was removed from the import list, but `pluginSkillSourceDirs()` still calls `loadPluginRegistry(root)`. This leaves a runtime `ReferenceError`.  \n**Suggestion:** Keep the import as `import { ensureOfficialPackage, loadPluginRegistry } from \"./lib/plugin-registry.js\";` unless `pluginSkillSourceDirs()` is also being removed or rewritten.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-032",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Collapse Now-Single Nested Branch",
+      "body": "**File:** `src/upgrade.js`  \n**Issue:** After removing the workflow bootstrap block, the `if (!dryRun) { if (needsOfficialPresets()) { ... } }` structure has only one inner branch.  \n**Suggestion:** Simplify to `if (!dryRun && needsOfficialPresets()) { ... }` to reduce nesting left behind by the workflow cleanup.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-033",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Use a Neutral, Shared Sample Command ID",
+      "body": "**File:** `tests/unit/lib/agent.test.js`  \n**Issue:** The repeated literal `plugin.sample.publish` still carries “publish” terminology from the migrated workflow feature, and duplicating it across tests makes future fixture drift easier.  \n**Suggestion:** Define a local constant such as `const SAMPLE_PLUGIN_COMMAND_ID = \"plugin.sample.run\";` and use it in both profile-resolution tests. This keeps the core test clearly generic and removes duplicate string literals.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-034",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Use a Neutral, Shared Sample Command ID",
+      "body": "**File:** `tests/unit/lib/agent.test.js`  \n**Issue:** The repeated literal `plugin.sample.publish` still carries “publish” terminology from the migrated workflow feature, and duplicating it across tests makes future fixture drift easier.  \n**Suggestion:** Define a local constant such as `const SAMPLE_PLUGIN_COMMAND_ID = \"plugin.sample.run\";` and use it in both profile-resolution tests. This keeps the core test clearly generic and removes duplicate string literals.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-035",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Use a Neutral, Shared Sample Command ID",
+      "body": "**File:** `tests/unit/lib/agent.test.js`  \n**Issue:** The repeated literal `plugin.sample.publish` still carries “publish” terminology from the migrated workflow feature, and duplicating it across tests makes future fixture drift easier.  \n**Suggestion:** Define a local constant such as `const SAMPLE_PLUGIN_COMMAND_ID = \"plugin.sample.run\";` and use it in both profile-resolution tests. This keeps the core test clearly generic and removes duplicate string literals.",
+      "category": "refactor"
+    }
+  ]
+}

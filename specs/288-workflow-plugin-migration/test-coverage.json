@@ -1,0 +1,152 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Prepare the external workflow plugin repository under the active flow worktree and perform plugin-side implementation and verification from that in-boundary location.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/workflow-plugin-migration.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "The workflow plugin must own the `senti workflow` top-level command and existing add, update, show, search, list, publish, and ideas behavior without importing core src/workflow modules or relying on a bundled compatibility copy. Each user-facing argument and option must be validated at the plugin command entry point according to the validation contract in clarifications.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/workflow-plugin-migration.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "The workflow plugin must provide plugin-owned services shared by commands and hooks for board item operations, issue publishing, issue-start behavior, and board idea candidate extraction.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/workflow-plugin-migration.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "The workflow plugin must provide prepare.post and finalize-cleanup.post hooks for flow integration. Generic core lifecycle must run prepare.post with the newly written flow state including hook snapshot, spec path, runId, and linked issue, and must run finalize-cleanup.post while a durable spec/issue-log/artifact path is available. Hook business failures such as board config missing, gh failure, or AI refinement failure must produce warnings, issue-log entries, or follow-ups without failing the main flow command.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/workflow-plugin-migration.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "Workflow plugin AI call sites for publish, idea candidate classification, similarity, and composition must resolve provider/profile overrides from plugin.config.workflow.agent.<name> and otherwise use a workflow-neutral public plugin agent API/context that exposes generic agent resolve/call capability and needed root config values such as lang.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/workflow-plugin-migration.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "Core must remove workflow-owned runtime implementation and bundled workflow compatibility artifacts, including src/workflow and src/official-plugins/senti-workflow-plugin, after their behavior is available from the external plugin.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/workflow-plugin-migration.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "Core must remove workflow-specific config schema/defaults/migration, workflow.publish default agent profile entries, official workflow bootstrap special-cases, and workflow-specific help/locale entries, while preserving generic plugin and preset behavior.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/workflow-plugin-migration.test.js"
+      ]
+    },
+    {
+      "id": "R8",
+      "desc": "Core flow prompt and skill source must stop hardcoding workflow board integration, issue-start, issue-log-import, workflow add, or workflow.flowIntegration instructions. Equivalent behavior must be provided through workflow plugin hooks and plugin-owned follow-up text.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/workflow-plugin-migration.test.js"
+      ]
+    },
+    {
+      "id": "R9",
+      "desc": "Public workflow subcommands issue-start and issue-log-import must be removed without compatibility aliases. The migration plan must replace issue-start with prepare.post hook behavior and issue-log-import with the ideas command and updated skill/help guidance.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/workflow-plugin-migration.test.js"
+      ]
+    },
+    {
+      "id": "R10",
+      "desc": "Core tests must not contain workflow-specific feature fixtures or expectations after migration. Core may keep generic plugin contract tests using non-workflow sample plugins, and workflow behavior tests must live with the workflow plugin.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/workflow-plugin-migration.test.js"
+      ]
+    },
+    {
+      "id": "R11",
+      "desc": "The migrated workflow plugin must be installable/enabled for this repository from the external plugin repository and provide a smoke-verifiable `senti workflow` command plus flow hook behavior.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/workflow-plugin-migration.test.js"
+      ]
+    },
+    {
+      "id": "R12",
+      "desc": "If migration changes src/skills, src/presets, source templates, or deployed skill artifacts, the implementation must run senti upgrade and include evidence that generated artifacts match source changes.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/workflow-plugin-migration.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/workflow-plugin-migration.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R11",
+        "R12"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R11",
+        "R12",
+        "R4"
+      ]
+    }
+  ]
+}

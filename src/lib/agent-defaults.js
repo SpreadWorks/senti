@@ -71,7 +71,6 @@ const PROFILES = {
     "flow.test.review": "codex/gpt-5.5",
     "flow.finalize.retro": "claude/haiku",
     "flow.context.search": "claude/haiku",
-    "workflow.publish": "claude/sonnet",
   },
   "codex-main": {
     "docs.init": "claude/sonnet",
@@ -93,7 +92,6 @@ const PROFILES = {
     "flow.test.review": "claude/opus",
     "flow.finalize.retro": "codex/gpt-5.3-spark",
     "flow.context.search": "codex/gpt-5.3-spark",
-    "workflow.publish": "claude/sonnet",
   },
   "claude-only": {
     docs: "claude/sonnet",
@@ -110,7 +108,6 @@ const PROFILES = {
     "flow.test.review": "claude/opus",
     "flow.finalize.retro": "claude/haiku",
     "flow.context.search": "claude/haiku",
-    "workflow.publish": "claude/sonnet",
   },
   "codex-only": {
     "docs.init": "codex/gpt-5.4",

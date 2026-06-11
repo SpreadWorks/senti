@@ -26,7 +26,7 @@ src/
 │   ├── agent.js              AI エージェント呼び出し
 │   ├── presets.js            プリセット自動探索・親チェーン解決
 │   ├── plugin-registry.js    plugin manifest 検証・install/sync・contribution 解決
-│   ├── official-plugins.js   公式 preset/workflow plugin artifact の場所を解決
+│   ├── official-plugins.js   公式 preset plugin artifact の場所を解決
 │   ├── flow-state.js         Spec-Driven Development フロー状態永続化
 │   ├── flow-envelope.js      flow get/set/run の JSON envelope
 │   ├── git-helpers.js          git/gh 状態取得ヘルパー
@@ -50,7 +50,7 @@ src/
 │   └── commands/            内部ヘルパー（merge, cleanup, review の実体）
 ├── spec/commands/            init, gate, guardrail（flow/run/prepare-spec, gate が内部で呼ぶ）
 ├── presets/                  core builtin preset（base のみ）
-├── official-plugins/         公式 plugin の bundled compatibility copy（senti-presets / workflow）
+├── official-plugins/         公式 preset plugin の bundled compatibility copy（senti-presets）
 ├── locale/                   en/, ja/
 └── templates/
     ├── skills/              skill テンプレート（SKILL.md）

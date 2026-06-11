@@ -3,12 +3,6 @@
   "logs": {
     "enabled": true
   },
-  "workflow": {
-    "languages": {
-      "source": "ja",
-      "publish": "en"
-    }
-  },
   "lang": "ja",
   "type": [
     "node-cli",
@@ -230,8 +224,7 @@
         "flow.test.result-review": "claude/haiku",
         "flow.test.review": "codex/gpt-5.5",
         "flow.finalize.retro": "claude/haiku",
-        "flow.context.search": "claude/haiku",
-        "workflow.publish": "claude/sonnet"
+        "flow.context.search": "claude/haiku"
       },
       "codex-main": {
         "docs.init": "claude/sonnet",
@@ -252,8 +245,7 @@
         "flow.test.result-review": "codex/gpt-5.3-spark",
         "flow.test.review": "claude/opus",
         "flow.finalize.retro": "codex/gpt-5.3-spark",
-        "flow.context.search": "codex/gpt-5.3-spark",
-        "workflow.publish": "claude/sonnet"
+        "flow.context.search": "codex/gpt-5.3-spark"
       },
       "claude-only": {
         "docs": "claude/sonnet",
@@ -269,8 +261,7 @@
         "flow.test.result-review": "claude/haiku",
         "flow.test.review": "claude/opus",
         "flow.finalize.retro": "claude/haiku",
-        "flow.context.search": "claude/haiku",
-        "workflow.publish": "claude/sonnet"
+        "flow.context.search": "claude/haiku"
       },
       "codex-only": {
         "docs.init": "codex/gpt-5.4",
@@ -291,8 +282,7 @@
         "flow.test.result-review": "codex/gpt-5.3-spark",
         "flow.test.review": "codex/gpt-5.5",
         "flow.finalize.retro": "codex/gpt-5.3-spark",
-        "flow.context.search": "codex/gpt-5.3-spark",
-        "workflow.publish": "codex/gpt-5.5"
+        "flow.context.search": "codex/gpt-5.3-spark"
       }
     }
   },
@@ -305,13 +295,17 @@
       },
       {
         "id": "workflow",
-        "commit": "35c0aa0dc5b6239e35e9739c9d8de1a7452c59f9",
-        "source": "official-workflow"
+        "commit": "b48dd655e848076f7de281fe829fce609fd1b8cf",
+        "source": "workflow-local"
       }
     ],
     "config": {
       "workflow": {
-        "flowIntegration": "enable"
+        "flowIntegration": "enable",
+        "languages": {
+          "source": "ja",
+          "publish": "en"
+        }
       }
     },
     "sources": [
@@ -321,9 +315,9 @@
         "path": "/home/nakano/workspace/senti-presets"
       },
       {
-        "id": "official-workflow",
+        "id": "workflow-local",
         "type": "local",
-        "path": "/home/nakano/workspace/senti-workflow-plugin"
+        "path": "plugins/senti-workflow-plugin"
       }
     ]
   }

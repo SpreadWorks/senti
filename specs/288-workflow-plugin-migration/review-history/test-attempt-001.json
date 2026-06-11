@@ -1,0 +1,156 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-11T06:51:18.552Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 7,
+    "advisory": 0,
+    "total": 7
+  },
+  "coverageArtifact": "specs/288-workflow-plugin-migration/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Command behavior and validation are only checked by string presence",
+      "target": "specs/288-workflow-plugin-migration/tests/workflow-plugin-migration.test.js R2",
+      "issue": "The R2 test only verifies that commands/workflow.js exists, contains subcommand names, and lacks a few core-import patterns. It does not exercise add, update, show, search, list, publish, or ideas behavior, and it does not test user-facing argument or option validation at the plugin command entry point.",
+      "requiredChange": "Add spec-local executable command-entry tests for each workflow subcommand, including representative valid input and invalid argument/option cases from the validation contract.",
+      "whyBlocking": "R2's central acceptance requirement can pass with a stub file or comments, so the coverage artifact claims coverage that the actual test does not provide."
+    },
+    {
+      "kind": "blocking",
+      "title": "Plugin-owned shared services are not proven to be used",
+      "target": "specs/288-workflow-plugin-migration/tests/workflow-plugin-migration.test.js R3",
+      "issue": "The R3 test only checks that service filenames exist and that hooks do not shell out to the workflow CLI. Empty service files or duplicated command/hook implementations would pass.",
+      "requiredChange": "Add tests that verify workflow commands and hooks call the plugin-owned board, publish, issue-start, and ideas services through shared service APIs, preferably with stubs/spies at the service boundary.",
+      "whyBlocking": "R3 requires plugin-owned services shared by commands and hooks for specific behavior; filename existence does not exercise production behavior or sharing."
+    },
+    {
+      "kind": "blocking",
+      "title": "Flow hook lifecycle contract is not exercised",
+      "target": "specs/288-workflow-plugin-migration/tests/workflow-plugin-migration.test.js R4",
+      "issue": "The R4 test searches hook source for prepare/finalize strings and issue-log related words, but does not verify that core runs prepare.post after writing flow state with hook snapshot, spec path, runId, and linked issue, nor that finalize-cleanup.post receives durable spec/issue-log/artifact paths. It also does not verify non-fatal handling for board config, gh, or AI refinement failures.",
+      "requiredChange": "Add integration-style tests for the generic flow lifecycle invoking prepare.post and finalize-cleanup.post hooks with asserted context fields and simulated business failures that produce warnings, issue-log entries, or follow-ups without failing the main command.",
+      "whyBlocking": "The required core/plugin lifecycle behavior is critical and currently untested; the existing regex test would pass without the hook contract working."
+    },
+    {
+      "kind": "blocking",
+      "title": "AI provider/profile override behavior is not covered",
+      "target": "specs/288-workflow-plugin-migration/tests/workflow-plugin-migration.test.js R5",
+      "issue": "The R5 test only looks for config.workflow.agent and api.agent/context.agent strings. It does not verify publish, idea candidate classification, similarity, and composition call sites resolve plugin.config.workflow.agent.<name> overrides, fall back to the workflow-neutral plugin agent API, or pass needed root config values such as lang.",
+      "requiredChange": "Add tests for each workflow AI call site using a fake public plugin agent context that records resolve/call inputs for override and fallback cases, including lang propagation.",
+      "whyBlocking": "R5 can pass with unused strings while the migrated plugin still calls the wrong agent, ignores overrides, or imports private core behavior."
+    },
+    {
+      "kind": "blocking",
+      "title": "Removed public subcommands can still pass the test",
+      "target": "specs/288-workflow-plugin-migration/tests/workflow-plugin-migration.test.js R9",
+      "issue": "The R9 regex only fails when issue-start or issue-log-import appears near the words public or subcommand. A real compatibility alias such as a switch case, command map entry, or help row could pass if those words are absent.",
+      "requiredChange": "Add command-entry and help/discovery tests asserting issue-start and issue-log-import are rejected or absent as public subcommands, while ideas remains available.",
+      "whyBlocking": "R9 explicitly requires removal without compatibility aliases; the current static pattern can miss the prohibited API surface."
+    },
+    {
+      "kind": "blocking",
+      "title": "Installability and smoke verification are not tested",
+      "target": "specs/288-workflow-plugin-migration/tests/workflow-plugin-migration.test.js R11",
+      "issue": "The R11 test only checks .senti/config.json contains a workflow package and source path. It does not verify the plugin can actually be installed/enabled, discovered by the CLI, run as senti workflow, or participate in flow hook behavior.",
+      "requiredChange": "Add a smoke test that enables the external plugin from the recorded workspace/source, runs a harmless senti workflow command such as help/list with test fixtures, and verifies prepare/finalize hook discovery or invocation.",
+      "whyBlocking": "R11 requires installable/enabled and smoke-verifiable behavior; config shape alone is not sufficient coverage."
+    },
+    {
+      "kind": "blocking",
+      "title": "Upgrade evidence requirement is not validated",
+      "target": "specs/288-workflow-plugin-migration/tests/workflow-plugin-migration.test.js R12",
+      "issue": "The R12 test only scans selected source and deployed files for old workflow strings. It does not detect whether src/skills, src/presets, source templates, or deployed skill artifacts changed, does not verify senti upgrade was run, and does not compare generated artifacts against sources.",
+      "requiredChange": "Add an explicit upgrade evidence check, such as a generated-artifact comparison or recorded command evidence, and include source template paths in the conditional coverage when those inputs change.",
+      "whyBlocking": "R12 can pass with stale generated artifacts or without running the required upgrade step after source changes."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/288-workflow-plugin-migration/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 7,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "ffe24c2475f46fd72834ce67137754b8a4e5d8e8a023155c207ed4f80112173f"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "test-001-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Command behavior and validation are only checked by string presence",
+      "body": "The R2 test only verifies that commands/workflow.js exists, contains subcommand names, and lacks a few core-import patterns. It does not exercise add, update, show, search, list, publish, or ideas behavior, and it does not test user-facing argument or option validation at the plugin command entry point.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Plugin-owned shared services are not proven to be used",
+      "body": "The R3 test only checks that service filenames exist and that hooks do not shell out to the workflow CLI. Empty service files or duplicated command/hook implementations would pass.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Flow hook lifecycle contract is not exercised",
+      "body": "The R4 test searches hook source for prepare/finalize strings and issue-log related words, but does not verify that core runs prepare.post after writing flow state with hook snapshot, spec path, runId, and linked issue, nor that finalize-cleanup.post receives durable spec/issue-log/artifact paths. It also does not verify non-fatal handling for board config, gh, or AI refinement failures.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "AI provider/profile override behavior is not covered",
+      "body": "The R5 test only looks for config.workflow.agent and api.agent/context.agent strings. It does not verify publish, idea candidate classification, similarity, and composition call sites resolve plugin.config.workflow.agent.<name> overrides, fall back to the workflow-neutral plugin agent API, or pass needed root config values such as lang.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-005",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Removed public subcommands can still pass the test",
+      "body": "The R9 regex only fails when issue-start or issue-log-import appears near the words public or subcommand. A real compatibility alias such as a switch case, command map entry, or help row could pass if those words are absent.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-006",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Installability and smoke verification are not tested",
+      "body": "The R11 test only checks .senti/config.json contains a workflow package and source path. It does not verify the plugin can actually be installed/enabled, discovered by the CLI, run as senti workflow, or participate in flow hook behavior.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-007",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Upgrade evidence requirement is not validated",
+      "body": "The R12 test only scans selected source and deployed files for old workflow strings. It does not detect whether src/skills, src/presets, source templates, or deployed skill artifacts changed, does not verify senti upgrade was run, and does not compare generated artifacts against sources.",
+      "category": "unknown"
+    }
+  ]
+}

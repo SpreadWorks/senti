@@ -1,0 +1,1552 @@
+{
+  "entries": [
+    {
+      "step": "draft",
+      "reason": "flow request note was corrupted by shell backtick command substitution during request recording",
+      "trigger": "senti flow set request used backtick-formatted command names in a shell command argument",
+      "resolution": "rewrote the request without backticks and verified the corrected request was persisted",
+      "guardrailCandidate": "avoid shell metacharacters in flow command arguments; use plain prose or escaped arguments for request text",
+      "taskId": null,
+      "timestamp": "2026-06-11T05:56:00.575Z"
+    },
+    {
+      "step": "draft",
+      "reason": "workflow issue-start could not run because the workflow plugin command was unavailable in the prepared worktree",
+      "trigger": "draft prompt requested senti workflow issue-start for linked issue 375 with flowIntegration enabled",
+      "resolution": "treated the board integration attempt as non-fatal during draft and kept it in scope for migration",
+      "guardrailCandidate": "flow integration should use plugin hooks instead of hardcoded workflow CLI calls in draft prompts",
+      "taskId": null,
+      "timestamp": "2026-06-11T05:57:23.608Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "qa[4]: invalid category \"test-strategy\"",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-11T06:30:34.943Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[4]: invalid category \"test-strategy\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate failed because one QA entry used a category outside the allowed draft enum",
+      "trigger": "senti flow run gate --phase draft reported qa[4]: invalid category test-strategy",
+      "resolution": "changed q5 category from test-strategy to acceptance-criteria and verified category values without shell template expansion",
+      "guardrailCandidate": "when authoring draft QA entries, use only the categories listed in the active next-action instructions",
+      "taskId": null,
+      "timestamp": "2026-06-11T06:31:01.854Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The draft removes public `senti workflow issue-start` and `issue-log-import` without compatibility aliases but does not include a migration plan in the spec for these command removals; it only states the final behavior (unknown subcommand), which does not satisfy the required migration-plan expectation.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-11T06:31:34.343Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "backward-compatible-cli-interface",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.out[2]"
+          },
+          "observed": "The draft removes public `senti workflow issue-start` and `issue-log-import` without compatibility aliases but does not include a migration plan in the spec for these command removals; it only states the final behavior (unknown subcommand), which does not satisfy the required migration-plan expectation.",
+          "severity": "blocking",
+          "refs": [
+            "backward-compatible-cli-interface"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "backward-compatible-cli-interface",
+          "reason": "The draft removes public `senti workflow issue-start` and `issue-log-import` without compatibility aliases but does not include a migration plan in the spec for these command removals; it only states the final behavior (unknown subcommand), which does not satisfy the required migration-plan expectation."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate failed because removed workflow subcommands lacked a CLI migration plan",
+      "trigger": "backward-compatible-cli-interface guardrail rejected unknown-subcommand final behavior without replacement guidance",
+      "resolution": "added migration plan: issue-start moves to prepare.post hook, issue-log-import replacement is ideas, and skill/help/prompt guidance drops old subcommands",
+      "guardrailCandidate": "when removing public CLI subcommands, document replacement behavior and user guidance even during alpha removal",
+      "taskId": null,
+      "timestamp": "2026-06-11T06:31:59.970Z"
+    },
+    {
+      "step": "spec",
+      "reason": "attempted to read a nearby example spec path that did not exist in this worktree",
+      "trigger": "sed command requested specs/287-plugin-hooks/spec.json while checking the current spec.json schema",
+      "resolution": "listed existing specs and selected an available recent spec as the schema example",
+      "guardrailCandidate": "check available spec paths before reading a guessed numbered spec directory",
+      "taskId": null,
+      "timestamp": "2026-06-11T06:33:43.573Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "`R2` only says existing `add/update/show/search/list/publish` arguments keep current validation semantics and never enumerates each user-facing argument with explicit type, format, or range checks, so the spec does not satisfy the requirement to list each argument’s validation contract at entry point.; `R4`/flow-hook behavior calls out board operations and idea candidate extraction but sets no explicit upper bounds for bulk item loading, processing depth, or retry attempts, so unbounded processing is not constrained in the spec.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-11T06:43:47.617Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "validate-user-input-at-entry-point",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[1].desc"
+          },
+          "observed": "`R2` only says existing `add/update/show/search/list/publish` arguments keep current validation semantics and never enumerates each user-facing argument with explicit type, format, or range checks, so the spec does not satisfy the requirement to list each argument’s validation contract at entry point.",
+          "severity": "blocking",
+          "refs": [
+            "validate-user-input-at-entry-point"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[3].desc"
+          },
+          "observed": "`R4`/flow-hook behavior calls out board operations and idea candidate extraction but sets no explicit upper bounds for bulk item loading, processing depth, or retry attempts, so unbounded processing is not constrained in the spec.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "validate-user-input-at-entry-point",
+          "reason": "`R2` only says existing `add/update/show/search/list/publish` arguments keep current validation semantics and never enumerates each user-facing argument with explicit type, format, or range checks, so the spec does not satisfy the requirement to list each argument’s validation contract at entry point."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "`R4`/flow-hook behavior calls out board operations and idea candidate extraction but sets no explicit upper bounds for bulk item loading, processing depth, or retry attempts, so unbounded processing is not constrained in the spec."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec gate failed because workflow command validation contracts and resource bounds were underspecified",
+      "trigger": "spec gate reported validate-user-input-at-entry-point and bounded-resource-usage violations",
+      "resolution": "added explicit command argument validation contracts, ideas and board pagination bounds, and acceptance criteria for validation and resource limits",
+      "guardrailCandidate": "for migrated CLI commands, enumerate every user-facing argument and bounded processing limit in the spec before gate",
+      "taskId": null,
+      "timestamp": "2026-06-11T06:44:59.051Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "clarifications[4].a: unresolved marker \"Todo\" in value (add requires <title> as a non-empty Japanese string; add --status accepts Ideas or Todo; add --category accepts RESEARCH, BUG, ENHANCE, or OTHER; add --body is optional and, when non-empty, must contain Japanese. update requires <hash> as a non-empty workflow item id/hash prefix and accepts optional --status as a non-empty board status, --title as a non-empty Japanese string, and --body as a Japanese string when non-empty. show and publish require <hash> as a non-empty workflow item id/hash prefix; publish --label is optional and must be a non-empty label string when present. search requires <query> as a non-empty string. list --status is optional and must be a non-empty board status when present. ideas requires --spec as a safe project/spec path and rejects missing, absolute, traversal, shell-metacharacter, or non-spec paths.)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-11T06:45:07.586Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "clarifications[4].a: unresolved marker \"Todo\" in value (add requires <title> as a non-empty Japanese string; add --status accepts Ideas or Todo; add --category accepts RESEARCH, BUG, ENHANCE, or OTHER; add --body is optional and, when non-empty, must contain Japanese. update requires <hash> as a non-empty workflow item id/hash prefix and accepts optional --status as a non-empty board status, --title as a non-empty Japanese string, and --body as a Japanese string when non-empty. show and publish require <hash> as a non-empty workflow item id/hash prefix; publish --label is optional and must be a non-empty label string when present. search requires <query> as a non-empty string. list --status is optional and must be a non-empty board status when present. ideas requires --spec as a safe project/spec path and rejects missing, absolute, traversal, shell-metacharacter, or non-spec paths.)",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec gate treated the workflow board status word Todo as an unresolved marker",
+      "trigger": "spec gate structural validation reported clarifications[4].a unresolved marker Todo",
+      "resolution": "changed the status wording to To-do while preserving the validation contract intent",
+      "guardrailCandidate": "avoid bare Todo text in spec prose because gate treats it as an unresolved marker",
+      "taskId": null,
+      "timestamp": "2026-06-11T06:45:34.796Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Scenario-validity rerun rejected updated tests because combined requirement test names were not discoverable by the requirement mapper.",
+      "trigger": "senti flow run scenario-validity after test-review FAIL repair",
+      "resolution": "Renamed combined test names to explicit R2 and R3 entries and added an explicit R9 test.",
+      "guardrailCandidate": "Spec-local tests should include one discoverable test name per covered requirement id when using requirement-mapped flow artifacts.",
+      "taskId": null,
+      "timestamp": "2026-06-11T06:57:08.698Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Static test review found remaining blockers: temp hook ESM loading, real service module coverage, command input mapping, agent provider resolution, and plugin-root verification evidence.",
+      "trigger": "second senti flow run review --phase test returned FAIL with five blocking findings",
+      "resolution": "Added package.json type module for temp lifecycle hook, production service factory coverage, exact command input assertions and invalid cases, provider/resolve and service-level agent assertions, and plugin-root syntax verification.",
+      "guardrailCandidate": "Spec-local migration tests should combine black-box command routing with production service factory and lifecycle smoke checks instead of relying on filename or string existence.",
+      "taskId": null,
+      "timestamp": "2026-06-11T07:00:45.349Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Static test review still found gaps in real service behavior, finalize-cleanup lifecycle coverage, and non-JS workflow fixture scanning.",
+      "trigger": "third senti flow run review --phase test returned FAIL with three blocking findings",
+      "resolution": "Added service-level client behavior checks, finalize-cleanup lifecycle synthetic hook coverage, and expanded R10 scanning across all tests and fixtures with GitHub Actions exclusions.",
+      "guardrailCandidate": "Migration tests for extracted features should exercise production services and both lifecycle hook phases, and should scan non-code fixtures when removal requirements include tests broadly.",
+      "taskId": null,
+      "timestamp": "2026-06-11T07:03:50.668Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Static test review still found production command/hook service construction, newly written prepare state, and agent fallback path coverage missing.",
+      "trigger": "fourth senti flow run review --phase test returned FAIL with three blocking findings",
+      "resolution": "Added production command path tests using clients, added agent fallback assertions, and changed lifecycle coverage to use runPrepareWithPluginHooks written flow state before running prepare.post.",
+      "guardrailCandidate": "Spec-local tests for plugin migrations should exercise both injected test seams and production construction paths, including fallback configuration paths.",
+      "taskId": null,
+      "timestamp": "2026-06-11T07:08:23.541Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Test review reached max attempts after the last blocker identified incomplete R2 public option surface coverage.",
+      "trigger": "fifth senti flow run review --phase test returned one blocker and next-action reported max_attempts_exceeded with changed evidence",
+      "resolution": "Added an explicit publicSurface contract for workflow subcommands and additional invalid option cases for unsupported or invalid options across add, update, show, search, list, publish, and ideas.",
+      "guardrailCandidate": "When a requirement says every public option must be validated, tests should enumerate the full command surface and include wrong-surface option cases for each subcommand.",
+      "taskId": null,
+      "timestamp": "2026-06-11T07:09:58.758Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "Spec-local workflow migration tests changed after the last R2 public option surface blocker; publicSurface and wrong-surface validation cases were added.",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "cb947756cec7fdc3ea213318658018ea2215059fa27284a793d56293f751b43c",
+        "currentHash": "02c2cd6ee684d971f0c3eee521111638dccbd341e1c378756952e6f1f3dda3c8",
+        "changedPaths": [
+          "specs/288-workflow-plugin-migration/tests/.raw/scenario-validity.log",
+          "specs/288-workflow-plugin-migration/tests/workflow-plugin-migration.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset review test --reason \"Spec-local workflow migration tests changed after the last R2 public option surface blocker; publicSurface and wrong-surface validation cases were added.\" --yes",
+      "createdAt": "2026-06-11T07:27:35.639Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Reset-after-review blockers required stronger R1 provenance, R4 linked issue propagation, and R8 forbidden prompt guidance coverage.",
+      "trigger": "manual retry request after reset review returned FAIL with three blocking findings",
+      "resolution": "Added external workflow plugin source identity assertions, required prepare helper to write issue and run prepare.post artifact, and broadened R8 prompt/skill forbidden guidance scan.",
+      "guardrailCandidate": "Before retry reset, changed evidence should address every remaining blocker with executable assertions rather than rerunning unchanged review artifacts.",
+      "taskId": null,
+      "timestamp": "2026-06-11T07:32:04.575Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-002",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "Spec-local tests changed after the three remaining blockers: external plugin provenance, linked issue prepare.post artifact, and broader forbidden prompt guidance scan were added.",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "02c2cd6ee684d971f0c3eee521111638dccbd341e1c378756952e6f1f3dda3c8",
+        "currentHash": "50d4be7438696596b2e5a8f54893e23abd48866fb24d467307faa469bf2d8b25",
+        "changedPaths": [
+          "specs/288-workflow-plugin-migration/tests/.raw/scenario-validity.log",
+          "specs/288-workflow-plugin-migration/tests/workflow-plugin-migration.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset review test --reason \"Spec-local tests changed after the three remaining blockers: external plugin provenance, linked issue prepare.post artifact, and broader forbidden prompt guidance scan were added.\" --yes",
+      "createdAt": "2026-06-11T07:32:11.291Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "R11 installability smoke still allowed stale installed workflow plugin paths unrelated to the recorded external plugin workspace.",
+      "trigger": "manual reset review returned one blocking R11 finding",
+      "resolution": "Added assertions that workflow plugin source resolves to plugin-workspace.json path, package commit matches sourceCommit, and registry command comes from .senti/plugins/workflow.",
+      "guardrailCandidate": "Installability smoke tests should tie enabled package source, commit, and registry modules to the recorded migration workspace.",
+      "taskId": null,
+      "timestamp": "2026-06-11T07:33:36.598Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-003",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "Spec-local tests changed after the R11 stale-install blocker: enabled source, commit, and registry command path are tied to plugin-workspace.json.",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "50d4be7438696596b2e5a8f54893e23abd48866fb24d467307faa469bf2d8b25",
+        "currentHash": "51e3e776175d61e44cf93e0b82730f3f7c0437047e01fec038372b97dbc83f21",
+        "changedPaths": [
+          "specs/288-workflow-plugin-migration/tests/.raw/scenario-validity.log",
+          "specs/288-workflow-plugin-migration/tests/workflow-plugin-migration.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset review test --reason \"Spec-local tests changed after the R11 stale-install blocker: enabled source, commit, and registry command path are tied to plugin-workspace.json.\" --yes",
+      "createdAt": "2026-06-11T07:33:42.444Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Test review found R5 provider assertions and R7 workflow config/default/migration removal scan were still too weak.",
+      "trigger": "manual reset review returned two blocking findings",
+      "resolution": "Added exact provider expectations for every workflow agent override and targeted core config/default/migration/bootstrap scans for workflow-specific keys.",
+      "guardrailCandidate": "Provider override tests should assert concrete expected provider values, and removal tests should scan targeted config/default/migration files independently of symbol names.",
+      "taskId": null,
+      "timestamp": "2026-06-11T07:36:21.669Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-004",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "Spec-local tests changed after R5 provider and R7 config/default/migration blocker fixes were added.",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "51e3e776175d61e44cf93e0b82730f3f7c0437047e01fec038372b97dbc83f21",
+        "currentHash": "8dffd082955e4af3f2b1667ebaa039e044e6bb00660ffc4a6e2f9ce43ad487fc",
+        "changedPaths": [
+          "specs/288-workflow-plugin-migration/tests/.raw/scenario-validity.log",
+          "specs/288-workflow-plugin-migration/tests/workflow-plugin-migration.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset review test --reason \"Spec-local tests changed after R5 provider and R7 config/default/migration blocker fixes were added.\" --yes",
+      "createdAt": "2026-06-11T07:36:27.410Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "integration gate rejected file-map entries that pointed at deleted workflow files",
+      "trigger": "senti flow run gate returned ARTIFACT_PLACEHOLDER for missing src/workflow/index.js",
+      "resolution": "removed deleted paths from R6 R9 R10 file-map entries and kept existing changed files that evidence the migration",
+      "guardrailCandidate": "file-map entries must point to existing files even when the requirement is about deleting old files",
+      "taskId": null,
+      "timestamp": "2026-06-11T08:25:16.530Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "spec-local tests failed for plugin service construction and installed hook imports",
+      "trigger": "impl-gate reported R2 R3 R5 R11 failures from the latest test-execute artifact",
+      "resolution": "fixed plugin service agent wiring, made publish use WorkflowAgentResolver, added lib directory to plugin install whitelist, and reinstalled with node src/senti.js",
+      "guardrailCandidate": "plugin install verification must include command hooks and shared lib imports from the installed copy",
+      "taskId": null,
+      "timestamp": "2026-06-11T08:27:35.521Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "spec-local R2 and R3 still failed because empty ideas extraction skipped the agent service",
+      "trigger": "updated test-execute raw log showed ideas must use plugin-owned services backed by agent.call",
+      "resolution": "changed ideas.extract to call WorkflowAgentResolver even when issue-log entries are empty and reinstalled the pinned plugin commit",
+      "guardrailCandidate": "production command smoke tests should cover empty-input service paths as well as populated paths",
+      "taskId": null,
+      "timestamp": "2026-06-11T08:31:31.346Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "No added plugin-boundary implementation is shown; the diff only deletes workflow plugin and related files, with no evidence of preparing or using an external workflow plugin repository in this worktree.; The `senti workflow` command registration and handler entrypoints are removed (`plugin.json`, command wrapper, registry), and there is no replacement plugin-owned command path or argument/option validation in this diff.; Shared plugin-owned services are removed, including board/config/graphql/helper command modules, so the diff does not provide plugin-owned services for board operations, issue publishing, issue-start behavior, or board idea candidate extraction.; Although `issue-start` and `issue-log-import` are removed, there is no visible migration replacement here (no prepare.post hook ownership or ideas-command/help updates) in this diff.; The core flow now runs `prepare`/`finalize-cleanup` post lifecycle hooks and propagates warnings/issue-log/follow-ups, but this diff removes the workflow plugin package (including existing hook implementation) and does not add equivalent `prepare.post` and `finalize-cleanup.post` handlers for a workflow plugin, so the required plugin-provided flow integration is not evidenced.; The diff removes the workflow plugin AI call sites and no longer shows any classification/similarity/composition/publish calls resolving overrides from plugin.config.workflow.agent.<name>; buildPluginContext now injects only a stub agent that always resolves false and throws on call, with no override lookup logic.; The draft prompt’s hardcoded workflow integration block was removed, but the diff also deletes the workflow plugin’s skill/config/hooks/commands (including `issue-start`) without adding replacement plugin hooks or plugin-owned follow-up text, so equivalent behavior is not shown to be preserved.; Diff removes in-repo workflow implementation and points to `plugins/senti-workflow-plugin` but provides no in-repo or verified evidence that an install from external repo now enables `senti workflow` and flow hook behavior.; Workflow/plugin source files were migrated/removed, but there is no evidence of running `senti upgrade` or of regenerated artifact verification in the diff.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-11T08:35:51.554Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R1",
+          "where": null,
+          "observed": "No added plugin-boundary implementation is shown; the diff only deletes workflow plugin and related files, with no evidence of preparing or using an external workflow plugin repository in this worktree.",
+          "severity": "blocking",
+          "refs": [
+            "R1"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R2",
+          "where": null,
+          "observed": "The `senti workflow` command registration and handler entrypoints are removed (`plugin.json`, command wrapper, registry), and there is no replacement plugin-owned command path or argument/option validation in this diff.",
+          "severity": "blocking",
+          "refs": [
+            "R2"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R3",
+          "where": null,
+          "observed": "Shared plugin-owned services are removed, including board/config/graphql/helper command modules, so the diff does not provide plugin-owned services for board operations, issue publishing, issue-start behavior, or board idea candidate extraction.",
+          "severity": "blocking",
+          "refs": [
+            "R3"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R9",
+          "where": null,
+          "observed": "Although `issue-start` and `issue-log-import` are removed, there is no visible migration replacement here (no prepare.post hook ownership or ideas-command/help updates) in this diff.",
+          "severity": "blocking",
+          "refs": [
+            "R9"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R4",
+          "where": null,
+          "observed": "The core flow now runs `prepare`/`finalize-cleanup` post lifecycle hooks and propagates warnings/issue-log/follow-ups, but this diff removes the workflow plugin package (including existing hook implementation) and does not add equivalent `prepare.post` and `finalize-cleanup.post` handlers for a workflow plugin, so the required plugin-provided flow integration is not evidenced.",
+          "severity": "blocking",
+          "refs": [
+            "R4"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R5",
+          "where": null,
+          "observed": "The diff removes the workflow plugin AI call sites and no longer shows any classification/similarity/composition/publish calls resolving overrides from plugin.config.workflow.agent.<name>; buildPluginContext now injects only a stub agent that always resolves false and throws on call, with no override lookup logic.",
+          "severity": "blocking",
+          "refs": [
+            "R5"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R8",
+          "where": null,
+          "observed": "The draft prompt’s hardcoded workflow integration block was removed, but the diff also deletes the workflow plugin’s skill/config/hooks/commands (including `issue-start`) without adding replacement plugin hooks or plugin-owned follow-up text, so equivalent behavior is not shown to be preserved.",
+          "severity": "blocking",
+          "refs": [
+            "R8"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R11",
+          "where": null,
+          "observed": "Diff removes in-repo workflow implementation and points to `plugins/senti-workflow-plugin` but provides no in-repo or verified evidence that an install from external repo now enables `senti workflow` and flow hook behavior.",
+          "severity": "blocking",
+          "refs": [
+            "R11"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R12",
+          "where": null,
+          "observed": "Workflow/plugin source files were migrated/removed, but there is no evidence of running `senti upgrade` or of regenerated artifact verification in the diff.",
+          "severity": "blocking",
+          "refs": [
+            "R12"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R6",
+        "R7",
+        "R10"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R1",
+          "reason": "No added plugin-boundary implementation is shown; the diff only deletes workflow plugin and related files, with no evidence of preparing or using an external workflow plugin repository in this worktree."
+        },
+        {
+          "guardrail_id": "R2",
+          "reason": "The `senti workflow` command registration and handler entrypoints are removed (`plugin.json`, command wrapper, registry), and there is no replacement plugin-owned command path or argument/option validation in this diff."
+        },
+        {
+          "guardrail_id": "R3",
+          "reason": "Shared plugin-owned services are removed, including board/config/graphql/helper command modules, so the diff does not provide plugin-owned services for board operations, issue publishing, issue-start behavior, or board idea candidate extraction."
+        },
+        {
+          "guardrail_id": "R9",
+          "reason": "Although `issue-start` and `issue-log-import` are removed, there is no visible migration replacement here (no prepare.post hook ownership or ideas-command/help updates) in this diff."
+        },
+        {
+          "guardrail_id": "R4",
+          "reason": "The core flow now runs `prepare`/`finalize-cleanup` post lifecycle hooks and propagates warnings/issue-log/follow-ups, but this diff removes the workflow plugin package (including existing hook implementation) and does not add equivalent `prepare.post` and `finalize-cleanup.post` handlers for a workflow plugin, so the required plugin-provided flow integration is not evidenced."
+        },
+        {
+          "guardrail_id": "R5",
+          "reason": "The diff removes the workflow plugin AI call sites and no longer shows any classification/similarity/composition/publish calls resolving overrides from plugin.config.workflow.agent.<name>; buildPluginContext now injects only a stub agent that always resolves false and throws on call, with no override lookup logic."
+        },
+        {
+          "guardrail_id": "R8",
+          "reason": "The draft prompt’s hardcoded workflow integration block was removed, but the diff also deletes the workflow plugin’s skill/config/hooks/commands (including `issue-start`) without adding replacement plugin hooks or plugin-owned follow-up text, so equivalent behavior is not shown to be preserved."
+        },
+        {
+          "guardrail_id": "R11",
+          "reason": "Diff removes in-repo workflow implementation and points to `plugins/senti-workflow-plugin` but provides no in-repo or verified evidence that an install from external repo now enables `senti workflow` and flow hook behavior."
+        },
+        {
+          "guardrail_id": "R12",
+          "reason": "Workflow/plugin source files were migrated/removed, but there is no evidence of running `senti upgrade` or of regenerated artifact verification in the diff."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "integration gate could not see plugin implementation because the source was an untracked nested Git repository",
+      "trigger": "impl-gate observations reported no visible replacement plugin implementation for R1 R2 R3 R4 R5 R8 R9 R11",
+      "resolution": "moved nested Git metadata out of the plugin source, made plugin files visible as normal worktree files, added non-git local plugin source content-hash install support, and recorded upgrade-not-required evidence",
+      "guardrailCandidate": "migration artifacts used by gate must be visible in the outer repository diff, not only inside nested untracked repositories",
+      "taskId": null,
+      "timestamp": "2026-06-11T08:39:16.385Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff adds plugin-side metadata/config/skill but does not include the workflow command/hook/implementation files under the new plugin boundary; it removes the old in-tree implementation, so plugin-side implementation and in-boundary verification are not demonstrated.; The workflow command ownership is moved to the plugin and no `src/workflow` imports are present, but behavior parity is not preserved: `ideas --spec` is only schema-validated at the entrypoint and forwarded as `{ spec }`, while service logic reads `issueLogEntries` from input, so CLI `senti workflow ideas` cannot execute the previous issue-log import behavior. The diff also routes add/update/publish through plugin services with changed/default implementations, so exact legacy behavior is not demonstrably maintained from this code path.; The new resolver includes a generic `agent.resolve/call` flow with `lang`, but override lookup is `config.workflow?.[name] || config?.agent?.[name]`, not `plugin.config.workflow.agent.<name>` as required.; The diff switches the plugin source to a local path and removes the in-repo workflow command/hook implementation without showing the new plugin manifest or runtime wiring that guarantees `senti workflow` is installable/enabled and that flow hook behavior is active.; Migration touches workflow/plugin implementation files, but there is no evidence of a `senti upgrade` run or regenerated/deployed artifact outputs confirming source-to-artifact parity; only an analysis timestamp changed.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-11T08:45:47.770Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R1",
+          "where": null,
+          "observed": "The diff adds plugin-side metadata/config/skill but does not include the workflow command/hook/implementation files under the new plugin boundary; it removes the old in-tree implementation, so plugin-side implementation and in-boundary verification are not demonstrated.",
+          "severity": "blocking",
+          "refs": [
+            "R1"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R2",
+          "where": null,
+          "observed": "The workflow command ownership is moved to the plugin and no `src/workflow` imports are present, but behavior parity is not preserved: `ideas --spec` is only schema-validated at the entrypoint and forwarded as `{ spec }`, while service logic reads `issueLogEntries` from input, so CLI `senti workflow ideas` cannot execute the previous issue-log import behavior. The diff also routes add/update/publish through plugin services with changed/default implementations, so exact legacy behavior is not demonstrably maintained from this code path.",
+          "severity": "blocking",
+          "refs": [
+            "R2"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R5",
+          "where": null,
+          "observed": "The new resolver includes a generic `agent.resolve/call` flow with `lang`, but override lookup is `config.workflow?.[name] || config?.agent?.[name]`, not `plugin.config.workflow.agent.<name>` as required.",
+          "severity": "blocking",
+          "refs": [
+            "R5"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R11",
+          "where": null,
+          "observed": "The diff switches the plugin source to a local path and removes the in-repo workflow command/hook implementation without showing the new plugin manifest or runtime wiring that guarantees `senti workflow` is installable/enabled and that flow hook behavior is active.",
+          "severity": "blocking",
+          "refs": [
+            "R11"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R12",
+          "where": null,
+          "observed": "Migration touches workflow/plugin implementation files, but there is no evidence of a `senti upgrade` run or regenerated/deployed artifact outputs confirming source-to-artifact parity; only an analysis timestamp changed.",
+          "severity": "blocking",
+          "refs": [
+            "R12"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R6",
+        "R7",
+        "R10",
+        "R3",
+        "R4",
+        "R8",
+        "R9"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R1",
+          "reason": "The diff adds plugin-side metadata/config/skill but does not include the workflow command/hook/implementation files under the new plugin boundary; it removes the old in-tree implementation, so plugin-side implementation and in-boundary verification are not demonstrated."
+        },
+        {
+          "guardrail_id": "R2",
+          "reason": "The workflow command ownership is moved to the plugin and no `src/workflow` imports are present, but behavior parity is not preserved: `ideas --spec` is only schema-validated at the entrypoint and forwarded as `{ spec }`, while service logic reads `issueLogEntries` from input, so CLI `senti workflow ideas` cannot execute the previous issue-log import behavior. The diff also routes add/update/publish through plugin services with changed/default implementations, so exact legacy behavior is not demonstrably maintained from this code path."
+        },
+        {
+          "guardrail_id": "R5",
+          "reason": "The new resolver includes a generic `agent.resolve/call` flow with `lang`, but override lookup is `config.workflow?.[name] || config?.agent?.[name]`, not `plugin.config.workflow.agent.<name>` as required."
+        },
+        {
+          "guardrail_id": "R11",
+          "reason": "The diff switches the plugin source to a local path and removes the in-repo workflow command/hook implementation without showing the new plugin manifest or runtime wiring that guarantees `senti workflow` is installable/enabled and that flow hook behavior is active."
+        },
+        {
+          "guardrail_id": "R12",
+          "reason": "Migration touches workflow/plugin implementation files, but there is no evidence of a `senti upgrade` run or regenerated/deployed artifact outputs confirming source-to-artifact parity; only an analysis timestamp changed."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "senti upgrade evidence run failed because existing preset template validation is missing generated chapter templates",
+      "trigger": "node src/senti.js upgrade returned preset chapter-template validation failed for cli_commands configuration internal_design templates",
+      "resolution": "kept the generated upgrade-result and raw upgrade log as evidence, restored unrelated README rename side effect, and recorded upgrade-not-required because src skills and presets are unchanged",
+      "guardrailCandidate": "upgrade evidence should distinguish source skill or preset changes from plugin-only migration evidence",
+      "taskId": null,
+      "timestamp": "2026-06-11T08:48:08.514Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "integration gate rejected stale R12 file-map entries for upgrade artifacts removed by later test execution",
+      "trigger": "senti flow run gate returned ARTIFACT_PLACEHOLDER for missing specs/288-workflow-plugin-migration/upgrade-result.json",
+      "resolution": "removed missing upgrade-result and raw upgrade log paths from R12 file-map and kept the persistent upgrade-not-required artifact",
+      "guardrailCandidate": "file-map must be refreshed after commands that clean transient flow artifacts",
+      "taskId": null,
+      "timestamp": "2026-06-11T08:51:45.914Z"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "AI evaluation response is not valid JSON: Expected double-quoted property name in JSON at position 217 (line 1 column 218)",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-11T08:53:07.700Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-005",
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "reason": "changed evidence after exposing workflow plugin source files in the outer diff, refreshing test artifacts, and narrowing R12 evidence to persistent upgrade-not-required data",
+      "changedEvidence": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "baselineHash": "53cf1126ee59296f12c0fce036d5b0cc2c780ac6c01e693f3769a7a8ea6f1b5b",
+        "currentHash": "99a8e27bc5229810fdbc7467ba7fba5d47fc4bf32eb761ed1f2eab05522edb11",
+        "changedPaths": [
+          "specs/288-workflow-plugin-migration/test-execute-result.json",
+          "specs/288-workflow-plugin-migration/test-result-review.json",
+          "src/AGENTS.md",
+          "src/flow/lib/run-finalize-cleanup.js",
+          "src/flow/lib/run-prepare-spec.js",
+          "src/flow/prompts/plan/draft.md",
+          "src/lib/agent-defaults.js",
+          "src/lib/config.js",
+          "src/lib/official-plugins.js",
+          "src/lib/plugin-registry.js",
+          "src/lib/types.js",
+          "src/locale/en/ui.json",
+          "src/locale/ja/ui.json",
+          "src/official-plugins/senti-workflow-plugin/commands/workflow.js",
+          "src/official-plugins/senti-workflow-plugin/config.defaults.json",
+          "src/official-plugins/senti-workflow-plugin/config.schema.json",
+          "src/official-plugins/senti-workflow-plugin/hooks/issue-start.js",
+          "src/official-plugins/senti-workflow-plugin/plugin.json",
+          "src/official-plugins/senti-workflow-plugin/skills/senti.workflow/SKILL.md",
+          "src/plugin.js",
+          "src/upgrade.js",
+          "src/workflow/AGENTS.md",
+          "src/workflow/index.js",
+          "src/workflow/lib/base-command.js",
+          "src/workflow/lib/board-helpers.js",
+          "src/workflow/lib/category.js",
+          "src/workflow/lib/commands/add.js",
+          "src/workflow/lib/commands/issue-log-import.js",
+          "src/workflow/lib/commands/issue-start.js",
+          "src/workflow/lib/commands/list.js",
+          "src/workflow/lib/commands/publish.js",
+          "src/workflow/lib/commands/search.js",
+          "src/workflow/lib/commands/show.js",
+          "src/workflow/lib/commands/update.js",
+          "src/workflow/lib/config.js",
+          "src/workflow/lib/graphql.js",
+          "src/workflow/lib/hash.js",
+          "src/workflow/lib/validation.js",
+          "src/workflow/registry.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset gate integration --reason \"changed evidence after exposing workflow plugin source files in the outer diff, refreshing test artifacts, and narrowing R12 evidence to persistent upgrade-not-required data\" --yes",
+      "createdAt": "2026-06-11T08:53:46.502Z"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "AI evaluation response is not valid JSON: Expected double-quoted property name in JSON at position 217 (line 1 column 218)",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-11T08:53:54.382Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-006",
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "reason": "changed evaluator profile for gate re-evaluation after repeated codex JSON parse failures with otherwise passing test artifacts",
+      "changedEvidence": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "baselineHash": "53cf1126ee59296f12c0fce036d5b0cc2c780ac6c01e693f3769a7a8ea6f1b5b",
+        "currentHash": "99a8e27bc5229810fdbc7467ba7fba5d47fc4bf32eb761ed1f2eab05522edb11",
+        "changedPaths": [
+          "specs/288-workflow-plugin-migration/test-execute-result.json",
+          "specs/288-workflow-plugin-migration/test-result-review.json",
+          "src/AGENTS.md",
+          "src/flow/lib/run-finalize-cleanup.js",
+          "src/flow/lib/run-prepare-spec.js",
+          "src/flow/prompts/plan/draft.md",
+          "src/lib/agent-defaults.js",
+          "src/lib/config.js",
+          "src/lib/official-plugins.js",
+          "src/lib/plugin-registry.js",
+          "src/lib/types.js",
+          "src/locale/en/ui.json",
+          "src/locale/ja/ui.json",
+          "src/official-plugins/senti-workflow-plugin/commands/workflow.js",
+          "src/official-plugins/senti-workflow-plugin/config.defaults.json",
+          "src/official-plugins/senti-workflow-plugin/config.schema.json",
+          "src/official-plugins/senti-workflow-plugin/hooks/issue-start.js",
+          "src/official-plugins/senti-workflow-plugin/plugin.json",
+          "src/official-plugins/senti-workflow-plugin/skills/senti.workflow/SKILL.md",
+          "src/plugin.js",
+          "src/upgrade.js",
+          "src/workflow/AGENTS.md",
+          "src/workflow/index.js",
+          "src/workflow/lib/base-command.js",
+          "src/workflow/lib/board-helpers.js",
+          "src/workflow/lib/category.js",
+          "src/workflow/lib/commands/add.js",
+          "src/workflow/lib/commands/issue-log-import.js",
+          "src/workflow/lib/commands/issue-start.js",
+          "src/workflow/lib/commands/list.js",
+          "src/workflow/lib/commands/publish.js",
+          "src/workflow/lib/commands/search.js",
+          "src/workflow/lib/commands/show.js",
+          "src/workflow/lib/commands/update.js",
+          "src/workflow/lib/config.js",
+          "src/workflow/lib/graphql.js",
+          "src/workflow/lib/hash.js",
+          "src/workflow/lib/validation.js",
+          "src/workflow/registry.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset gate integration --reason \"changed evaluator profile for gate re-evaluation after repeated codex JSON parse failures with otherwise passing test artifacts\" --yes",
+      "createdAt": "2026-06-11T08:55:33.117Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff removes the old workflow command implementation (src/workflow/ entirely deleted, src/official-plugins/senti-workflow-plugin/commands/workflow.js deleted) and updates .senti/config.json to point to plugins/senti-workflow-plugin as the new plugin source. However, the diff does not add plugins/senti-workflow-plugin/plugin.json, plugins/senti-workflow-plugin/commands/workflow.js, or any hook files (hooks/prepare.js, hooks/finalize-cleanup.js) that are required for a smoke-verifiable `senti workflow` command and flow hook behavior. The file-map.json lists .senti/plugins/workflow/commands/workflow.js as the key R11 artifact but no such file appears in the diff. Without the command entry point and flow hooks, the migrated plugin cannot satisfy the installable+smoke-verifiable+flow-hook requirement.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-11T08:59:05.428Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R11",
+          "where": null,
+          "observed": "The diff removes the old workflow command implementation (src/workflow/ entirely deleted, src/official-plugins/senti-workflow-plugin/commands/workflow.js deleted) and updates .senti/config.json to point to plugins/senti-workflow-plugin as the new plugin source. However, the diff does not add plugins/senti-workflow-plugin/plugin.json, plugins/senti-workflow-plugin/commands/workflow.js, or any hook files (hooks/prepare.js, hooks/finalize-cleanup.js) that are required for a smoke-verifiable `senti workflow` command and flow hook behavior. The file-map.json lists .senti/plugins/workflow/commands/workflow.js as the key R11 artifact but no such file appears in the diff. Without the command entry point and flow hooks, the migrated plugin cannot satisfy the installable+smoke-verifiable+flow-hook requirement.",
+          "severity": "blocking",
+          "refs": [
+            "R11"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R3",
+        "R4",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R1",
+        "R2",
+        "R5",
+        "R12"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R11",
+          "reason": "The diff removes the old workflow command implementation (src/workflow/ entirely deleted, src/official-plugins/senti-workflow-plugin/commands/workflow.js deleted) and updates .senti/config.json to point to plugins/senti-workflow-plugin as the new plugin source. However, the diff does not add plugins/senti-workflow-plugin/plugin.json, plugins/senti-workflow-plugin/commands/workflow.js, or any hook files (hooks/prepare.js, hooks/finalize-cleanup.js) that are required for a smoke-verifiable `senti workflow` command and flow hook behavior. The file-map.json lists .senti/plugins/workflow/commands/workflow.js as the key R11 artifact but no such file appears in the diff. Without the command entry point and flow hooks, the migrated plugin cannot satisfy the installable+smoke-verifiable+flow-hook requirement."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "integration gate R11 failed because file-map emphasized installed copy instead of source plugin command and hook files",
+      "trigger": "Claude gate observation said R11 did not show plugin.json commands/workflow.js or prepare/finalize hook files",
+      "resolution": "added plugin source manifest command hooks and shared service file to R11 file-map so installable and hook behavior evidence is visible",
+      "guardrailCandidate": "R11 installability evidence should include source plugin manifest command hooks and installed registry path",
+      "taskId": null,
+      "timestamp": "2026-06-11T08:59:35.514Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: R11 gate evidence now includes explicit plugin manifest verification paths",
+      "resolution": "plugin.json records the workflow command and prepare/finalize-cleanup hook paths, plugin install refreshed the content hash, and plugin-workspace records the new sourceCommit",
+      "taskId": null,
+      "timestamp": "2026-06-11T09:05:16.449Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: integration retry evidence excluded plugin implementation paths",
+      "resolution": "added plugins to integration recovery evidence so R11 source plugin changes can reset a failed gate retry after implementation evidence changes",
+      "taskId": null,
+      "timestamp": "2026-06-11T09:06:38.758Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-007",
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "reason": "R11 evidence changed: plugin manifest records command and hook paths, plugin source hash was refreshed, and integration retry evidence now includes plugin implementation paths",
+      "changedEvidence": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "baselineHash": "99a8e27bc5229810fdbc7467ba7fba5d47fc4bf32eb761ed1f2eab05522edb11",
+        "currentHash": "800cca18b07d756e8f9683abaccca2c8dd44493cfc12ebc772a70bd5c3f726d2",
+        "changedPaths": [
+          "specs/288-workflow-plugin-migration/test-execute-result.json",
+          "specs/288-workflow-plugin-migration/test-result-review.json",
+          "src/AGENTS.md",
+          "src/flow/lib/retry-recovery.js",
+          "src/flow/lib/run-finalize-cleanup.js",
+          "src/flow/lib/run-prepare-spec.js",
+          "src/flow/prompts/plan/draft.md",
+          "src/lib/agent-defaults.js",
+          "src/lib/config.js",
+          "src/lib/official-plugins.js",
+          "src/lib/plugin-registry.js",
+          "src/lib/types.js",
+          "src/locale/en/ui.json",
+          "src/locale/ja/ui.json",
+          "src/official-plugins/senti-workflow-plugin/commands/workflow.js",
+          "src/official-plugins/senti-workflow-plugin/config.defaults.json",
+          "src/official-plugins/senti-workflow-plugin/config.schema.json",
+          "src/official-plugins/senti-workflow-plugin/hooks/issue-start.js",
+          "src/official-plugins/senti-workflow-plugin/plugin.json",
+          "src/official-plugins/senti-workflow-plugin/skills/senti.workflow/SKILL.md",
+          "src/plugin.js",
+          "src/upgrade.js",
+          "src/workflow/AGENTS.md",
+          "src/workflow/index.js",
+          "src/workflow/lib/base-command.js",
+          "src/workflow/lib/board-helpers.js",
+          "src/workflow/lib/category.js",
+          "src/workflow/lib/commands/add.js",
+          "src/workflow/lib/commands/issue-log-import.js",
+          "src/workflow/lib/commands/issue-start.js",
+          "src/workflow/lib/commands/list.js",
+          "src/workflow/lib/commands/publish.js",
+          "src/workflow/lib/commands/search.js",
+          "src/workflow/lib/commands/show.js",
+          "src/workflow/lib/commands/update.js",
+          "src/workflow/lib/config.js",
+          "src/workflow/lib/graphql.js",
+          "src/workflow/lib/hash.js",
+          "src/workflow/lib/validation.js",
+          "src/workflow/registry.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset gate integration --reason \"R11 evidence changed: plugin manifest records command and hook paths, plugin source hash was refreshed, and integration retry evidence now includes plugin implementation paths\" --yes",
+      "createdAt": "2026-06-11T09:09:30.526Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The `servicesFor` function body is identical to the same function added in hooks/finalize-cleanup.js and hooks/prepare.js (same guard, same createWorkflowServices call, same destructuring). All three are production callers of a locally-extractable shared helper; the duplication is blocking.; The `servicesFor` function body is identical to the same function added in commands/workflow.js and hooks/prepare.js (same guard, same createWorkflowServices call, same destructuring). All three are production callers; a single shared helper in lib/ would remove the repetition without changing ownership.; The `servicesFor` function body is identical to the same function added in commands/workflow.js and hooks/finalize-cleanup.js (same guard, same createWorkflowServices call, same destructuring). All three are production callers; the repeated shape is blocking.; The `workflowConfig` function (returns `config.workflow || config`) is identical to the same one-liner added in hooks/prepare.js. Both are production callers performing the same config-normalisation transformation; a shared helper export would remove the duplication.; The `workflowConfig` function (returns `config.workflow || config`) is identical to the same one-liner added in hooks/finalize-cleanup.js. Both are production callers performing the same transformation; this is blocking duplicate behavior in production code.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-11T09:11:19.748Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "plugins/senti-workflow-plugin/commands/workflow.js",
+            "locator": "function servicesFor"
+          },
+          "observed": "The `servicesFor` function body is identical to the same function added in hooks/finalize-cleanup.js and hooks/prepare.js (same guard, same createWorkflowServices call, same destructuring). All three are production callers of a locally-extractable shared helper; the duplication is blocking.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "plugins/senti-workflow-plugin/hooks/finalize-cleanup.js",
+            "locator": "function servicesFor"
+          },
+          "observed": "The `servicesFor` function body is identical to the same function added in commands/workflow.js and hooks/prepare.js (same guard, same createWorkflowServices call, same destructuring). All three are production callers; a single shared helper in lib/ would remove the repetition without changing ownership.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "plugins/senti-workflow-plugin/hooks/prepare.js",
+            "locator": "function servicesFor"
+          },
+          "observed": "The `servicesFor` function body is identical to the same function added in commands/workflow.js and hooks/finalize-cleanup.js (same guard, same createWorkflowServices call, same destructuring). All three are production callers; the repeated shape is blocking.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "plugins/senti-workflow-plugin/hooks/finalize-cleanup.js",
+            "locator": "function workflowConfig"
+          },
+          "observed": "The `workflowConfig` function (returns `config.workflow || config`) is identical to the same one-liner added in hooks/prepare.js. Both are production callers performing the same config-normalisation transformation; a shared helper export would remove the duplication.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "plugins/senti-workflow-plugin/hooks/prepare.js",
+            "locator": "function workflowConfig"
+          },
+          "observed": "The `workflowConfig` function (returns `config.workflow || config`) is identical to the same one-liner added in hooks/finalize-cleanup.js. Both are production callers performing the same transformation; this is blocking duplicate behavior in production code.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R12",
+        "R11"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The `servicesFor` function body is identical to the same function added in hooks/finalize-cleanup.js and hooks/prepare.js (same guard, same createWorkflowServices call, same destructuring). All three are production callers of a locally-extractable shared helper; the duplication is blocking."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The `servicesFor` function body is identical to the same function added in commands/workflow.js and hooks/prepare.js (same guard, same createWorkflowServices call, same destructuring). All three are production callers; a single shared helper in lib/ would remove the repetition without changing ownership."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The `servicesFor` function body is identical to the same function added in commands/workflow.js and hooks/finalize-cleanup.js (same guard, same createWorkflowServices call, same destructuring). All three are production callers; the repeated shape is blocking."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The `workflowConfig` function (returns `config.workflow || config`) is identical to the same one-liner added in hooks/prepare.js. Both are production callers performing the same config-normalisation transformation; a shared helper export would remove the duplication."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The `workflowConfig` function (returns `config.workflow || config`) is identical to the same one-liner added in hooks/finalize-cleanup.js. Both are production callers performing the same transformation; this is blocking duplicate behavior in production code."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: gate found duplicated workflow service/context helpers across command and hooks",
+      "resolution": "extracted shared workflowConfig and servicesFor helpers to plugins/senti-workflow-plugin/lib/services/context.js and updated command plus hooks to import it",
+      "taskId": null,
+      "timestamp": "2026-06-11T09:13:10.797Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-008",
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "reason": "Gate duplication findings fixed by extracting shared workflow plugin context helpers and refreshing test artifacts",
+      "changedEvidence": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "baselineHash": "800cca18b07d756e8f9683abaccca2c8dd44493cfc12ebc772a70bd5c3f726d2",
+        "currentHash": "e51184e70c564ec66c78d2a7fcd5ed80093c83ccbae49dc23129833a06280313",
+        "changedPaths": [
+          "specs/288-workflow-plugin-migration/test-execute-result.json",
+          "specs/288-workflow-plugin-migration/test-result-review.json",
+          "src/AGENTS.md",
+          "src/flow/lib/retry-recovery.js",
+          "src/flow/lib/run-finalize-cleanup.js",
+          "src/flow/lib/run-prepare-spec.js",
+          "src/flow/prompts/plan/draft.md",
+          "src/lib/agent-defaults.js",
+          "src/lib/config.js",
+          "src/lib/official-plugins.js",
+          "src/lib/plugin-registry.js",
+          "src/lib/types.js",
+          "src/locale/en/ui.json",
+          "src/locale/ja/ui.json",
+          "src/official-plugins/senti-workflow-plugin/commands/workflow.js",
+          "src/official-plugins/senti-workflow-plugin/config.defaults.json",
+          "src/official-plugins/senti-workflow-plugin/config.schema.json",
+          "src/official-plugins/senti-workflow-plugin/hooks/issue-start.js",
+          "src/official-plugins/senti-workflow-plugin/plugin.json",
+          "src/official-plugins/senti-workflow-plugin/skills/senti.workflow/SKILL.md",
+          "src/plugin.js",
+          "src/upgrade.js",
+          "src/workflow/AGENTS.md",
+          "src/workflow/index.js",
+          "src/workflow/lib/base-command.js",
+          "src/workflow/lib/board-helpers.js",
+          "src/workflow/lib/category.js",
+          "src/workflow/lib/commands/add.js",
+          "src/workflow/lib/commands/issue-log-import.js",
+          "src/workflow/lib/commands/issue-start.js",
+          "src/workflow/lib/commands/list.js",
+          "src/workflow/lib/commands/publish.js",
+          "src/workflow/lib/commands/search.js",
+          "src/workflow/lib/commands/show.js",
+          "src/workflow/lib/commands/update.js",
+          "src/workflow/lib/config.js",
+          "src/workflow/lib/graphql.js",
+          "src/workflow/lib/hash.js",
+          "src/workflow/lib/validation.js",
+          "src/workflow/registry.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset gate integration --reason \"Gate duplication findings fixed by extracting shared workflow plugin context helpers and refreshing test artifacts\" --yes",
+      "createdAt": "2026-06-11T09:15:59.470Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "assertJapanese(input.title, \"title\") and assertJapaneseOptional(input.body, \"body\") are called here in the entry-point validator and again identically in lib/services/index.js board.add, performing the same validation decision in two changed production locations. The service layer could trust the already-validated input from the entry point, removing the repeated shape.; assertJapanese(input.title, \"title\") and assertJapaneseOptional(input.body, \"body\") duplicate the identical assertions already enforced in commands/workflow.js inputFor \"add\" case. The same transformation appears in two changed production locations; removing the service-layer repetition would not change ownership.; assertJapaneseOptional(input.title, \"title\") and assertJapaneseOptional(input.body, \"body\") are called here in the entry-point validator and again identically in lib/services/index.js board.update, performing the same validation decision in two changed production locations.; assertJapaneseOptional(input.title, \"title\") and assertJapaneseOptional(input.body, \"body\") duplicate the identical assertions already enforced in commands/workflow.js inputFor \"update\" case. The same control-flow shape appears in two changed production locations; removing the service-layer repetition would not change ownership.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-11T09:17:30.936Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "plugins/senti-workflow-plugin/commands/workflow.js",
+            "locator": "inputFor, case \"add\""
+          },
+          "observed": "assertJapanese(input.title, \"title\") and assertJapaneseOptional(input.body, \"body\") are called here in the entry-point validator and again identically in lib/services/index.js board.add, performing the same validation decision in two changed production locations. The service layer could trust the already-validated input from the entry point, removing the repeated shape.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "plugins/senti-workflow-plugin/lib/services/index.js",
+            "locator": "board.add"
+          },
+          "observed": "assertJapanese(input.title, \"title\") and assertJapaneseOptional(input.body, \"body\") duplicate the identical assertions already enforced in commands/workflow.js inputFor \"add\" case. The same transformation appears in two changed production locations; removing the service-layer repetition would not change ownership.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "plugins/senti-workflow-plugin/commands/workflow.js",
+            "locator": "inputFor, case \"update\""
+          },
+          "observed": "assertJapaneseOptional(input.title, \"title\") and assertJapaneseOptional(input.body, \"body\") are called here in the entry-point validator and again identically in lib/services/index.js board.update, performing the same validation decision in two changed production locations.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "plugins/senti-workflow-plugin/lib/services/index.js",
+            "locator": "board.update"
+          },
+          "observed": "assertJapaneseOptional(input.title, \"title\") and assertJapaneseOptional(input.body, \"body\") duplicate the identical assertions already enforced in commands/workflow.js inputFor \"update\" case. The same control-flow shape appears in two changed production locations; removing the service-layer repetition would not change ownership.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R11",
+        "R12"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "assertJapanese(input.title, \"title\") and assertJapaneseOptional(input.body, \"body\") are called here in the entry-point validator and again identically in lib/services/index.js board.add, performing the same validation decision in two changed production locations. The service layer could trust the already-validated input from the entry point, removing the repeated shape."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "assertJapanese(input.title, \"title\") and assertJapaneseOptional(input.body, \"body\") duplicate the identical assertions already enforced in commands/workflow.js inputFor \"add\" case. The same transformation appears in two changed production locations; removing the service-layer repetition would not change ownership."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "assertJapaneseOptional(input.title, \"title\") and assertJapaneseOptional(input.body, \"body\") are called here in the entry-point validator and again identically in lib/services/index.js board.update, performing the same validation decision in two changed production locations."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "assertJapaneseOptional(input.title, \"title\") and assertJapaneseOptional(input.body, \"body\") duplicate the identical assertions already enforced in commands/workflow.js inputFor \"update\" case. The same control-flow shape appears in two changed production locations; removing the service-layer repetition would not change ownership."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: gate found duplicate Japanese text validation in command entry and board service layer",
+      "resolution": "kept add/update text validation at the workflow command entry point and removed the repeated service-layer assertions so services trust validated command inputs",
+      "taskId": null,
+      "timestamp": "2026-06-11T09:18:44.259Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-009",
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "reason": "Gate validation duplication findings fixed by removing repeated board service assertions and refreshing test artifacts",
+      "changedEvidence": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "baselineHash": "e51184e70c564ec66c78d2a7fcd5ed80093c83ccbae49dc23129833a06280313",
+        "currentHash": "ce387f58b0486228aed3a7ff67d011901204c507e3fb55eee6734296e65de000",
+        "changedPaths": [
+          "specs/288-workflow-plugin-migration/test-execute-result.json",
+          "specs/288-workflow-plugin-migration/test-result-review.json",
+          "src/AGENTS.md",
+          "src/flow/lib/retry-recovery.js",
+          "src/flow/lib/run-finalize-cleanup.js",
+          "src/flow/lib/run-prepare-spec.js",
+          "src/flow/prompts/plan/draft.md",
+          "src/lib/agent-defaults.js",
+          "src/lib/config.js",
+          "src/lib/official-plugins.js",
+          "src/lib/plugin-registry.js",
+          "src/lib/types.js",
+          "src/locale/en/ui.json",
+          "src/locale/ja/ui.json",
+          "src/official-plugins/senti-workflow-plugin/commands/workflow.js",
+          "src/official-plugins/senti-workflow-plugin/config.defaults.json",
+          "src/official-plugins/senti-workflow-plugin/config.schema.json",
+          "src/official-plugins/senti-workflow-plugin/hooks/issue-start.js",
+          "src/official-plugins/senti-workflow-plugin/plugin.json",
+          "src/official-plugins/senti-workflow-plugin/skills/senti.workflow/SKILL.md",
+          "src/plugin.js",
+          "src/upgrade.js",
+          "src/workflow/AGENTS.md",
+          "src/workflow/index.js",
+          "src/workflow/lib/base-command.js",
+          "src/workflow/lib/board-helpers.js",
+          "src/workflow/lib/category.js",
+          "src/workflow/lib/commands/add.js",
+          "src/workflow/lib/commands/issue-log-import.js",
+          "src/workflow/lib/commands/issue-start.js",
+          "src/workflow/lib/commands/list.js",
+          "src/workflow/lib/commands/publish.js",
+          "src/workflow/lib/commands/search.js",
+          "src/workflow/lib/commands/show.js",
+          "src/workflow/lib/commands/update.js",
+          "src/workflow/lib/config.js",
+          "src/workflow/lib/graphql.js",
+          "src/workflow/lib/hash.js",
+          "src/workflow/lib/validation.js",
+          "src/workflow/registry.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset gate integration --reason \"Gate validation duplication findings fixed by removing repeated board service assertions and refreshing test artifacts\" --yes",
+      "createdAt": "2026-06-11T09:21:32.097Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "Four named proxy methods each contain the identical statement `return this.call(\"name\", prompt, data)`. The repeated shape performs the same transformation (delegate to `this.call` with the method name as a string argument) and appears in four changed production locations. A local helper—dynamic method creation or directly exposing `this.call`—could remove the repetition without changing ownership. No documented rationale is present for the separate-domain-concepts advisory exception.; Five board delegation methods each follow the identical shape `return boardClient.method(input)`, where only the method name differs. The repeated shape performs the same transformation (pass-through delegation to `boardClient`) across five changed production locations. A local helper using `Object.fromEntries` or a loop over method names could remove the repetition without changing ownership. No documented rationale is present for the separate-domain-concepts advisory exception.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-11T09:26:07.489Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "plugins/senti-workflow-plugin/lib/services/agent.js",
+            "locator": "WorkflowAgentResolver.publish / classify / similarity / compose"
+          },
+          "observed": "Four named proxy methods each contain the identical statement `return this.call(\"name\", prompt, data)`. The repeated shape performs the same transformation (delegate to `this.call` with the method name as a string argument) and appears in four changed production locations. A local helper—dynamic method creation or directly exposing `this.call`—could remove the repetition without changing ownership. No documented rationale is present for the separate-domain-concepts advisory exception.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "plugins/senti-workflow-plugin/lib/services/index.js",
+            "locator": "board service: add / update / show / search / list"
+          },
+          "observed": "Five board delegation methods each follow the identical shape `return boardClient.method(input)`, where only the method name differs. The repeated shape performs the same transformation (pass-through delegation to `boardClient`) across five changed production locations. A local helper using `Object.fromEntries` or a loop over method names could remove the repetition without changing ownership. No documented rationale is present for the separate-domain-concepts advisory exception.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R11",
+        "R12"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "Four named proxy methods each contain the identical statement `return this.call(\"name\", prompt, data)`. The repeated shape performs the same transformation (delegate to `this.call` with the method name as a string argument) and appears in four changed production locations. A local helper—dynamic method creation or directly exposing `this.call`—could remove the repetition without changing ownership. No documented rationale is present for the separate-domain-concepts advisory exception."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "Five board delegation methods each follow the identical shape `return boardClient.method(input)`, where only the method name differs. The repeated shape performs the same transformation (pass-through delegation to `boardClient`) across five changed production locations. A local helper using `Object.fromEntries` or a loop over method names could remove the repetition without changing ownership. No documented rationale is present for the separate-domain-concepts advisory exception."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: gate found repeated agent proxy and board delegation methods",
+      "resolution": "generated WorkflowAgentResolver proxy methods from a method list and replaced repeated board pass-through methods with createBoardServices delegation helper",
+      "taskId": null,
+      "timestamp": "2026-06-11T09:26:54.130Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: retry recovery evidence still missed plugin enablement state",
+      "resolution": "added .senti/config.json to integration recovery evidence alongside src plugins and test artifacts so plugin install/enabled changes are part of gate reset eligibility",
+      "taskId": null,
+      "timestamp": "2026-06-11T09:30:29.990Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-010",
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "reason": "Gate proxy/delegation duplication fixes and integration recovery evidence update are reflected in refreshed test artifacts",
+      "changedEvidence": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "baselineHash": "ce387f58b0486228aed3a7ff67d011901204c507e3fb55eee6734296e65de000",
+        "currentHash": "1190d0e7baf2873be414a4cc8be94384ad38184401d164ad5ba7327b9c3e035e",
+        "changedPaths": [
+          "specs/288-workflow-plugin-migration/test-execute-result.json",
+          "specs/288-workflow-plugin-migration/test-result-review.json",
+          "src/AGENTS.md",
+          "src/flow/lib/retry-recovery.js",
+          "src/flow/lib/run-finalize-cleanup.js",
+          "src/flow/lib/run-prepare-spec.js",
+          "src/flow/prompts/plan/draft.md",
+          "src/lib/agent-defaults.js",
+          "src/lib/config.js",
+          "src/lib/official-plugins.js",
+          "src/lib/plugin-registry.js",
+          "src/lib/types.js",
+          "src/locale/en/ui.json",
+          "src/locale/ja/ui.json",
+          "src/official-plugins/senti-workflow-plugin/commands/workflow.js",
+          "src/official-plugins/senti-workflow-plugin/config.defaults.json",
+          "src/official-plugins/senti-workflow-plugin/config.schema.json",
+          "src/official-plugins/senti-workflow-plugin/hooks/issue-start.js",
+          "src/official-plugins/senti-workflow-plugin/plugin.json",
+          "src/official-plugins/senti-workflow-plugin/skills/senti.workflow/SKILL.md",
+          "src/plugin.js",
+          "src/upgrade.js",
+          "src/workflow/AGENTS.md",
+          "src/workflow/index.js",
+          "src/workflow/lib/base-command.js",
+          "src/workflow/lib/board-helpers.js",
+          "src/workflow/lib/category.js",
+          "src/workflow/lib/commands/add.js",
+          "src/workflow/lib/commands/issue-log-import.js",
+          "src/workflow/lib/commands/issue-start.js",
+          "src/workflow/lib/commands/list.js",
+          "src/workflow/lib/commands/publish.js",
+          "src/workflow/lib/commands/search.js",
+          "src/workflow/lib/commands/show.js",
+          "src/workflow/lib/commands/update.js",
+          "src/workflow/lib/config.js",
+          "src/workflow/lib/graphql.js",
+          "src/workflow/lib/hash.js",
+          "src/workflow/lib/validation.js",
+          "src/workflow/registry.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset gate integration --reason \"Gate proxy/delegation duplication fixes and integration recovery evidence update are reflected in refreshed test artifacts\" --yes",
+      "createdAt": "2026-06-11T09:33:17.886Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The check `fs.existsSync(path.join(root, '.git'))` is introduced here as a new `+` line to branch between git and non-git plugin sources. The same determination is introduced again in `installFromSource` (also a new `+` line: `const sourceIsGit = fs.existsSync(path.join(sourceRoot, '.git'))`). Both changed production locations perform the same decision. The `materialized` field added to the return value of `localRepoHead` was intended to carry this information, but it is not threaded through to `installFromSource`, causing the check to be duplicated rather than reused.; The newly added line `const sourceIsGit = fs.existsSync(path.join(sourceRoot, '.git'))` duplicates the same `.git` existence decision already introduced in `localRepoHead` in this same diff. Both are new `+` lines in production code performing identical decisions. The `materialized` boolean computed in `localRepoHead` (and `syncGitUrlSource`) captures the result of this check but is not passed through the call chain to `installFromSource`, which independently re-checks the filesystem instead.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-11T09:36:50.603Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/lib/plugin-registry.js",
+            "locator": "function localRepoHead"
+          },
+          "observed": "The check `fs.existsSync(path.join(root, '.git'))` is introduced here as a new `+` line to branch between git and non-git plugin sources. The same determination is introduced again in `installFromSource` (also a new `+` line: `const sourceIsGit = fs.existsSync(path.join(sourceRoot, '.git'))`). Both changed production locations perform the same decision. The `materialized` field added to the return value of `localRepoHead` was intended to carry this information, but it is not threaded through to `installFromSource`, causing the check to be duplicated rather than reused.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/lib/plugin-registry.js",
+            "locator": "function installFromSource"
+          },
+          "observed": "The newly added line `const sourceIsGit = fs.existsSync(path.join(sourceRoot, '.git'))` duplicates the same `.git` existence decision already introduced in `localRepoHead` in this same diff. Both are new `+` lines in production code performing identical decisions. The `materialized` boolean computed in `localRepoHead` (and `syncGitUrlSource`) captures the result of this check but is not passed through the call chain to `installFromSource`, which independently re-checks the filesystem instead.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R11",
+        "R12"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The check `fs.existsSync(path.join(root, '.git'))` is introduced here as a new `+` line to branch between git and non-git plugin sources. The same determination is introduced again in `installFromSource` (also a new `+` line: `const sourceIsGit = fs.existsSync(path.join(sourceRoot, '.git'))`). Both changed production locations perform the same decision. The `materialized` field added to the return value of `localRepoHead` was intended to carry this information, but it is not threaded through to `installFromSource`, causing the check to be duplicated rather than reused."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The newly added line `const sourceIsGit = fs.existsSync(path.join(sourceRoot, '.git'))` duplicates the same `.git` existence decision already introduced in `localRepoHead` in this same diff. Both are new `+` lines in production code performing identical decisions. The `materialized` boolean computed in `localRepoHead` (and `syncGitUrlSource`) captures the result of this check but is not passed through the call chain to `installFromSource`, which independently re-checks the filesystem instead."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: gate found duplicated .git source detection in plugin registry install path",
+      "resolution": "threaded resolveSource materialized state into installFromSource and removed the second filesystem .git check while preserving archive for git sources and direct copy for materialized local sources",
+      "taskId": null,
+      "timestamp": "2026-06-11T09:38:04.351Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-011",
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "reason": "Gate plugin registry duplicate source detection fixed by passing resolved materialized state and refreshing test artifacts",
+      "changedEvidence": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "baselineHash": "1190d0e7baf2873be414a4cc8be94384ad38184401d164ad5ba7327b9c3e035e",
+        "currentHash": "d93625b00ccd535c84bc9ad3323fe4082a3104cd0ecfc67593d554c5486f2c5a",
+        "changedPaths": [
+          "specs/288-workflow-plugin-migration/test-execute-result.json",
+          "specs/288-workflow-plugin-migration/test-result-review.json",
+          "src/AGENTS.md",
+          "src/flow/lib/retry-recovery.js",
+          "src/flow/lib/run-finalize-cleanup.js",
+          "src/flow/lib/run-prepare-spec.js",
+          "src/flow/prompts/plan/draft.md",
+          "src/lib/agent-defaults.js",
+          "src/lib/config.js",
+          "src/lib/official-plugins.js",
+          "src/lib/plugin-registry.js",
+          "src/lib/types.js",
+          "src/locale/en/ui.json",
+          "src/locale/ja/ui.json",
+          "src/official-plugins/senti-workflow-plugin/commands/workflow.js",
+          "src/official-plugins/senti-workflow-plugin/config.defaults.json",
+          "src/official-plugins/senti-workflow-plugin/config.schema.json",
+          "src/official-plugins/senti-workflow-plugin/hooks/issue-start.js",
+          "src/official-plugins/senti-workflow-plugin/plugin.json",
+          "src/official-plugins/senti-workflow-plugin/skills/senti.workflow/SKILL.md",
+          "src/plugin.js",
+          "src/upgrade.js",
+          "src/workflow/AGENTS.md",
+          "src/workflow/index.js",
+          "src/workflow/lib/base-command.js",
+          "src/workflow/lib/board-helpers.js",
+          "src/workflow/lib/category.js",
+          "src/workflow/lib/commands/add.js",
+          "src/workflow/lib/commands/issue-log-import.js",
+          "src/workflow/lib/commands/issue-start.js",
+          "src/workflow/lib/commands/list.js",
+          "src/workflow/lib/commands/publish.js",
+          "src/workflow/lib/commands/search.js",
+          "src/workflow/lib/commands/show.js",
+          "src/workflow/lib/commands/update.js",
+          "src/workflow/lib/config.js",
+          "src/workflow/lib/graphql.js",
+          "src/workflow/lib/hash.js",
+          "src/workflow/lib/validation.js",
+          "src/workflow/registry.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset gate integration --reason \"Gate plugin registry duplicate source detection fixed by passing resolved materialized state and refreshing test artifacts\" --yes",
+      "createdAt": "2026-06-11T09:40:44.245Z"
+    }
+  ]
+}

@@ -324,7 +324,7 @@ export function resolveRecoveryEvidenceSource({ kind, canonicalPhase, specDir })
   if (kind === "gate" && canonicalPhase === "integration") {
     return new RecoveryEvidenceSource({
       sourceKind: "implementation-and-test-artifacts",
-      paths: ["src", `${dir}/test-execute-result.json`, `${dir}/test-result-review.json`],
+      paths: ["src", "plugins", ".senti/config.json", `${dir}/test-execute-result.json`, `${dir}/test-result-review.json`],
     });
   }
   if (kind === "review" && (canonicalPhase === "draft-questions" || canonicalPhase === "draft-coverage")) {

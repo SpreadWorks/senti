@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import { fileURLToPath, pathToFileURL } from "url";
 import { repoRoot } from "./cli.js";
 import { sentiConfigPath, sentiDir } from "./config.js";
@@ -14,6 +15,7 @@ const KNOWN_PLUGIN_PACKAGE_PATHS = Object.freeze([
   "skills/",
   "presets/",
   "hooks/",
+  "lib/",
   "config.schema.json",
   "config.defaults.json",
 ]);
@@ -397,11 +399,16 @@ function runGit(cwd, args, context) {
 function localRepoHead(source) {
   const root = path.resolve(source);
   if (!fs.existsSync(root)) throw new Error(`plugin source not found: ${source}`);
+  if (!fs.existsSync(path.join(root, ".git"))) {
+    PluginManifest.fromRoot(root);
+    validateSourceTree(root);
+    return { root, commit: hashPackageTree(root), materialized: true };
+  }
   runGit(root, ["rev-parse", "--is-inside-work-tree"], "plugin source must be a Git worktree");
   const status = runGit(root, ["status", "--porcelain"], "failed to inspect plugin source status");
   if (status.trim() !== "") throw new Error("dirty local plugin source rejected: commit or clean uncommitted changes first");
   const commit = runGit(root, ["rev-parse", "HEAD"], "plugin source must have HEAD");
-  return { root, commit };
+  return { root, commit, materialized: false };
 }
 
 function checkedOutSourceRoot(root, source) {
@@ -422,7 +429,7 @@ function syncGitUrlSource(root, source) {
   }
   if (source.ref) runGit(dest, ["checkout", source.ref], "failed to checkout plugin ref");
   const commit = runGit(dest, ["rev-parse", "HEAD"], "plugin source must have HEAD");
-  return { root: dest, commit };
+  return { root: dest, commit, materialized: false };
 }
 
 function resolveSource(root, source) {
@@ -492,6 +499,19 @@ function materializeCommit(sourceRoot, commit, root) {
   return { tmp, packageRoot };
 }
 
+function hashPackageTree(sourceRoot) {
+  const hash = crypto.createHash("sha1");
+  for (const entry of existingKnownPluginPaths(sourceRoot).sort()) {
+    for (const file of walkFiles(sourceRoot, normalizeRel(entry, "files entry")).sort()) {
+      hash.update(file);
+      hash.update("\0");
+      hash.update(fs.readFileSync(path.join(sourceRoot, file)));
+      hash.update("\0");
+    }
+  }
+  return hash.digest("hex");
+}
+
 function existingKnownPluginPaths(sourceRoot) {
   return KNOWN_PLUGIN_PACKAGE_PATHS.filter((entry) => fs.existsSync(path.join(sourceRoot, entry.replace(/\/$/, ""))));
 }
@@ -519,15 +539,15 @@ function validateSourceTree(sourceRoot) {
   for (const entry of existingKnownPluginPaths(sourceRoot)) walkFiles(sourceRoot, normalizeRel(entry, "files entry"));
 }
 
-function installFromSource(root, source, sourceRoot, commit, { updateExisting = false } = {}) {
+function installFromSource(root, source, sourceRoot, commit, { updateExisting = false, sourceMaterialized = false } = {}) {
   validateSourceTree(sourceRoot);
-  const materialized = materializeCommit(sourceRoot, commit, root);
-  const packageRoot = materialized.packageRoot;
+  const materialized = sourceMaterialized ? null : materializeCommit(sourceRoot, commit, root);
+  const packageRoot = materialized?.packageRoot || sourceRoot;
   const manifest = PluginManifest.fromRoot(packageRoot);
   validateSourceTree(packageRoot);
   const dest = path.join(installedPluginsDir(root), manifest.name);
   copyAllowlistedFiles(packageRoot, dest, existingKnownPluginPaths(packageRoot));
-  fs.rmSync(materialized.tmp, { recursive: true, force: true });
+  if (materialized) fs.rmSync(materialized.tmp, { recursive: true, force: true });
   const installedManifest = PluginManifest.fromRoot(dest, manifest.name);
   const config = readProjectConfig(root);
   const plugin = ensurePluginConfig(config);
@@ -550,7 +570,7 @@ export function installPlugin(root, id) {
     const resolved = resolveSource(root, source);
     const manifest = PluginManifest.fromRoot(resolved.root);
     if (manifest.name === id) {
-      installFromSource(root, source, resolved.root, resolved.commit);
+      installFromSource(root, source, resolved.root, resolved.commit, { sourceMaterialized: resolved.materialized });
       return { id, source: source.id, commit: resolved.commit };
     }
   }
@@ -565,11 +585,13 @@ export function syncInstalledPlugins(root, { update = false } = {}) {
     if (pkg.enabled === false) continue;
     const source = sources.get(pkg.source);
     if (!source) throw new Error(`plugin source not found for package ${pkg.id}: ${pkg.source}`);
-    const resolved = update ? resolveSource(root, source) : { root: checkedOutSourceRoot(root, source), commit: pkg.commit };
+    const resolved = update || source.type === "local"
+      ? resolveSource(root, source)
+      : { root: checkedOutSourceRoot(root, source), commit: pkg.commit, materialized: false };
     if (!fs.existsSync(path.join(resolved.root, "plugin.json"))) Object.assign(resolved, resolveSource(root, source));
     const commit = update ? resolved.commit : pkg.commit;
     if (!SHA_RE.test(commit)) throw new Error(`plugin package ${pkg.id} must have a pinned commit`);
-    installFromSource(root, source, resolved.root, commit, { updateExisting: update });
+    installFromSource(root, source, resolved.root, commit, { updateExisting: update, sourceMaterialized: resolved.materialized });
     results.push({ id: pkg.id, source: source.id, commit });
   }
   return results;
@@ -712,10 +734,21 @@ function artifactHelpers(root, pluginId, flow = {}, options = {}) {
 }
 
 function buildPluginContext({ root, pluginId, pluginRoot, commandPath, flow = {}, result = {}, requireSpecArtifacts = false }) {
+  const rootConfig = readProjectConfig(root);
+  const pluginConfig = pluginConfigFor(root, pluginId);
   return {
     project: { root },
     plugin: { id: pluginId, root: pluginRoot, commandPath },
-    config: pluginConfigFor(root, pluginId),
+    config: pluginConfig,
+    rootConfig: { lang: rootConfig.lang || "en" },
+    agent: {
+      resolve() {
+        return false;
+      },
+      async call() {
+        throw new Error("plugin agent context is not configured for this invocation");
+      },
+    },
     flow,
     result,
     artifacts: artifactHelpers(root, pluginId, flow, { requireSpec: requireSpecArtifacts }),
@@ -790,6 +823,8 @@ async function loadHookClass(root, plan) {
 export async function runFlowCommandHooks(root, snapshot, { command, hook, flow = {}, result = {} } = {}) {
   const warnings = [];
   const issueLogEntries = [];
+  const hookData = [];
+  const followUps = [];
   for (const plan of snapshot.filter((entry) => entry.command === command && entry.hook === hook).sort((a, b) => a.priority - b.priority)) {
     const { HookClass, pluginRoot } = await loadHookClass(root, plan);
     const context = buildPluginContext({ root, pluginId: plan.pluginId, pluginRoot, flow, result, requireSpecArtifacts: true });
@@ -797,28 +832,46 @@ export async function runFlowCommandHooks(root, snapshot, { command, hook, flow 
       const instance = new HookClass();
       const hookResult = await instance.run(context);
       if (hookResult?.ok === false) throw new Error(hookResult.errors?.[0]?.messages?.join(" ") || "plugin hook returned ok:false");
+      if (hookResult?.data) {
+        hookData.push({ pluginId: plan.pluginId, command, hook, data: hookResult.data });
+        if (Array.isArray(hookResult.data.warnings)) {
+          warnings.push(...hookResult.data.warnings.map((warning) => ({ pluginId: plan.pluginId, command, hook, ...warning })));
+        }
+        if (Array.isArray(hookResult.data.followUps)) {
+          followUps.push(...hookResult.data.followUps.map((text) => ({ pluginId: plan.pluginId, command, hook, text })));
+        }
+      }
     } catch (err) {
       const warning = { code: "PLUGIN_HOOK_FAILED", pluginId: plan.pluginId, command, hook, message: err.message };
       warnings.push(warning);
       issueLogEntries.push({ pluginId: plan.pluginId, reason: `plugin hook ${command}.${hook} failed: ${err.message}`, payload: warning });
     }
   }
-  return { ok: true, warnings, issueLogEntries };
+  return { ok: true, warnings, issueLogEntries, hookData, followUps };
 }
 
 export async function runFlowCommandWithPluginLifecycle(root, snapshot, { command, main, flow = {} } = {}) {
   const pre = await runFlowCommandHooks(root, snapshot, { command, hook: "pre", flow, result: {} });
   const result = await main();
   const post = await runFlowCommandHooks(root, snapshot, { command, hook: "post", flow, result });
-  return { ok: result?.ok !== false, data: result?.data || {}, warnings: [...pre.warnings, ...post.warnings], issueLogEntries: [...pre.issueLogEntries, ...post.issueLogEntries] };
+  return {
+    ok: result?.ok !== false,
+    data: {
+      ...(result?.data || {}),
+      pluginHooks: [...pre.hookData, ...post.hookData],
+      followUps: [...pre.followUps, ...post.followUps],
+    },
+    warnings: [...pre.warnings, ...post.warnings],
+    issueLogEntries: [...pre.issueLogEntries, ...post.issueLogEntries],
+  };
 }
 
-export function ensureOfficialPackage(root, { id, sourceRoot, ref, type }) {
+export function ensureOfficialPackage(root, { id, sourceRoot, ref }) {
   const config = readProjectConfig(root);
   const plugin = ensurePluginConfig(config);
   let source = plugin.sources.find((entry) => sourceLocation(entry) === sourceRoot || entry.id === id || entry.id === `official-${id}`);
   if (!source) {
-    source = { id: type === "workflow" ? "official-workflow" : "official-presets", type: "local", path: sourceRoot };
+    source = { id: `official-${id}`, type: "local", path: sourceRoot };
     if (ref) source.ref = ref;
     plugin.sources.push(source);
   }
@@ -828,6 +881,6 @@ export function ensureOfficialPackage(root, { id, sourceRoot, ref, type }) {
   if (sourceManifest.name !== id) throw new Error(`official package mismatch: expected ${id}, got ${sourceManifest.name}`);
   const existing = plugin.packages.find((pkg) => pkg.id === id);
   if (!existing || existing.commit !== resolved.commit) {
-    installFromSource(root, source, resolved.root, resolved.commit, { updateExisting: true });
+    installFromSource(root, source, resolved.root, resolved.commit, { updateExisting: true, sourceMaterialized: resolved.materialized });
   }
 }

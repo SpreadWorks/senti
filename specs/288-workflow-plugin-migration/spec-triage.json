@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "All three blocking findings are valid implementation/data-path gaps and should be applied in spec repair.",
+  "items": [
+    {
+      "title": "Prepare hook has no live flow context",
+      "target": "R4 / AC5 / src/flow/registry.js prepare.post",
+      "decision": "apply",
+      "rationale": "The workflow plugin prepare.post hook is required to replace issue-start behavior, but the current prepare lifecycle can run with pre-prepare flow context unless the spec requires re-resolving the newly written flow state.",
+      "evidence": "spec.json R4 and AC5 require prepare.post behavior. Review cites applyLifecycleActionsFromRegistry using ctx.flowState before RunPrepareSpecCommand writes flow.json, so linked issue and hook snapshot may be unavailable."
+    },
+    {
+      "title": "Finalize hook has no successful-output or artifact path",
+      "target": "R4 / Design Principles / src/lib/plugin-registry.js runFlowCommandHooks and src/flow/lib/run-finalize-cleanup.js",
+      "decision": "apply",
+      "rationale": "The spec requires finalize-cleanup.post candidate extraction and follow-up surfacing, but it does not yet require a durable artifact path or aggregation of successful hook output.",
+      "evidence": "spec.json R4 and data_flow mention finalize-cleanup.post, but no requirement states successful hook return data must be collected or that issue-log/spec artifact paths remain available before worktree teardown."
+    },
+    {
+      "title": "Plugin AI fallback lacks a public integration point",
+      "target": "R5 / plugin command and hook context",
+      "decision": "apply",
+      "rationale": "Workflow publish and ideas behavior depends on AI calls, and the plugin cannot remain external if it must import core internals to resolve or run agents.",
+      "evidence": "spec.json R5 requires plugin.config.workflow.agent overrides but does not require a workflow-neutral public plugin agent API/context. Review identifies buildPluginApi/buildPluginContext as lacking that public integration point."
+    }
+  ]
+}

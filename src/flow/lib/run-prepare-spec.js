@@ -18,7 +18,7 @@ import { emptySpecStub } from "../../lib/spec-json.js";
 import { onHook } from "../../lib/hooks.js";
 import { FlowCommand } from "./base-command.js";
 import { writeIssueMd } from "./issue-body-cache.js";
-import { discoverFlowCommandHooks } from "../../lib/plugin-registry.js";
+import { discoverFlowCommandHooks, runFlowCommandWithPluginLifecycle } from "../../lib/plugin-registry.js";
 
 function runGitTrim(root, args) {
   const res = runGit(["-C", root, ...args]);
@@ -141,7 +141,7 @@ async function hookSnapshotFor(root) {
   return discoverFlowCommandHooks(root);
 }
 
-export async function runPrepareWithPluginHooks({ root, title, request, noBranch = true }) {
+export async function runPrepareWithPluginHooks({ root, title, request, noBranch = true, issue = null }) {
   const specDirName = "001-plugin-hook-snapshot-fixture";
   const specDir = path.join(root, "specs", specDirName);
   fs.mkdirSync(specDir, { recursive: true });
@@ -158,12 +158,18 @@ export async function runPrepareWithPluginHooks({ root, title, request, noBranch
     requirements: [],
     tasks: [],
     currentTaskId: null,
+    ...(issue ? { issue: Number(issue) } : {}),
     request,
     title,
     plugins: { flowCommandHooks: plans },
   };
   fs.writeFileSync(flowPath, JSON.stringify(state, null, 2) + "\n", "utf8");
-  return { flowPath: path.relative(root, flowPath).split(path.sep).join("/") };
+  const lifecycle = await runFlowCommandWithPluginLifecycle(root, plans, {
+    command: "prepare",
+    flow: state,
+    main: async () => ({ ok: true, data: { issue: state.issue, spec: state.spec, runId: state.runId } }),
+  });
+  return { flowPath: path.relative(root, flowPath).split(path.sep).join("/"), lifecycle };
 }
 
 export class RunPrepareSpecCommand extends FlowCommand {
@@ -302,6 +308,11 @@ export class RunPrepareSpecCommand extends FlowCommand {
       };
       state.plugins = { flowCommandHooks: await hookSnapshotFor(specRoot) };
       flowManager.forRoot(specRoot).save(state);
+      await runFlowCommandWithPluginLifecycle(specRoot, state.plugins.flowCommandHooks, {
+        command: "prepare",
+        flow: state,
+        main: async () => ({ ok: true, data: { issue: state.issue, spec: state.spec, runId: state.runId } }),
+      });
     }
 
     // Clean stale .active-flow entries and preparing files before creating a new flow

@@ -1,0 +1,3231 @@
+{
+  "spec": "specs/288-workflow-plugin-migration/spec.json",
+  "baseBranch": "main",
+  "featureBranch": "feature/288-workflow-plugin-migration",
+  "runId": "61a35bd6-b1d3-4942-9cfe-af4c094249f0",
+  "steps": [
+    {
+      "id": "plan",
+      "status": "pending",
+      "children": [
+        {
+          "id": "branch",
+          "status": "done",
+          "finishedAt": "2026-06-11T05:55:08.040Z"
+        },
+        {
+          "id": "prepare-spec",
+          "status": "done",
+          "finishedAt": "2026-06-11T05:55:08.040Z"
+        },
+        {
+          "id": "draft",
+          "status": "done",
+          "startedAt": "2026-06-11T05:55:08.040Z",
+          "finishedAt": "2026-06-11T05:58:57.646Z",
+          "runtimeLog": {
+            "runId": "61a35bd6-b1d3-4942-9cfe-af4c094249f0",
+            "sequence": 13,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-06-11T05:58:57.629Z",
+            "endedAt": "2026-06-11T05:58:57.653Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-questions-review",
+          "status": "done",
+          "startedAt": "2026-06-11T05:58:57.646Z",
+          "finishedAt": "2026-06-11T05:59:31.612Z",
+          "runtimeLog": {
+            "runId": "61a35bd6-b1d3-4942-9cfe-af4c094249f0",
+            "sequence": 16,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-06-11T05:59:14.206Z",
+            "endedAt": "2026-06-11T05:59:31.641Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-questions-triage",
+          "status": "done",
+          "startedAt": "2026-06-11T05:59:31.612Z",
+          "finishedAt": "2026-06-11T05:59:31.618Z"
+        },
+        {
+          "id": "draft-questions-repair",
+          "status": "done",
+          "startedAt": "2026-06-11T05:59:31.618Z",
+          "finishedAt": "2026-06-11T05:59:31.624Z"
+        },
+        {
+          "id": "draft-refine",
+          "status": "done",
+          "startedAt": "2026-06-11T05:59:31.624Z",
+          "finishedAt": "2026-06-11T06:29:27.169Z",
+          "runtimeLog": {
+            "runId": "61a35bd6-b1d3-4942-9cfe-af4c094249f0",
+            "sequence": 21,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-06-11T06:29:27.148Z",
+            "endedAt": "2026-06-11T06:29:27.176Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-coverage-review",
+          "status": "done",
+          "startedAt": "2026-06-11T06:29:27.169Z",
+          "finishedAt": "2026-06-11T06:30:01.906Z",
+          "runtimeLog": {
+            "runId": "61a35bd6-b1d3-4942-9cfe-af4c094249f0",
+            "sequence": 24,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-06-11T06:29:41.557Z",
+            "endedAt": "2026-06-11T06:30:01.939Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-coverage-triage",
+          "status": "done",
+          "startedAt": "2026-06-11T06:30:01.906Z",
+          "finishedAt": "2026-06-11T06:30:01.912Z"
+        },
+        {
+          "id": "draft-coverage-repair",
+          "status": "done",
+          "startedAt": "2026-06-11T06:30:01.912Z",
+          "finishedAt": "2026-06-11T06:30:01.920Z"
+        },
+        {
+          "id": "draft-gate",
+          "status": "done",
+          "startedAt": "2026-06-11T06:30:01.920Z",
+          "runtimeLog": {
+            "runId": "61a35bd6-b1d3-4942-9cfe-af4c094249f0",
+            "sequence": 31,
+            "attempt": 1,
+            "command": "flow run gate",
+            "startedAt": "2026-06-11T06:32:05.202Z",
+            "endedAt": "2026-06-11T06:32:57.656Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-06-11T06:32:57.640Z"
+        },
+        {
+          "id": "spec",
+          "status": "done",
+          "startedAt": "2026-06-11T06:32:57.640Z",
+          "finishedAt": "2026-06-11T06:36:11.805Z",
+          "runtimeLog": {
+            "runId": "61a35bd6-b1d3-4942-9cfe-af4c094249f0",
+            "sequence": 36,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-06-11T06:36:11.789Z",
+            "endedAt": "2026-06-11T06:36:11.812Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "spec-review",
+          "status": "done",
+          "startedAt": "2026-06-11T06:36:11.805Z",
+          "finishedAt": "2026-06-11T06:41:32.781Z",
+          "runtimeLog": {
+            "runId": "61a35bd6-b1d3-4942-9cfe-af4c094249f0",
+            "sequence": 39,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-06-11T06:36:24.237Z",
+            "endedAt": "2026-06-11T06:41:32.784Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "spec-triage",
+          "status": "done",
+          "startedAt": "2026-06-11T06:41:32.781Z",
+          "finishedAt": "2026-06-11T06:42:09.290Z",
+          "runtimeLog": {
+            "runId": "61a35bd6-b1d3-4942-9cfe-af4c094249f0",
+            "sequence": 42,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-06-11T06:42:09.274Z",
+            "endedAt": "2026-06-11T06:42:09.297Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "spec-repair",
+          "status": "done",
+          "startedAt": "2026-06-11T06:42:09.290Z",
+          "finishedAt": "2026-06-11T06:43:19.956Z",
+          "runtimeLog": {
+            "runId": "61a35bd6-b1d3-4942-9cfe-af4c094249f0",
+            "sequence": 45,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-06-11T06:43:19.941Z",
+            "endedAt": "2026-06-11T06:43:19.963Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "spec-gate",
+          "status": "done",
+          "startedAt": "2026-06-11T06:43:19.956Z",
+          "runtimeLog": {
+            "runId": "61a35bd6-b1d3-4942-9cfe-af4c094249f0",
+            "sequence": 52,
+            "attempt": 1,
+            "command": "flow run gate",
+            "startedAt": "2026-06-11T06:45:41.908Z",
+            "endedAt": "2026-06-11T06:46:01.938Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-06-11T06:46:01.919Z"
+        },
+        {
+          "id": "approval",
+          "status": "done",
+          "startedAt": "2026-06-11T06:46:01.919Z",
+          "finishedAt": "2026-06-11T06:47:03.488Z",
+          "runtimeLog": {
+            "runId": "61a35bd6-b1d3-4942-9cfe-af4c094249f0",
+            "sequence": 58,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-06-11T06:47:03.470Z",
+            "endedAt": "2026-06-11T06:47:03.501Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "test",
+          "status": "done",
+          "startedAt": "2026-06-11T06:47:03.488Z",
+          "finishedAt": "2026-06-11T06:48:49.368Z",
+          "runtimeLog": {
+            "runId": "61a35bd6-b1d3-4942-9cfe-af4c094249f0",
+            "sequence": 62,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-06-11T06:48:49.343Z",
+            "endedAt": "2026-06-11T06:48:49.375Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "scenario-validity",
+          "status": "done",
+          "startedAt": "2026-06-11T06:48:49.368Z",
+          "finishedAt": "2026-06-11T07:36:15.509Z",
+          "runtimeLog": {
+            "runId": "61a35bd6-b1d3-4942-9cfe-af4c094249f0",
+            "sequence": 101,
+            "attempt": 1,
+            "command": "flow run scenario-validity",
+            "startedAt": "2026-06-11T07:36:15.176Z",
+            "endedAt": "2026-06-11T07:36:15.513Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "test-review",
+          "status": "done",
+          "startedAt": "2026-06-11T06:49:56.179Z",
+          "runtimeLog": {
+            "runId": "61a35bd6-b1d3-4942-9cfe-af4c094249f0",
+            "sequence": 104,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-06-11T07:36:32.294Z",
+            "endedAt": "2026-06-11T07:36:52.808Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-06-11T07:36:52.804Z"
+        }
+      ]
+    },
+    {
+      "id": "impl",
+      "status": "pending",
+      "children": [
+        {
+          "id": "implement",
+          "status": "done",
+          "startedAt": "2026-06-11T07:36:52.804Z",
+          "finishedAt": "2026-06-11T08:16:21.424Z",
+          "runtimeLog": {
+            "runId": "61a35bd6-b1d3-4942-9cfe-af4c094249f0",
+            "sequence": 135,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-06-11T08:16:21.407Z",
+            "endedAt": "2026-06-11T08:16:21.431Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "test-execute",
+          "status": "done",
+          "startedAt": "2026-06-11T08:16:21.424Z",
+          "finishedAt": "2026-06-11T09:40:26.900Z",
+          "runtimeLog": {
+            "runId": "61a35bd6-b1d3-4942-9cfe-af4c094249f0",
+            "sequence": 239,
+            "attempt": 1,
+            "command": "flow run test-execute",
+            "startedAt": "2026-06-11T09:38:19.176Z",
+            "endedAt": "2026-06-11T09:40:26.903Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "test-result-review",
+          "status": "done",
+          "startedAt": "2026-06-11T08:18:46.741Z",
+          "finishedAt": "2026-06-11T09:40:31.721Z",
+          "runtimeLog": {
+            "runId": "61a35bd6-b1d3-4942-9cfe-af4c094249f0",
+            "sequence": 240,
+            "attempt": 1,
+            "command": "flow run test-result-review",
+            "startedAt": "2026-06-11T09:40:31.692Z",
+            "endedAt": "2026-06-11T09:40:31.725Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "impl-review",
+          "status": "done",
+          "startedAt": "2026-06-11T08:19:00.833Z",
+          "finishedAt": "2026-06-11T08:24:20.060Z",
+          "runtimeLog": {
+            "runId": "61a35bd6-b1d3-4942-9cfe-af4c094249f0",
+            "sequence": 144,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-06-11T08:19:15.186Z",
+            "endedAt": "2026-06-11T08:24:20.065Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "impl-gate",
+          "status": "done",
+          "startedAt": "2026-06-11T08:24:20.060Z",
+          "runtimeLog": {
+            "runId": "61a35bd6-b1d3-4942-9cfe-af4c094249f0",
+            "sequence": 242,
+            "attempt": 1,
+            "command": "flow run gate",
+            "startedAt": "2026-06-11T09:40:49.309Z",
+            "endedAt": "2026-06-11T09:42:44.919Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-06-11T09:42:44.889Z"
+        },
+        {
+          "id": "retro",
+          "status": "done",
+          "startedAt": "2026-06-11T09:42:44.889Z",
+          "finishedAt": "2026-06-11T09:43:04.633Z",
+          "runtimeLog": {
+            "runId": "61a35bd6-b1d3-4942-9cfe-af4c094249f0",
+            "sequence": 245,
+            "attempt": 1,
+            "command": "flow run retro",
+            "startedAt": "2026-06-11T09:43:04.611Z",
+            "endedAt": "2026-06-11T09:43:04.640Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "final-regression",
+          "status": "done",
+          "startedAt": "2026-06-11T09:43:04.633Z",
+          "finishedAt": "2026-06-11T09:45:28.303Z",
+          "runtimeLog": {
+            "runId": "61a35bd6-b1d3-4942-9cfe-af4c094249f0",
+            "sequence": 248,
+            "attempt": 1,
+            "command": "flow run final-regression",
+            "startedAt": "2026-06-11T09:43:21.450Z",
+            "endedAt": "2026-06-11T09:45:28.313Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "finalize",
+          "status": "pending",
+          "children": [
+            {
+              "id": "finalize-commit",
+              "status": "done",
+              "startedAt": "2026-06-11T09:45:28.303Z",
+              "finishedAt": "2026-06-11T10:00:56.645Z",
+              "runtimeLog": {
+                "runId": "61a35bd6-b1d3-4942-9cfe-af4c094249f0",
+                "sequence": 252,
+                "attempt": 1,
+                "command": "flow run finalize-commit",
+                "startedAt": "2026-06-11T10:00:56.373Z",
+                "endedAt": "2026-06-11T10:00:58.097Z",
+                "exitCode": 0
+              }
+            },
+            {
+              "id": "finalize-merge",
+              "status": "in_progress",
+              "startedAt": "2026-06-11T10:00:56.645Z"
+            },
+            {
+              "id": "finalize-sync",
+              "status": "pending"
+            },
+            {
+              "id": "finalize-cleanup",
+              "status": "pending"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "requirements": [],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 375,
+  "request": "Goal: Complete GitHub Issue #375 as one Spec-Driven Development flow: migrate the existing workflow feature from the core senti repository to the external workflow plugin repository, then remove the core-owned workflow implementation and workflow-specific integration text.\n\nScope: Treat this as a migration, not a redesign. Move existing senti workflow command behavior, board operations, workflow skill, flow prepare/finalize integration, ideas/follow-up extraction, GitHub Projects operations, AI-backed publishing/classification/composition, and related tests into the workflow plugin. Update core only where needed to support generic plugin command/hook/config/agent contracts and to remove workflow-specific code, config, tests, bundled copies, bootstrap special-cases, and prompt/skill hardcoding. Keep the senti workflow command as the plugin-provided top-level command.\n\nOut of Scope: Do not add backward compatibility for deleted workflow subcommands. Do not add core workflow-specific public APIs. Do not redesign gh CLI or GraphQL access. Do not auto-migrate top-level workflow config. Do not remove historical artifacts or external-convention paths that only contain the word workflow outside the active runtime/source/test/config/package surface.\n\nVerification: Core no longer owns workflow behavior or workflow-specific integration text. The plugin repo owns the migrated behavior and can be installed/enabled for this repo. Existing workflow behavior is preserved unless Issue #375 explicitly says otherwise.",
+  "worktree": true,
+  "plugins": {
+    "flowCommandHooks": []
+  },
+  "notes": [
+    {
+      "text": "work-environment: selected Git worktree for isolated implementation",
+      "taskId": null,
+      "ts": "2026-06-11T05:55:20.933Z"
+    },
+    {
+      "text": "base-branch: selected current branch main",
+      "taskId": null,
+      "ts": "2026-06-11T05:55:25.921Z"
+    },
+    {
+      "text": "draft-q1: approved Issue #375 workflow plugin migration scope",
+      "taskId": null,
+      "ts": "2026-06-11T05:55:30.817Z"
+    },
+    {
+      "text": "draft-refine q1: selected preparing a temporary workflow plugin clone/worktree inside the active flow worktree",
+      "taskId": null,
+      "ts": "2026-06-11T06:28:30.720Z"
+    },
+    {
+      "text": "approval: user approved gate-passed spec for Issue #375 workflow plugin migration",
+      "taskId": null,
+      "ts": "2026-06-11T06:46:58.428Z"
+    },
+    {
+      "text": "test-review retry reset: user selected [1] to reset review retry after changed spec-local test evidence.",
+      "taskId": null,
+      "ts": "2026-06-11T07:27:30.610Z"
+    },
+    {
+      "text": "implement approach: user selected [1] to proceed with the proposed workflow plugin migration implementation plan.",
+      "taskId": null,
+      "ts": "2026-06-11T07:44:49.858Z"
+    }
+  ],
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T05:56:00.592Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T05:56:32.577Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T05:57:23.624Z"
+    },
+    {
+      "phase": "draft-questions-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 17128,
+      "tokens": {
+        "input": 13478,
+        "output": 526,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T05:59:31.589Z"
+    },
+    {
+      "phase": "draft-questions",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-06-11T05:59:31.631Z"
+    },
+    {
+      "phase": "draft-coverage-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 20067,
+      "tokens": {
+        "input": 17331,
+        "output": 526,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T06:30:01.881Z"
+    },
+    {
+      "phase": "draft-coverage",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-06-11T06:30:01.929Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T06:30:34.935Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T06:31:01.869Z"
+    },
+    {
+      "phase": "draft-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 493,
+      "durationMs": 21517,
+      "tokens": {
+        "input": 12858,
+        "output": 7931,
+        "cacheRead": 4608,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T06:31:34.324Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T06:31:34.334Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T06:31:59.988Z"
+    },
+    {
+      "phase": "draft-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 19,
+      "durationMs": 52315,
+      "tokens": {
+        "input": 12980,
+        "output": 7200,
+        "cacheRead": 4608,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T06:32:57.622Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-06-11T06:32:57.632Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T06:33:43.590Z"
+    },
+    {
+      "phase": "spec-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 3947,
+      "durationMs": 308262,
+      "tokens": {
+        "input": 181004,
+        "output": 10316,
+        "cacheRead": 1485696,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T06:41:32.750Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T06:41:32.774Z"
+    },
+    {
+      "phase": "spec-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 874,
+      "durationMs": 15033,
+      "tokens": {
+        "input": 14102,
+        "output": 10498,
+        "cacheRead": 4608,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T06:43:47.595Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T06:43:47.607Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T06:44:59.064Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T06:45:07.578Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T06:45:34.811Z"
+    },
+    {
+      "phase": "spec-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 19,
+      "durationMs": 19877,
+      "tokens": {
+        "input": 14610,
+        "output": 5694,
+        "cacheRead": 4608,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T06:46:01.902Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-06-11T06:46:01.912Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 5766,
+      "durationMs": 67724,
+      "tokens": {
+        "input": 14805,
+        "output": 3051,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T06:51:18.549Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T06:51:18.587Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T06:57:08.714Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 4555,
+      "durationMs": 102300,
+      "tokens": {
+        "input": 17556,
+        "output": 4654,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T06:59:14.834Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T06:59:14.860Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T07:00:45.365Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 3231,
+      "durationMs": 93414,
+      "tokens": {
+        "input": 18695,
+        "output": 3726,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T07:02:25.309Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T07:02:25.336Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T07:03:50.683Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 3475,
+      "durationMs": 82960,
+      "tokens": {
+        "input": 10594,
+        "output": 3237,
+        "cacheRead": 11648,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T07:05:19.352Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T07:05:19.375Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T07:08:23.561Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1602,
+      "durationMs": 25580,
+      "tokens": {
+        "input": 11615,
+        "output": 828,
+        "cacheRead": 11648,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T07:08:53.685Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T07:08:53.722Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T07:09:58.772Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-06-11T07:27:35.641Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 4,
+      "taskId": null,
+      "ts": "2026-06-11T07:27:35.641Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 3293,
+      "durationMs": 127823,
+      "tokens": {
+        "input": 21090,
+        "output": 5574,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T07:29:48.631Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T07:29:48.662Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T07:32:04.593Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-06-11T07:32:11.294Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 4,
+      "taskId": null,
+      "ts": "2026-06-11T07:32:11.294Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1903,
+      "durationMs": 26839,
+      "tokens": {
+        "input": 21343,
+        "output": 890,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T07:32:44.086Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T07:32:44.142Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T07:33:36.615Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-06-11T07:33:42.445Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 4,
+      "taskId": null,
+      "ts": "2026-06-11T07:33:42.445Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2512,
+      "durationMs": 115021,
+      "tokens": {
+        "input": 21436,
+        "output": 4105,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T07:35:42.066Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T07:35:42.102Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T07:36:21.687Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-06-11T07:36:27.413Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 4,
+      "taskId": null,
+      "ts": "2026-06-11T07:36:27.413Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 543,
+      "durationMs": 20301,
+      "tokens": {
+        "input": 21664,
+        "output": 634,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T07:36:52.764Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-06-11T07:36:52.787Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1905,
+      "durationMs": 25733,
+      "tokens": {
+        "input": 12315,
+        "output": 950,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:19:42.071Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1013,
+      "durationMs": 15114,
+      "tokens": {
+        "input": 11668,
+        "output": 434,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:19:57.204Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1904,
+      "durationMs": 27158,
+      "tokens": {
+        "input": 12404,
+        "output": 928,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:20:24.379Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 14832,
+      "tokens": {
+        "input": 11157,
+        "output": 381,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:20:39.229Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 9896,
+      "tokens": {
+        "input": 10742,
+        "output": 173,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:20:49.144Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 12193,
+      "tokens": {
+        "input": 11972,
+        "output": 230,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:21:01.358Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1870,
+      "durationMs": 71798,
+      "tokens": {
+        "input": 39175,
+        "output": 2573,
+        "cacheRead": 76416,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:22:13.175Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 13266,
+      "tokens": {
+        "input": 12337,
+        "output": 309,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:22:26.462Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 14635,
+      "tokens": {
+        "input": 7149,
+        "output": 333,
+        "cacheRead": 9600,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:22:41.121Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 8708,
+      "tokens": {
+        "input": 12287,
+        "output": 149,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:22:49.859Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 11881,
+      "tokens": {
+        "input": 11185,
+        "output": 270,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:23:01.762Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 15780,
+      "tokens": {
+        "input": 4969,
+        "output": 383,
+        "cacheRead": 9600,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:23:17.560Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 515,
+      "durationMs": 26913,
+      "tokens": {
+        "input": 11706,
+        "output": 628,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:23:44.491Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 14038,
+      "tokens": {
+        "input": 2481,
+        "output": 331,
+        "cacheRead": 11648,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:23:58.547Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 8626,
+      "tokens": {
+        "input": 12024,
+        "output": 141,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:24:07.192Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 12792,
+      "tokens": {
+        "input": 10529,
+        "output": 164,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:24:20.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-06-11T08:24:20.037Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T08:25:16.549Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T08:27:35.539Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T08:31:31.363Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 1065,
+      "durationMs": 10852,
+      "tokens": {
+        "input": 26364,
+        "output": 2202,
+        "cacheRead": 4608,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:34:37.141Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 446,
+      "durationMs": 18706,
+      "tokens": {
+        "input": 23123,
+        "output": 3785,
+        "cacheRead": 10368,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:34:55.868Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 594,
+      "durationMs": 13236,
+      "tokens": {
+        "input": 29256,
+        "output": 2343,
+        "cacheRead": 103296,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:35:09.126Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 402,
+      "durationMs": 6439,
+      "tokens": {
+        "input": 27940,
+        "output": 593,
+        "cacheRead": 4608,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:35:15.585Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 468,
+      "durationMs": 9898,
+      "tokens": {
+        "input": 29767,
+        "output": 3546,
+        "cacheRead": 4608,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:35:25.503Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 362,
+      "durationMs": 8786,
+      "tokens": {
+        "input": 26559,
+        "output": 2498,
+        "cacheRead": 4608,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:35:34.310Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 361,
+      "durationMs": 7723,
+      "tokens": {
+        "input": 36783,
+        "output": 987,
+        "cacheRead": 4608,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:35:42.052Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 498,
+      "durationMs": 9395,
+      "tokens": {
+        "input": 27121,
+        "output": 4691,
+        "cacheRead": 4608,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:35:51.466Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T08:35:51.484Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T08:39:16.404Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 795,
+      "durationMs": 21643,
+      "tokens": {
+        "input": 31939,
+        "output": 4782,
+        "cacheRead": 206464,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:42:21.807Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 1384,
+      "durationMs": 94164,
+      "tokens": {
+        "input": 44958,
+        "output": 9539,
+        "cacheRead": 725760,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:43:55.990Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 868,
+      "durationMs": 20503,
+      "tokens": {
+        "input": 35872,
+        "output": 2986,
+        "cacheRead": 226048,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:44:16.512Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 497,
+      "durationMs": 10100,
+      "tokens": {
+        "input": 31593,
+        "output": 4960,
+        "cacheRead": 4608,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:44:26.632Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 470,
+      "durationMs": 52258,
+      "tokens": {
+        "input": 29980,
+        "output": 4500,
+        "cacheRead": 204928,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:45:18.911Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 419,
+      "durationMs": 8231,
+      "tokens": {
+        "input": 22660,
+        "output": 2498,
+        "cacheRead": 10368,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:45:27.161Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 480,
+      "durationMs": 6890,
+      "tokens": {
+        "input": 23788,
+        "output": 2155,
+        "cacheRead": 10368,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:45:34.068Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 604,
+      "durationMs": 13587,
+      "tokens": {
+        "input": 22047,
+        "output": 3569,
+        "cacheRead": 10368,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:45:47.676Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T08:45:47.695Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T08:48:08.533Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T08:51:45.931Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 377,
+      "durationMs": 11057,
+      "tokens": {
+        "input": 21775,
+        "output": 2159,
+        "cacheRead": 10368,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:52:07.375Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 461,
+      "durationMs": 10718,
+      "tokens": {
+        "input": 29149,
+        "output": 4242,
+        "cacheRead": 4608,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:52:18.111Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 397,
+      "durationMs": 9043,
+      "tokens": {
+        "input": 26285,
+        "output": 2765,
+        "cacheRead": 10368,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:52:27.172Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 414,
+      "durationMs": 12880,
+      "tokens": {
+        "input": 22350,
+        "output": 6478,
+        "cacheRead": 10368,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:52:40.070Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 421,
+      "durationMs": 7538,
+      "tokens": {
+        "input": 22521,
+        "output": 2474,
+        "cacheRead": 10368,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:52:47.627Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 1,
+      "responseChars": 1300,
+      "durationMs": 19987,
+      "tokens": {
+        "input": 50711,
+        "output": 10920,
+        "cacheRead": 10240,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-11T08:53:07.648Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T08:53:07.657Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent-cache",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 0,
+      "cachedResponse": true,
+      "responseChars": 1300,
+      "taskId": null,
+      "ts": "2026-06-11T08:53:07.669Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T08:53:07.677Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent-cache",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 0,
+      "cachedResponse": true,
+      "responseChars": 1300,
+      "taskId": null,
+      "ts": "2026-06-11T08:53:07.689Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T08:53:07.697Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-06-11T08:53:46.504Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 4,
+      "taskId": null,
+      "ts": "2026-06-11T08:53:46.504Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent-cache",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 0,
+      "cachedResponse": true,
+      "responseChars": 377,
+      "taskId": null,
+      "ts": "2026-06-11T08:53:54.297Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent-cache",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 0,
+      "cachedResponse": true,
+      "responseChars": 461,
+      "taskId": null,
+      "ts": "2026-06-11T08:53:54.308Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent-cache",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 0,
+      "cachedResponse": true,
+      "responseChars": 397,
+      "taskId": null,
+      "ts": "2026-06-11T08:53:54.320Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent-cache",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 0,
+      "cachedResponse": true,
+      "responseChars": 414,
+      "taskId": null,
+      "ts": "2026-06-11T08:53:54.331Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent-cache",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 0,
+      "cachedResponse": true,
+      "responseChars": 421,
+      "taskId": null,
+      "ts": "2026-06-11T08:53:54.342Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent-cache",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3-spark",
+      "callCount": 0,
+      "cachedResponse": true,
+      "responseChars": 1300,
+      "taskId": null,
+      "ts": "2026-06-11T08:53:54.371Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T08:53:54.380Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-06-11T08:55:33.120Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 4,
+      "taskId": null,
+      "ts": "2026-06-11T08:55:33.120Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "claude",
+      "profileKey": "claude/sonnet",
+      "callCount": 1,
+      "responseChars": 585,
+      "durationMs": 20106,
+      "tokens": {
+        "input": 2,
+        "output": 897,
+        "cacheRead": 0,
+        "cacheCreation": 48861
+      },
+      "cost": 0.22432875,
+      "taskId": null,
+      "ts": "2026-06-11T08:56:03.536Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "claude",
+      "profileKey": "claude/sonnet",
+      "callCount": 1,
+      "responseChars": 882,
+      "durationMs": 27266,
+      "tokens": {
+        "input": 2,
+        "output": 1419,
+        "cacheRead": 16155,
+        "cacheCreation": 34764
+      },
+      "cost": 0.1862445,
+      "taskId": null,
+      "ts": "2026-06-11T08:56:30.822Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "claude",
+      "profileKey": "claude/sonnet",
+      "callCount": 1,
+      "responseChars": 664,
+      "durationMs": 26364,
+      "tokens": {
+        "input": 2,
+        "output": 1185,
+        "cacheRead": 16155,
+        "cacheCreation": 38507
+      },
+      "cost": 0.20047875,
+      "taskId": null,
+      "ts": "2026-06-11T08:56:57.204Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "claude",
+      "profileKey": "claude/sonnet",
+      "callCount": 1,
+      "responseChars": 891,
+      "durationMs": 66148,
+      "tokens": {
+        "input": 2,
+        "output": 3609,
+        "cacheRead": 16155,
+        "cacheCreation": 33378
+      },
+      "cost": 0.21250599999999997,
+      "taskId": null,
+      "ts": "2026-06-11T08:58:03.369Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "claude",
+      "profileKey": "claude/sonnet",
+      "callCount": 1,
+      "responseChars": 671,
+      "durationMs": 61957,
+      "tokens": {
+        "input": 2,
+        "output": 3381,
+        "cacheRead": 16155,
+        "cacheCreation": 33575
+      },
+      "cost": 0.21002674999999998,
+      "taskId": null,
+      "ts": "2026-06-11T08:59:05.345Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T08:59:05.361Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T08:59:35.536Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T09:05:16.471Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T09:06:38.777Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-06-11T09:09:30.528Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 4,
+      "taskId": null,
+      "ts": "2026-06-11T09:09:30.528Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "claude",
+      "profileKey": "claude/sonnet",
+      "callCount": 1,
+      "responseChars": 707,
+      "durationMs": 38360,
+      "tokens": {
+        "input": 2,
+        "output": 1994,
+        "cacheRead": 16155,
+        "cacheCreation": 117751
+      },
+      "cost": 0.5890577499999999,
+      "taskId": null,
+      "ts": "2026-06-11T09:10:24.607Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "claude",
+      "profileKey": "claude/sonnet",
+      "callCount": 1,
+      "responseChars": 2383,
+      "durationMs": 55016,
+      "tokens": {
+        "input": 2,
+        "output": 3199,
+        "cacheRead": 16077,
+        "cacheCreation": 145924
+      },
+      "cost": 0.7404101,
+      "taskId": null,
+      "ts": "2026-06-11T09:11:19.665Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T09:11:19.682Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T09:13:10.817Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-06-11T09:15:59.472Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 4,
+      "taskId": null,
+      "ts": "2026-06-11T09:15:59.472Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "claude",
+      "profileKey": "claude/sonnet",
+      "callCount": 1,
+      "responseChars": 2103,
+      "durationMs": 86376,
+      "tokens": {
+        "input": 2,
+        "output": 5108,
+        "cacheRead": 16543,
+        "cacheCreation": 186938
+      },
+      "cost": 0.9645273999999999,
+      "taskId": null,
+      "ts": "2026-06-11T09:17:30.847Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T09:17:30.865Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T09:18:44.278Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-06-11T09:21:32.100Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 4,
+      "taskId": null,
+      "ts": "2026-06-11T09:21:32.100Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "claude",
+      "profileKey": "claude/sonnet",
+      "callCount": 1,
+      "responseChars": 1466,
+      "durationMs": 270496,
+      "tokens": {
+        "input": 2,
+        "output": 15763,
+        "cacheRead": 16543,
+        "cacheCreation": 193038
+      },
+      "cost": 1.1532673999999998,
+      "taskId": null,
+      "ts": "2026-06-11T09:26:07.405Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T09:26:07.421Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T09:26:54.152Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T09:30:30.010Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-06-11T09:33:17.888Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 4,
+      "taskId": null,
+      "ts": "2026-06-11T09:33:17.888Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "claude",
+      "profileKey": "claude/sonnet",
+      "callCount": 1,
+      "responseChars": 1448,
+      "durationMs": 205824,
+      "tokens": {
+        "input": 2,
+        "output": 12776,
+        "cacheRead": 16543,
+        "cacheCreation": 198722
+      },
+      "cost": 1.1354464,
+      "taskId": null,
+      "ts": "2026-06-11T09:36:50.517Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T09:36:50.534Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-11T09:38:04.384Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-06-11T09:40:44.249Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 4,
+      "taskId": null,
+      "ts": "2026-06-11T09:40:44.249Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "claude",
+      "profileKey": "claude/sonnet",
+      "callCount": 1,
+      "responseChars": 31,
+      "durationMs": 115235,
+      "tokens": {
+        "input": 2,
+        "output": 6542,
+        "cacheRead": 16543,
+        "cacheCreation": 205188
+      },
+      "cost": 0.8725539,
+      "taskId": null,
+      "ts": "2026-06-11T09:42:44.864Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-06-11T09:42:44.880Z"
+    }
+  ],
+  "reviewRecoveryBaselines": [
+    {
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "fingerprint": {
+        "sourceKind": "spec-tests",
+        "hash": "cb947756cec7fdc3ea213318658018ea2215059fa27284a793d56293f751b43c",
+        "paths": [
+          "specs/288-workflow-plugin-migration/tests/.raw/scenario-validity.log",
+          "specs/288-workflow-plugin-migration/tests/workflow-plugin-migration.test.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "review-verdict-fail",
+      "createdAt": "2026-06-11T07:08:53.715Z"
+    },
+    {
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "fingerprint": {
+        "sourceKind": "spec-tests",
+        "hash": "02c2cd6ee684d971f0c3eee521111638dccbd341e1c378756952e6f1f3dda3c8",
+        "paths": [
+          "specs/288-workflow-plugin-migration/tests/.raw/scenario-validity.log",
+          "specs/288-workflow-plugin-migration/tests/workflow-plugin-migration.test.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "review-verdict-fail",
+      "createdAt": "2026-06-11T07:29:48.655Z"
+    },
+    {
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "fingerprint": {
+        "sourceKind": "spec-tests",
+        "hash": "50d4be7438696596b2e5a8f54893e23abd48866fb24d467307faa469bf2d8b25",
+        "paths": [
+          "specs/288-workflow-plugin-migration/tests/.raw/scenario-validity.log",
+          "specs/288-workflow-plugin-migration/tests/workflow-plugin-migration.test.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "review-verdict-fail",
+      "createdAt": "2026-06-11T07:32:44.127Z"
+    },
+    {
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "fingerprint": {
+        "sourceKind": "spec-tests",
+        "hash": "51e3e776175d61e44cf93e0b82730f3f7c0437047e01fec038372b97dbc83f21",
+        "paths": [
+          "specs/288-workflow-plugin-migration/tests/.raw/scenario-validity.log",
+          "specs/288-workflow-plugin-migration/tests/workflow-plugin-migration.test.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "review-verdict-fail",
+      "createdAt": "2026-06-11T07:35:42.092Z"
+    },
+    {
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "fingerprint": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "hash": "6a548cbe64c9989c31bbcc76d3b489f2bbb41a5067f209a4cd8dc8a298728ca4",
+        "paths": [
+          "specs/288-workflow-plugin-migration/test-execute-result.json",
+          "specs/288-workflow-plugin-migration/test-result-review.json",
+          "src/AGENTS.md",
+          "src/flow/lib/run-finalize-cleanup.js",
+          "src/flow/lib/run-prepare-spec.js",
+          "src/flow/prompts/plan/draft.md",
+          "src/lib/agent-defaults.js",
+          "src/lib/config.js",
+          "src/lib/official-plugins.js",
+          "src/lib/plugin-registry.js",
+          "src/lib/types.js",
+          "src/locale/en/ui.json",
+          "src/locale/ja/ui.json",
+          "src/official-plugins/senti-workflow-plugin/commands/workflow.js",
+          "src/official-plugins/senti-workflow-plugin/config.defaults.json",
+          "src/official-plugins/senti-workflow-plugin/config.schema.json",
+          "src/official-plugins/senti-workflow-plugin/hooks/issue-start.js",
+          "src/official-plugins/senti-workflow-plugin/plugin.json",
+          "src/official-plugins/senti-workflow-plugin/skills/senti.workflow/SKILL.md",
+          "src/plugin.js",
+          "src/upgrade.js",
+          "src/workflow/AGENTS.md",
+          "src/workflow/index.js",
+          "src/workflow/lib/base-command.js",
+          "src/workflow/lib/board-helpers.js",
+          "src/workflow/lib/category.js",
+          "src/workflow/lib/commands/add.js",
+          "src/workflow/lib/commands/issue-log-import.js",
+          "src/workflow/lib/commands/issue-start.js",
+          "src/workflow/lib/commands/list.js",
+          "src/workflow/lib/commands/publish.js",
+          "src/workflow/lib/commands/search.js",
+          "src/workflow/lib/commands/show.js",
+          "src/workflow/lib/commands/update.js",
+          "src/workflow/lib/config.js",
+          "src/workflow/lib/graphql.js",
+          "src/workflow/lib/hash.js",
+          "src/workflow/lib/validation.js",
+          "src/workflow/registry.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "gate-result-fail",
+      "createdAt": "2026-06-11T08:35:51.543Z"
+    },
+    {
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "fingerprint": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "hash": "53cf1126ee59296f12c0fce036d5b0cc2c780ac6c01e693f3769a7a8ea6f1b5b",
+        "paths": [
+          "specs/288-workflow-plugin-migration/test-execute-result.json",
+          "specs/288-workflow-plugin-migration/test-result-review.json",
+          "src/AGENTS.md",
+          "src/flow/lib/run-finalize-cleanup.js",
+          "src/flow/lib/run-prepare-spec.js",
+          "src/flow/prompts/plan/draft.md",
+          "src/lib/agent-defaults.js",
+          "src/lib/config.js",
+          "src/lib/official-plugins.js",
+          "src/lib/plugin-registry.js",
+          "src/lib/types.js",
+          "src/locale/en/ui.json",
+          "src/locale/ja/ui.json",
+          "src/official-plugins/senti-workflow-plugin/commands/workflow.js",
+          "src/official-plugins/senti-workflow-plugin/config.defaults.json",
+          "src/official-plugins/senti-workflow-plugin/config.schema.json",
+          "src/official-plugins/senti-workflow-plugin/hooks/issue-start.js",
+          "src/official-plugins/senti-workflow-plugin/plugin.json",
+          "src/official-plugins/senti-workflow-plugin/skills/senti.workflow/SKILL.md",
+          "src/plugin.js",
+          "src/upgrade.js",
+          "src/workflow/AGENTS.md",
+          "src/workflow/index.js",
+          "src/workflow/lib/base-command.js",
+          "src/workflow/lib/board-helpers.js",
+          "src/workflow/lib/category.js",
+          "src/workflow/lib/commands/add.js",
+          "src/workflow/lib/commands/issue-log-import.js",
+          "src/workflow/lib/commands/issue-start.js",
+          "src/workflow/lib/commands/list.js",
+          "src/workflow/lib/commands/publish.js",
+          "src/workflow/lib/commands/search.js",
+          "src/workflow/lib/commands/show.js",
+          "src/workflow/lib/commands/update.js",
+          "src/workflow/lib/config.js",
+          "src/workflow/lib/graphql.js",
+          "src/workflow/lib/hash.js",
+          "src/workflow/lib/validation.js",
+          "src/workflow/registry.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "gate-result-fail",
+      "createdAt": "2026-06-11T08:45:47.757Z"
+    },
+    {
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "fingerprint": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "hash": "99a8e27bc5229810fdbc7467ba7fba5d47fc4bf32eb761ed1f2eab05522edb11",
+        "paths": [
+          "specs/288-workflow-plugin-migration/test-execute-result.json",
+          "specs/288-workflow-plugin-migration/test-result-review.json",
+          "src/AGENTS.md",
+          "src/flow/lib/run-finalize-cleanup.js",
+          "src/flow/lib/run-prepare-spec.js",
+          "src/flow/prompts/plan/draft.md",
+          "src/lib/agent-defaults.js",
+          "src/lib/config.js",
+          "src/lib/official-plugins.js",
+          "src/lib/plugin-registry.js",
+          "src/lib/types.js",
+          "src/locale/en/ui.json",
+          "src/locale/ja/ui.json",
+          "src/official-plugins/senti-workflow-plugin/commands/workflow.js",
+          "src/official-plugins/senti-workflow-plugin/config.defaults.json",
+          "src/official-plugins/senti-workflow-plugin/config.schema.json",
+          "src/official-plugins/senti-workflow-plugin/hooks/issue-start.js",
+          "src/official-plugins/senti-workflow-plugin/plugin.json",
+          "src/official-plugins/senti-workflow-plugin/skills/senti.workflow/SKILL.md",
+          "src/plugin.js",
+          "src/upgrade.js",
+          "src/workflow/AGENTS.md",
+          "src/workflow/index.js",
+          "src/workflow/lib/base-command.js",
+          "src/workflow/lib/board-helpers.js",
+          "src/workflow/lib/category.js",
+          "src/workflow/lib/commands/add.js",
+          "src/workflow/lib/commands/issue-log-import.js",
+          "src/workflow/lib/commands/issue-start.js",
+          "src/workflow/lib/commands/list.js",
+          "src/workflow/lib/commands/publish.js",
+          "src/workflow/lib/commands/search.js",
+          "src/workflow/lib/commands/show.js",
+          "src/workflow/lib/commands/update.js",
+          "src/workflow/lib/config.js",
+          "src/workflow/lib/graphql.js",
+          "src/workflow/lib/hash.js",
+          "src/workflow/lib/validation.js",
+          "src/workflow/registry.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "gate-result-fail",
+      "createdAt": "2026-06-11T08:59:05.418Z"
+    },
+    {
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "fingerprint": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "hash": "800cca18b07d756e8f9683abaccca2c8dd44493cfc12ebc772a70bd5c3f726d2",
+        "paths": [
+          "specs/288-workflow-plugin-migration/test-execute-result.json",
+          "specs/288-workflow-plugin-migration/test-result-review.json",
+          "src/AGENTS.md",
+          "src/flow/lib/retry-recovery.js",
+          "src/flow/lib/run-finalize-cleanup.js",
+          "src/flow/lib/run-prepare-spec.js",
+          "src/flow/prompts/plan/draft.md",
+          "src/lib/agent-defaults.js",
+          "src/lib/config.js",
+          "src/lib/official-plugins.js",
+          "src/lib/plugin-registry.js",
+          "src/lib/types.js",
+          "src/locale/en/ui.json",
+          "src/locale/ja/ui.json",
+          "src/official-plugins/senti-workflow-plugin/commands/workflow.js",
+          "src/official-plugins/senti-workflow-plugin/config.defaults.json",
+          "src/official-plugins/senti-workflow-plugin/config.schema.json",
+          "src/official-plugins/senti-workflow-plugin/hooks/issue-start.js",
+          "src/official-plugins/senti-workflow-plugin/plugin.json",
+          "src/official-plugins/senti-workflow-plugin/skills/senti.workflow/SKILL.md",
+          "src/plugin.js",
+          "src/upgrade.js",
+          "src/workflow/AGENTS.md",
+          "src/workflow/index.js",
+          "src/workflow/lib/base-command.js",
+          "src/workflow/lib/board-helpers.js",
+          "src/workflow/lib/category.js",
+          "src/workflow/lib/commands/add.js",
+          "src/workflow/lib/commands/issue-log-import.js",
+          "src/workflow/lib/commands/issue-start.js",
+          "src/workflow/lib/commands/list.js",
+          "src/workflow/lib/commands/publish.js",
+          "src/workflow/lib/commands/search.js",
+          "src/workflow/lib/commands/show.js",
+          "src/workflow/lib/commands/update.js",
+          "src/workflow/lib/config.js",
+          "src/workflow/lib/graphql.js",
+          "src/workflow/lib/hash.js",
+          "src/workflow/lib/validation.js",
+          "src/workflow/registry.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "gate-result-fail",
+      "createdAt": "2026-06-11T09:11:19.738Z"
+    },
+    {
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "fingerprint": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "hash": "e51184e70c564ec66c78d2a7fcd5ed80093c83ccbae49dc23129833a06280313",
+        "paths": [
+          "specs/288-workflow-plugin-migration/test-execute-result.json",
+          "specs/288-workflow-plugin-migration/test-result-review.json",
+          "src/AGENTS.md",
+          "src/flow/lib/retry-recovery.js",
+          "src/flow/lib/run-finalize-cleanup.js",
+          "src/flow/lib/run-prepare-spec.js",
+          "src/flow/prompts/plan/draft.md",
+          "src/lib/agent-defaults.js",
+          "src/lib/config.js",
+          "src/lib/official-plugins.js",
+          "src/lib/plugin-registry.js",
+          "src/lib/types.js",
+          "src/locale/en/ui.json",
+          "src/locale/ja/ui.json",
+          "src/official-plugins/senti-workflow-plugin/commands/workflow.js",
+          "src/official-plugins/senti-workflow-plugin/config.defaults.json",
+          "src/official-plugins/senti-workflow-plugin/config.schema.json",
+          "src/official-plugins/senti-workflow-plugin/hooks/issue-start.js",
+          "src/official-plugins/senti-workflow-plugin/plugin.json",
+          "src/official-plugins/senti-workflow-plugin/skills/senti.workflow/SKILL.md",
+          "src/plugin.js",
+          "src/upgrade.js",
+          "src/workflow/AGENTS.md",
+          "src/workflow/index.js",
+          "src/workflow/lib/base-command.js",
+          "src/workflow/lib/board-helpers.js",
+          "src/workflow/lib/category.js",
+          "src/workflow/lib/commands/add.js",
+          "src/workflow/lib/commands/issue-log-import.js",
+          "src/workflow/lib/commands/issue-start.js",
+          "src/workflow/lib/commands/list.js",
+          "src/workflow/lib/commands/publish.js",
+          "src/workflow/lib/commands/search.js",
+          "src/workflow/lib/commands/show.js",
+          "src/workflow/lib/commands/update.js",
+          "src/workflow/lib/config.js",
+          "src/workflow/lib/graphql.js",
+          "src/workflow/lib/hash.js",
+          "src/workflow/lib/validation.js",
+          "src/workflow/registry.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "gate-result-fail",
+      "createdAt": "2026-06-11T09:17:30.924Z"
+    },
+    {
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "fingerprint": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "hash": "ce387f58b0486228aed3a7ff67d011901204c507e3fb55eee6734296e65de000",
+        "paths": [
+          "specs/288-workflow-plugin-migration/test-execute-result.json",
+          "specs/288-workflow-plugin-migration/test-result-review.json",
+          "src/AGENTS.md",
+          "src/flow/lib/retry-recovery.js",
+          "src/flow/lib/run-finalize-cleanup.js",
+          "src/flow/lib/run-prepare-spec.js",
+          "src/flow/prompts/plan/draft.md",
+          "src/lib/agent-defaults.js",
+          "src/lib/config.js",
+          "src/lib/official-plugins.js",
+          "src/lib/plugin-registry.js",
+          "src/lib/types.js",
+          "src/locale/en/ui.json",
+          "src/locale/ja/ui.json",
+          "src/official-plugins/senti-workflow-plugin/commands/workflow.js",
+          "src/official-plugins/senti-workflow-plugin/config.defaults.json",
+          "src/official-plugins/senti-workflow-plugin/config.schema.json",
+          "src/official-plugins/senti-workflow-plugin/hooks/issue-start.js",
+          "src/official-plugins/senti-workflow-plugin/plugin.json",
+          "src/official-plugins/senti-workflow-plugin/skills/senti.workflow/SKILL.md",
+          "src/plugin.js",
+          "src/upgrade.js",
+          "src/workflow/AGENTS.md",
+          "src/workflow/index.js",
+          "src/workflow/lib/base-command.js",
+          "src/workflow/lib/board-helpers.js",
+          "src/workflow/lib/category.js",
+          "src/workflow/lib/commands/add.js",
+          "src/workflow/lib/commands/issue-log-import.js",
+          "src/workflow/lib/commands/issue-start.js",
+          "src/workflow/lib/commands/list.js",
+          "src/workflow/lib/commands/publish.js",
+          "src/workflow/lib/commands/search.js",
+          "src/workflow/lib/commands/show.js",
+          "src/workflow/lib/commands/update.js",
+          "src/workflow/lib/config.js",
+          "src/workflow/lib/graphql.js",
+          "src/workflow/lib/hash.js",
+          "src/workflow/lib/validation.js",
+          "src/workflow/registry.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "gate-result-fail",
+      "createdAt": "2026-06-11T09:26:07.478Z"
+    },
+    {
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "fingerprint": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "hash": "1190d0e7baf2873be414a4cc8be94384ad38184401d164ad5ba7327b9c3e035e",
+        "paths": [
+          "specs/288-workflow-plugin-migration/test-execute-result.json",
+          "specs/288-workflow-plugin-migration/test-result-review.json",
+          "src/AGENTS.md",
+          "src/flow/lib/retry-recovery.js",
+          "src/flow/lib/run-finalize-cleanup.js",
+          "src/flow/lib/run-prepare-spec.js",
+          "src/flow/prompts/plan/draft.md",
+          "src/lib/agent-defaults.js",
+          "src/lib/config.js",
+          "src/lib/official-plugins.js",
+          "src/lib/plugin-registry.js",
+          "src/lib/types.js",
+          "src/locale/en/ui.json",
+          "src/locale/ja/ui.json",
+          "src/official-plugins/senti-workflow-plugin/commands/workflow.js",
+          "src/official-plugins/senti-workflow-plugin/config.defaults.json",
+          "src/official-plugins/senti-workflow-plugin/config.schema.json",
+          "src/official-plugins/senti-workflow-plugin/hooks/issue-start.js",
+          "src/official-plugins/senti-workflow-plugin/plugin.json",
+          "src/official-plugins/senti-workflow-plugin/skills/senti.workflow/SKILL.md",
+          "src/plugin.js",
+          "src/upgrade.js",
+          "src/workflow/AGENTS.md",
+          "src/workflow/index.js",
+          "src/workflow/lib/base-command.js",
+          "src/workflow/lib/board-helpers.js",
+          "src/workflow/lib/category.js",
+          "src/workflow/lib/commands/add.js",
+          "src/workflow/lib/commands/issue-log-import.js",
+          "src/workflow/lib/commands/issue-start.js",
+          "src/workflow/lib/commands/list.js",
+          "src/workflow/lib/commands/publish.js",
+          "src/workflow/lib/commands/search.js",
+          "src/workflow/lib/commands/show.js",
+          "src/workflow/lib/commands/update.js",
+          "src/workflow/lib/config.js",
+          "src/workflow/lib/graphql.js",
+          "src/workflow/lib/hash.js",
+          "src/workflow/lib/validation.js",
+          "src/workflow/registry.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "gate-result-fail",
+      "createdAt": "2026-06-11T09:36:50.592Z"
+    }
+  ],
+  "retryRecovery": {
+    "version": 1,
+    "entries": [
+      {
+        "id": "recovery-001",
+        "kind": "review",
+        "phase": "test",
+        "canonicalPhase": "test",
+        "reason": "Spec-local workflow migration tests changed after the last R2 public option surface blocker; publicSurface and wrong-surface validation cases were added.",
+        "changedEvidence": {
+          "sourceKind": "spec-tests",
+          "baselineHash": "cb947756cec7fdc3ea213318658018ea2215059fa27284a793d56293f751b43c",
+          "currentHash": "02c2cd6ee684d971f0c3eee521111638dccbd341e1c378756952e6f1f3dda3c8",
+          "changedPaths": [
+            "specs/288-workflow-plugin-migration/tests/.raw/scenario-validity.log",
+            "specs/288-workflow-plugin-migration/tests/workflow-plugin-migration.test.js"
+          ],
+          "truncated": false,
+          "changed": true
+        },
+        "permittedReevaluationCount": 1,
+        "attemptsBefore": 5,
+        "maxAttempts": 5,
+        "counterAfter": 4,
+        "recoveryCommand": "senti flow set retry reset review test --reason \"Spec-local workflow migration tests changed after the last R2 public option surface blocker; publicSurface and wrong-surface validation cases were added.\" --yes",
+        "createdAt": "2026-06-11T07:27:35.639Z"
+      },
+      {
+        "id": "recovery-002",
+        "kind": "review",
+        "phase": "test",
+        "canonicalPhase": "test",
+        "reason": "Spec-local tests changed after the three remaining blockers: external plugin provenance, linked issue prepare.post artifact, and broader forbidden prompt guidance scan were added.",
+        "changedEvidence": {
+          "sourceKind": "spec-tests",
+          "baselineHash": "02c2cd6ee684d971f0c3eee521111638dccbd341e1c378756952e6f1f3dda3c8",
+          "currentHash": "50d4be7438696596b2e5a8f54893e23abd48866fb24d467307faa469bf2d8b25",
+          "changedPaths": [
+            "specs/288-workflow-plugin-migration/tests/.raw/scenario-validity.log",
+            "specs/288-workflow-plugin-migration/tests/workflow-plugin-migration.test.js"
+          ],
+          "truncated": false,
+          "changed": true
+        },
+        "permittedReevaluationCount": 1,
+        "attemptsBefore": 5,
+        "maxAttempts": 5,
+        "counterAfter": 4,
+        "recoveryCommand": "senti flow set retry reset review test --reason \"Spec-local tests changed after the three remaining blockers: external plugin provenance, linked issue prepare.post artifact, and broader forbidden prompt guidance scan were added.\" --yes",
+        "createdAt": "2026-06-11T07:32:11.291Z"
+      },
+      {
+        "id": "recovery-003",
+        "kind": "review",
+        "phase": "test",
+        "canonicalPhase": "test",
+        "reason": "Spec-local tests changed after the R11 stale-install blocker: enabled source, commit, and registry command path are tied to plugin-workspace.json.",
+        "changedEvidence": {
+          "sourceKind": "spec-tests",
+          "baselineHash": "50d4be7438696596b2e5a8f54893e23abd48866fb24d467307faa469bf2d8b25",
+          "currentHash": "51e3e776175d61e44cf93e0b82730f3f7c0437047e01fec038372b97dbc83f21",
+          "changedPaths": [
+            "specs/288-workflow-plugin-migration/tests/.raw/scenario-validity.log",
+            "specs/288-workflow-plugin-migration/tests/workflow-plugin-migration.test.js"
+          ],
+          "truncated": false,
+          "changed": true
+        },
+        "permittedReevaluationCount": 1,
+        "attemptsBefore": 5,
+        "maxAttempts": 5,
+        "counterAfter": 4,
+        "recoveryCommand": "senti flow set retry reset review test --reason \"Spec-local tests changed after the R11 stale-install blocker: enabled source, commit, and registry command path are tied to plugin-workspace.json.\" --yes",
+        "createdAt": "2026-06-11T07:33:42.444Z"
+      },
+      {
+        "id": "recovery-004",
+        "kind": "review",
+        "phase": "test",
+        "canonicalPhase": "test",
+        "reason": "Spec-local tests changed after R5 provider and R7 config/default/migration blocker fixes were added.",
+        "changedEvidence": {
+          "sourceKind": "spec-tests",
+          "baselineHash": "51e3e776175d61e44cf93e0b82730f3f7c0437047e01fec038372b97dbc83f21",
+          "currentHash": "8dffd082955e4af3f2b1667ebaa039e044e6bb00660ffc4a6e2f9ce43ad487fc",
+          "changedPaths": [
+            "specs/288-workflow-plugin-migration/tests/.raw/scenario-validity.log",
+            "specs/288-workflow-plugin-migration/tests/workflow-plugin-migration.test.js"
+          ],
+          "truncated": false,
+          "changed": true
+        },
+        "permittedReevaluationCount": 1,
+        "attemptsBefore": 5,
+        "maxAttempts": 5,
+        "counterAfter": 4,
+        "recoveryCommand": "senti flow set retry reset review test --reason \"Spec-local tests changed after R5 provider and R7 config/default/migration blocker fixes were added.\" --yes",
+        "createdAt": "2026-06-11T07:36:27.410Z"
+      },
+      {
+        "id": "recovery-005",
+        "kind": "gate",
+        "phase": "integration",
+        "canonicalPhase": "integration",
+        "reason": "changed evidence after exposing workflow plugin source files in the outer diff, refreshing test artifacts, and narrowing R12 evidence to persistent upgrade-not-required data",
+        "changedEvidence": {
+          "sourceKind": "implementation-and-test-artifacts",
+          "baselineHash": "53cf1126ee59296f12c0fce036d5b0cc2c780ac6c01e693f3769a7a8ea6f1b5b",
+          "currentHash": "99a8e27bc5229810fdbc7467ba7fba5d47fc4bf32eb761ed1f2eab05522edb11",
+          "changedPaths": [
+            "specs/288-workflow-plugin-migration/test-execute-result.json",
+            "specs/288-workflow-plugin-migration/test-result-review.json",
+            "src/AGENTS.md",
+            "src/flow/lib/run-finalize-cleanup.js",
+            "src/flow/lib/run-prepare-spec.js",
+            "src/flow/prompts/plan/draft.md",
+            "src/lib/agent-defaults.js",
+            "src/lib/config.js",
+            "src/lib/official-plugins.js",
+            "src/lib/plugin-registry.js",
+            "src/lib/types.js",
+            "src/locale/en/ui.json",
+            "src/locale/ja/ui.json",
+            "src/official-plugins/senti-workflow-plugin/commands/workflow.js",
+            "src/official-plugins/senti-workflow-plugin/config.defaults.json",
+            "src/official-plugins/senti-workflow-plugin/config.schema.json",
+            "src/official-plugins/senti-workflow-plugin/hooks/issue-start.js",
+            "src/official-plugins/senti-workflow-plugin/plugin.json",
+            "src/official-plugins/senti-workflow-plugin/skills/senti.workflow/SKILL.md",
+            "src/plugin.js",
+            "src/upgrade.js",
+            "src/workflow/AGENTS.md",
+            "src/workflow/index.js",
+            "src/workflow/lib/base-command.js",
+            "src/workflow/lib/board-helpers.js",
+            "src/workflow/lib/category.js",
+            "src/workflow/lib/commands/add.js",
+            "src/workflow/lib/commands/issue-log-import.js",
+            "src/workflow/lib/commands/issue-start.js",
+            "src/workflow/lib/commands/list.js",
+            "src/workflow/lib/commands/publish.js",
+            "src/workflow/lib/commands/search.js",
+            "src/workflow/lib/commands/show.js",
+            "src/workflow/lib/commands/update.js",
+            "src/workflow/lib/config.js",
+            "src/workflow/lib/graphql.js",
+            "src/workflow/lib/hash.js",
+            "src/workflow/lib/validation.js",
+            "src/workflow/registry.js"
+          ],
+          "truncated": false,
+          "changed": true
+        },
+        "permittedReevaluationCount": 1,
+        "attemptsBefore": 5,
+        "maxAttempts": 5,
+        "counterAfter": 4,
+        "recoveryCommand": "senti flow set retry reset gate integration --reason \"changed evidence after exposing workflow plugin source files in the outer diff, refreshing test artifacts, and narrowing R12 evidence to persistent upgrade-not-required data\" --yes",
+        "createdAt": "2026-06-11T08:53:46.502Z"
+      },
+      {
+        "id": "recovery-006",
+        "kind": "gate",
+        "phase": "integration",
+        "canonicalPhase": "integration",
+        "reason": "changed evaluator profile for gate re-evaluation after repeated codex JSON parse failures with otherwise passing test artifacts",
+        "changedEvidence": {
+          "sourceKind": "implementation-and-test-artifacts",
+          "baselineHash": "53cf1126ee59296f12c0fce036d5b0cc2c780ac6c01e693f3769a7a8ea6f1b5b",
+          "currentHash": "99a8e27bc5229810fdbc7467ba7fba5d47fc4bf32eb761ed1f2eab05522edb11",
+          "changedPaths": [
+            "specs/288-workflow-plugin-migration/test-execute-result.json",
+            "specs/288-workflow-plugin-migration/test-result-review.json",
+            "src/AGENTS.md",
+            "src/flow/lib/run-finalize-cleanup.js",
+            "src/flow/lib/run-prepare-spec.js",
+            "src/flow/prompts/plan/draft.md",
+            "src/lib/agent-defaults.js",
+            "src/lib/config.js",
+            "src/lib/official-plugins.js",
+            "src/lib/plugin-registry.js",
+            "src/lib/types.js",
+            "src/locale/en/ui.json",
+            "src/locale/ja/ui.json",
+            "src/official-plugins/senti-workflow-plugin/commands/workflow.js",
+            "src/official-plugins/senti-workflow-plugin/config.defaults.json",
+            "src/official-plugins/senti-workflow-plugin/config.schema.json",
+            "src/official-plugins/senti-workflow-plugin/hooks/issue-start.js",
+            "src/official-plugins/senti-workflow-plugin/plugin.json",
+            "src/official-plugins/senti-workflow-plugin/skills/senti.workflow/SKILL.md",
+            "src/plugin.js",
+            "src/upgrade.js",
+            "src/workflow/AGENTS.md",
+            "src/workflow/index.js",
+            "src/workflow/lib/base-command.js",
+            "src/workflow/lib/board-helpers.js",
+            "src/workflow/lib/category.js",
+            "src/workflow/lib/commands/add.js",
+            "src/workflow/lib/commands/issue-log-import.js",
+            "src/workflow/lib/commands/issue-start.js",
+            "src/workflow/lib/commands/list.js",
+            "src/workflow/lib/commands/publish.js",
+            "src/workflow/lib/commands/search.js",
+            "src/workflow/lib/commands/show.js",
+            "src/workflow/lib/commands/update.js",
+            "src/workflow/lib/config.js",
+            "src/workflow/lib/graphql.js",
+            "src/workflow/lib/hash.js",
+            "src/workflow/lib/validation.js",
+            "src/workflow/registry.js"
+          ],
+          "truncated": false,
+          "changed": true
+        },
+        "permittedReevaluationCount": 1,
+        "attemptsBefore": 5,
+        "maxAttempts": 5,
+        "counterAfter": 4,
+        "recoveryCommand": "senti flow set retry reset gate integration --reason \"changed evaluator profile for gate re-evaluation after repeated codex JSON parse failures with otherwise passing test artifacts\" --yes",
+        "createdAt": "2026-06-11T08:55:33.117Z"
+      },
+      {
+        "id": "recovery-007",
+        "kind": "gate",
+        "phase": "integration",
+        "canonicalPhase": "integration",
+        "reason": "R11 evidence changed: plugin manifest records command and hook paths, plugin source hash was refreshed, and integration retry evidence now includes plugin implementation paths",
+        "changedEvidence": {
+          "sourceKind": "implementation-and-test-artifacts",
+          "baselineHash": "99a8e27bc5229810fdbc7467ba7fba5d47fc4bf32eb761ed1f2eab05522edb11",
+          "currentHash": "800cca18b07d756e8f9683abaccca2c8dd44493cfc12ebc772a70bd5c3f726d2",
+          "changedPaths": [
+            "specs/288-workflow-plugin-migration/test-execute-result.json",
+            "specs/288-workflow-plugin-migration/test-result-review.json",
+            "src/AGENTS.md",
+            "src/flow/lib/retry-recovery.js",
+            "src/flow/lib/run-finalize-cleanup.js",
+            "src/flow/lib/run-prepare-spec.js",
+            "src/flow/prompts/plan/draft.md",
+            "src/lib/agent-defaults.js",
+            "src/lib/config.js",
+            "src/lib/official-plugins.js",
+            "src/lib/plugin-registry.js",
+            "src/lib/types.js",
+            "src/locale/en/ui.json",
+            "src/locale/ja/ui.json",
+            "src/official-plugins/senti-workflow-plugin/commands/workflow.js",
+            "src/official-plugins/senti-workflow-plugin/config.defaults.json",
+            "src/official-plugins/senti-workflow-plugin/config.schema.json",
+            "src/official-plugins/senti-workflow-plugin/hooks/issue-start.js",
+            "src/official-plugins/senti-workflow-plugin/plugin.json",
+            "src/official-plugins/senti-workflow-plugin/skills/senti.workflow/SKILL.md",
+            "src/plugin.js",
+            "src/upgrade.js",
+            "src/workflow/AGENTS.md",
+            "src/workflow/index.js",
+            "src/workflow/lib/base-command.js",
+            "src/workflow/lib/board-helpers.js",
+            "src/workflow/lib/category.js",
+            "src/workflow/lib/commands/add.js",
+            "src/workflow/lib/commands/issue-log-import.js",
+            "src/workflow/lib/commands/issue-start.js",
+            "src/workflow/lib/commands/list.js",
+            "src/workflow/lib/commands/publish.js",
+            "src/workflow/lib/commands/search.js",
+            "src/workflow/lib/commands/show.js",
+            "src/workflow/lib/commands/update.js",
+            "src/workflow/lib/config.js",
+            "src/workflow/lib/graphql.js",
+            "src/workflow/lib/hash.js",
+            "src/workflow/lib/validation.js",
+            "src/workflow/registry.js"
+          ],
+          "truncated": false,
+          "changed": true
+        },
+        "permittedReevaluationCount": 1,
+        "attemptsBefore": 5,
+        "maxAttempts": 5,
+        "counterAfter": 4,
+        "recoveryCommand": "senti flow set retry reset gate integration --reason \"R11 evidence changed: plugin manifest records command and hook paths, plugin source hash was refreshed, and integration retry evidence now includes plugin implementation paths\" --yes",
+        "createdAt": "2026-06-11T09:09:30.526Z"
+      },
+      {
+        "id": "recovery-008",
+        "kind": "gate",
+        "phase": "integration",
+        "canonicalPhase": "integration",
+        "reason": "Gate duplication findings fixed by extracting shared workflow plugin context helpers and refreshing test artifacts",
+        "changedEvidence": {
+          "sourceKind": "implementation-and-test-artifacts",
+          "baselineHash": "800cca18b07d756e8f9683abaccca2c8dd44493cfc12ebc772a70bd5c3f726d2",
+          "currentHash": "e51184e70c564ec66c78d2a7fcd5ed80093c83ccbae49dc23129833a06280313",
+          "changedPaths": [
+            "specs/288-workflow-plugin-migration/test-execute-result.json",
+            "specs/288-workflow-plugin-migration/test-result-review.json",
+            "src/AGENTS.md",
+            "src/flow/lib/retry-recovery.js",
+            "src/flow/lib/run-finalize-cleanup.js",
+            "src/flow/lib/run-prepare-spec.js",
+            "src/flow/prompts/plan/draft.md",
+            "src/lib/agent-defaults.js",
+            "src/lib/config.js",
+            "src/lib/official-plugins.js",
+            "src/lib/plugin-registry.js",
+            "src/lib/types.js",
+            "src/locale/en/ui.json",
+            "src/locale/ja/ui.json",
+            "src/official-plugins/senti-workflow-plugin/commands/workflow.js",
+            "src/official-plugins/senti-workflow-plugin/config.defaults.json",
+            "src/official-plugins/senti-workflow-plugin/config.schema.json",
+            "src/official-plugins/senti-workflow-plugin/hooks/issue-start.js",
+            "src/official-plugins/senti-workflow-plugin/plugin.json",
+            "src/official-plugins/senti-workflow-plugin/skills/senti.workflow/SKILL.md",
+            "src/plugin.js",
+            "src/upgrade.js",
+            "src/workflow/AGENTS.md",
+            "src/workflow/index.js",
+            "src/workflow/lib/base-command.js",
+            "src/workflow/lib/board-helpers.js",
+            "src/workflow/lib/category.js",
+            "src/workflow/lib/commands/add.js",
+            "src/workflow/lib/commands/issue-log-import.js",
+            "src/workflow/lib/commands/issue-start.js",
+            "src/workflow/lib/commands/list.js",
+            "src/workflow/lib/commands/publish.js",
+            "src/workflow/lib/commands/search.js",
+            "src/workflow/lib/commands/show.js",
+            "src/workflow/lib/commands/update.js",
+            "src/workflow/lib/config.js",
+            "src/workflow/lib/graphql.js",
+            "src/workflow/lib/hash.js",
+            "src/workflow/lib/validation.js",
+            "src/workflow/registry.js"
+          ],
+          "truncated": false,
+          "changed": true
+        },
+        "permittedReevaluationCount": 1,
+        "attemptsBefore": 5,
+        "maxAttempts": 5,
+        "counterAfter": 4,
+        "recoveryCommand": "senti flow set retry reset gate integration --reason \"Gate duplication findings fixed by extracting shared workflow plugin context helpers and refreshing test artifacts\" --yes",
+        "createdAt": "2026-06-11T09:15:59.470Z"
+      },
+      {
+        "id": "recovery-009",
+        "kind": "gate",
+        "phase": "integration",
+        "canonicalPhase": "integration",
+        "reason": "Gate validation duplication findings fixed by removing repeated board service assertions and refreshing test artifacts",
+        "changedEvidence": {
+          "sourceKind": "implementation-and-test-artifacts",
+          "baselineHash": "e51184e70c564ec66c78d2a7fcd5ed80093c83ccbae49dc23129833a06280313",
+          "currentHash": "ce387f58b0486228aed3a7ff67d011901204c507e3fb55eee6734296e65de000",
+          "changedPaths": [
+            "specs/288-workflow-plugin-migration/test-execute-result.json",
+            "specs/288-workflow-plugin-migration/test-result-review.json",
+            "src/AGENTS.md",
+            "src/flow/lib/retry-recovery.js",
+            "src/flow/lib/run-finalize-cleanup.js",
+            "src/flow/lib/run-prepare-spec.js",
+            "src/flow/prompts/plan/draft.md",
+            "src/lib/agent-defaults.js",
+            "src/lib/config.js",
+            "src/lib/official-plugins.js",
+            "src/lib/plugin-registry.js",
+            "src/lib/types.js",
+            "src/locale/en/ui.json",
+            "src/locale/ja/ui.json",
+            "src/official-plugins/senti-workflow-plugin/commands/workflow.js",
+            "src/official-plugins/senti-workflow-plugin/config.defaults.json",
+            "src/official-plugins/senti-workflow-plugin/config.schema.json",
+            "src/official-plugins/senti-workflow-plugin/hooks/issue-start.js",
+            "src/official-plugins/senti-workflow-plugin/plugin.json",
+            "src/official-plugins/senti-workflow-plugin/skills/senti.workflow/SKILL.md",
+            "src/plugin.js",
+            "src/upgrade.js",
+            "src/workflow/AGENTS.md",
+            "src/workflow/index.js",
+            "src/workflow/lib/base-command.js",
+            "src/workflow/lib/board-helpers.js",
+            "src/workflow/lib/category.js",
+            "src/workflow/lib/commands/add.js",
+            "src/workflow/lib/commands/issue-log-import.js",
+            "src/workflow/lib/commands/issue-start.js",
+            "src/workflow/lib/commands/list.js",
+            "src/workflow/lib/commands/publish.js",
+            "src/workflow/lib/commands/search.js",
+            "src/workflow/lib/commands/show.js",
+            "src/workflow/lib/commands/update.js",
+            "src/workflow/lib/config.js",
+            "src/workflow/lib/graphql.js",
+            "src/workflow/lib/hash.js",
+            "src/workflow/lib/validation.js",
+            "src/workflow/registry.js"
+          ],
+          "truncated": false,
+          "changed": true
+        },
+        "permittedReevaluationCount": 1,
+        "attemptsBefore": 5,
+        "maxAttempts": 5,
+        "counterAfter": 4,
+        "recoveryCommand": "senti flow set retry reset gate integration --reason \"Gate validation duplication findings fixed by removing repeated board service assertions and refreshing test artifacts\" --yes",
+        "createdAt": "2026-06-11T09:21:32.097Z"
+      },
+      {
+        "id": "recovery-010",
+        "kind": "gate",
+        "phase": "integration",
+        "canonicalPhase": "integration",
+        "reason": "Gate proxy/delegation duplication fixes and integration recovery evidence update are reflected in refreshed test artifacts",
+        "changedEvidence": {
+          "sourceKind": "implementation-and-test-artifacts",
+          "baselineHash": "ce387f58b0486228aed3a7ff67d011901204c507e3fb55eee6734296e65de000",
+          "currentHash": "1190d0e7baf2873be414a4cc8be94384ad38184401d164ad5ba7327b9c3e035e",
+          "changedPaths": [
+            "specs/288-workflow-plugin-migration/test-execute-result.json",
+            "specs/288-workflow-plugin-migration/test-result-review.json",
+            "src/AGENTS.md",
+            "src/flow/lib/retry-recovery.js",
+            "src/flow/lib/run-finalize-cleanup.js",
+            "src/flow/lib/run-prepare-spec.js",
+            "src/flow/prompts/plan/draft.md",
+            "src/lib/agent-defaults.js",
+            "src/lib/config.js",
+            "src/lib/official-plugins.js",
+            "src/lib/plugin-registry.js",
+            "src/lib/types.js",
+            "src/locale/en/ui.json",
+            "src/locale/ja/ui.json",
+            "src/official-plugins/senti-workflow-plugin/commands/workflow.js",
+            "src/official-plugins/senti-workflow-plugin/config.defaults.json",
+            "src/official-plugins/senti-workflow-plugin/config.schema.json",
+            "src/official-plugins/senti-workflow-plugin/hooks/issue-start.js",
+            "src/official-plugins/senti-workflow-plugin/plugin.json",
+            "src/official-plugins/senti-workflow-plugin/skills/senti.workflow/SKILL.md",
+            "src/plugin.js",
+            "src/upgrade.js",
+            "src/workflow/AGENTS.md",
+            "src/workflow/index.js",
+            "src/workflow/lib/base-command.js",
+            "src/workflow/lib/board-helpers.js",
+            "src/workflow/lib/category.js",
+            "src/workflow/lib/commands/add.js",
+            "src/workflow/lib/commands/issue-log-import.js",
+            "src/workflow/lib/commands/issue-start.js",
+            "src/workflow/lib/commands/list.js",
+            "src/workflow/lib/commands/publish.js",
+            "src/workflow/lib/commands/search.js",
+            "src/workflow/lib/commands/show.js",
+            "src/workflow/lib/commands/update.js",
+            "src/workflow/lib/config.js",
+            "src/workflow/lib/graphql.js",
+            "src/workflow/lib/hash.js",
+            "src/workflow/lib/validation.js",
+            "src/workflow/registry.js"
+          ],
+          "truncated": false,
+          "changed": true
+        },
+        "permittedReevaluationCount": 1,
+        "attemptsBefore": 5,
+        "maxAttempts": 5,
+        "counterAfter": 4,
+        "recoveryCommand": "senti flow set retry reset gate integration --reason \"Gate proxy/delegation duplication fixes and integration recovery evidence update are reflected in refreshed test artifacts\" --yes",
+        "createdAt": "2026-06-11T09:33:17.886Z"
+      },
+      {
+        "id": "recovery-011",
+        "kind": "gate",
+        "phase": "integration",
+        "canonicalPhase": "integration",
+        "reason": "Gate plugin registry duplicate source detection fixed by passing resolved materialized state and refreshing test artifacts",
+        "changedEvidence": {
+          "sourceKind": "implementation-and-test-artifacts",
+          "baselineHash": "1190d0e7baf2873be414a4cc8be94384ad38184401d164ad5ba7327b9c3e035e",
+          "currentHash": "d93625b00ccd535c84bc9ad3323fe4082a3104cd0ecfc67593d554c5486f2c5a",
+          "changedPaths": [
+            "specs/288-workflow-plugin-migration/test-execute-result.json",
+            "specs/288-workflow-plugin-migration/test-result-review.json",
+            "src/AGENTS.md",
+            "src/flow/lib/retry-recovery.js",
+            "src/flow/lib/run-finalize-cleanup.js",
+            "src/flow/lib/run-prepare-spec.js",
+            "src/flow/prompts/plan/draft.md",
+            "src/lib/agent-defaults.js",
+            "src/lib/config.js",
+            "src/lib/official-plugins.js",
+            "src/lib/plugin-registry.js",
+            "src/lib/types.js",
+            "src/locale/en/ui.json",
+            "src/locale/ja/ui.json",
+            "src/official-plugins/senti-workflow-plugin/commands/workflow.js",
+            "src/official-plugins/senti-workflow-plugin/config.defaults.json",
+            "src/official-plugins/senti-workflow-plugin/config.schema.json",
+            "src/official-plugins/senti-workflow-plugin/hooks/issue-start.js",
+            "src/official-plugins/senti-workflow-plugin/plugin.json",
+            "src/official-plugins/senti-workflow-plugin/skills/senti.workflow/SKILL.md",
+            "src/plugin.js",
+            "src/upgrade.js",
+            "src/workflow/AGENTS.md",
+            "src/workflow/index.js",
+            "src/workflow/lib/base-command.js",
+            "src/workflow/lib/board-helpers.js",
+            "src/workflow/lib/category.js",
+            "src/workflow/lib/commands/add.js",
+            "src/workflow/lib/commands/issue-log-import.js",
+            "src/workflow/lib/commands/issue-start.js",
+            "src/workflow/lib/commands/list.js",
+            "src/workflow/lib/commands/publish.js",
+            "src/workflow/lib/commands/search.js",
+            "src/workflow/lib/commands/show.js",
+            "src/workflow/lib/commands/update.js",
+            "src/workflow/lib/config.js",
+            "src/workflow/lib/graphql.js",
+            "src/workflow/lib/hash.js",
+            "src/workflow/lib/validation.js",
+            "src/workflow/registry.js"
+          ],
+          "truncated": false,
+          "changed": true
+        },
+        "permittedReevaluationCount": 1,
+        "attemptsBefore": 5,
+        "maxAttempts": 5,
+        "counterAfter": 4,
+        "recoveryCommand": "senti flow set retry reset gate integration --reason \"Gate plugin registry duplicate source detection fixed by passing resolved materialized state and refreshing test artifacts\" --yes",
+        "createdAt": "2026-06-11T09:40:44.245Z"
+      }
+    ]
+  },
+  "state": {
+    "finalizedAt": "2026-06-11T10:00:56.463Z"
+  }
+}

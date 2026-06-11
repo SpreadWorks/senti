@@ -1,0 +1,78 @@
+{
+  "spec": "specs/288-workflow-plugin-migration/spec.json",
+  "date": "2026-06-11T09:43:04.624Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Prepare the external workflow plugin repository under the active flow worktree and perform plugin-side implementation and verification from that in-boundary location.",
+      "status": "done",
+      "note": "R1: external workflow plugin workspace is recorded inside the active flow worktree"
+    },
+    {
+      "desc": "The workflow plugin must own the `senti workflow` top-level command and existing add, update, show, search, list, publish, and ideas behavior without importing core src/workflow modules or relying on a bundled compatibility copy. Each user-facing argument and option must be validated at the plugin command entry point according to the validation contract in clarifications.",
+      "status": "done",
+      "note": "R2: workflow command validates every public subcommand before routing to plugin services"
+    },
+    {
+      "desc": "The workflow plugin must provide plugin-owned services shared by commands and hooks for board item operations, issue publishing, issue-start behavior, and board idea candidate extraction.",
+      "status": "done",
+      "note": "R3: workflow plugin exposes real shared service modules for command and hook use"
+    },
+    {
+      "desc": "The workflow plugin must provide prepare.post and finalize-cleanup.post hooks for flow integration. Generic core lifecycle must run prepare.post with the newly written flow state including hook snapshot, spec path, runId, and linked issue, and must run finalize-cleanup.post while a durable spec/issue-log/artifact path is available. Hook business failures such as board config missing, gh failure, or AI refinement failure must produce warnings, issue-log entries, or follow-ups without failing the main flow command.",
+      "status": "done",
+      "note": "R4: generic flow hook lifecycle passes durable flow context and records non-fatal warnings"
+    },
+    {
+      "desc": "Workflow plugin AI call sites for publish, idea candidate classification, similarity, and composition must resolve provider/profile overrides from plugin.config.workflow.agent.<name> and otherwise use a workflow-neutral public plugin agent API/context that exposes generic agent resolve/call capability and needed root config values such as lang.",
+      "status": "done",
+      "note": "R5: workflow plugin agent adapter resolves publish and ideas overrides through public context"
+    },
+    {
+      "desc": "Core must remove workflow-owned runtime implementation and bundled workflow compatibility artifacts, including src/workflow and src/official-plugins/senti-workflow-plugin, after their behavior is available from the external plugin.",
+      "status": "done",
+      "note": "R6: core workflow runtime and bundled workflow compatibility copy are removed"
+    },
+    {
+      "desc": "Core must remove workflow-specific config schema/defaults/migration, workflow.publish default agent profile entries, official workflow bootstrap special-cases, and workflow-specific help/locale entries, while preserving generic plugin and preset behavior.",
+      "status": "done",
+      "note": "R7: core has no workflow-specific config, bootstrap, help, locale, or agent defaults"
+    },
+    {
+      "desc": "Core flow prompt and skill source must stop hardcoding workflow board integration, issue-start, issue-log-import, workflow add, or workflow.flowIntegration instructions. Equivalent behavior must be provided through workflow plugin hooks and plugin-owned follow-up text.",
+      "status": "done",
+      "note": "R8: core flow prompts and skills do not hardcode workflow integration commands"
+    },
+    {
+      "desc": "Public workflow subcommands issue-start and issue-log-import must be removed without compatibility aliases. The migration plan must replace issue-start with prepare.post hook behavior and issue-log-import with the ideas command and updated skill/help guidance.",
+      "status": "done",
+      "note": "R9: removed workflow subcommands fail before any service call and ideas remains public"
+    },
+    {
+      "desc": "Core tests must not contain workflow-specific feature fixtures or expectations after migration. Core may keep generic plugin contract tests using non-workflow sample plugins, and workflow behavior tests must live with the workflow plugin.",
+      "status": "done",
+      "note": "R10: core tests use generic plugin fixtures instead of workflow feature expectations"
+    },
+    {
+      "desc": "The migrated workflow plugin must be installable/enabled for this repository from the external plugin repository and provide a smoke-verifiable `senti workflow` command plus flow hook behavior.",
+      "status": "done",
+      "note": "R11: external workflow plugin is enabled, discoverable, and smoke-runnable"
+    },
+    {
+      "desc": "If migration changes src/skills, src/presets, source templates, or deployed skill artifacts, the implementation must run senti upgrade and include evidence that generated artifacts match source changes.",
+      "status": "done",
+      "note": "R12: changed skills and templates have upgrade evidence"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 12,
+    "done": 12,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

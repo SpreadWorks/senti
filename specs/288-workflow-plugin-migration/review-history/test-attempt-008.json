@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-11T07:35:42.069Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "advisory": 1,
+    "total": 3
+  },
+  "coverageArtifact": "specs/288-workflow-plugin-migration/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Provider override assertions are missing",
+      "target": "specs/288-workflow-plugin-migration/tests/workflow-plugin-migration.test.js R5: workflow plugin agent adapter resolves publish and ideas overrides through public context",
+      "issue": "The configured-provider case only asserts call.options.provider equals resolve.options.provider. If the implementation ignores plugin.config.workflow.agent.<name>.provider entirely, both values can be undefined and the test still passes.",
+      "requiredChange": "Assert the expected configured provider for each workflow agent name on the resolve call and the eventual call options, for example publish => codex/gpt-5.4, classify => claude/haiku, similarity => codex/gpt-5.4-mini, compose => claude/sonnet.",
+      "whyBlocking": "R5 explicitly requires provider/profile overrides from plugin.config.workflow.agent.<name>; profile is covered, but provider override behavior has no effective regression test."
+    },
+    {
+      "kind": "blocking",
+      "title": "Workflow config removal coverage is too narrow",
+      "target": "specs/288-workflow-plugin-migration/tests/workflow-plugin-migration.test.js R7: core has no workflow-specific config, bootstrap, help, locale, or agent defaults",
+      "issue": "The R7 regex only catches workflow config objects when they appear after CONFIG_SCHEMA, plus a few specific strings. Core could still retain workflow defaults or migrations in another config/default/migration module using keys like workflow: {...} or \"workflow\" without matching this test.",
+      "requiredChange": "Add targeted assertions over core config/default/migration files that reject workflow-specific config keys/defaults/migrations and workflow agent default entries regardless of the surrounding symbol name.",
+      "whyBlocking": "R7 requires removing workflow-specific config schema/defaults/migration and default agent profiles; the current test can pass while those artifacts remain."
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Upgrade evidence check is shallow",
+      "target": "specs/288-workflow-plugin-migration/tests/workflow-plugin-migration.test.js R12: changed skills and templates have upgrade evidence",
+      "improvement": "When source skills or presets change, compare generated deployed skill artifacts against source expectations or inspect upgrade-result.json content instead of only checking that an evidence file or log exists.",
+      "whyNonBlocking": "R12 is a should-level requirement and the existing test still catches absence of upgrade evidence, but it does not prove generated artifacts match the changed sources."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/288-workflow-plugin-migration/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "c834fde26f654298ea26daace64f100e7669713490b31c5bf4ab516b401f4b8b"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 8,
+  "findings": [
+    {
+      "id": "test-008-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 8,
+      "severity": "blocking",
+      "title": "Provider override assertions are missing",
+      "body": "The configured-provider case only asserts call.options.provider equals resolve.options.provider. If the implementation ignores plugin.config.workflow.agent.<name>.provider entirely, both values can be undefined and the test still passes.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-008-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 8,
+      "severity": "blocking",
+      "title": "Workflow config removal coverage is too narrow",
+      "body": "The R7 regex only catches workflow config objects when they appear after CONFIG_SCHEMA, plus a few specific strings. Core could still retain workflow defaults or migrations in another config/default/migration module using keys like workflow: {...} or \"workflow\" without matching this test.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-008-non-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 8,
+      "severity": "non-blocking",
+      "title": "Upgrade evidence check is shallow",
+      "body": "Upgrade evidence check is shallow",
+      "category": "unknown"
+    }
+  ]
+}

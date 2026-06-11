@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-11T07:08:53.689Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 1,
+    "total": 2
+  },
+  "coverageArtifact": "specs/288-workflow-plugin-migration/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R2 option validation is only sampled, not exhaustive",
+      "target": "specs/288-workflow-plugin-migration/tests/workflow-plugin-migration.test.js R2 test",
+      "issue": "The requirement says each user-facing argument and option for add, update, show, search, list, publish, and ideas must be validated at the plugin command entry point, but the test only covers a small set of representative options such as status, category, body, label, and spec. It does not assert the complete public option surface or fail on unvalidated supported options outside this sample.",
+      "requiredChange": "Add spec-local coverage that enumerates the full intended public argument/option surface for every workflow subcommand and verifies valid and invalid values fail before service routing for each user-facing option.",
+      "whyBlocking": "This leaves a must requirement without corresponding coverage; an implementation could omit validation for an existing public option and still pass these tests."
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R1 verification evidence is indirect",
+      "target": "specs/288-workflow-plugin-migration/tests/workflow-plugin-migration.test.js R1 test",
+      "improvement": "Consider checking for plugin-local verification evidence or plugin-owned test execution from the recorded external plugin workspace, not only plugin.json presence and a syntax check for commands/workflow.js.",
+      "whyNonBlocking": "The current test does verify the in-boundary workspace and runnable command syntax, so it provides useful coverage; stronger evidence would better match the wording about plugin-side verification."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/288-workflow-plugin-migration/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "1d5fb337c18dbc8a7ef741abc7a6a3c00120c5d21c98e3f9f67af98c9927773b"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 5,
+  "findings": [
+    {
+      "id": "test-005-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "R2 option validation is only sampled, not exhaustive",
+      "body": "The requirement says each user-facing argument and option for add, update, show, search, list, publish, and ideas must be validated at the plugin command entry point, but the test only covers a small set of representative options such as status, category, body, label, and spec. It does not assert the complete public option surface or fail on unvalidated supported options outside this sample.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-005-non-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "non-blocking",
+      "title": "R1 verification evidence is indirect",
+      "body": "R1 verification evidence is indirect",
+      "category": "unknown"
+    }
+  ]
+}

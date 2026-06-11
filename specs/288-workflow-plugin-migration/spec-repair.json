@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied three spec review repairs: prepare.post live flow context, finalize-cleanup durable artifact/follow-up data path, and public plugin agent API/context.",
+  "items": [
+    {
+      "title": "Prepare hook has no live flow context",
+      "target": "R4 / AC5 / src/flow/registry.js prepare.post",
+      "decision": "applied",
+      "rationale": "Updated the spec to require prepare.post lifecycle execution after prepare writes flow.json, with newly created flow state including hook snapshot, spec path, runId, and linked issue.",
+      "evidence": "spec.json requirements R4, data_flow prepare.post entry, AC16, and T-3 acceptance now cover the required live flow context.",
+      "changedFields": [
+        "overview.data_flow",
+        "requirements[R4].desc",
+        "acceptance_criteria[AC16]",
+        "clarifications",
+        "tasks[T-3].acceptance"
+      ]
+    },
+    {
+      "title": "Finalize hook has no successful-output or artifact path",
+      "target": "R4 / Design Principles / src/lib/plugin-registry.js runFlowCommandHooks and src/flow/lib/run-finalize-cleanup.js",
+      "decision": "applied",
+      "rationale": "Updated the spec to require finalize-cleanup.post execution while durable spec/issue-log/artifact paths are available and to aggregate successful hook followUps/data into the finalize-cleanup result without schema interpretation.",
+      "evidence": "spec.json design_principles, data_flow finalize-cleanup entry, requirements R4, AC17, clarifications, and T-3 acceptance now cover the data path.",
+      "changedFields": [
+        "design_principles",
+        "overview.data_flow",
+        "requirements[R4].desc",
+        "acceptance_criteria[AC17]",
+        "clarifications",
+        "tasks[T-3].acceptance"
+      ]
+    },
+    {
+      "title": "Plugin AI fallback lacks a public integration point",
+      "target": "R5 / plugin command and hook context",
+      "decision": "applied",
+      "rationale": "Updated the spec to require a workflow-neutral public plugin agent API/context exposing generic agent resolve/call capability and needed root config values such as lang.",
+      "evidence": "spec.json data_flow plugin context entry, requirements R5, AC18, clarifications, and T-4 acceptance now cover the public integration point.",
+      "changedFields": [
+        "overview.data_flow",
+        "requirements[R5].desc",
+        "acceptance_criteria[AC18]",
+        "clarifications",
+        "tasks[T-4].acceptance"
+      ]
+    }
+  ]
+}

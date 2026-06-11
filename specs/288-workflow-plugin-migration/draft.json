@@ -1,0 +1,135 @@
+{
+  "devType": "refactor",
+  "goal": "Issue #375: migrate the workflow feature out of the core senti package into the external workflow plugin repository, while preserving the user-facing senti workflow command behavior and removing core-owned workflow-specific implementation.",
+  "analysis": {
+    "problem": "The core package still owns workflow runtime code, tests, config shape, bundled compatibility plugin code, prompt and skill integration text, and GitHub Projects behavior. The existing workflow plugin command is only a shim that imports core src/workflow/index.js, so the plugin is not independently owning the feature.",
+    "proposedApproach": "Treat the request as a migration rather than a redesign: move existing workflow command, hook, skill, board, GitHub Projects, AI-assisted publish/classify/compose, and ideas follow-up behavior into the workflow plugin, then remove workflow-specific ownership and bootstrap special cases from core. Core changes should stay generic to plugin command, hook, config, agent, and help contracts.",
+    "validation": "The issue directly identifies the root cause as core-owned workflow implementation and hardcoded flow integration. Context search confirmed core files under src/workflow, bundled plugin shim files under src/official-plugins/senti-workflow-plugin, core upgrade/bootstrap special handling, top-level workflow config validation, workflow agent defaults, flow prompt text, and workflow-specific tests."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Fact: src/workflow/index.js is the current dispatcher for senti workflow subcommands and loads WORKFLOW_COMMANDS from src/workflow/registry.js.",
+      "Fact: src/official-plugins/senti-workflow-plugin/commands/workflow.js is a shim that imports the core workflow implementation instead of owning command logic in the plugin.",
+      "Fact: src/flow/prompts/plan/draft.md still contains hardcoded workflow.flowIntegration and senti workflow issue-start instructions.",
+      "Fact: .senti/config.json still contains top-level workflow language settings and plugin.config.workflow.flowIntegration, and agent profiles contain workflow.publish entries.",
+      "Fact: tests include workflow-specific unit tests for validation, category, dispatcher, GraphQL option handling, issue-log import, config validation, and board candidate guidance."
+    ],
+    "decisionPoints": [
+      "must prepare the external workflow plugin repository inside this active flow worktree before modifying or verifying plugin-side changes.",
+      "must use semantic completion for core removal: remove workflow-feature ownership while preserving unrelated generic uses such as Spec-Driven Development workflow and GitHub Actions workflow.",
+      "must allow workflow-neutral generic plugin command/hook/config/agent foundation changes in core when required to complete the migration."
+    ],
+    "resolvedByProjectRules": [
+      "must keep Issue #375 as one spec concern because the user invoked senti.flow for that Issue and the flow guardrail forbids AI-driven issue splitting.",
+      "must not add external npm dependencies; core and plugin implementation should use Node.js built-in modules and existing project infrastructure.",
+      "must model meaningful values and contracts with classes where new structural constraints are introduced, because the project avoids TypeScript and relies on OOP for type expression.",
+      "must run senti upgrade if src/skills, src/presets, or templates are changed so deployed skills and generated project instructions reflect source changes.",
+      "must treat source code as authoritative if docs disagree, because docs may be generated and were slightly older than src at flow start."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must define concrete core removal targets, plugin migration targets, and verification commands in spec requirements and tasks.",
+      "must include a CLI migration plan for removed public issue-start and issue-log-import subcommands: issue-start behavior moves to prepare.post hook, issue-log-import user-facing behavior moves to ideas, skill/help/prompt guidance stops documenting the removed subcommands, and removed invocations receive normal unknown subcommand behavior.",
+      "must define test coverage split: workflow behavior tests move to the plugin repo, while core keeps only generic plugin contract tests using non-workflow fixtures.",
+      "must define post-finalize follow-up behavior as plugin-owned data surfaced by core without core interpreting workflow-specific schema."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must migrate existing workflow command behavior, board operations, publish behavior, ideas candidate extraction, GitHub Projects access, workflow skill, and flow prepare/finalize integration into the workflow plugin.",
+      "must remove core-owned workflow runtime code, bundled workflow plugin compatibility copy, workflow-specific config schema/defaults/migration, workflow-specific agent defaults, bootstrap special-cases, prompt/skill hardcoding, and workflow-specific tests.",
+      "must keep the user-facing command name senti workflow, provided by the plugin rather than by core.",
+      "must preserve existing workflow features unless Issue #375 explicitly requests deletion or behavior change.",
+      "must verify the external workflow plugin can be installed/enabled for this repository after the core-owned implementation is removed."
+    ],
+    "out": [
+      "must not redesign GitHub Projects access, replace the gh CLI or GraphQL implementation style, or introduce a new GitHub API client.",
+      "must not add automatic migration from top-level workflow config to plugin.config.workflow.",
+      "must not preserve compatibility aliases for removed issue-start or issue-log-import public subcommands; migration guidance must instead document prepare.post hook behavior for issue-start and ideas command behavior for issue-log-import replacement.",
+      "must not introduce workflow-specific public APIs in core.",
+      "must not remove historical specs, docs, generated artifacts, reports, retrospectives, issue logs, or .github/workflows convention paths solely because they contain the word workflow."
+    ]
+  },
+  "impactOnExisting": [
+    "must affect the senti workflow CLI surface by moving ownership from core to plugin while preserving the top-level command name.",
+    "must affect config validation because top-level workflow config becomes invalid and workflow plugin settings move under plugin.config.workflow.",
+    "must affect flow prepare/finalize integration because workflow-specific behavior should run through plugin hooks rather than prompt text or skill instructions.",
+    "must affect tests by deleting or moving workflow-specific core tests and adding generic plugin contract tests where core behavior remains.",
+    "should affect help and locale output so workflow-specific descriptions come from plugin metadata rather than core locale strings.",
+    "should affect package contents by removing the bundled workflow plugin copy while retaining non-workflow official preset plugin behavior."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "外部 workflow plugin repository は active flow の core worktree 外にあります。実装時は、plugin repo をこの flow の作業境界内に一時 clone/worktree として用意して変更・検証する方針でよいですか。作業境界とは、flow 中に安全に読み書きしてよいディレクトリ範囲のことです。",
+      "answer": "ユーザー回答により、must: plugin repo は active flow worktree 配下に一時 clone/worktree として用意し、その境界内で変更・検証する。",
+      "evidence": "User selected option 1 in draft-refine q1. Flow status reports worktree true with worktree path /home/nakano/workspace/senti/.senti/worktree/feature-288-workflow-plugin-migration.",
+      "why": "active flow の worktree boundary を守りつつ、Issue #375 の plugin repo 側への完全移行を実装・検証するため。",
+      "considered": "外部 repo を直接変更する案は active flow の worktree boundary に反する。core 側だけ進める案は plugin repo 側への完全移行を満たさない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "core 側の完了条件は、active runtime/source/test/package/current config から workflow feature 固有の実装・文言を消す semantic 判定でよいですか。semantic 判定とは、Spec-Driven Development workflow や GitHub Actions workflow のような一般語としての workflow は残せる、という意味です。",
+      "answer": "must: core 側の完了条件は semantic 判定にする。workflow feature 固有の実装・文言は削除するが、Spec-Driven Development workflow や GitHub Actions workflow のような一般語・外部 convention は対象外にする。",
+      "evidence": "Issue #375 states that specs, docs, past reports, issue-log, retro, generated artifacts, history artifacts, and .github/workflows are out of scope. rg found generic workflow wording in flow and GitHub Actions preset areas as well as workflow feature-specific files.",
+      "why": "literal token removal would conflict with the Issue's explicit exceptions and with generic project terminology unrelated to the workflow plugin feature.",
+      "considered": "literal removal of every workflow token was rejected because it would require changing unrelated Spec-Driven Development and GitHub Actions wording.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "移行中に generic plugin command/hook/config/agent API の不足が見つかった場合、この Issue の範囲で core 側に workflow 非依存の基盤拡張を追加してよいですか。generic plugin API とは、特定 plugin 名を知らずに command、hook、config、agent 実行を扱う core 側の共通契約です。",
+      "answer": "must: migration completionに必要な場合は、core 側に workflow 非依存の generic plugin foundation changes を追加してよい。ただし core は workflow 固有用途名や workflow subcommand を解釈しない。",
+      "evidence": "Issue #375 says the migration should use plugin command / hook / config / agent APIs from the 1/3 foundation and lists generic contract expectations such as Envelope-compatible plugin returns, hook snapshot consistency, command metadata/help, and generic agent run API.",
+      "why": "workflow plugin が core 実装を import しない形で単体動作するには、既存 generic plugin contracts が不足していれば core 側の非 workflow 基盤整備が必要になるため。",
+      "considered": "plugin 側だけで回避する案は core internal import や workflow 固有 shim を温存しやすく、Issue の core 依存削除に反する。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "削除予定の public subcommand issue-start と issue-log-import は、Issue #375 の明示方針どおり互換 alias や migration command を残さず unknown subcommand 扱いにしてよいですか。これは backward-compatible-cli-interface guardrail の意図的な例外になります。",
+      "answer": "must: issue-start と issue-log-import は後方互換 alias や migration command を残さず、完全移行後は unknown subcommand 扱いにする。migration plan として、issue-start 相当は prepare.post hook に移し、issue-log-import 相当の確認 UX は ideas command に置き換え、skill/help/prompt から旧 subcommand 案内を削除する。",
+      "evidence": "Issue #375 explicitly states that senti workflow issue-start and senti workflow issue-log-import are removed from public subcommands without backward compatibility and should behave as unknown subcommands after migration.",
+      "why": "alpha policy and Issue text both require no backward compatibility code for these removed workflow-specific public subcommands, while the CLI guardrail requires a migration plan for users who previously relied on them.",
+      "considered": "alias を残す案は CLI compatibility risk を下げるが、Issue の明示方針と alpha 版ポリシーに反する。migration plan なしで unknown subcommand にする案は guardrail を満たさない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "検証は、core では workflow 固有 fixture を使わない generic plugin contract tests、plugin repo では移行した workflow command/hook/service tests、最後にこの repo へ外部 plugin を install/enable する smoke verification、の 3 層でよいですか。",
+      "answer": "must: verification は 3 層にする。core では workflow 固有 fixture を使わない generic plugin contract tests、plugin repo では移行した workflow command/hook/service tests、最後にこの repo で外部 plugin install/enable smoke verification を実施する。",
+      "evidence": "Issue #375 says workflow-specific tests move to the plugin repo, core keeps only plugin command/hook/config/preset loader contract tests, and migration verification should reinstall/enable the external plugin repository.",
+      "why": "core から workflow 固有知識を削除しながら、plugin 側の機能保持と end-to-end integration を両方検証する必要があるため。",
+      "considered": "core に workflow behavior tests を残す案は removal target に反する。plugin repo tests だけにする案は core generic contract regression を検出しにくい。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q6",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "finalize 後の board idea 候補は、plugin hook が候補数と確認 command を follow-up として返し、core は workflow 固有 schema を解釈せず表示するだけ、というユーザー体験でよいですか。",
+      "answer": "must: finalize 後 follow-up は workflow plugin が候補数と確認 command を表示可能 data として返し、core は workflow 固有 schema を解釈せず flow result に載せるだけにする。",
+      "evidence": "Issue #375 states that finalize follow-up wording is the workflow plugin responsibility, core should not hold workflow-specific wording, and core may surface data.followUps-like values without strict workflow schema interpretation.",
+      "why": "workflow 固有 UX を plugin 側へ閉じ、core に workflow-specific schema や文言を残さないため。",
+      "considered": "core が候補 artifact schema を解釈して詳細表示する案は、core が workflow 固有仕様を持ち続けるため rejected。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-11T06:31:00.000Z",
+    "notes": "All draft QA entries are answered. The remaining work is spec writing and validation."
+  }
+}
