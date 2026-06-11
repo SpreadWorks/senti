@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied the spec-review repair by defining readJson as part of the spec-local flow hook artifact helper contract.",
+  "items": [
+    {
+      "title": "Spec-local artifact read path is omitted",
+      "target": "R4 / AC7 / T-4",
+      "decision": "applied",
+      "rationale": "R4, AC7, and T-4 now require readJson to use the same specs/<spec>/plugin-artifacts/<pluginId>/ root as writeJson/writeText and to preserve missing-file fallback behavior.",
+      "evidence": "spec.json requirements[R4].desc, acceptance_criteria[AC7], tasks[T-4].acceptance, and tasks[T-4].test_strategy now name readJson and fallback behavior.",
+      "changedFields": [
+        "requirements[3].desc",
+        "acceptance_criteria[6]",
+        "tasks[3].goal",
+        "tasks[3].acceptance",
+        "tasks[3].test_strategy"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "spec": "specs/287-fix-plugin-foundation-gaps/spec.json",
+  "date": "2026-06-11T03:56:03.396Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Hook discovery must reject installed plugin hook modules that import core internal project paths before dynamic import. Relative imports that stay within the plugin package remain allowed.",
+      "status": "done",
+      "note": "R1: hook discovery rejects core-internal imports before importing hooks"
+    },
+    {
+      "desc": "Snapshot hook execution must hard-fail when a snapshot entry references a disabled plugin, missing installed plugin, unresolved hook module, invalid register(api) export, invalid hook class, or mismatched className/command/hook/priority metadata.",
+      "status": "done",
+      "note": "R2: snapshot hooks hard-fail for disabled, removed, unresolved, and mismatched entries"
+    },
+    {
+      "desc": "Hook run business failures must remain non-blocking command warnings and issue-log candidates when the snapshot entry and hook metadata are valid.",
+      "status": "done",
+      "note": "R3: hook run business failures remain non-blocking warnings after valid snapshot checks"
+    },
+    {
+      "desc": "Flow hook artifact helpers must read JSON artifacts and write JSON/text artifacts under specs/<spec>/plugin-artifacts/<pluginId>/ for hooks executed with an active flow spec path. Missing files passed to readJson must preserve the existing fallback return behavior.",
+      "status": "done",
+      "note": "R4: flow hook artifacts read and write under the active spec directory"
+    },
+    {
+      "desc": "Spec-local tests under specs/287-fix-plugin-foundation-gaps/tests/ must cover R1 through R4 with requirement headers, and shared plugin foundation tests may be updated only to align with the corrected production contract.",
+      "status": "done",
+      "note": "R5: spec-local test coverage declares every testable requirement"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 5,
+    "done": 5,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

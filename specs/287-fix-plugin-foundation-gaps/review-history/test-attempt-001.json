@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-11T03:33:12.597Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 3,
+    "advisory": 0,
+    "total": 3
+  },
+  "coverageArtifact": "specs/287-fix-plugin-foundation-gaps/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R2 coverage omits required hard-fail cases",
+      "target": "specs/287-fix-plugin-foundation-gaps/tests/plugin-foundation-gaps.test.js R2 test and coverage artifact",
+      "issue": "The R2 test covers disabled plugin, missing installed plugin, unresolved module, and className mismatch, but does not cover invalid register(api) export, invalid hook class, or mismatched command, hook, and priority metadata. The coverage artifact marks R2 fully covered despite those missing cases.",
+      "requiredChange": "Add spec-local assertions for invalid register export, invalid hook class, and mismatched command, hook, and priority metadata, or split them into separate R2 tests with requirement headers.",
+      "whyBlocking": "R2 is a must requirement with explicit failure modes; several acceptance cases have no corresponding spec-local test coverage and the coverage artifact overstates coverage."
+    },
+    {
+      "kind": "blocking",
+      "title": "R1 does not prove rejection happens before dynamic import",
+      "target": "specs/287-fix-plugin-foundation-gaps/tests/plugin-foundation-gaps.test.js R1 test",
+      "issue": "The R1 test asserts rejection for a hook module containing a core-internal import, but the hook module has no evaluation side effect, so the test could still pass if production dynamically imports the module before rejecting it.",
+      "requiredChange": "Make the forbidden hook module produce a detectable side effect on evaluation and assert that the side effect did not occur when discovery rejects it.",
+      "whyBlocking": "The requirement specifically requires rejection before dynamic import; the current test can pass without exercising that timing guarantee."
+    },
+    {
+      "kind": "blocking",
+      "title": "R1 lacks coverage for allowed relative plugin imports",
+      "target": "specs/287-fix-plugin-foundation-gaps/tests/plugin-foundation-gaps.test.js R1 coverage",
+      "issue": "R1 requires relative imports that stay within the plugin package to remain allowed, but the spec-local tests only cover rejection of core-internal imports.",
+      "requiredChange": "Add a spec-local R1 assertion using a hook module with a relative in-package import and verify discovery accepts/registers it.",
+      "whyBlocking": "A must requirement includes an allowed-path behavior with no corresponding spec-local test coverage."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/287-fix-plugin-foundation-gaps/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "48b03a3e530b31bdac824e203bbcf50afec25b2584ccb513a25e65a49927033d"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "test-001-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R2 coverage omits required hard-fail cases",
+      "body": "The R2 test covers disabled plugin, missing installed plugin, unresolved module, and className mismatch, but does not cover invalid register(api) export, invalid hook class, or mismatched command, hook, and priority metadata. The coverage artifact marks R2 fully covered despite those missing cases.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R1 does not prove rejection happens before dynamic import",
+      "body": "The R1 test asserts rejection for a hook module containing a core-internal import, but the hook module has no evaluation side effect, so the test could still pass if production dynamically imports the module before rejecting it.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R1 lacks coverage for allowed relative plugin imports",
+      "body": "R1 requires relative imports that stay within the plugin package to remain allowed, but the spec-local tests only cover rejection of core-internal imports.",
+      "category": "unknown"
+    }
+  ]
+}

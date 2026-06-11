@@ -1,0 +1,61 @@
+{
+  "entries": [
+    {
+      "step": "spec-gate",
+      "phase": "spec",
+      "reason": "invalid failureMode: missing-cli-argument-specification",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-11T03:25:43.810Z"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "gate FAIL (no details)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-11T03:25:43.825Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec gate failed with ESCALATE_RETRY_EXHAUSTED because the AI gate emitted unsupported failureMode missing-cli-argument-specification",
+      "trigger": "senti flow run gate --phase spec returned invalid failureMode instead of a normal gate FAIL envelope",
+      "resolution": "recording the tooling failure and strengthening the spec with explicit CLI argument and internal runtime input wording before retry",
+      "guardrailCandidate": "gate evaluators must use only schema-supported failureMode values or normalize unknown guardrail findings before escalation",
+      "taskId": null,
+      "timestamp": "2026-06-11T03:26:04.436Z"
+    },
+    {
+      "step": "spec-gate",
+      "phase": "spec",
+      "reason": "gate retry limit exhausted: 6/5 FAIL attempts recorded for phase \"spec\".\nCounter breakdown: AI-FAIL=6\nPrevious FAIL reasons:\n  (no issue-log entries found)\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-11T03:26:21.140Z"
+    },
+    {
+      "step": "test-execute",
+      "reason": "R1 spec-local execution failed because core import detection missed the CLI package src root and the relative-import fixture placed a helper under hooks where every js file is treated as a hook module.",
+      "trigger": "test-execute raw log reported missing expected rejection and helper.js hook registration failure for R1",
+      "resolution": "extend core import boundary roots and move the relative-import fixture helper outside hooks before rerunning test-execute",
+      "guardrailCandidate": "when a plugin hook test uses helper modules, place helpers outside hooks unless the helper is itself intended to be discovered as a hook",
+      "taskId": null,
+      "timestamp": "2026-06-11T03:41:32.935Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Impl review found R1 AC1 was incomplete because core-import rejection identified the hook module but omitted the owning plugin id.",
+      "trigger": "impl-review blocking finding missing_acceptance_requirement for src/lib/plugin-registry.js",
+      "resolution": "pass pluginId into assertNoCoreInternalImports and include pluginId/module in the rejection message",
+      "guardrailCandidate": "acceptance criteria that require diagnostic identifiers must be asserted in both implementation messages and test expectations",
+      "taskId": null,
+      "timestamp": "2026-06-11T03:47:12.872Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Impl review found R4 was incomplete because missing flow.spec during flow hook artifact context construction was converted into a PLUGIN_HOOK_FAILED warning.",
+      "trigger": "impl-review blocking finding missing_acceptance_requirement for artifact context failure handling",
+      "resolution": "construct the required artifact context before the hook-run warning catch and add spec-local coverage for missing flow.spec rejection",
+      "guardrailCandidate": "runtime context contract errors must stay outside hook business failure warning catches",
+      "taskId": null,
+      "timestamp": "2026-06-11T03:50:20.185Z"
+    }
+  ]
+}

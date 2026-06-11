@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "1 blocking finding classified for repair: define readJson storage root alongside writeJson/writeText for spec-local plugin artifacts.",
+  "items": [
+    {
+      "title": "Spec-local artifact read path is omitted",
+      "target": "R4 / AC7 / T-4",
+      "decision": "apply",
+      "rationale": "The finding is blocking because the public artifact helper exposes readJson, writeJson, and writeText as one contract. Moving only writes to specs/<spec>/plugin-artifacts would leave read-modify-write hooks split across roots.",
+      "evidence": "spec.json R4 and AC7 currently mention write behavior only. src/lib/plugin-registry.js artifactHelpers exposes readJson, writeJson, and writeText; spec #286 tests use readJson for hook artifact read-modify-write flows."
+    }
+  ]
+}

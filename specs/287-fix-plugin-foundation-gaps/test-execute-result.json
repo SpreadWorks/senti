@@ -1,0 +1,110 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/287-fix-plugin-foundation-gaps/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/287-fix-plugin-foundation-gaps/tests/plugin-foundation-gaps.test.js",
+        "test_name": "R1: hook discovery rejects core-internal imports before importing hooks",
+        "command": "node --test specs/287-fix-plugin-foundation-gaps/tests/plugin-foundation-gaps.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 55
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/287-fix-plugin-foundation-gaps/tests/plugin-foundation-gaps.test.js",
+        "test_name": "R2: snapshot hooks hard-fail for disabled, removed, unresolved, and mismatched entries",
+        "command": "node --test specs/287-fix-plugin-foundation-gaps/tests/plugin-foundation-gaps.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 55
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/287-fix-plugin-foundation-gaps/tests/plugin-foundation-gaps.test.js",
+        "test_name": "R3: hook run business failures remain non-blocking warnings after valid snapshot checks",
+        "command": "node --test specs/287-fix-plugin-foundation-gaps/tests/plugin-foundation-gaps.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 55
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/287-fix-plugin-foundation-gaps/tests/plugin-foundation-gaps.test.js",
+        "test_name": "R4: flow hook artifacts read and write under the active spec directory",
+        "command": "node --test specs/287-fix-plugin-foundation-gaps/tests/plugin-foundation-gaps.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 55
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/287-fix-plugin-foundation-gaps/tests/plugin-foundation-gaps.test.js",
+        "test_name": "R5: spec-local test coverage declares every testable requirement",
+        "command": "node --test specs/287-fix-plugin-foundation-gaps/tests/plugin-foundation-gaps.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 55
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": true,
+    "mode": "full",
+    "root_test_command": "node tests/run.js",
+    "root_test_command_source": "test.command",
+    "command": "node tests/run.js",
+    "result": "pass",
+    "raw_output_lines": {
+      "start_line": 56,
+      "end_line": 5068
+    },
+    "trigger_relevant_changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/287-fix-plugin-foundation-gaps/"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/plugin-registry.js"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/287-fix-plugin-foundation-gaps/"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/plugin-registry.js"
+      }
+    ],
+    "process": {
+      "started": true,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "spawnError": null
+    }
+  }
+}

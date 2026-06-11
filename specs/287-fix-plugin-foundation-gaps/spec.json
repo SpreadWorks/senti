@@ -1,0 +1,255 @@
+{
+  "goal": "Fix the unmet plugin foundation acceptance criteria from Issue #374 by enforcing hook import boundaries, hard-failing invalid snapshot hook state, and storing flow hook artifacts under the active spec directory.",
+  "scope": {
+    "in": [
+      "Reject core-internal imports in installed plugin hooks before hook module import during discovery.",
+      "Hard-fail snapshot hook execution when the snapshot cannot be reconciled with installed plugin state or hook metadata.",
+      "Keep hook run business failures non-blocking warnings plus issue-log candidates.",
+      "Store flow hook artifacts under specs/<spec>/plugin-artifacts/<pluginId>/.",
+      "Add spec-local tests for the unmet acceptance cases and update shared plugin foundation contract tests only where the production contract changes."
+    ],
+    "out": [
+      "Do not migrate workflow or preset implementations to external plugin repositories.",
+      "Do not redesign plugin command runtime, plugin help metadata, plugin config namespace, or installer known-path policy.",
+      "Do not add a general import side-effect analyzer; this spec only rejects core-internal hook imports.",
+      "Do not change plugin command artifact storage unless required by shared helper extraction for flow hook artifact storage."
+    ]
+  },
+  "constraints": [
+    "Use only Node.js built-in modules and existing project helpers; no external dependencies.",
+    "Preserve alpha policy: do not add compatibility shims for invalid snapshots, disabled plugins, or removed hook modules.",
+    "Preserve bounded resource usage from the existing plugin foundation: maximum 100 enabled plugin packages, 200 hook files per plugin, 20 path segments, 300-byte relative paths, and 1 MiB JSON metadata files.",
+    "For existing flow commands that execute plugin hooks, invalid discovery/import/register/static metadata/snapshot consistency must produce a command failure with a non-zero exit code. Hook run business failures must keep the current successful main command exit behavior with warnings.",
+    "No new user-facing CLI arguments are introduced. Existing command arguments keep their current validation surface.",
+    "Affected existing user-facing commands are `senti flow prepare` and existing `senti flow run <command>` invocations that already execute plugin lifecycle hooks. This spec changes invalid plugin runtime state handling only; it does not add, remove, or reinterpret any CLI flags or positional arguments.",
+    "Plugin hook snapshot entries, installed plugin package state, hook module paths, and hook metadata are internal runtime inputs loaded from flow.json, .senti/config.json, and .senti/plugins. They must be validated at the plugin runtime boundary before hook execution, not exposed as new CLI arguments.",
+    "Do not write project-specific values under src/. Test fixtures must use generic sample plugin names."
+  ],
+  "design_principles": [
+    "Treat prepare-time discovery and active-flow snapshot execution as separate validation boundaries.",
+    "Keep snapshot metadata as the source of truth during active flows; do not live-discover replacement hooks to repair a broken snapshot.",
+    "Separate runtime boundary corruption from plugin business failures. Boundary corruption fails the command; hook run failures are warnings.",
+    "Make plugin hook artifact evidence spec-local so finalize and review can reason about it with the rest of the spec artifacts."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/lib/plugin-registry.js owns plugin hook discovery, snapshot loading, hook execution, public plugin context, and artifact helper construction."
+      },
+      {
+        "text": "src/flow/lib/run-prepare-spec.js calls hook discovery during prepare and writes the hook snapshot into flow.json."
+      },
+      {
+        "text": "specs/286-plugin-foundation-runtime/tests/plugin-foundation-contract.test.js covers the existing plugin foundation contract and provides regression context for this fix."
+      },
+      {
+        "text": "specs/287-fix-plugin-foundation-gaps/tests/ will contain new spec-local coverage for Issue #374 acceptance gaps."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "During prepare, installed enabled plugin hooks are scanned from .senti/plugins/<pluginId>/hooks/*.js, import-boundary checked, imported, validated, and persisted as metadata-only plans in flow.json."
+      },
+      {
+        "text": "During active flow command execution, flow.json plugins.flowCommandHooks is filtered by command/hook, each plan is reconciled with the currently installed enabled plugin package and hook module, and only valid plans are executed."
+      },
+      {
+        "text": "Flow hook context receives project, plugin, config, flow, result, envelope helpers, and artifact helpers. Artifact helpers write under specs/<spec>/plugin-artifacts/<pluginId>/ when flow.spec is available."
+      },
+      {
+        "text": "Hook run throw/ok:false remains a warning path. Snapshot reconciliation, import/register, class validation, and metadata mismatch happen before hook run and are command-failing errors."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] checked hook discovery import boundary in src/lib/plugin-registry.js; result=gap exists.",
+        "evidence": "discoverFlowCommandHooks() reads hooks/*.js and immediately imports pathToFileURL(path.join(pluginRoot, rel)).href. No pre-import source inspection rejects imports of core internal project paths."
+      },
+      {
+        "text": "[VERIFY] checked snapshot execution failure handling in src/lib/plugin-registry.js; result=gap exists.",
+        "evidence": "runFlowCommandHooks() catches all errors around loadHookClass(), HookClass construction, run(), and ok:false, then converts them to PLUGIN_HOOK_FAILED warnings. This treats unresolved modules and metadata mismatches like business run failures."
+      },
+      {
+        "text": "[VERIFY] checked artifact helper storage in src/lib/plugin-registry.js; result=gap exists.",
+        "evidence": "artifactHelpers(root, pluginId) builds dir with path.join(sentiDir(root), \"plugin-artifacts\", pluginId), while spec #286 T-5 acceptance requires specs/<specId>/plugin-artifacts/<pluginId>/."
+      },
+      {
+        "text": "[VERIFY] checked hook run warning policy in src/lib/plugin-registry.js; result=match and must be preserved.",
+        "evidence": "runFlowCommandHooks() returns { ok: true, warnings, issueLogEntries } for hook run failures. Issue #374 says business failures during hook execution should remain warnings and issue-log candidates."
+      },
+      {
+        "text": "Issue #374 is a bounded correction to spec #286 acceptance, not a new plugin migration phase.",
+        "evidence": "Issue #374 scope names hook discovery, snapshot hook execution, and artifact storage. spec #286 scope.out excludes workflow/preset implementation migration."
+      }
+    ]
+  },
+  "background": "The plugin foundation work in spec #286 is complete, but Issue #374 identifies three remaining acceptance gaps. First, hook discovery validates the hook factory shape after import but does not reject core-internal imports before import. Second, active-flow snapshot execution converts unresolved hook modules and metadata mismatches into the same warning path used for hook business failures, even though snapshot corruption should invalidate the flow command. Third, hook artifact helpers write to .senti/plugin-artifacts instead of the active spec directory, so the artifacts are not spec-local evidence.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Hook discovery must reject installed plugin hook modules that import core internal project paths before dynamic import. Relative imports that stay within the plugin package remain allowed.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "Snapshot hook execution must hard-fail when a snapshot entry references a disabled plugin, missing installed plugin, unresolved hook module, invalid register(api) export, invalid hook class, or mismatched className/command/hook/priority metadata.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "Hook run business failures must remain non-blocking command warnings and issue-log candidates when the snapshot entry and hook metadata are valid.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "Flow hook artifact helpers must read JSON artifacts and write JSON/text artifacts under specs/<spec>/plugin-artifacts/<pluginId>/ for hooks executed with an active flow spec path. Missing files passed to readJson must preserve the existing fallback return behavior.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "Spec-local tests under specs/287-fix-plugin-foundation-gaps/tests/ must cover R1 through R4 with requirement headers, and shared plugin foundation tests may be updated only to align with the corrected production contract.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "AC1: A hook file under .senti/plugins/<pluginId>/hooks/*.js that imports project core internals is rejected before dynamic import, and the failure identifies the plugin id and hook module.",
+    "AC2: Hook files that use relative imports inside their own installed plugin package continue to pass discovery validation.",
+    "AC3: Running snapshot hooks with a disabled plugin package fails the flow command with a non-zero exit and guidance to re-enable the plugin or re-prepare the flow.",
+    "AC4: Running snapshot hooks with a removed plugin directory or missing hook module fails the flow command with a non-zero exit and restore/re-prepare guidance.",
+    "AC5: Running snapshot hooks with className, command, hook, or priority metadata that differs from the snapshot fails the flow command with a non-zero exit and metadata mismatch detail.",
+    "AC6: A hook whose run() throws or returns ok:false after successful snapshot validation still produces PLUGIN_HOOK_FAILED-style warnings and issue-log candidates without failing the main flow command by itself.",
+    "AC7: A flow hook using context.artifacts.readJson/writeJson/writeText reads and writes under specs/<spec>/plugin-artifacts/<pluginId>/, preserves readJson fallback behavior for missing files, and does not read or write .senti/plugin-artifacts/<pluginId>/ for flow hook artifacts.",
+    "AC8: Spec-local tests with // spec: R1 R2 R3 R4 R5 headers fail against the current implementation and pass after the correction.",
+    "AC9: The implementation does not add external dependencies and does not introduce project-specific source text under src/."
+  ],
+  "clarifications": [
+    {
+      "q": "Does this change migrate workflow or preset implementations to plugin repositories?",
+      "a": "No. It only fixes unmet acceptance criteria in the shared plugin foundation."
+    },
+    {
+      "q": "Are plugin hook run failures now hard failures?",
+      "a": "No. Only discovery/import/register/static metadata and snapshot consistency failures hard-fail. Hook run business failures remain warnings and issue-log candidates."
+    },
+    {
+      "q": "Does this spec add new CLI options?",
+      "a": "No. Existing flow commands that execute plugin hooks gain stricter failure behavior for invalid plugin runtime state, but their user-facing arguments do not change."
+    },
+    {
+      "q": "Which user-facing CLI arguments are added or changed?",
+      "a": "None. `senti flow prepare` and existing `senti flow run <command>` forms keep their current arguments. Snapshot entries and hook metadata are internal runtime inputs read from persisted flow/plugin state."
+    },
+    {
+      "q": "What is the exit code contract for stricter snapshot failures?",
+      "a": "Existing flow commands that encounter invalid snapshot plugin state must fail the command and return a non-zero exit. Valid hook run business failures keep the main command success path with warnings."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Treat missing snapshot modules and metadata mismatches as non-blocking warnings.",
+      "reason": "Rejected because it hides corrupted snapshot state and fails spec #286 AC6, which requires missing/disabled snapshot plugins to fail with restore/enable guidance."
+    },
+    {
+      "option": "Re-discover live hooks when a snapshot entry is broken.",
+      "reason": "Rejected because active flow reproducibility depends on the prepare-time snapshot being the source of truth."
+    },
+    {
+      "option": "Keep plugin hook artifacts under .senti/plugin-artifacts.",
+      "reason": "Rejected because flow hook artifacts are spec evidence and spec #286 T-5 requires specs/<specId>/plugin-artifacts/<pluginId>/."
+    },
+    {
+      "option": "Block all imports from plugin hook modules.",
+      "reason": "Rejected because plugin-internal relative imports are allowed by the plugin boundary decision; only core-internal imports are prohibited."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "plugin-registry",
+    "FlowCommandHook",
+    "discoverFlowCommandHooks",
+    "runFlowCommandHooks",
+    "flowCommandHooks",
+    "snapshot hooks",
+    "core internal import",
+    "plugin-artifacts",
+    "hook metadata",
+    "PLUGIN_HOOK_FAILED"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Reject hook core imports",
+      "goal": "Add hook discovery validation that rejects core-internal project imports before importing a plugin hook module while preserving plugin-internal relative imports.",
+      "acceptance": [
+        "R1 and AC1 are covered for rejected core-internal imports.",
+        "R1 and AC2 are covered for allowed plugin-internal relative imports.",
+        "The validation is shared by discovery paths that import installed hook modules."
+      ],
+      "implementation_notes": "Implement in src/lib/plugin-registry.js near hook module discovery. Use bounded source reading and existing path normalization helpers. Do not add a general JavaScript parser dependency.",
+      "test_strategy": "Spec-local tests create installed sample plugin hooks with core-internal and plugin-internal imports and assert discovery behavior.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Validate snapshot hooks",
+      "goal": "Separate snapshot reconciliation failures from hook run business failures so disabled, missing, unresolved, and metadata-mismatched snapshot entries hard-fail the flow command.",
+      "acceptance": [
+        "R2 and AC3 through AC5 are covered for disabled, removed, unresolved, and metadata-mismatched snapshot entries.",
+        "Failures include plugin id, module, and actionable restore/enable/re-prepare guidance.",
+        "The command returns non-zero for invalid snapshot state."
+      ],
+      "implementation_notes": "Refactor loadHookClass/runFlowCommandHooks boundaries so pre-run validation errors are not caught by the non-blocking hook run warning path.",
+      "test_strategy": "Spec-local tests call the snapshot runner with manipulated plugin package state and assert command-failing errors.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-3",
+      "title": "Preserve run warnings",
+      "goal": "Keep hook run throw/ok:false behavior as warnings and issue-log candidates after snapshot validation succeeds.",
+      "acceptance": [
+        "R3 and AC6 are covered for thrown hook run errors.",
+        "R3 and AC6 are covered for ok:false hook returns.",
+        "Warning schema remains PLUGIN_HOOK_FAILED-style and includes plugin id, command, hook, and message."
+      ],
+      "implementation_notes": "Keep the non-blocking catch around instance.run() and ok:false normalization only. Do not let this path swallow pre-run validation errors.",
+      "test_strategy": "Spec-local tests use valid snapshot entries whose run() throws or returns ok:false and assert warnings plus issue-log candidates.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-4",
+      "title": "Store hook artifacts",
+      "goal": "Read and write flow hook artifacts under the active spec directory so plugin evidence is committed with the spec artifacts and read-modify-write hooks use one storage root.",
+      "acceptance": [
+        "R4 and AC7 are covered for readJson, writeJson, and writeText.",
+        "readJson preserves fallback return behavior when a spec-local artifact is missing.",
+        "Flow hook contexts without an active spec path fail with a clear context contract error rather than silently falling back to .senti.",
+        "Existing plugin command behavior is not changed unless it shares the flow hook artifact helper intentionally."
+      ],
+      "implementation_notes": "Derive the spec directory from context.flow.spec for flow hooks. Keep path normalization for artifact relative paths.",
+      "test_strategy": "Spec-local tests run a valid hook with flow.spec and assert readJson/writeJson/writeText use specs/<spec>/plugin-artifacts/<pluginId>/, preserve missing-file fallback behavior, and do not use .senti/plugin-artifacts for flow hook artifacts.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-06-11T03:29:57.597Z",
+    "notes": "autoApprove=true; spec gate passed after user-requested manual retry reset"
+  }
+}

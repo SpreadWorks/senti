@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { pathToFileURL } from "url";
+import { fileURLToPath, pathToFileURL } from "url";
 import { repoRoot } from "./cli.js";
 import { sentiConfigPath, sentiDir } from "./config.js";
 import { Envelope } from "./flow-envelope.js";
@@ -76,6 +76,56 @@ function normalizeRel(rel, label = "path") {
   if (parts.length > MAX_PLUGIN_PATH_DEPTH) throw new Error(`unsafe ${label}: path depth exceeds ${MAX_PLUGIN_PATH_DEPTH}`);
   if (Buffer.byteLength(value) > MAX_PLUGIN_RELATIVE_PATH_BYTES) throw new Error(`unsafe ${label}: relative path exceeds ${MAX_PLUGIN_RELATIVE_PATH_BYTES} bytes`);
   return value;
+}
+
+function isUnderPath(child, parent) {
+  const rel = path.relative(parent, child);
+  return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
+}
+
+function importSpecifiers(source) {
+  const patterns = [
+    /\bimport\s+(?:[^"'()]*?\s+from\s+)?["']([^"']+)["']/g,
+    /\bexport\s+[^"']*?\s+from\s+["']([^"']+)["']/g,
+    /\bimport\s*\(\s*["']([^"']+)["']\s*\)/g,
+  ];
+  const out = [];
+  for (const pattern of patterns) {
+    let match;
+    while ((match = pattern.exec(source)) !== null) out.push(match[1]);
+  }
+  return out;
+}
+
+function resolveImportPath(specifier, moduleDir) {
+  if (specifier.startsWith("node:")) return null;
+  if (/^[a-zA-Z][a-zA-Z+.-]*:/.test(specifier)) {
+    if (!specifier.startsWith("file:")) return null;
+    return fileURLToPath(specifier);
+  }
+  if (path.isAbsolute(specifier)) return specifier;
+  if (specifier.startsWith("./") || specifier.startsWith("../")) {
+    return path.resolve(moduleDir, specifier);
+  }
+  return null;
+}
+
+function assertNoCoreInternalImports(root, pluginId, pluginRoot, rel) {
+  const modulePath = path.join(pluginRoot, normalizeRel(rel, "hook module"));
+  const source = fs.readFileSync(modulePath, "utf8");
+  const moduleDir = path.dirname(modulePath);
+  const coreRoots = [
+    path.resolve(root, "src"),
+    path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."),
+  ];
+  for (const specifier of importSpecifiers(source)) {
+    const resolved = resolveImportPath(specifier, moduleDir);
+    if (!resolved) continue;
+    const absolute = path.resolve(resolved);
+    if (coreRoots.some((coreRoot) => isUnderPath(absolute, coreRoot)) && !isUnderPath(absolute, pluginRoot)) {
+      throw new Error(`plugin hook ${pluginId}/${rel} imports core internal path: ${specifier}`);
+    }
+  }
 }
 
 function assertId(id, label = "id") {
@@ -591,6 +641,7 @@ export async function discoverFlowCommandHooks(root = repoRoot()) {
     if (files.length > MAX_PLUGIN_HOOK_FILES) throw new Error(`plugin ${pkg.id} hook files exceed ${MAX_PLUGIN_HOOK_FILES}`);
     for (const file of files) {
       const rel = normalizeRel(`hooks/${file}`, "hook module");
+      assertNoCoreInternalImports(root, pkg.id, pluginRoot, rel);
       const mod = await import(pathToFileURL(path.join(pluginRoot, rel)).href);
       if (typeof mod.default !== "function" || mod.default.name !== "register") throw new Error(`plugin hook ${pkg.id}/${rel} must export named default function register(api)`);
       const HookClass = mod.default(buildPluginApi());
@@ -630,8 +681,19 @@ function pluginConfigFor(root, pluginId) {
   }
 }
 
-function artifactHelpers(root, pluginId) {
-  const dir = path.join(sentiDir(root), "plugin-artifacts", pluginId);
+function artifactRoot(root, pluginId, flow = {}, { requireSpec = false } = {}) {
+  if (flow?.spec) {
+    const specPath = normalizeRel(flow.spec, "flow spec path");
+    return path.join(root, path.dirname(specPath), "plugin-artifacts", pluginId);
+  }
+  if (requireSpec) {
+    throw new Error(`plugin hook artifact context requires flow.spec for ${pluginId}`);
+  }
+  return path.join(sentiDir(root), "plugin-artifacts", pluginId);
+}
+
+function artifactHelpers(root, pluginId, flow = {}, options = {}) {
+  const dir = artifactRoot(root, pluginId, flow, options);
   return {
     async readJson(rel, fallback = null) {
       const file = path.join(dir, normalizeRel(rel, "artifact path"));
@@ -649,14 +711,14 @@ function artifactHelpers(root, pluginId) {
   };
 }
 
-function buildPluginContext({ root, pluginId, pluginRoot, commandPath, flow = {}, result = {} }) {
+function buildPluginContext({ root, pluginId, pluginRoot, commandPath, flow = {}, result = {}, requireSpecArtifacts = false }) {
   return {
     project: { root },
     plugin: { id: pluginId, root: pluginRoot, commandPath },
     config: pluginConfigFor(root, pluginId),
     flow,
     result,
-    artifacts: artifactHelpers(root, pluginId),
+    artifacts: artifactHelpers(root, pluginId, flow, { requireSpec: requireSpecArtifacts }),
     envelope: buildPluginApi().Envelope,
   };
 }
@@ -683,12 +745,45 @@ export async function dispatchPluginCommand(root, commandName, args) {
   }
 }
 
-async function loadHookClass(root, plan) {
+function snapshotPluginRoot(root, plan) {
+  const config = readProjectConfig(root);
+  const pkg = config.plugin.packages.find((entry) => entry.id === plan.pluginId);
+  if (!pkg) throw new Error(`snapshot plugin missing: ${plan.pluginId}; restore the plugin package or re-prepare the flow`);
+  if (pkg.enabled === false) throw new Error(`snapshot plugin disabled: ${plan.pluginId}; re-enable the plugin package or re-prepare the flow`);
   const pluginRoot = path.join(sentiDir(root), "plugins", plan.pluginId);
-  const mod = await import(`${pathToFileURL(path.join(pluginRoot, plan.module)).href}?t=${Date.now()}`);
+  if (!fs.existsSync(pluginRoot)) throw new Error(`snapshot plugin removed: ${plan.pluginId}; restore the plugin package or re-prepare the flow`);
+  return pluginRoot;
+}
+
+function assertSnapshotMetadata(plan, HookClass) {
+  const comparisons = [
+    ["className", plan.className, HookClass.name],
+    ["command", plan.command, HookClass.command],
+    ["hook", plan.hook, HookClass.hook],
+    ["priority", Number(plan.priority || 0), Number(HookClass.priority || 0)],
+  ];
+  for (const [field, expected, actual] of comparisons) {
+    if (expected !== actual) {
+      throw new Error(`plugin hook metadata mismatch for ${plan.pluginId}/${plan.module}: expected ${field} ${expected}, got ${actual}`);
+    }
+  }
+}
+
+async function loadHookClass(root, plan) {
+  const pluginRoot = snapshotPluginRoot(root, plan);
+  const rel = normalizeRel(plan.module, "hook module");
+  const modulePath = path.join(pluginRoot, rel);
+  if (!fs.existsSync(modulePath)) {
+    throw new Error(`snapshot hook module missing: ${plan.pluginId}/${rel}; restore the module or re-prepare the flow`);
+  }
+  assertNoCoreInternalImports(root, plan.pluginId, pluginRoot, rel);
+  const mod = await import(`${pathToFileURL(modulePath).href}?t=${Date.now()}`);
+  if (typeof mod.default !== "function" || mod.default.name !== "register") {
+    throw new Error(`plugin hook ${plan.pluginId}/${rel} must export named default function register(api)`);
+  }
   const HookClass = mod.default(buildPluginApi());
   validateHookClass(HookClass, `${plan.pluginId}/${plan.module}`);
-  if (HookClass.name !== plan.className) throw new Error(`plugin hook class mismatch: expected ${plan.className}, got ${HookClass.name}`);
+  assertSnapshotMetadata({ ...plan, module: rel }, HookClass);
   return { HookClass, pluginRoot };
 }
 
@@ -696,10 +791,11 @@ export async function runFlowCommandHooks(root, snapshot, { command, hook, flow 
   const warnings = [];
   const issueLogEntries = [];
   for (const plan of snapshot.filter((entry) => entry.command === command && entry.hook === hook).sort((a, b) => a.priority - b.priority)) {
+    const { HookClass, pluginRoot } = await loadHookClass(root, plan);
+    const context = buildPluginContext({ root, pluginId: plan.pluginId, pluginRoot, flow, result, requireSpecArtifacts: true });
     try {
-      const { HookClass, pluginRoot } = await loadHookClass(root, plan);
       const instance = new HookClass();
-      const hookResult = await instance.run(buildPluginContext({ root, pluginId: plan.pluginId, pluginRoot, flow, result }));
+      const hookResult = await instance.run(context);
       if (hookResult?.ok === false) throw new Error(hookResult.errors?.[0]?.messages?.join(" ") || "plugin hook returned ok:false");
     } catch (err) {
       const warning = { code: "PLUGIN_HOOK_FAILED", pluginId: plan.pluginId, command, hook, message: err.message };

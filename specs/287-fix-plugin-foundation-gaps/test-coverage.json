@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Hook discovery must reject installed plugin hook modules that import core internal project paths before dynamic import. Relative imports that stay within the plugin package remain allowed.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/plugin-foundation-gaps.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "Snapshot hook execution must hard-fail when a snapshot entry references a disabled plugin, missing installed plugin, unresolved hook module, invalid register(api) export, invalid hook class, or mismatched className/command/hook/priority metadata.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/plugin-foundation-gaps.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "Hook run business failures must remain non-blocking command warnings and issue-log candidates when the snapshot entry and hook metadata are valid.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/plugin-foundation-gaps.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "Flow hook artifact helpers must read JSON artifacts and write JSON/text artifacts under specs/<spec>/plugin-artifacts/<pluginId>/ for hooks executed with an active flow spec path. Missing files passed to readJson must preserve the existing fallback return behavior.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/plugin-foundation-gaps.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "Spec-local tests under specs/287-fix-plugin-foundation-gaps/tests/ must cover R1 through R4 with requirement headers, and shared plugin foundation tests may be updated only to align with the corrected production contract.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/plugin-foundation-gaps.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/plugin-foundation-gaps.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ]
+    }
+  ]
+}

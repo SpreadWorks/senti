@@ -1,0 +1,120 @@
+{
+  "devType": "bugfix",
+  "goal": "plugin基盤で未充足の受け入れ条件を修正し、hook discovery、snapshot hook 実行、artifact 保存先の契約を spec #286 の要求に一致させる。",
+  "analysis": {
+    "problem": "Issue #374 は、完了済みの plugin foundation に残った受け入れ条件の不一致を対象にしている。現状の `src/lib/plugin-registry.js` では hook module import 前の core internal path import 拒否がなく、snapshot 実行時の plugin 無効化・削除・解決不能・metadata 不整合が hook run failure と同じ warning/issue-log candidate に正規化される。また artifact helper は `.senti/plugin-artifacts/<pluginId>` に保存しており、spec #286 の task T-5 acceptance が求める `specs/<specId>/plugin-artifacts/<pluginId>` と一致しない。",
+    "proposedApproach": "must: discovery/import/register/static metadata validation と snapshot 整合性破損を hard fail として扱い、hook run 中の業務失敗だけを non-blocking warning と issue-log candidate に残す。must: artifact helper は active flow の spec directory を基準に spec-local plugin-artifacts へ保存する。must: spec-local tests で core internal import 拒否、disabled/removed/unresolved/metadata mismatch の hard fail、artifact 保存先を検証する。",
+    "validation": "spec #286 の draft/spec は、hook/command module の core internal import 禁止、snapshot を source of truth にする方針、discovery/import/register/metadata validation failure は hard fail、hook run failure は warning という分離を既に承認済みとしている。現行コード確認では `discoverFlowCommandHooks()` が hooks/*.js を直接 import し、`loadHookClass()` が snapshot module を import して失敗を `runFlowCommandHooks()` の catch で warning 化し、`artifactHelpers()` が `.senti/plugin-artifacts` を基準にしているため、Issue の根本問題と一致する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: spec #286 R3/AC4 は hook discovery で core internal path import を拒否する契約を含むが、現行の `discoverFlowCommandHooks()` は hook module を import する前に source text の import boundary を検査していない。",
+      "must: spec #286 R4/R5/AC6 は active flow 中の snapshot を source of truth とし、missing/disabled snapshot plugins を clear restore/enable guidance 付き hard fail とする契約を含む。",
+      "must: spec #286 T-5 acceptance は artifact helpers の保存先を `specs/<specId>/plugin-artifacts/<pluginId>/` とする契約を含むが、現行の `artifactHelpers()` は `.senti/plugin-artifacts/<pluginId>/` を使う。",
+      "must: `runFlowCommandHooks()` は hook run 中の throw/ok:false を `PLUGIN_HOOK_FAILED` warning と issue-log candidate に変換する実装を持ち、この non-blocking policy は維持対象である。"
+    ],
+    "decisionPoints": [
+      "must: hard fail の対象は discovery/import/register/static metadata validation と snapshot 整合性破損に限定し、hook run 中の業務失敗は warning と issue-log candidate に維持する。",
+      "must: artifact 保存先は active flow の spec path から導く。spec path が context にない場合は暗黙に `.senti` へ fallback せず、呼び出し側で必要な flow context を渡す設計にする。",
+      "should: 既存の plugin command/help/config 契約は Issue #374 の範囲外として、未充足条件の修正に必要な最小限の変更に留める。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 外部依存は追加しない。Node.js built-in module と既存 helper だけで import boundary と snapshot 整合性を検証する。",
+      "must: alpha policy により旧形式との互換 shim は追加しない。壊れた snapshot や disabled plugin は復元・再有効化を促す hard failure とする。",
+      "must: `src/` 以下に project 固有情報を書かない。spec-local fixtures は sample plugin 名を使う。",
+      "must: 同種の検証処理が複数箇所に出る場合は plugin registry 内の共通 helper に集約する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: hard fail エラーコード、エラーメッセージ、test case の粒度は spec step で requirements と acceptance criteria に分解する。",
+      "must: 既存 spec #286 の contract tests を直接変更するか、新規 spec #287 配下の tests で未充足だけを覆うかは spec step で test strategy として整理する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: hook discovery 時に plugin hook module の core internal path import を拒否する。",
+      "must: snapshot hook 実行時に plugin disabled、plugin removed、module unresolved、className/command/hook/priority などの metadata mismatch を hard fail にする。",
+      "must: hook run 中の throw、ok:false、business warning は従来どおり non-blocking warning と issue-log candidate にする。",
+      "must: hook artifact helper の保存先を spec-local `plugin-artifacts/<pluginId>/` に変更する。",
+      "must: spec-local tests で未充足ケースを再現し、要求と実装の一致を検証する。"
+    ],
+    "out": [
+      "must: workflow implementation 自体の完全 plugin repository 移行は行わない。",
+      "must: preset implementation 自体の完全 plugin repository 移行は行わない。",
+      "must: plugin command runtime、help metadata、plugin config namespace、installer known-path policy の再設計は行わない。ただし本修正の回帰確認に必要な範囲では既存契約を壊さないことを確認する。",
+      "must: import-time side effect の一般的な静的解析基盤は追加しない。今回の対象は core internal path import 拒否に限定する。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: `senti flow prepare` の hook discovery は、不正な hook module を含む enabled plugin がある場合に hard fail する。",
+    "must: active flow の snapshot hook 実行は、snapshot された plugin/module/class metadata が現在の installed plugin 状態と一致しない場合に hard fail する。",
+    "must: plugin hook の業務処理失敗は main flow を止めない既存挙動を維持する。",
+    "must: plugin artifact の保存場所が `.senti/plugin-artifacts` から spec-local `specs/<spec>/plugin-artifacts` に変わるため、artifact path を参照する tests と helper expectations を更新する。",
+    "should: spec #286 の contract tests に近い領域を触るため、spec-local tests に加えて関連 unit tests の回帰を実行する。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "Issue #374 の範囲は、must として plugin foundation の未充足条件である hook discovery の core internal import 拒否、snapshot hook の整合性 hard fail、spec-local artifact 保存先の3点に限定し、workflow/preset の完全 plugin 移行や plugin command/help/config の再設計は範囲外にしてよいですか。",
+      "answer": "はい。must として Issue #374 の範囲は hook discovery の core internal import 拒否、snapshot hook の整合性 hard fail、spec-local artifact 保存先の3点に限定する。workflow/preset の完全 plugin 移行や plugin command/help/config の再設計は範囲外にする。",
+      "evidence": "Issue #374 Target/Problem/Improvement Direction は hook discovery、snapshot hook 実行、artifact 保存先だけを対象にしている。spec #286 scope.out は workflow/preset implementation 自体の完全移行を範囲外としている。",
+      "why": "Issue が定義した単一 concern を保ち、完了済み plugin foundation の未充足条件だけを修正するため。",
+      "considered": "workflow/preset の完全 plugin 移行まで含める案は、Issue #374 の対象外であり spec #286 の out-of-scope とも衝突するため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "snapshot hook 実行時に snapshot された plugin が disabled、removed、module unresolved、または className/command/hook/priority などの metadata mismatch を起こした場合は、must として main flow を hard fail し、restore/enable/re-prepare を促す guidance を返す方針でよいですか。",
+      "answer": "はい。must として snapshot された plugin が disabled、removed、module unresolved、または metadata mismatch を起こした場合は main flow を hard fail し、復元・再有効化・再 prepare のいずれが必要か分かる guidance を返す。",
+      "evidence": "spec #286 AC6 は active flows with missing/disabled snapshot plugins fail with clear restore/enable guidance と明記している。Issue #374 も disabled、removed、unresolved、metadata 不整合を hard fail にする改善方針を示している。",
+      "why": "snapshot は active flow の source of truth であり、snapshot が指す plugin/module/class が再現できない状態は hook run の業務失敗ではなく runtime 境界の整合性破損だから。",
+      "considered": "hook run failure と同様に warning 化する案は、壊れた snapshot を検出できず spec #286 AC6 を満たさないため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "plugin hook module の core internal path import 拒否は、must として installed plugin の hooks/*.js discovery/import 前に検査し、relative import で plugin 内部 module を読むことは引き続き許可する方針でよいですか。",
+      "answer": "はい。must として installed plugin の hooks/*.js を import する前に core internal path import を拒否する。plugin 内部 module への relative import は許可する。",
+      "evidence": "spec #286 draft q3 は hook/command module を register(api) factory 形式に統一し、core internal path import を禁止し、plugin 内部 module への relative import は許可すると回答済み。spec #286 AC4 は core internal path imports の拒否を hook discovery acceptance に含めている。",
+      "why": "core internal API への密結合を防ぎつつ、plugin package 内での通常の分割実装は許可するため。",
+      "considered": "全 import を禁止する案は plugin 内部の保守性を落とす。import 後に実行時エラーとして扱う案は import-time side effect を許すため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "artifact helper の保存先は、must として flow hook 実行時に active spec directory 配下の `plugin-artifacts/<pluginId>/` に統一し、flow context から spec path が取得できない場合は `.senti` fallback ではなく明示的な契約違反として扱う方針でよいですか。",
+      "answer": "はい。must として flow hook 実行時の artifact helper は active spec directory 配下の `plugin-artifacts/<pluginId>/` に保存する。flow context から spec path が取得できない場合は `.senti` fallback を使わず、呼び出し側の context 契約違反として扱う。",
+      "evidence": "spec #286 task T-5 acceptance は Artifact helpers write under specs/<specId>/plugin-artifacts/<pluginId>/ と明記している。Issue #374 は `.senti` 配下の現行保存先が要求とずれていることを問題としている。",
+      "why": "flow に紐づく plugin hook artifact は spec-local evidence として残る必要があり、`.senti` 配下では spec artifact としてレビュー・finalize 対象に含めにくいため。",
+      "considered": "既存 `.senti/plugin-artifacts` fallback を残す案は、要求と実装のずれを温存し spec-local evidence contract を満たさないため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "test strategy は、must として spec #287 配下の spec-local tests に core internal import 拒否、disabled/removed/unresolved/metadata mismatch hard fail、spec-local artifact path を追加し、必要に応じて既存 plugin foundation contract tests も更新する方針でよいですか。",
+      "answer": "はい。must として spec #287 配下の spec-local tests で core internal import 拒否、disabled/removed/unresolved/metadata mismatch hard fail、spec-local artifact path を検証する。既存の plugin foundation contract tests は、production contract 変更に必要な範囲だけ更新する。",
+      "evidence": "Issue #374 Improvement Direction は spec-local test に未充足ケースを追加すると明記している。spec #286 tests/plugin-foundation-contract.test.js は既存の plugin foundation contract を覆っているため、回帰確認対象として妥当である。",
+      "why": "未充足条件を再発防止するには、今回の spec-local tests で失敗を先に固定し、共有 contract tests は既存契約との整合確認に限定するのが最小範囲だから。",
+      "considered": "既存 spec #286 tests だけに追加する案は、今回の Issue #374 に対応する証跡が spec #287 に残りにくい。すべて共有 tests に移す案は変更範囲が広がるため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [
+    "must: hard fail guidance の正確な文言とエラーコードは spec step で定義する。"
+  ],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-11T03:14:00.000Z",
+    "notes": "autoApprove=true。Issue #374 と preflight summary から範囲を承認済みとして draft を確定。"
+  }
+}

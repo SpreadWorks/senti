@@ -1,0 +1,217 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".senti/output/analysis.json                        |   2 +-\n .../draft-coverage-repair.json                     |   8 +\n .../draft-coverage-triage.json                     |   8 +\n .../draft-questions-repair.json                    |   8 +\n .../draft-questions-triage.json                    |   8 +\n .../draft-review-coverage.json                     |  11 +\n .../draft-review-questions.json                    |  11 +\n specs/287-fix-plugin-foundation-gaps/draft.json    | 120 +++\n specs/287-fix-plugin-foundation-gaps/file-map.json |  21 +\n specs/287-fix-plugin-foundation-gaps/flow.json     | 929 +++++++++++++++++++++\n .../impl-review.json                               |  28 +\n .../287-fix-plugin-foundation-gaps/issue-log.json  |  61 ++\n specs/287-fix-plugin-foundation-gaps/issue.md      |  46 +\n .../review-history/draft-coverage-attempt-001.json |  14 +\n .../draft-questions-attempt-001.json               |  14 +\n .../review-history/impl-attempt-001.json           |  52 ++\n .../review-history/impl-attempt-001.md             |  23 +\n .../review-history/impl-attempt-002.json           |  52 ++\n .../review-history/impl-attempt-002.md             |  23 +\n .../review-history/impl-attempt-003.json           |  31 +\n .../review-history/impl-attempt-003.md             |  16 +\n .../review-history/impl-attempt-004.json           |  31 +\n .../review-history/impl-attempt-004.md             |  16 +\n .../review-history/spec-attempt-001.json           |  74 ++\n .../review-history/spec-attempt-001.md             |  24 +\n .../review-history/test-attempt-001.json           |  84 ++\n .../review-history/test-attempt-001.md             |  30 +\n .../review-history/test-attempt-002.json           |  47 ++\n .../review-history/test-attempt-002.md             |  16 +\n specs/287-fix-plugin-foundation-gaps/review.md     |  16 +\n .../spec-repair.json                               |  22 +\n .../spec-review.json                               |  40 +\n .../287-fix-plugin-foundation-gaps/spec-review.md  |  24 +\n .../spec-triage.json                               |  15 +\n specs/287-fix-plugin-foundation-gaps/spec.json     | 255 ++++++\n specs/287-fix-plugin-foundation-gaps/spec.md       | 123 +++\n specs/287-fix-plugin-foundation-gaps/tasks/T-1.md  |  20 +\n specs/287-fix-plugin-foundation-gaps/tasks/T-2.md  |  20 +\n specs/287-fix-plugin-foundation-gaps/tasks/T-3.md  |  20 +\n specs/287-fix-plugin-foundation-gaps/tasks/T-4.md  |  21 +\n .../test-coverage.json                             |  75 ++\n .../test-review.json                               |  33 +\n .../287-fix-plugin-foundation-gaps/test-review.md  |  16 +\n .../tests/plugin-foundation-gaps.test.js           | 282 +++++++\n src/lib/plugin-registry.js                         | 116 ++-\n 45 files changed, 2895 insertions(+), 11 deletions(-)",
+      "commits": [
+        "Fix plugin hook foundation gaps"
+      ]
+    },
+    "retro": {
+      "total": 5,
+      "done": 5,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "Hook discovery must reject installed plugin hook modules that import core internal project paths before dynamic import. Relative imports that stay within the plugin package remain allowed.",
+          "status": "done",
+          "note": "R1: hook discovery rejects core-internal imports before importing hooks"
+        },
+        {
+          "desc": "Snapshot hook execution must hard-fail when a snapshot entry references a disabled plugin, missing installed plugin, unresolved hook module, invalid register(api) export, invalid hook class, or mismatched className/command/hook/priority metadata.",
+          "status": "done",
+          "note": "R2: snapshot hooks hard-fail for disabled, removed, unresolved, and mismatched entries"
+        },
+        {
+          "desc": "Hook run business failures must remain non-blocking command warnings and issue-log candidates when the snapshot entry and hook metadata are valid.",
+          "status": "done",
+          "note": "R3: hook run business failures remain non-blocking warnings after valid snapshot checks"
+        },
+        {
+          "desc": "Flow hook artifact helpers must read JSON artifacts and write JSON/text artifacts under specs/<spec>/plugin-artifacts/<pluginId>/ for hooks executed with an active flow spec path. Missing files passed to readJson must preserve the existing fallback return behavior.",
+          "status": "done",
+          "note": "R4: flow hook artifacts read and write under the active spec directory"
+        },
+        {
+          "desc": "Spec-local tests under specs/287-fix-plugin-foundation-gaps/tests/ must cover R1 through R4 with requirement headers, and shared plugin foundation tests may be updated only to align with the corrected production contract.",
+          "status": "done",
+          "note": "R5: spec-local test coverage declares every testable requirement"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 7,
+      "fullLogPath": "specs/287-fix-plugin-foundation-gaps/issue-log.json",
+      "importantTotal": 6,
+      "importantShown": 6,
+      "importantOmitted": 0,
+      "recentOtherTotal": 1,
+      "recentOtherShown": 1,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "invalid failureMode: missing-cli-argument-specification",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "gate FAIL (no details)",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "spec gate failed with ESCALATE_RETRY_EXHAUSTED because the AI gate emitted unsupported failureMode missing-cli-argument-specification",
+          "resolution": "recording the tooling failure and strengthening the spec with explicit CLI argument and internal runtime input wording before retry"
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "gate retry limit exhausted: 6/5 FAIL attempts recorded for phase \"spec\".\nCounter breakdown: AI-FAIL=6\nPrevious FAIL reasons:\n  (no issue-log entries found)\n\nStop the automatic retry loop and return control to the user.",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "test-execute",
+          "reason": "R1 spec-local execution failed because core import detection missed the CLI package src root and the relative-import fixture placed a helper under hooks where every js file is treated as a hook module.",
+          "resolution": "extend core import boundary roots and move the relative-import fixture helper outside hooks before rerunning test-execute"
+        },
+        {
+          "classification": "important",
+          "step": "impl-review",
+          "reason": "Impl review found R4 was incomplete because missing flow.spec during flow hook artifact context construction was converted into a PLUGIN_HOOK_FAILED warning.",
+          "resolution": "construct the required artifact context before the hook-run warning catch and add spec-local coverage for missing flow.spec rejection"
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-review",
+          "reason": "Impl review found R1 AC1 was incomplete because core-import rejection identified the hook module but omitted the owning plugin id.",
+          "resolution": "pass pluginId into assertNoCoreInternalImports and include pluginId/module in the rejection message"
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 2,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 4
+    },
+    "tokenMetrics": {
+      "input": 572444,
+      "output": 59299,
+      "cacheRead": 1671680,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 15,
+      "durationMs": 770826,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 18399
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 7977
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 9705
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 270901
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 27493
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 39837
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 288225
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 108289
+        }
+      ]
+    },
+    "tests": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/287-fix-plugin-foundation-gaps/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 56,
+          "end_line": 5068
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/287-fix-plugin-foundation-gaps/"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/plugin-registry.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/287-fix-plugin-foundation-gaps/"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/plugin-registry.js"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/287-fix-plugin-foundation-gaps/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    Fix plugin hook foundation gaps\n    45 files changed, 2895 insertions(+), 11 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (5 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 4\n    agent calls ................. 15\n    input tokens ................ 572,444\n    output tokens ............... 59,299\n    cache-read tokens ........... 1,671,680\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 770.8s\n      draft-questions-review .... 18.4s\n      draft-coverage-review ..... 8.0s\n      draft-gate ................ 9.7s\n      spec-review ............... 270.9s\n      spec-gate ................. 27.5s\n      test-review ............... 39.8s\n      impl-review ............... 288.2s\n      impl-gate ................. 108.3s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 5  passed 5  failed 0 verdict=pass\n    raw_output: specs/287-fix-plugin-foundation-gaps/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (7 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/287-fix-plugin-foundation-gaps/issue-log.json\n\n    Important (6)\n    - [spec-gate] invalid failureMode: missing-cli-argument-specification\n    - [spec-gate] gate FAIL (no details)\n    - [spec-gate] spec gate failed with ESCALATE_RETRY_EXHAUSTED because the AI gate emitted unsupported failureMode missing-cli-argument-specification\n    - [spec-gate] gate retry limit exhausted: 6/5 FAIL attempts recorded for phase \"spec\".\nCounter breakdown: AI-FAIL=6\nPrevious FAIL reasons:\n  (no issue-log entries found)\n\nStop the automatic retry loop and return control to the user.\n    - [test-execute] R1 spec-local execution failed because core import detection missed the CLI package src root and the relative-import fixture placed a helper under hooks where every js file is treated as a hook module.\n    - [impl-review] Impl review found R4 was incomplete because missing flow.spec during flow hook artifact context construction was converted into a PLUGIN_HOOK_FAILED warning.\n\n    Recent Other (1)\n    - [impl-review] Impl review found R1 AC1 was incomplete because core-import rejection identified the hook module but omitted the owning plugin id."
+}
