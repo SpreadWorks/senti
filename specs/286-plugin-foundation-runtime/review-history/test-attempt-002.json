@@ -1,0 +1,191 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-11T00:46:13.174Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 7,
+    "advisory": 2,
+    "total": 9
+  },
+  "coverageArtifact": "specs/286-plugin-foundation-runtime/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R1 lacks documentation coverage",
+      "target": "specs/286-plugin-foundation-runtime/tests/plugin-foundation-contract.test.js",
+      "issue": "R1 requires a documented migration path from plugin.repos/packages[].repo to plugin.sources/packages[].source, but the test only checks validation and CLI/registry behavior. No spec-local test asserts that migration guidance or generated documentation exists.",
+      "requiredChange": "Add a focused test that checks the migration path is documented in the intended user-facing upgrade/config guidance artifact.",
+      "whyBlocking": "An explicit acceptance requirement has no corresponding spec-local test coverage."
+    },
+    {
+      "kind": "blocking",
+      "title": "R2 safety limits are only partially covered",
+      "target": "specs/286-plugin-foundation-runtime/tests/plugin-foundation-contract.test.js",
+      "issue": "R2 requires preserving safety checks for .git, node_modules, and the 2000 copied-files-per-plugin limit, but the test cases do not exercise those required rejections.",
+      "requiredChange": "Add rejection cases for package contents containing .git, node_modules, and more than 2000 copied files under known plugin package paths.",
+      "whyBlocking": "Required security and resource-limit behavior has no corresponding regression coverage."
+    },
+    {
+      "kind": "blocking",
+      "title": "R3 discovery caps and inheritance validation are uncovered",
+      "target": "specs/286-plugin-foundation-runtime/tests/plugin-foundation-contract.test.js",
+      "issue": "R3 requires a 200 hook-file cap per plugin, a 100 enabled-plugin-package cap per project, and FlowCommandHook inheritance validation. The test checks a valid subclass but does not assert rejection for a returned class that does not extend FlowCommandHook, nor either cap.",
+      "requiredChange": "Add focused tests for non-FlowCommandHook returned classes, more than 200 hook files in one plugin, and more than 100 enabled plugin packages.",
+      "whyBlocking": "Critical validation and bound requirements lack spec-local coverage."
+    },
+    {
+      "kind": "blocking",
+      "title": "R4 does not verify prepare writes the snapshot",
+      "target": "specs/286-plugin-foundation-runtime/tests/plugin-foundation-contract.test.js",
+      "issue": "R4 specifically requires successful flow prepare to snapshot hook plans into flow.json, but the test manually calls discoverFlowCommandHooks() and writeFlowCommandHookSnapshot() instead of exercising the prepare path.",
+      "requiredChange": "Add or adjust a test to run the prepare entry point and assert flow.json contains plugins.flowCommandHooks after success.",
+      "whyBlocking": "The current test can pass with a helper that works while the required prepare integration is missing."
+    },
+    {
+      "kind": "blocking",
+      "title": "R5 lifecycle coverage is incomplete",
+      "target": "specs/286-plugin-foundation-runtime/tests/plugin-foundation-contract.test.js",
+      "issue": "R5 requires execution at supported flow command pre/post lifecycle points, but the test only invokes prepare.post directly through runFlowCommandHooks(). It does not verify command lifecycle integration or supported pre/post points beyond prepare.post.",
+      "requiredChange": "Add tests that exercise the supported flow command lifecycle integration points, including at least one supported pre hook and one supported post hook outside the manually invoked prepare.post case.",
+      "whyBlocking": "The test could pass without production flow commands actually running snapshot plugin hooks at required lifecycle points."
+    },
+    {
+      "kind": "blocking",
+      "title": "R7 help coverage misses command and subcommand help paths",
+      "target": "specs/286-plugin-foundation-runtime/tests/plugin-foundation-contract.test.js",
+      "issue": "R7 requires top-level help, command help, subcommand help, locale wording, and experimental display through the shared renderer. The test only covers top-level rendering and experimental display for argv: [].",
+      "requiredChange": "Add tests for plugin command help argv, plugin subcommand help metadata rendering, and locale-specific wording through the same renderHelp path.",
+      "whyBlocking": "Several required user-facing help surfaces have no executable coverage."
+    },
+    {
+      "kind": "blocking",
+      "title": "R8 migration and schema validation coverage is incomplete",
+      "target": "specs/286-plugin-foundation-runtime/tests/plugin-foundation-contract.test.js",
+      "issue": "R8 requires applying plugin config schemas/defaults under plugin.config.<pluginId>, migrating top-level workflow.* through upgrade/config guidance, and provider/profile overrides from plugin config. The test checks defaults and top-level workflow rejection, but does not assert plugin schema validation or actual upgrade/config guidance migration behavior.",
+      "requiredChange": "Add tests that verify plugin config schema validation is applied and that the intended upgrade/config guidance migrates workflow.flowIntegration to plugin.config.workflow.",
+      "whyBlocking": "Required migration behavior and schema enforcement can be absent while the current tests still pass."
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R6 should assert non-zero exit normalization",
+      "target": "specs/286-plugin-foundation-runtime/tests/plugin-foundation-contract.test.js",
+      "improvement": "The R6 test checks invalid and thrown plugin commands return ok: false, but it does not assert the normalized failure envelope includes a non-zero exit status.",
+      "whyNonBlocking": "The main command-loading and public-context behavior is covered; this is a narrower assertion that would make the failure contract more precise."
+    },
+    {
+      "kind": "advisory",
+      "title": "R9 could assert hook source is official plugin behavior",
+      "target": "specs/286-plugin-foundation-runtime/tests/plugin-foundation-contract.test.js",
+      "improvement": "The R9 test verifies the official workflow plugin hook is discovered and produces issue-start/workflow output, but a more explicit assertion on the produced issue-log candidate shape would make the preserved issue-start behavior less dependent on string matching.",
+      "whyNonBlocking": "The existing test exercises the intended official hook path and guards against workflow instructions remaining in the generated skill text."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/286-plugin-foundation-runtime/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 7,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "9c3ab62fcfac46c91848ef715e0fe25af0fd69ed1ef00fdee92f1c81bb7ca2ad"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "test-002-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R1 lacks documentation coverage",
+      "body": "R1 requires a documented migration path from plugin.repos/packages[].repo to plugin.sources/packages[].source, but the test only checks validation and CLI/registry behavior. No spec-local test asserts that migration guidance or generated documentation exists.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R2 safety limits are only partially covered",
+      "body": "R2 requires preserving safety checks for .git, node_modules, and the 2000 copied-files-per-plugin limit, but the test cases do not exercise those required rejections.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R3 discovery caps and inheritance validation are uncovered",
+      "body": "R3 requires a 200 hook-file cap per plugin, a 100 enabled-plugin-package cap per project, and FlowCommandHook inheritance validation. The test checks a valid subclass but does not assert rejection for a returned class that does not extend FlowCommandHook, nor either cap.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R4 does not verify prepare writes the snapshot",
+      "body": "R4 specifically requires successful flow prepare to snapshot hook plans into flow.json, but the test manually calls discoverFlowCommandHooks() and writeFlowCommandHookSnapshot() instead of exercising the prepare path.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-005",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R5 lifecycle coverage is incomplete",
+      "body": "R5 requires execution at supported flow command pre/post lifecycle points, but the test only invokes prepare.post directly through runFlowCommandHooks(). It does not verify command lifecycle integration or supported pre/post points beyond prepare.post.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-006",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R7 help coverage misses command and subcommand help paths",
+      "body": "R7 requires top-level help, command help, subcommand help, locale wording, and experimental display through the shared renderer. The test only covers top-level rendering and experimental display for argv: [].",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-007",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R8 migration and schema validation coverage is incomplete",
+      "body": "R8 requires applying plugin config schemas/defaults under plugin.config.<pluginId>, migrating top-level workflow.* through upgrade/config guidance, and provider/profile overrides from plugin config. The test checks defaults and top-level workflow rejection, but does not assert plugin schema validation or actual upgrade/config guidance migration behavior.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-non-blocking-008",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "R6 should assert non-zero exit normalization",
+      "body": "R6 should assert non-zero exit normalization",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-non-blocking-009",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "R9 could assert hook source is official plugin behavior",
+      "body": "R9 could assert hook source is official plugin behavior",
+      "category": "unknown"
+    }
+  ]
+}

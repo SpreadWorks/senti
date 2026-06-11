@@ -1,0 +1,1023 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-11T01:53:27.884Z",
+  "verdict": "ADVISORY",
+  "summary": {
+    "blocking": 0,
+    "nonBlocking": 55,
+    "total": 55
+  },
+  "blockingFindings": [],
+  "nonBlockingImprovements": [
+    {
+      "title": "1. Preserve `.senti` ignore exceptions",
+      "failureMode": "refactor",
+      "file": ".gitignore",
+      "issue": "**File:** `.gitignore`\n**Issue:** The new `.senti/` rule appears after `!.senti/templates/` and `!.senti/output/`, so it can re-ignore the directory and make the earlier negations ineffective.\n**Suggestion:** Keep a single ignore pattern such as `.senti/*`, then place explicit negations after it for tracked subpaths. Remove the later `.senti/` rule or move/restructure the exceptions accordingly.",
+      "suggestion": "**File:** `.gitignore`\n**Issue:** The new `.senti/` rule appears after `!.senti/templates/` and `!.senti/output/`, so it can re-ignore the directory and make the earlier negations ineffective.\n**Suggestion:** Keep a single ignore pattern such as `.senti/*`, then place explicit negations after it for tracked subpaths. Remove the later `.senti/` rule or move/restructure the exceptions accordingly.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Avoid committing machine-local plugin paths",
+      "failureMode": "refactor",
+      "file": ".senti/config.json",
+      "issue": "**File:** `.senti/config.json`\n**Issue:** `plugin.sources[].path` contains absolute local paths under `/home/nakano/...`, which makes the config non-portable across machines and users.\n**Suggestion:** Move local source overrides to an ignored/local config file, or express them through a portable mechanism such as relative paths or documented environment-based resolution.",
+      "suggestion": "**File:** `.senti/config.json`\n**Issue:** `plugin.sources[].path` contains absolute local paths under `/home/nakano/...`, which makes the config non-portable across machines and users.\n**Suggestion:** Move local source overrides to an ignored/local config file, or express them through a portable mechanism such as relative paths or documented environment-based resolution.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Remove test-fixture helper from production flow code",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-prepare-spec.js",
+      "issue": "**File:** `src/flow/lib/run-prepare-spec.js`  \n**Issue:** `runPrepareWithPluginHooks()` embeds fixture-specific behavior in production code: hardcoded `001-plugin-hook-snapshot-fixture`, `baseBranch: \"main\"`, and synthetic `fixture-${Date.now()}` run IDs. This looks like test scaffolding rather than runtime behavior.  \n**Suggestion:** Move this helper into the relevant test/support file, or replace it with a production-shaped helper that accepts `specDirName`, branch metadata, and flow manager dependencies explicitly.",
+      "suggestion": "**File:** `src/flow/lib/run-prepare-spec.js`  \n**Issue:** `runPrepareWithPluginHooks()` embeds fixture-specific behavior in production code: hardcoded `001-plugin-hook-snapshot-fixture`, `baseBranch: \"main\"`, and synthetic `fixture-${Date.now()}` run IDs. This looks like test scaffolding rather than runtime behavior.  \n**Suggestion:** Move this helper into the relevant test/support file, or replace it with a production-shaped helper that accepts `specDirName`, branch metadata, and flow manager dependencies explicitly.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Inline or rename the thin hook snapshot wrapper",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-prepare-spec.js",
+      "issue": "**File:** `src/flow/lib/run-prepare-spec.js`  \n**Issue:** `hookSnapshotFor(root)` only delegates to `discoverFlowCommandHooks(root)`, adding little meaning while obscuring that discovery is happening during prepare.  \n**Suggestion:** Either call `discoverFlowCommandHooks(specRoot)` directly, or rename the helper to something more explicit like `discoverFlowCommandHookSnapshot()` if the abstraction is expected to grow.",
+      "suggestion": "**File:** `src/flow/lib/run-prepare-spec.js`  \n**Issue:** `hookSnapshotFor(root)` only delegates to `discoverFlowCommandHooks(root)`, adding little meaning while obscuring that discovery is happening during prepare.  \n**Suggestion:** Either call `discoverFlowCommandHooks(specRoot)` directly, or rename the helper to something more explicit like `discoverFlowCommandHookSnapshot()` if the abstraction is expected to grow.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Batch issue-log updates for plugin hook failures",
+      "failureMode": "refactor",
+      "file": "src/flow/registry.js",
+      "issue": "**File:** `src/flow/registry.js`  \n**Issue:** The code loads and saves the issue log once per `hookResult.issueLogEntries` entry. That duplicates I/O and increases the chance of partial writes if later entries fail.  \n**Suggestion:** Load the issue log once, append all plugin hook entries in memory, then save once inside a single `tryAppendIssueLog()` block.",
+      "suggestion": "**File:** `src/flow/registry.js`  \n**Issue:** The code loads and saves the issue log once per `hookResult.issueLogEntries` entry. That duplicates I/O and increases the chance of partial writes if later entries fail.  \n**Suggestion:** Load the issue log once, append all plugin hook entries in memory, then save once inside a single `tryAppendIssueLog()` block.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "4. Add explicit bounds for plugin hook processing",
+      "failureMode": "refactor",
+      "file": "src/flow/registry.js",
+      "issue": "**File:** `src/flow/registry.js`  \n**Issue:** `snapshot` and `hookResult.issueLogEntries` are processed without an explicit count bound. This violates the `bounded-resource-usage` guardrail because a large persisted flow snapshot could trigger unbounded hook execution and repeated issue-log writes.  \n**Suggestion:** Enforce maximum counts before execution and issue-log append, for example by validating/capping snapshot hook plans and truncating issue-log candidates with a warning entry that records omitted count.",
+      "suggestion": "**File:** `src/flow/registry.js`  \n**Issue:** `snapshot` and `hookResult.issueLogEntries` are processed without an explicit count bound. This violates the `bounded-resource-usage` guardrail because a large persisted flow snapshot could trigger unbounded hook execution and repeated issue-log writes.  \n**Suggestion:** Enforce maximum counts before execution and issue-log append, for example by validating/capping snapshot hook plans and truncating issue-log candidates with a warning entry that records omitted count.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Add explicit bounds when rendering plugin help",
+      "failureMode": "refactor",
+      "file": "src/help.js",
+      "issue": "**File:** `src/help.js`  \n**Issue:** `pluginCommands()` loads and renders every plugin command, and plugin command help renders every subcommand. This is bulk data processing without an explicit size/count bound, which violates `bounded-resource-usage`.  \n**Suggestion:** Apply explicit limits near the rendering boundary, for example max plugin commands, max subcommands per command, and max help/description length. Prefer named constants so the limits are visible and testable.",
+      "suggestion": "**File:** `src/help.js`  \n**Issue:** `pluginCommands()` loads and renders every plugin command, and plugin command help renders every subcommand. This is bulk data processing without an explicit size/count bound, which violates `bounded-resource-usage`.  \n**Suggestion:** Apply explicit limits near the rendering boundary, for example max plugin commands, max subcommands per command, and max help/description length. Prefer named constants so the limits are visible and testable.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Remove unnecessary async from help rendering",
+      "failureMode": "refactor",
+      "file": "src/help.js",
+      "issue": "**File:** `src/help.js`  \n**Issue:** `renderHelp()` is declared `async`, but it does not await anything. This forces callers to treat a purely synchronous renderer as Promise-based.  \n**Suggestion:** Make `renderHelp()` synchronous and remove `await` in `main()` unless plugin registry loading is expected to become async.",
+      "suggestion": "**File:** `src/help.js`  \n**Issue:** `renderHelp()` is declared `async`, but it does not await anything. This forces callers to treat a purely synchronous renderer as Promise-based.  \n**Suggestion:** Make `renderHelp()` synchronous and remove `await` in `main()` unless plugin registry loading is expected to become async.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Extract repeated locale fallback logic",
+      "failureMode": "refactor",
+      "file": "src/help.js",
+      "issue": "**File:** `src/help.js`  \n**Issue:** `localizedCommand()` repeats the same locale/default fallback pattern for commands and subcommands, with slightly different field sets. This makes future metadata changes easy to apply inconsistently.  \n**Suggestion:** Add a small helper such as `localizeHelpMetadata(entry, lang, { includeHelpFallback })` and reuse it for both command and subcommand localization.",
+      "suggestion": "**File:** `src/help.js`  \n**Issue:** `localizedCommand()` repeats the same locale/default fallback pattern for commands and subcommands, with slightly different field sets. This makes future metadata changes easy to apply inconsistently.  \n**Suggestion:** Add a small helper such as `localizeHelpMetadata(entry, lang, { includeHelpFallback })` and reuse it for both command and subcommand localization.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "4. Avoid recomputing filtered argv",
+      "failureMode": "refactor",
+      "file": "src/help.js",
+      "issue": "**File:** `src/help.js`  \n**Issue:** `argv.find(...)` and `argv.filter(...)[1]` duplicate the same help-flag filtering logic.  \n**Suggestion:** Compute `const args = argv.filter((arg) => arg !== \"--help\" && arg !== \"-h\");` once, then use `args[0]` and `args[1]`.",
+      "suggestion": "**File:** `src/help.js`  \n**Issue:** `argv.find(...)` and `argv.filter(...)[1]` duplicate the same help-flag filtering logic.  \n**Suggestion:** Compute `const args = argv.filter((arg) => arg !== \"--help\" && arg !== \"-h\");` once, then use `args[0]` and `args[1]`.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "5. Clarify provider/profile override naming",
+      "failureMode": "refactor",
+      "file": "src/lib/agent.js",
+      "issue": "**File:** `src/lib/agent.js`  \n**Issue:** `resolveProviderOverrideKey()` returns a registry profile key, not just a provider override key. The name hides the fact that it may discard the selected profile when `options.provider` is present.  \n**Suggestion:** Rename it to something like `resolveEffectiveProfileKey(providerKey, selectedProfileKey)` and document the intended precedence.",
+      "suggestion": "**File:** `src/lib/agent.js`  \n**Issue:** `resolveProviderOverrideKey()` returns a registry profile key, not just a provider override key. The name hides the fact that it may discard the selected profile when `options.provider` is present.  \n**Suggestion:** Rename it to something like `resolveEffectiveProfileKey(providerKey, selectedProfileKey)` and document the intended precedence.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "6. Keep profile precedence documentation consistent",
+      "failureMode": "refactor",
+      "file": "src/lib/agent.js",
+      "issue": "**File:** `src/lib/agent.js`  \n**Issue:** The comment above `resolve()` still says `SENTI_PROFILE env > config.agent.useProfile > default profile > default`, but `options.profile` now takes precedence over `SENTI_PROFILE`.  \n**Suggestion:** Update the comment to include `options.profile`, or change `resolveProfileKey()` if environment variables are still supposed to win.",
+      "suggestion": "**File:** `src/lib/agent.js`  \n**Issue:** The comment above `resolve()` still says `SENTI_PROFILE env > config.agent.useProfile > default profile > default`, but `options.profile` now takes precedence over `SENTI_PROFILE`.  \n**Suggestion:** Update the comment to include `options.profile`, or change `resolveProfileKey()` if environment variables are still supposed to win.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Add a recursion bound to schema merging",
+      "failureMode": "refactor",
+      "file": "src/lib/config.js",
+      "issue": "**File:** `src/lib/config.js`  \n**Issue:** `mergeSchemaNode()` recursively merges plugin-provided schemas without an explicit depth limit, which violates `bounded-resource-usage` for recursive processing.  \n**Suggestion:** Add a max depth parameter, e.g. `mergeSchemaNode(base, extension, depth = 0)`, reject or stop merging past a fixed limit, and include a clear validation error for overly deep plugin config schemas.",
+      "suggestion": "**File:** `src/lib/config.js`  \n**Issue:** `mergeSchemaNode()` recursively merges plugin-provided schemas without an explicit depth limit, which violates `bounded-resource-usage` for recursive processing.  \n**Suggestion:** Add a max depth parameter, e.g. `mergeSchemaNode(base, extension, depth = 0)`, reject or stop merging past a fixed limit, and include a clear validation error for overly deep plugin config schemas.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Deduplicate legacy workflow validation",
+      "failureMode": "refactor",
+      "file": "src/lib/config.js",
+      "issue": "**File:** `src/lib/config.js`  \n**Issue:** The same `workflow.flowIntegration` migration error is constructed in both `validate()` and `loadConfig()`, making future wording changes easy to miss.  \n**Suggestion:** Extract a helper such as `validateLegacyWorkflowConfig(raw, errors)` or a shared constant for the migration message, and reuse it in both places.",
+      "suggestion": "**File:** `src/lib/config.js`  \n**Issue:** The same `workflow.flowIntegration` migration error is constructed in both `validate()` and `loadConfig()`, making future wording changes easy to miss.  \n**Suggestion:** Extract a helper such as `validateLegacyWorkflowConfig(raw, errors)` or a shared constant for the migration message, and reuse it in both places.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Simplify local source path validation",
+      "failureMode": "refactor",
+      "file": "src/lib/config.js",
+      "issue": "**File:** `src/lib/config.js`  \n**Issue:** The expression `(path.isAbsolute(source.path) ? false : source.path.startsWith(\"../\"))` is hard to read and only catches paths beginning with `\"../\"`, not normalized traversal like `\"foo/../../bar\"`.  \n**Suggestion:** Extract a helper such as `isUnsafeLocalSourcePath(sourcePath)` and use `path.normalize()` to make the rule explicit and consistent.",
+      "suggestion": "**File:** `src/lib/config.js`  \n**Issue:** The expression `(path.isAbsolute(source.path) ? false : source.path.startsWith(\"../\"))` is hard to read and only catches paths beginning with `\"../\"`, not normalized traversal like `\"foo/../../bar\"`.  \n**Suggestion:** Extract a helper such as `isUnsafeLocalSourcePath(sourcePath)` and use `path.normalize()` to make the rule explicit and consistent.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "4. Narrow the migration helper name",
+      "failureMode": "refactor",
+      "file": "src/lib/config.js",
+      "issue": "**File:** `src/lib/config.js`  \n**Issue:** `migratePluginDefaultNamespaces()` sounds like a general namespace migration, but it only migrates `workflow.flowIntegration` defaults.  \n**Suggestion:** Rename it to something more specific, such as `migrateWorkflowIntegrationDefault()` or `migrateWorkflowDefaultNamespace()`, so future callers do not assume it handles all plugin default migrations.",
+      "suggestion": "**File:** `src/lib/config.js`  \n**Issue:** `migratePluginDefaultNamespaces()` sounds like a general namespace migration, but it only migrates `workflow.flowIntegration` defaults.  \n**Suggestion:** Rename it to something more specific, such as `migrateWorkflowIntegrationDefault()` or `migrateWorkflowDefaultNamespace()`, so future callers do not assume it handles all plugin default migrations.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "5. Clarify invalid-config initialization state",
+      "failureMode": "refactor",
+      "file": "src/lib/container.js",
+      "issue": "**File:** `src/lib/container.js`  \n**Issue:** When `allowInvalidConfig` is true, `configLoaded` is set to `false` even though the failed load was intentionally handled. That name now mixes “file load succeeded” with “container may proceed using null config.”  \n**Suggestion:** Either keep `configLoaded` semantics documented with an inline comment at this branch, or rename/split the state so migration-mode behavior is easier to reason about.",
+      "suggestion": "**File:** `src/lib/container.js`  \n**Issue:** When `allowInvalidConfig` is true, `configLoaded` is set to `false` even though the failed load was intentionally handled. That name now mixes “file load succeeded” with “container may proceed using null config.”  \n**Suggestion:** Either keep `configLoaded` semantics documented with an inline comment at this branch, or rename/split the state so migration-mode behavior is easier to reason about.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Remove legacy `source.source` fallback",
+      "failureMode": "refactor",
+      "file": "src/lib/plugin-registry.js",
+      "issue": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `sourceLocation(source)` still accepts `source.source`, which silently preserves the old schema even though R1 requires replacing old fields with an actionable migration path.\n**Suggestion:** Remove the fallback and add explicit validation/error handling for legacy `plugin.repos` and `packages[].repo`, e.g. “use plugin.sources[] / packages[].source”.",
+      "suggestion": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `sourceLocation(source)` still accepts `source.source`, which silently preserves the old schema even though R1 requires replacing old fields with an actionable migration path.\n**Suggestion:** Remove the fallback and add explicit validation/error handling for legacy `plugin.repos` and `packages[].repo`, e.g. “use plugin.sources[] / packages[].source”.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Avoid duplicate source-tree walks during install",
+      "failureMode": "refactor",
+      "file": "src/lib/plugin-registry.js",
+      "issue": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `installFromSource()` validates both `sourceRoot` and the materialized commit, and `copyAllowlistedFiles()` walks the same known paths again. This repeats bounded filesystem traversal work.\n**Suggestion:** Validate only the materialized package snapshot before copying, or combine validation and copy into one traversal that enforces depth, path length, JSON size, and file-count limits once.",
+      "suggestion": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `installFromSource()` validates both `sourceRoot` and the materialized commit, and `copyAllowlistedFiles()` walks the same known paths again. This repeats bounded filesystem traversal work.\n**Suggestion:** Validate only the materialized package snapshot before copying, or combine validation and copy into one traversal that enforces depth, path length, JSON size, and file-count limits once.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Make artifact JSON writes consistent with text writes",
+      "failureMode": "refactor",
+      "file": "src/lib/plugin-registry.js",
+      "issue": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `artifactHelpers.writeText()` creates parent directories, but `writeJson()` does not. The two helpers expose the same artifact path abstraction but behave differently for nested paths.\n**Suggestion:** Update `writeJson()` to create `path.dirname(file)` before writing, matching `writeText()`.",
+      "suggestion": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `artifactHelpers.writeText()` creates parent directories, but `writeJson()` does not. The two helpers expose the same artifact path abstraction but behave differently for nested paths.\n**Suggestion:** Update `writeJson()` to create `path.dirname(file)` before writing, matching `writeText()`.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "4. Reuse one plugin API object per operation",
+      "failureMode": "refactor",
+      "file": "src/lib/plugin-registry.js",
+      "issue": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `buildPluginApi()` is called repeatedly in command dispatch, hook discovery, hook loading, and context construction. This duplicates object creation and makes future API changes easier to apply inconsistently.\n**Suggestion:** Create a shared `PLUGIN_API` constant or pass a single `api` object through discovery/loading/context creation.",
+      "suggestion": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `buildPluginApi()` is called repeatedly in command dispatch, hook discovery, hook loading, and context construction. This duplicates object creation and makes future API changes easier to apply inconsistently.\n**Suggestion:** Create a shared `PLUGIN_API` constant or pass a single `api` object through discovery/loading/context creation.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "5. Replace broad config error swallowing",
+      "failureMode": "refactor",
+      "file": "src/lib/plugin-registry.js",
+      "issue": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `pluginConfigFor()` catches all errors and returns `{}`. That hides malformed project config or read failures, which makes plugin behavior harder to diagnose.\n**Suggestion:** Let config read/parse errors propagate, and only default to `{}` when the plugin config entry is genuinely absent.",
+      "suggestion": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `pluginConfigFor()` catches all errors and returns `{}`. That hides malformed project config or read failures, which makes plugin behavior harder to diagnose.\n**Suggestion:** Let config read/parse errors propagate, and only default to `{}` when the plugin config entry is genuinely absent.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "6. Extract hook plan sorting",
+      "failureMode": "refactor",
+      "file": "src/lib/plugin-registry.js",
+      "issue": "**File:** `src/lib/plugin-registry.js`\n**Issue:** Hook sorting logic is duplicated in `discoverFlowCommandHooks()` and `runFlowCommandHooks()`, with slightly different tie-breaking.\n**Suggestion:** Add a small comparator like `compareHookPlans(a, b)` and use it in both places for consistent lifecycle ordering.",
+      "suggestion": "**File:** `src/lib/plugin-registry.js`\n**Issue:** Hook sorting logic is duplicated in `discoverFlowCommandHooks()` and `runFlowCommandHooks()`, with slightly different tie-breaking.\n**Suggestion:** Add a small comparator like `compareHookPlans(a, b)` and use it in both places for consistent lifecycle ordering.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Remove legacy `source.source` fallback",
+      "failureMode": "refactor",
+      "file": "src/lib/plugin-registry.js",
+      "issue": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `sourceLocation(source)` still accepts `source.source`, which silently preserves the old schema even though R1 requires replacing old fields with an actionable migration path.\n**Suggestion:** Remove the fallback and add explicit validation/error handling for legacy `plugin.repos` and `packages[].repo`, e.g. “use plugin.sources[] / packages[].source”.",
+      "suggestion": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `sourceLocation(source)` still accepts `source.source`, which silently preserves the old schema even though R1 requires replacing old fields with an actionable migration path.\n**Suggestion:** Remove the fallback and add explicit validation/error handling for legacy `plugin.repos` and `packages[].repo`, e.g. “use plugin.sources[] / packages[].source”.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Avoid duplicate source-tree walks during install",
+      "failureMode": "refactor",
+      "file": "src/lib/plugin-registry.js",
+      "issue": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `installFromSource()` validates both `sourceRoot` and the materialized commit, and `copyAllowlistedFiles()` walks the same known paths again. This repeats bounded filesystem traversal work.\n**Suggestion:** Validate only the materialized package snapshot before copying, or combine validation and copy into one traversal that enforces depth, path length, JSON size, and file-count limits once.",
+      "suggestion": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `installFromSource()` validates both `sourceRoot` and the materialized commit, and `copyAllowlistedFiles()` walks the same known paths again. This repeats bounded filesystem traversal work.\n**Suggestion:** Validate only the materialized package snapshot before copying, or combine validation and copy into one traversal that enforces depth, path length, JSON size, and file-count limits once.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Make artifact JSON writes consistent with text writes",
+      "failureMode": "refactor",
+      "file": "src/lib/plugin-registry.js",
+      "issue": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `artifactHelpers.writeText()` creates parent directories, but `writeJson()` does not. The two helpers expose the same artifact path abstraction but behave differently for nested paths.\n**Suggestion:** Update `writeJson()` to create `path.dirname(file)` before writing, matching `writeText()`.",
+      "suggestion": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `artifactHelpers.writeText()` creates parent directories, but `writeJson()` does not. The two helpers expose the same artifact path abstraction but behave differently for nested paths.\n**Suggestion:** Update `writeJson()` to create `path.dirname(file)` before writing, matching `writeText()`.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "4. Reuse one plugin API object per operation",
+      "failureMode": "refactor",
+      "file": "src/lib/plugin-registry.js",
+      "issue": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `buildPluginApi()` is called repeatedly in command dispatch, hook discovery, hook loading, and context construction. This duplicates object creation and makes future API changes easier to apply inconsistently.\n**Suggestion:** Create a shared `PLUGIN_API` constant or pass a single `api` object through discovery/loading/context creation.",
+      "suggestion": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `buildPluginApi()` is called repeatedly in command dispatch, hook discovery, hook loading, and context construction. This duplicates object creation and makes future API changes easier to apply inconsistently.\n**Suggestion:** Create a shared `PLUGIN_API` constant or pass a single `api` object through discovery/loading/context creation.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "5. Replace broad config error swallowing",
+      "failureMode": "refactor",
+      "file": "src/lib/plugin-registry.js",
+      "issue": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `pluginConfigFor()` catches all errors and returns `{}`. That hides malformed project config or read failures, which makes plugin behavior harder to diagnose.\n**Suggestion:** Let config read/parse errors propagate, and only default to `{}` when the plugin config entry is genuinely absent.",
+      "suggestion": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `pluginConfigFor()` catches all errors and returns `{}`. That hides malformed project config or read failures, which makes plugin behavior harder to diagnose.\n**Suggestion:** Let config read/parse errors propagate, and only default to `{}` when the plugin config entry is genuinely absent.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "6. Extract hook plan sorting",
+      "failureMode": "refactor",
+      "file": "src/lib/plugin-registry.js",
+      "issue": "**File:** `src/lib/plugin-registry.js`\n**Issue:** Hook sorting logic is duplicated in `discoverFlowCommandHooks()` and `runFlowCommandHooks()`, with slightly different tie-breaking.\n**Suggestion:** Add a small comparator like `compareHookPlans(a, b)` and use it in both places for consistent lifecycle ordering.",
+      "suggestion": "**File:** `src/lib/plugin-registry.js`\n**Issue:** Hook sorting logic is duplicated in `discoverFlowCommandHooks()` and `runFlowCommandHooks()`, with slightly different tie-breaking.\n**Suggestion:** Add a small comparator like `compareHookPlans(a, b)` and use it in both places for consistent lifecycle ordering.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Clarify slash-fallback profile lookup",
+      "failureMode": "refactor",
+      "file": "src/lib/provider.js",
+      "issue": "**File:** `src/lib/provider.js`\n**Issue:** `_profileForKey()` sounds like a plain key lookup, but it also performs fallback from `plugin/profile` to `plugin`. That behavior is non-obvious at call sites like `resolveProfile()` and `hasProfile()`.\n**Suggestion:** Rename it to something that exposes the fallback semantics, e.g. `_resolveProfileWithPluginFallback(profileKey)` or `_profileForExactOrPluginKey(profileKey)`.",
+      "suggestion": "**File:** `src/lib/provider.js`\n**Issue:** `_profileForKey()` sounds like a plain key lookup, but it also performs fallback from `plugin/profile` to `plugin`. That behavior is non-obvious at call sites like `resolveProfile()` and `hasProfile()`.\n**Suggestion:** Rename it to something that exposes the fallback semantics, e.g. `_resolveProfileWithPluginFallback(profileKey)` or `_profileForExactOrPluginKey(profileKey)`.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Remove duplicate empty-key guard",
+      "failureMode": "refactor",
+      "file": "src/lib/provider.js",
+      "issue": "**File:** `src/lib/provider.js`\n**Issue:** `resolveProfile()` checks `if (!profileKey) return null;`, and `_profileForKey()` repeats the same guard immediately after.\n**Suggestion:** Keep the guard in one place. Since `_profileForKey()` is now the shared lookup helper and `hasProfile()` also calls it, keep the guard there and remove the duplicate check from `resolveProfile()`.",
+      "suggestion": "**File:** `src/lib/provider.js`\n**Issue:** `resolveProfile()` checks `if (!profileKey) return null;`, and `_profileForKey()` repeats the same guard immediately after.\n**Suggestion:** Keep the guard in one place. Since `_profileForKey()` is now the shared lookup helper and `hasProfile()` also calls it, keep the guard there and remove the duplicate check from `resolveProfile()`.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Clarify slash-fallback profile lookup",
+      "failureMode": "refactor",
+      "file": "src/lib/provider.js",
+      "issue": "**File:** `src/lib/provider.js`\n**Issue:** `_profileForKey()` sounds like a plain key lookup, but it also performs fallback from `plugin/profile` to `plugin`. That behavior is non-obvious at call sites like `resolveProfile()` and `hasProfile()`.\n**Suggestion:** Rename it to something that exposes the fallback semantics, e.g. `_resolveProfileWithPluginFallback(profileKey)` or `_profileForExactOrPluginKey(profileKey)`.",
+      "suggestion": "**File:** `src/lib/provider.js`\n**Issue:** `_profileForKey()` sounds like a plain key lookup, but it also performs fallback from `plugin/profile` to `plugin`. That behavior is non-obvious at call sites like `resolveProfile()` and `hasProfile()`.\n**Suggestion:** Rename it to something that exposes the fallback semantics, e.g. `_resolveProfileWithPluginFallback(profileKey)` or `_profileForExactOrPluginKey(profileKey)`.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Remove duplicate empty-key guard",
+      "failureMode": "refactor",
+      "file": "src/lib/provider.js",
+      "issue": "**File:** `src/lib/provider.js`\n**Issue:** `resolveProfile()` checks `if (!profileKey) return null;`, and `_profileForKey()` repeats the same guard immediately after.\n**Suggestion:** Keep the guard in one place. Since `_profileForKey()` is now the shared lookup helper and `hasProfile()` also calls it, keep the guard there and remove the duplicate check from `resolveProfile()`.",
+      "suggestion": "**File:** `src/lib/provider.js`\n**Issue:** `resolveProfile()` checks `if (!profileKey) return null;`, and `_profileForKey()` repeats the same guard immediately after.\n**Suggestion:** Keep the guard in one place. Since `_profileForKey()` is now the shared lookup helper and `hasProfile()` also calls it, keep the guard there and remove the duplicate check from `resolveProfile()`.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Remove Legacy Package Root Fallbacks",
+      "failureMode": "refactor",
+      "file": "src/official-plugins/senti-workflow-plugin/commands/workflow.js",
+      "issue": "**File:** `src/official-plugins/senti-workflow-plugin/commands/workflow.js`  \n**Issue:** `packageRoot` still falls back to `SENTI_PACKAGE_ROOT` and `SENTI_SOURCE_ROOT`, which keeps legacy/environment coupling in the plugin command path. That is inconsistent with the new plugin context model in R6.  \n**Suggestion:** Prefer `ctx.plugin.root` as the single source of truth. If missing, fail clearly. Example: `const packageRoot = ctx.plugin?.root;`.",
+      "suggestion": "**File:** `src/official-plugins/senti-workflow-plugin/commands/workflow.js`  \n**Issue:** `packageRoot` still falls back to `SENTI_PACKAGE_ROOT` and `SENTI_SOURCE_ROOT`, which keeps legacy/environment coupling in the plugin command path. That is inconsistent with the new plugin context model in R6.  \n**Suggestion:** Prefer `ctx.plugin.root` as the single source of truth. If missing, fail clearly. Example: `const packageRoot = ctx.plugin?.root;`.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Avoid Leaking `process.argv` Mutation",
+      "failureMode": "refactor",
+      "file": "src/official-plugins/senti-workflow-plugin/commands/workflow.js",
+      "issue": "**File:** `src/official-plugins/senti-workflow-plugin/commands/workflow.js`  \n**Issue:** The command mutates global `process.argv` before importing the workflow entrypoint and never restores it. In a plugin runtime that may execute multiple commands in one process, this can leak state into later commands.  \n**Suggestion:** Save the previous argv and restore it in a `finally` block around the dynamic import, or expose/invoke a workflow entrypoint that accepts argv directly.",
+      "suggestion": "**File:** `src/official-plugins/senti-workflow-plugin/commands/workflow.js`  \n**Issue:** The command mutates global `process.argv` before importing the workflow entrypoint and never restores it. In a plugin runtime that may execute multiple commands in one process, this can leak state into later commands.  \n**Suggestion:** Save the previous argv and restore it in a `finally` block around the dynamic import, or expose/invoke a workflow entrypoint that accepts argv directly.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Clarify the Command Return Construction",
+      "failureMode": "refactor",
+      "file": "src/official-plugins/senti-workflow-plugin/commands/workflow.js",
+      "issue": "**File:** `src/official-plugins/senti-workflow-plugin/commands/workflow.js`  \n**Issue:** The hard-coded envelope fields `\"plugin\"` and `\"workflow\"` are terse and repeated inline at the return site, making the command identity less explicit.  \n**Suggestion:** Introduce local constants such as `const COMMAND_KIND = \"plugin\";` and `const COMMAND_NAME = \"workflow\";`, or use command metadata from the plugin API if available.",
+      "suggestion": "**File:** `src/official-plugins/senti-workflow-plugin/commands/workflow.js`  \n**Issue:** The hard-coded envelope fields `\"plugin\"` and `\"workflow\"` are terse and repeated inline at the return site, making the command identity less explicit.  \n**Suggestion:** Introduce local constants such as `const COMMAND_KIND = \"plugin\";` and `const COMMAND_NAME = \"workflow\";`, or use command metadata from the plugin API if available.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Remove Legacy Package Root Fallbacks",
+      "failureMode": "refactor",
+      "file": "src/official-plugins/senti-workflow-plugin/commands/workflow.js",
+      "issue": "**File:** `src/official-plugins/senti-workflow-plugin/commands/workflow.js`  \n**Issue:** `packageRoot` still falls back to `SENTI_PACKAGE_ROOT` and `SENTI_SOURCE_ROOT`, which keeps legacy/environment coupling in the plugin command path. That is inconsistent with the new plugin context model in R6.  \n**Suggestion:** Prefer `ctx.plugin.root` as the single source of truth. If missing, fail clearly. Example: `const packageRoot = ctx.plugin?.root;`.",
+      "suggestion": "**File:** `src/official-plugins/senti-workflow-plugin/commands/workflow.js`  \n**Issue:** `packageRoot` still falls back to `SENTI_PACKAGE_ROOT` and `SENTI_SOURCE_ROOT`, which keeps legacy/environment coupling in the plugin command path. That is inconsistent with the new plugin context model in R6.  \n**Suggestion:** Prefer `ctx.plugin.root` as the single source of truth. If missing, fail clearly. Example: `const packageRoot = ctx.plugin?.root;`.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Avoid Leaking `process.argv` Mutation",
+      "failureMode": "refactor",
+      "file": "src/official-plugins/senti-workflow-plugin/commands/workflow.js",
+      "issue": "**File:** `src/official-plugins/senti-workflow-plugin/commands/workflow.js`  \n**Issue:** The command mutates global `process.argv` before importing the workflow entrypoint and never restores it. In a plugin runtime that may execute multiple commands in one process, this can leak state into later commands.  \n**Suggestion:** Save the previous argv and restore it in a `finally` block around the dynamic import, or expose/invoke a workflow entrypoint that accepts argv directly.",
+      "suggestion": "**File:** `src/official-plugins/senti-workflow-plugin/commands/workflow.js`  \n**Issue:** The command mutates global `process.argv` before importing the workflow entrypoint and never restores it. In a plugin runtime that may execute multiple commands in one process, this can leak state into later commands.  \n**Suggestion:** Save the previous argv and restore it in a `finally` block around the dynamic import, or expose/invoke a workflow entrypoint that accepts argv directly.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Clarify the Command Return Construction",
+      "failureMode": "refactor",
+      "file": "src/official-plugins/senti-workflow-plugin/commands/workflow.js",
+      "issue": "**File:** `src/official-plugins/senti-workflow-plugin/commands/workflow.js`  \n**Issue:** The hard-coded envelope fields `\"plugin\"` and `\"workflow\"` are terse and repeated inline at the return site, making the command identity less explicit.  \n**Suggestion:** Introduce local constants such as `const COMMAND_KIND = \"plugin\";` and `const COMMAND_NAME = \"workflow\";`, or use command metadata from the plugin API if available.",
+      "suggestion": "**File:** `src/official-plugins/senti-workflow-plugin/commands/workflow.js`  \n**Issue:** The hard-coded envelope fields `\"plugin\"` and `\"workflow\"` are terse and repeated inline at the return site, making the command identity less explicit.  \n**Suggestion:** Introduce local constants such as `const COMMAND_KIND = \"plugin\";` and `const COMMAND_NAME = \"workflow\";`, or use command metadata from the plugin API if available.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Reconsider schema nesting responsibility",
+      "failureMode": "refactor",
+      "file": "src/official-plugins/senti-workflow-plugin/config.schema.json",
+      "issue": "**File:** `src/official-plugins/senti-workflow-plugin/config.schema.json`  \n**Issue:** The plugin schema now describes the full path `plugin.config.workflow`. If plugin config schemas are applied under `plugin.config.<pluginId>` at runtime, this creates duplicated nesting responsibility and makes the plugin schema less reusable as the schema for the workflow plugin’s own config object.  \n**Suggestion:** Keep this schema scoped to the plugin config payload itself, with top-level `languages` and `flowIntegration`, unless the loader explicitly expects whole-project config schemas.",
+      "suggestion": "**File:** `src/official-plugins/senti-workflow-plugin/config.schema.json`  \n**Issue:** The plugin schema now describes the full path `plugin.config.workflow`. If plugin config schemas are applied under `plugin.config.<pluginId>` at runtime, this creates duplicated nesting responsibility and makes the plugin schema less reusable as the schema for the workflow plugin’s own config object.  \n**Suggestion:** Keep this schema scoped to the plugin config payload itself, with top-level `languages` and `flowIntegration`, unless the loader explicitly expects whole-project config schemas.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Avoid duplicate experimental labeling",
+      "failureMode": "refactor",
+      "file": "src/official-plugins/senti-workflow-plugin/plugin.json",
+      "issue": "**File:** `src/official-plugins/senti-workflow-plugin/plugin.json`  \n**Issue:** The command metadata has both `\"experimental\": true` and `\"[EXPERIMENTAL]\"` embedded in `desc`. This duplicates responsibility and risks inconsistent display/localization if the help renderer already handles experimental commands.  \n**Suggestion:** Change `desc` to `\"Manage workflow board drafts\"` and rely on `\"experimental\": true` for the experimental label.",
+      "suggestion": "**File:** `src/official-plugins/senti-workflow-plugin/plugin.json`  \n**Issue:** The command metadata has both `\"experimental\": true` and `\"[EXPERIMENTAL]\"` embedded in `desc`. This duplicates responsibility and risks inconsistent display/localization if the help renderer already handles experimental commands.  \n**Suggestion:** Change `desc` to `\"Manage workflow board drafts\"` and rely on `\"experimental\": true` for the experimental label.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Split dense command metadata for maintainability",
+      "failureMode": "refactor",
+      "file": "src/official-plugins/senti-workflow-plugin/plugin.json",
+      "issue": "**File:** `src/official-plugins/senti-workflow-plugin/plugin.json`  \n**Issue:** The `contributions.commands[0]` object is now a long single-line object with several fields, making future help metadata edits noisy and harder to review.  \n**Suggestion:** Format the command contribution across multiple lines, matching the surrounding manifest style.",
+      "suggestion": "**File:** `src/official-plugins/senti-workflow-plugin/plugin.json`  \n**Issue:** The `contributions.commands[0]` object is now a long single-line object with several fields, making future help metadata edits noisy and harder to review.  \n**Suggestion:** Format the command contribution across multiple lines, matching the surrounding manifest style.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Rename remaining repo-oriented identifiers and errors",
+      "failureMode": "refactor",
+      "file": "src/plugin.js",
+      "issue": "**File:** `src/plugin.js`  \n**Issue:** The command was renamed from `repo` to `source`, but internal names and one user-facing error still say repo: `printRepoHelp`, `repoCommand`, `repoRest`, and `unknown plugin repo command`. This weakens consistency and can confuse users debugging CLI output.  \n**Suggestion:** Rename these to `printSourceHelp`, `sourceCommand`, `sourceRest`, and change the error to `unknown plugin source command: ...`.",
+      "suggestion": "**File:** `src/plugin.js`  \n**Issue:** The command was renamed from `repo` to `source`, but internal names and one user-facing error still say repo: `printRepoHelp`, `repoCommand`, `repoRest`, and `unknown plugin repo command`. This weakens consistency and can confuse users debugging CLI output.  \n**Suggestion:** Rename these to `printSourceHelp`, `sourceCommand`, `sourceRest`, and change the error to `unknown plugin source command: ...`.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Remove or wire up unused plugin list renderer",
+      "failureMode": "refactor",
+      "file": "src/plugin.js",
+      "issue": "**File:** `src/plugin.js`  \n**Issue:** `renderPluginList()` is exported but not used in the shown CLI path. It also duplicates part of `formatLine()` / `output()` formatting behavior, creating two places that can drift.  \n**Suggestion:** Either use `renderPluginList()` from the relevant `plugin list` path, or remove it and keep formatting centralized in the existing `output()` / `formatLine()` flow.",
+      "suggestion": "**File:** `src/plugin.js`  \n**Issue:** `renderPluginList()` is exported but not used in the shown CLI path. It also duplicates part of `formatLine()` / `output()` formatting behavior, creating two places that can drift.  \n**Suggestion:** Either use `renderPluginList()` from the relevant `plugin list` path, or remove it and keep formatting centralized in the existing `output()` / `formatLine()` flow.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Avoid mixed return-shape handling in CLI dispatch",
+      "failureMode": "refactor",
+      "file": "src/senti.js",
+      "issue": "**File:** `src/senti.js`  \n**Issue:** `handled` now appears to be both a boolean and possibly an envelope object. The name no longer matches the value, and the `handled.ok != null` duck-typing spreads plugin envelope knowledge into the top-level CLI.  \n**Suggestion:** Normalize `dispatchPluginCommand()` to return a single explicit shape, such as `null` for unhandled or an envelope/result object for handled commands. Then rename `handled` to `pluginResult` or similar and remove boolean/object branching.",
+      "suggestion": "**File:** `src/senti.js`  \n**Issue:** `handled` now appears to be both a boolean and possibly an envelope object. The name no longer matches the value, and the `handled.ok != null` duck-typing spreads plugin envelope knowledge into the top-level CLI.  \n**Suggestion:** Normalize `dispatchPluginCommand()` to return a single explicit shape, such as `null` for unhandled or an envelope/result object for handled commands. Then rename `handled` to `pluginResult` or similar and remove boolean/object branching.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "I’ll review this as a diff-scoped quality pass only, so proposals will stay limited to the two touched files.### 1. Consolidate config file migration passes",
+      "failureMode": "refactor",
+      "file": "src/upgrade.js",
+      "issue": "**File:** `src/upgrade.js`  \n**Issue:** The new pre-migration block reads/writes `.senti/config.json`, then the existing migration block reads/writes the same file again. This also makes the later “Single read/write” comment inaccurate.  \n**Suggestion:** Move `migratePluginConfigNamespaces()` into the existing config migration flow or extract a shared `migrateConfigFile()` helper so config is parsed, migrated, compared, and written once.",
+      "suggestion": "**File:** `src/upgrade.js`  \n**Issue:** The new pre-migration block reads/writes `.senti/config.json`, then the existing migration block reads/writes the same file again. This also makes the later “Single read/write” comment inaccurate.  \n**Suggestion:** Move `migratePluginConfigNamespaces()` into the existing config migration flow or extract a shared `migrateConfigFile()` helper so config is parsed, migrated, compared, and written once.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Remove duplicated source classification regex",
+      "failureMode": "refactor",
+      "file": "src/upgrade.js",
+      "issue": "**File:** `src/upgrade.js`  \n**Issue:** The same source URL regex is evaluated twice inside each `plugin.repos` migration.  \n**Suggestion:** Introduce a local `isGitSource` variable or helper such as `pluginSourceLocation(source)` that returns `{ type, url/path }`.",
+      "suggestion": "**File:** `src/upgrade.js`  \n**Issue:** The same source URL regex is evaluated twice inside each `plugin.repos` migration.  \n**Suggestion:** Introduce a local `isGitSource` variable or helper such as `pluginSourceLocation(source)` that returns `{ type, url/path }`.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Add explicit bounds for migrated plugin arrays",
+      "failureMode": "refactor",
+      "file": "src/upgrade.js",
+      "issue": "**File:** `src/upgrade.js`  \n**Issue:** `plugin.repos` and `plugin.packages` are mapped without an explicit item limit. This violates the `bounded-resource-usage` guardrail for bulk processing.  \n**Suggestion:** Define and enforce a maximum count for these arrays during migration, ideally matching any existing config/schema limits.",
+      "suggestion": "**File:** `src/upgrade.js`  \n**Issue:** `plugin.repos` and `plugin.packages` are mapped without an explicit item limit. This violates the `bounded-resource-usage` guardrail for bulk processing.  \n**Suggestion:** Define and enforce a maximum count for these arrays during migration, ideally matching any existing config/schema limits.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "4. Do not silently swallow write failures",
+      "failureMode": "refactor",
+      "file": "src/upgrade.js",
+      "issue": "**File:** `src/upgrade.js`  \n**Issue:** The broad `catch (_)` hides read, parse, migration, and write failures alike. A failed migration write could be ignored, leaving config unmigrated with no actionable signal.  \n**Suggestion:** Only ignore expected “missing config” cases. Surface or log parse/write errors with enough context to diagnose the failed upgrade.",
+      "suggestion": "**File:** `src/upgrade.js`  \n**Issue:** The broad `catch (_)` hides read, parse, migration, and write failures alike. A failed migration write could be ignored, leaving config unmigrated with no actionable signal.  \n**Suggestion:** Only ignore expected “missing config” cases. Surface or log parse/write errors with enough context to diagnose the failed upgrade.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "I’ll review this as a diff-scoped quality pass only, so proposals will stay limited to the two touched files.### 1. Consolidate config file migration passes",
+      "failureMode": "refactor",
+      "file": "src/upgrade.js",
+      "issue": "**File:** `src/upgrade.js`  \n**Issue:** The new pre-migration block reads/writes `.senti/config.json`, then the existing migration block reads/writes the same file again. This also makes the later “Single read/write” comment inaccurate.  \n**Suggestion:** Move `migratePluginConfigNamespaces()` into the existing config migration flow or extract a shared `migrateConfigFile()` helper so config is parsed, migrated, compared, and written once.",
+      "suggestion": "**File:** `src/upgrade.js`  \n**Issue:** The new pre-migration block reads/writes `.senti/config.json`, then the existing migration block reads/writes the same file again. This also makes the later “Single read/write” comment inaccurate.  \n**Suggestion:** Move `migratePluginConfigNamespaces()` into the existing config migration flow or extract a shared `migrateConfigFile()` helper so config is parsed, migrated, compared, and written once.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Remove duplicated source classification regex",
+      "failureMode": "refactor",
+      "file": "src/upgrade.js",
+      "issue": "**File:** `src/upgrade.js`  \n**Issue:** The same source URL regex is evaluated twice inside each `plugin.repos` migration.  \n**Suggestion:** Introduce a local `isGitSource` variable or helper such as `pluginSourceLocation(source)` that returns `{ type, url/path }`.",
+      "suggestion": "**File:** `src/upgrade.js`  \n**Issue:** The same source URL regex is evaluated twice inside each `plugin.repos` migration.  \n**Suggestion:** Introduce a local `isGitSource` variable or helper such as `pluginSourceLocation(source)` that returns `{ type, url/path }`.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Add explicit bounds for migrated plugin arrays",
+      "failureMode": "refactor",
+      "file": "src/upgrade.js",
+      "issue": "**File:** `src/upgrade.js`  \n**Issue:** `plugin.repos` and `plugin.packages` are mapped without an explicit item limit. This violates the `bounded-resource-usage` guardrail for bulk processing.  \n**Suggestion:** Define and enforce a maximum count for these arrays during migration, ideally matching any existing config/schema limits.",
+      "suggestion": "**File:** `src/upgrade.js`  \n**Issue:** `plugin.repos` and `plugin.packages` are mapped without an explicit item limit. This violates the `bounded-resource-usage` guardrail for bulk processing.  \n**Suggestion:** Define and enforce a maximum count for these arrays during migration, ideally matching any existing config/schema limits.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "4. Do not silently swallow write failures",
+      "failureMode": "refactor",
+      "file": "src/upgrade.js",
+      "issue": "**File:** `src/upgrade.js`  \n**Issue:** The broad `catch (_)` hides read, parse, migration, and write failures alike. A failed migration write could be ignored, leaving config unmigrated with no actionable signal.  \n**Suggestion:** Only ignore expected “missing config” cases. Surface or log parse/write errors with enough context to diagnose the failed upgrade.",
+      "suggestion": "**File:** `src/upgrade.js`  \n**Issue:** The broad `catch (_)` hides read, parse, migration, and write failures alike. A failed migration write could be ignored, leaving config unmigrated with no actionable signal.  \n**Suggestion:** Only ignore expected “missing config” cases. Surface or log parse/write errors with enough context to diagnose the failed upgrade.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Strengthen hook assertions",
+      "failureMode": "refactor",
+      "file": "tests/unit/workflow-board-candidate-guidance.test.js",
+      "issue": "**File:** `tests/unit/workflow-board-candidate-guidance.test.js`  \n**Issue:** The new hook checks only assert `/context\\.config\\.flowIntegration/` and `/issue-start/`, which are weak signals and could pass even if the hook no longer contains the required candidate handling behavior.  \n**Suggestion:** Assert the concrete lifecycle behavior that replaced the removed skill assertions, such as bounded candidate handling, readiness screening, user approval before adding candidates, and post-flow failure treatment if those responsibilities now live in the hook.",
+      "suggestion": "**File:** `tests/unit/workflow-board-candidate-guidance.test.js`  \n**Issue:** The new hook checks only assert `/context\\.config\\.flowIntegration/` and `/issue-start/`, which are weak signals and could pass even if the hook no longer contains the required candidate handling behavior.  \n**Suggestion:** Assert the concrete lifecycle behavior that replaced the removed skill assertions, such as bounded candidate handling, readiness screening, user approval before adding candidates, and post-flow failure treatment if those responsibilities now live in the hook.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Rename `hook` for clarity",
+      "failureMode": "refactor",
+      "file": "tests/unit/workflow-board-candidate-guidance.test.js",
+      "issue": "**File:** `tests/unit/workflow-board-candidate-guidance.test.js`  \n**Issue:** The variable name `hook` is generic and gives little context about which lifecycle hook is under test.  \n**Suggestion:** Rename it to something more specific, such as `issueStartHook`, to match `src/official-plugins/senti-workflow-plugin/hooks/issue-start.js` and make the assertions easier to scan.",
+      "suggestion": "**File:** `tests/unit/workflow-board-candidate-guidance.test.js`  \n**Issue:** The variable name `hook` is generic and gives little context about which lifecycle hook is under test.  \n**Suggestion:** Rename it to something more specific, such as `issueStartHook`, to match `src/official-plugins/senti-workflow-plugin/hooks/issue-start.js` and make the assertions easier to scan.",
+      "rationale": "Loop review proposal."
+    }
+  ],
+  "excluded": {
+    "missingFile": 7,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/286-plugin-foundation-runtime/impl-review.json",
+    "verdict": "ADVISORY",
+    "result": "ADVISORY",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": "impl-gate",
+    "completionKind": "normal",
+    "progressSignature": "334aba7d8e6ea8691c6b508904099bd3dfa7ccfa0cb9996d5cd2d6cc2169c3bc"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "impl-001-non-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Preserve `.senti` ignore exceptions",
+      "body": "**File:** `.gitignore`\n**Issue:** The new `.senti/` rule appears after `!.senti/templates/` and `!.senti/output/`, so it can re-ignore the directory and make the earlier negations ineffective.\n**Suggestion:** Keep a single ignore pattern such as `.senti/*`, then place explicit negations after it for tracked subpaths. Remove the later `.senti/` rule or move/restructure the exceptions accordingly.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-002",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Avoid committing machine-local plugin paths",
+      "body": "**File:** `.senti/config.json`\n**Issue:** `plugin.sources[].path` contains absolute local paths under `/home/nakano/...`, which makes the config non-portable across machines and users.\n**Suggestion:** Move local source overrides to an ignored/local config file, or express them through a portable mechanism such as relative paths or documented environment-based resolution.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-003",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Remove test-fixture helper from production flow code",
+      "body": "**File:** `src/flow/lib/run-prepare-spec.js`  \n**Issue:** `runPrepareWithPluginHooks()` embeds fixture-specific behavior in production code: hardcoded `001-plugin-hook-snapshot-fixture`, `baseBranch: \"main\"`, and synthetic `fixture-${Date.now()}` run IDs. This looks like test scaffolding rather than runtime behavior.  \n**Suggestion:** Move this helper into the relevant test/support file, or replace it with a production-shaped helper that accepts `specDirName`, branch metadata, and flow manager dependencies explicitly.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-004",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Inline or rename the thin hook snapshot wrapper",
+      "body": "**File:** `src/flow/lib/run-prepare-spec.js`  \n**Issue:** `hookSnapshotFor(root)` only delegates to `discoverFlowCommandHooks(root)`, adding little meaning while obscuring that discovery is happening during prepare.  \n**Suggestion:** Either call `discoverFlowCommandHooks(specRoot)` directly, or rename the helper to something more explicit like `discoverFlowCommandHookSnapshot()` if the abstraction is expected to grow.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-005",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "3. Batch issue-log updates for plugin hook failures",
+      "body": "**File:** `src/flow/registry.js`  \n**Issue:** The code loads and saves the issue log once per `hookResult.issueLogEntries` entry. That duplicates I/O and increases the chance of partial writes if later entries fail.  \n**Suggestion:** Load the issue log once, append all plugin hook entries in memory, then save once inside a single `tryAppendIssueLog()` block.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-006",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "4. Add explicit bounds for plugin hook processing",
+      "body": "**File:** `src/flow/registry.js`  \n**Issue:** `snapshot` and `hookResult.issueLogEntries` are processed without an explicit count bound. This violates the `bounded-resource-usage` guardrail because a large persisted flow snapshot could trigger unbounded hook execution and repeated issue-log writes.  \n**Suggestion:** Enforce maximum counts before execution and issue-log append, for example by validating/capping snapshot hook plans and truncating issue-log candidates with a warning entry that records omitted count.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-007",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Add explicit bounds when rendering plugin help",
+      "body": "**File:** `src/help.js`  \n**Issue:** `pluginCommands()` loads and renders every plugin command, and plugin command help renders every subcommand. This is bulk data processing without an explicit size/count bound, which violates `bounded-resource-usage`.  \n**Suggestion:** Apply explicit limits near the rendering boundary, for example max plugin commands, max subcommands per command, and max help/description length. Prefer named constants so the limits are visible and testable.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-008",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Remove unnecessary async from help rendering",
+      "body": "**File:** `src/help.js`  \n**Issue:** `renderHelp()` is declared `async`, but it does not await anything. This forces callers to treat a purely synchronous renderer as Promise-based.  \n**Suggestion:** Make `renderHelp()` synchronous and remove `await` in `main()` unless plugin registry loading is expected to become async.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-009",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "3. Extract repeated locale fallback logic",
+      "body": "**File:** `src/help.js`  \n**Issue:** `localizedCommand()` repeats the same locale/default fallback pattern for commands and subcommands, with slightly different field sets. This makes future metadata changes easy to apply inconsistently.  \n**Suggestion:** Add a small helper such as `localizeHelpMetadata(entry, lang, { includeHelpFallback })` and reuse it for both command and subcommand localization.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-010",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "4. Avoid recomputing filtered argv",
+      "body": "**File:** `src/help.js`  \n**Issue:** `argv.find(...)` and `argv.filter(...)[1]` duplicate the same help-flag filtering logic.  \n**Suggestion:** Compute `const args = argv.filter((arg) => arg !== \"--help\" && arg !== \"-h\");` once, then use `args[0]` and `args[1]`.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-011",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "5. Clarify provider/profile override naming",
+      "body": "**File:** `src/lib/agent.js`  \n**Issue:** `resolveProviderOverrideKey()` returns a registry profile key, not just a provider override key. The name hides the fact that it may discard the selected profile when `options.provider` is present.  \n**Suggestion:** Rename it to something like `resolveEffectiveProfileKey(providerKey, selectedProfileKey)` and document the intended precedence.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-012",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "6. Keep profile precedence documentation consistent",
+      "body": "**File:** `src/lib/agent.js`  \n**Issue:** The comment above `resolve()` still says `SENTI_PROFILE env > config.agent.useProfile > default profile > default`, but `options.profile` now takes precedence over `SENTI_PROFILE`.  \n**Suggestion:** Update the comment to include `options.profile`, or change `resolveProfileKey()` if environment variables are still supposed to win.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-013",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Add a recursion bound to schema merging",
+      "body": "**File:** `src/lib/config.js`  \n**Issue:** `mergeSchemaNode()` recursively merges plugin-provided schemas without an explicit depth limit, which violates `bounded-resource-usage` for recursive processing.  \n**Suggestion:** Add a max depth parameter, e.g. `mergeSchemaNode(base, extension, depth = 0)`, reject or stop merging past a fixed limit, and include a clear validation error for overly deep plugin config schemas.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-014",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Deduplicate legacy workflow validation",
+      "body": "**File:** `src/lib/config.js`  \n**Issue:** The same `workflow.flowIntegration` migration error is constructed in both `validate()` and `loadConfig()`, making future wording changes easy to miss.  \n**Suggestion:** Extract a helper such as `validateLegacyWorkflowConfig(raw, errors)` or a shared constant for the migration message, and reuse it in both places.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-015",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "3. Simplify local source path validation",
+      "body": "**File:** `src/lib/config.js`  \n**Issue:** The expression `(path.isAbsolute(source.path) ? false : source.path.startsWith(\"../\"))` is hard to read and only catches paths beginning with `\"../\"`, not normalized traversal like `\"foo/../../bar\"`.  \n**Suggestion:** Extract a helper such as `isUnsafeLocalSourcePath(sourcePath)` and use `path.normalize()` to make the rule explicit and consistent.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-016",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "4. Narrow the migration helper name",
+      "body": "**File:** `src/lib/config.js`  \n**Issue:** `migratePluginDefaultNamespaces()` sounds like a general namespace migration, but it only migrates `workflow.flowIntegration` defaults.  \n**Suggestion:** Rename it to something more specific, such as `migrateWorkflowIntegrationDefault()` or `migrateWorkflowDefaultNamespace()`, so future callers do not assume it handles all plugin default migrations.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-017",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "5. Clarify invalid-config initialization state",
+      "body": "**File:** `src/lib/container.js`  \n**Issue:** When `allowInvalidConfig` is true, `configLoaded` is set to `false` even though the failed load was intentionally handled. That name now mixes “file load succeeded” with “container may proceed using null config.”  \n**Suggestion:** Either keep `configLoaded` semantics documented with an inline comment at this branch, or rename/split the state so migration-mode behavior is easier to reason about.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-018",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Remove legacy `source.source` fallback",
+      "body": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `sourceLocation(source)` still accepts `source.source`, which silently preserves the old schema even though R1 requires replacing old fields with an actionable migration path.\n**Suggestion:** Remove the fallback and add explicit validation/error handling for legacy `plugin.repos` and `packages[].repo`, e.g. “use plugin.sources[] / packages[].source”.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-019",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Avoid duplicate source-tree walks during install",
+      "body": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `installFromSource()` validates both `sourceRoot` and the materialized commit, and `copyAllowlistedFiles()` walks the same known paths again. This repeats bounded filesystem traversal work.\n**Suggestion:** Validate only the materialized package snapshot before copying, or combine validation and copy into one traversal that enforces depth, path length, JSON size, and file-count limits once.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-020",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "3. Make artifact JSON writes consistent with text writes",
+      "body": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `artifactHelpers.writeText()` creates parent directories, but `writeJson()` does not. The two helpers expose the same artifact path abstraction but behave differently for nested paths.\n**Suggestion:** Update `writeJson()` to create `path.dirname(file)` before writing, matching `writeText()`.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-021",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "4. Reuse one plugin API object per operation",
+      "body": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `buildPluginApi()` is called repeatedly in command dispatch, hook discovery, hook loading, and context construction. This duplicates object creation and makes future API changes easier to apply inconsistently.\n**Suggestion:** Create a shared `PLUGIN_API` constant or pass a single `api` object through discovery/loading/context creation.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-022",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "5. Replace broad config error swallowing",
+      "body": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `pluginConfigFor()` catches all errors and returns `{}`. That hides malformed project config or read failures, which makes plugin behavior harder to diagnose.\n**Suggestion:** Let config read/parse errors propagate, and only default to `{}` when the plugin config entry is genuinely absent.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-023",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "6. Extract hook plan sorting",
+      "body": "**File:** `src/lib/plugin-registry.js`\n**Issue:** Hook sorting logic is duplicated in `discoverFlowCommandHooks()` and `runFlowCommandHooks()`, with slightly different tie-breaking.\n**Suggestion:** Add a small comparator like `compareHookPlans(a, b)` and use it in both places for consistent lifecycle ordering.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-024",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Remove legacy `source.source` fallback",
+      "body": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `sourceLocation(source)` still accepts `source.source`, which silently preserves the old schema even though R1 requires replacing old fields with an actionable migration path.\n**Suggestion:** Remove the fallback and add explicit validation/error handling for legacy `plugin.repos` and `packages[].repo`, e.g. “use plugin.sources[] / packages[].source”.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-025",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Avoid duplicate source-tree walks during install",
+      "body": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `installFromSource()` validates both `sourceRoot` and the materialized commit, and `copyAllowlistedFiles()` walks the same known paths again. This repeats bounded filesystem traversal work.\n**Suggestion:** Validate only the materialized package snapshot before copying, or combine validation and copy into one traversal that enforces depth, path length, JSON size, and file-count limits once.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-026",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "3. Make artifact JSON writes consistent with text writes",
+      "body": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `artifactHelpers.writeText()` creates parent directories, but `writeJson()` does not. The two helpers expose the same artifact path abstraction but behave differently for nested paths.\n**Suggestion:** Update `writeJson()` to create `path.dirname(file)` before writing, matching `writeText()`.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-027",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "4. Reuse one plugin API object per operation",
+      "body": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `buildPluginApi()` is called repeatedly in command dispatch, hook discovery, hook loading, and context construction. This duplicates object creation and makes future API changes easier to apply inconsistently.\n**Suggestion:** Create a shared `PLUGIN_API` constant or pass a single `api` object through discovery/loading/context creation.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-028",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "5. Replace broad config error swallowing",
+      "body": "**File:** `src/lib/plugin-registry.js`\n**Issue:** `pluginConfigFor()` catches all errors and returns `{}`. That hides malformed project config or read failures, which makes plugin behavior harder to diagnose.\n**Suggestion:** Let config read/parse errors propagate, and only default to `{}` when the plugin config entry is genuinely absent.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-029",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "6. Extract hook plan sorting",
+      "body": "**File:** `src/lib/plugin-registry.js`\n**Issue:** Hook sorting logic is duplicated in `discoverFlowCommandHooks()` and `runFlowCommandHooks()`, with slightly different tie-breaking.\n**Suggestion:** Add a small comparator like `compareHookPlans(a, b)` and use it in both places for consistent lifecycle ordering.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-030",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Clarify slash-fallback profile lookup",
+      "body": "**File:** `src/lib/provider.js`\n**Issue:** `_profileForKey()` sounds like a plain key lookup, but it also performs fallback from `plugin/profile` to `plugin`. That behavior is non-obvious at call sites like `resolveProfile()` and `hasProfile()`.\n**Suggestion:** Rename it to something that exposes the fallback semantics, e.g. `_resolveProfileWithPluginFallback(profileKey)` or `_profileForExactOrPluginKey(profileKey)`.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-031",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Remove duplicate empty-key guard",
+      "body": "**File:** `src/lib/provider.js`\n**Issue:** `resolveProfile()` checks `if (!profileKey) return null;`, and `_profileForKey()` repeats the same guard immediately after.\n**Suggestion:** Keep the guard in one place. Since `_profileForKey()` is now the shared lookup helper and `hasProfile()` also calls it, keep the guard there and remove the duplicate check from `resolveProfile()`.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-032",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Clarify slash-fallback profile lookup",
+      "body": "**File:** `src/lib/provider.js`\n**Issue:** `_profileForKey()` sounds like a plain key lookup, but it also performs fallback from `plugin/profile` to `plugin`. That behavior is non-obvious at call sites like `resolveProfile()` and `hasProfile()`.\n**Suggestion:** Rename it to something that exposes the fallback semantics, e.g. `_resolveProfileWithPluginFallback(profileKey)` or `_profileForExactOrPluginKey(profileKey)`.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-033",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Remove duplicate empty-key guard",
+      "body": "**File:** `src/lib/provider.js`\n**Issue:** `resolveProfile()` checks `if (!profileKey) return null;`, and `_profileForKey()` repeats the same guard immediately after.\n**Suggestion:** Keep the guard in one place. Since `_profileForKey()` is now the shared lookup helper and `hasProfile()` also calls it, keep the guard there and remove the duplicate check from `resolveProfile()`.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-034",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Remove Legacy Package Root Fallbacks",
+      "body": "**File:** `src/official-plugins/senti-workflow-plugin/commands/workflow.js`  \n**Issue:** `packageRoot` still falls back to `SENTI_PACKAGE_ROOT` and `SENTI_SOURCE_ROOT`, which keeps legacy/environment coupling in the plugin command path. That is inconsistent with the new plugin context model in R6.  \n**Suggestion:** Prefer `ctx.plugin.root` as the single source of truth. If missing, fail clearly. Example: `const packageRoot = ctx.plugin?.root;`.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-035",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Avoid Leaking `process.argv` Mutation",
+      "body": "**File:** `src/official-plugins/senti-workflow-plugin/commands/workflow.js`  \n**Issue:** The command mutates global `process.argv` before importing the workflow entrypoint and never restores it. In a plugin runtime that may execute multiple commands in one process, this can leak state into later commands.  \n**Suggestion:** Save the previous argv and restore it in a `finally` block around the dynamic import, or expose/invoke a workflow entrypoint that accepts argv directly.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-036",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "3. Clarify the Command Return Construction",
+      "body": "**File:** `src/official-plugins/senti-workflow-plugin/commands/workflow.js`  \n**Issue:** The hard-coded envelope fields `\"plugin\"` and `\"workflow\"` are terse and repeated inline at the return site, making the command identity less explicit.  \n**Suggestion:** Introduce local constants such as `const COMMAND_KIND = \"plugin\";` and `const COMMAND_NAME = \"workflow\";`, or use command metadata from the plugin API if available.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-037",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Remove Legacy Package Root Fallbacks",
+      "body": "**File:** `src/official-plugins/senti-workflow-plugin/commands/workflow.js`  \n**Issue:** `packageRoot` still falls back to `SENTI_PACKAGE_ROOT` and `SENTI_SOURCE_ROOT`, which keeps legacy/environment coupling in the plugin command path. That is inconsistent with the new plugin context model in R6.  \n**Suggestion:** Prefer `ctx.plugin.root` as the single source of truth. If missing, fail clearly. Example: `const packageRoot = ctx.plugin?.root;`.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-038",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Avoid Leaking `process.argv` Mutation",
+      "body": "**File:** `src/official-plugins/senti-workflow-plugin/commands/workflow.js`  \n**Issue:** The command mutates global `process.argv` before importing the workflow entrypoint and never restores it. In a plugin runtime that may execute multiple commands in one process, this can leak state into later commands.  \n**Suggestion:** Save the previous argv and restore it in a `finally` block around the dynamic import, or expose/invoke a workflow entrypoint that accepts argv directly.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-039",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "3. Clarify the Command Return Construction",
+      "body": "**File:** `src/official-plugins/senti-workflow-plugin/commands/workflow.js`  \n**Issue:** The hard-coded envelope fields `\"plugin\"` and `\"workflow\"` are terse and repeated inline at the return site, making the command identity less explicit.  \n**Suggestion:** Introduce local constants such as `const COMMAND_KIND = \"plugin\";` and `const COMMAND_NAME = \"workflow\";`, or use command metadata from the plugin API if available.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-040",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Reconsider schema nesting responsibility",
+      "body": "**File:** `src/official-plugins/senti-workflow-plugin/config.schema.json`  \n**Issue:** The plugin schema now describes the full path `plugin.config.workflow`. If plugin config schemas are applied under `plugin.config.<pluginId>` at runtime, this creates duplicated nesting responsibility and makes the plugin schema less reusable as the schema for the workflow plugin’s own config object.  \n**Suggestion:** Keep this schema scoped to the plugin config payload itself, with top-level `languages` and `flowIntegration`, unless the loader explicitly expects whole-project config schemas.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-041",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Avoid duplicate experimental labeling",
+      "body": "**File:** `src/official-plugins/senti-workflow-plugin/plugin.json`  \n**Issue:** The command metadata has both `\"experimental\": true` and `\"[EXPERIMENTAL]\"` embedded in `desc`. This duplicates responsibility and risks inconsistent display/localization if the help renderer already handles experimental commands.  \n**Suggestion:** Change `desc` to `\"Manage workflow board drafts\"` and rely on `\"experimental\": true` for the experimental label.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-042",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "3. Split dense command metadata for maintainability",
+      "body": "**File:** `src/official-plugins/senti-workflow-plugin/plugin.json`  \n**Issue:** The `contributions.commands[0]` object is now a long single-line object with several fields, making future help metadata edits noisy and harder to review.  \n**Suggestion:** Format the command contribution across multiple lines, matching the surrounding manifest style.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-043",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Rename remaining repo-oriented identifiers and errors",
+      "body": "**File:** `src/plugin.js`  \n**Issue:** The command was renamed from `repo` to `source`, but internal names and one user-facing error still say repo: `printRepoHelp`, `repoCommand`, `repoRest`, and `unknown plugin repo command`. This weakens consistency and can confuse users debugging CLI output.  \n**Suggestion:** Rename these to `printSourceHelp`, `sourceCommand`, `sourceRest`, and change the error to `unknown plugin source command: ...`.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-044",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Remove or wire up unused plugin list renderer",
+      "body": "**File:** `src/plugin.js`  \n**Issue:** `renderPluginList()` is exported but not used in the shown CLI path. It also duplicates part of `formatLine()` / `output()` formatting behavior, creating two places that can drift.  \n**Suggestion:** Either use `renderPluginList()` from the relevant `plugin list` path, or remove it and keep formatting centralized in the existing `output()` / `formatLine()` flow.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-045",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "3. Avoid mixed return-shape handling in CLI dispatch",
+      "body": "**File:** `src/senti.js`  \n**Issue:** `handled` now appears to be both a boolean and possibly an envelope object. The name no longer matches the value, and the `handled.ok != null` duck-typing spreads plugin envelope knowledge into the top-level CLI.  \n**Suggestion:** Normalize `dispatchPluginCommand()` to return a single explicit shape, such as `null` for unhandled or an envelope/result object for handled commands. Then rename `handled` to `pluginResult` or similar and remove boolean/object branching.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-046",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "I’ll review this as a diff-scoped quality pass only, so proposals will stay limited to the two touched files.### 1. Consolidate config file migration passes",
+      "body": "**File:** `src/upgrade.js`  \n**Issue:** The new pre-migration block reads/writes `.senti/config.json`, then the existing migration block reads/writes the same file again. This also makes the later “Single read/write” comment inaccurate.  \n**Suggestion:** Move `migratePluginConfigNamespaces()` into the existing config migration flow or extract a shared `migrateConfigFile()` helper so config is parsed, migrated, compared, and written once.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-047",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Remove duplicated source classification regex",
+      "body": "**File:** `src/upgrade.js`  \n**Issue:** The same source URL regex is evaluated twice inside each `plugin.repos` migration.  \n**Suggestion:** Introduce a local `isGitSource` variable or helper such as `pluginSourceLocation(source)` that returns `{ type, url/path }`.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-048",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "3. Add explicit bounds for migrated plugin arrays",
+      "body": "**File:** `src/upgrade.js`  \n**Issue:** `plugin.repos` and `plugin.packages` are mapped without an explicit item limit. This violates the `bounded-resource-usage` guardrail for bulk processing.  \n**Suggestion:** Define and enforce a maximum count for these arrays during migration, ideally matching any existing config/schema limits.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-049",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "4. Do not silently swallow write failures",
+      "body": "**File:** `src/upgrade.js`  \n**Issue:** The broad `catch (_)` hides read, parse, migration, and write failures alike. A failed migration write could be ignored, leaving config unmigrated with no actionable signal.  \n**Suggestion:** Only ignore expected “missing config” cases. Surface or log parse/write errors with enough context to diagnose the failed upgrade.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-050",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "I’ll review this as a diff-scoped quality pass only, so proposals will stay limited to the two touched files.### 1. Consolidate config file migration passes",
+      "body": "**File:** `src/upgrade.js`  \n**Issue:** The new pre-migration block reads/writes `.senti/config.json`, then the existing migration block reads/writes the same file again. This also makes the later “Single read/write” comment inaccurate.  \n**Suggestion:** Move `migratePluginConfigNamespaces()` into the existing config migration flow or extract a shared `migrateConfigFile()` helper so config is parsed, migrated, compared, and written once.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-051",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Remove duplicated source classification regex",
+      "body": "**File:** `src/upgrade.js`  \n**Issue:** The same source URL regex is evaluated twice inside each `plugin.repos` migration.  \n**Suggestion:** Introduce a local `isGitSource` variable or helper such as `pluginSourceLocation(source)` that returns `{ type, url/path }`.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-052",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "3. Add explicit bounds for migrated plugin arrays",
+      "body": "**File:** `src/upgrade.js`  \n**Issue:** `plugin.repos` and `plugin.packages` are mapped without an explicit item limit. This violates the `bounded-resource-usage` guardrail for bulk processing.  \n**Suggestion:** Define and enforce a maximum count for these arrays during migration, ideally matching any existing config/schema limits.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-053",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "4. Do not silently swallow write failures",
+      "body": "**File:** `src/upgrade.js`  \n**Issue:** The broad `catch (_)` hides read, parse, migration, and write failures alike. A failed migration write could be ignored, leaving config unmigrated with no actionable signal.  \n**Suggestion:** Only ignore expected “missing config” cases. Surface or log parse/write errors with enough context to diagnose the failed upgrade.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-054",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Strengthen hook assertions",
+      "body": "**File:** `tests/unit/workflow-board-candidate-guidance.test.js`  \n**Issue:** The new hook checks only assert `/context\\.config\\.flowIntegration/` and `/issue-start/`, which are weak signals and could pass even if the hook no longer contains the required candidate handling behavior.  \n**Suggestion:** Assert the concrete lifecycle behavior that replaced the removed skill assertions, such as bounded candidate handling, readiness screening, user approval before adding candidates, and post-flow failure treatment if those responsibilities now live in the hook.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-055",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Rename `hook` for clarity",
+      "body": "**File:** `tests/unit/workflow-board-candidate-guidance.test.js`  \n**Issue:** The variable name `hook` is generic and gives little context about which lifecycle hook is under test.  \n**Suggestion:** Rename it to something more specific, such as `issueStartHook`, to match `src/official-plugins/senti-workflow-plugin/hooks/issue-start.js` and make the assertions easier to scan.",
+      "category": "refactor"
+    }
+  ]
+}

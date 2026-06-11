@@ -67,7 +67,7 @@ export class Container {
    * factory. Enables child presets to extend parent preset classes via
    * container.getPreset(parent).dataSources[name].
    *
-   * @param {string} key - preset key (e.g. "webapp", "laravel")
+   * @param {string} key - preset key (e.g. "sample-preset", "child-preset")
    * @param {{ dataSources: Object<string, Function> }} registration
    */
   registerPreset(key, registration) {
@@ -135,6 +135,8 @@ function buildPaths(root, config, opts = {}) {
  * @param {string} [opts.agentWorkDirOverride] - Per-invocation agent work dir
  * @param {boolean} [opts.finalizeCleanupDurablePaths] - Relocate cleanup logs
  *   that would otherwise be written under the deleted worktree.
+ * @param {boolean} [opts.allowInvalidConfig] - Initialize with null config so
+ *   migration commands can repair config that strict validation rejects.
  */
 export function initContainer(opts = {}) {
   // Idempotent: if already initialized (e.g. by senti.js before a
@@ -152,8 +154,13 @@ export function initContainer(opts = {}) {
     configLoaded = true;
   } catch (err) {
     if (err?.code !== "ERR_MISSING_FILE") {
+      if (opts.allowInvalidConfig === true) {
+        config = null;
+        configLoaded = false;
+      } else {
       process.stderr.write(`[senti] config load failed: ${err?.message}\n`);
       throw err;
+      }
     }
   }
 

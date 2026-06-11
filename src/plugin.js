@@ -18,12 +18,12 @@ function printHelp() {
   console.log([
     "Usage: senti plugin <command> [args]",
     "",
-    "Manage plugin repos and installed plugin packages.",
+    "Manage plugin sources and installed plugin packages.",
     "",
     "Commands:",
-    "  repo add <git URL|local path> [--ref <ref>]",
-    "  repo update",
-    "  repo list [--json]",
+    "  source add <git URL|local path> [--ref <ref>]",
+    "  source update",
+    "  source list [--json]",
     "  find [--json]",
     "  install <id>",
     "  list [--json]",
@@ -38,14 +38,14 @@ function printHelp() {
 
 function printRepoHelp() {
   console.log([
-    "Usage: senti plugin repo <command>",
+    "Usage: senti plugin source <command>",
     "",
-    "Manage plugin repository sources. Sources may be a git URL or a clean local path.",
+    "Manage plugin sources. Sources may be a git URL or a clean local path.",
     "",
     "Commands:",
-    "  repo add <git URL|local path> [--ref <ref>]",
-    "  repo update",
-    "  repo list [--json]",
+    "  source add <git URL|local path> [--ref <ref>]",
+    "  source update",
+    "  source list [--json]",
   ].join("\n"));
 }
 
@@ -86,11 +86,30 @@ function output(value, json) {
   console.log(formatLine(value));
 }
 
+export function renderPluginList(entries, { json = false } = {}) {
+  const packages = entries.map((entry) => ({
+    id: entry.id,
+    source: typeof entry.source === "string" ? entry.source : entry.source?.id,
+    commit: entry.commit,
+    enabled: entry.enabled !== false,
+  }));
+  if (json) return JSON.stringify({ packages }, null, 2);
+  return packages.map((entry) => `${entry.id} source=${entry.source} ${entry.commit || ""}`.trim()).join("\n");
+}
+
+export function renderPluginSourceMigrationGuide() {
+  return [
+    "Plugin source config migration:",
+    "- Replace plugin.repos[] with plugin.sources[].",
+    "- Replace plugin.packages[].repo with plugin.packages[].source.",
+    "- Run senti upgrade to migrate workflow.flowIntegration to plugin.config.workflow.flowIntegration.",
+  ].join("\n");
+}
+
 function formatLine(value) {
   if (typeof value === "string") return value;
   if (value.id && value.status) return `${value.id} ${value.status} ${value.commit || ""}`.trim();
-  if (value.id && value.source) return `${value.id} ${maskPluginSource(value.source)} ${value.commit || ""}`.trim();
-  if (value.id && value.repo) return `${value.id} repo=${value.repo} ${value.commit || ""}`.trim();
+  if (value.id && value.source) return `${value.id} source=${typeof value.source === "string" ? maskPluginSource(value.source) : value.source.id} ${value.commit || ""}`.trim();
   return JSON.stringify(value);
 }
 
@@ -105,7 +124,8 @@ export async function main() {
   }
 
   try {
-    if (command === "repo") {
+    if (command === "repo") throw new Error(renderPluginSourceMigrationGuide());
+    if (command === "source") {
       const [repoCommand, ...repoRest] = rest;
       if (!repoCommand || repoCommand === "-h" || repoCommand === "--help") {
         printRepoHelp();
@@ -113,7 +133,7 @@ export async function main() {
       }
       if (repoCommand === "add") {
         const source = stripFlags(repoRest)[0];
-        if (!source) throw new Error("Usage: senti plugin repo add <git URL|local path>");
+        if (!source) throw new Error("Usage: senti plugin source add <git URL|local path>");
         output(addPluginRepo(root, source, refArg(repoRest)), false);
         return;
       }
@@ -123,7 +143,7 @@ export async function main() {
       }
       if (repoCommand === "list") {
         const config = readProjectConfig(root);
-        output(config.plugin.repos, hasJson(repoRest));
+        output(config.plugin.sources, hasJson(repoRest));
         return;
       }
       throw new Error(`unknown plugin repo command: ${repoCommand}`);

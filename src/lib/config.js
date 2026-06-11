@@ -115,13 +115,13 @@ export function loadLang(root) {
 
 /**
  * Whether the experimental workflow↔flow integration is enabled.
- * True only when config.workflow.flowIntegration === "enable". An unset flag,
- * a missing workflow section, or a null/undefined config all mean disabled.
+ * True only when config.plugin.config.workflow.flowIntegration === "enable".
+ * Missing plugin config or a null/undefined config means disabled.
  * @param {object} [config]
  * @returns {boolean}
  */
 export function isFlowIntegrationEnabled(config) {
-  return config?.workflow?.flowIntegration === "enable";
+  return config?.plugin?.config?.workflow?.flowIntegration === "enable";
 }
 
 // ---------------------------------------------------------------------------
@@ -260,14 +260,20 @@ const CONFIG_SCHEMA = {
     plugin: {
       type: "object",
       properties: {
-        repos: {
+        config: {
+          type: "object",
+          additionalProperties: true,
+        },
+        sources: {
           type: "array",
           items: {
             type: "object",
-            required: ["id", "source"],
+            required: ["id", "type"],
             properties: {
               id: { type: "string", minLength: 1 },
-              source: { type: "string", minLength: 1 },
+              type: { type: "string", enum: ["git", "local", "npm"] },
+              url: { type: "string", minLength: 1 },
+              path: { type: "string", minLength: 1 },
               ref: { type: "string", minLength: 1 },
             },
           },
@@ -276,10 +282,10 @@ const CONFIG_SCHEMA = {
           type: "array",
           items: {
             type: "object",
-            required: ["id", "repo", "commit"],
+            required: ["id", "source", "commit"],
             properties: {
               id: { type: "string", minLength: 1 },
-              repo: { type: "string", minLength: 1 },
+              source: { type: "string", minLength: 1 },
               ref: { type: "string", minLength: 1 },
               commit: { type: "string", minLength: 40 },
               enabled: { type: "boolean" },
@@ -372,11 +378,10 @@ export function validate(raw, options = {}) {
   // Cross-field validation: profile provider references must be valid
   if (raw.agent?.profiles) {
     const registry = new ProviderRegistry(raw.agent?.providers || {});
-    const knownKeys = new Set(registry.profileKeys());
     for (const [profileName, profile] of Object.entries(raw.agent.profiles)) {
       if (typeof profile !== "object" || profile == null) continue;
       for (const [commandId, providerKey] of Object.entries(profile)) {
-        if (typeof providerKey === "string" && !knownKeys.has(providerKey)) {
+        if (typeof providerKey === "string" && !registry.hasProfile(providerKey)) {
           errors.push(`'agent.profiles.${profileName}.${commandId}': unknown provider "${providerKey}"`);
         }
       }
@@ -403,6 +408,9 @@ export function validate(raw, options = {}) {
   }
 
   if (raw.plugin) validatePluginConfig(raw.plugin, errors);
+  if (raw.workflow?.flowIntegration != null) {
+    errors.push("'workflow.flowIntegration': migrate to 'plugin.config.workflow.flowIntegration' with senti upgrade");
+  }
 
   if (errors.length > 0) {
     throw new Error(`Config validation failed:\n  - ${errors.join("\n  - ")}`);
@@ -415,18 +423,28 @@ const PLUGIN_ID_RE = /^[a-z0-9][a-z0-9._-]*$/;
 const PLUGIN_COMMIT_RE = /^[0-9a-f]{40}$/;
 
 function validatePluginConfig(plugin, errors) {
-  const repoIds = new Set();
-  for (const [index, repo] of (plugin.repos || []).entries()) {
-    if (!PLUGIN_ID_RE.test(repo.id)) errors.push(`'plugin.repos[${index}].id': invalid plugin repo id`);
-    if (repoIds.has(repo.id)) errors.push(`'plugin.repos[${index}].id': duplicate plugin repo id "${repo.id}"`);
-    repoIds.add(repo.id);
+  if (Array.isArray(plugin.repos)) {
+    errors.push("'plugin.repos': migrate to 'plugin.sources' and update packages[].repo to packages[].source");
+  }
+  const sourceIds = new Set();
+  for (const [index, source] of (plugin.sources || []).entries()) {
+    if (!PLUGIN_ID_RE.test(source.id)) errors.push(`'plugin.sources[${index}].id': invalid plugin source id`);
+    if (sourceIds.has(source.id)) errors.push(`'plugin.sources[${index}].id': duplicate plugin source id "${source.id}"`);
+    sourceIds.add(source.id);
+    if (source.type === "local") {
+      if (typeof source.path !== "string" || source.path.trim() === "") errors.push(`'plugin.sources[${index}].path': local source requires path`);
+      if (typeof source.path === "string" && (path.isAbsolute(source.path) ? false : source.path.startsWith("../"))) errors.push(`'plugin.sources[${index}].path': unsafe local source path`);
+    }
+    if (source.type === "git" && typeof source.url !== "string") errors.push(`'plugin.sources[${index}].url': git source requires url`);
+    if (source.type === "npm") errors.push(`'plugin.sources[${index}]': npm sources are not supported yet`);
   }
   const packageIds = new Set();
   for (const [index, pkg] of (plugin.packages || []).entries()) {
     if (!PLUGIN_ID_RE.test(pkg.id)) errors.push(`'plugin.packages[${index}].id': invalid plugin package id`);
     if (packageIds.has(pkg.id)) errors.push(`'plugin.packages[${index}].id': duplicate plugin package id "${pkg.id}"`);
     packageIds.add(pkg.id);
-    if (!repoIds.has(pkg.repo)) errors.push(`'plugin.packages[${index}].repo': unknown plugin repo "${pkg.repo}"`);
+    if (Object.prototype.hasOwnProperty.call(pkg, "repo")) errors.push(`'plugin.packages[${index}].repo': migrate to 'plugin.packages[${index}].source'`);
+    if (!sourceIds.has(pkg.source)) errors.push(`'plugin.packages[${index}].source': unknown plugin source "${pkg.source}"`);
     if (!PLUGIN_COMMIT_RE.test(pkg.commit)) errors.push(`'plugin.packages[${index}].commit': must be a 40-character lowercase git commit`);
   }
 }
@@ -463,6 +481,9 @@ function validateProjectTestPath(entry, index, errors) {
  */
 export function loadConfig(root, options = {}) {
   const raw = loadJsonFile(sentiConfigPath(root));
+  if (raw.workflow?.flowIntegration != null) {
+    throw new Error("Config validation failed:\n  - 'workflow.flowIntegration': migrate to 'plugin.config.workflow.flowIntegration' with senti upgrade");
+  }
   const pluginConfig = loadEnabledPluginConfig(root, raw);
   const merged = mergeDefaults(raw, pluginConfig.defaults);
   return validate(merged, { ...options, schema: mergeConfigSchemas(CONFIG_SCHEMA, pluginConfig.schemas) });
@@ -480,12 +501,28 @@ function loadEnabledPluginConfig(root, raw) {
       const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
       const config = manifest.contributions?.config;
       if (config?.schema) schemas.push(loadJsonFile(path.join(pluginRoot, config.schema)));
-      if (config?.defaults) defaults.push(loadJsonFile(path.join(pluginRoot, config.defaults)));
+      if (config?.defaults) defaults.push(migratePluginDefaultNamespaces(loadJsonFile(path.join(pluginRoot, config.defaults))));
     } catch (_) {
       continue;
     }
   }
   return { schemas, defaults };
+}
+
+function migratePluginDefaultNamespaces(raw) {
+  const next = structuredClone(raw || {});
+  if (next.workflow?.flowIntegration == null) return next;
+  if (!next.plugin || typeof next.plugin !== "object") next.plugin = {};
+  if (!next.plugin.config || typeof next.plugin.config !== "object") next.plugin.config = {};
+  next.plugin.config.workflow = {
+    ...(next.plugin.config.workflow || {}),
+    flowIntegration: next.workflow.flowIntegration,
+  };
+  const remaining = { ...next.workflow };
+  delete remaining.flowIntegration;
+  if (Object.keys(remaining).length === 0) delete next.workflow;
+  else next.workflow = remaining;
+  return next;
 }
 
 function mergeConfigSchemas(base, schemas) {
@@ -496,8 +533,21 @@ function mergeConfigSchemas(base, schemas) {
   };
   for (const schema of schemas) {
     for (const [key, value] of Object.entries(schema.properties || {})) {
-      merged.properties[key] = value;
+      merged.properties[key] = mergeSchemaNode(merged.properties[key], value);
     }
+  }
+  return merged;
+}
+
+function mergeSchemaNode(base, extension) {
+  if (!base || !extension || base.type !== "object" || extension.type !== "object") return extension || base;
+  const merged = {
+    ...base,
+    ...extension,
+    properties: { ...(base.properties || {}) },
+  };
+  for (const [key, value] of Object.entries(extension.properties || {})) {
+    merged.properties[key] = mergeSchemaNode(merged.properties[key], value);
   }
   return merged;
 }

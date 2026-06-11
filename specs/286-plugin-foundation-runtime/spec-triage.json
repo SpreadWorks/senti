@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "Both blocking findings are valid compatibility gaps and should be repaired in spec.json. Non-blocking improvements are advisory only.",
+  "items": [
+    {
+      "title": "Workflow flowIntegration behavior can be removed without a replacement",
+      "target": "R9 / T-9",
+      "decision": "apply",
+      "rationale": "The spec removes workflow-specific skill text but does not define the observable replacement for existing workflow.flowIntegration issue-start behavior.",
+      "evidence": "spec.json requirements[R9] and task T-9 mention moving behavior to hooks but do not state whether issue-start is preserved by an official workflow plugin hook or temporary core behavior."
+    },
+    {
+      "title": "Top-level workflow config migration path is missing",
+      "target": "R8 / R9 / Constraints",
+      "decision": "apply",
+      "rationale": "The config namespace requirement covers plugin.config.<pluginId> but does not specify handling for existing top-level workflow.flowIntegration.",
+      "evidence": "spec.json constraints mention plugin.repos/packages[].repo migration only; R8 names plugin.config.<pluginId> defaults but not top-level workflow config migration or preservation."
+    }
+  ]
+}

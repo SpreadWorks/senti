@@ -1,25 +1,31 @@
 import fs from "fs";
 import path from "path";
 import { pathToFileURL } from "url";
-import { PKG_DIR, repoRoot } from "./cli.js";
+import { repoRoot } from "./cli.js";
 import { sentiConfigPath, sentiDir } from "./config.js";
+import { Envelope } from "./flow-envelope.js";
 import { runCmd, assertOk } from "./process.js";
 
 const ID_RE = /^[a-z0-9][a-z0-9._-]*$/;
 const SHA_RE = /^[0-9a-f]{40}$/;
-const CORE_COMMANDS = new Set([
-  "docs",
-  "flow",
-  "check",
-  "metrics",
-  "spec",
-  "hook",
-  "setup",
-  "upgrade",
-  "presets",
-  "plugin",
-  "help",
+const KNOWN_PLUGIN_PACKAGE_PATHS = Object.freeze([
+  "plugin.json",
+  "commands/",
+  "skills/",
+  "presets/",
+  "hooks/",
+  "config.schema.json",
+  "config.defaults.json",
 ]);
+const MAX_ENABLED_PLUGIN_PACKAGES = 100;
+const MAX_PLUGIN_HOOK_FILES = 200;
+const MAX_PLUGIN_COPY_FILES = 2000;
+const MAX_PLUGIN_PATH_DEPTH = 20;
+const MAX_PLUGIN_JSON_BYTES = 1024 * 1024;
+const MAX_PLUGIN_RELATIVE_PATH_BYTES = 300;
+const FLOW_COMMANDS = new Set(["prepare", "gate", "review", "test-execute", "test-result-review", "retro", "final-regression", "finalize-commit", "finalize-merge", "finalize-sync", "finalize-cleanup"]);
+const FLOW_COMMAND_HOOKS = new Set(["pre", "post", "onError", "finally"]);
+const CORE_COMMANDS = new Set(["docs", "flow", "check", "metrics", "spec", "hook", "setup", "upgrade", "presets", "plugin", "help"]);
 
 function readJson(file) {
   return JSON.parse(fs.readFileSync(file, "utf8"));
@@ -32,8 +38,9 @@ function writeJson(file, value) {
 
 function ensurePluginConfig(config) {
   if (!config.plugin || typeof config.plugin !== "object") config.plugin = {};
-  if (!Array.isArray(config.plugin.repos)) config.plugin.repos = [];
+  if (!Array.isArray(config.plugin.sources)) config.plugin.sources = [];
   if (!Array.isArray(config.plugin.packages)) config.plugin.packages = [];
+  if (!config.plugin.config || typeof config.plugin.config !== "object") config.plugin.config = {};
   return config.plugin;
 }
 
@@ -51,6 +58,10 @@ export function maskPluginSource(source) {
   return String(source).replace(/(https?:\/\/[^:\s/@]+:)[^@\s/]+(@)/g, "$1***$2");
 }
 
+function sourceLocation(source) {
+  return source.path || source.url || source.source;
+}
+
 function normalizeRel(rel, label = "path") {
   if (typeof rel !== "string" || rel.trim() === "") {
     throw new Error(`unsafe ${label}: must be a non-empty string`);
@@ -59,9 +70,11 @@ function normalizeRel(rel, label = "path") {
   if (path.isAbsolute(value) || value === "." || value === ".." || value.startsWith("../") || value.includes("/../") || value.endsWith("/..")) {
     throw new Error(`unsafe ${label}: parent traversal or absolute path is not allowed`);
   }
-  if (value.split("/").includes(".git")) {
-    throw new Error(`unsafe ${label}: .git content is not allowed`);
-  }
+  const parts = value.split("/");
+  if (parts.includes(".git")) throw new Error(`unsafe ${label}: .git content is not allowed`);
+  if (parts.includes("node_modules")) throw new Error(`unsafe ${label}: node_modules content is not allowed`);
+  if (parts.length > MAX_PLUGIN_PATH_DEPTH) throw new Error(`unsafe ${label}: path depth exceeds ${MAX_PLUGIN_PATH_DEPTH}`);
+  if (Buffer.byteLength(value) > MAX_PLUGIN_RELATIVE_PATH_BYTES) throw new Error(`unsafe ${label}: relative path exceeds ${MAX_PLUGIN_RELATIVE_PATH_BYTES} bytes`);
   return value;
 }
 
@@ -86,12 +99,16 @@ function walkFiles(root, rel = "") {
     const out = [];
     for (const entry of fs.readdirSync(current)) {
       const childRel = rel ? `${rel}/${entry}` : entry;
-      if (childRel.split("/").includes(".git")) throw new Error("unsafe package: .git content is not allowed");
+      normalizeRel(childRel, "package path");
       out.push(...walkFiles(root, childRel));
     }
     return out;
   }
   if (!stat.isFile()) return [];
+  normalizeRel(rel, "package path");
+  if (/\.json$/i.test(rel) && stat.size > MAX_PLUGIN_JSON_BYTES) {
+    throw new Error(`unsafe package metadata: JSON file exceeds ${MAX_PLUGIN_JSON_BYTES} bytes: ${rel}`);
+  }
   return [rel];
 }
 
@@ -102,9 +119,7 @@ function validatePackageJson(root) {
   for (const key of ["dependencies", "devDependencies", "optionalDependencies", "peerDependencies"]) {
     if (pkg[key] && Object.keys(pkg[key]).length > 0) throw new Error(`unsafe package.json: ${key} are not allowed`);
   }
-  if (pkg.scripts && Object.keys(pkg.scripts).length > 0) {
-    throw new Error("unsafe package.json: scripts are not allowed");
-  }
+  if (pkg.scripts && Object.keys(pkg.scripts).length > 0) throw new Error("unsafe package.json: scripts are not allowed");
 }
 
 export class PluginManifest {
@@ -113,7 +128,7 @@ export class PluginManifest {
     this.providerId = providerId;
     this.name = raw?.name;
     this.type = raw?.type || "mixed";
-    this.files = raw?.files || [];
+    this.files = Array.isArray(raw?.files) && raw.files.length > 0 ? raw.files : KNOWN_PLUGIN_PACKAGE_PATHS;
     this.contributions = raw?.contributions || {};
     this.raw = raw;
     this.validate();
@@ -121,9 +136,6 @@ export class PluginManifest {
 
   validate() {
     assertId(this.name, "plugin name");
-    if (!Array.isArray(this.files) || this.files.length === 0) {
-      throw new Error("unsafe plugin.json: files must be a non-empty array");
-    }
     for (const file of this.files) {
       normalizeRel(file, "files entry");
       if (file === ".") throw new Error("unsafe files entry: copying repository root would include .git content");
@@ -144,9 +156,7 @@ export class PluginManifest {
     const dataSources = this.contributions.dataSources || [];
     if (!Array.isArray(dataSources)) throw new Error("plugin dataSources contribution must be an array");
     for (const dataSource of dataSources) {
-      if (typeof dataSource.name !== "string" || !dataSource.name.includes("/")) {
-        throw new Error(`invalid dataSource name: ${dataSource.name}`);
-      }
+      if (typeof dataSource.name !== "string" || !dataSource.name.includes("/")) throw new Error(`invalid dataSource name: ${dataSource.name}`);
       if (!isUnderFileAllowlist(dataSource.path, this.files)) throw new Error(`contribution path outside files allowlist: ${dataSource.path}`);
     }
     const skills = this.contributions.skills || [];
@@ -187,13 +197,7 @@ export class PluginManifest {
     const entries = [];
     for (const entry of this.contributions.dataSources || []) {
       const [presetKey, sourceName] = entry.name.split("/", 2);
-      entries.push({
-        ...entry,
-        presetKey,
-        sourceName,
-        providerId: this.providerId,
-        absolutePath: path.join(this.root, entry.path),
-      });
+      entries.push({ ...entry, presetKey, sourceName, providerId: this.providerId, absolutePath: path.join(this.root, entry.path) });
     }
     for (const preset of this.presetEntries()) {
       const dataDir = path.join(preset.dir, "data");
@@ -322,8 +326,8 @@ export function discoverCorePresets() {
   return [];
 }
 
-function pluginReposDir(root) {
-  return path.join(sentiDir(root), "plugin-repos");
+function pluginSourcesDir(root) {
+  return path.join(sentiDir(root), "plugin-sources");
 }
 
 function installedPluginsDir(root) {
@@ -342,7 +346,7 @@ function runGit(cwd, args, context) {
 
 function localRepoHead(source) {
   const root = path.resolve(source);
-  if (!fs.existsSync(root)) throw new Error(`plugin repo not found: ${source}`);
+  if (!fs.existsSync(root)) throw new Error(`plugin source not found: ${source}`);
   runGit(root, ["rev-parse", "--is-inside-work-tree"], "plugin source must be a Git worktree");
   const status = runGit(root, ["status", "--porcelain"], "failed to inspect plugin source status");
   if (status.trim() !== "") throw new Error("dirty local plugin source rejected: commit or clean uncommitted changes first");
@@ -350,40 +354,37 @@ function localRepoHead(source) {
   return { root, commit };
 }
 
-function checkedOutRepoRoot(root, repo) {
-  if (!isGitUrl(repo.source)) return path.resolve(root, repo.source);
-  return path.join(pluginReposDir(root), repo.id);
+function checkedOutSourceRoot(root, source) {
+  const location = sourceLocation(source);
+  if (!isGitUrl(location)) return path.resolve(root, location);
+  return path.join(pluginSourcesDir(root), source.id);
 }
 
-function syncGitUrlRepo(root, repo) {
-  const dest = checkedOutRepoRoot(root, repo);
+function syncGitUrlSource(root, source) {
+  const dest = checkedOutSourceRoot(root, source);
   fs.mkdirSync(path.dirname(dest), { recursive: true });
   if (!fs.existsSync(path.join(dest, ".git"))) {
-    const result = runCmd("git", ["clone", repo.source, dest], { maxBuffer: 10 * 1024 * 1024 });
-    if (!result.ok) throw new Error(`failed to clone ${maskPluginSource(repo.source)}: ${maskPluginSource(result.stderr || result.stdout)}`);
+    const result = runCmd("git", ["clone", sourceLocation(source), dest], { maxBuffer: 10 * 1024 * 1024 });
+    if (!result.ok) throw new Error(`failed to clone ${maskPluginSource(sourceLocation(source))}: ${maskPluginSource(result.stderr || result.stdout)}`);
   } else {
     const result = runCmd("git", ["fetch", "--all", "--tags"], { cwd: dest, maxBuffer: 10 * 1024 * 1024 });
-    if (!result.ok) throw new Error(`failed to update ${maskPluginSource(repo.source)}: ${maskPluginSource(result.stderr || result.stdout)}`);
+    if (!result.ok) throw new Error(`failed to update ${maskPluginSource(sourceLocation(source))}: ${maskPluginSource(result.stderr || result.stdout)}`);
   }
-  if (repo.ref) runGit(dest, ["checkout", repo.ref], "failed to checkout plugin ref");
+  if (source.ref) runGit(dest, ["checkout", source.ref], "failed to checkout plugin ref");
   const commit = runGit(dest, ["rev-parse", "HEAD"], "plugin source must have HEAD");
   return { root: dest, commit };
 }
 
-function resolveRepo(root, repo) {
-  return isGitUrl(repo.source) ? syncGitUrlRepo(root, repo) : localRepoHead(path.resolve(root, repo.source));
+function resolveSource(root, source) {
+  if (source.type === "npm") throw new Error(`unsupported plugin source type: npm (${source.id})`);
+  const location = sourceLocation(source);
+  return isGitUrl(location) ? syncGitUrlSource(root, source) : localRepoHead(path.resolve(root, location));
 }
 
-function packageEntriesFromRepo(root, repo) {
-  const source = resolveRepo(root, repo);
-  const manifest = PluginManifest.fromRoot(source.root);
-  return [{ repo, sourceRoot: source.root, commit: source.commit, manifest }];
-}
-
-function nextRepoId(config, source) {
-  const base = path.basename(String(source).replace(/\.git$/, "")) || "plugin-repo";
-  const safeBase = base.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "plugin-repo";
-  const existing = new Set(config.plugin.repos.map((repo) => repo.id));
+function nextSourceId(config, source) {
+  const base = path.basename(String(source).replace(/\.git$/, "")) || "plugin-source";
+  const safeBase = base.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "plugin-source";
+  const existing = new Set(config.plugin.sources.map((entry) => entry.id));
   let id = safeBase;
   let n = 2;
   while (existing.has(id)) id = `${safeBase}-${n++}`;
@@ -392,12 +393,12 @@ function nextRepoId(config, source) {
 
 export function addPluginRepo(root, source, ref) {
   const config = readProjectConfig(root);
-  const id = nextRepoId(config, source);
-  const repo = { id, source };
-  if (ref) repo.ref = ref;
-  const resolved = isGitUrl(source) ? syncGitUrlRepo(root, repo) : localRepoHead(path.resolve(root, source));
+  const id = nextSourceId(config, source);
+  const entry = isGitUrl(source) ? { id, type: "git", url: source } : { id, type: "local", path: source };
+  if (ref) entry.ref = ref;
+  const resolved = resolveSource(root, entry);
   readJson(path.join(resolved.root, "plugin.json"));
-  config.plugin.repos.push(repo);
+  config.plugin.sources.push(entry);
   writeProjectConfig(root, config);
   return { id, source: maskPluginSource(source), commit: resolved.commit };
 }
@@ -405,9 +406,9 @@ export function addPluginRepo(root, source, ref) {
 export function updatePluginRepos(root) {
   const config = readProjectConfig(root);
   const results = [];
-  for (const repo of config.plugin.repos) {
-    const source = resolveRepo(root, repo);
-    results.push({ id: repo.id, source: maskPluginSource(repo.source), commit: source.commit });
+  for (const source of config.plugin.sources) {
+    const resolved = resolveSource(root, source);
+    results.push({ id: source.id, source: maskPluginSource(sourceLocation(source)), commit: resolved.commit });
   }
   return results;
 }
@@ -415,16 +416,10 @@ export function updatePluginRepos(root) {
 export function findPluginCandidates(root) {
   const config = readProjectConfig(root);
   const results = [];
-  for (const repo of config.plugin.repos) {
-    for (const candidate of packageEntriesFromRepo(root, repo)) {
-      results.push({
-        id: candidate.manifest.name,
-        type: candidate.manifest.type,
-        repo: repo.id,
-        source: maskPluginSource(repo.source),
-        commit: candidate.commit,
-      });
-    }
+  for (const source of config.plugin.sources) {
+    const resolved = resolveSource(root, source);
+    const manifest = PluginManifest.fromRoot(resolved.root);
+    results.push({ id: manifest.name, type: manifest.type, source: source.id, sourceLocation: maskPluginSource(sourceLocation(source)), commit: resolved.commit });
   }
   return results;
 }
@@ -447,14 +442,21 @@ function materializeCommit(sourceRoot, commit, root) {
   return { tmp, packageRoot };
 }
 
+function existingKnownPluginPaths(sourceRoot) {
+  return KNOWN_PLUGIN_PACKAGE_PATHS.filter((entry) => fs.existsSync(path.join(sourceRoot, entry.replace(/\/$/, ""))));
+}
+
 function copyAllowlistedFiles(sourceRoot, destRoot, files) {
   fs.rmSync(destRoot, { recursive: true, force: true });
   fs.mkdirSync(destRoot, { recursive: true });
+  let copied = 0;
   for (const entry of files) {
     const rel = normalizeRel(entry, "files entry");
     const src = path.join(sourceRoot, rel);
     if (!fs.existsSync(src)) throw new Error(`unsafe files entry missing: ${rel}`);
     for (const file of walkFiles(sourceRoot, rel)) {
+      copied += 1;
+      if (copied > MAX_PLUGIN_COPY_FILES) throw new Error(`unsafe package: copied file count exceeds ${MAX_PLUGIN_COPY_FILES}`);
       const dest = path.join(destRoot, file);
       fs.mkdirSync(path.dirname(dest), { recursive: true });
       fs.copyFileSync(path.join(sourceRoot, file), dest);
@@ -462,31 +464,26 @@ function copyAllowlistedFiles(sourceRoot, destRoot, files) {
   }
 }
 
-function validateSourceTree(sourceRoot, manifest) {
+function validateSourceTree(sourceRoot) {
   validatePackageJson(sourceRoot);
-  for (const entry of manifest.files) {
-    walkFiles(sourceRoot, normalizeRel(entry, "files entry"));
-  }
+  for (const entry of existingKnownPluginPaths(sourceRoot)) walkFiles(sourceRoot, normalizeRel(entry, "files entry"));
 }
 
-function installFromSource(root, repo, sourceRoot, commit, { updateExisting = false } = {}) {
+function installFromSource(root, source, sourceRoot, commit, { updateExisting = false } = {}) {
+  validateSourceTree(sourceRoot);
   const materialized = materializeCommit(sourceRoot, commit, root);
   const packageRoot = materialized.packageRoot;
   const manifest = PluginManifest.fromRoot(packageRoot);
-  validateSourceTree(packageRoot, manifest);
+  validateSourceTree(packageRoot);
   const dest = path.join(installedPluginsDir(root), manifest.name);
-  copyAllowlistedFiles(packageRoot, dest, manifest.files);
+  copyAllowlistedFiles(packageRoot, dest, existingKnownPluginPaths(packageRoot));
   fs.rmSync(materialized.tmp, { recursive: true, force: true });
   const installedManifest = PluginManifest.fromRoot(dest, manifest.name);
   const config = readProjectConfig(root);
   const plugin = ensurePluginConfig(config);
   const existing = plugin.packages.find((pkg) => pkg.id === manifest.name);
-  const entry = {
-    id: manifest.name,
-    repo: repo.id,
-    commit,
-  };
-  if (repo.ref) entry.ref = repo.ref;
+  const entry = { id: manifest.name, source: source.id, commit };
+  if (source.ref) entry.ref = source.ref;
   if (existing) {
     if (!updateExisting && existing.enabled === false) entry.enabled = false;
     Object.assign(existing, entry);
@@ -499,12 +496,12 @@ function installFromSource(root, repo, sourceRoot, commit, { updateExisting = fa
 
 export function installPlugin(root, id) {
   const config = readProjectConfig(root);
-  for (const repo of config.plugin.repos) {
-    const source = resolveRepo(root, repo);
-    const manifest = PluginManifest.fromRoot(source.root);
+  for (const source of config.plugin.sources) {
+    const resolved = resolveSource(root, source);
+    const manifest = PluginManifest.fromRoot(resolved.root);
     if (manifest.name === id) {
-      installFromSource(root, repo, source.root, source.commit);
-      return { id, repo: repo.id, commit: source.commit };
+      installFromSource(root, source, resolved.root, resolved.commit);
+      return { id, source: source.id, commit: resolved.commit };
     }
   }
   throw new Error(`plugin not found: ${id}`);
@@ -512,21 +509,18 @@ export function installPlugin(root, id) {
 
 export function syncInstalledPlugins(root, { update = false } = {}) {
   const config = readProjectConfig(root);
-  const repos = new Map(config.plugin.repos.map((repo) => [repo.id, repo]));
+  const sources = new Map(config.plugin.sources.map((source) => [source.id, source]));
   const results = [];
   for (const pkg of config.plugin.packages) {
     if (pkg.enabled === false) continue;
-    const repo = repos.get(pkg.repo);
-    if (!repo) throw new Error(`plugin repo not found for package ${pkg.id}: ${pkg.repo}`);
-    const source = update ? resolveRepo(root, repo) : { root: checkedOutRepoRoot(root, repo), commit: pkg.commit };
-    if (!fs.existsSync(path.join(source.root, "plugin.json"))) {
-      const resolved = resolveRepo(root, repo);
-      source.root = resolved.root;
-    }
-    const commit = update ? source.commit : pkg.commit;
+    const source = sources.get(pkg.source);
+    if (!source) throw new Error(`plugin source not found for package ${pkg.id}: ${pkg.source}`);
+    const resolved = update ? resolveSource(root, source) : { root: checkedOutSourceRoot(root, source), commit: pkg.commit };
+    if (!fs.existsSync(path.join(resolved.root, "plugin.json"))) Object.assign(resolved, resolveSource(root, source));
+    const commit = update ? resolved.commit : pkg.commit;
     if (!SHA_RE.test(commit)) throw new Error(`plugin package ${pkg.id} must have a pinned commit`);
-    installFromSource(root, repo, source.root, commit, { updateExisting: update });
-    results.push({ id: pkg.id, repo: repo.id, commit });
+    installFromSource(root, source, resolved.root, commit, { updateExisting: update });
+    results.push({ id: pkg.id, source: source.id, commit });
   }
   return results;
 }
@@ -536,7 +530,7 @@ export function listInstalledPlugins(root) {
   const registry = loadPluginRegistry(root);
   return config.plugin.packages.map((pkg) => ({
     id: pkg.id,
-    repo: pkg.repo,
+    source: pkg.source,
     commit: pkg.commit,
     status: pkg.enabled === false ? "disabled" : "enabled",
     valid: Boolean(registry.manifests.find((manifest) => manifest.providerId === pkg.id)),
@@ -553,39 +547,191 @@ export function setPluginEnabled(root, id, enabled) {
   return entry;
 }
 
+export async function resolvePluginPackageSources(root = repoRoot()) {
+  const config = readProjectConfig(root);
+  const sources = new Map(config.plugin.sources.map((source) => [source.id, source]));
+  return config.plugin.packages.map((pkg) => {
+    const source = sources.get(pkg.source);
+    if (!source) throw new Error(`plugin package ${pkg.id} references unknown source ${pkg.source}`);
+    return { ...pkg, source, sourceLocation: sourceLocation(source) };
+  });
+}
+
+export class FlowCommandHook {}
+
+function buildPluginApi() {
+  return {
+    Envelope: {
+      ok: (type = "plugin", key = "plugin", data = {}) => Envelope.ok(type, key, data).toJSON(),
+      fail: (type = "plugin", key = "plugin", code = "PLUGIN_FAILED", messages = "plugin failed", data = null) => Envelope.fail(type, key, code, messages, data).toJSON(),
+    },
+    FlowCommandHook,
+  };
+}
+
+function validateHookClass(HookClass, label) {
+  if (typeof HookClass !== "function" || !HookClass.name) throw new Error(`plugin hook ${label} must return a named hook class`);
+  if (!(HookClass.prototype instanceof FlowCommandHook)) throw new Error(`plugin hook ${label} must extend FlowCommandHook`);
+  if (!FLOW_COMMANDS.has(HookClass.command)) throw new Error(`plugin hook ${label} has unknown command: ${HookClass.command}`);
+  if (!FLOW_COMMAND_HOOKS.has(HookClass.hook)) throw new Error(`plugin hook ${label} has unknown hook: ${HookClass.hook}`);
+  if (HookClass.command === "prepare" && HookClass.hook === "pre") throw new Error("plugin hook prepare.pre is not supported");
+  if (!Number.isInteger(Number(HookClass.priority || 0))) throw new Error(`plugin hook ${label} priority must be an integer`);
+}
+
+export async function discoverFlowCommandHooks(root = repoRoot()) {
+  const config = readProjectConfig(root);
+  const enabledPackages = config.plugin.packages.filter((pkg) => pkg.enabled !== false);
+  if (enabledPackages.length > MAX_ENABLED_PLUGIN_PACKAGES) throw new Error(`enabled plugin packages exceed ${MAX_ENABLED_PLUGIN_PACKAGES}`);
+  const plans = [];
+  for (const pkg of enabledPackages) {
+    const pluginRoot = path.join(sentiDir(root), "plugins", pkg.id);
+    const hooksDir = path.join(pluginRoot, "hooks");
+    if (!fs.existsSync(hooksDir)) continue;
+    const files = fs.readdirSync(hooksDir).filter((file) => file.endsWith(".js")).sort();
+    if (files.length > MAX_PLUGIN_HOOK_FILES) throw new Error(`plugin ${pkg.id} hook files exceed ${MAX_PLUGIN_HOOK_FILES}`);
+    for (const file of files) {
+      const rel = normalizeRel(`hooks/${file}`, "hook module");
+      const mod = await import(pathToFileURL(path.join(pluginRoot, rel)).href);
+      if (typeof mod.default !== "function" || mod.default.name !== "register") throw new Error(`plugin hook ${pkg.id}/${rel} must export named default function register(api)`);
+      const HookClass = mod.default(buildPluginApi());
+      if (Array.isArray(HookClass)) throw new Error(`plugin hook ${pkg.id}/${rel} must return one hook class per file`);
+      validateHookClass(HookClass, `${pkg.id}/${rel}`);
+      plans.push({
+        apiVersion: 1,
+        pluginId: pkg.id,
+        module: rel,
+        className: HookClass.name,
+        command: HookClass.command,
+        hook: HookClass.hook,
+        priority: Number(HookClass.priority || 0),
+      });
+    }
+  }
+  return plans.sort((a, b) => a.priority - b.priority || a.pluginId.localeCompare(b.pluginId) || a.module.localeCompare(b.module));
+}
+
+export function writeFlowCommandHookSnapshot(flowPath, plans) {
+  const state = readJson(flowPath);
+  state.plugins = state.plugins && typeof state.plugins === "object" ? state.plugins : {};
+  state.plugins.flowCommandHooks = plans.map((plan) => ({ ...plan }));
+  writeJson(flowPath, state);
+}
+
+export function loadFlowCommandHookSnapshot(flowPath) {
+  const state = readJson(flowPath);
+  return Array.isArray(state.plugins?.flowCommandHooks) ? state.plugins.flowCommandHooks : [];
+}
+
+function pluginConfigFor(root, pluginId) {
+  try {
+    return readProjectConfig(root).plugin.config?.[pluginId] || {};
+  } catch (_) {
+    return {};
+  }
+}
+
+function artifactHelpers(root, pluginId) {
+  const dir = path.join(sentiDir(root), "plugin-artifacts", pluginId);
+  return {
+    async readJson(rel, fallback = null) {
+      const file = path.join(dir, normalizeRel(rel, "artifact path"));
+      if (!fs.existsSync(file)) return fallback;
+      return readJson(file);
+    },
+    async writeJson(rel, value) {
+      writeJson(path.join(dir, normalizeRel(rel, "artifact path")), value);
+    },
+    async writeText(rel, value) {
+      const file = path.join(dir, normalizeRel(rel, "artifact path"));
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, String(value), "utf8");
+    },
+  };
+}
+
+function buildPluginContext({ root, pluginId, pluginRoot, commandPath, flow = {}, result = {} }) {
+  return {
+    project: { root },
+    plugin: { id: pluginId, root: pluginRoot, commandPath },
+    config: pluginConfigFor(root, pluginId),
+    flow,
+    result,
+    artifacts: artifactHelpers(root, pluginId),
+    envelope: buildPluginApi().Envelope,
+  };
+}
+
+function isEnvelopeLike(value) {
+  return value && typeof value === "object" && typeof value.ok === "boolean" && Array.isArray(value.errors);
+}
+
 export async function dispatchPluginCommand(root, commandName, args) {
   const registry = loadPluginRegistry(root);
   const command = registry.resolveCommand(commandName);
   if (!command) return false;
-  process.argv = [process.argv[0], command.absolutePath, ...args];
-  const mod = await import(pathToFileURL(command.absolutePath).href);
-  if (typeof mod.main === "function") {
-    await mod.main(args, {
-      projectRoot: root,
-      sourceRoot: process.env.SENTI_SOURCE_ROOT || PKG_DIR,
-      packageRoot: PKG_DIR,
-      commandPath: command.absolutePath,
-    });
+  try {
+    const mod = await import(pathToFileURL(command.absolutePath).href);
+    if (typeof mod.default !== "function") throw new Error(`plugin command ${commandName} must export default register(api)`);
+    const registered = mod.default(buildPluginApi());
+    if (!registered || typeof registered.main !== "function") throw new Error(`plugin command ${commandName} register(api) must return { main }`);
+    const pluginRoot = path.dirname(path.dirname(command.absolutePath));
+    const result = await registered.main(args, buildPluginContext({ root, pluginId: command.providerId, pluginRoot, commandPath: command.absolutePath }));
+    if (!isEnvelopeLike(result)) throw new Error(`plugin command ${commandName} must return an Envelope-compatible object`);
+    return { ...result, exitCode: result.ok ? 0 : (result.exitCode || 1) };
+  } catch (err) {
+    return { ok: false, type: "plugin", key: commandName, data: null, exitCode: 1, errors: [{ level: "fatal", code: err.code || "PLUGIN_COMMAND_FAILED", messages: [err.message] }] };
   }
-  return true;
+}
+
+async function loadHookClass(root, plan) {
+  const pluginRoot = path.join(sentiDir(root), "plugins", plan.pluginId);
+  const mod = await import(`${pathToFileURL(path.join(pluginRoot, plan.module)).href}?t=${Date.now()}`);
+  const HookClass = mod.default(buildPluginApi());
+  validateHookClass(HookClass, `${plan.pluginId}/${plan.module}`);
+  if (HookClass.name !== plan.className) throw new Error(`plugin hook class mismatch: expected ${plan.className}, got ${HookClass.name}`);
+  return { HookClass, pluginRoot };
+}
+
+export async function runFlowCommandHooks(root, snapshot, { command, hook, flow = {}, result = {} } = {}) {
+  const warnings = [];
+  const issueLogEntries = [];
+  for (const plan of snapshot.filter((entry) => entry.command === command && entry.hook === hook).sort((a, b) => a.priority - b.priority)) {
+    try {
+      const { HookClass, pluginRoot } = await loadHookClass(root, plan);
+      const instance = new HookClass();
+      const hookResult = await instance.run(buildPluginContext({ root, pluginId: plan.pluginId, pluginRoot, flow, result }));
+      if (hookResult?.ok === false) throw new Error(hookResult.errors?.[0]?.messages?.join(" ") || "plugin hook returned ok:false");
+    } catch (err) {
+      const warning = { code: "PLUGIN_HOOK_FAILED", pluginId: plan.pluginId, command, hook, message: err.message };
+      warnings.push(warning);
+      issueLogEntries.push({ pluginId: plan.pluginId, reason: `plugin hook ${command}.${hook} failed: ${err.message}`, payload: warning });
+    }
+  }
+  return { ok: true, warnings, issueLogEntries };
+}
+
+export async function runFlowCommandWithPluginLifecycle(root, snapshot, { command, main, flow = {} } = {}) {
+  const pre = await runFlowCommandHooks(root, snapshot, { command, hook: "pre", flow, result: {} });
+  const result = await main();
+  const post = await runFlowCommandHooks(root, snapshot, { command, hook: "post", flow, result });
+  return { ok: result?.ok !== false, data: result?.data || {}, warnings: [...pre.warnings, ...post.warnings], issueLogEntries: [...pre.issueLogEntries, ...post.issueLogEntries] };
 }
 
 export function ensureOfficialPackage(root, { id, sourceRoot, ref, type }) {
   const config = readProjectConfig(root);
   const plugin = ensurePluginConfig(config);
-  let repo = plugin.repos.find((entry) => entry.source === sourceRoot || entry.id === id || entry.id === `official-${id}`);
-  if (!repo) {
-    repo = { id: type === "workflow" ? "official-workflow" : "official-presets", source: sourceRoot };
-    if (ref) repo.ref = ref;
-    plugin.repos.push(repo);
-  }
-  if (!plugin.packages.some((pkg) => pkg.id === id)) {
-    writeProjectConfig(root, config);
-    const source = resolveRepo(root, repo);
-    const sourceManifest = PluginManifest.fromRoot(source.root);
-    if (sourceManifest.name !== id) throw new Error(`official package mismatch: expected ${id}, got ${sourceManifest.name}`);
-    installFromSource(root, repo, source.root, source.commit);
-    return;
+  let source = plugin.sources.find((entry) => sourceLocation(entry) === sourceRoot || entry.id === id || entry.id === `official-${id}`);
+  if (!source) {
+    source = { id: type === "workflow" ? "official-workflow" : "official-presets", type: "local", path: sourceRoot };
+    if (ref) source.ref = ref;
+    plugin.sources.push(source);
   }
   writeProjectConfig(root, config);
+  const resolved = resolveSource(root, source);
+  const sourceManifest = PluginManifest.fromRoot(resolved.root);
+  if (sourceManifest.name !== id) throw new Error(`official package mismatch: expected ${id}, got ${sourceManifest.name}`);
+  const existing = plugin.packages.find((pkg) => pkg.id === id);
+  if (!existing || existing.commit !== resolved.commit) {
+    installFromSource(root, source, resolved.root, resolved.commit, { updateExisting: true });
+  }
 }

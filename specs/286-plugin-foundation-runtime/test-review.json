@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-11T01:05:26.921Z",
+  "verdict": "ADVISORY",
+  "counts": {
+    "blocking": 0,
+    "advisory": 1,
+    "total": 1
+  },
+  "coverageArtifact": "specs/286-plugin-foundation-runtime/test-coverage.json",
+  "blockingFindings": [],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R3 missing non-JS hook exclusion boundary",
+      "target": "specs/286-plugin-foundation-runtime/tests/plugin-foundation-contract.test.js R3",
+      "improvement": "Add a small non-blocking fixture such as hooks/ignored.txt or hooks/nested/hook.js and assert discovery only considers direct hooks/*.js files.",
+      "whyNonBlocking": "The current R3 tests cover valid hook loading and major validation failures, caps, and enabled plugin count. This would tighten the exact discovery glob but does not leave the main acceptance requirement untested."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/286-plugin-foundation-runtime/test-review.json",
+    "verdict": "ADVISORY",
+    "result": "ADVISORY",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": "implement",
+    "completionKind": "normal",
+    "progressSignature": "fb6ffc2240464050d54ac681ea222da8e1234a210a0919358ad8ec859de56b4d"
+  }
+}

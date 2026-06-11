@@ -145,9 +145,9 @@ function resolveProjectPreset(key, root) {
  * If found, it takes precedence over the built-in preset of the same name.
  * Parent chain resolution always uses built-in presets (project presets are leaf-only).
  *
- * @param {string} leafKey - Preset key (e.g. "cakephp2", "node-cli", "webapp")
+ * @param {string} leafKey - Preset key (e.g. "sample-preset", "node-cli", "app-preset")
  * @param {string} [projectRoot] - Project root directory for .senti/presets/ lookup
- * @returns {Object[]} Array of preset objects, ordered root → leaf (e.g. [base, webapp, php-webapp, cakephp2])
+ * @returns {Object[]} Array of preset objects, ordered root to leaf (e.g. [base, parent-preset, child-preset])
  * @throws {Error} If preset not found or circular reference detected
  */
 export function resolveChain(leafKey, projectRoot) {
@@ -221,7 +221,7 @@ export function resolveMultiChains(types, projectRoot) {
  * Resolve the parent chain for a preset, with fallback for unknown presets.
  * Unlike resolveChain(), this never throws.
  *
- * @param {string} presetKey - Preset key (e.g. "cakephp2", "node-cli")
+ * @param {string} presetKey - Preset key (e.g. "sample-preset", "node-cli")
  * @param {string} [projectRoot] - Project root directory for .senti/presets/ lookup
  * @returns {Object[]} Array of preset objects, ordered root → leaf
  */
@@ -412,7 +412,7 @@ export function validatePresetChain(types, projectRoot, { languages, configChapt
 }
 
 /**
- * Look up a preset by its leaf key (e.g. "cakephp2", "laravel").
+ * Look up a preset by its leaf key (e.g. "sample-preset").
  *
  * @param {string} leaf
  */
@@ -423,7 +423,7 @@ export function presetByLeaf(leaf) {
 /**
  * Return presets whose parent is the given key.
  *
- * @param {string} parentKey - Parent preset key (e.g. "webapp", "cli")
+ * @param {string} parentKey - Parent preset key (e.g. "app-preset", "cli")
  */
 export function presetsForArch(parentKey) {
   return PRESETS.filter((p) => p.parent === parentKey);

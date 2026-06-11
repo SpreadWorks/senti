@@ -335,6 +335,44 @@ function pluginSkillSourceDirs(root) {
   }
 }
 
+export function migratePluginConfigNamespaces(raw) {
+  const next = structuredClone(raw || {});
+  if (!next.plugin || typeof next.plugin !== "object") next.plugin = {};
+  if (!next.plugin.config || typeof next.plugin.config !== "object") next.plugin.config = {};
+
+  if (Array.isArray(next.plugin.repos)) {
+    next.plugin.sources = next.plugin.repos.map((repo) => {
+      const source = repo.source || "";
+      return {
+        id: repo.id,
+        type: /^(https?:\/\/|git@|ssh:\/\/|file:\/\/)/.test(source) ? "git" : "local",
+        ...(/^(https?:\/\/|git@|ssh:\/\/|file:\/\/)/.test(source) ? { url: source } : { path: source }),
+        ...(repo.ref ? { ref: repo.ref } : {}),
+      };
+    });
+    delete next.plugin.repos;
+  }
+  if (Array.isArray(next.plugin.packages)) {
+    next.plugin.packages = next.plugin.packages.map((pkg) => {
+      const out = { ...pkg };
+      if (out.repo && !out.source) out.source = out.repo;
+      delete out.repo;
+      return out;
+    });
+  }
+  if (next.workflow?.flowIntegration != null) {
+    next.plugin.config.workflow = {
+      ...(next.plugin.config.workflow || {}),
+      flowIntegration: next.workflow.flowIntegration,
+    };
+    const remaining = { ...next.workflow };
+    delete remaining.flowIntegration;
+    if (Object.keys(remaining).length === 0) delete next.workflow;
+    else next.workflow = remaining;
+  }
+  return next;
+}
+
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
@@ -374,6 +412,20 @@ async function main() {
   summary.rename.changed = renameChanges.length;
   for (const rel of renameChanges) {
     logger.log(`[upgrade] migrated rename target: ${rel}`);
+  }
+
+  const configPath = sentiConfigPath(root);
+  let preConfigChanged = false;
+  try {
+    const raw = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    const migrated = migratePluginConfigNamespaces(raw);
+    preConfigChanged = JSON.stringify(migrated) !== JSON.stringify(raw);
+    if (preConfigChanged && !dryRun) {
+      fs.writeFileSync(configPath, JSON.stringify(migrated, null, 2) + "\n", "utf8");
+      logger.log("[upgrade] migrated plugin config namespaces");
+    }
+  } catch (_) {
+    // config.json missing or unreadable — loadConfig will handle normal failures.
   }
 
   const config = loadConfig(root);
@@ -491,8 +543,7 @@ async function main() {
   }
 
   // Migrate config.json in place (chapters format + agent defaults). Single read/write.
-  const configPath = sentiConfigPath(root);
-  let configChanged = false;
+  let configChanged = preConfigChanged;
   try {
     const raw = JSON.parse(fs.readFileSync(configPath, "utf8"));
 

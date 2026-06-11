@@ -97,7 +97,7 @@
  * @property {string} [name]                 - Project name (optional, set by setup wizard)
  * @property {DocsConfig} docs               - Documentation configuration (required)
  * @property {string} lang                   - Operating language for CLI, AGENTS.md, skills, specs
- * @property {string|string[]} type          - Preset name(s) (e.g. "symfony" or ["symfony", "postgres"])
+ * @property {string|string[]} type          - Preset name(s) (e.g. "sample-preset" or ["sample-preset", "child-preset"])
  * @property {number} [concurrency]          - Per-file concurrency (default: 5)
  * @property {AgentConfig} [agent]           - AI agent invocation settings
  * @property {FlowConfig} [flow]             - Flow configuration

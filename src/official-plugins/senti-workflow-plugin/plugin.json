@@ -1,16 +1,9 @@
 {
   "name": "workflow",
   "type": "workflow",
-  "files": [
-    "plugin.json",
-    "commands/",
-    "skills/",
-    "config.schema.json",
-    "config.defaults.json"
-  ],
   "contributions": {
     "commands": [
-      { "name": "workflow", "path": "commands/workflow.js" }
+      { "name": "workflow", "path": "commands/workflow.js", "desc": "[EXPERIMENTAL] Manage workflow board drafts", "section": "Plugins", "experimental": true, "help": "Usage: senti workflow <subcommand> [args]" }
     ],
     "skills": [
       { "name": "senti.workflow", "path": "skills/senti.workflow" }
@@ -18,6 +11,9 @@
     "config": {
       "schema": "config.schema.json",
       "defaults": "config.defaults.json"
-    }
+    },
+    "hooks": [
+      { "path": "hooks/issue-start.js" }
+    ]
   }
 }

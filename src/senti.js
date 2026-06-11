@@ -49,7 +49,7 @@ if (!subCmd || subCmd === "-h" || subCmd === "--help" || subCmd === "help") {
   const helpPath = path.join(PKG_DIR, "help.js");
   process.argv = [process.argv[0], helpPath, ...rest];
   const helpMod = await import(pathToFileURL(helpPath).href);
-  if (typeof helpMod.main === "function") helpMod.main();
+  if (typeof helpMod.main === "function") await helpMod.main();
   process.exit(0);
 }
 
@@ -59,6 +59,7 @@ initContainer({
   entryCommand: rawArgs.join(" "),
   agentWorkDirOverride,
   finalizeCleanupDurablePaths: enableFinalizeCleanupDurablePaths,
+  allowInvalidConfig: subCmd === "upgrade",
 });
 
 /** Namespace dispatchers — receive subcommand + rest args */
@@ -102,7 +103,13 @@ if (NAMESPACE_SCRIPTS[subCmd]) {
     const { repoRoot } = await import("./lib/cli.js");
     const { dispatchPluginCommand } = await import("./lib/plugin-registry.js");
     const handled = await dispatchPluginCommand(repoRoot(), subCmd, rest);
-    if (handled) process.exit(0);
+    if (handled) {
+      if (handled.ok != null) {
+        console.log(JSON.stringify(handled, null, 2));
+        process.exit(handled.ok ? 0 : (handled.exitCode || EXIT_ERROR));
+      }
+      process.exit(0);
+    }
     console.error(`senti: unknown command '${subCmd}' is unavailable. Enable a plugin that contributes this command, or run: senti plugin list`);
   } catch (err) {
     console.error(`senti: unknown command '${subCmd}' is unavailable. Plugin command resolution failed: ${err.message}`);

@@ -1,0 +1,68 @@
+{
+  "spec": "specs/286-plugin-foundation-runtime/spec.json",
+  "date": "2026-06-11T02:00:20.850Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Replace plugin.repos / packages[].repo with plugin.sources[] / packages[].source in config schema, validation, plugin CLI output, and plugin registry source resolution, including a documented migration path and actionable validation error for old fields.",
+      "status": "done",
+      "note": "R1: config validation and registry resolution use plugin.sources/packages[].source"
+    },
+    {
+      "desc": "Remove plugin.json.files as a required manifest field and copy only known plugin package paths: plugin.json, commands/, skills/, presets/, hooks/, config.schema.json, and config.defaults.json, while preserving safety checks for .git, node_modules, symlinks, scripts, path traversal, unsafe package.json, max depth 20, max 2000 copied files per plugin, max 300-byte relative paths, and max 1 MiB JSON metadata files.",
+      "status": "done",
+      "note": "R2: installer copies known paths and rejects unsafe package contents"
+    },
+    {
+      "desc": "Discover one hook per hooks/*.js file under installed and enabled plugin roots, capped at 200 hook files per plugin and 100 enabled plugin packages per project, then validate default export register(api), named returned class, FlowCommandHook inheritance, command/hook metadata, integer priority, and prepare.pre rejection.",
+      "status": "done",
+      "note": "R3: hook discovery validates factory hook modules and bounded metadata"
+    },
+    {
+      "desc": "On successful flow prepare, snapshot validated hook plans into flow.json plugins.flowCommandHooks using apiVersion, pluginId, module relative path, className, command, hook, and priority, without storing absolute paths or re-discovering hooks during active flows.",
+      "status": "done",
+      "note": "R4: flow prepare snapshots hook plans into flow.json and active flows use the snapshot"
+    },
+    {
+      "desc": "Execute snapshot plugin hooks at supported flow command pre/post lifecycle points with a public context containing project, plugin, config, flow, result, artifacts, and envelope helpers, and convert hook run failures into non-blocking warnings plus issue-log candidates.",
+      "status": "done",
+      "note": "R5: hook runner exposes public context and normalizes non-blocking failures"
+    },
+    {
+      "desc": "Load plugin commands through default export register(api), execute returned command.main(argv, context), require Envelope-compatible returns, normalize thrown command errors to failure envelopes with non-zero exit, and stop passing raw core ctx to plugin commands.",
+      "status": "done",
+      "note": "R6: plugin commands load through register(api), receive public context, and return envelopes"
+    },
+    {
+      "desc": "Read plugin command help metadata from plugin.json contributions.commands[] and render top-level help, command help, subcommand help, locale wording, and experimental display through the same help rendering path as core commands without importing plugin command modules.",
+      "status": "done",
+      "note": "R7: help rendering uses plugin metadata without importing command modules"
+    },
+    {
+      "desc": "Apply plugin config schemas/defaults under plugin.config.<pluginId>, merge defaults at loadConfig() runtime without writing them to .senti/config.json, migrate existing top-level workflow.* config to plugin.config.workflow through upgrade/config guidance, and expose a generic agent execution API that lets plugins pass provider/profile overrides from their own plugin config.",
+      "status": "done",
+      "note": "R8: loadConfig merges plugin config defaults under plugin.config.<pluginId> and agent API passes plugin overrides"
+    },
+    {
+      "desc": "Remove workflow-specific flow instructions from generated AI skill text and preserve existing workflow.flowIntegration issue-start behavior through an official workflow plugin prepare.post hook that reads plugin.config.workflow.flowIntegration after migration.",
+      "status": "done",
+      "note": "R9: official workflow plugin prepare.post hook preserves migrated issue-start behavior"
+    },
+    {
+      "desc": "Remove core runtime/source/test expectations that depend on actual official preset names; use generic plugin/preset fixtures for foundation contract tests while keeping user config examples, generated docs, and historical specs untouched.",
+      "status": "done",
+      "note": "R10: core foundation source and tests do not depend on official preset names"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 10,
+    "done": 10,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

@@ -52,9 +52,12 @@ class Agent {
    * Priority: SENTI_PROFILE env > config.agent.useProfile > default profile > default.
    * Returns null when no profile is configured.
    */
-  resolve(commandId) {
+  resolve(commandId, options = {}) {
     const agentSection = this._config.agent || {};
-    const profileKey = resolveProfileKey(agentSection, commandId);
+    const selectedProfileKey = resolveProfileKey(agentSection, commandId, {
+      profileName: options.profile,
+    });
+    const profileKey = resolveProviderOverrideKey(options.provider, selectedProfileKey);
     if (!profileKey) return null;
 
     const resolved = this._registry.resolveProfile(profileKey);
@@ -91,7 +94,7 @@ class Agent {
     const opts = options || {};
     if (opts._dryRun) return "";
 
-    const resolved = this.resolve(opts.commandId);
+    const resolved = this.resolve(opts.commandId, opts);
     if (!resolved) {
       throw new Error("No agent configured. Set 'agent.default' in config.json or run 'senti setup'.");
     }
@@ -136,7 +139,7 @@ class Agent {
   // -----------------------------------------------------------------------
 
   _buildInvocationForTest(prompt, options = {}) {
-    const resolved = this.resolve(options.commandId);
+    const resolved = this.resolve(options.commandId, options);
     if (!resolved) throw new Error("No agent configured.");
     return this._buildInvocation(resolved, prompt, options);
   }
@@ -518,9 +521,9 @@ function matchProfilePrefix(profile, commandId) {
   return bestKey;
 }
 
-function resolveProfileKey(agentSection, commandId) {
+function resolveProfileKey(agentSection, commandId, options = {}) {
   const defaultKey = agentSection.default;
-  const profileName = process.env.SENTI_PROFILE || agentSection.useProfile || null;
+  const profileName = options.profileName || process.env.SENTI_PROFILE || agentSection.useProfile || null;
   if (!profileName) return defaultKey;
 
   const profiles = agentSection.profiles;
@@ -531,6 +534,12 @@ function resolveProfileKey(agentSection, commandId) {
   return matchProfilePrefix(profiles[profileName], commandId)
     || matchDefaultProfileFallback(profiles, profileName, commandId)
     || defaultKey;
+}
+
+function resolveProviderOverrideKey(providerKey, selectedProfileKey) {
+  if (!providerKey) return selectedProfileKey;
+  if (selectedProfileKey && selectedProfileKey.startsWith(`${providerKey}/`)) return selectedProfileKey;
+  return providerKey;
 }
 
 function matchDefaultProfileFallback(profiles, profileName, commandId) {
@@ -665,6 +674,24 @@ function textStats(s) {
   if (s == null) return { chars: 0, lines: 0 };
   const str = String(s);
   return { chars: str.length, lines: str.length === 0 ? 0 : str.split("\n").length };
+}
+
+export function createPluginAgentApi({ pluginId, pluginConfig = {}, agent }) {
+  if (!pluginId) throw new Error("pluginId is required");
+  if (!agent || typeof agent.call !== "function") throw new Error("agent.call is required");
+  return {
+    call(prompt, options = {}) {
+      const commandId = options.commandId?.includes(".")
+        ? options.commandId
+        : `${pluginId}.${options.commandId || "default"}`;
+      return agent.call(prompt, {
+        ...options,
+        commandId,
+        ...(pluginConfig.provider ? { provider: pluginConfig.provider } : {}),
+        ...(options.profile || pluginConfig.agentProfile ? { profile: options.profile || pluginConfig.agentProfile } : {}),
+      });
+    },
+  };
 }
 
 export { Agent, filterStreamingEvents };

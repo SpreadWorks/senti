@@ -26,6 +26,8 @@ import {
 import { flattenSteps } from "./lib/step-tree.js";
 import { DRAFT_REVIEW_ROUTES, draftReviewRouteForRetryPhase } from "./lib/draft-review-routes.js";
 import { assertStepCompletionTransitionAllowed } from "./lib/flow-judgment-contract.js";
+import { runFlowCommandHooks } from "../lib/plugin-registry.js";
+import { loadIssueLog, saveIssueLog } from "./lib/set-issue-log.js";
 
 /**
  * Successful command-result statuses that map to a flow step status of 'done'.
@@ -375,6 +377,46 @@ async function applyLifecycleActionsFromRegistry(ctx, input, result = null, err 
   for (const action of actions) {
     await action.apply(adapter);
   }
+  const command = input?.command || input?.runtimeCommand || input?.key || result?.artifacts?.command;
+  const snapshot = Array.isArray(ctx.flowState?.plugins?.flowCommandHooks) ? ctx.flowState.plugins.flowCommandHooks : [];
+  if (!command || snapshot.length === 0) return;
+  const hook = pluginHookForLifecycle(input?.event, err);
+  const hookResult = await runFlowCommandHooks(ctx.root, snapshot, {
+    command: pluginCommandName(command),
+    hook,
+    flow: { spec: ctx.flowState?.spec, issue: ctx.flowState?.issue, runId: ctx.flowState?.runId },
+    result: result || { ok: false, error: err?.message },
+  });
+  if (hookResult.issueLogEntries.length && ctx.flowState?.spec) {
+    for (const entry of hookResult.issueLogEntries) {
+      tryAppendIssueLog(() => {
+        const issueLog = loadIssueLog(ctx.root, ctx.flowState.spec);
+        issueLog.entries.push({
+          step: "plugin-hook",
+          reason: entry.reason,
+          trigger: `${command}.${hook}`,
+          resolution: "non-blocking plugin hook warning recorded",
+          guardrailCandidate: "plugin hook run failures should be warning envelopes and issue-log candidates",
+          pluginId: entry.pluginId,
+          timestamp: new Date().toISOString(),
+        });
+        saveIssueLog(ctx.root, ctx.flowState.spec, issueLog);
+      });
+    }
+  }
+}
+
+function pluginHookForLifecycle(event, err) {
+  if (err) return "onError";
+  if (typeof event === "string") {
+    const suffix = event.split(":").pop();
+    if (suffix === "pre" || suffix === "post" || suffix === "finally") return suffix;
+  }
+  return "post";
+}
+
+function pluginCommandName(command) {
+  return String(command || "").startsWith("run-") ? String(command).slice(4) : command;
 }
 
 
@@ -419,6 +461,12 @@ export const FLOW_COMMANDS = {
       "  --run-id <runId>   Use existing runId from flow set init",
       "  --dry-run          Show what would happen without executing",
     ].join("\n"),
+    async post(ctx, result) {
+      await applyLifecycleActionsFromRegistry(ctx, {
+        event: "prepare:post",
+        command: "prepare",
+      }, result);
+    },
   },
   get: {
     status: {
@@ -709,6 +757,11 @@ export const FLOW_COMMANDS = {
       async onError(ctx, err) {
         const { appendIssueLogFromGateError } = await import("./lib/run-gate.js");
         tryAppendIssueLog(() => appendIssueLogFromGateError(ctx, err));
+        await applyLifecycleActionsFromRegistry(ctx, {
+          event: "gate:onError",
+          command: "run-gate",
+          phase: ctx.phase,
+        }, null, err);
       },
     },
     review: {

@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied both spec-review blocking repairs for workflow flowIntegration preservation and top-level workflow config migration.",
+  "items": [
+    {
+      "title": "Workflow flowIntegration behavior can be removed without a replacement",
+      "target": "R9 / T-9",
+      "decision": "applied",
+      "rationale": "R9, AC12, and T-9 now require preserving existing issue-start behavior through the official workflow plugin prepare.post hook.",
+      "evidence": "spec.json requirements[R9], acceptance_criteria[AC12], tasks[T-9].goal, tasks[T-9].acceptance",
+      "changedFields": [
+        "requirements[R9].desc",
+        "acceptance_criteria[AC12]",
+        "tasks[T-9].goal",
+        "tasks[T-9].acceptance",
+        "tasks[T-9].implementation_notes"
+      ]
+    },
+    {
+      "title": "Top-level workflow config migration path is missing",
+      "target": "R8 / R9 / Constraints",
+      "decision": "applied",
+      "rationale": "R8, constraints, clarification, AC11, and T-8 now define migration or actionable rejection for existing top-level workflow config.",
+      "evidence": "spec.json constraints, requirements[R8], clarifications, acceptance_criteria[AC11], tasks[T-8].acceptance",
+      "changedFields": [
+        "constraints",
+        "requirements[R8].desc",
+        "clarifications",
+        "acceptance_criteria[AC11]",
+        "tasks[T-8].acceptance"
+      ]
+    }
+  ]
+}

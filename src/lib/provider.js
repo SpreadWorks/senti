@@ -187,6 +187,14 @@ class ProviderRegistry {
     return merged;
   }
 
+  _profileForKey(profileKey) {
+    if (!profileKey) return null;
+    if (this._profiles[profileKey]) return this._profiles[profileKey];
+    const slash = profileKey.indexOf("/");
+    if (slash === -1) return null;
+    return this._profiles[profileKey.slice(0, slash)] || null;
+  }
+
   /**
    * Resolve a Provider instance whose static key matches the given command
    * string (e.g. "claude" → ClaudeProvider, "codex" → CodexProvider).
@@ -212,12 +220,16 @@ class ProviderRegistry {
    */
   resolveProfile(profileKey) {
     if (!profileKey) return null;
-    const profile = this._profiles[profileKey];
+    const profile = this._profileForKey(profileKey);
     if (!profile) return null;
     const matched = this.resolveByCommand(profile.command);
     const provider = matched || new UserProvider(profile);
     const providerKey = matched ? matched.constructor.key : UserProvider.key;
     return { provider, profile, providerKey };
+  }
+
+  hasProfile(profileKey) {
+    return this._profileForKey(profileKey) != null;
   }
 
   /** Iteration helper for tests / introspection. */

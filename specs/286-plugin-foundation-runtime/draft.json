@@ -1,0 +1,171 @@
+{
+  "devType": "feature",
+  "goal": "workflow plugin と preset plugin を core 実装から外部化する前提として、shared plugin foundation を must で整備する。",
+  "analysis": {
+    "problem": "現在の plugin foundation は、flow lifecycle hook、plugin command runtime、help metadata、plugin config namespace、install packaging、source/package 管理が core 実装または workflow/preset 固有名に依存している。そのため workflow と presets を外部 plugin repository に移しても、core internal API import や top-level workflow config への依存が残る。",
+    "proposedApproach": "Issue #373 の決定事項を must の要求境界として扱い、既存の flow command registry、plugin registry、config loader、top-level command dispatch、help rendering、installer を plugin-aware に拡張する。新しい event bus は作らず、既存 registry の pre/post lifecycle point に plugin hook runner を接続する。",
+    "validation": "Issue 本文は hook discovery/snapshot、public hook context、plugin.config.<pluginId>、plugin command factory、help metadata、known-path install、sources/packages separation、agent API boundary を明示している。既存コード確認では src/lib/plugin-registry.js が plugin.json.files と plugin.repos 前提、src/help.js が workflow を静的表示、src/senti.js が plugin command を direct module main で呼ぶ構造であり、要求は根本原因に対応している。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #373 は workflow/preset 移行そのものではなく、両移行が依存する shared plugin runtime contract を対象にする。",
+      "must: 既存の src/lib/plugin-registry.js は plugin.json.files allowlist を要求し、install も manifest.files をコピー対象にしている。",
+      "must: 既存の .senti/config.json schema は plugin.repos と packages[].repo を使い、Issue が求める plugin.sources と packages[].source とは異なる。",
+      "must: 既存の src/help.js は Workflow section と workflow command を静的 layout に含めている。",
+      "must: 既存の src/senti.js は unknown top-level command を plugin command として解決するが、command module の main(args, ctx) 形式に core ctx を渡している。",
+      "must: 既存の src/flow/registry.js は command registry に pre/post/onError/finally 相当の lifecycle hook を持つため、新 event bus ではなく registry lifecycle point に統合できる。"
+    ],
+    "decisionPoints": [
+      "must: plugin hook contribution は manifest に列挙せず、enabled installed plugin root の hooks/*.js から自動 discovery する。",
+      "must: hook と command の plugin module は core internal path を import せず、default export register(api) factory 形式にする。",
+      "must: flow prepare 成功時に hook plan を flow.json plugins.flowCommandHooks に snapshot し、active flow 中は snapshot を正とする。",
+      "must: plugin config は plugin.config.<pluginId> に namespace し、defaults は config file へ書き込まず loadConfig() の runtime merge で見えるようにする。",
+      "must: plugin source discovery settings は plugin.sources[]、enabled package settings は plugin.packages[] に分離する。",
+      "should: plugin command help metadata は core command registry と同じ help rendering pipeline に流し、薄い plugin 専用 help 経路を作らない。"
+    ],
+    "resolvedByProjectRules": [
+      "must: src/ 以下には project 固有情報を書かないため、fixture 名や examples は sample-preset / child-preset のような汎用名にする。",
+      "must: 外部依存を追加せず Node.js built-in module だけで実装する。",
+      "must: alpha 版方針に従い、旧 format の長期互換 shim は作らず、必要な migration は spec 上で明示する。",
+      "must: 意味ある値と contract は専用 class で表現し、object literal の discriminated union もどきに寄せない。",
+      "must: src/skills または src/presets を変更した場合は senti upgrade を実行する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: hook discovery/snapshot/execution の acceptance criteria と artifact paths を spec requirements に落とす。",
+      "must: config schema/default runtime merge と sources/packages migration の test matrix を定義する。",
+      "must: plugin.repos / packages[].repo から plugin.sources / packages[].source への migration plan を spec に明記し、runtime compatibility shim ではなく upgrade/config validation/help guidance で移行手順を示す。",
+      "must: plugin command factory runtime と help metadata rendering の contract tests を定義する。",
+      "must: installer known paths と安全検査の regression cases を定義する。",
+      "should: workflow/preset migration follow-up で不要になる core-specific entries を、今回の scope 内外に分類する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: installed and enabled plugin roots から hooks/*.js を discovery/validate し、flow prepare 成功時に flow.json へ snapshot する runtime foundation。",
+      "must: snapshot 済み plugin hook を flow command registry の pre/post lifecycle point で実行する runner と public context。",
+      "must: plugin command を register(api) factory と Envelope-compatible return に寄せる runtime foundation。",
+      "must: plugin command help metadata を enabled plugin registry から取得し、top-level help と command help に反映する基盤。",
+      "must: plugin.config.<pluginId> namespace と plugin config defaults/schema の runtime merge。",
+      "must: plugin.json.files 必須を廃止し、known paths だけを copy する installer convention。",
+      "must: plugin.sources[] と plugin.packages[] の separation、および git/local source の validation/reproducibility policy。",
+      "should: workflow-specific flow instructions を AI skill text から CLI side hook へ移すための foundation と検証。"
+    ],
+    "out": [
+      "must: workflow implementation 自体を外部 repository へ完全移行しない。",
+      "must: preset implementation 自体を外部 repository へ完全移行しない。",
+      "must: 既存 registry hook の class 化は行わない。",
+      "must: npm source の本格対応は行わず、初期実装では unsupported validation までに留める。",
+      "must: plugin install/update で scripts を実行しない。",
+      "should: import-time side effect の機械的検査は初期実装に含めず、規約と review 対象にする。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: plugin install/list/find/sync/enable/disable の config field が plugin.repos/repo から plugin.sources/source へ変わるため、config validation と command output の期待値が変わる。migration plan として、upgrade/config validation/help guidance で旧 field の置換方法を明示し、runtime で旧 field を読み続ける shim は作らない。",
+    "must: plugin.json.files が必須でなくなるため、manifest validation、contribution path validation、installer copy logic の既存 test を更新する。",
+    "must: help output は static Workflow section 依存から enabled plugin command metadata 依存へ変わる。",
+    "must: flow prepare と flow command lifecycle は plugin hook discovery/snapshot/run の影響を受ける。",
+    "must: loadConfig() は plugin config defaults/schema を top-level ではなく plugin.config.<pluginId> 配下に merge/validate する。",
+    "should: workflow.publish のような workflow-specific agent profile key は将来 removal target として扱い、core は generic agent execution API のみを plugin に渡す。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "Issue #373 の goal は「workflow/preset の外部 repo 移行そのもの」ではなく、「その前提となる shared plugin foundation を must で core に実装する」として進めてよいですか。",
+      "answer": "はい。Issue #373 は must として shared plugin foundation を実装する scope で進める。workflow/preset 実装の外部 repo 移行そのものは out of scope にする。",
+      "evidence": "Issue #373: Improvement Direction says this is 1/3 and does not include migrating workflow or preset implementations themselves.",
+      "why": "ユーザーは Issue #373 を指定し、prelude の Goal/Scope 確認で 1 を選択済み。Issue 本文も foundation first を明示している。",
+      "considered": "workflow/preset 移行まで同時に含める案は、Issue の 1/3 boundary と out-of-scope 記述に反するため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "plugin config の旧 field である plugin.repos と packages[].repo は、alpha policy に従って must で新 field plugin.sources と packages[].source へ置換し、長期互換 shim は作らない方針でよいですか。",
+      "answer": "はい。must として plugin.sources[] と packages[].source へ置換し、旧 plugin.repos / packages[].repo の長期互換 shim は作らない。migration plan として、spec では upgrade/config validation/help guidance による置換手順を定義し、旧 field が残る場合は actionable error で新 field への変換を促す。",
+      "evidence": "AGENTS.md alpha policy says not to write backward compatibility code. Issue #373 says use sources/source and do not use plugin.repos/packages[].repo.",
+      "why": "alpha 版方針と Issue の naming policy が一致しているため、旧 field を読み続ける判断は不要。ただし user-facing config rename なので、must として migration plan は spec に残す。",
+      "considered": "短期 alias を残す案は backward-compatible-cli-interface の負荷を増やし、Issue の source/package separation を曖昧にするため採用しない。無案で破壊的変更だけ行う案は migration plan 不足になるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "preset 固有名の core 依存排除は must として contract/test から個別 official preset 名を消す範囲まで含め、official preset 実体の外部 repo 移行は out of scope に留める理解でよいですか。",
+      "answer": "はい。must として core runtime/source/tests の actual official preset 名依存を消す。official preset 実体の外部 repo 移行はこの spec の out of scope にする。",
+      "evidence": "Issue #373: preset-specific core dependency policy says core runtime/source/tests must not depend on actual official preset names, while the issue scope says this does not migrate preset implementations themselves.",
+      "why": "foundation contract を汎用 fixture 名で検証できる状態にすることが、後続の preset migration の前提になる。",
+      "considered": "src/official-plugins/senti-presets の完全削除まで含める案は、preset implementation migration に踏み込む可能性が高いため spec では境界を明示する。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "plugin hook/command module は must で register(api) factory 形式に統一し、core internal path import を禁止する一方、plugin 内部 module への relative import は許可する方針でよいですか。",
+      "answer": "はい。must として hook/command は default export register(api) factory 形式に統一し、core internal path import を禁止する。plugin 内部 module への relative import は許可する。",
+      "evidence": "Issue #373: Hook file format and Plugin command runtime API policy define register(api), prohibit core internal imports, and allow relative imports to internal plugin modules.",
+      "why": "npm link/global install/copied plugin root の resolution 差を避け、core internal API への密結合を防ぐため。",
+      "considered": "既存の export async function main(argv, ctx) 形式を維持する案は、Issue が禁止する raw core ctx exposure を残すため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "flow hook snapshot がない既存 active flow は must で hook なしのまま続行し、live discovery fallback や再 prepare 要求を出さない方針でよいですか。",
+      "answer": "はい。must として既存 active flow は snapshot がなければ hook なしで続行し、live discovery fallback、warning、migration、再 prepare 要求は出さない。",
+      "evidence": "Issue #373: Existing active flows says flows without hook snapshots continue silently without hooks and do not use live discovery fallback.",
+      "why": "active flow の途中で enabled plugin 状態を再 discovery すると、同じ flow の再現性が壊れるため。",
+      "considered": "既存 active flow に live discovery fallback を適用する案は、snapshot を source of truth にする方針と衝突するため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q6",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "hook discovery/import/register/metadata validation failure は must で hard fail、hook run failure/ok:false/warnings は must で main flow non-blocking warning と issue-log candidate にする方針でよいですか。",
+      "answer": "はい。must として discovery/import/register/class/static metadata validation failure は hard fail にする。hook run failure、ok:false、warnings は main flow を止めず warning と issue-log candidate として扱う。",
+      "evidence": "Issue #373: Hook return/failure policy separates hard failures for discovery/import/register/class/static metadata validation from non-blocking hook run failures.",
+      "why": "無効な hook plan は snapshot の信頼性を壊す一方、hook run の業務処理失敗で main flow を止めないという priority policy が明示されている。",
+      "considered": "すべての hook failure を non-blocking にする案は invalid snapshot を許すため採用しない。すべて hard fail にする案は Issue の non-blocking policy に反する。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q7",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "plugin command help は must で core command と同じ help rendering pipeline に統合し、help 表示のために plugin command module を import しない方針でよいですか。",
+      "answer": "はい。must として plugin command help metadata を static contribution から読み、core command と同じ help rendering pipeline に統合する。help 表示のために plugin command module は import しない。",
+      "evidence": "Issue #373: Plugin command help and help metadata policy state to resolve help from static metadata and not import command modules for help display.",
+      "why": "help 表示で trusted plugin code を実行しない境界を保ちつつ、workflow を static LAYOUT から外すため。",
+      "considered": "plugin 専用の薄い help 経路を作る案は、Issue の same help rendering pipeline 方針に反するため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q8",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "acceptance criteria は must として hook discovery/snapshot/run、plugin command factory/help、config namespace/default merge、known-path install、sources/packages separation の contract tests を含める方針でよいですか。",
+      "answer": "はい。must として hook discovery/snapshot/run、plugin command factory/help、config namespace/default merge、known-path install、sources/packages separation の contract tests を含める。",
+      "evidence": "Issue #373 lists these foundation contracts explicitly, and draft guardrails require verifiable requirements and impact on existing features.",
+      "why": "この spec は runtime contract を固める concern なので、実装完了判定は plugin-specific behavior ではなく contract tests で担保する必要がある。",
+      "considered": "unit test を最小限にして後続 migration で検証する案は、foundation の regression surface が広く後続 task を不安定にするため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [
+    "must: draft QA で q1-q8 を確認し、spec では未確認の user decision を残さない。",
+    "must: spec 作成時に plugin config rename の migration plan を requirements または constraints に含める。",
+    "should: workflow command unavailable の現状は issue-log に記録済みであり、本 spec の plugin foundation 実装で非致命 skipped envelope 化の要否を検討する。"
+  ],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-11T00:22:08Z",
+    "notes": "All draft QA entries were resolved from Issue #373, project rules, existing source context, and the user's prelude confirmation."
+  }
+}

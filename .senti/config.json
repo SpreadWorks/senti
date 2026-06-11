@@ -7,8 +7,7 @@
     "languages": {
       "source": "ja",
       "publish": "en"
-    },
-    "flowIntegration": "enable"
+    }
   },
   "lang": "ja",
   "type": [
@@ -298,26 +297,33 @@
     }
   },
   "plugin": {
-    "repos": [
-      {
-        "id": "official-presets",
-        "source": "/home/nakano/workspace/senti-presets"
-      },
-      {
-        "id": "official-workflow",
-        "source": "/home/nakano/workspace/senti-workflow-plugin"
-      }
-    ],
     "packages": [
       {
         "id": "official-presets",
-        "repo": "official-presets",
-        "commit": "31bdd70fecfcde33c32bd75909218b744561c24e"
+        "commit": "31bdd70fecfcde33c32bd75909218b744561c24e",
+        "source": "official-presets"
       },
       {
         "id": "workflow",
-        "repo": "official-workflow",
-        "commit": "35c0aa0dc5b6239e35e9739c9d8de1a7452c59f9"
+        "commit": "35c0aa0dc5b6239e35e9739c9d8de1a7452c59f9",
+        "source": "official-workflow"
+      }
+    ],
+    "config": {
+      "workflow": {
+        "flowIntegration": "enable"
+      }
+    },
+    "sources": [
+      {
+        "id": "official-presets",
+        "type": "local",
+        "path": "/home/nakano/workspace/senti-presets"
+      },
+      {
+        "id": "official-workflow",
+        "type": "local",
+        "path": "/home/nakano/workspace/senti-workflow-plugin"
       }
     ]
   }

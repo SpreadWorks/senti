@@ -1,19 +1,29 @@
 {
   "type": "object",
   "properties": {
-    "workflow": {
+    "plugin": {
       "type": "object",
       "properties": {
-        "languages": {
+        "config": {
           "type": "object",
           "properties": {
-            "source": { "type": "string" },
-            "publish": { "type": "string" }
+            "workflow": {
+              "type": "object",
+              "properties": {
+                "languages": {
+                  "type": "object",
+                  "properties": {
+                    "source": { "type": "string" },
+                    "publish": { "type": "string" }
+                  }
+                },
+                "flowIntegration": {
+                  "type": "string",
+                  "enum": ["enable", "disable"]
+                }
+              }
+            }
           }
-        },
-        "flowIntegration": {
-          "type": "string",
-          "enum": ["enable", "disable"]
         }
       }
     }

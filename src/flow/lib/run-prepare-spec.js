@@ -18,6 +18,7 @@ import { emptySpecStub } from "../../lib/spec-json.js";
 import { onHook } from "../../lib/hooks.js";
 import { FlowCommand } from "./base-command.js";
 import { writeIssueMd } from "./issue-body-cache.js";
+import { discoverFlowCommandHooks } from "../../lib/plugin-registry.js";
 
 function runGitTrim(root, args) {
   const res = runGit(["-C", root, ...args]);
@@ -136,6 +137,35 @@ function runDocsScanAndValidate(root) {
   }
 }
 
+async function hookSnapshotFor(root) {
+  return discoverFlowCommandHooks(root);
+}
+
+export async function runPrepareWithPluginHooks({ root, title, request, noBranch = true }) {
+  const specDirName = "001-plugin-hook-snapshot-fixture";
+  const specDir = path.join(root, "specs", specDirName);
+  fs.mkdirSync(specDir, { recursive: true });
+  const flowPath = path.join(specDir, "flow.json");
+  const plans = await hookSnapshotFor(root);
+  let featureBranch = null;
+  if (!noBranch) featureBranch = `feature/${specDirName}`;
+  const state = {
+    spec: `specs/${specDirName}/spec.json`,
+    baseBranch: "main",
+    featureBranch,
+    runId: `fixture-${Date.now()}`,
+    steps: [],
+    requirements: [],
+    tasks: [],
+    currentTaskId: null,
+    request,
+    title,
+    plugins: { flowCommandHooks: plans },
+  };
+  fs.writeFileSync(flowPath, JSON.stringify(state, null, 2) + "\n", "utf8");
+  return { flowPath: path.relative(root, flowPath).split(path.sep).join("/") };
+}
+
 export class RunPrepareSpecCommand extends FlowCommand {
   constructor() {
     super({ requiresFlow: false });
@@ -235,7 +265,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
 
     // Helper: write flow.json state
     const flowRunId = runIdArg || flowManager.generateRunId();
-    function writeFlowState(extra) {
+    async function writeFlowState(extra) {
       // At prepare time a fresh flow has no tasks. Integration steps
       // initialize as `skipped` (spec 198 REQ-P4-1); tasks added later
       // during the flow do not retroactively un-skip them — the skip
@@ -270,6 +300,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
         ...(preparingState?.notes?.length ? { notes: preparingState.notes } : {}),
         ...extra,
       };
+      state.plugins = { flowCommandHooks: await hookSnapshotFor(specRoot) };
       flowManager.forRoot(specRoot).save(state);
     }
 
@@ -301,7 +332,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
       runGitTrim(root, ["worktree", "add", worktreePath, "-b", branchName, resolvedBase]);
       await onHook("PostWorktree", { CWD: worktreePath });
       writeSpecFiles();
-      writeFlowState({ worktree: true });
+      await writeFlowState({ worktree: true });
       runDocsScanAndValidate(specRoot);
       flowManager.addActiveFlow(specDirName, "worktree");
       lines.push(
@@ -315,7 +346,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
       );
     } else if (skipBranch) {
       writeSpecFiles();
-      writeFlowState();
+      await writeFlowState();
       runDocsScanAndValidate(specRoot);
       flowManager.addActiveFlow(specDirName, "local");
       lines.push(
@@ -327,7 +358,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
     } else {
       runGitTrim(root, ["checkout", "-b", branchName, resolvedBase]);
       writeSpecFiles();
-      writeFlowState();
+      await writeFlowState();
       runDocsScanAndValidate(specRoot);
       flowManager.addActiveFlow(specDirName, "branch");
       lines.push(
