@@ -33,6 +33,7 @@ import {
 } from "./lib/skills.js";
 import { deployPresetCopies } from "./lib/preset-deploy.js";
 import { writeUpgradeResultArtifact } from "./flow/lib/test-artifacts.js";
+import { normalizeSentiGitignore } from "./lib/gitignore.js";
 
 class RenameRule {
   constructor(from, to) {
@@ -82,7 +83,7 @@ class RenameMigration {
     this.migrateRenamedPaths(changed, { dryRun });
     for (const file of this.listTextTargets()) {
       const before = fs.readFileSync(file, "utf8");
-      const after = this.renameText(before);
+      const after = this.normalizeTextTarget(file, this.renameText(before));
       if (after !== before) {
         if (!dryRun) fs.writeFileSync(file, after, "utf8");
         changed.push(path.relative(this.root, file));
@@ -101,6 +102,12 @@ class RenameMigration {
     next = next.replace(/\bSDD\b/g, "Spec-Driven Development");
     next = next.replace(/\bsdd\b/g, "senti");
     return next;
+  }
+
+  normalizeTextTarget(file, text) {
+    const rel = path.relative(this.root, file).split(path.sep).join("/");
+    if (rel === ".gitignore") return normalizeSentiGitignore(text, { appendIfMissing: false });
+    return text;
   }
 
   migrateManagedDirectory(changed, { dryRun }) {

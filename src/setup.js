@@ -24,6 +24,7 @@ import { loadSpecDrivenDevelopmentTemplate } from "./lib/agents-md.js";
 import { resolveWorkDir } from "./lib/config.js";
 import { mergeAgentDefaults } from "./lib/agent-defaults.js";
 import { deploySkills } from "./lib/skills.js";
+import { SENTI_GITIGNORE_LINES, hasSentiGitignore, normalizeSentiGitignore } from "./lib/gitignore.js";
 
 // ---------------------------------------------------------------------------
 // readline helpers
@@ -125,12 +126,7 @@ function ensureGitignore(workRoot) {
   const block = [
     ".tmp/",
     "",
-    ".senti/*",
-    "!.senti/config.json",
-    "!.senti/templates/",
-    "!.senti/output/",
-    "!.senti/presets/",
-    ".senti/output/acceptance-report-*.json",
+    ...SENTI_GITIGNORE_LINES,
     "",
     ".agents/*",
     "!.agents/skills*",
@@ -138,11 +134,14 @@ function ensureGitignore(workRoot) {
     "!.claude/skills*",
     ".codex",
   ];
-  const sentinel = ".senti/*";
   if (fs.existsSync(rootGitignore)) {
     const content = fs.readFileSync(rootGitignore, "utf8");
-    if (content.split("\n").some((l) => l.trim() === sentinel)) return;
-    const prefix = content.endsWith("\n") || content === "" ? "" : "\n";
+    const normalized = normalizeSentiGitignore(content, { appendIfMissing: false });
+    if (normalized !== content) {
+      fs.writeFileSync(rootGitignore, normalized, "utf8");
+    }
+    if (hasSentiGitignore(normalized)) return;
+    const prefix = normalized.endsWith("\n") || normalized === "" ? "" : "\n";
     fs.appendFileSync(rootGitignore, `${prefix}${block.join("\n")}\n`);
   } else {
     fs.writeFileSync(rootGitignore, `${block.join("\n")}\n`);
