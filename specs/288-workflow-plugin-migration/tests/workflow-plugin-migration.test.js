@@ -651,8 +651,16 @@ test("R11: external workflow plugin is enabled, discoverable, and smoke-runnable
   assert.ok(workflowPackage, "project config must enable workflow plugin package");
   const source = sources.find((entry) => entry.id === workflowPackage.source);
   assert.ok(source, "workflow plugin package source must exist");
-  assert.equal(path.resolve(root, source.path), pluginRoot, "workflow plugin source must resolve to the recorded external plugin repository");
+  assert.equal(source.type, "git", "workflow plugin source must be installed from a Git URL");
+  assert.equal(source.url, workspaceManifest.sourceUrl, "workflow plugin source URL must match the recorded external plugin repository");
   assert.equal(workflowPackage.commit, workspaceManifest.sourceCommit, "enabled workflow plugin package commit must match recorded external plugin source commit");
+  const checkedOutSource = path.join(root, ".senti", "plugin-sources", source.id);
+  assert.equal(fs.existsSync(path.join(checkedOutSource, "plugin.json")), true, "workflow plugin source URL must be cloned into the plugin source cache");
+  const checkedOutHead = execFileSync("git", ["-C", checkedOutSource, "rev-parse", "HEAD"], {
+    cwd: root,
+    encoding: "utf8",
+  }).trim();
+  assert.equal(checkedOutHead, workflowPackage.commit, "workflow plugin source cache HEAD must match the pinned package commit");
 
   const { loadPluginRegistry, discoverFlowCommandHooks } = await importFresh(path.join(root, "src", "lib", "plugin-registry.js"));
   const registry = loadPluginRegistry(root);
