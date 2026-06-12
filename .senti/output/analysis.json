@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-12T12:05:19.910Z",
+  "analyzedAt": "2026-06-12T16:17:12.222Z",
   "package": {
     "entries": [
       {
@@ -4943,9 +4943,9 @@
       },
       {
         "file": "src/flow/lib/run-finalize-cleanup.js",
-        "hash": "d75a0f48aa2ff3ff91369593940b296f",
-        "lines": 854,
-        "mtime": "2026-06-11T10:01:13.812Z",
+        "hash": "3ca9a630bf8616e0566a7823c32d228a",
+        "lines": 1063,
+        "mtime": "2026-06-12T16:16:56.613Z",
         "className": "run-finalize-cleanup",
         "methods": [
           "RunFinalizeCleanupCommand",
@@ -4956,6 +4956,17 @@
           "listMainRepoDirtyFiles",
           "listOtherDirtyFlowJsonPaths",
           "attachOtherFlowMetadataWarning",
+          "boundedEntries",
+          "boundedText",
+          "parsePorcelainPaths",
+          "statusFailure",
+          "isSubmoduleWorktreeRemoveFailure",
+          "listInitializedSubmodules",
+          "inspectSubmoduleWorktreeCleanliness",
+          "submoduleDirtyEnvelope",
+          "submoduleStatusFailedEnvelope",
+          "submoduleForceRemoveFailedEnvelope",
+          "removeWorktreeForCleanup",
           "readOrphanCommits",
           "appendIssueLog",
           "restoreIssueLog",
@@ -4988,23 +4999,25 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "40e4daa5",
-        "enrich": {
-          "processedAt": "2026-06-12T04:50:12.342Z",
-          "attempts": 4
-        },
-        "summary": "Implements flow finalization cleanup, including teardown, rescue handling, metadata synchronization, and validation after worktree-based execution. It coordinates git operations and audit logging around the cleanup lifecycle.",
-        "detail": "The command inspects dirty state, orphan commits, and recovery scenarios to decide whether it can safely finalize or must surface structured failure envelopes. It supports rescue paths such as cherry-picking or forced continuation, while preserving issue-log snapshots so cleanup can roll back metadata if a step fails. During teardown it synchronizes `flow.json` metadata from the worktree back to the main repository, removes worktrees, deletes feature branches, and validates that no tracked artifacts remain. The implementation also attaches report content and warnings to the command envelope, making operational outcomes explicit for downstream consumers.",
+        "summary": "Implements the `finalize-cleanup` flow command that tears down a completed worktree, synchronizes flow metadata, and handles failure recovery. It combines git cleanup, audit logging, report attachment, and plugin lifecycle hooks into a single finalize step.",
+        "detail": "This module orchestrates cleanup after a flow run by validating arguments, resolving report data, and removing worktrees and feature branches from the main repository. It contains defensive git diagnostics for dirty repositories, orphan commits, and submodule-related removal failures, then converts those cases into structured `Envelope` errors with recovery options. The command also snapshots and restores issue-log state, syncs selected metadata from the worktree back to the main repo, and verifies teardown invariants before completing. Forced cleanup and auto-rescue paths are included for cases where normal teardown or cherry-pick based recovery cannot proceed cleanly. Plugin lifecycle integration wraps the command so pre/post/finally hooks can augment warnings and side effects.",
         "chapter": "cli_commands",
-        "role": "Flow finalize-cleanup command and teardown orchestration",
+        "role": "Flow finalization cleanup and recovery coordinator",
+        "enrich": {
+          "processedAt": "2026-06-12T16:17:40.795Z",
+          "attempts": 1
+        },
         "keywords": [
           "finalize cleanup",
           "worktree teardown",
-          "git rescue",
-          "cherry-pick",
-          "flow.json sync",
+          "git branch removal",
+          "flow command",
+          "recovery options",
+          "submodule cleanup",
           "audit log",
-          "branch cleanup",
-          "failure envelope"
+          "metadata sync",
+          "orphan commits",
+          "plugin lifecycle"
         ]
       },
       {
@@ -6957,9 +6970,9 @@
       },
       {
         "file": "src/flow/lib/test-artifacts.js",
-        "hash": "c629188a3614cf157bf6eee21837bd53",
-        "lines": 1116,
-        "mtime": "2026-06-11T16:46:17.262Z",
+        "hash": "a9d0bf9e83e0b2d1a66428ff0f1e787d",
+        "lines": 1120,
+        "mtime": "2026-06-12T16:16:56.613Z",
         "className": "test-artifacts",
         "methods": [
           "matchUpgradeRequiredSourcePaths",
@@ -7106,23 +7119,25 @@
           "src/upgrade.js"
         ],
         "id": "0b1b96b3",
-        "enrich": {
-          "processedAt": "2026-06-12T04:50:22.320Z",
-          "attempts": 3
-        },
-        "summary": "Manages test-related artifact files and validates their integrity for the flow pipeline. It centralizes paths, bounded I/O, regression evidence checks, placeholder detection, and gate trust enforcement.",
-        "detail": "This module defines the canonical filenames and relative paths for execution logs, reviews, regression outputs, upgrade results, and temporary summaries used under each spec directory. It implements strict validation routines for JSON artifacts, raw log size limits, line-range evidence, scenario-validity summaries, regression metadata, and file maps so downstream steps only consume well-formed data. The code also computes artifact pathspecs, collects existing files with bounded glob expansion, and removes rebuildable outputs when regeneration is needed. A separate trust layer scans artifacts for placeholder content, verifies permission overrides, checks required inputs, and rejects stale or incomplete regression evidence before integration gates accept the results.",
+        "summary": "Defines the test artifact model for flow execution, including artifact paths, bounded reads, validation rules, and trust checks used by gates. It is the central module for persisting and verifying test, regression, upgrade, and scenario-validity outputs.",
+        "detail": "The file establishes a large set of artifact filenames, raw-log locations, size limits, line-count caps, and schema-style validators for multiple result types. It uses strict bounded JSON and text readers to prevent oversized or malformed artifacts from entering the pipeline, then validates semantic constraints such as sorted paths, membership consistency, evidence ranges, and required regression markers. Additional logic detects placeholder or synthetic evidence through sentinels, known hashes, explicit permission files, and required trust-input checks before allowing gate decisions to trust artifacts. The module also collects existing artifacts through controlled globbing, removes rebuildable outputs, and derives integration regression evidence from stored analysis snapshots and git-changed files. Overall it acts as the enforcement layer for durable test evidence and reproducible gate inputs.",
         "chapter": "internal_design",
-        "role": "Test artifact lifecycle manager and trust validator",
+        "role": "Test artifact validation and trust enforcement layer",
+        "enrich": {
+          "processedAt": "2026-06-12T16:17:40.795Z",
+          "attempts": 1
+        },
         "keywords": [
           "test artifacts",
           "artifact validation",
           "regression evidence",
-          "raw log parsing",
+          "upgrade result",
+          "scenario validity",
+          "gate trust",
           "placeholder detection",
-          "integration gate",
-          "spec outputs",
-          "JSON schema checks"
+          "raw log parsing",
+          "bounded JSON",
+          "requirement evidence"
         ]
       },
       {
@@ -9295,8 +9310,25 @@
         ],
         "id": "bfaf1dcd",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-06-12T16:17:40.795Z",
+          "attempts": 2
+        },
+        "summary": "Implements the plugin registry, installation flow, hook discovery, and command lifecycle integration for extensible senti features. It manages plugin sources, manifests, safe file materialization, enabled-state configuration, and runtime hook execution.",
+        "detail": "This module reads and writes plugin-aware project configuration, resolves plugin packages from local paths or git sources, and installs them into the internal `.senti/plugins` area with allowlisted file copying and package validation. It enforces safety constraints on plugin IDs, relative paths, import boundaries, source counts, file counts, and JSON sizes so third-party extensions cannot reach core internals arbitrarily. At runtime it loads plugin manifests, commands, presets, and hook classes, builds artifact helpers and execution context objects, and dispatches plugin commands or flow-command hooks through structured lifecycle APIs. Snapshot-based hook loading guards against changed or missing plugin modules across flow stages, while helper functions support official package bootstrapping and synchronized plugin updates. The module is effectively the backbone of the plugin system and its controlled extension surface.",
+        "chapter": "internal_design",
+        "role": "Plugin package registry and lifecycle runtime",
+        "keywords": [
+          "plugin registry",
+          "plugin installation",
+          "hook discovery",
+          "flow hooks",
+          "manifest loading",
+          "package validation",
+          "git source sync",
+          "preset contributions",
+          "plugin command dispatch",
+          "artifact helpers"
+        ]
       },
       {
         "file": "src/lib/preparing-flow-store.js",
@@ -9439,7 +9471,7 @@
         ],
         "id": "ae76d513",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9675,7 +9707,7 @@
         ],
         "id": "8bb94bbb",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -10158,7 +10190,7 @@
         "usedBy": null,
         "id": "59edeaf2",
         "enrich": {
-          "attempts": 9
+          "attempts": 10
         }
       },
       {
@@ -10193,7 +10225,7 @@
         "usedBy": null,
         "id": "ae80e38f",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -10219,7 +10251,7 @@
         "usedBy": null,
         "id": "85926390",
         "enrich": {
-          "attempts": 9
+          "attempts": 10
         }
       },
       {
@@ -10517,7 +10549,7 @@
         "usedBy": null,
         "id": "9820c9db",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10610,11 +10642,12 @@
       },
       {
         "file": "src/upgrade.js",
-        "hash": "e3ee63a4145a2e2b3f95defbe3ca6f56",
-        "lines": 727,
-        "mtime": "2026-06-12T04:49:16.896Z",
+        "hash": "d81ee3bdd2bb926e5c7e2e78129a5c49",
+        "lines": 728,
+        "mtime": "2026-06-12T14:57:02.872Z",
         "className": "upgrade",
         "methods": [
+          "RenameMigration",
           "parseUpgradeArgs",
           "migratePluginConfigNamespaces",
           "resolveActiveUpgradeFlow",
@@ -10652,6 +10685,7 @@
           "./lib/gitignore.js"
         ],
         "exports": [
+          "RenameMigration",
           "parseUpgradeArgs",
           "migratePluginConfigNamespaces",
           "main"
@@ -10660,15 +10694,15 @@
         "usedBy": null,
         "id": "a631f658",
         "enrich": {
-          "attempts": 2
+          "attempts": 1
         }
       }
     ],
     "summary": {
       "total": 209,
-      "totalMethods": 1658
+      "totalMethods": 1670
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-12T12:06:31.769Z"
+  "enrichedAt": "2026-06-12T16:18:45.581Z"
 }
