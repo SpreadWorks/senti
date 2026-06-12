@@ -641,18 +641,27 @@ test("R10: core tests use generic plugin fixtures instead of workflow feature ex
   assert.deepEqual(offenders.map(rel), [], "core tests and fixtures must not keep workflow feature-specific expectations");
 });
 
-test("R11: external workflow plugin is enabled, discoverable, and smoke-runnable", async () => {
+test("R11: external workflow plugin is enabled through local overlay, discoverable, and smoke-runnable", async (t) => {
   const pluginRoot = pluginWorkspace();
   const workspaceManifest = readJson(pluginWorkspaceManifest);
-  const config = readJson(path.join(root, ".senti", "config.json"));
+  const publicConfig = readJson(path.join(root, ".senti", "config.json"));
+  assert.equal((publicConfig.plugin?.packages || []).some((pkg) => pkg.id === "workflow"), false, "public project config must not expose the private workflow plugin package");
+  assert.equal((publicConfig.plugin?.sources || []).some((entry) => entry.id === "senti-workflow-plugin"), false, "public project config must not expose the private workflow plugin source");
+
+  const { readProjectConfig, loadPluginRegistry, discoverFlowCommandHooks } = await importFresh(path.join(root, "src", "lib", "plugin-registry.js"));
+  const config = readProjectConfig(root);
   const packages = config.plugin?.packages || [];
   const sources = config.plugin?.sources || [];
   const workflowPackage = packages.find((pkg) => pkg.id === "workflow" && pkg.enabled !== false);
+  if (!workflowPackage) {
+    t.skip("workflow plugin local overlay is not configured in this workspace");
+    return;
+  }
   assert.ok(workflowPackage, "project config must enable workflow plugin package");
   const source = sources.find((entry) => entry.id === workflowPackage.source);
   assert.ok(source, "workflow plugin package source must exist");
   assert.equal(source.type, "git", "workflow plugin source must be installed from a Git URL");
-  assert.equal(source.url, workspaceManifest.sourceUrl, "workflow plugin source URL must match the recorded external plugin repository");
+  assert.equal(typeof source.url, "string", "workflow plugin source URL must be provided by local overlay");
   assert.equal(workflowPackage.commit, workspaceManifest.sourceCommit, "enabled workflow plugin package commit must match recorded external plugin source commit");
   const checkedOutSource = path.join(root, ".senti", "plugin-sources", source.id);
   assert.equal(fs.existsSync(path.join(checkedOutSource, "plugin.json")), true, "workflow plugin source URL must be cloned into the plugin source cache");
@@ -662,7 +671,6 @@ test("R11: external workflow plugin is enabled, discoverable, and smoke-runnable
   }).trim();
   assert.equal(checkedOutHead, workflowPackage.commit, "workflow plugin source cache HEAD must match the pinned package commit");
 
-  const { loadPluginRegistry, discoverFlowCommandHooks } = await importFresh(path.join(root, "src", "lib", "plugin-registry.js"));
   const registry = loadPluginRegistry(root);
   const workflowCommandEntry = registry.resolveCommand("workflow");
   assert.ok(workflowCommandEntry, "plugin registry must discover the workflow command");

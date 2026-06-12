@@ -1,7 +1,7 @@
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { join } from "path";
-import { loadJsonFile, loadPackageField, loadConfig, resolveWorkDir } from "../../../src/lib/config.js";
+import { loadJsonFile, loadPackageField, loadConfig, loadRawConfig, resolveWorkDir } from "../../../src/lib/config.js";
 import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../../helpers/tmp-dir.js";
 
 describe("loadJsonFile", () => {
@@ -89,6 +89,43 @@ describe("loadConfig", () => {
   it("throws when config is missing", () => {
     tmp = createTmpDir();
     assert.throws(() => loadConfig(tmp), /Missing file/);
+  });
+
+  it("merges ignored local config overlay into plugin sources and packages by id", () => {
+    tmp = createTmpDir();
+    writeJson(tmp, ".senti/config.json", {
+      lang: "ja",
+      type: "cli",
+      docs: { languages: ["ja"], defaultLanguage: "ja" },
+      plugin: {
+        sources: [{ id: "public", type: "local", path: "./plugins/public" }],
+        packages: [{ id: "public-plugin", source: "public", commit: "a".repeat(40) }],
+        config: { public: { enabled: true } },
+      },
+    });
+    writeJson(tmp, ".senti/config.local.json", {
+      plugin: {
+        sources: [
+          { id: "private", type: "git", url: "git@example.invalid:private/plugin.git" },
+          { id: "public", type: "local", path: "./local-public" },
+        ],
+        packages: [{ id: "private-plugin", source: "private", commit: "b".repeat(40) }],
+        config: { private: { enabled: true } },
+      },
+    });
+
+    const raw = loadRawConfig(tmp);
+    assert.deepEqual(raw.plugin.sources, [
+      { id: "public", type: "local", path: "./local-public" },
+      { id: "private", type: "git", url: "git@example.invalid:private/plugin.git" },
+    ]);
+    assert.deepEqual(raw.plugin.packages, [
+      { id: "public-plugin", source: "public", commit: "a".repeat(40) },
+      { id: "private-plugin", source: "private", commit: "b".repeat(40) },
+    ]);
+    assert.equal(raw.plugin.config.public.enabled, true);
+    assert.equal(raw.plugin.config.private.enabled, true);
+    assert.equal(loadConfig(tmp).plugin.packages.length, 2);
   });
 });
 

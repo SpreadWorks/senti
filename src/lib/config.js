@@ -73,6 +73,10 @@ export function sentiConfigPath(root) {
   return path.join(root, SENTI_DIR_NAME, "config.json");
 }
 
+export function sentiLocalConfigPath(root) {
+  return path.join(root, SENTI_DIR_NAME, "config.local.json");
+}
+
 export function sentiOutputDir(root) {
   return path.join(root, SENTI_DIR_NAME, "output");
 }
@@ -106,7 +110,7 @@ export function resolveWorkDir(root, cfg, opts = {}) {
  */
 export function loadLang(root) {
   try {
-    const raw = JSON.parse(fs.readFileSync(sentiConfigPath(root), "utf8"));
+    const raw = loadRawConfig(root);
     return raw.lang || DEFAULT_LANG;
   } catch (_) {
     return DEFAULT_LANG;
@@ -451,10 +455,52 @@ function validateProjectTestPath(entry, index, errors) {
  * @returns {import("./types.js").SentiConfig}
  */
 export function loadConfig(root, options = {}) {
-  const raw = loadJsonFile(sentiConfigPath(root));
+  const raw = loadRawConfig(root);
   const pluginConfig = loadEnabledPluginConfig(root, raw);
   const merged = mergeDefaults(raw, pluginConfig.defaults);
   return validate(merged, { ...options, schema: mergeConfigSchemas(CONFIG_SCHEMA, pluginConfig.schemas) });
+}
+
+export function loadRawConfig(root) {
+  const raw = loadJsonFile(sentiConfigPath(root));
+  const localPath = sentiLocalConfigPath(root);
+  if (!fs.existsSync(localPath)) return raw;
+  const local = loadJsonFile(localPath);
+  if (!local || typeof local !== "object" || Array.isArray(local)) {
+    throw new Error("config.local.json must be a non-null object");
+  }
+  return mergeConfigOverlay(raw, local);
+}
+
+function mergeConfigOverlay(base, overlay, segments = []) {
+  if (Array.isArray(overlay)) {
+    if (segments.join(".") === "plugin.sources" || segments.join(".") === "plugin.packages") {
+      return mergeEntriesById(base, overlay);
+    }
+    return structuredClone(overlay);
+  }
+  if (!overlay || typeof overlay !== "object") return overlay;
+  const out = base && typeof base === "object" && !Array.isArray(base) ? structuredClone(base) : {};
+  for (const [key, value] of Object.entries(overlay)) {
+    out[key] = mergeConfigOverlay(out[key], value, [...segments, key]);
+  }
+  return out;
+}
+
+function mergeEntriesById(base, overlay) {
+  const out = Array.isArray(base) ? structuredClone(base) : [];
+  const indexById = new Map(out.map((entry, index) => [entry?.id, index]).filter(([id]) => typeof id === "string"));
+  for (const entry of overlay) {
+    const next = structuredClone(entry);
+    const index = indexById.get(next?.id);
+    if (index == null) {
+      indexById.set(next?.id, out.length);
+      out.push(next);
+    } else {
+      out[index] = mergeConfigOverlay(out[index], next);
+    }
+  }
+  return out;
 }
 
 function loadEnabledPluginConfig(root, raw) {

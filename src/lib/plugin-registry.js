@@ -3,7 +3,7 @@ import path from "path";
 import crypto from "crypto";
 import { fileURLToPath, pathToFileURL } from "url";
 import { repoRoot } from "./cli.js";
-import { sentiConfigPath, sentiDir } from "./config.js";
+import { loadRawConfig, sentiConfigPath, sentiDir } from "./config.js";
 import { Envelope } from "./flow-envelope.js";
 import { runCmd, assertOk } from "./process.js";
 
@@ -47,6 +47,12 @@ function ensurePluginConfig(config) {
 }
 
 export function readProjectConfig(root = repoRoot()) {
+  const config = loadRawConfig(root);
+  ensurePluginConfig(config);
+  return config;
+}
+
+function readStoredProjectConfig(root = repoRoot()) {
   const config = readJson(sentiConfigPath(root));
   ensurePluginConfig(config);
   return config;
@@ -549,16 +555,19 @@ function installFromSource(root, source, sourceRoot, commit, { updateExisting = 
   copyAllowlistedFiles(packageRoot, dest, existingKnownPluginPaths(packageRoot));
   if (materialized) fs.rmSync(materialized.tmp, { recursive: true, force: true });
   const installedManifest = PluginManifest.fromRoot(dest, manifest.name);
-  const config = readProjectConfig(root);
+  const config = readStoredProjectConfig(root);
   const plugin = ensurePluginConfig(config);
+  const publicSources = new Set(plugin.sources.map((entry) => entry.id));
   const existing = plugin.packages.find((pkg) => pkg.id === manifest.name);
   const entry = { id: manifest.name, source: source.id, commit };
   if (source.ref) entry.ref = source.ref;
   if (existing) {
     if (!updateExisting && existing.enabled === false) entry.enabled = false;
     Object.assign(existing, entry);
-  } else {
+  } else if (publicSources.has(source.id)) {
     plugin.packages.push(entry);
+  } else {
+    return installedManifest;
   }
   writeProjectConfig(root, config);
   return installedManifest;
@@ -610,9 +619,15 @@ export function listInstalledPlugins(root) {
 }
 
 export function setPluginEnabled(root, id, enabled) {
-  const config = readProjectConfig(root);
+  const config = readStoredProjectConfig(root);
   const entry = config.plugin.packages.find((pkg) => pkg.id === id);
-  if (!entry) throw new Error(`plugin not installed: ${id}`);
+  if (!entry) {
+    const merged = readProjectConfig(root);
+    if (merged.plugin.packages.find((pkg) => pkg.id === id)) {
+      throw new Error(`plugin package ${id} is provided by .senti/config.local.json; edit the local overlay to enable or disable it`);
+    }
+    throw new Error(`plugin not installed: ${id}`);
+  }
   if (enabled) delete entry.enabled;
   else entry.enabled = false;
   writeProjectConfig(root, config);
