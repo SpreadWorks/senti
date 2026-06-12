@@ -267,8 +267,8 @@ describe("data DataSources have corresponding scan DataSources for analysis keys
         allScanCategoryNames.add(name);
       }
     }
-    // Sanity: we should have found some scan DataSources
-    assert.ok(allScanCategoryNames.size > 1, "should discover scan DataSource categories");
+    // Sanity: builtin base should still provide at least the package category.
+    assert.ok(allScanCategoryNames.has("package"), "should discover builtin package scan DataSource category");
   });
 
   // Phase 2: for each preset's data/ directory, check that every analysis key

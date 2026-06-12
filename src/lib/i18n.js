@@ -20,7 +20,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { DEFAULT_LANG, sentiDir, loadConfig } from "./config.js";
 import { repoRoot } from "./cli.js";
-import { PRESETS_DIR } from "./presets.js";
+import { resolvePresetEntriesForSearch } from "./presets.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const DEFAULT_LOCALE_DIR = path.resolve(__dirname, "..", "locale");
@@ -99,6 +99,14 @@ function loadMergedMessages(lang, domain, localeDirs) {
   return merged;
 }
 
+function loadPriorityMessages(lang, domain, localeDirs) {
+  let merged = {};
+  for (let i = localeDirs.length - 1; i >= 0; i--) {
+    merged = deepMerge(merged, loadMessagesFromDir(lang, domain, localeDirs[i]));
+  }
+  return merged;
+}
+
 // ---------------------------------------------------------------------------
 // Low-level factory (for contexts without config)
 // ---------------------------------------------------------------------------
@@ -120,17 +128,22 @@ export function createI18n(lang, options = {}) {
   const fallbackLang = options.fallbackLang || DEFAULT_LANG;
 
   let localeDirs;
+  let projectAware = false;
   if (options.localeDirs) {
     localeDirs = options.localeDirs;
   } else if (options.localeDir) {
     localeDirs = [options.localeDir];
+  } else if (options.projectRoot && options.presetTypes) {
+    localeDirs = buildLocaleDirs(options.projectRoot, options.presetTypes);
+    projectAware = true;
   } else {
     localeDirs = [DEFAULT_LOCALE_DIR];
   }
 
-  const messages = loadMergedMessages(lang, domain, localeDirs);
+  const loadMessages = projectAware ? loadPriorityMessages : loadMergedMessages;
+  const messages = loadMessages(lang, domain, localeDirs);
   const fallbackMessages = lang !== fallbackLang
-    ? loadMergedMessages(fallbackLang, domain, localeDirs)
+    ? loadMessages(fallbackLang, domain, localeDirs)
     : {};
 
   function t(key, params) {
@@ -160,28 +173,10 @@ export function createI18n(lang, options = {}) {
 // ---------------------------------------------------------------------------
 
 /**
- * Extract preset key from config type.
- * "cli/node-cli" → "node-cli", "base" → "base"
- */
-function extractPresetKey(type) {
-  const t = Array.isArray(type) ? type[0] : type;
-  if (!t) return null;
-  const idx = t.lastIndexOf("/");
-  return idx >= 0 ? t.slice(idx + 1) : t;
-}
-
-/**
  * Build locale directory list for the 3-layer merge.
  */
-function buildLocaleDirs(root, presetKey) {
-  const dirs = [DEFAULT_LOCALE_DIR];
-
-  if (presetKey) {
-    const presetLocale = path.join(PRESETS_DIR, presetKey, "locale");
-    if (fs.existsSync(presetLocale)) {
-      dirs.push(presetLocale);
-    }
-  }
+function buildLocaleDirs(root, presetTypes) {
+  const dirs = [];
 
   if (root) {
     const projectLocale = path.join(sentiDir(root), "locale");
@@ -189,6 +184,21 @@ function buildLocaleDirs(root, presetKey) {
       dirs.push(projectLocale);
     }
   }
+
+  if (presetTypes) {
+    const presets = resolvePresetEntriesForSearch(presetTypes, root, {
+      typeOrder: "config",
+      chainOrder: "leaf-to-root",
+    });
+    for (const preset of presets) {
+      const presetLocale = path.join(preset.dir, "locale");
+      if (fs.existsSync(presetLocale)) {
+        dirs.push(presetLocale);
+      }
+    }
+  }
+
+  dirs.push(DEFAULT_LOCALE_DIR);
 
   return dirs;
 }
@@ -219,26 +229,34 @@ function parseNamespacedKey(nsKey) {
  */
 export function translate() {
   const root = repoRoot();
-  let lang, presetKey;
+  let lang, presetTypes;
   try {
     const config = loadConfig(root);
     lang = config.lang || DEFAULT_LANG;
-    presetKey = extractPresetKey(config.type);
+    presetTypes = config.type;
   } catch (_) {
     lang = DEFAULT_LANG;
-    presetKey = null;
+    presetTypes = null;
   }
 
-  const localeDirs = buildLocaleDirs(root, presetKey);
+  let localeDirs;
+  let loadMessages;
+  try {
+    localeDirs = buildLocaleDirs(root, presetTypes);
+    loadMessages = presetTypes ? loadPriorityMessages : loadMergedMessages;
+  } catch (_) {
+    localeDirs = [DEFAULT_LOCALE_DIR];
+    loadMessages = loadMergedMessages;
+  }
   const fallbackLang = DEFAULT_LANG;
 
   // Load all domains
   const domainMessages = {};
   const domainFallback = {};
   for (const domain of DOMAINS) {
-    domainMessages[domain] = loadMergedMessages(lang, domain, localeDirs);
+    domainMessages[domain] = loadMessages(lang, domain, localeDirs);
     if (lang !== fallbackLang) {
-      domainFallback[domain] = loadMergedMessages(fallbackLang, domain, localeDirs);
+      domainFallback[domain] = loadMessages(fallbackLang, domain, localeDirs);
     } else {
       domainFallback[domain] = {};
     }

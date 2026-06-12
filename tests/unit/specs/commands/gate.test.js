@@ -11,7 +11,7 @@ function initGateProject(tmp) {
   execFileSync("git", ["-C", tmp, "commit", "--allow-empty", "-m", "init"], { stdio: "ignore" });
   setupFlow(tmp);
   writeJson(tmp, ".senti/config.json", {
-    lang: "en", type: "node-cli",
+    lang: "en", type: "sample-node-command",
     docs: { languages: ["en"], defaultLanguage: "en" },
   });
 }

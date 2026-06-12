@@ -20,6 +20,7 @@ const KNOWN_PLUGIN_PACKAGE_PATHS = Object.freeze([
   "config.defaults.json",
 ]);
 const MAX_ENABLED_PLUGIN_PACKAGES = 100;
+const MAX_PLUGIN_SOURCES = 100;
 const MAX_PLUGIN_HOOK_FILES = 200;
 const MAX_PLUGIN_COPY_FILES = 2000;
 const MAX_PLUGIN_PATH_DEPTH = 20;
@@ -67,7 +68,7 @@ export function maskPluginSource(source) {
 }
 
 function sourceLocation(source) {
-  return source.path || source.url || source.source;
+  return source.path || source.url || source.remote || source.source;
 }
 
 function normalizeRel(rel, label = "path") {
@@ -118,8 +119,8 @@ function resolveImportPath(specifier, moduleDir) {
   return null;
 }
 
-function assertNoCoreInternalImports(root, pluginId, pluginRoot, rel) {
-  const modulePath = path.join(pluginRoot, normalizeRel(rel, "hook module"));
+function assertNoCoreInternalImports(root, pluginId, pluginRoot, rel, label = "plugin hook") {
+  const modulePath = path.join(pluginRoot, normalizeRel(rel, label));
   const source = fs.readFileSync(modulePath, "utf8");
   const moduleDir = path.dirname(modulePath);
   const coreRoots = [
@@ -131,7 +132,7 @@ function assertNoCoreInternalImports(root, pluginId, pluginRoot, rel) {
     if (!resolved) continue;
     const absolute = path.resolve(resolved);
     if (coreRoots.some((coreRoot) => isUnderPath(absolute, coreRoot)) && !isUnderPath(absolute, pluginRoot)) {
-      throw new Error(`plugin hook ${pluginId}/${rel} imports core internal path: ${specifier}`);
+      throw new Error(`${label} ${pluginId}/${rel} imports core internal path: ${specifier}`);
     }
   }
 }
@@ -298,7 +299,10 @@ export class PluginRegistry {
     this.commands = new Map();
     for (const manifest of manifests) {
       for (const preset of manifest.presetEntries()) this.presets.set(preset.key, preset);
-      for (const dataSource of manifest.dataSourceEntries()) this.dataSources.set(dataSource.name, dataSource);
+      for (const dataSource of manifest.dataSourceEntries()) {
+        assertNoCoreInternalImports(root, manifest.providerId, manifest.root, dataSource.path, "plugin dataSource");
+        this.dataSources.set(dataSource.name, dataSource);
+      }
       for (const command of manifest.commandEntries()) this.commands.set(command.name, command);
     }
   }
@@ -441,6 +445,7 @@ function syncGitUrlSource(root, source) {
 function resolveSource(root, source) {
   if (source.type === "npm") throw new Error(`unsupported plugin source type: npm (${source.id})`);
   const location = sourceLocation(source);
+  if (!location) throw new Error(`plugin source ${source.id} has no location`);
   return isGitUrl(location) ? syncGitUrlSource(root, source) : localRepoHead(path.resolve(root, location));
 }
 
@@ -882,21 +887,50 @@ export async function runFlowCommandWithPluginLifecycle(root, snapshot, { comman
   };
 }
 
-export function ensureOfficialPackage(root, { id, sourceRoot, ref }) {
-  const config = readProjectConfig(root);
+const DEFAULT_OFFICIAL_PRESET_SOURCE = Object.freeze({
+  id: "official-presets",
+  type: "git",
+  remote: "git@github.com:SpreadWorks/senti-presets.git",
+});
+
+function materializationSource(source, sourceRoot) {
+  if (!sourceRoot || !fs.existsSync(sourceRoot)) return source;
+  const locationKey = isGitUrl(sourceRoot) ? "url" : "path";
+  const next = { ...source, type: isGitUrl(sourceRoot) ? "git" : "local" };
+  delete next.path;
+  delete next.url;
+  delete next.remote;
+  next[locationKey] = sourceRoot;
+  return next;
+}
+
+export function ensureOfficialPackage(root, { id, sourceRoot, ref } = {}) {
+  const config = loadRawConfig(root);
   const plugin = ensurePluginConfig(config);
+  if (plugin.sources.length > MAX_PLUGIN_SOURCES) {
+    throw new Error(`plugin source search exceeds ${MAX_PLUGIN_SOURCES} sources`);
+  }
   let source = plugin.sources.find((entry) => sourceLocation(entry) === sourceRoot || entry.id === id || entry.id === `official-${id}`);
+  let addedSource = false;
   if (!source) {
-    source = { id: `official-${id}`, type: "local", path: sourceRoot };
+    source = id === DEFAULT_OFFICIAL_PRESET_SOURCE.id
+      ? { ...DEFAULT_OFFICIAL_PRESET_SOURCE }
+      : { id: `official-${id}`, type: "local", path: sourceRoot };
     if (ref) source.ref = ref;
     plugin.sources.push(source);
+    addedSource = true;
   }
   writeProjectConfig(root, config);
-  const resolved = resolveSource(root, source);
+  const materializedSource = addedSource ? materializationSource(source, sourceRoot) : source;
+  if (source.type === "git" && materializedSource === source && source.remote === DEFAULT_OFFICIAL_PRESET_SOURCE.remote) {
+    throw new Error(`official preset provider source not found: ${source.remote}`);
+  }
+  const resolved = resolveSource(root, materializedSource);
   const sourceManifest = PluginManifest.fromRoot(resolved.root);
   if (sourceManifest.name !== id) throw new Error(`official package mismatch: expected ${id}, got ${sourceManifest.name}`);
   const existing = plugin.packages.find((pkg) => pkg.id === id);
-  if (!existing || existing.commit !== resolved.commit) {
+  const installedManifest = path.join(installedPluginsDir(root), id, "plugin.json");
+  if (!existing || existing.commit !== resolved.commit || !fs.existsSync(installedManifest)) {
     installFromSource(root, source, resolved.root, resolved.commit, { updateExisting: true, sourceMaterialized: resolved.materialized });
   }
 }

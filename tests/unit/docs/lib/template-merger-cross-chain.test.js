@@ -1,10 +1,51 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import path from "path";
 import {
   resolveChaptersOrder,
   resolveTemplates,
   mergeResolved,
 } from "../../../../src/docs/lib/template-merger.js";
+import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../../helpers/tmp-dir.js";
+
+function withPluginPresets(presets) {
+  const tmpDir = createTmpDir("senti-test-cross-chain-");
+  writeJson(tmpDir, ".senti/config.json", {
+    lang: "en",
+    type: presets.map((preset) => preset.key),
+    docs: { languages: ["en"], defaultLanguage: "en" },
+    scan: { include: ["src/**/*.js"], exclude: [] },
+    plugin: { packages: [{ id: "test-presets" }] },
+  });
+  writeFile(
+    tmpDir,
+    ".senti/plugins/test-presets/plugin.json",
+    JSON.stringify({
+      name: "test-presets",
+      files: ["plugin.json", "presets/"],
+      contributions: {
+        presets: presets.map((preset) => ({
+          key: preset.key,
+          path: `presets/${preset.key}`,
+        })),
+      },
+    }),
+  );
+  for (const preset of presets) {
+    writeJson(tmpDir, `.senti/plugins/test-presets/presets/${preset.key}/preset.json`, {
+      parent: preset.parent ?? "base",
+      chapters: preset.chapters,
+    });
+    for (const chapter of preset.chapters) {
+      writeFile(
+        tmpDir,
+        `.senti/plugins/test-presets/presets/${preset.key}/templates/en/${chapter}`,
+        `# ${path.basename(chapter, ".md")}\n`,
+      );
+    }
+  }
+  return { tmpDir, cleanup: () => removeTmpDir(tmpDir) };
+}
 
 // ---------------------------------------------------------------------------
 // resolveChaptersOrder with multi-preset arrays
@@ -12,31 +53,55 @@ import {
 
 describe("resolveChaptersOrder: multi-preset union merge", () => {
   it("merges chapters from two independent presets", () => {
-    const chapters = resolveChaptersOrder(["nextjs", "rest"]);
-    assert.ok(Array.isArray(chapters));
-    assert.ok(chapters.length > 0, "should produce chapters");
-    // No duplicates
-    const unique = new Set(chapters);
-    assert.equal(unique.size, chapters.length, "should have no duplicates");
+    const { tmpDir, cleanup } = withPluginPresets([
+      { key: "sample-pages", chapters: ["pages_routing.md"] },
+      { key: "sample-api", chapters: ["endpoints.md"] },
+    ]);
+    try {
+      const chapters = resolveChaptersOrder(["sample-pages", "sample-api"], null, tmpDir);
+      assert.ok(Array.isArray(chapters));
+      assert.ok(chapters.length > 0, "should produce chapters");
+      // No duplicates
+      const unique = new Set(chapters);
+      assert.equal(unique.size, chapters.length, "should have no duplicates");
+    } finally {
+      cleanup();
+    }
   });
 
   it("merges chapters from many presets", () => {
-    const chapters = resolveChaptersOrder(["hono", "workers", "drizzle"]);
-    assert.ok(Array.isArray(chapters));
-    const unique = new Set(chapters);
-    assert.equal(unique.size, chapters.length, "should have no duplicates");
+    const { tmpDir, cleanup } = withPluginPresets([
+      { key: "sample-http", chapters: ["middleware.md"] },
+      { key: "sample-worker", chapters: ["bindings.md"] },
+      { key: "sample-db", chapters: ["database.md"] },
+    ]);
+    try {
+      const chapters = resolveChaptersOrder(["sample-http", "sample-worker", "sample-db"], null, tmpDir);
+      assert.ok(Array.isArray(chapters));
+      const unique = new Set(chapters);
+      assert.equal(unique.size, chapters.length, "should have no duplicates");
+    } finally {
+      cleanup();
+    }
   });
 
   it("config chapters override multi-preset chapters", () => {
     const configChapters = ["custom_a.md", "custom_b.md"];
-    const chapters = resolveChaptersOrder(["nextjs", "rest"], configChapters);
+    const chapters = resolveChaptersOrder(["sample-pages", "sample-api"], configChapters);
     assert.deepEqual(chapters, configChapters);
   });
 
   it("single preset still works as string", () => {
-    const chapters = resolveChaptersOrder("rest");
-    assert.ok(Array.isArray(chapters));
-    assert.ok(chapters.length > 0);
+    const { tmpDir, cleanup } = withPluginPresets([
+      { key: "sample-api", chapters: ["endpoints.md"] },
+    ]);
+    try {
+      const chapters = resolveChaptersOrder("sample-api", null, tmpDir);
+      assert.ok(Array.isArray(chapters));
+      assert.ok(chapters.length > 0);
+    } finally {
+      cleanup();
+    }
   });
 });
 
@@ -46,21 +111,37 @@ describe("resolveChaptersOrder: multi-preset union merge", () => {
 
 describe("resolveTemplates: multi-preset", () => {
   it("resolves templates from multiple presets", () => {
-    const chapters = resolveChaptersOrder(["nextjs", "rest"]);
-    const resolutions = resolveTemplates(["nextjs", "rest"], "en", {
-      chaptersOrder: chapters,
-    });
-    assert.ok(resolutions.length > 0);
-    const fileNames = resolutions.map((r) => r.fileName);
-    // Should include chapters from both presets
-    assert.ok(fileNames.includes("pages_routing.md"), "should include nextjs chapter");
-    assert.ok(fileNames.includes("endpoints.md"), "should include rest chapter");
+    const { tmpDir, cleanup } = withPluginPresets([
+      { key: "sample-pages", chapters: ["pages_routing.md"] },
+      { key: "sample-api", chapters: ["endpoints.md"] },
+    ]);
+    try {
+      const chapters = resolveChaptersOrder(["sample-pages", "sample-api"], null, tmpDir);
+      const resolutions = resolveTemplates(["sample-pages", "sample-api"], "en", {
+        chaptersOrder: chapters,
+        projectRoot: tmpDir,
+      });
+      assert.ok(resolutions.length > 0);
+      const fileNames = resolutions.map((r) => r.fileName);
+      // Should include chapters from both presets
+      assert.ok(fileNames.includes("pages_routing.md"), "should include sample-pages chapter");
+      assert.ok(fileNames.includes("endpoints.md"), "should include sample-api chapter");
+    } finally {
+      cleanup();
+    }
   });
 
   it("string type still works", () => {
-    const chapters = resolveChaptersOrder("rest");
-    const resolutions = resolveTemplates("rest", "en", { chaptersOrder: chapters });
-    assert.ok(resolutions.length > 0);
+    const { tmpDir, cleanup } = withPluginPresets([
+      { key: "sample-api", chapters: ["endpoints.md"] },
+    ]);
+    try {
+      const chapters = resolveChaptersOrder("sample-api", null, tmpDir);
+      const resolutions = resolveTemplates("sample-api", "en", { chaptersOrder: chapters, projectRoot: tmpDir });
+      assert.ok(resolutions.length > 0);
+    } finally {
+      cleanup();
+    }
   });
 });
 

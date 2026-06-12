@@ -17,10 +17,10 @@ describe("parseArgs", () => {
   });
 
   it("parses options with values", () => {
-    const result = parseArgs(["--type", "webapp", "--agent", "claude"], {
+    const result = parseArgs(["--type", "sample-preset", "--agent", "claude"], {
       options: ["--type", "--agent"],
     });
-    assert.equal(result.type, "webapp");
+    assert.equal(result.type, "sample-preset");
     assert.equal(result.agent, "claude");
   });
 

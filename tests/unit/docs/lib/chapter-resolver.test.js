@@ -142,7 +142,7 @@ describe("extractDataCategories", () => {
   });
 
   it("handles inline data directives", () => {
-    const template = '<!-- {{data("cli.project.name")}} -->senti<!-- {{/data}} -->';
+    const template = '<!-- {{data("sample-command.project.name")}} -->senti<!-- {{/data}} -->';
     const categories = extractDataCategories(template);
     assert.ok(categories.has("project"));
   });

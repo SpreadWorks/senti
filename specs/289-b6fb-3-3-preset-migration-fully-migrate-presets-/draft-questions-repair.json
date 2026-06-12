@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Applied 3 draft question text repairs. Removed implementation assumptions and rationale from pending question text.",
+  "items": [
+    {
+      "title": "1. q2 includes implementation instruction",
+      "target": "q2",
+      "rationale": "Removed the implementation instruction about how official bootstrap should be maintained.",
+      "evidence": "draft.json qa[1].question now asks only whether the bundled official preset copy should be fully deleted.",
+      "changedFieldPaths": [
+        "qa[1].question"
+      ]
+    },
+    {
+      "title": "2. q3 includes implementation assumptions",
+      "target": "q3",
+      "rationale": "Removed the conditional provider completion treatment from the pending question.",
+      "evidence": "draft.json qa[2].question now asks only whether project-local presets should remain as leaf override functionality.",
+      "changedFieldPaths": [
+        "qa[2].question"
+      ]
+    },
+    {
+      "title": "3. q4 includes rationale/evidence",
+      "target": "q4",
+      "rationale": "Removed the docs/source mtime rationale from the pending question.",
+      "evidence": "draft.json qa[3].question now asks only whether docs regeneration is in scope.",
+      "changedFieldPaths": [
+        "qa[3].question"
+      ]
+    }
+  ]
+}

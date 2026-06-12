@@ -5,7 +5,7 @@ import { validate } from "../../src/lib/config.js";
 function baseConfig() {
   return {
     lang: "en",
-    type: "node-cli",
+    type: "sample-node-command",
     docs: { languages: ["en"], defaultLanguage: "en" },
   };
 }

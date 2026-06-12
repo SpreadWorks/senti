@@ -13,6 +13,28 @@ import path from "path";
 import { validatePresetChain } from "../../../src/lib/presets.js";
 import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../../helpers/tmp-dir.js";
 
+function writePluginPreset(root, { key = "myext", chapters = [{ chapter: "missing.md" }] } = {}) {
+  writeJson(root, ".senti/config.json", {
+    lang: "ja",
+    type: key,
+    docs: { languages: ["ja"], defaultLanguage: "ja" },
+    plugin: { packages: [{ id: "local-presets" }] },
+  });
+  writeJson(root, ".senti/plugins/local-presets/plugin.json", {
+    name: "local-presets",
+    files: ["plugin.json", "presets/"],
+    contributions: {
+      presets: [{ key, path: `presets/${key}` }],
+    },
+  });
+  writeJson(root, `.senti/plugins/local-presets/presets/${key}/preset.json`, {
+    parent: "base",
+    label: "My Extension",
+    chapters,
+  });
+  writeFile(root, `.senti/plugins/local-presets/presets/${key}/templates/.keep`, "");
+}
+
 describe("validatePresetChain", () => {
   let tmp;
 
@@ -39,11 +61,7 @@ describe("validatePresetChain", () => {
   // ---------------------------------------------------------------------
 
   it("throws Error when a chapter has no template in any layer", () => {
-    // Project-local preset with a chapter that has no matching template.
-    writeJson(tmp, ".senti/presets/myext/preset.json", {
-      label: "My Extension",
-      chapters: [{ chapter: "missing.md" }],
-    });
+    writePluginPreset(tmp);
 
     assert.throws(
       () => validatePresetChain("myext", tmp, { languages: ["ja"] }),
@@ -62,10 +80,7 @@ describe("validatePresetChain", () => {
   // ---------------------------------------------------------------------
 
   it("accepts a template provided under .senti/templates/<lang>/docs/<chapter>", () => {
-    writeJson(tmp, ".senti/presets/myext/preset.json", {
-      label: "My Extension",
-      chapters: [{ chapter: "custom.md" }],
-    });
+    writePluginPreset(tmp, { chapters: [{ chapter: "custom.md" }] });
     writeFile(tmp, ".senti/templates/ja/docs/custom.md", "# Custom (ja)\n");
 
     assert.doesNotThrow(() => {
@@ -104,10 +119,7 @@ describe("validatePresetChain", () => {
   // ---------------------------------------------------------------------
 
   it("includes both chapter name and language in error when multiple languages fail", () => {
-    writeJson(tmp, ".senti/presets/myext/preset.json", {
-      label: "My Extension",
-      chapters: [{ chapter: "missing.md" }],
-    });
+    writePluginPreset(tmp);
 
     assert.throws(
       () => validatePresetChain("myext", tmp, { languages: ["ja", "en"] }),
@@ -125,13 +137,10 @@ describe("validatePresetChain", () => {
   // ---------------------------------------------------------------------
 
   it("does not throw when a template exists without a matching chapter (warning only)", () => {
-    writeJson(tmp, ".senti/presets/myext/preset.json", {
-      label: "My Extension",
-      chapters: [{ chapter: "custom.md" }],
-    });
-    writeFile(tmp, ".senti/presets/myext/templates/ja/custom.md", "# Custom\n");
+    writePluginPreset(tmp, { chapters: [{ chapter: "custom.md" }] });
+    writeFile(tmp, ".senti/plugins/local-presets/presets/myext/templates/ja/custom.md", "# Custom\n");
     // Extra template not listed in chapters — should be warned but not fail.
-    writeFile(tmp, ".senti/presets/myext/templates/ja/extra.md", "# Extra\n");
+    writeFile(tmp, ".senti/plugins/local-presets/presets/myext/templates/ja/extra.md", "# Extra\n");
 
     assert.doesNotThrow(() => {
       validatePresetChain("myext", tmp, { languages: ["ja"] });
@@ -143,10 +152,7 @@ describe("validatePresetChain", () => {
   // ---------------------------------------------------------------------
 
   it("does not throw when languages array is empty", () => {
-    writeJson(tmp, ".senti/presets/myext/preset.json", {
-      label: "My Extension",
-      chapters: [{ chapter: "missing.md" }],
-    });
+    writePluginPreset(tmp);
 
     assert.doesNotThrow(() => {
       validatePresetChain("myext", tmp, { languages: [] });

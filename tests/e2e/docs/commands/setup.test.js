@@ -11,7 +11,7 @@ const CMD_ARGS = ["setup"];
 /** Non-interactive CLI args that satisfy hasAllRequired */
 const NI_ARGS = [
   "--name", "test-proj",
-  "--type", "webapp",
+  "--type", "base",
   "--purpose", "developer-guide",
   "--tone", "polite",
 ];

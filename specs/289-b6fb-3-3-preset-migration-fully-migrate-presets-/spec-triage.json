@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "All 3 blocking findings are valid and should be repaired in spec.json.",
+  "items": [
+    {
+      "title": "Official default source is not materializable after bundled deletion",
+      "target": "R3 / Decisions / Clarifications",
+      "decision": "apply",
+      "rationale": "R3 requires automatic official provider completion but does not define the materializable source after bundled deletion.",
+      "evidence": "spec.json requirements[R3] and clarifications omit official source id/type/remote and test materialization rules."
+    },
+    {
+      "title": "Legacy preset migration omits manifestless override semantics",
+      "target": "R4 / T-2",
+      "decision": "apply",
+      "rationale": "R4 removes `.senti/presets/<key>` runtime override but does not define upgrade behavior for directories without `preset.json`.",
+      "evidence": "spec.json requirements[R4] only says migrate or fail; it does not distinguish manifestless same-key override, manifestless bare preset, and explicit manifest cases."
+    },
+    {
+      "title": "Locale and AGENTS chain resolution lacks deterministic semantics",
+      "target": "R5 / AC-5 / T-3",
+      "decision": "apply",
+      "rationale": "R5 includes locale and AGENTS paths, but acceptance coverage only names `@presets` include behavior.",
+      "evidence": "spec.json R5, AC-5, and T-3 do not state parent-chain order, multi-type order, or precedence for locale and AGENTS template resolution."
+    }
+  ]
+}

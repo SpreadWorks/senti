@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-12T00:17:08.739Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 4,
+    "advisory": 1,
+    "total": 5
+  },
+  "coverageArtifact": "specs/289-b6fb-3-3-preset-migration-fully-migrate-presets-/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R1 source/runtime dependency coverage is incomplete",
+      "target": "specs/289-b6fb-3-3-preset-migration-fully-migrate-presets-/tests/preset-runtime-boundary.test.js",
+      "issue": "The R1 test only asserts that src/official-plugins/senti-presets is absent and src/presets contains only base. It does not check that runtime source or main repo tests no longer reference or require bundled official preset content.",
+      "requiredChange": "Add a spec-local static assertion that scans relevant src runtime files and main tests for references to src/official-plugins/senti-presets and non-base builtin preset content, excluding the contract test itself if needed.",
+      "whyBlocking": "R1 explicitly requires official preset content not to be required by runtime source or main repo tests; the current coverage artifact marks R1 covered while that acceptance clause can still pass untested."
+    },
+    {
+      "kind": "blocking",
+      "title": "R3 default source test does not prove provider completion",
+      "target": "specs/289-b6fb-3-3-preset-migration-fully-migrate-presets-/tests/upgrade-migration-contract.test.js",
+      "issue": "The default official source test only checks that a source entry is added. It would pass if upgrade adds the source and exits zero without installing/enabling the provider package or making the preset chain resolvable.",
+      "requiredChange": "In the default-source test, assert that official-presets is enabled in plugin.packages, the installed plugin exists, reproducibility metadata is recorded, and resolveChain(\"child-preset\", tmp) resolves through the provider.",
+      "whyBlocking": "R3 requires adding the default source when needed and installing/enabling the provider plugin; provider completion for that path currently has no direct executable assertion."
+    },
+    {
+      "kind": "blocking",
+      "title": "R5 include anti-scan behavior is not exercised",
+      "target": "specs/289-b6fb-3-3-preset-migration-fully-migrate-presets-/tests/preset-runtime-boundary.test.js",
+      "issue": "The include test asserts an unregistered @presets key fails, but the fixture does not create an unregistered template file at that include path. A resolver that broadly scans installed plugin presets would still fail because the file is absent, so the test does not exercise the forbidden behavior.",
+      "requiredChange": "Create .senti/plugins/fixture-presets/presets/unregistered-preset/templates/fragment.md in the fixture and assert @presets/unregistered-preset/templates/fragment.md does not resolve.",
+      "whyBlocking": "R5 requires @presets includes not to broadly scan installed plugin presets; the current test has a static anti-pattern that can pass without detecting broad scanning."
+    },
+    {
+      "kind": "blocking",
+      "title": "R5 config type order is not covered",
+      "target": "specs/289-b6fb-3-3-preset-migration-fully-migrate-presets-/tests/preset-runtime-boundary.test.js",
+      "issue": "The tests cover project-local precedence and leaf-to-root chain precedence, but they do not create two configured preset types with overlapping assets to prove deterministic config type order is honored for include, locale, or AGENTS resolution.",
+      "requiredChange": "Add a registered second preset type with overlapping template/locale/AGENTS content and assert the first entry in presetTypes wins before the later type is considered.",
+      "whyBlocking": "R5 requires deterministic search by config type order; the current spec-local tests do not cover that acceptance requirement."
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Sort preset directory entries before comparison",
+      "target": "specs/289-b6fb-3-3-preset-migration-fully-migrate-presets-/tests/preset-runtime-boundary.test.js",
+      "improvement": "Sort presetEntries before asserting deep equality with [\"base\"].",
+      "whyNonBlocking": "Most environments return stable directory order for this single-entry case, but sorting makes the assertion deterministic if additional failure entries are present."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/289-b6fb-3-3-preset-migration-fully-migrate-presets-/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 4,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "b1fa9e3e9ce02d6cfc69325330ab301019a90f609dc247abd9d9b1aabc685e6c"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 5,
+  "findings": [
+    {
+      "id": "test-005-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "R1 source/runtime dependency coverage is incomplete",
+      "body": "The R1 test only asserts that src/official-plugins/senti-presets is absent and src/presets contains only base. It does not check that runtime source or main repo tests no longer reference or require bundled official preset content.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-005-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "R3 default source test does not prove provider completion",
+      "body": "The default official source test only checks that a source entry is added. It would pass if upgrade adds the source and exits zero without installing/enabling the provider package or making the preset chain resolvable.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-005-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "R5 include anti-scan behavior is not exercised",
+      "body": "The include test asserts an unregistered @presets key fails, but the fixture does not create an unregistered template file at that include path. A resolver that broadly scans installed plugin presets would still fail because the file is absent, so the test does not exercise the forbidden behavior.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-005-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "R5 config type order is not covered",
+      "body": "The tests cover project-local precedence and leaf-to-root chain precedence, but they do not create two configured preset types with overlapping assets to prove deterministic config type order is honored for include, locale, or AGENTS resolution.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-005-non-blocking-005",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "non-blocking",
+      "title": "Sort preset directory entries before comparison",
+      "body": "Sort preset directory entries before comparison",
+      "category": "unknown"
+    }
+  ]
+}

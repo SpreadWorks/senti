@@ -16,7 +16,7 @@ function setupEnrichedProject() {
   const tmp = createTmpDir();
   writeJson(tmp, ".senti/config.json", {
     lang: "ja",
-    type: "node-cli",
+    type: "sample-node-command",
     docs: { languages: ["ja"], defaultLanguage: "ja" },
     scan: { include: ["src/**/*.js"], exclude: [] },
   });
@@ -67,11 +67,11 @@ describe("scan --reset", () => {
   });
 
   it("resets hash only for specified category", () => {
-    // Use cakephp2 to get multiple categories
+    // Use child-preset to get multiple categories
     tmp = createTmpDir();
     writeJson(tmp, ".senti/config.json", {
       lang: "ja",
-      type: "cakephp2",
+      type: "child-preset",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
     });
     writeFile(tmp, "app/Controller/UsersController.php", [
@@ -178,7 +178,7 @@ describe("scan --reset", () => {
     tmp = createTmpDir();
     writeJson(tmp, ".senti/config.json", {
       lang: "ja",
-      type: "node-cli",
+      type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
     });
 

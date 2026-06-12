@@ -3,7 +3,7 @@ import { join } from "path";
 
 const DEFAULT_CONFIG = {
   lang: "ja",
-  type: "node-cli",
+  type: "sample-node-command",
   scan: { include: ["src/**/*.js"], exclude: [] },
   providers: {},
   docs: { languages: ["ja"], defaultLanguage: "ja" },

@@ -1,7 +1,7 @@
 /**
  * senti/lib/presets.js
  *
- * Auto-discovers presets from src/presets/{key}/preset.json.
+ * Auto-discovers builtin presets and enabled plugin preset contributions.
  * All consumers derive their preset data from this single source.
  *
  * Preset hierarchy uses `parent` field for single-inheritance chains.
@@ -11,14 +11,13 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { bundledOfficialPresetPluginRoot } from "./official-plugins.js";
 import { createLogger } from "./progress.js";
-import { loadPluginRegistry, PluginManifest } from "./plugin-registry.js";
+import { loadPluginRegistry } from "./plugin-registry.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const logger = createLogger("presets");
 export const CORE_PRESETS_DIR = path.resolve(__dirname, "..", "presets");
-export const PRESETS_DIR = path.join(bundledOfficialPresetPluginRoot(), "presets");
+export const PRESETS_DIR = CORE_PRESETS_DIR;
 
 /**
  * Discover all presets by scanning src/presets/{key}/preset.json.
@@ -47,25 +46,8 @@ function discoverPresetsInDir(presetsDir) {
     .filter(Boolean);
 }
 
-function discoverPresets() {
-  const byKey = new Map();
-  for (const preset of discoverPresetsInDir(CORE_PRESETS_DIR)) byKey.set(preset.key, preset);
-  for (const preset of officialPresetsWithoutProject()) byKey.set(preset.key, preset);
-  return [...byKey.values()];
-}
-
 export const CORE_PRESETS = discoverPresetsInDir(CORE_PRESETS_DIR);
-export const PRESETS = discoverPresets();
-
-function isPluginAwareProject(projectRoot) {
-  try {
-    const configPath = path.join(projectRoot, ".senti", "config.json");
-    const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-    return Object.prototype.hasOwnProperty.call(config, "plugin");
-  } catch (_) {
-    return false;
-  }
-}
+export const PRESETS = CORE_PRESETS;
 
 function registryPresets(projectRoot) {
   if (!projectRoot) return [];
@@ -77,18 +59,8 @@ function registryPresets(projectRoot) {
   }
 }
 
-function officialPresetsWithoutProject() {
-  try {
-    return PluginManifest.fromRoot(bundledOfficialPresetPluginRoot(), "official-presets").presetEntries();
-  } catch (err) {
-    logger.verbose(`official preset registry failed: ${err.message}`);
-    return [];
-  }
-}
-
 function allPresets(projectRoot) {
-  const basePresets = projectRoot && isPluginAwareProject(projectRoot) ? CORE_PRESETS : PRESETS;
-  const byKey = new Map(basePresets.map((preset) => [preset.key, preset]));
+  const byKey = new Map(CORE_PRESETS.map((preset) => [preset.key, preset]));
   if (!projectRoot) {
     return [...byKey.values()];
   }
@@ -97,62 +69,18 @@ function allPresets(projectRoot) {
 }
 
 /**
- * Build a project-local preset object from .senti/presets/<key>/.
- * Returns null if the directory does not exist.
- *
- * When preset.json is absent:
- * - If a built-in preset with the same key exists, inherit its settings (parent, scan,
- *   chapters) but use the project dir for DataSource loading.
- * - Otherwise, return a bare preset (no parent).
- *
- * @param {string} key
- * @param {string} root - project root (parent of .senti/)
- * @returns {Object|null}
- */
-function resolveProjectPreset(key, root) {
-  const projectDir = path.join(root, ".senti", "presets", key);
-  if (!fs.existsSync(projectDir)) return null;
-
-  const manifestPath = path.join(projectDir, "preset.json");
-  if (fs.existsSync(manifestPath)) {
-    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-    return {
-      key,
-      dir: projectDir,
-      parent: manifest.parent || null,
-      label: manifest.label || key,
-      aliases: manifest.aliases || [],
-      scan: manifest.scan || {},
-      chapters: manifest.chapters || [],
-      localManifest: true,
-    };
-  }
-
-  // preset.json omitted — inherit built-in settings if available
-  const builtin = allPresets(root).find((p) => p.key === key);
-  if (builtin) {
-    return { ...builtin, dir: projectDir };
-  }
-
-  // Bare preset: no parent, DataSource-only
-  return { key, dir: projectDir, parent: null, label: key, aliases: [], scan: {}, chapters: [] };
-}
-
-/**
  * Resolve the full parent chain for a preset, from root (base) to the given leaf.
  *
- * When `projectRoot` is provided, `.senti/presets/<leafKey>/` is checked first.
- * If found, it takes precedence over the built-in preset of the same name.
- * Parent chain resolution always uses built-in presets (project presets are leaf-only).
- *
  * @param {string} leafKey - Preset key (e.g. "sample-preset", "node-cli", "app-preset")
- * @param {string} [projectRoot] - Project root directory for .senti/presets/ lookup
+ * @param {string} [projectRoot] - Project root directory for plugin registry lookup
+ * @param {object} [opts]
+ * @param {number} [opts.maxDepth]
  * @returns {Object[]} Array of preset objects, ordered root to leaf (e.g. [base, parent-preset, child-preset])
  * @throws {Error} If preset not found or circular reference detected
  */
-export function resolveChain(leafKey, projectRoot) {
-  const preset = (projectRoot && resolveProjectPreset(leafKey, projectRoot))
-    || allPresets(projectRoot).find((p) => p.key === leafKey);
+export function resolveChain(leafKey, projectRoot, opts = {}) {
+  const maxDepth = opts.maxDepth || MAX_CHAIN_DEPTH;
+  const preset = allPresets(projectRoot).find((p) => p.key === leafKey);
   if (!preset) {
     throw new Error(`Preset not found: ${leafKey}`);
   }
@@ -171,6 +99,9 @@ export function resolveChain(leafKey, projectRoot) {
     }
     visited.add(current.parent);
     chain.unshift(parentPreset);
+    if (chain.length > maxDepth) {
+      throw new Error(`preset parent chain exceeds depth ${maxDepth}`);
+    }
     current = parentPreset;
   }
 
@@ -186,14 +117,14 @@ export function resolveChain(leafKey, projectRoot) {
  * @param {string} [projectRoot] - Project root directory for .senti/presets/ lookup
  * @returns {Object[][]} Array of chains, each chain is root → leaf ordered
  */
-export function resolveMultiChains(types, projectRoot) {
+export function resolveMultiChains(types, projectRoot, opts = {}) {
   const typeList = Array.isArray(types) ? types : [types];
 
   // Deduplicate identical entries first
   const unique = [...new Set(typeList)];
 
   // Resolve each type into its full chain
-  const chains = unique.map((t) => resolveChain(t, projectRoot));
+  const chains = unique.map((t) => resolveChain(t, projectRoot, opts));
 
   // Dedup: if one chain's leaf is an ancestor of another chain, keep only the longer one
   const result = [];
@@ -225,15 +156,11 @@ export function resolveMultiChains(types, projectRoot) {
  * @param {string} [projectRoot] - Project root directory for .senti/presets/ lookup
  * @returns {Object[]} Array of preset objects, ordered root → leaf
  */
-export function resolveChainSafe(presetKey, projectRoot) {
+export function resolveChainSafe(presetKey, projectRoot, opts = {}) {
   try {
-    return resolveChain(presetKey, projectRoot);
+    return resolveChain(presetKey, projectRoot, opts);
   } catch (err) {
     logger.verbose(`resolveChain failed for "${presetKey}": ${err.message}`);
-    if (projectRoot) {
-      const local = resolveProjectPreset(presetKey, projectRoot);
-      if (local) return [local];
-    }
     const preset = allPresets(projectRoot).find((p) => p.key === presetKey);
     if (preset) return [preset];
     const base = PRESETS.find((p) => p.key === "base");
@@ -260,6 +187,25 @@ const MAX_CHAPTERS_PER_PRESET = 200;
 const MAX_LANGUAGES = 20;
 const MAX_CHAIN_DEPTH = 16;
 
+export function normalizePresetTypes(types) {
+  return (Array.isArray(types) ? types : [types]).filter(Boolean);
+}
+
+export function resolvePresetChains(types, projectRoot, opts = {}) {
+  return normalizePresetTypes(types).map((type) => resolveChain(type, projectRoot, opts));
+}
+
+export function resolvePresetEntriesForSearch(types, projectRoot, { chainOrder = "leaf-to-root", typeOrder = "config" } = {}) {
+  const chains = resolvePresetChains(types, projectRoot, { maxDepth: MAX_CHAIN_DEPTH });
+  const orderedChains = typeOrder === "reverse" ? [...chains].reverse() : chains;
+  const entries = [];
+  for (const chain of orderedChains) {
+    const ordered = chainOrder === "root-to-leaf" ? chain : [...chain].reverse();
+    entries.push(...ordered);
+  }
+  return entries;
+}
+
 /**
  * Resolve the effective chapter list (file names) for a set of preset types.
  * Mirrors the priority used by template-merger.resolveChaptersOrder():
@@ -274,7 +220,7 @@ function resolveEffectiveChapters(typeList, projectRoot, configChapters) {
   const seen = new Set();
   const result = [];
   for (const key of typeList) {
-    const chain = resolveChainSafe(key, projectRoot);
+    const chain = resolveChain(key, projectRoot);
     let chainChapters = [];
     for (const preset of chain) {
       if (preset.chapters?.length && (presetHasTemplates(preset) || preset.localManifest)) {
@@ -319,7 +265,7 @@ function templateSearchDirs(typeList, projectRoot, lang) {
     push(path.join(projectRoot, ".senti", "templates", lang, "docs"));
   }
   for (const typeKey of typeList) {
-    const chain = resolveChainSafe(typeKey, projectRoot);
+    const chain = resolveChain(typeKey, projectRoot);
     if (chain.length > MAX_CHAIN_DEPTH) {
       throw new Error(`validatePresetChain: chain depth exceeds MAX_CHAIN_DEPTH (${chain.length} > ${MAX_CHAIN_DEPTH}) for type=${typeKey}`);
     }
@@ -416,8 +362,8 @@ export function validatePresetChain(types, projectRoot, { languages, configChapt
  *
  * @param {string} leaf
  */
-export function presetByLeaf(leaf) {
-  return PRESETS.find((p) => p.key === leaf);
+export function presetByLeaf(leaf, projectRoot) {
+  return allPresets(projectRoot).find((p) => p.key === leaf);
 }
 
 /**
@@ -425,6 +371,6 @@ export function presetByLeaf(leaf) {
  *
  * @param {string} parentKey - Parent preset key (e.g. "app-preset", "cli")
  */
-export function presetsForArch(parentKey) {
-  return PRESETS.filter((p) => p.parent === parentKey);
+export function presetsForArch(parentKey, projectRoot) {
+  return allPresets(projectRoot).filter((p) => p.parent === parentKey);
 }

@@ -1,0 +1,2621 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-questions-repair.json                    |   35 +\n .../draft-questions-triage.json                    |   29 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   33 +\n .../draft.json                                     |  131 +\n .../file-map.json                                  |   50 +\n .../flow.json                                      | 2314 +++++\n .../impl-review.json                               | 4429 +++++++++\n .../issue-log.json                                 |  770 ++\n .../retry-recovery.json                            |  174 +\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |   67 +\n .../review-history/impl-attempt-001.json           | 9933 ++++++++++++++++++++\n .../review-history/impl-attempt-001.md             | 6065 ++++++++++++\n .../review-history/spec-attempt-001.json           |   75 +\n .../review-history/spec-attempt-001.md             |   28 +\n .../review-history/test-attempt-001.json           |  120 +\n .../review-history/test-attempt-001.md             |   42 +\n .../review-history/test-attempt-002.json           |  138 +\n .../review-history/test-attempt-002.md             |   48 +\n .../review-history/test-attempt-003.json           |   66 +\n .../review-history/test-attempt-003.md             |   21 +\n .../review-history/test-attempt-004.json           |   84 +\n .../review-history/test-attempt-004.md             |   27 +\n .../review-history/test-attempt-005.json           |  120 +\n .../review-history/test-attempt-005.md             |   39 +\n .../review-history/test-attempt-006.json           |   28 +\n .../review-history/test-attempt-006.md             |   13 +\n .../review.md                                      | 6065 ++++++++++++\n .../scenario-validity-result.json                  |  143 +\n .../spec-repair.json                               |   52 +\n .../spec-review.json                               |   41 +\n .../spec-review.md                                 |   28 +\n .../spec-triage.json                               |   29 +\n .../spec.json                                      |  420 +\n .../spec.md                                        |  175 +\n .../tasks/T-1.md                                   |   20 +\n .../tasks/T-2.md                                   |   20 +\n .../tasks/T-3.md                                   |   21 +\n .../tasks/T-4.md                                   |   20 +\n .../tasks/T-5.md                                   |   20 +\n .../tasks/T-6.md                                   |   20 +\n .../tasks/T-7.md                                   |   20 +\n .../test-coverage.json                             |  134 +\n .../test-review.json                               |   25 +\n .../test-review.md                                 |   13 +\n .../tests/.raw/scenario-validity.log               |   13 +\n .../tests/preset-runtime-boundary.test.js          |  442 +\n .../tests/upgrade-migration-contract.test.js       |  362 +\n src/AGENTS.md                                      |    5 +-\n src/data/agents.js                                 |   14 +-\n src/docs/commands/agents.js                        |    5 +-\n src/docs/commands/scan.js                          |    2 +-\n src/docs/lib/resolver-factory.js                   |   19 +-\n src/flow/lib/run-gate.js                           |   86 +-\n src/lib/agents-md.js                               |   17 +-\n src/lib/config.js                                  |    3 +-\n src/lib/container.js                               |    2 +-\n src/lib/i18n.js                                    |   76 +-\n src/lib/include.js                                 |   41 +-\n src/lib/official-plugins.js                        |   31 +-\n .../senti-presets/presets => }/lib/path-match.js   |    0\n src/lib/plugin-registry.js                         |   54 +-\n src/lib/presets.js                                 |  140 +-\n src/official-plugins/senti-presets/plugin.json     |   47 -\n .../senti-presets/presets/api/guardrail.json       |   27 -\n .../senti-presets/presets/api/preset.json          |   31 -\n .../presets/api/templates/en/api_overview.md       |   22 -\n .../presets/api/templates/en/authentication.md     |   22 -\n .../presets/api/templates/ja/api_overview.md       |   22 -\n .../presets/api/templates/ja/authentication.md     |   22 -\n .../presets/architecture/guardrail.json            |   16 -\n .../senti-presets/presets/architecture/preset.json |    6 -\n .../senti-presets/presets/base/data/package.js     |   78 -\n .../senti-presets/presets/base/data/structure.js   |  103 -\n .../presets/base/guardrail-rewrite-rubric.md       |    8 -\n .../senti-presets/presets/base/guardrail.json      |  312 -\n .../senti-presets/presets/base/preset.json         |   22 -\n .../presets/base/templates/en/AGENTS.senti.md      |   41 -\n .../presets/base/templates/en/development.md       |   42 -\n .../presets/base/templates/en/layout.md            |   10 -\n .../presets/base/templates/en/overview.md          |   47 -\n .../presets/base/templates/en/project_structure.md |   35 -\n .../presets/base/templates/en/stack_and_ops.md     |   44 -\n .../presets/base/templates/ja/AGENTS.senti.md      |   41 -\n .../presets/base/templates/ja/development.md       |   42 -\n .../presets/base/templates/ja/layout.md            |   10 -\n .../presets/base/templates/ja/overview.md          |   47 -\n .../presets/base/templates/ja/project_structure.md |   35 -\n .../presets/base/templates/ja/stack_and_ops.md     |   44 -\n .../tests/acceptance/fixtures/.senti/config.json   |   29 -\n .../base/tests/acceptance/fixtures/package.json    |   10 -\n .../base/tests/acceptance/fixtures/src/config.js   |   55 -\n .../tests/acceptance/fixtures/src/http-client.js   |   88 -\n .../base/tests/acceptance/fixtures/src/index.js    |   51 -\n .../base/tests/acceptance/fixtures/src/logger.js   |   43 -\n .../presets/base/tests/acceptance/test.js          |    6 -\n .../presets/cakephp2/data/commands.js              |   82 -\n .../senti-presets/presets/cakephp2/data/config.js  |  622 --\n .../presets/cakephp2/data/controllers.js           |  100 -\n .../senti-presets/presets/cakephp2/data/docker.js  |   17 -\n .../senti-presets/presets/cakephp2/data/email.js   |  104 -\n .../senti-presets/presets/cakephp2/data/libs.js    |  155 -\n .../senti-presets/presets/cakephp2/data/models.js  |  207 -\n .../senti-presets/presets/cakephp2/data/tables.js  |  116 -\n .../senti-presets/presets/cakephp2/data/tests.js   |   54 -\n .../senti-presets/presets/cakephp2/data/views.js   |  109 -\n .../senti-presets/presets/cakephp2/guardrail.json  |   50 -\n .../senti-presets/presets/cakephp2/preset.json     |   14 -\n .../cakephp2/templates/en/auth_and_session.md      |   42 -\n .../cakephp2/templates/en/business_logic.md        |   16 -\n .../presets/cakephp2/templates/en/commands.md      |   16 -\n .../cakephp2/templates/en/controller_routes.md     |   19 -\n .../cakephp2/templates/en/database_architecture.md |   11 -\n .../presets/cakephp2/templates/en/db_tables.md     |   16 -\n .../presets/cakephp2/templates/en/development.md   |   46 -\n .../cakephp2/templates/en/project_structure.md     |   31 -\n .../presets/cakephp2/templates/en/stack_and_ops.md |   43 -\n .../cakephp2/templates/ja/auth_and_session.md      |   42 -\n .../cakephp2/templates/ja/business_logic.md        |   16 -\n .../presets/cakephp2/templates/ja/commands.md      |   16 -\n .../cakephp2/templates/ja/controller_routes.md     |   19 -\n .../cakephp2/templates/ja/database_architecture.md |   11 -\n .../presets/cakephp2/templates/ja/db_tables.md     |   16 -\n .../presets/cakephp2/templates/ja/development.md   |   46 -\n .../cakephp2/templates/ja/project_structure.md     |   31 -\n .../presets/cakephp2/templates/ja/stack_and_ops.md |   43 -\n .../tests/acceptance/fixtures/.senti/config.json   |   23 -\n .../fixtures/.senti/output/analysis.json           |  504 -\n .../acceptance/fixtures/app/Config/bootstrap.php   |   17 -\n .../acceptance/fixtures/app/Config/database.php    |   26 -\n .../acceptance/fixtures/app/Config/routes.php      |   22 -\n .../fixtures/app/Console/Command/CleanupShell.php  |   15 -\n .../fixtures/app/Controller/AppController.php      |   15 -\n .../fixtures/app/Controller/PostsController.php    |   70 -\n .../fixtures/app/Controller/TagsController.php     |   62 -\n .../fixtures/app/Controller/ThreadsController.php  |   73 -\n .../fixtures/app/Controller/UsersController.php    |   38 -\n .../tests/acceptance/fixtures/app/Lib/AppLib.php   |    6 -\n .../acceptance/fixtures/app/Model/AppModel.php     |   18 -\n .../tests/acceptance/fixtures/app/Model/Post.php   |   26 -\n .../tests/acceptance/fixtures/app/Model/Tag.php    |   39 -\n .../tests/acceptance/fixtures/app/Model/Thread.php |   58 -\n .../tests/acceptance/fixtures/app/Model/User.php   |   65 -\n .../fixtures/app/View/Elements/sidebar.ctp         |    6 -\n .../fixtures/app/View/Helper/AppHelper.php         |    8 -\n .../fixtures/app/View/Layouts/default.ctp          |   12 -\n .../acceptance/fixtures/app/View/Threads/index.ctp |   45 -\n .../tests/acceptance/fixtures/composer.json        |    8 -\n .../tests/acceptance/fixtures/docker-compose.yml   |   14 -\n .../presets/cakephp2/tests/acceptance/test.js      |    5 -\n .../presets/cakephp2/tests/analyzers.js            |  931 --\n .../tests/unit/analyzers-assets-config.test.js     |  273 -\n .../tests/unit/analyzers-models-business.test.js   |  464 -\n .../cakephp2/tests/unit/analyzers-security.test.js |  136 -\n .../tests/unit/analyzers-views-commands.test.js    |  528 --\n .../cakephp2/tests/unit/commands-match.test.js     |   59 -\n .../senti-presets/presets/ci/guardrail.json        |   27 -\n .../senti-presets/presets/ci/preset.json           |   27 -\n .../senti-presets/presets/ci/templates/en/ci_cd.md |   33 -\n .../senti-presets/presets/ci/templates/ja/ci_cd.md |   33 -\n .../senti-presets/presets/cli/data/commands.js     |   56 -\n .../senti-presets/presets/cli/data/modules.js      |   69 -\n .../senti-presets/presets/cli/guardrail.json       |   28 -\n .../senti-presets/presets/cli/preset.json          |   31 -\n .../presets/cli/templates/en/README.md             |   35 -\n .../presets/cli/templates/en/commands.md           |   35 -\n .../presets/cli/templates/en/config.md             |   41 -\n .../presets/cli/templates/ja/README.md             |   35 -\n .../presets/cli/templates/ja/commands.md           |   35 -\n .../presets/cli/templates/ja/config.md             |   41 -\n .../tests/acceptance/fixtures/.senti/config.json   |   29 -\n .../cli/tests/acceptance/fixtures/package.json     |   12 -\n .../cli/tests/acceptance/fixtures/src/cli.js       |   67 -\n .../acceptance/fixtures/src/commands/format.js     |   79 -\n .../tests/acceptance/fixtures/src/commands/lint.js |   95 -\n .../acceptance/fixtures/src/commands/parse.js      |   52 -\n .../tests/acceptance/fixtures/src/commands/toc.js  |   82 -\n .../cli/tests/acceptance/fixtures/src/config.js    |   28 -\n .../tests/acceptance/fixtures/src/lib/parser.js    |  101 -\n .../tests/acceptance/fixtures/src/lib/renderer.js  |  112 -\n .../fixtures/src/lib/rules/code-block.js           |   28 -\n .../acceptance/fixtures/src/lib/rules/heading.js   |   15 -\n .../acceptance/fixtures/src/lib/rules/link.js      |   21 -\n .../acceptance/fixtures/src/lib/rules/list.js      |   31 -\n .../tests/acceptance/fixtures/src/lib/tokenizer.js |  113 -\n .../presets/cli/tests/acceptance/test.js           |    6 -\n .../presets/coding-rule/guardrail.json             |   60 -\n .../senti-presets/presets/coding-rule/preset.json  |    5 -\n .../senti-presets/presets/database/data/schema.js  |   42 -\n .../senti-presets/presets/database/guardrail.json  |   63 -\n .../senti-presets/presets/database/preset.json     |   11 -\n .../presets/database/templates/en/database.md      |   16 -\n .../presets/database/templates/ja/database.md      |   16 -\n .../senti-presets/presets/document/guardrail.json  |   26 -\n .../senti-presets/presets/document/preset.json     |    5 -\n .../senti-presets/presets/drizzle/data/schema.js   |  135 -\n .../senti-presets/presets/drizzle/preset.json      |   27 -\n .../presets/drizzle/templates/en/database.md       |   11 -\n .../presets/drizzle/templates/en/schema.md         |   20 -\n .../presets/drizzle/templates/ja/database.md       |   11 -\n .../presets/drizzle/templates/ja/schema.md         |   20 -\n .../presets/drizzle/tests/analyzers.js             |  116 -\n .../presets/drizzle/tests/unit/analyzers.test.js   |  222 -\n .../senti-presets/presets/edge/data/runtime.js     |  111 -\n .../senti-presets/presets/edge/guardrail.json      |   38 -\n .../senti-presets/presets/edge/preset.json         |   11 -\n .../presets/edge/templates/en/edge_runtime.md      |   20 -\n .../presets/edge/templates/ja/edge_runtime.md      |   20 -\n .../presets/github-actions/data/pipelines.js       |  319 -\n .../presets/github-actions/guardrail.json          |   37 -\n .../presets/github-actions/preset.json             |   11 -\n .../presets/github-actions/templates/en/ci_cd.md   |   16 -\n .../presets/github-actions/templates/ja/ci_cd.md   |   16 -\n .../presets/github-actions/tests/analyzers.js      |  212 -\n .../senti-presets/presets/graphql/data/schema.js   |  145 -\n .../senti-presets/presets/graphql/guardrail.json   |   39 -\n .../senti-presets/presets/graphql/preset.json      |   46 -\n .../presets/graphql/templates/en/api_overview.md   |    8 -\n .../presets/graphql/templates/en/authentication.md |   15 -\n .../presets/graphql/templates/en/schema.md         |   27 -\n .../presets/graphql/templates/ja/api_overview.md   |    8 -\n .../presets/graphql/templates/ja/authentication.md |   15 -\n .../presets/graphql/templates/ja/schema.md         |   27 -\n .../presets/graphql/tests/analyzers.js             |  110 -\n .../presets/graphql/tests/unit/analyzers.test.js   |  273 -\n .../presets/greenfield/guardrail.json              |   71 -\n .../senti-presets/presets/greenfield/preset.json   |    5 -\n .../senti-presets/presets/hono/data/middleware.js  |   78 -\n .../senti-presets/presets/hono/preset.json         |   45 -\n .../presets/hono/templates/en/middleware.md        |   13 -\n .../presets/hono/templates/ja/middleware.md        |   13 -\n .../presets/hono/tests/unit/analyzers.test.js      |  195 -\n .../presets/infrastructure/guardrail.json          |   16 -\n .../presets/infrastructure/preset.json             |    5 -\n .../senti-presets/presets/js-webapp/guardrail.json |   15 -\n .../senti-presets/presets/js-webapp/preset.json    |   24 -\n .../tests/acceptance/fixtures/.senti/config.json   |   29 -\n .../tests/acceptance/fixtures/package.json         |   10 -\n .../tests/acceptance/fixtures/src/config.js        |   55 -\n .../tests/acceptance/fixtures/src/http-client.js   |   88 -\n .../tests/acceptance/fixtures/src/index.js         |   51 -\n .../tests/acceptance/fixtures/src/logger.js        |   43 -\n .../presets/js-webapp/tests/acceptance/test.js     |    5 -\n .../senti-presets/presets/laravel/data/commands.js |   24 -\n .../senti-presets/presets/laravel/data/config.js   |  196 -\n .../presets/laravel/data/controllers.js            |  146 -\n .../senti-presets/presets/laravel/data/models.js   |  223 -\n .../senti-presets/presets/laravel/data/routes.js   |  248 -\n .../senti-presets/presets/laravel/data/tables.js   |  256 -\n .../senti-presets/presets/laravel/guardrail.json   |   50 -\n .../senti-presets/presets/laravel/preset.json      |   17 -\n .../laravel/templates/en/auth_and_session.md       |   29 -\n .../laravel/templates/en/controller_routes.md      |   34 -\n .../presets/laravel/templates/en/db_tables.md      |   16 -\n .../laravel/templates/en/project_structure.md      |   13 -\n .../presets/laravel/templates/en/stack_and_ops.md  |   34 -\n .../laravel/templates/ja/auth_and_session.md       |   29 -\n .../laravel/templates/ja/controller_routes.md      |   34 -\n .../presets/laravel/templates/ja/db_tables.md      |   16 -\n .../laravel/templates/ja/project_structure.md      |   13 -\n .../presets/laravel/templates/ja/stack_and_ops.md  |   34 -\n .../presets/laravel/tests/acceptance/fixtures/.env |   12 -\n .../tests/acceptance/fixtures/.senti/config.json   |   23 -\n .../app/Console/Commands/CleanupCommand.php        |   20 -\n .../app/Http/Controllers/AuthController.php        |   69 -\n .../app/Http/Controllers/PostController.php        |   48 -\n .../app/Http/Controllers/TagController.php         |   53 -\n .../app/Http/Controllers/ThreadController.php      |   69 -\n .../fixtures/app/Http/Middleware/Authenticate.php  |   15 -\n .../tests/acceptance/fixtures/app/Models/Post.php  |   36 -\n .../tests/acceptance/fixtures/app/Models/Tag.php   |   22 -\n .../acceptance/fixtures/app/Models/Thread.php      |   50 -\n .../tests/acceptance/fixtures/app/Models/User.php  |   43 -\n .../tests/acceptance/fixtures/composer.json        |   18 -\n .../tests/acceptance/fixtures/config/app.php       |   15 -\n .../2024_01_01_000001_create_users_table.php       |   27 -\n .../2024_01_01_000002_create_threads_table.php     |   25 -\n .../2024_01_01_000003_create_posts_table.php       |   25 -\n .../2024_01_01_000004_create_tags_table.php        |   23 -\n .../2024_01_01_000005_create_thread_tag_table.php  |   22 -\n .../tests/acceptance/fixtures/routes/api.php       |   10 -\n .../tests/acceptance/fixtures/routes/web.php       |   19 -\n .../presets/laravel/tests/acceptance/test.js       |    5 -\n .../presets/laravel/tests/analyzers.js             |  674 --\n .../presets/laravel/tests/e2e/integration.test.js  |  120 -\n .../presets/laravel/tests/e2e/scan.test.js         |   35 -\n .../presets/laravel/tests/unit/analyzers.test.js   |  292 -\n .../laravel/tests/unit/commands-match.test.js      |   59 -\n .../laravel/tests/unit/scan-parser-bugs.test.js    |  189 -\n .../senti-presets/presets/lib/composer-utils.js    |   61 -\n .../senti-presets/presets/library/guardrail.json   |   39 -\n .../senti-presets/presets/library/preset.json      |   31 -\n .../presets/library/templates/en/README.md         |   16 -\n .../presets/library/templates/en/public_api.md     |   34 -\n .../presets/library/templates/en/usage.md          |   41 -\n .../presets/library/templates/ja/README.md         |   16 -\n .../presets/library/templates/ja/public_api.md     |   34 -\n .../presets/library/templates/ja/usage.md          |   41 -\n .../tests/acceptance/fixtures/.senti/config.json   |   29 -\n .../library/tests/acceptance/fixtures/package.json |   12 -\n .../library/tests/acceptance/fixtures/src/index.js |   27 -\n .../tests/acceptance/fixtures/src/parser.js        |  111 -\n .../tests/acceptance/fixtures/src/renderer.js      |   90 -\n .../acceptance/fixtures/src/rules/code-block.js    |   26 -\n .../acceptance/fixtures/src/rules/emphasis.js      |   51 -\n .../tests/acceptance/fixtures/src/rules/heading.js |   26 -\n .../tests/acceptance/fixtures/src/rules/link.js    |   36 -\n .../tests/acceptance/fixtures/src/rules/list.js    |   29 -\n .../tests/acceptance/fixtures/src/rules/table.js   |   47 -\n .../tests/acceptance/fixtures/src/tokenizer.js     |  117 -\n .../tests/acceptance/fixtures/src/utils/escape.js  |   19 -\n .../acceptance/fixtures/src/utils/normalize.js     |   10 -\n .../presets/library/tests/acceptance/test.js       |    5 -\n .../presets/maintenance/guardrail.json             |   49 -\n .../senti-presets/presets/maintenance/preset.json  |    5 -\n .../presets/monorepo/data/monorepo.js              |   79 -\n .../senti-presets/presets/monorepo/guardrail.json  |   28 -\n .../senti-presets/presets/monorepo/preset.json     |    6 -\n .../senti-presets/presets/mysql/NOTICE             |   26 -\n .../senti-presets/presets/mysql/guardrail.json     |  151 -\n .../senti-presets/presets/mysql/preset.json        |    6 -\n .../senti-presets/presets/nextjs/NOTICE            |   19 -\n .../presets/nextjs/data/components.js              |   76 -\n .../senti-presets/presets/nextjs/data/routes.js    |  176 -\n .../senti-presets/presets/nextjs/guardrail.json    |  140 -\n .../senti-presets/presets/nextjs/preset.json       |   59 -\n .../presets/nextjs/templates/en/components.md      |   27 -\n .../presets/nextjs/templates/en/middleware.md      |   13 -\n .../presets/nextjs/templates/en/pages_routing.md   |   27 -\n .../presets/nextjs/templates/en/route_handlers.md  |   13 -\n .../presets/nextjs/templates/ja/components.md      |   27 -\n .../presets/nextjs/templates/ja/middleware.md      |   13 -\n .../presets/nextjs/templates/ja/pages_routing.md   |   27 -\n .../presets/nextjs/templates/ja/route_handlers.md  |   13 -\n .../presets/nextjs/tests/analyzers.js              |  207 -\n .../presets/nextjs/tests/unit/analyzers.test.js    |  260 -\n .../senti-presets/presets/node-cli/guardrail.json  |   27 -\n .../senti-presets/presets/node-cli/preset.json     |   44 -\n .../presets/node-cli/templates/en/README.md        |   31 -\n .../presets/node-cli/templates/en/cli_commands.md  |   31 -\n .../presets/node-cli/templates/en/configuration.md |   31 -\n .../node-cli/templates/en/development_testing.md   |   49 -\n .../node-cli/templates/en/internal_design.md       |   36 -\n .../presets/node-cli/templates/en/overview.md      |   31 -\n .../presets/node-cli/templates/ja/README.md        |   31 -\n .../presets/node-cli/templates/ja/cli_commands.md  |   31 -\n .../presets/node-cli/templates/ja/configuration.md |   31 -\n .../node-cli/templates/ja/development_testing.md   |   49 -\n .../node-cli/templates/ja/internal_design.md       |   36 -\n .../presets/node-cli/templates/ja/overview.md      |   31 -\n .../tests/acceptance/fixtures/.senti/config.json   |   29 -\n .../tests/acceptance/fixtures/package.json         |   12 -\n .../node-cli/tests/acceptance/fixtures/src/cli.js  |   67 -\n .../acceptance/fixtures/src/commands/format.js     |   79 -\n .../tests/acceptance/fixtures/src/commands/lint.js |   95 -\n .../acceptance/fixtures/src/commands/parse.js      |   52 -\n .../tests/acceptance/fixtures/src/commands/toc.js  |   82 -\n .../tests/acceptance/fixtures/src/config.js        |   28 -\n .../tests/acceptance/fixtures/src/lib/parser.js    |  101 -\n .../tests/acceptance/fixtures/src/lib/renderer.js  |  112 -\n .../fixtures/src/lib/rules/code-block.js           |   28 -\n .../acceptance/fixtures/src/lib/rules/heading.js   |   15 -\n .../acceptance/fixtures/src/lib/rules/link.js      |   21 -\n .../acceptance/fixtures/src/lib/rules/list.js      |   31 -\n .../tests/acceptance/fixtures/src/lib/tokenizer.js |  113 -\n .../presets/node-cli/tests/acceptance/test.js      |    5 -\n .../presets/oss-contribute/guardrail.json          |   38 -\n .../presets/oss-contribute/preset.json             |    5 -\n .../senti-presets/presets/php-webapp/preset.json   |   10 -\n .../tests/acceptance/fixtures/.senti/config.json   |   23 -\n .../tests/acceptance/fixtures/composer.json        |   13 -\n .../tests/acceptance/fixtures/src/App.php          |  111 -\n .../tests/acceptance/fixtures/src/Config.php       |   82 -\n .../tests/acceptance/fixtures/src/HttpClient.php   |   86 -\n .../tests/acceptance/fixtures/src/Logger.php       |   80 -\n .../presets/php-webapp/tests/acceptance/test.js    |    5 -\n .../presets/postgres/data/database.js              |   23 -\n .../senti-presets/presets/postgres/preset.json     |   11 -\n .../presets/postgres/templates/en/database.md      |    9 -\n .../presets/postgres/templates/ja/database.md      |    9 -\n .../senti-presets/presets/principle/preset.json    |    5 -\n .../senti-presets/presets/r2/data/storage.js       |   83 -\n .../senti-presets/presets/r2/preset.json           |   11 -\n .../presets/r2/templates/en/storage.md             |   11 -\n .../presets/r2/templates/ja/storage.md             |   11 -\n .../senti-presets/presets/rest/guardrail.json      |   16 -\n .../senti-presets/presets/rest/preset.json         |   35 -\n .../presets/rest/templates/en/api_overview.md      |    8 -\n .../presets/rest/templates/en/authentication.md    |   15 -\n .../presets/rest/templates/en/endpoints.md         |   20 -\n .../presets/rest/templates/ja/api_overview.md      |    8 -\n .../presets/rest/templates/ja/authentication.md    |   15 -\n .../presets/rest/templates/ja/endpoints.md         |   20 -\n .../senti-presets/presets/storage/data/buckets.js  |   27 -\n .../senti-presets/presets/storage/guardrail.json   |   28 -\n .../senti-presets/presets/storage/preset.json      |   11 -\n .../presets/storage/templates/en/storage.md        |   20 -\n .../presets/storage/templates/ja/storage.md        |   20 -\n .../senti-presets/presets/symfony/NOTICE           |   51 -\n .../senti-presets/presets/symfony/data/commands.js |   48 -\n .../senti-presets/presets/symfony/data/config.js   |  205 -\n .../presets/symfony/data/controllers.js            |  174 -\n .../senti-presets/presets/symfony/data/entities.js |  193 -\n .../senti-presets/presets/symfony/data/routes.js   |  191 -\n .../senti-presets/presets/symfony/data/tables.js   |  208 -\n .../senti-presets/presets/symfony/guardrail.json   |  428 -\n .../senti-presets/presets/symfony/preset.json      |   16 -\n .../symfony/templates/en/auth_and_session.md       |   29 -\n .../presets/symfony/templates/en/business_logic.md |   10 -\n .../symfony/templates/en/controller_routes.md      |   32 -\n .../presets/symfony/templates/en/db_tables.md      |   21 -\n .../symfony/templates/en/project_structure.md      |   13 -\n .../presets/symfony/templates/en/stack_and_ops.md  |   34 -\n .../symfony/templates/ja/auth_and_session.md       |   29 -\n .../presets/symfony/templates/ja/business_logic.md |   10 -\n .../symfony/templates/ja/controller_routes.md      |   32 -\n .../presets/symfony/templates/ja/db_tables.md      |   21 -\n .../symfony/templates/ja/project_structure.md      |   13 -\n .../presets/symfony/templates/ja/stack_and_ops.md  |   34 -\n .../presets/symfony/tests/acceptance/fixtures/.env |    3 -\n .../tests/acceptance/fixtures/.senti/config.json   |   23 -\n .../tests/acceptance/fixtures/composer.json        |   22 -\n .../tests/acceptance/fixtures/config/bundles.php   |    9 -\n .../fixtures/config/packages/doctrine.yaml         |   14 -\n .../tests/acceptance/fixtures/config/routes.yaml   |    5 -\n .../tests/acceptance/fixtures/config/services.yaml |   14 -\n .../fixtures/migrations/Version20240101000001.php  |   34 -\n .../fixtures/migrations/Version20240101000002.php  |   37 -\n .../fixtures/migrations/Version20240101000003.php  |   39 -\n .../fixtures/migrations/Version20240101000004.php  |   44 -\n .../fixtures/src/Controller/PostController.php     |   57 -\n .../fixtures/src/Controller/SecurityController.php |   29 -\n .../fixtures/src/Controller/TagController.php      |   66 -\n .../fixtures/src/Controller/ThreadController.php   |   86 -\n .../tests/acceptance/fixtures/src/Entity/Post.php  |   91 -\n .../tests/acceptance/fixtures/src/Entity/Tag.php   |   66 -\n .../acceptance/fixtures/src/Entity/Thread.php      |  129 -\n .../tests/acceptance/fixtures/src/Entity/User.php  |  121 -\n .../fixtures/src/Repository/PostRepository.php     |   18 -\n .../fixtures/src/Repository/TagRepository.php      |   18 -\n .../fixtures/src/Repository/ThreadRepository.php   |   32 -\n .../fixtures/src/Repository/UserRepository.php     |   18 -\n .../presets/symfony/tests/acceptance/test.js       |    5 -\n .../presets/symfony/tests/analyzers.js             |  655 --\n .../presets/symfony/tests/e2e/integration.test.js  |  127 -\n .../presets/symfony/tests/e2e/scan.test.js         |   36 -\n .../presets/symfony/tests/unit/analyzers.test.js   |  442 -\n .../symfony/tests/unit/commands-match.test.js      |   52 -\n .../symfony/tests/unit/regex-backtracking.test.js  |  139 -\n .../senti-presets/presets/ui-ux/preset.json        |    5 -\n .../senti-presets/presets/web-design/NOTICE        |   10 -\n .../presets/web-design/guardrail.json              |   82 -\n .../senti-presets/presets/web-design/preset.json   |    5 -\n .../senti-presets/presets/webapp/NOTICE            |   16 -\n .../senti-presets/presets/webapp/data/commands.js  |   54 -\n .../presets/webapp/data/controllers.js             |   71 -\n .../senti-presets/presets/webapp/data/models.js    |   86 -\n .../senti-presets/presets/webapp/data/routes.js    |   71 -\n .../senti-presets/presets/webapp/data/tables.js    |   58 -\n .../presets/webapp/data/webapp-data-source.js      |   13 -\n .../senti-presets/presets/webapp/guardrail.json    |  133 -\n .../senti-presets/presets/webapp/preset.json       |   47 -\n .../presets/webapp/templates/en/README.md          |   20 -\n .../webapp/templates/en/auth_and_session.md        |   47 -\n .../presets/webapp/templates/en/business_logic.md  |   45 -\n .../presets/webapp/templates/en/commands.md        |   42 -\n .../webapp/templates/en/controller_routes.md       |   49 -\n .../webapp/templates/en/database_architecture.md   |   41 -\n .../presets/webapp/templates/en/db_tables.md       |   29 -\n .../presets/webapp/templates/ja/README.md          |   20 -\n .../webapp/templates/ja/auth_and_session.md        |   47 -\n .../presets/webapp/templates/ja/business_logic.md  |   45 -\n .../presets/webapp/templates/ja/commands.md        |   42 -\n .../webapp/templates/ja/controller_routes.md       |   49 -\n .../webapp/templates/ja/database_architecture.md   |   41 -\n .../presets/webapp/templates/ja/db_tables.md       |   29 -\n .../tests/acceptance/fixtures/.senti/config.json   |   23 -\n .../webapp/tests/acceptance/fixtures/composer.json |   13 -\n .../webapp/tests/acceptance/fixtures/src/App.php   |  111 -\n .../tests/acceptance/fixtures/src/Config.php       |   82 -\n .../tests/acceptance/fixtures/src/HttpClient.php   |   86 -\n .../tests/acceptance/fixtures/src/Logger.php       |   80 -\n .../presets/webapp/tests/acceptance/test.js        |    6 -\n .../senti-presets/presets/workers/data/bindings.js |  180 -\n .../senti-presets/presets/workers/guardrail.json   |   16 -\n .../senti-presets/presets/workers/preset.json      |   29 -\n .../presets/workers/templates/en/bindings.md       |   20 -\n .../presets/workers/templates/en/edge_runtime.md   |   11 -\n .../presets/workers/templates/ja/bindings.md       |   20 -\n .../presets/workers/templates/ja/edge_runtime.md   |   11 -\n .../presets/workers/tests/analyzers.js             |  131 -\n .../presets/workers/tests/unit/analyzers.test.js   |  373 -\n src/presets/base/templates/en/AGENTS.senti.md      |    4 +-\n src/presets/base/templates/ja/AGENTS.senti.md      |    4 +-\n src/setup.js                                       |   13 +-\n src/upgrade.js                                     |  172 +-\n tests/acceptance/lib/targets.js                    |    2 +-\n tests/e2e/043-configurable-scan.test.js            |   21 +-\n tests/e2e/051-skill-namespace.test.js              |    2 +-\n tests/e2e/060-help-layout-validate-config.test.js  |    4 +-\n tests/e2e/062-incremental-scan.test.js             |    2 +-\n tests/e2e/065-preset-hierarchy.test.js             |  277 +-\n tests/e2e/071-multi-preset-selection.test.js       |  364 +-\n tests/e2e/081-config-commands.test.js              |    2 +-\n tests/e2e/090-scan-pipeline-redesign.test.js       |    2 +-\n tests/e2e/dispatchers.test.js                      |    2 +-\n tests/e2e/docs/commands/agents.test.js             |    8 +-\n tests/e2e/docs/commands/data.test.js               |    4 +-\n tests/e2e/docs/commands/init.test.js               |   34 +-\n tests/e2e/docs/commands/parent-chain.test.js       |  236 +-\n tests/e2e/docs/commands/readme.test.js             |    2 +-\n tests/e2e/docs/commands/review.test.js             |    8 +-\n .../e2e/docs/commands/scan-dryrun-summary.test.js  |    2 +-\n tests/e2e/docs/commands/scan-multi-type.test.js    |   24 +-\n tests/e2e/docs/commands/scan-reset.test.js         |    8 +-\n tests/e2e/docs/commands/scan.test.js               |   22 +-\n tests/e2e/docs/commands/setup.test.js              |    2 +-\n tests/e2e/docs/commands/text.test.js               |    2 +-\n tests/e2e/flow/commands/post-worktree-hook.test.js |    2 +-\n tests/e2e/specs/commands/init.test.js              |    4 +-\n tests/helpers/mock-project.js                      |    2 +-\n tests/helpers/test-runner-search-dirs.js           |   17 +-\n tests/helpers/tmp-dir.js                           |  222 +-\n tests/run.js                                       |   27 +-\n tests/unit/acceptance/persist-report.test.js       |   14 +-\n tests/unit/docs/commands/enrich-exclude.test.js    |   10 +-\n tests/unit/docs/commands/forge.test.js             |   16 +-\n tests/unit/docs/commands/readme-text.test.js       |    6 +-\n tests/unit/docs/data/docs-lang-switcher.test.js    |   30 +-\n tests/unit/docs/data/monorepo.test.js              |  136 -\n tests/unit/docs/lib/analysis-filter.test.js        |   13 +-\n tests/unit/docs/lib/chapter-resolver.test.js       |    2 +-\n tests/unit/docs/lib/directive-parser.test.js       |    4 +-\n tests/unit/docs/lib/resolver-factory.test.js       |   66 +-\n .../docs/lib/template-merger-cross-chain.test.js   |  133 +-\n tests/unit/docs/lib/template-merger.test.js        |  217 +-\n tests/unit/docs/lib/test-env-detection.test.js     |    4 +-\n tests/unit/flow/gate-diff-compaction.test.js       |   63 +\n tests/unit/lib/cli.test.js                         |    4 +-\n tests/unit/lib/config.test.js                      |   10 +-\n tests/unit/lib/container-init.test.js              |    6 +-\n tests/unit/lib/dispatcher-requires-config.test.js  |    2 +-\n tests/unit/lib/docs-context.test.js                |    4 +-\n tests/unit/lib/hooks.test.js                       |    2 +-\n tests/unit/lib/include.test.js                     |   25 +-\n tests/unit/lib/presets-new.test.js                 |  172 +-\n tests/unit/lib/project-local-presets.test.js       |  123 +-\n tests/unit/lib/types-agent-profiles.test.js        |    2 +-\n tests/unit/lib/types-chapters.test.js              |    2 +-\n tests/unit/lib/types-docs-exclude.test.js          |    2 +-\n tests/unit/lib/types.test.js                       |   14 +-\n tests/unit/presets/en-templates.test.js            |  247 -\n .../unit/presets/github-actions-pipelines.test.js  |  288 -\n .../unit/presets/monorepo-match-regression.test.js |  156 -\n tests/unit/presets/preset-datasources.test.js      |  310 -\n tests/unit/presets/preset-scan-integrity.test.js   |    4 +-\n tests/unit/presets/validate-preset-chain.test.js   |   52 +-\n tests/unit/specs/commands/gate.test.js             |    2 +-\n tests/unit/specs/commands/guardrail.test.js        |    4 +-\n tests/unit/test-runner-flags.test.js               |   18 +-\n tests/unit/test-runner-labels.test.js              |    6 +-\n 564 files changed, 34537 insertions(+), 28914 deletions(-)",
+      "commits": [
+        "feat: feature/289-b6fb-3-3-preset-migration-fully-migrate-presets-",
+        "Update preset migration spec tests",
+        "Add spec plan for preset migration"
+      ]
+    },
+    "retro": {
+      "total": 9,
+      "done": 9,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 1,
+      "not_testable_count": 1,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "When inspecting the main package after implementation, only `base` may remain as builtin preset content; `src/official-plugins/senti-presets` and non-base official preset content must not be required by runtime source or main repo tests.",
+          "status": "done",
+          "note": "R1: main package contains no bundled official preset plugin copy"
+        },
+        {
+          "desc": "When resolving preset chains, the resolver must use builtin `base` plus enabled plugin registry entries and must not fall back to bundled official preset plugin content.",
+          "status": "done",
+          "note": "R2: resolveChain uses enabled plugin registry entries and rejects unregistered presets"
+        },
+        {
+          "desc": "When `senti upgrade` sees a non-base `type` whose provider package is missing, it must search at most 100 configured `plugin.sources[]`, add official default source `{ id: \"official-presets\", type: \"git\", remote: \"git@github.com:SpreadWorks/senti-presets.git\" }` when needed, install / enable the provider plugin, record reproducibility metadata for git sources, stop parent-chain traversal at depth 16, and return a non-zero error if any non-base provider in the parent chain cannot be found.",
+          "status": "done",
+          "note": "R3: upgrade records reproducibility metadata when provider completion uses a git source"
+        },
+        {
+          "desc": "When a project contains legacy `.senti/presets/<key>` preset content, `senti upgrade` must migrate it to a local plugin source / enabled package or fail with a clear error; directories with `preset.json` keep that manifest, directories without `preset.json` copy parent / scan / chapters from a matching resolved provider when one exists and otherwise become bare presets with parent null, empty scan, and empty chapters; runtime preset resolution must not treat `.senti/presets/<key>` as a leaf override.",
+          "status": "done",
+          "note": "R4: upgrade migrates manifestless legacy presets using provider parent scan and chapters"
+        },
+        {
+          "desc": "When resolving `@presets/<key>/...` includes, locale templates, or AGENTS templates, only preset keys present in the enabled preset registry may resolve, and the resolver must search deterministic paths: project-local template root first where that feature exists, then config type order, and for each type its resolved chain from leaf to root with max chain depth 16; include expansion must keep max depth 8 and max include count 32; it must not broadly scan installed plugin `presets/` directories.",
+          "status": "done",
+          "note": "R5: @presets includes resolve through project root, config type order, and leaf-to-root chain order"
+        },
+        {
+          "desc": "When plugin preset DataSources need shared helpers currently represented by `pathMatch.*`, they must obtain those helpers through public container APIs, and plugin preset code must not import main package internal preset paths.",
+          "status": "done",
+          "note": "R6: plugin preset DataSources use public pathMatch container APIs"
+        },
+        {
+          "desc": "When running main repo tests, the default, scope, and preset discovery paths must not depend on external plugin checkout state, installed plugin state, `src/official-plugins/senti-presets`, or detailed tests for actual official preset names.",
+          "status": "done",
+          "note": "R7: main test runner discovery excludes bundled and external official preset tests"
+        },
+        {
+          "desc": "When testing plugin preset foundation behavior in main repo, fixtures and expected values must use generic preset names such as `sample-preset` or `child-preset`, not actual official preset names as implementation conditions.",
+          "status": "done",
+          "note": "R8: main contract tests avoid actual official preset names as implementation fixtures"
+        },
+        {
+          "desc": "When CLI behavior changes affect existing project configs, command names and primary option meanings must remain stable, and the spec-local tests must verify success and failure exit-code conditions for provider completion and migration errors.",
+          "status": "done",
+          "note": "R9: upgrade keeps --dry-run stable and rejects unsupported arguments with non-zero status"
+        }
+      ]
+    },
+    "upgrade": {
+      "result": "success-updated",
+      "summary": {
+        "skills": {
+          "updated": 0,
+          "unchanged": 5,
+          "removed": 0
+        },
+        "presets": {
+          "copied": 4
+        },
+        "plugins": {
+          "changed": true
+        },
+        "config": {
+          "changed": false
+        },
+        "rename": {
+          "changed": 2
+        }
+      },
+      "rawLogPath": "tests/.raw/upgrade.log"
+    },
+    "issueLog": {
+      "count": 48,
+      "fullLogPath": "specs/289-b6fb-3-3-preset-migration-fully-migrate-presets-/issue-log.json",
+      "importantTotal": 24,
+      "importantShown": 10,
+      "importantOmitted": 14,
+      "recentOtherTotal": 24,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 19,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "retry-recovery",
+          "reason": "Spec-local tests changed to cover R1 runtime reference scans, R3 default provider completion, and R5 registry-only config-order resolution",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "fix: regenerated upgrade-result.json and tests/.raw/upgrade.log",
+          "resolution": "The previous gate failed before validation because upgrade evidence was missing; rerunning worktree upgrade recreated the required artifacts without changing generated docs."
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "fix: provider source selection and strict preset-chain validation",
+          "resolution": "Configured provider sources are no longer overridden by ambient official source resolution; upgrade now fails on missing/deep parent chains and legacy preset parse errors include legacy preset context. Test artifacts must be refreshed."
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "fix: DataSource resolver fallback after bundled preset removal",
+          "resolution": "createResolver now synthesizes base-only DataSource chains keyed by requested leaves only after strict project and builtin resolution both miss, without loading removed official preset content"
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "fix: project test runner lacked diagnostics for nonzero group status without TAP failure markers",
+          "resolution": "tests/run.js now emits a concise nonzero group status diagnostic before preserving the failing exit code"
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "fix: test runner preserved child TAP output for nonzero regression diagnostics",
+          "resolution": "Write captured child stdout/stderr with writeSync and set process.exitCode instead of process.exit so flow artifacts retain complete failure evidence."
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "fix: preset resolution tests used removed bundled and legacy-local preset contracts",
+          "resolution": "Extended presetByLeaf/presetsForArch to accept project roots and rewrote direct preset tests to use enabled plugin fixtures; replaced .senti/presets runtime tests with installed-plugin precedence coverage."
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "fix: remaining unit contracts expected bundled preset scan and legacy local preset validation",
+          "resolution": "Updated test-runner helper expectations to exclude bundled preset directories and rewired validatePresetChain fixtures through enabled plugin presets plus project-local templates."
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "fix: test temp projects lacked plugin-backed preset fixtures and scan defaults ignored plugin presets",
+          "resolution": "Added a test-helper local plugin fixture for temporary legacy preset configs and made docs scan resolve preset defaults with the project root so plugin preset scan patterns participate."
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "fix: test legacy plugin fixture config metadata was invalid",
+          "resolution": "The helper now writes a matching local plugin source plus deterministic 40-character commit metadata for the generated legacy-test-presets package."
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: pass project root and preset types into AGENTS template callers",
+          "resolution": "R5 gate found src/setup.js and src/docs/commands/agents.js were loading AGENTS.senti.md without registry context. Both now pass projectRoot and presetTypes so AGENTS lookup follows project-local and enabled preset chain resolution."
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: lower integration guardrail prompt budget after model context exhaustion",
+          "resolution": "The worktree gate accepted the compacted prompt but the model ran out of context. MAX_GUARDRAIL_TARGET_CHARS is reduced to 250000 so large migration diffs still preserve added-line evidence while staying within model context."
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "Not fully implemented: `@presets/<key>/...`, locale, and AGENTS resolution still target filesystem preset roots (`PRESETS_DIR`/`presetsDir`) without checking membership in the enabled preset registry, so keys outside the enabled registry...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: refresh upgrade evidence after test-execute cleanup",
+          "resolution": "Integration gate prerequisite reported upgrade-result.json missing. Ran node src/senti.js upgrade in the active worktree, kept upgrade-result.json and tests/.raw/upgrade.log, and removed generated README/analysis noise outside this flow ..."
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: refresh flow-managed tests and upgrade evidence after translate bootstrap fallback",
+          "resolution": "Spec-local combined tests and full flow-managed test-execute pass after translate falls back only to builtin locale during unresolved-provider bootstrap. Recreated upgrade-result.json after test-execute cleanup and removed generated READ..."
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 35
+    },
+    "tokenMetrics": {
+      "input": 3059394,
+      "output": 269105,
+      "cacheRead": 34482432,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 56,
+      "durationMs": 2554305,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 18046
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 17847
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 30844
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 216345
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 28164
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 347313
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 275818
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 1619928
+        }
+      ]
+    },
+    "tests": {
+      "total": 9,
+      "passed": 9,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/289-b6fb-3-3-preset-migration-fully-migrate-presets-/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 164,
+          "end_line": 18629
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "modified",
+            "path": "src/data/agents.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/docs/commands/agents.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/docs/commands/scan.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/docs/lib/resolver-factory.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/agents-md.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/config.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/container.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/i18n.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/include.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/official-plugins.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/lib/path-match.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/plugin-registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/presets.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/base/data/package.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/base/data/structure.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/base/tests/acceptance/fixtures/package.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/base/tests/acceptance/fixtures/src/config.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/base/tests/acceptance/fixtures/src/http-client.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/base/tests/acceptance/fixtures/src/index.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/base/tests/acceptance/fixtures/src/logger.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/base/tests/acceptance/test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/data/commands.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/data/config.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/data/controllers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/data/docker.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/data/email.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/data/libs.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/data/models.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/data/tables.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/data/tests.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/data/views.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/Config/bootstrap.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/Config/database.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/Config/routes.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/Console/Command/CleanupShell.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/Controller/AppController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/Controller/PostsController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/Controller/TagsController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/Controller/ThreadsController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/Controller/UsersController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/Lib/AppLib.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/Model/AppModel.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/Model/Post.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/Model/Tag.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/Model/Thread.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/Model/User.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/View/Elements/sidebar.ctp"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/View/Helper/AppHelper.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/View/Layouts/default.ctp"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/View/Threads/index.ctp"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/composer.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/analyzers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/unit/analyzers-assets-config.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/unit/analyzers-models-business.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/unit/analyzers-security.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/unit/analyzers-views-commands.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/unit/commands-match.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/data/commands.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/data/modules.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/package.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/cli.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/commands/format.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/commands/lint.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/commands/parse.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/commands/toc.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/config.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/parser.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/renderer.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/rules/code-block.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/rules/heading.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/rules/link.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/rules/list.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/tokenizer.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/database/data/schema.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/drizzle/data/schema.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/drizzle/tests/analyzers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/drizzle/tests/unit/analyzers.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/edge/data/runtime.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/github-actions/data/pipelines.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/github-actions/tests/analyzers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/graphql/data/schema.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/graphql/tests/analyzers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/graphql/tests/unit/analyzers.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/hono/data/middleware.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/hono/tests/unit/analyzers.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/js-webapp/tests/acceptance/fixtures/package.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/js-webapp/tests/acceptance/fixtures/src/config.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/js-webapp/tests/acceptance/fixtures/src/http-client.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/js-webapp/tests/acceptance/fixtures/src/index.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/js-webapp/tests/acceptance/fixtures/src/logger.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/js-webapp/tests/acceptance/test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/data/commands.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/data/config.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/data/controllers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/data/models.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/data/routes.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/data/tables.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/.env"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/app/Console/Commands/CleanupCommand.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/app/Http/Controllers/AuthController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/app/Http/Controllers/PostController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/app/Http/Controllers/TagController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/app/Http/Controllers/ThreadController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/app/Http/Middleware/Authenticate.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/app/Models/Post.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/app/Models/Tag.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/app/Models/Thread.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/app/Models/User.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/composer.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/config/app.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/database/migrations/2024_01_01_000001_create_users_table.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/database/migrations/2024_01_01_000002_create_threads_table.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/database/migrations/2024_01_01_000003_create_posts_table.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/database/migrations/2024_01_01_000004_create_tags_table.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/database/migrations/2024_01_01_000005_create_thread_tag_table.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/routes/api.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/routes/web.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/analyzers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/e2e/integration.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/e2e/scan.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/unit/analyzers.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/unit/commands-match.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/unit/scan-parser-bugs.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/lib/composer-utils.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/lib/path-match.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/package.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/index.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/parser.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/renderer.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/rules/code-block.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/rules/emphasis.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/rules/heading.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/rules/link.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/rules/list.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/rules/table.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/tokenizer.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/utils/escape.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/utils/normalize.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/library/tests/acceptance/test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/monorepo/data/monorepo.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/mysql/NOTICE"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/nextjs/data/components.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/nextjs/data/routes.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/nextjs/NOTICE"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/nextjs/tests/analyzers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/nextjs/tests/unit/analyzers.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/package.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/cli.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/commands/format.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/commands/lint.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/commands/parse.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/commands/toc.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/config.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/parser.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/renderer.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/rules/code-block.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/rules/heading.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/rules/link.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/rules/list.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/tokenizer.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/php-webapp/tests/acceptance/fixtures/composer.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/php-webapp/tests/acceptance/fixtures/src/App.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/php-webapp/tests/acceptance/fixtures/src/Config.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/php-webapp/tests/acceptance/fixtures/src/HttpClient.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/php-webapp/tests/acceptance/fixtures/src/Logger.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/php-webapp/tests/acceptance/test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/postgres/data/database.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/r2/data/storage.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/storage/data/buckets.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/data/commands.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/data/config.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/data/controllers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/data/entities.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/data/routes.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/data/tables.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/NOTICE"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/.env"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/composer.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/config/bundles.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/migrations/Version20240101000001.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/migrations/Version20240101000002.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/migrations/Version20240101000003.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/migrations/Version20240101000004.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/src/Controller/PostController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/src/Controller/SecurityController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/src/Controller/TagController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/src/Controller/ThreadController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/src/Entity/Post.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/src/Entity/Tag.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/src/Entity/Thread.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/src/Entity/User.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/src/Repository/PostRepository.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/src/Repository/TagRepository.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/src/Repository/ThreadRepository.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/src/Repository/UserRepository.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/analyzers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/e2e/integration.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/e2e/scan.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/unit/analyzers.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/unit/commands-match.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/unit/regex-backtracking.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/web-design/NOTICE"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/webapp/data/commands.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/webapp/data/controllers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/webapp/data/models.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/webapp/data/routes.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/webapp/data/tables.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/webapp/data/webapp-data-source.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/webapp/NOTICE"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/webapp/tests/acceptance/fixtures/composer.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/webapp/tests/acceptance/fixtures/src/App.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/webapp/tests/acceptance/fixtures/src/Config.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/webapp/tests/acceptance/fixtures/src/HttpClient.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/webapp/tests/acceptance/fixtures/src/Logger.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/webapp/tests/acceptance/test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/workers/data/bindings.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/workers/tests/analyzers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/workers/tests/unit/analyzers.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/setup.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/upgrade.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/acceptance/lib/targets.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/043-configurable-scan.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/051-skill-namespace.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/060-help-layout-validate-config.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/062-incremental-scan.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/065-preset-hierarchy.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/071-multi-preset-selection.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/081-config-commands.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/090-scan-pipeline-redesign.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/dispatchers.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/docs/commands/agents.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/docs/commands/data.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/docs/commands/init.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/docs/commands/parent-chain.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/docs/commands/readme.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/docs/commands/review.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/docs/commands/scan-dryrun-summary.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/docs/commands/scan-multi-type.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/docs/commands/scan-reset.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/docs/commands/scan.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/docs/commands/setup.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/docs/commands/text.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/flow/commands/post-worktree-hook.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/specs/commands/init.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/helpers/mock-project.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/helpers/test-runner-search-dirs.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/helpers/tmp-dir.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/run.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/acceptance/persist-report.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/docs/commands/enrich-exclude.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/docs/commands/forge.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/docs/commands/readme-text.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/docs/data/docs-lang-switcher.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "tests/unit/docs/data/monorepo.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/docs/lib/analysis-filter.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/docs/lib/chapter-resolver.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/docs/lib/directive-parser.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/docs/lib/resolver-factory.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/docs/lib/template-merger-cross-chain.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/docs/lib/template-merger.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/docs/lib/test-env-detection.test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "tests/unit/flow/gate-diff-compaction.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/cli.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/config.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/container-init.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/dispatcher-requires-config.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/docs-context.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/hooks.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/include.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/presets-new.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/project-local-presets.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/types-agent-profiles.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/types-chapters.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/types-docs-exclude.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/types.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "tests/unit/presets/en-templates.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "tests/unit/presets/github-actions-pipelines.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "tests/unit/presets/monorepo-match-regression.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "tests/unit/presets/preset-datasources.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/presets/preset-scan-integrity.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/presets/validate-preset-chain.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/specs/commands/gate.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/specs/commands/guardrail.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/test-runner-flags.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/test-runner-labels.test.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "modified",
+            "path": "src/data/agents.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/docs/commands/agents.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/docs/commands/scan.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/docs/lib/resolver-factory.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/agents-md.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/config.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/container.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/i18n.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/include.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/official-plugins.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/lib/path-match.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/plugin-registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/presets.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/base/data/package.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/base/data/structure.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/base/tests/acceptance/fixtures/package.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/base/tests/acceptance/fixtures/src/config.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/base/tests/acceptance/fixtures/src/http-client.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/base/tests/acceptance/fixtures/src/index.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/base/tests/acceptance/fixtures/src/logger.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/base/tests/acceptance/test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/data/commands.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/data/config.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/data/controllers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/data/docker.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/data/email.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/data/libs.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/data/models.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/data/tables.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/data/tests.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/data/views.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/Config/bootstrap.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/Config/database.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/Config/routes.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/Console/Command/CleanupShell.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/Controller/AppController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/Controller/PostsController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/Controller/TagsController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/Controller/ThreadsController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/Controller/UsersController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/Lib/AppLib.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/Model/AppModel.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/Model/Post.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/Model/Tag.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/Model/Thread.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/Model/User.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/View/Elements/sidebar.ctp"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/View/Helper/AppHelper.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/View/Layouts/default.ctp"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/app/View/Threads/index.ctp"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/fixtures/composer.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/analyzers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/unit/analyzers-assets-config.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/unit/analyzers-models-business.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/unit/analyzers-security.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/unit/analyzers-views-commands.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cakephp2/tests/unit/commands-match.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/data/commands.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/data/modules.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/package.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/cli.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/commands/format.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/commands/lint.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/commands/parse.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/commands/toc.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/config.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/parser.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/renderer.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/rules/code-block.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/rules/heading.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/rules/link.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/rules/list.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/tokenizer.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/database/data/schema.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/drizzle/data/schema.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/drizzle/tests/analyzers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/drizzle/tests/unit/analyzers.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/edge/data/runtime.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/github-actions/data/pipelines.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/github-actions/tests/analyzers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/graphql/data/schema.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/graphql/tests/analyzers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/graphql/tests/unit/analyzers.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/hono/data/middleware.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/hono/tests/unit/analyzers.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/js-webapp/tests/acceptance/fixtures/package.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/js-webapp/tests/acceptance/fixtures/src/config.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/js-webapp/tests/acceptance/fixtures/src/http-client.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/js-webapp/tests/acceptance/fixtures/src/index.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/js-webapp/tests/acceptance/fixtures/src/logger.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/js-webapp/tests/acceptance/test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/data/commands.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/data/config.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/data/controllers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/data/models.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/data/routes.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/data/tables.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/.env"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/app/Console/Commands/CleanupCommand.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/app/Http/Controllers/AuthController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/app/Http/Controllers/PostController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/app/Http/Controllers/TagController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/app/Http/Controllers/ThreadController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/app/Http/Middleware/Authenticate.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/app/Models/Post.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/app/Models/Tag.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/app/Models/Thread.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/app/Models/User.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/composer.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/config/app.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/database/migrations/2024_01_01_000001_create_users_table.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/database/migrations/2024_01_01_000002_create_threads_table.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/database/migrations/2024_01_01_000003_create_posts_table.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/database/migrations/2024_01_01_000004_create_tags_table.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/database/migrations/2024_01_01_000005_create_thread_tag_table.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/routes/api.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/fixtures/routes/web.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/analyzers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/e2e/integration.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/e2e/scan.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/unit/analyzers.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/unit/commands-match.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/laravel/tests/unit/scan-parser-bugs.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/lib/composer-utils.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/lib/path-match.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/package.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/index.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/parser.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/renderer.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/rules/code-block.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/rules/emphasis.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/rules/heading.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/rules/link.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/rules/list.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/rules/table.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/tokenizer.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/utils/escape.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/utils/normalize.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/library/tests/acceptance/test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/monorepo/data/monorepo.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/mysql/NOTICE"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/nextjs/data/components.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/nextjs/data/routes.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/nextjs/NOTICE"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/nextjs/tests/analyzers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/nextjs/tests/unit/analyzers.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/package.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/cli.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/commands/format.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/commands/lint.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/commands/parse.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/commands/toc.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/config.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/parser.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/renderer.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/rules/code-block.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/rules/heading.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/rules/link.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/rules/list.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/tokenizer.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/php-webapp/tests/acceptance/fixtures/composer.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/php-webapp/tests/acceptance/fixtures/src/App.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/php-webapp/tests/acceptance/fixtures/src/Config.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/php-webapp/tests/acceptance/fixtures/src/HttpClient.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/php-webapp/tests/acceptance/fixtures/src/Logger.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/php-webapp/tests/acceptance/test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/postgres/data/database.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/r2/data/storage.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/storage/data/buckets.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/data/commands.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/data/config.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/data/controllers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/data/entities.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/data/routes.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/data/tables.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/NOTICE"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/.env"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/composer.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/config/bundles.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/migrations/Version20240101000001.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/migrations/Version20240101000002.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/migrations/Version20240101000003.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/migrations/Version20240101000004.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/src/Controller/PostController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/src/Controller/SecurityController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/src/Controller/TagController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/src/Controller/ThreadController.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/src/Entity/Post.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/src/Entity/Tag.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/src/Entity/Thread.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/src/Entity/User.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/src/Repository/PostRepository.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/src/Repository/TagRepository.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/src/Repository/ThreadRepository.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/fixtures/src/Repository/UserRepository.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/analyzers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/e2e/integration.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/e2e/scan.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/unit/analyzers.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/unit/commands-match.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/symfony/tests/unit/regex-backtracking.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/web-design/NOTICE"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/webapp/data/commands.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/webapp/data/controllers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/webapp/data/models.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/webapp/data/routes.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/webapp/data/tables.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/webapp/data/webapp-data-source.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/webapp/NOTICE"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/webapp/tests/acceptance/fixtures/composer.json"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/webapp/tests/acceptance/fixtures/src/App.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/webapp/tests/acceptance/fixtures/src/Config.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/webapp/tests/acceptance/fixtures/src/HttpClient.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/webapp/tests/acceptance/fixtures/src/Logger.php"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/webapp/tests/acceptance/test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/workers/data/bindings.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/workers/tests/analyzers.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/official-plugins/senti-presets/presets/workers/tests/unit/analyzers.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/setup.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/upgrade.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/acceptance/lib/targets.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/043-configurable-scan.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/051-skill-namespace.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/060-help-layout-validate-config.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/062-incremental-scan.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/065-preset-hierarchy.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/071-multi-preset-selection.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/081-config-commands.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/090-scan-pipeline-redesign.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/dispatchers.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/docs/commands/agents.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/docs/commands/data.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/docs/commands/init.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/docs/commands/parent-chain.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/docs/commands/readme.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/docs/commands/review.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/docs/commands/scan-dryrun-summary.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/docs/commands/scan-multi-type.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/docs/commands/scan-reset.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/docs/commands/scan.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/docs/commands/setup.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/docs/commands/text.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/flow/commands/post-worktree-hook.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/specs/commands/init.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/helpers/mock-project.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/helpers/test-runner-search-dirs.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/helpers/tmp-dir.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/run.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/acceptance/persist-report.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/docs/commands/enrich-exclude.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/docs/commands/forge.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/docs/commands/readme-text.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/docs/data/docs-lang-switcher.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "tests/unit/docs/data/monorepo.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/docs/lib/analysis-filter.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/docs/lib/chapter-resolver.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/docs/lib/directive-parser.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/docs/lib/resolver-factory.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/docs/lib/template-merger-cross-chain.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/docs/lib/template-merger.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/docs/lib/test-env-detection.test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "tests/unit/flow/gate-diff-compaction.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/cli.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/config.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/container-init.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/dispatcher-requires-config.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/docs-context.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/hooks.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/include.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/presets-new.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/project-local-presets.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/types-agent-profiles.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/types-chapters.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/types-docs-exclude.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/types.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "tests/unit/presets/en-templates.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "tests/unit/presets/github-actions-pipelines.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "tests/unit/presets/monorepo-match-regression.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "tests/unit/presets/preset-datasources.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/presets/preset-scan-integrity.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/presets/validate-preset-chain.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/specs/commands/gate.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/specs/commands/guardrail.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/test-runner-flags.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/test-runner-labels.test.js"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/289-b6fb-3-3-preset-migration-fully-migrate-presets-/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/289-b6fb-3-3-preset-migration-fully-migrate-presets-\n    Update preset migration spec tests\n    Add spec plan for preset migration\n    564 files changed, 34537 insertions(+), 28914 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (9 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 35\n    agent calls ................. 56\n    input tokens ................ 3,059,394\n    output tokens ............... 269,105\n    cache-read tokens ........... 34,482,432\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 2554.3s\n      draft-questions-review .... 18.0s\n      draft-coverage-review ..... 17.8s\n      draft-gate ................ 30.8s\n      spec-review ............... 216.3s\n      spec-gate ................. 28.2s\n      test-review ............... 347.3s\n      impl-review ............... 275.8s\n      impl-gate ................. 1619.9s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 9  passed 9  failed 0 verdict=pass\n    raw_output: specs/289-b6fb-3-3-preset-migration-fully-migrate-presets-/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (48 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/289-b6fb-3-3-preset-migration-fully-migrate-presets-/issue-log.json\n\n    Important (10 of 24)\n    - [retry-recovery] Spec-local tests changed to cover R1 runtime reference scans, R3 default provider completion, and R5 registry-only config-order resolution\n    - [impl-gate] fix: regenerated upgrade-result.json and tests/.raw/upgrade.log\n    - [impl-gate] fix: provider source selection and strict preset-chain validation\n    - [impl-gate] fix: DataSource resolver fallback after bundled preset removal\n    - [impl-gate] fix: project test runner lacked diagnostics for nonzero group status without TAP failure markers\n    - [impl-gate] fix: test runner preserved child TAP output for nonzero regression diagnostics\n    - [impl-gate] fix: preset resolution tests used removed bundled and legacy-local preset contracts\n    - [impl-gate] fix: remaining unit contracts expected bundled preset scan and legacy local preset validation\n    - [impl-gate] fix: test temp projects lacked plugin-backed preset fixtures and scan defaults ignored plugin presets\n    - [impl-gate] fix: test legacy plugin fixture config metadata was invalid\n    ... 14 important issue-log entries omitted\n\n    Recent Other (5 of 24)\n    - [impl-gate] fix: pass project root and preset types into AGENTS template callers\n    - [impl-gate] fix: lower integration guardrail prompt budget after model context exhaustion\n    - [spec-gate] Not fully implemented: `@presets/<key>/...`, locale, and AGENTS resolution still target filesystem preset roots (`PRESETS_DIR`/`presetsDir`) without checking membership in the enabled preset registry, so keys outside the enabled registry...\n    - [impl-gate] fix: refresh upgrade evidence after test-execute cleanup\n    - [impl-gate] fix: refresh flow-managed tests and upgrade evidence after translate bootstrap fallback\n    ... 19 other issue-log entries omitted"
+}

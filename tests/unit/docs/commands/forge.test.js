@@ -105,7 +105,7 @@ describe("forge CLI validation", () => {
 
   it("rejects invalid --max-runs", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "node-cli", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
     try {
       execFileSync("node", [CMD, ...CMD_ARGS_PREFIX, "--prompt", "test", "--max-runs", "0"], {
         encoding: "utf8",
@@ -119,7 +119,7 @@ describe("forge CLI validation", () => {
 
   it("rejects invalid --mode", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "node-cli", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
     try {
       execFileSync("node", [CMD, ...CMD_ARGS_PREFIX, "--prompt", "test", "--mode", "invalid"], {
         encoding: "utf8",
@@ -133,7 +133,7 @@ describe("forge CLI validation", () => {
 
   it("exits with error when no prompt given", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "node-cli", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
 
     try {
       execFileSync("node", [CMD, ...CMD_ARGS_PREFIX], {
@@ -148,7 +148,7 @@ describe("forge CLI validation", () => {
 
   it("shows help with --help", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "node-cli", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
 
     const result = execFileSync("node", [CMD, ...CMD_ARGS_PREFIX, "--help"], {
       encoding: "utf8",
@@ -159,7 +159,7 @@ describe("forge CLI validation", () => {
 
   it("--dry-run skips writes, review, and agent calls", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "node-cli", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
     writeFile(tmp, "docs/test.md", "# Test\n\nContent\n");
 
     const result = execFileSync("node", [
@@ -178,7 +178,7 @@ describe("forge CLI validation", () => {
 
   it("runs review in local mode and handles pass", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "node-cli", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
     // Create docs that will pass review
     const lines = ["# Test", ""];
     for (let i = 0; i < 20; i++) lines.push(`Content line ${i}`);
@@ -201,7 +201,7 @@ describe("forge CLI validation", () => {
     tmp = createTmpDir();
     writeJson(tmp, ".senti/config.json", {
       lang: "ja",
-      type: "node-cli",
+      type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
       agent: {
         default: "echo-agent",
@@ -237,7 +237,7 @@ describe("forge CLI validation", () => {
     tmp = createTmpDir();
     writeJson(tmp, ".senti/config.json", {
       lang: "ja",
-      type: "node-cli",
+      type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
       agent: {
         default: "echo-agent",

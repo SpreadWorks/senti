@@ -35,7 +35,7 @@ describe("README.md text directive processing", () => {
     tmp = createTmpDir();
 
     const readmeContent = [
-      '# <!-- {{data("webapp.project.name")}} -->MyProject<!-- {{/data}} -->',
+      '# <!-- {{data("sample-preset.project.name")}} -->MyProject<!-- {{/data}} -->',
       "",
       '<!-- {{text({prompt: "Write project overview"})}} -->',
       "<!-- {{/text}} -->",
@@ -49,7 +49,7 @@ describe("README.md text directive processing", () => {
       "",
       "## Documentation",
       "",
-      "<!-- {{data(\"webapp.docs.chapters\")}} -->",
+      "<!-- {{data(\"sample-preset.docs.chapters\")}} -->",
       "| Chapter | Summary |",
       "| --- | --- |",
       "| [Overview](docs/overview.md) | System overview |",
@@ -118,7 +118,7 @@ describe("README.md text directive processing", () => {
     const readmeWithData = [
       "# MyProject",
       "",
-      "<!-- {{data(\"webapp.docs.chapters\")}} -->",
+      "<!-- {{data(\"sample-preset.docs.chapters\")}} -->",
       dataContent,
       "<!-- {{/data}} -->",
       "",

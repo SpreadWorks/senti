@@ -12,18 +12,48 @@ import {
 import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../../helpers/tmp-dir.js";
 
 /**
- * Create a temporary project root with a local preset fixture.
+ * Create a temporary project root with an installed plugin preset fixture.
  * Returns { tmpDir, cleanup }.
  */
-function withLocalPreset(presetName, { chapters = null, templateContent = null, lang = "ja" } = {}) {
+function withPluginPresets(presets, { type = presets[0]?.key } = {}) {
   const tmpDir = createTmpDir("senti-test-local-preset-");
+  writeJson(tmpDir, ".senti/config.json", {
+    lang: "ja",
+    type,
+    docs: { languages: ["ja"], defaultLanguage: "ja" },
+    scan: { include: ["src/**/*.js"], exclude: [] },
+    plugin: { packages: [{ id: "test-presets" }] },
+  });
   writeFile(
     tmpDir,
-    `.senti/presets/${presetName}/preset.json`,
-    JSON.stringify({ parent: null, ...(chapters ? { chapters } : {}) }),
+    ".senti/plugins/test-presets/plugin.json",
+    JSON.stringify({
+      name: "test-presets",
+      files: ["plugin.json", "presets/"],
+      contributions: {
+        presets: presets.map((preset) => ({
+          key: preset.key,
+          path: `presets/${preset.key}`,
+        })),
+      },
+    }),
   );
-  if (templateContent !== null) {
-    writeFile(tmpDir, `.senti/presets/${presetName}/templates/${lang}/overview.md`, templateContent);
+  for (const preset of presets) {
+    writeFile(
+      tmpDir,
+      `.senti/plugins/test-presets/presets/${preset.key}/preset.json`,
+      JSON.stringify({
+        parent: preset.parent ?? null,
+        ...(preset.chapters ? { chapters: preset.chapters } : {}),
+      }),
+    );
+    if (preset.templateContent !== undefined) {
+      writeFile(
+        tmpDir,
+        `.senti/plugins/test-presets/presets/${preset.key}/templates/${preset.lang || "ja"}/overview.md`,
+        preset.templateContent,
+      );
+    }
   }
   return { tmpDir, cleanup: () => removeTmpDir(tmpDir) };
 }
@@ -44,50 +74,71 @@ describe("buildLayers", () => {
   });
 
   it("returns leaf + base for preset with one parent", () => {
-    const layers = buildLayers("cli", "ja", null);
-    // cli → [cli/templates/ja, base/templates/ja]
-    assert.ok(layers.length >= 1);
-    const last = layers[layers.length - 1];
-    assert.ok(last.includes("base"), `expected base in ${last}`);
+    const { tmpDir, cleanup } = withPluginPresets([
+      { key: "sample-preset", parent: "base", templateContent: "# Sample" },
+    ]);
+    try {
+      const layers = buildLayers("sample-preset", "ja", null, tmpDir);
+      assert.ok(layers.length >= 2);
+      assert.ok(layers[0].includes("sample-preset"), `expected sample-preset in ${layers[0]}`);
+      assert.ok(layers[layers.length - 1].includes("base"), `expected base in ${layers[layers.length - 1]}`);
+    } finally {
+      cleanup();
+    }
   });
 
   it("returns leaf + parent chain + base for deeply nested preset", () => {
-    const layers = buildLayers("node-cli", "ja", null);
-    // node-cli → [node-cli/templates/ja, cli/templates/ja, base/templates/ja]
-    assert.ok(layers.length >= 2);
-    const last = layers[layers.length - 1];
-    assert.ok(last.includes("base"), `expected base in ${last}`);
+    const { tmpDir, cleanup } = withPluginPresets([
+      { key: "sample-parent", parent: "base", templateContent: "# Parent" },
+      { key: "sample-child", parent: "sample-parent", templateContent: "# Child" },
+    ], { type: "sample-child" });
+    try {
+      const layers = buildLayers("sample-child", "ja", null, tmpDir);
+      assert.ok(layers.length >= 3);
+      assert.ok(layers[0].includes("sample-child"), `expected sample-child in ${layers[0]}`);
+      assert.ok(layers[1].includes("sample-parent"), `expected sample-parent in ${layers[1]}`);
+      assert.ok(layers[layers.length - 1].includes("base"), `expected base in ${layers[layers.length - 1]}`);
+    } finally {
+      cleanup();
+    }
   });
 
   it("includes project-local dir when it exists", () => {
     const projectLocalDir = path.join(PRESETS_DIR, "base", "templates", "ja");
-    const layers = buildLayers("node-cli", "ja", projectLocalDir);
+    const layers = buildLayers("base", "ja", projectLocalDir);
     assert.equal(layers[0], projectLocalDir);
   });
 
   it("skips project-local dir when it does not exist", () => {
-    const layers = buildLayers("node-cli", "ja", "/nonexistent/dir");
+    const layers = buildLayers("base", "ja", "/nonexistent/dir");
     for (const l of layers) {
       assert.notEqual(l, "/nonexistent/dir");
     }
   });
 
   it("returns layers in priority order (most specific first)", () => {
-    const layers = buildLayers("node-cli", "ja", null);
-    if (layers.length >= 2) {
-      assert.ok(
-        layers[layers.length - 1].includes("base"),
-        "last layer should be base",
-      );
-      assert.ok(
-        !layers[0].includes("base") || layers.length === 1,
-        "first layer should not be base (unless only base exists)",
-      );
+    const { tmpDir, cleanup } = withPluginPresets([
+      { key: "sample-preset", parent: "base", templateContent: "# Sample" },
+    ]);
+    try {
+      const layers = buildLayers("sample-preset", "ja", null, tmpDir);
+      if (layers.length >= 2) {
+        assert.ok(
+          layers[layers.length - 1].includes("base"),
+          "last layer should be base",
+        );
+        assert.ok(
+          !layers[0].includes("base") || layers.length === 1,
+          "first layer should not be base (unless only base exists)",
+        );
+      }
+    } finally {
+      cleanup();
     }
   });
 
   it("returns only existing directories", () => {
-    const layers = buildLayers("node-cli", "zz-nonexistent", null);
+    const layers = buildLayers("base", "zz-nonexistent", null);
     for (const l of layers) {
       assert.ok(fs.existsSync(l), `expected ${l} to exist`);
     }
@@ -208,18 +259,25 @@ describe("resolveChaptersOrder", () => {
 
   it("leaf preset overrides base chapters", () => {
     const baseChapters = resolveChaptersOrder("base");
-    const nodeCliChapters = resolveChaptersOrder("node-cli");
-    if (nodeCliChapters.length > 0 && baseChapters.length > 0) {
-      const sameOrder =
-        JSON.stringify(baseChapters) === JSON.stringify(nodeCliChapters);
-      if (!sameOrder) {
-        assert.notDeepEqual(baseChapters, nodeCliChapters);
+    const { tmpDir, cleanup } = withPluginPresets([
+      { key: "sample-preset", parent: "base", chapters: ["custom.md"] },
+    ]);
+    try {
+      const nodeCliChapters = resolveChaptersOrder("sample-preset", null, tmpDir);
+      if (nodeCliChapters.length > 0 && baseChapters.length > 0) {
+        const sameOrder =
+          JSON.stringify(baseChapters) === JSON.stringify(nodeCliChapters);
+        if (!sameOrder) {
+          assert.notDeepEqual(baseChapters, nodeCliChapters);
+        }
       }
+    } finally {
+      cleanup();
     }
   });
 
   it("returns array of strings", () => {
-    const chapters = resolveChaptersOrder("node-cli");
+    const chapters = resolveChaptersOrder("base");
     assert.ok(Array.isArray(chapters));
     for (const ch of chapters) {
       assert.equal(typeof ch, "string");
@@ -233,8 +291,8 @@ describe("resolveChaptersOrder", () => {
 
 describe("resolveTemplates", () => {
   it("resolves templates for existing language", () => {
-    const chaptersOrder = resolveChaptersOrder("node-cli");
-    const resolutions = resolveTemplates("node-cli", "ja", {
+    const chaptersOrder = resolveChaptersOrder("base");
+    const resolutions = resolveTemplates("base", "ja", {
       chaptersOrder,
     });
     assert.ok(resolutions.length > 0, "should resolve at least one template");
@@ -247,17 +305,30 @@ describe("resolveTemplates", () => {
   });
 
   it("includes README.md in resolutions", () => {
-    const chaptersOrder = resolveChaptersOrder("node-cli");
-    const resolutions = resolveTemplates("node-cli", "ja", {
-      chaptersOrder,
-    });
-    const readme = resolutions.find((r) => r.fileName === "README.md");
-    assert.ok(readme, "should include README.md");
+    const { tmpDir, cleanup } = withPluginPresets([
+      { key: "sample-preset", parent: "base", chapters: ["overview.md"], templateContent: "# Overview" },
+    ]);
+    try {
+      writeFile(
+        tmpDir,
+        ".senti/plugins/test-presets/presets/sample-preset/templates/ja/README.md",
+        "# README\n",
+      );
+      const chaptersOrder = resolveChaptersOrder("sample-preset", null, tmpDir);
+      const resolutions = resolveTemplates("sample-preset", "ja", {
+        chaptersOrder,
+        projectRoot: tmpDir,
+      });
+      const readme = resolutions.find((r) => r.fileName === "README.md");
+      assert.ok(readme, "should include README.md");
+    } finally {
+      cleanup();
+    }
   });
 
   it('marks files for translation when target language has no templates', () => {
-    const chaptersOrder = resolveChaptersOrder("node-cli");
-    const resolutions = resolveTemplates("node-cli", "fr", {
+    const chaptersOrder = resolveChaptersOrder("base");
+    const resolutions = resolveTemplates("base", "fr", {
       chaptersOrder,
       fallbackLangs: ["ja"],
     });
@@ -270,15 +341,15 @@ describe("resolveTemplates", () => {
   });
 
   it("returns empty array when no templates found anywhere", () => {
-    const resolutions = resolveTemplates("node-cli", "zz", {
+    const resolutions = resolveTemplates("base", "zz", {
       chaptersOrder: ["nonexistent.md"],
     });
     assert.deepEqual(resolutions, []);
   });
 
   it("resolveTemplates result sources have expected shape", () => {
-    const chaptersOrder = resolveChaptersOrder("node-cli");
-    const resolutions = resolveTemplates("node-cli", "ja", {
+    const chaptersOrder = resolveChaptersOrder("base");
+    const resolutions = resolveTemplates("base", "ja", {
       chaptersOrder,
     });
     for (const r of resolutions) {
@@ -297,11 +368,13 @@ describe("resolveTemplates", () => {
 // ---------------------------------------------------------------------------
 
 describe("buildLayers — projectRoot", () => {
-  it("includes project-local preset templates when projectRoot is provided", () => {
-    const { tmpDir, cleanup } = withLocalPreset("mypreset", { templateContent: "# Overview" });
+  it("includes plugin preset templates when projectRoot is provided", () => {
+    const { tmpDir, cleanup } = withPluginPresets([
+      { key: "mypreset", parent: "base", templateContent: "# Overview" },
+    ]);
     try {
       const layers = buildLayers("mypreset", "ja", null, tmpDir);
-      const localTemplateDir = path.join(tmpDir, ".senti", "presets", "mypreset", "templates", "ja");
+      const localTemplateDir = path.join(tmpDir, ".senti", "plugins", "test-presets", "presets", "mypreset", "templates", "ja");
       assert.ok(
         layers.includes(localTemplateDir),
         `expected local preset template dir in layers, got: ${layers}`,
@@ -311,12 +384,14 @@ describe("buildLayers — projectRoot", () => {
     }
   });
 
-  it("resolves local preset as first non-project-local layer (highest priority)", () => {
-    const { tmpDir, cleanup } = withLocalPreset("mypreset", { templateContent: "# Overview" });
+  it("resolves plugin preset as first non-project-local layer (highest priority)", () => {
+    const { tmpDir, cleanup } = withPluginPresets([
+      { key: "mypreset", parent: "base", templateContent: "# Overview" },
+    ]);
     try {
       const layers = buildLayers("mypreset", "ja", null, tmpDir);
-      const localTemplateDir = path.join(tmpDir, ".senti", "presets", "mypreset", "templates", "ja");
-      // When no projectLocalDir is given, the local preset template should be first
+      const localTemplateDir = path.join(tmpDir, ".senti", "plugins", "test-presets", "presets", "mypreset", "templates", "ja");
+      // When no projectLocalDir is given, the plugin preset template should be first
       assert.equal(layers[0], localTemplateDir);
     } finally {
       cleanup();
@@ -332,7 +407,7 @@ describe("buildLayers — projectRoot", () => {
   });
 
   it("with projectRoot but no matching local preset, behaves same as without projectRoot", () => {
-    const { tmpDir, cleanup } = withLocalPreset("other-preset", {});
+    const { tmpDir, cleanup } = withPluginPresets([{ key: "other-preset", parent: "base" }]);
     try {
       // No "base" preset dir — should fall back to built-in preset
       const layersWithRoot = buildLayers("base", "ja", null, tmpDir);
@@ -345,9 +420,11 @@ describe("buildLayers — projectRoot", () => {
 });
 
 describe("resolveChaptersOrder — projectRoot", () => {
-  it("returns local preset chapters when projectRoot is provided", () => {
+  it("returns plugin preset chapters when projectRoot is provided", () => {
     const localChapters = ["intro.md", "usage.md", "faq.md"];
-    const { tmpDir, cleanup } = withLocalPreset("mypreset", { chapters: localChapters });
+    const { tmpDir, cleanup } = withPluginPresets([
+      { key: "mypreset", parent: "base", chapters: localChapters },
+    ]);
     try {
       const result = resolveChaptersOrder("mypreset", null, tmpDir);
       assert.deepEqual(result, localChapters);
@@ -358,7 +435,7 @@ describe("resolveChaptersOrder — projectRoot", () => {
 
   it("without projectRoot, built-in preset chapters are returned unchanged", () => {
     const chaptersWithout = resolveChaptersOrder("base");
-    const { tmpDir, cleanup } = withLocalPreset("other-preset", {});
+    const { tmpDir, cleanup } = withPluginPresets([{ key: "other-preset", parent: "base" }]);
     try {
       // No .senti/presets/base/ — should return same as without projectRoot
       const chaptersWithRoot = resolveChaptersOrder("base", null, tmpDir);
@@ -370,11 +447,15 @@ describe("resolveChaptersOrder — projectRoot", () => {
 });
 
 describe("resolveTemplates — projectRoot", () => {
-  it("resolves local preset templates without Preset not found error", () => {
-    const { tmpDir, cleanup } = withLocalPreset("mypreset", {
-      chapters: ["overview.md"],
-      templateContent: "# Overview\nContent here.",
-    });
+  it("resolves plugin preset templates without Preset not found error", () => {
+    const { tmpDir, cleanup } = withPluginPresets([
+      {
+        key: "mypreset",
+        parent: "base",
+        chapters: ["overview.md"],
+        templateContent: "# Overview\nContent here.",
+      },
+    ]);
     try {
       const resolutions = resolveTemplates("mypreset", "ja", {
         chaptersOrder: ["overview.md"],
@@ -390,10 +471,10 @@ describe("resolveTemplates — projectRoot", () => {
   });
 
   it("existing built-in preset resolution is unchanged when projectRoot is not passed", () => {
-    const chaptersOrder = resolveChaptersOrder("node-cli");
-    const withoutRoot = resolveTemplates("node-cli", "ja", { chaptersOrder });
+    const chaptersOrder = resolveChaptersOrder("base");
+    const withoutRoot = resolveTemplates("base", "ja", { chaptersOrder });
     // Passing undefined projectRoot explicitly — should be identical
-    const withUndefinedRoot = resolveTemplates("node-cli", "ja", {
+    const withUndefinedRoot = resolveTemplates("base", "ja", {
       chaptersOrder,
       projectRoot: undefined,
     });

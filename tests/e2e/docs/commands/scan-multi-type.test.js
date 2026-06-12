@@ -26,7 +26,7 @@ describe("scan multi-type pattern merging", () => {
     tmp = createTmpDir();
     writeJson(tmp, ".senti/config.json", {
       lang: "ja",
-      type: "rest",
+      type: "sample-endpoint",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
     });
     writeJson(tmp, "package.json", { name: "test", version: "1.0.0" });
@@ -37,17 +37,17 @@ describe("scan multi-type pattern merging", () => {
       env: makeEnv(tmp),
     });
     const analysis = JSON.parse(result);
-    // rest has no scan patterns → only package (from package.json)
+    // sample-endpoint has no matching scan results → only package (from package.json)
     assert.ok(analysis.analyzedAt);
-    assert.ok(!analysis.modules, "rest alone should not produce modules");
+    assert.ok(!analysis.modules, "sample-endpoint alone should not produce modules");
   });
 
   it("multi-type merges scan patterns from all chains", () => {
     tmp = createTmpDir();
-    // rest has no scan patterns, node-cli has scan patterns for src/**/*.js
+    // sample-endpoint has no matching scan results, sample-node-command has scan patterns for src/**/*.js
     writeJson(tmp, ".senti/config.json", {
       lang: "ja",
-      type: ["rest", "node-cli"],
+      type: ["sample-endpoint", "sample-node-command"],
       docs: { languages: ["ja"], defaultLanguage: "ja" },
     });
     writeJson(tmp, "package.json", { name: "test", version: "1.0.0" });
@@ -58,16 +58,16 @@ describe("scan multi-type pattern merging", () => {
       env: makeEnv(tmp),
     });
     const analysis = JSON.parse(result);
-    assert.ok(analysis.modules, "node-cli scan patterns should be merged, producing modules");
+    assert.ok(analysis.modules, "sample-node-command scan patterns should be merged, producing modules");
     assert.equal(analysis.modules.summary.total, 1);
   });
 
   it("multi-type loads DataSources from all chains", () => {
     tmp = createTmpDir();
-    // node-cli provides modules scan, cakephp2 provides controllers scan
+    // sample-node-command provides modules scan, child-preset provides controllers scan
     writeJson(tmp, ".senti/config.json", {
       lang: "ja",
-      type: ["node-cli", "cakephp2"],
+      type: ["sample-node-command", "child-preset"],
       docs: { languages: ["ja"], defaultLanguage: "ja" },
     });
     writeJson(tmp, "package.json", { name: "test", version: "1.0.0" });
@@ -78,9 +78,9 @@ describe("scan multi-type pattern merging", () => {
       env: makeEnv(tmp),
     });
     const analysis = JSON.parse(result);
-    // node-cli chain → modules DataSource should scan the .js file
-    assert.ok(analysis.modules, "modules from node-cli chain should be present");
-    // cakephp2 chain → controllers DataSource loaded (no PHP files, so no data)
+    // sample-node-command chain -> modules DataSource should scan the .js file
+    assert.ok(analysis.modules, "modules from sample-node-command chain should be present");
+    // child-preset chain → controllers DataSource loaded (no PHP files, so no data)
     // The key point is that both chains' DataSources are loaded without error
   });
 
@@ -88,7 +88,7 @@ describe("scan multi-type pattern merging", () => {
     tmp = createTmpDir();
     writeJson(tmp, ".senti/config.json", {
       lang: "ja",
-      type: ["rest", "node-cli"],
+      type: ["sample-endpoint", "sample-node-command"],
       docs: { languages: ["ja"], defaultLanguage: "ja" },
       scan: { include: ["lib/**/*.js"], exclude: [] },
     });

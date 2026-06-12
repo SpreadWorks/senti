@@ -11,7 +11,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { sentiDir } from "../../lib/config.js";
 import { loadDataSources as loadDataSourcesBase } from "./data-source-loader.js";
-import { resolveMultiChains, resolveChainSafe } from "../../lib/presets.js";
+import { PRESETS, resolveMultiChains } from "../../lib/presets.js";
 import { createLogger } from "../../lib/progress.js";
 
 const logger = createLogger("resolver");
@@ -79,6 +79,16 @@ async function loadChainDataSources(chain, ctx) {
   return dataSources;
 }
 
+function fallbackDataSourceChains(types) {
+  const basePreset = PRESETS.find((p) => p.key === "base");
+  if (!basePreset) return [];
+
+  const typeList = Array.isArray(types) ? types : [types];
+  return [...new Set(typeList)].map((key) => [
+    key === "base" ? basePreset : { ...basePreset, key, parent: null },
+  ]);
+}
+
 /**
  * type に基づいてリゾルバを生成する。
  * 複数 type の場合、各チェーンごとに独立した DataSource マップを持つ。
@@ -107,7 +117,12 @@ export async function createResolver(type, root, opts) {
     chains = resolveMultiChains(type, root);
   } catch (err) {
     if (!/Preset not found:/.test(err.message)) throw err;
-    chains = resolveMultiChains(type);
+    try {
+      chains = resolveMultiChains(type);
+    } catch (fallbackErr) {
+      if (!/Preset not found:/.test(fallbackErr.message)) throw fallbackErr;
+      chains = fallbackDataSourceChains(type);
+    }
   }
 
   // 各チェーンの leaf key → DataSource マップ

@@ -16,7 +16,7 @@ describe("scan CLI", () => {
     tmp = createTmpDir();
     writeJson(tmp, ".senti/config.json", {
       lang: "ja",
-      type: "node-cli",
+      type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
       scan: { include: ["src/**/*.js"], exclude: [] },
     });
@@ -32,11 +32,11 @@ describe("scan CLI", () => {
     assert.equal(analysis.modules.summary.total, 1);
   });
 
-  it("does not emit WARN or legacy prefix on stderr for node-cli type", () => {
+  it("does not emit WARN or legacy prefix on stderr for sample-node-command type", () => {
     tmp = createTmpDir();
     writeJson(tmp, ".senti/config.json", {
       lang: "ja",
-      type: "node-cli",
+      type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
       scan: { include: ["src/**/*.js"], exclude: [] },
     });
@@ -55,7 +55,7 @@ describe("scan CLI", () => {
     tmp = createTmpDir();
     writeJson(tmp, ".senti/config.json", {
       lang: "ja",
-      type: "node-cli",
+      type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
       scan: { include: ["src/**/*.js"], exclude: [] },
     });
@@ -82,7 +82,7 @@ describe("scan CLI", () => {
     tmp = createTmpDir();
     writeJson(tmp, ".senti/config.json", {
       lang: "ja",
-      type: "node-cli",
+      type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
       scan: { include: ["src/**/*.js"], exclude: [] },
     });
@@ -109,11 +109,11 @@ describe("scan CLI", () => {
     assert.match(result, /--stdout/);
   });
 
-  it("scans cakephp2 with parent-child DataSource inheritance", () => {
+  it("scans child-preset with parent-child DataSource inheritance", () => {
     tmp = createTmpDir();
     writeJson(tmp, ".senti/config.json", {
       lang: "ja",
-      type: "cakephp2",
+      type: "child-preset",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
     });
     writeFile(tmp, "app/Controller/UsersController.php", [
@@ -131,7 +131,7 @@ describe("scan CLI", () => {
     });
     const analysis = JSON.parse(result);
     assert.ok(analysis.analyzedAt);
-    // CakePHP controllers DataSource overrides webapp parent
+    // CakePHP controllers DataSource overrides sample-preset parent
     assert.ok(analysis.controllers, "controllers category should exist");
     assert.equal(analysis.controllers.summary.total, 1);
     assert.equal(analysis.controllers.entries[0].className, "UsersController");
@@ -141,7 +141,7 @@ describe("scan CLI", () => {
     tmp = createTmpDir();
     writeJson(tmp, ".senti/config.json", {
       lang: "ja",
-      type: "node-cli",
+      type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
       scan: { include: ["src/**/*.js"], exclude: [] },
     });
@@ -186,7 +186,7 @@ describe("scan CLI", () => {
     tmp = createTmpDir();
     writeJson(tmp, ".senti/config.json", {
       lang: "ja",
-      type: "node-cli",
+      type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
       scan: { include: ["src/**/*.js"], exclude: [] },
     });
@@ -224,7 +224,7 @@ describe("scan CLI", () => {
     tmp = createTmpDir();
     writeJson(tmp, ".senti/config.json", {
       lang: "ja",
-      type: "node-cli",
+      type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
       scan: { include: ["src/**/*.js", "package.json"] },
     });

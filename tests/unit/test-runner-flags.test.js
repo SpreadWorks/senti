@@ -19,11 +19,11 @@ const ROOT = resolve(import.meta.dirname, "..", "..");
 const RUN_JS = resolve(ROOT, "tests", "run.js");
 
 describe("buildSearchDirs", () => {
-  it("default (no flags) returns unit + e2e + presets (no tests/agent)", () => {
+  it("default (no flags) returns unit + e2e only (no tests/agent or bundled presets)", () => {
     const dirs = buildSearchDirs({ root: ROOT }, {});
     assert.ok(dirs.some((d) => d.endsWith("/tests/unit")));
     assert.ok(dirs.some((d) => d.endsWith("/tests/e2e")));
-    assert.ok(dirs.some((d) => d.endsWith("/src/presets")));
+    assert.ok(!dirs.some((d) => d.endsWith("/src/presets")));
     assert.ok(!dirs.some((d) => d.endsWith("/tests/agent")));
   });
 
@@ -37,12 +37,12 @@ describe("buildSearchDirs", () => {
     const dirs = buildSearchDirs({ root: ROOT }, { all: true });
     assert.ok(dirs.some((d) => d.endsWith("/tests/unit")));
     assert.ok(dirs.some((d) => d.endsWith("/tests/e2e")));
-    assert.ok(dirs.some((d) => d.endsWith("/src/presets")));
+    assert.ok(!dirs.some((d) => d.endsWith("/src/presets")));
     assert.ok(dirs.some((d) => d.endsWith("/tests/agent")));
   });
 
   it("--preset preserves existing preset search behavior and excludes tests/agent", () => {
-    const dirs = buildSearchDirs({ root: ROOT }, { preset: "hono" });
+    const dirs = buildSearchDirs({ root: ROOT }, { preset: "sample-runtime" });
     assert.ok(!dirs.some((d) => d.endsWith("/tests/agent")));
   });
 
@@ -75,14 +75,14 @@ describe("validateFlags", () => {
   }
 
   const rejected = [
-    ["--agent + --preset", { agent: true, preset: "hono" }],
+    ["--agent + --preset", { agent: true, preset: "sample-runtime" }],
     ["--agent + --scope", { agent: true, scope: "unit" }],
     ["--agent + --all", { agent: true, all: true }],
-    ["--file + --preset", { hasFile: true, preset: "hono" }],
+    ["--file + --preset", { hasFile: true, preset: "sample-runtime" }],
     ["--file + --scope", { hasFile: true, scope: "unit" }],
     ["--file + --agent", { hasFile: true, agent: true }],
     ["--file + --all", { hasFile: true, all: true }],
-    ["--pattern + --preset", { hasPattern: true, preset: "hono" }],
+    ["--pattern + --preset", { hasPattern: true, preset: "sample-runtime" }],
     ["--pattern + --agent", { hasPattern: true, agent: true }],
     ["positional + --scope", { hasPositional: true, scope: "unit" }],
     ["positional + --all", { hasPositional: true, all: true }],
@@ -95,13 +95,13 @@ describe("validateFlags", () => {
   }
 
   it("--agent error message mentions --agent", () => {
-    assert.match(validateFlags({ agent: true, preset: "hono" }).error, /--agent/);
+    assert.match(validateFlags({ agent: true, preset: "sample-runtime" }).error, /--agent/);
   });
 });
 
 describe("tests/run.js integration — flag rejection", () => {
   it("--agent --preset exits non-zero with stderr", () => {
-    const res = spawnSync("node", [RUN_JS, "--agent", "--preset", "hono"], {
+    const res = spawnSync("node", [RUN_JS, "--agent", "--preset", "sample-runtime"], {
       encoding: "utf8",
       cwd: ROOT,
     });

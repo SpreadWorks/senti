@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "generatedAt": "2026-06-11T16:08:37.571Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 3,
+    "nonBlocking": 0,
+    "total": 3
+  },
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Official default source is not materializable after bundled deletion",
+      "target": "R3 / Decisions / Clarifications",
+      "body": "**Target:** R3 / Decisions / Clarifications\n**Issue:** The spec requires `senti upgrade` to add an official default source and install the provider for non-base types, while also requiring complete deletion of `src/official-plugins/senti-presets` and excluding the external `senti-presets` repository move from this flow. In the current code, official bootstrap is driven by `officialPresetPluginRoot()`/`ensureOfficialPackage()` using a local source root, with bundled content as the fallback. After deleting that fallback, the spec does not define what concrete source descriptor supplies official presets by default.\n**Required change:** Specify the official default source after bundled deletion, including its source id, source type, URL or local discovery rule, and how tests should materialize it; or change R3 to require a clear provider-not-found failure unless the user has configured a source.\n**Why blocking:** Without a materializable default provider, `senti upgrade` cannot be implemented or tested deterministically for existing non-base configs after the bundled plugin is removed.",
+      "issue": "The spec requires `senti upgrade` to add an official default source and install the provider for non-base types, while also requiring complete deletion of `src/official-plugins/senti-presets` and excluding the external `senti-presets` repository move from this flow. In the current code, official bootstrap is driven by `officialPresetPluginRoot()`/`ensureOfficialPackage()` using a local source root, with bundled content as the fallback. After deleting that fallback, the spec does not define what concrete source descriptor supplies official presets by default.",
+      "requiredChange": "Specify the official default source after bundled deletion, including its source id, source type, URL or local discovery rule, and how tests should materialize it; or change R3 to require a clear provider-not-found failure unless the user has configured a source.",
+      "whyBlocking": "Without a materializable default provider, `senti upgrade` cannot be implemented or tested deterministically for existing non-base configs after the bundled plugin is removed."
+    },
+    {
+      "kind": "blocking",
+      "title": "Legacy preset migration omits manifestless override semantics",
+      "target": "R4 / T-2",
+      "body": "**Target:** R4 / T-2\n**Issue:** Current `resolveProjectPreset()` supports `.senti/presets/<key>` without `preset.json`: if a built-in preset of the same key exists it inherits that preset's parent, scan, and chapters while using the project directory for DataSources; otherwise it becomes a bare preset. R4 removes runtime leaf overrides but only says to migrate legacy content to a local plugin source/package or fail. It does not specify how this manifestless legacy shape is preserved or intentionally rejected.\n**Required change:** State the required migration outcome for `.senti/presets/<key>` directories without `preset.json`, especially same-key DataSource/template overrides: either generate equivalent local plugin manifest/provider metadata that preserves the previous inherited chain behavior, or fail with a defined error.\n**Why blocking:** Leaving this undefined lets upgrade silently change existing project behavior, such as dropping inherited parent chains or chapter/template coverage, and tests cannot know whether manifestless legacy directories should migrate successfully or fail.",
+      "issue": "Current `resolveProjectPreset()` supports `.senti/presets/<key>` without `preset.json`: if a built-in preset of the same key exists it inherits that preset's parent, scan, and chapters while using the project directory for DataSources; otherwise it becomes a bare preset. R4 removes runtime leaf overrides but only says to migrate legacy content to a local plugin source/package or fail. It does not specify how this manifestless legacy shape is preserved or intentionally rejected.",
+      "requiredChange": "State the required migration outcome for `.senti/presets/<key>` directories without `preset.json`, especially same-key DataSource/template overrides: either generate equivalent local plugin manifest/provider metadata that preserves the previous inherited chain behavior, or fail with a defined error.",
+      "whyBlocking": "Leaving this undefined lets upgrade silently change existing project behavior, such as dropping inherited parent chains or chapter/template coverage, and tests cannot know whether manifestless legacy directories should migrate successfully or fail."
+    },
+    {
+      "kind": "blocking",
+      "title": "Locale and AGENTS chain resolution lacks deterministic semantics",
+      "target": "R5 / AC-5 / T-3",
+      "body": "**Target:** R5 / AC-5 / T-3\n**Issue:** R5 includes `@presets/<key>/...` includes, locale templates, and AGENTS template references. The acceptance criterion only covers `@presets` include resolution. Existing code has separate integration points: `src/lib/i18n.js` loads locale from `PRESETS_DIR` for only the first configured type, while `src/data/agents.js` and `src/lib/agents-md.js` read base AGENTS templates through `PRESETS_DIR`. The spec does not define merge/search precedence for locale or AGENTS across parent chains and multi-type configs.\n**Required change:** Add spec-level behavior and acceptance coverage for locale and AGENTS resolution through enabled preset chains, including parent-chain order, multi-type order, and project-local override precedence; or narrow R5 to exclude locale/AGENTS from this migration.\n**Why blocking:** An implementation can satisfy AC-5 while leaving locale and AGENTS paths tied to deleted bundled preset directories or first-type-only behavior, so required runtime behavior would remain untestable and unsafe after removing non-base builtins.",
+      "issue": "R5 includes `@presets/<key>/...` includes, locale templates, and AGENTS template references. The acceptance criterion only covers `@presets` include resolution. Existing code has separate integration points: `src/lib/i18n.js` loads locale from `PRESETS_DIR` for only the first configured type, while `src/data/agents.js` and `src/lib/agents-md.js` read base AGENTS templates through `PRESETS_DIR`. The spec does not define merge/search precedence for locale or AGENTS across parent chains and multi-type configs.",
+      "requiredChange": "Add spec-level behavior and acceptance coverage for locale and AGENTS resolution through enabled preset chains, including parent-chain order, multi-type order, and project-local override precedence; or narrow R5 to exclude locale/AGENTS from this migration.",
+      "whyBlocking": "An implementation can satisfy AC-5 while leaving locale and AGENTS paths tied to deleted bundled preset directories or first-type-only behavior, so required runtime behavior would remain untestable and unsafe after removing non-base builtins."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "sourceArtifact": "spec-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "spec-001-blocking-001",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Official default source is not materializable after bundled deletion",
+      "body": "**Target:** R3 / Decisions / Clarifications\n**Issue:** The spec requires `senti upgrade` to add an official default source and install the provider for non-base types, while also requiring complete deletion of `src/official-plugins/senti-presets` and excluding the external `senti-presets` repository move from this flow. In the current code, official bootstrap is driven by `officialPresetPluginRoot()`/`ensureOfficialPackage()` using a local source root, with bundled content as the fallback. After deleting that fallback, the spec does not define what concrete source descriptor supplies official presets by default.\n**Required change:** Specify the official default source after bundled deletion, including its source id, source type, URL or local discovery rule, and how tests should materialize it; or change R3 to require a clear provider-not-found failure unless the user has configured a source.\n**Why blocking:** Without a materializable default provider, `senti upgrade` cannot be implemented or tested deterministically for existing non-base configs after the bundled plugin is removed.",
+      "category": "unknown"
+    },
+    {
+      "id": "spec-001-blocking-002",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Legacy preset migration omits manifestless override semantics",
+      "body": "**Target:** R4 / T-2\n**Issue:** Current `resolveProjectPreset()` supports `.senti/presets/<key>` without `preset.json`: if a built-in preset of the same key exists it inherits that preset's parent, scan, and chapters while using the project directory for DataSources; otherwise it becomes a bare preset. R4 removes runtime leaf overrides but only says to migrate legacy content to a local plugin source/package or fail. It does not specify how this manifestless legacy shape is preserved or intentionally rejected.\n**Required change:** State the required migration outcome for `.senti/presets/<key>` directories without `preset.json`, especially same-key DataSource/template overrides: either generate equivalent local plugin manifest/provider metadata that preserves the previous inherited chain behavior, or fail with a defined error.\n**Why blocking:** Leaving this undefined lets upgrade silently change existing project behavior, such as dropping inherited parent chains or chapter/template coverage, and tests cannot know whether manifestless legacy directories should migrate successfully or fail.",
+      "category": "unknown"
+    },
+    {
+      "id": "spec-001-blocking-003",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Locale and AGENTS chain resolution lacks deterministic semantics",
+      "body": "**Target:** R5 / AC-5 / T-3\n**Issue:** R5 includes `@presets/<key>/...` includes, locale templates, and AGENTS template references. The acceptance criterion only covers `@presets` include resolution. Existing code has separate integration points: `src/lib/i18n.js` loads locale from `PRESETS_DIR` for only the first configured type, while `src/data/agents.js` and `src/lib/agents-md.js` read base AGENTS templates through `PRESETS_DIR`. The spec does not define merge/search precedence for locale or AGENTS across parent chains and multi-type configs.\n**Required change:** Add spec-level behavior and acceptance coverage for locale and AGENTS resolution through enabled preset chains, including parent-chain order, multi-type order, and project-local override precedence; or narrow R5 to exclude locale/AGENTS from this migration.\n**Why blocking:** An implementation can satisfy AC-5 while leaving locale and AGENTS paths tied to deleted bundled preset directories or first-type-only behavior, so required runtime behavior would remain untestable and unsafe after removing non-base builtins.",
+      "category": "unknown"
+    }
+  ]
+}

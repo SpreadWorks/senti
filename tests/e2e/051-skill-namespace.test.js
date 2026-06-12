@@ -17,7 +17,7 @@ const MAX_SKILL_SOURCES = 64;
 /** Non-interactive CLI args */
 const NI_ARGS = [
   "--name", "test-proj",
-  "--type", "webapp",
+  "--type", "base",
   "--purpose", "developer-guide",
   "--tone", "polite",
 ];

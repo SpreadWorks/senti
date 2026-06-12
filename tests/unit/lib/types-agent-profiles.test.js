@@ -5,7 +5,7 @@ import { validate } from "../../../src/lib/config.js";
 describe("validateConfig — agent.profiles", () => {
   const base = {
     lang: "ja",
-    type: "node-cli",
+    type: "sample-node-command",
     docs: { languages: ["ja"], defaultLanguage: "ja" },
   };
 

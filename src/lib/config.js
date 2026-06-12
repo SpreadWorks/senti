@@ -266,6 +266,7 @@ const CONFIG_SCHEMA = {
               id: { type: "string", minLength: 1 },
               type: { type: "string", enum: ["git", "local", "npm"] },
               url: { type: "string", minLength: 1 },
+              remote: { type: "string", minLength: 1 },
               path: { type: "string", minLength: 1 },
               ref: { type: "string", minLength: 1 },
             },
@@ -410,7 +411,7 @@ function validatePluginConfig(plugin, errors) {
       if (typeof source.path !== "string" || source.path.trim() === "") errors.push(`'plugin.sources[${index}].path': local source requires path`);
       if (typeof source.path === "string" && (path.isAbsolute(source.path) ? false : source.path.startsWith("../"))) errors.push(`'plugin.sources[${index}].path': unsafe local source path`);
     }
-    if (source.type === "git" && typeof source.url !== "string") errors.push(`'plugin.sources[${index}].url': git source requires url`);
+    if (source.type === "git" && typeof source.url !== "string" && typeof source.remote !== "string") errors.push(`'plugin.sources[${index}].remote': git source requires url or remote`);
     if (source.type === "npm") errors.push(`'plugin.sources[${index}]': npm sources are not supported yet`);
   }
   const packageIds = new Set();

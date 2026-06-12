@@ -11,7 +11,7 @@ const SENTI = path.join(process.cwd(), "src/senti.js");
 function config(command) {
   return {
     lang: "en",
-    type: "node-cli",
+    type: "sample-node-command",
     scan: { include: ["src/**/*.js"], exclude: [] },
     docs: { languages: ["en"], defaultLanguage: "en" },
     flow: {

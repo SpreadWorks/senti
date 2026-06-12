@@ -32,7 +32,7 @@ describe("initContainer — config registration contract (R1, #175)", () => {
     mkdirSync(join(tmp, ".senti"), { recursive: true });
     const validConfig = {
       lang: "ja",
-      type: "node-cli",
+      type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
     };
     writeJson(tmp, ".senti/config.json", validConfig);
@@ -40,7 +40,7 @@ describe("initContainer — config registration contract (R1, #175)", () => {
     const got = container.get("config");
     assert.notStrictEqual(got, null);
     assert.equal(got.lang, "ja");
-    assert.equal(got.type, "node-cli");
+    assert.equal(got.type, "sample-node-command");
   });
 
   it("never registers an empty object `{}` for missing config (explicit null, not silent fallback)", () => {
@@ -72,7 +72,7 @@ describe("initContainer — config registration contract (R1, #175)", () => {
     mkdirSync(join(tmp, ".senti"), { recursive: true });
     writeJson(tmp, ".senti/config.json", {
       lang: "ja",
-      type: "node-cli",
+      type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
       agent: { workDir: ".tmp" },
     });

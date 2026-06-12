@@ -14,7 +14,7 @@ function makeEnv(tmp) {
 
 function setupProject(tmp, opts = {}) {
   writeJson(tmp, ".senti/config.json", {
-    lang: "ja", type: "node-cli",
+    lang: "ja", type: "sample-node-command",
     docs: { languages: ["ja"], defaultLanguage: "ja" },
     ...opts.config,
   });
@@ -27,7 +27,7 @@ function setupProject(tmp, opts = {}) {
 // Block data directive helper
 function dataBlock(source, method, labels, placeholder) {
   const labelsOpt = labels ? `, {labels: "${labels}"}` : "";
-  return `<!-- {{data("node-cli.${source}.${method}"${labelsOpt})}} -->\n${placeholder}\n<!-- {{/data}} -->`;
+  return `<!-- {{data("sample-node-command.${source}.${method}"${labelsOpt})}} -->\n${placeholder}\n<!-- {{/data}} -->`;
 }
 
 describe("data CLI", () => {

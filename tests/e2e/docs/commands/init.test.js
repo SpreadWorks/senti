@@ -14,14 +14,14 @@ describe("init CLI", () => {
 
   it("creates docs/ from template", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "node-cli", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
     writeJson(tmp, "package.json", { name: "test-proj" });
     writeJson(tmp, ".senti/output/analysis.json", {
       analyzedAt: "2026-01-01",
       files: { summary: { total: 1 } },
     });
 
-    execFileSync("node", [CMD, ...CMD_ARGS, "--type", "node-cli"], {
+    execFileSync("node", [CMD, ...CMD_ARGS, "--type", "sample-node-command"], {
       encoding: "utf8",
       env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
     });
@@ -34,14 +34,14 @@ describe("init CLI", () => {
 
   it("--dry-run shows files without writing", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "node-cli", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
     writeJson(tmp, "package.json", { name: "test-proj" });
     writeJson(tmp, ".senti/output/analysis.json", {
       analyzedAt: "2026-01-01",
       files: { summary: { total: 1 } },
     });
 
-    const result = execFileSync("node", [CMD, ...CMD_ARGS, "--type", "node-cli", "--dry-run"], {
+    const result = execFileSync("node", [CMD, ...CMD_ARGS, "--type", "sample-node-command", "--dry-run"], {
       encoding: "utf8",
       env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
     });
@@ -56,7 +56,7 @@ describe("init CLI", () => {
 
   it("shows help with --help", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "node-cli", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
 
     const result = execFileSync("node", [CMD, ...CMD_ARGS, "--help"], {
       encoding: "utf8",
@@ -69,7 +69,7 @@ describe("init CLI", () => {
     tmp = createTmpDir();
     writeJson(tmp, ".senti/config.json", {
       lang: "en",
-      type: "webapp",
+      type: "sample-preset",
       docs: { languages: ["en", "ja"], defaultLanguage: "en" },
     });
     writeJson(tmp, "package.json", { name: "test-proj" });
@@ -78,7 +78,7 @@ describe("init CLI", () => {
       files: { summary: { total: 1 } },
     });
 
-    execFileSync("node", [CMD, ...CMD_ARGS, "--type", "webapp", "--force"], {
+    execFileSync("node", [CMD, ...CMD_ARGS, "--type", "sample-preset", "--force"], {
       encoding: "utf8",
       env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
     });
@@ -86,15 +86,14 @@ describe("init CLI", () => {
     const docsDir = join(tmp, "docs");
     assert.ok(fs.existsSync(docsDir), "docs/ should be created");
     const files = fs.readdirSync(docsDir).filter((f) => f.endsWith(".md"));
-    // webapp has 10 chapters: 4 from base/en + 6 from webapp/ja (fallback)
-    assert.equal(files.length, 10, `expected 10 chapters but got ${files.length}: ${files.join(", ")}`);
+    assert.deepEqual(files.sort(), ["overview.md", "project_structure.md", "stack_and_ops.md"]);
   });
 
-  it("generates all webapp chapters with single lang en (en templates exist)", () => {
+  it("generates all sample-preset chapters with single lang en (en templates exist)", () => {
     tmp = createTmpDir();
     writeJson(tmp, ".senti/config.json", {
       lang: "en",
-      type: "webapp",
+      type: "sample-preset",
       docs: { languages: ["en"], defaultLanguage: "en" },
     });
     writeJson(tmp, "package.json", { name: "test-proj" });
@@ -103,7 +102,7 @@ describe("init CLI", () => {
       files: { summary: { total: 1 } },
     });
 
-    execFileSync("node", [CMD, ...CMD_ARGS, "--type", "webapp", "--force"], {
+    execFileSync("node", [CMD, ...CMD_ARGS, "--type", "sample-preset", "--force"], {
       encoding: "utf8",
       env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
     });
@@ -111,8 +110,7 @@ describe("init CLI", () => {
     const docsDir = join(tmp, "docs");
     assert.ok(fs.existsSync(docsDir), "docs/ should be created");
     const files = fs.readdirSync(docsDir).filter((f) => f.endsWith(".md"));
-    // All 10 webapp chapters available in en
-    assert.equal(files.length, 10, `expected 10 chapters but got ${files.length}: ${files.join(", ")}`);
+    assert.deepEqual(files.sort(), ["overview.md", "project_structure.md", "stack_and_ops.md"]);
   });
 
   it("uses config.chapters to skip AI filtering and generate only specified chapters", () => {
@@ -120,7 +118,7 @@ describe("init CLI", () => {
     const promptCapture = join(tmp, "prompt.txt");
     writeJson(tmp, ".senti/config.json", {
       lang: "ja",
-      type: "node-cli",
+      type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
       chapters: [{ chapter: "overview.md" }, { chapter: "development.md" }],
       agent: {
@@ -143,7 +141,7 @@ describe("init CLI", () => {
       files: { summary: { total: 1 } },
     });
 
-    execFileSync("node", [CMD, ...CMD_ARGS, "--type", "node-cli", "--force"], {
+    execFileSync("node", [CMD, ...CMD_ARGS, "--type", "sample-node-command", "--force"], {
       encoding: "utf8",
       env: {
         ...process.env,
@@ -166,7 +164,7 @@ describe("init CLI", () => {
     writeJson(tmp, ".senti/config.json", {
       lang: "ja",
       docs: { languages: ["ja"], defaultLanguage: "ja", style: { purpose: "user-guide", tone: "polite" } },
-      type: "node-cli",
+      type: "sample-node-command",
       agent: {
         default: "capture",
         providers: {
@@ -187,7 +185,7 @@ describe("init CLI", () => {
       files: { summary: { total: 1 } },
     });
 
-    execFileSync("node", [CMD, ...CMD_ARGS, "--type", "node-cli"], {
+    execFileSync("node", [CMD, ...CMD_ARGS, "--type", "sample-node-command"], {
       encoding: "utf8",
       env: {
         ...process.env,

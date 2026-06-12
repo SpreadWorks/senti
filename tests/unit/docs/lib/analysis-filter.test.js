@@ -21,16 +21,17 @@ describe("filterByDocsExclude", () => {
     const entries = [
       { file: "src/presets/base/data/structure.js" },
       { file: "src/lib/cli.js" },
-      { file: "src/presets/cakephp2/data/config.js" },
+      { file: "fixtures/presets/child-preset/data/config.js" },
     ];
     const result = filterByDocsExclude(entries, ["src/presets/**"]);
-    assert.equal(result.length, 1);
+    assert.equal(result.length, 2);
     assert.equal(result[0].file, "src/lib/cli.js");
+    assert.equal(result[1].file, "fixtures/presets/child-preset/data/config.js");
   });
 
   it("keeps entries without file field", () => {
-    const entries = [{ name: "no-file" }, { file: "src/presets/x.js" }];
-    const result = filterByDocsExclude(entries, ["src/presets/**"]);
+    const entries = [{ name: "no-file" }, { file: "fixtures/presets/x.js" }];
+    const result = filterByDocsExclude(entries, ["fixtures/presets/**"]);
     assert.equal(result.length, 1);
     assert.equal(result[0].name, "no-file");
   });
@@ -59,7 +60,7 @@ describe("filterAnalysisByDocsExclude", () => {
       },
       controllers: {
         entries: [
-          { file: "src/presets/cakephp2/data/config.js", relPath: "src/presets/cakephp2/data/config.js" },
+          { file: "fixtures/presets/child-preset/data/config.js", relPath: "fixtures/presets/child-preset/data/config.js" },
         ],
       },
     };
@@ -67,7 +68,7 @@ describe("filterAnalysisByDocsExclude", () => {
 
     assert.equal(result.modules.entries.length, 1);
     assert.equal(result.modules.entries[0].file, "src/lib/cli.js");
-    assert.equal(result.controllers.entries.length, 0);
+    assert.equal(result.controllers.entries.length, 1);
     assert.equal(result.enrichedAt, "2026-01-01");
   });
 

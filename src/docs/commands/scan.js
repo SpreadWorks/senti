@@ -257,7 +257,7 @@ async function runScan(ctx, rawArgs) {
     const seenInclude = new Set();
     const seenExclude = new Set();
     for (const t of types) {
-      const preset = presetByLeaf(t);
+      const preset = presetByLeaf(t, root);
       const scan = preset?.scan;
       if (!scan) continue;
       for (const p of scan.include || []) {

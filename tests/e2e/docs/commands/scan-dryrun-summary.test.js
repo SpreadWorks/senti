@@ -11,7 +11,7 @@ const CMD_ARGS = ["docs", "scan"];
 function baseConfig(extra = {}) {
   return {
     lang: "ja",
-    type: "node-cli",
+    type: "sample-node-command",
     docs: { languages: ["ja"], defaultLanguage: "ja" },
     scan: { include: ["src/**/*.js"], exclude: [] },
     ...extra,

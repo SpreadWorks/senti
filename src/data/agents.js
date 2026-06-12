@@ -6,7 +6,7 @@
 
 import fs from "fs";
 import path from "path";
-import { PRESETS_DIR } from "../lib/presets.js";
+import { loadSpecDrivenDevelopmentTemplate } from "../lib/agents-md.js";
 import { formatUTCTimestamp } from "../lib/cli.js";
 
 export default function register(container) {
@@ -23,11 +23,13 @@ export default function register(container) {
   /** Return Spec-Driven Development section template for the configured language. */
   senti(_analysis, _labels) {
     const lang = this._lang();
-    for (const l of [lang, "en"]) {
-      const p = path.join(PRESETS_DIR, "base", "templates", l, "AGENTS.senti.md");
-      if (fs.existsSync(p)) return new Paragraph(fs.readFileSync(p, "utf8"));
-    }
-    return null;
+    const config = this._loadConfig();
+    const presetTypes = config.type || "base";
+    const text = loadSpecDrivenDevelopmentTemplate(lang, {
+      projectRoot: this._root,
+      presetTypes,
+    });
+    return text ? new Paragraph(text) : null;
   }
 
   /** Generate PROJECT section skeleton from analysis data. */

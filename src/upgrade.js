@@ -18,13 +18,13 @@ import fs from "fs";
 import path from "path";
 import { repoRoot, parseArgs } from "./lib/cli.js";
 import { EXIT_ERROR } from "./lib/constants.js";
-import { loadConfig, sentiConfigPath } from "./lib/config.js";
+import { loadConfig, sentiConfigPath, sentiDir } from "./lib/config.js";
 import { container } from "./lib/container.js";
 import { mergeAgentDefaults } from "./lib/agent-defaults.js";
 import { translate } from "./lib/i18n.js";
 import { validatePresetChain } from "./lib/presets.js";
 import { officialPresetPluginRoot } from "./lib/official-plugins.js";
-import { ensureOfficialPackage, loadPluginRegistry } from "./lib/plugin-registry.js";
+import { ensureOfficialPackage, installPlugin, loadPluginRegistry } from "./lib/plugin-registry.js";
 import {
   deploySkills,
   deploySkillsFromDir,
@@ -335,6 +335,139 @@ function pluginSkillSourceDirs(root) {
   }
 }
 
+function readJson(file) {
+  return JSON.parse(fs.readFileSync(file, "utf8"));
+}
+
+function writeJson(file, value) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, JSON.stringify(value, null, 2) + "\n", "utf8");
+}
+
+function copyDirectory(src, dest) {
+  fs.mkdirSync(dest, { recursive: true });
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const from = path.join(src, entry.name);
+    const to = path.join(dest, entry.name);
+    if (entry.isDirectory()) {
+      copyDirectory(from, to);
+    } else if (entry.isFile()) {
+      fs.mkdirSync(path.dirname(to), { recursive: true });
+      fs.copyFileSync(from, to);
+    }
+  }
+}
+
+function normalizeTypeList(types) {
+  return (Array.isArray(types) ? types : [types]).filter(Boolean);
+}
+
+function legacyPresetKeys(root) {
+  const dir = path.join(root, ".senti", "presets");
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .filter((key) => key !== "base")
+    .sort();
+}
+
+function ensureSource(config, source) {
+  const plugin = config.plugin;
+  const existing = plugin.sources.find((entry) => entry.id === source.id);
+  if (existing) return false;
+  plugin.sources.push(source);
+  return true;
+}
+
+function localPresetManifest(key, legacyDir, providerPreset) {
+  const manifestPath = path.join(legacyDir, "preset.json");
+  if (fs.existsSync(manifestPath)) {
+    let manifest;
+    try {
+      manifest = readJson(manifestPath);
+    } catch (err) {
+      throw new Error(`legacy preset migration failed for ${key}/preset.json: ${err.message}`);
+    }
+    return {
+      parent: manifest.parent || null,
+      label: manifest.label || key,
+      aliases: manifest.aliases || [],
+      scan: manifest.scan || {},
+      chapters: manifest.chapters || [],
+    };
+  }
+  if (providerPreset) {
+    return {
+      parent: providerPreset.parent || null,
+      label: providerPreset.label || key,
+      aliases: providerPreset.aliases || [],
+      scan: providerPreset.scan || {},
+      chapters: providerPreset.chapters || [],
+    };
+  }
+  return { parent: null, label: key, aliases: [], scan: {}, chapters: [] };
+}
+
+function localPresetPluginManifest(keys) {
+  return {
+    name: "local-presets",
+    type: "preset",
+    files: ["plugin.json", "presets/"],
+    contributions: {
+      presets: keys.map((key) => ({ key, path: `presets/${key}` })),
+    },
+  };
+}
+
+function migrateLegacyPresetDirectories(root, { dryRun, logger }) {
+  const legacyRoot = path.join(root, ".senti", "presets");
+  const keys = legacyPresetKeys(root);
+  if (keys.length === 0) return false;
+  if (dryRun) return true;
+
+  const sourceRoot = path.join(sentiDir(root), "plugin-sources", "local-presets");
+  const sourcePresetRoot = path.join(sourceRoot, "presets");
+  const registry = loadPluginRegistry(root);
+  fs.rmSync(sourcePresetRoot, { recursive: true, force: true });
+
+  for (const key of keys) {
+    const legacyDir = path.join(legacyRoot, key);
+    const dest = path.join(sourcePresetRoot, key);
+    copyDirectory(legacyDir, dest);
+    const manifest = localPresetManifest(key, legacyDir, registry.resolvePreset(key));
+    writeJson(path.join(dest, "preset.json"), manifest);
+  }
+
+  writeJson(path.join(sourceRoot, "plugin.json"), localPresetPluginManifest(keys));
+
+  const config = readJson(sentiConfigPath(root));
+  if (!config.plugin || typeof config.plugin !== "object") config.plugin = {};
+  if (!Array.isArray(config.plugin.sources)) config.plugin.sources = [];
+  if (!Array.isArray(config.plugin.packages)) config.plugin.packages = [];
+  const changed = ensureSource(config, {
+    id: "local-presets",
+    type: "local",
+    path: ".senti/plugin-sources/local-presets",
+  });
+  if (changed) writeJson(sentiConfigPath(root), config);
+  installPlugin(root, "local-presets");
+  fs.rmSync(legacyRoot, { recursive: true, force: true });
+  logger.log(`[upgrade] migrated legacy presets to local plugin: ${keys.join(", ")}`);
+  return true;
+}
+
+function shouldInstallOfficialProvider(root, config) {
+  const nonBaseTypes = normalizeTypeList(config.type).filter((type) => type !== "base");
+  if (nonBaseTypes.length === 0) return false;
+  const legacy = new Set(legacyPresetKeys(root));
+  if (nonBaseTypes.every((type) => legacy.has(type))) {
+    const sources = config.plugin?.sources || [];
+    return sources.length > 0 || Boolean(officialPresetPluginRoot());
+  }
+  return true;
+}
+
 export function migratePluginConfigNamespaces(raw) {
   const next = structuredClone(raw || {});
   if (!next.plugin || typeof next.plugin !== "object") next.plugin = {};
@@ -421,19 +554,32 @@ async function main() {
   const config = loadConfig(root);
   const t = translate();
 
-  function needsOfficialPresets() {
-    const types = Array.isArray(config.type) ? config.type : [config.type];
-    return types.some((type) => type && type !== "base");
-  }
-
   if (!dryRun) {
-    if (needsOfficialPresets()) {
-      ensureOfficialPackage(root, {
-        id: "official-presets",
-        sourceRoot: officialPresetPluginRoot(),
+    try {
+      if (shouldInstallOfficialProvider(root, config)) {
+        ensureOfficialPackage(root, {
+          id: "official-presets",
+          sourceRoot: officialPresetPluginRoot(),
+        });
+        summary.plugins.changed = true;
+        logger.log("[upgrade] enabled official preset plugin");
+      }
+      if (migrateLegacyPresetDirectories(root, { dryRun, logger })) {
+        summary.plugins.changed = true;
+      }
+    } catch (e) {
+      logger.error(`upgrade failed: ${e.message}`);
+      writeActiveUpgradeArtifact({
+        root,
+        activeFlow,
+        command,
+        dryRun,
+        exitCode: EXIT_ERROR,
+        result: "failed",
+        summary: { ...summary, error: `upgrade failed: ${e.message}` },
+        rawOutput: logger.rawOutput(),
       });
-      summary.plugins.changed = true;
-      logger.log("[upgrade] enabled official preset plugin");
+      process.exit(EXIT_ERROR);
     }
   }
 

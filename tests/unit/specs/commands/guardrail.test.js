@@ -40,7 +40,7 @@ describe("gate guardrail integration", () => {
     execFileSync("git", ["-C", tmp, "commit", "--allow-empty", "-m", "init"], { stdio: "ignore" });
     setupFlow(tmp);
     writeJson(tmp, ".senti/config.json", config || {
-      lang: "en", type: "node-cli",
+      lang: "en", type: "sample-node-command",
       docs: { languages: ["en"], defaultLanguage: "en" },
     });
     writeJson(tmp, "spec.json", validSpec);
@@ -91,7 +91,7 @@ describe("gate guardrail integration", () => {
   it("skips AI check with --skip-guardrail", () => {
     createGateFixture({
       config: {
-        lang: "en", type: "node-cli",
+        lang: "en", type: "sample-node-command",
         docs: { languages: ["en"], defaultLanguage: "en" },
         agent: { default: "claude", providers: { claude: { command: "echo", args: ["FAIL"] } } },
       },

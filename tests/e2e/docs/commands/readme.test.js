@@ -13,7 +13,7 @@ function makeEnv(tmp) {
 }
 
 function setupProject(tmp, pkg = { name: "test-project" }) {
-  writeJson(tmp, ".senti/config.json", { lang: "ja", type: "node-cli", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+  writeJson(tmp, ".senti/config.json", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
   writeJson(tmp, "package.json", pkg);
 }
 

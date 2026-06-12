@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied 3 spec review repairs covering official source materialization, manifestless legacy preset migration, and locale/AGENTS precedence.",
+  "items": [
+    {
+      "title": "Official default source is not materializable after bundled deletion",
+      "target": "R3 / Decisions / Clarifications",
+      "decision": "applied",
+      "rationale": "Defined the official default source descriptor and test substitution rule.",
+      "evidence": "spec.json constraints, requirements[R3], acceptance_criteria[2], clarifications, and overview decisions now name id `official-presets`, type `git`, and remote `git@github.com:SpreadWorks/senti-presets.git`.",
+      "changedFields": [
+        "constraints",
+        "overview.decisions",
+        "requirements[R3].desc",
+        "acceptance_criteria[2]",
+        "clarifications"
+      ]
+    },
+    {
+      "title": "Legacy preset migration omits manifestless override semantics",
+      "target": "R4 / T-2",
+      "decision": "applied",
+      "rationale": "Defined migration semantics for explicit manifest, manifestless matching-provider, and manifestless bare-preset cases.",
+      "evidence": "spec.json requirements[R4], acceptance_criteria[3], clarifications, overview decisions, and task T-2 now describe manifestless migration behavior.",
+      "changedFields": [
+        "overview.decisions",
+        "requirements[R4].desc",
+        "acceptance_criteria[3]",
+        "clarifications",
+        "tasks[T-2].implementation_notes"
+      ]
+    },
+    {
+      "title": "Locale and AGENTS chain resolution lacks deterministic semantics",
+      "target": "R5 / AC-5 / T-3",
+      "decision": "applied",
+      "rationale": "Defined project-local/template, multi-type, and leaf-to-root chain precedence for locale and AGENTS resolution.",
+      "evidence": "spec.json requirements[R5], acceptance_criteria[4], clarifications, overview decisions, and task T-3 now cover locale and AGENTS precedence.",
+      "changedFields": [
+        "overview.decisions",
+        "requirements[R5].desc",
+        "acceptance_criteria[4]",
+        "clarifications",
+        "tasks[T-3].acceptance",
+        "tasks[T-3].implementation_notes",
+        "tasks[T-3].test_strategy"
+      ]
+    }
+  ]
+}

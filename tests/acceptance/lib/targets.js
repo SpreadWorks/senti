@@ -8,7 +8,7 @@ const ROOT = path.resolve(__dirname, "..", "..", "..");
 
 const ACCEPTANCE_PRESET_NAMES = [
   "laravel", "symfony", "cakephp2",
-  "node-cli", "library",
+  "sample-node-command", "library",
   "php", "node",
   "webapp", "cli", "base",
 ];

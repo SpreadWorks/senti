@@ -16,7 +16,7 @@ describe("scan pipeline redesign — analysis[cat].entries structure", () => {
     tmp = createTmpDir();
     writeJson(tmp, ".senti/config.json", {
       lang: "ja",
-      type: "node-cli",
+      type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
       scan: { include: ["src/**/*.js"], exclude: [] },
     });

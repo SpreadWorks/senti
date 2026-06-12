@@ -6,7 +6,7 @@ import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../../helpe
 
 const CMD = join(process.cwd(), "src/senti.js");
 const CMD_ARGS = ["docs", "review"];
-const MIN_CONFIG = { lang: "en", type: "node-cli", docs: { languages: ["en"], defaultLanguage: "en" } };
+const MIN_CONFIG = { lang: "en", type: "sample-node-command", docs: { languages: ["en"], defaultLanguage: "en" } };
 
 function setupTmp() {
   const tmp = createTmpDir();
@@ -92,7 +92,7 @@ describe("review CLI", () => {
     tmp = setupPassingTmp();
     const lines = ["# 01. Test", ""];
     for (let i = 0; i < 10; i++) lines.push(`Line ${i}`);
-    lines.push('<!-- {{data("node-cli.controllers.list", {labels: "Name|Actions"})}} -->');
+    lines.push('<!-- {{data("sample-node-command.controllers.list", {labels: "Name|Actions"})}} -->');
     lines.push(""); // empty = unfilled
     lines.push('<!-- {{/data}} -->');
     for (let i = 0; i < 5; i++) lines.push(`More ${i}`);
@@ -164,7 +164,7 @@ describe("review CLI", () => {
     tmp = setupPassingTmp();
     const lines = ["# 01. Test", ""];
     for (let i = 0; i < 10; i++) lines.push(`Line ${i}`);
-    lines.push('<!-- {{data("node-cli.project.name")}} -->');
+    lines.push('<!-- {{data("sample-node-command.project.name")}} -->');
     lines.push("test-project");
     lines.push('<!-- {{/data}} -->');
     for (let i = 0; i < 5; i++) lines.push(`More ${i}`);
@@ -186,7 +186,7 @@ describe("review CLI", () => {
     tmp = setupTmp();
     const lines = ["# 01. Test", ""];
     for (let i = 0; i < 10; i++) lines.push(`Line ${i}`);
-    lines.push('<!-- {{data("node-cli.modules.list")}} -->');
+    lines.push('<!-- {{data("sample-node-command.modules.list")}} -->');
     lines.push("mod list here");
     lines.push('<!-- {{/data}} -->');
     for (let i = 0; i < 5; i++) lines.push(`More ${i}`);

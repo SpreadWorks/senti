@@ -77,7 +77,7 @@ describe("dispatcher — requiresConfig enforcement (R2/R3/R6, #175)", () => {
   });
 
   it("runs the command normally when requiresConfig is true AND config is present", async () => {
-    container.register("config", { lang: "ja", type: "node-cli", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    container.register("config", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
     const entry = {
       command: async () => ({ default: OkCommand }),
       requiresConfig: true,

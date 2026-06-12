@@ -11,7 +11,7 @@ function initProject(tmp) {
   execFileSync("git", ["init", tmp], { encoding: "utf8" });
   execFileSync("git", ["-C", tmp, "checkout", "-b", "main"], { encoding: "utf8" });
   writeJson(tmp, ".senti/config.json", {
-    lang: "en", type: "node-cli",
+    lang: "en", type: "sample-node-command",
     docs: { languages: ["en"], defaultLanguage: "en" },
   });
   execFileSync("git", ["-C", tmp, "add", "-A"], { encoding: "utf8" });
@@ -163,7 +163,7 @@ describe("spec init CLI", () => {
     const wtPath = join(tmp, "auto-wt");
     execFileSync("git", ["-C", tmp, "worktree", "add", wtPath, "-b", "wt-auto"], { encoding: "utf8" });
     writeJson(wtPath, ".senti/config.json", {
-      lang: "en", type: "node-cli",
+      lang: "en", type: "sample-node-command",
       docs: { languages: ["en"], defaultLanguage: "en" },
     });
 

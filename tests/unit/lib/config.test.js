@@ -49,10 +49,10 @@ describe("loadConfig", () => {
 
   it("loads and validates config", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "cli", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "sample-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
     const cfg = loadConfig(tmp);
     assert.equal(cfg.lang, "ja");
-    assert.equal(cfg.type, "cli");
+    assert.equal(cfg.type, "sample-command");
     assert.equal(cfg.docs.defaultLanguage, "ja");
   });
 
@@ -60,7 +60,7 @@ describe("loadConfig", () => {
     tmp = createTmpDir();
     writeJson(tmp, ".senti/config.json", {
       lang: "ja",
-      type: "cli",
+      type: "sample-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
       flow: {
         hooks: {
@@ -75,7 +75,7 @@ describe("loadConfig", () => {
 
     writeJson(tmp, ".senti/config.json", {
       lang: "ja",
-      type: "cli",
+      type: "sample-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
       flow: {
         hooks: {
@@ -95,7 +95,7 @@ describe("loadConfig", () => {
     tmp = createTmpDir();
     writeJson(tmp, ".senti/config.json", {
       lang: "ja",
-      type: "cli",
+      type: "sample-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
       plugin: {
         sources: [{ id: "public", type: "local", path: "./plugins/public" }],

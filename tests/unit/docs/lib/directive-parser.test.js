@@ -40,7 +40,7 @@ describe("parseDirectives", () => {
   it("parses block {{data}} directive with closing tag", () => {
     const text = [
       "# Title",
-      '<!-- {{data("cakephp2.controllers.list", {labels: "Name|File"})}} -->',
+      '<!-- {{data("child-preset.controllers.list", {labels: "Name|File"})}} -->',
       "old content",
       "<!-- {{/data}} -->",
       "footer",
@@ -49,7 +49,7 @@ describe("parseDirectives", () => {
     assert.equal(result.length, 1);
     const d = result[0];
     assert.equal(d.type, "data");
-    assert.equal(d.preset, "cakephp2");
+    assert.equal(d.preset, "child-preset");
     assert.equal(d.source, "controllers");
     assert.equal(d.method, "list");
     assert.deepEqual(d.labels, ["Name", "File"]);

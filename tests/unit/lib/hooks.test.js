@@ -7,7 +7,7 @@ import { onHook } from "../../../src/lib/hooks.js";
 function baseConfig(command) {
   return {
     lang: "en",
-    type: "node-cli",
+    type: "sample-node-command",
     docs: { languages: ["en"], defaultLanguage: "en" },
     flow: command == null ? {} : {
       hooks: {

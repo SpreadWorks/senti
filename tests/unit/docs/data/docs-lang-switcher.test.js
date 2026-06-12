@@ -15,7 +15,7 @@ import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../../../helpe
 function setupProject(tmp, docsConfig, repoUrl) {
   const config = {
     lang: docsConfig.defaultLanguage,
-    type: "node-cli",
+    type: "sample-node-command",
     docs: docsConfig,
     scan: { include: ["src/**/*.js"], exclude: [] },
   };
@@ -43,8 +43,8 @@ describe("docs.langSwitcher", () => {
     setupProject(tmp, { languages: ["en"], defaultLanguage: "en" });
 
     const { createResolver } = await import("../../../../src/docs/lib/resolver-factory.js");
-    const resolver = await createResolver("node-cli", tmp, {});
-    const result = resolver.resolve("node-cli", "docs", "langSwitcher", {}, ["relative", "docs/overview.md"]);
+    const resolver = await createResolver("sample-node-command", tmp, {});
+    const result = resolver.resolve("sample-node-command", "docs", "langSwitcher", {}, ["relative", "docs/overview.md"]);
 
     assert.equal(result, null);
     removeTmpDir(tmp);
@@ -54,8 +54,8 @@ describe("docs.langSwitcher", () => {
     setupProject(tmp, { languages: ["en", "ja"], defaultLanguage: "en" });
 
     const { createResolver } = await import("../../../../src/docs/lib/resolver-factory.js");
-    const resolver = await createResolver("node-cli", tmp, {});
-    const result = resolver.resolve("node-cli", "docs", "langSwitcher", {}, ["relative", "docs/overview.md"]);
+    const resolver = await createResolver("sample-node-command", tmp, {});
+    const result = resolver.resolve("sample-node-command", "docs", "langSwitcher", {}, ["relative", "docs/overview.md"]);
 
     assert.ok(result, "should return a non-null string");
     // Current lang (en) should be bold
@@ -71,9 +71,9 @@ describe("docs.langSwitcher", () => {
     setupProject(tmp, { languages: ["en", "ja"], defaultLanguage: "en" });
 
     const { createResolver } = await import("../../../../src/docs/lib/resolver-factory.js");
-    const resolver = await createResolver("node-cli", tmp, {});
+    const resolver = await createResolver("sample-node-command", tmp, {});
     // File is in docs/ja/ (non-default lang)
-    const result = resolver.resolve("node-cli", "docs", "langSwitcher", {}, ["relative", "docs/ja/overview.md"]);
+    const result = resolver.resolve("sample-node-command", "docs", "langSwitcher", {}, ["relative", "docs/ja/overview.md"]);
 
     assert.ok(result, "should return a non-null string");
     // Current lang (ja) should be bold
@@ -87,8 +87,8 @@ describe("docs.langSwitcher", () => {
     setupProject(tmp, { languages: ["en", "ja"], defaultLanguage: "en" });
 
     const { createResolver } = await import("../../../../src/docs/lib/resolver-factory.js");
-    const resolver = await createResolver("node-cli", tmp, {});
-    const result = resolver.resolve("node-cli", "docs", "langSwitcher", {}, ["relative", "README.md"]);
+    const resolver = await createResolver("sample-node-command", tmp, {});
+    const result = resolver.resolve("sample-node-command", "docs", "langSwitcher", {}, ["relative", "README.md"]);
 
     assert.ok(result, "should return a non-null string");
     assert.ok(result.toMarkdown().includes("**English**"), `should contain bold English, got: ${result}`);
@@ -101,8 +101,8 @@ describe("docs.langSwitcher", () => {
     setupProject(tmp, { languages: ["en", "ja"], defaultLanguage: "en" });
 
     const { createResolver } = await import("../../../../src/docs/lib/resolver-factory.js");
-    const resolver = await createResolver("node-cli", tmp, {});
-    const result = resolver.resolve("node-cli", "docs", "langSwitcher", {}, ["relative", "docs/ja/README.md"]);
+    const resolver = await createResolver("sample-node-command", tmp, {});
+    const result = resolver.resolve("sample-node-command", "docs", "langSwitcher", {}, ["relative", "docs/ja/README.md"]);
 
     assert.ok(result, "should return a non-null string");
     assert.ok(result.toMarkdown().includes("**日本語**"), `should contain bold Japanese, got: ${result}`);
@@ -116,8 +116,8 @@ describe("docs.langSwitcher", () => {
     setupProject(tmp, { languages: ["en", "ja"], defaultLanguage: "en" }, repoUrl);
 
     const { createResolver } = await import("../../../../src/docs/lib/resolver-factory.js");
-    const resolver = await createResolver("node-cli", tmp, {});
-    const result = resolver.resolve("node-cli", "docs", "langSwitcher", {}, ["absolute", "README.md"]);
+    const resolver = await createResolver("sample-node-command", tmp, {});
+    const result = resolver.resolve("sample-node-command", "docs", "langSwitcher", {}, ["absolute", "README.md"]);
 
     assert.ok(result, "should return a non-null string");
     assert.ok(result.toMarkdown().includes("**English**"), `should contain bold English, got: ${result}`);
@@ -134,8 +134,8 @@ describe("docs.langSwitcher", () => {
     setupProject(tmp, { languages: ["en", "ja"], defaultLanguage: "en" }, repoUrl);
 
     const { createResolver } = await import("../../../../src/docs/lib/resolver-factory.js");
-    const resolver = await createResolver("node-cli", tmp, {});
-    const result = resolver.resolve("node-cli", "docs", "langSwitcher", {}, ["absolute", "docs/overview.md"]);
+    const resolver = await createResolver("sample-node-command", tmp, {});
+    const result = resolver.resolve("sample-node-command", "docs", "langSwitcher", {}, ["absolute", "docs/overview.md"]);
 
     assert.ok(result, "should return a non-null string");
     assert.ok(

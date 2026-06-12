@@ -25,10 +25,10 @@ function buildContainer({ root = "/repo", config = {}, lang = "ja" } = {}) {
 describe("resolveDocsContext", () => {
   it("returns a context object with docs-specific derived values", () => {
     const c = buildContainer({
-      config: { type: "cli/node-cli", lang: "ja", docs: { defaultLanguage: "en" } },
+      config: { type: "sample-command/sample-node-command", lang: "ja", docs: { defaultLanguage: "en" } },
     });
     const ctx = resolveDocsContext(c, {});
-    assert.equal(ctx.type, "cli/node-cli");
+    assert.equal(ctx.type, "sample-command/sample-node-command");
     assert.equal(ctx.lang, "ja");
     assert.equal(ctx.outputLang, "en");
     assert.equal(path.isAbsolute(ctx.docsDir), true);

@@ -195,6 +195,7 @@ const UNTRACKED_DEFAULT_MAX_FILE_SIZE = 1024 * 1024; // 1 MiB
 const TASK_IMPL_GATE_DIFF_MAX_BYTES = 1024 * 1024; // 1 MiB
 const MAX_IMPL_REQUIREMENT_BATCH_CHARS = 120000;
 const MAX_AGENT_PROMPT_INPUT_CHARS = 900000;
+const MAX_GUARDRAIL_TARGET_CHARS = 250000;
 
 /**
  * Synthesize a unified diff for every untracked file in `root` and return the
@@ -308,6 +309,68 @@ function splitDiffByFile(diffText) {
     map.set(filePath, existing + segment);
   }
   return map;
+}
+
+function summarizeDiffSegment(file, fileDiff) {
+  const added = (fileDiff.match(/^\+(?!\+\+)/gm) || []).length;
+  const removed = (fileDiff.match(/^-(?!--)/gm) || []).length;
+  const header = fileDiff.split(/\r?\n/).slice(0, 4).filter(Boolean).join(" | ");
+  return `- ${file}: +${added} -${removed}; ${header}`;
+}
+
+function appendPromptLine(lines, line, maxChars) {
+  const currentLength = lines.join("\n").length;
+  if (currentLength + line.length + 1 > maxChars) return false;
+  lines.push(line);
+  return true;
+}
+
+function compactDiffForGuardrailPrompt(diff, maxChars = MAX_GUARDRAIL_TARGET_CHARS) {
+  if (typeof diff !== "string") throw new Error("diff must be a string");
+  if (!Number.isInteger(maxChars) || maxChars <= 0) throw new Error("maxChars must be a positive integer");
+  if (diff.length <= maxChars) return diff;
+
+  const lines = [
+    `[diff compacted for guardrail prompt: original ${diff.length} chars, budget ${maxChars} chars]`,
+    "Full file diffs with added or modified lines are prioritized. Deletion-only file bodies are summarized.",
+    "",
+    "## Full Diffs",
+  ];
+  const summarized = [];
+  const omitted = [];
+
+  for (const [file, fileDiff] of splitDiffByFile(diff)) {
+    const hasAddedLines = /^\+(?!\+\+)/m.test(fileDiff);
+    if (!hasAddedLines) {
+      summarized.push(summarizeDiffSegment(file, fileDiff));
+      continue;
+    }
+
+    if (appendPromptLine(lines, fileDiff.trimEnd(), maxChars)) continue;
+
+    const marker = `[full diff truncated for ${file}; file summary follows]`;
+    const remaining = maxChars - lines.join("\n").length - marker.length - 2;
+    if (remaining > 1000) {
+      lines.push(`${fileDiff.slice(0, remaining).trimEnd()}\n${marker}`);
+    } else {
+      omitted.push(summarizeDiffSegment(file, fileDiff));
+    }
+  }
+
+  if (summarized.length > 0 || omitted.length > 0) {
+    appendPromptLine(lines, "", maxChars);
+    appendPromptLine(lines, "## Summarized Or Omitted File Diffs", maxChars);
+  }
+  for (const summary of [...summarized, ...omitted]) {
+    if (!appendPromptLine(lines, summary, maxChars)) {
+      appendPromptLine(lines, "- ... additional file diffs omitted from compacted prompt", maxChars);
+      break;
+    }
+  }
+
+  const compacted = lines.join("\n");
+  if (compacted.length <= maxChars) return compacted;
+  return `${compacted.slice(0, Math.max(0, maxChars - 38)).trimEnd()}\n[compacted diff truncated]`;
 }
 
 function collectPerFileDiffsForGate(committed, uncommitted, untracked) {
@@ -2394,10 +2457,7 @@ function summarizeDiffForPrompt(diff, maxChars) {
     "[diff summarized: original diff exceeded provider input limits]",
   ];
   for (const [file, fileDiff] of splitDiffByFile(diff)) {
-    const added = (fileDiff.match(/^\+(?!\+\+)/gm) || []).length;
-    const removed = (fileDiff.match(/^-(?!--)/gm) || []).length;
-    const header = fileDiff.split(/\r?\n/).slice(0, 4).filter(Boolean).join(" | ");
-    const entry = `- ${file}: +${added} -${removed}; ${header}`;
+    const entry = summarizeDiffSegment(file, fileDiff);
     if (lines.join("\n").length + entry.length + 1 > maxChars) {
       lines.push("- ... additional files omitted from summary");
       break;
@@ -2405,6 +2465,19 @@ function summarizeDiffForPrompt(diff, maxChars) {
     lines.push(entry);
   }
   return lines.join("\n");
+}
+
+function buildGuardrailTargetTextForPrompt(specText, diff, maxChars = MAX_GUARDRAIL_TARGET_CHARS) {
+  if (typeof specText !== "string") throw new Error("specText must be a string");
+  if (typeof diff !== "string") throw new Error("diff must be a string");
+  if (!Number.isInteger(maxChars) || maxChars <= 0) throw new Error("maxChars must be a positive integer");
+
+  const prefix = `${specText}\n\n## Git Diff\n`;
+  if (prefix.length + diff.length <= maxChars) return `${prefix}${diff}`;
+  const diffBudget = Math.max(1, maxChars - prefix.length);
+  const targetText = `${prefix}${compactDiffForGuardrailPrompt(diff, diffBudget)}`;
+  if (targetText.length <= maxChars) return targetText;
+  return `${targetText.slice(0, Math.max(0, maxChars - 36)).trimEnd()}\n[target text truncated]`;
 }
 
 class RequirementGatePlan {
@@ -3289,7 +3362,7 @@ export class RunGateCommand extends FlowCommand {
     const previouslyPassedIds = previousResult?.passedGuardrails;
     const grResult = await checkGuardrail(
       root,
-      `${specText}\n\n## Git Diff\n${diff}`,
+      buildGuardrailTargetTextForPrompt(specText, diff),
       phase,
       "You are an implementation compliance checker. Check the implementation against each guardrail.",
       previouslyPassedIds,
@@ -3383,8 +3456,11 @@ export {
   buildGuardrailPrompt,
   buildImplCheckPrompt,
   MAX_IMPL_REQUIREMENT_BATCH_CHARS,
+  MAX_GUARDRAIL_TARGET_CHARS,
   checkGuardrail,
   splitDiffByFile,
+  buildGuardrailTargetTextForPrompt,
+  compactDiffForGuardrailPrompt,
   collectPerFileDiffsForGate,
   buildPerRequirementDiffs,
 };

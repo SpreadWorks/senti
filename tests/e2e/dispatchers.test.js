@@ -10,7 +10,7 @@ function createHookConfigProject(command) {
   const root = createTmpDir("senti-hook-list-e2e-");
   writeJson(root, ".senti/config.json", {
     lang: "en",
-    type: "node-cli",
+    type: "sample-node-command",
     docs: { languages: ["en"], defaultLanguage: "en" },
     flow: {
       hooks: {

@@ -111,7 +111,7 @@ describe("scan config validation", async () => {
 
   const baseConfig = {
     lang: "ja",
-    type: "node-cli",
+    type: "sample-node-command",
     docs: { languages: ["ja"], defaultLanguage: "ja" },
   };
 
@@ -184,7 +184,7 @@ describe("scan config override", () => {
     // config specifies only lib/ — src/ files should NOT appear
     writeJson(tmp, ".senti/config.json", {
       lang: "ja",
-      type: "node-cli",
+      type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
       scan: { include: ["lib/**/*.js"] },
     });
@@ -222,7 +222,7 @@ describe("analysis.json top-level structure (no extras)", () => {
     tmp = createTmpDir();
     writeJson(tmp, ".senti/config.json", {
       lang: "ja",
-      type: "node-cli",
+      type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
       scan: { include: ["src/**/*.js", "package.json"] },
     });
@@ -256,7 +256,7 @@ describe("preserveEnrichment recursive hash search", () => {
     tmp = createTmpDir();
     writeJson(tmp, ".senti/config.json", {
       lang: "ja",
-      type: "node-cli",
+      type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
       scan: { include: ["src/**/*.js", "package.json"] },
     });
@@ -300,17 +300,17 @@ describe("preserveEnrichment recursive hash search", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 8. First matching DataSource wins (file appears in only one category)
+// 8. All matching DataSources receive the file
 // ---------------------------------------------------------------------------
-describe("single DataSource match (first wins)", () => {
+describe("multiple DataSource matches", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  it("a file is assigned to the first matching DataSource only", () => {
+  it("a file is assigned to every matching DataSource", () => {
     tmp = createTmpDir();
     writeJson(tmp, ".senti/config.json", {
       lang: "ja",
-      type: "cakephp2",
+      type: "child-preset",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
       scan: {
         include: [
@@ -334,11 +334,10 @@ describe("single DataSource match (first wins)", () => {
       env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
     });
     const analysis = JSON.parse(result);
-    // config DataSource matches AppController.php first (first-match-wins)
     assert.ok(analysis.config, "config category should exist");
     assert.equal(analysis.config.entries.length, 1, "should have one config entry");
-    // controllers should not exist (no other controller files provided)
-    assert.equal(analysis.controllers, undefined, "controllers should not exist — file went to config");
+    assert.ok(analysis.controllers, "controllers category should exist");
+    assert.equal(analysis.controllers.entries.length, 1, "should have one controller entry");
   });
 });
 

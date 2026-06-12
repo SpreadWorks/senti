@@ -14,7 +14,7 @@ describe("agents CLI", () => {
 
   it("creates AGENTS.md from template when missing", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "cli", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "sample-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
     writeJson(tmp, ".senti/output/analysis.json", { analyzedAt: "2026-01-01" });
     writeJson(tmp, "package.json", { name: "test-pkg", version: "1.0.0" });
 
@@ -30,7 +30,7 @@ describe("agents CLI", () => {
 
   it("exits non-zero when analysis.json is missing", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "cli", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "sample-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
     writeFile(tmp, "AGENTS.md", [
       '<!-- {{data("base.agents.senti")}} -->',
       '<!-- {{/data}} -->',
@@ -49,7 +49,7 @@ describe("agents CLI", () => {
 
   it("exits non-zero when no agent configured (for project directive)", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "cli", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "sample-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
     writeJson(tmp, ".senti/output/analysis.json", {
       analyzedAt: "2026-01-01",
       files: { summary: { total: 5 } },
@@ -79,7 +79,7 @@ describe("agents CLI", () => {
 
   it("resolves senti directive when no project directive exists", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "cli", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "sample-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
     writeJson(tmp, ".senti/output/analysis.json", {
       analyzedAt: "2026-01-01",
       files: { summary: { total: 5 } },

@@ -56,7 +56,7 @@ describe("resolveIncludes", () => {
     );
   });
 
-  it("resolves @presets/<preset>/ path", () => {
+  it("rejects @presets/<preset>/ path without project registry context", () => {
     tmp = createTmpDir();
     const presetsDir = path.join(tmp, "presets");
     const presetDir = path.join(presetsDir, "base", "templates");
@@ -64,8 +64,27 @@ describe("resolveIncludes", () => {
     fs.writeFileSync(path.join(presetDir, "fragment.md"), "Preset fragment");
 
     const content = '<!-- include("@presets/base/templates/fragment.md") -->';
-    const result = resolveIncludes(content, { baseDir: tmp, presetsDir });
-    assert.equal(result, "Preset fragment");
+    assert.throws(
+      () => resolveIncludes(content, { baseDir: tmp, presetsDir }),
+      /projectRoot and presetTypes required/,
+    );
+  });
+
+  it("rejects unregistered @presets/<preset>/ path before project-local template lookup", () => {
+    tmp = createTmpDir();
+    const projectLocal = path.join(tmp, ".senti", "templates", "presets", "unregistered-preset", "templates");
+    fs.mkdirSync(projectLocal, { recursive: true });
+    fs.writeFileSync(path.join(projectLocal, "fragment.md"), "should not resolve");
+
+    const content = '<!-- include("@presets/unregistered-preset/templates/fragment.md") -->';
+    assert.throws(
+      () => resolveIncludes(content, {
+        baseDir: tmp,
+        projectRoot: tmp,
+        presetTypes: ["base"],
+      }),
+      /Preset include not registered: "unregistered-preset"/,
+    );
   });
 
   it("resolves /absolute path from pkgDir", () => {

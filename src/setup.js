@@ -179,8 +179,8 @@ function registerProject(projectName, sourcePath, workRootPath, t) {
 // Agent config file (CLAUDE.md / AGENTS.md) setup
 // ---------------------------------------------------------------------------
 
-function buildAgentContent(lang) {
-  const specDrivenDevelopmentContent = loadSpecDrivenDevelopmentTemplate(lang);
+function buildAgentContent(lang, options = {}) {
+  const specDrivenDevelopmentContent = loadSpecDrivenDevelopmentTemplate(lang, options);
   const lines = [];
   lines.push('<!-- {{data("agents.senti")}} -->');
   if (specDrivenDevelopmentContent) lines.push(specDrivenDevelopmentContent.trimEnd());
@@ -193,9 +193,9 @@ function buildAgentContent(lang) {
 
 const SENTI_DIRECTIVE_RE = /<!-- \{\{data\("agents\.senti"\)\}\} -->[\s\S]*?<!-- \{\{\/data\}\} -->/;
 
-function ensureAgentConfigFile(filePath, lang, t) {
+function ensureAgentConfigFile(filePath, lang, t, options = {}) {
   const fileName = path.basename(filePath);
-  const agentContent = buildAgentContent(lang);
+  const agentContent = buildAgentContent(lang, options);
 
   if (!fs.existsSync(filePath)) {
     fs.writeFileSync(filePath, agentContent + "\n", "utf8");
@@ -548,7 +548,10 @@ async function main() {
     const agentConfigFile = settings.agent === "claude"
       ? path.join(workRoot, "CLAUDE.md")
       : path.join(workRoot, "AGENTS.md");
-    ensureAgentConfigFile(agentConfigFile, settings.lang, t);
+    ensureAgentConfigFile(agentConfigFile, settings.lang, t, {
+      projectRoot: workRoot,
+      presetTypes: config.type,
+    });
   }
 
   // Skills

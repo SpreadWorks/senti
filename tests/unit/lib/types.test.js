@@ -5,14 +5,14 @@ import { validate } from "../../../src/lib/config.js";
 describe("validate (config)", () => {
   const validConfig = {
     lang: "ja",
-    type: "node-cli",
+    type: "sample-node-command",
     docs: { languages: ["ja"], defaultLanguage: "ja" },
   };
 
   it("accepts minimal valid config", () => {
     const result = validate({ ...validConfig });
     assert.equal(result.lang, "ja");
-    assert.equal(result.type, "node-cli");
+    assert.equal(result.type, "sample-node-command");
   });
 
   it("throws on non-object input", () => {
@@ -21,7 +21,7 @@ describe("validate (config)", () => {
   });
 
   it("throws when lang is missing", () => {
-    assert.throws(() => validate({ type: "cli", docs: { languages: ["ja"], defaultLanguage: "ja" } }), /lang/);
+    assert.throws(() => validate({ type: "sample-command", docs: { languages: ["ja"], defaultLanguage: "ja" } }), /lang/);
   });
 
   it("throws when type is missing", () => {
@@ -29,13 +29,13 @@ describe("validate (config)", () => {
   });
 
   it("throws when docs is missing", () => {
-    assert.throws(() => validate({ lang: "ja", type: "cli" }), /docs/);
+    assert.throws(() => validate({ lang: "ja", type: "sample-command" }), /docs/);
   });
 
   it("accepts type as array of strings", () => {
-    const cfg = { ...validConfig, type: ["symfony", "postgres"] };
+    const cfg = { ...validConfig, type: ["sample-preset", "sample-db"] };
     const result = validate(cfg);
-    assert.deepEqual(result.type, ["symfony", "postgres"]);
+    assert.deepEqual(result.type, ["sample-preset", "sample-db"]);
   });
 
   it("rejects empty type array", () => {
@@ -47,7 +47,7 @@ describe("validate (config)", () => {
 
   it("rejects non-string entries in type array", () => {
     assert.throws(
-      () => validate({ ...validConfig, type: ["symfony", 123] }),
+      () => validate({ ...validConfig, type: ["sample-preset", 123] }),
       /type/,
     );
   });

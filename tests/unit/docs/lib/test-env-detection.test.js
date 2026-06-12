@@ -14,7 +14,7 @@ describe("scan scripts extraction", () => {
     try {
       writeJson(tmp, ".senti/config.json", {
         lang: "en",
-        type: "node-cli",
+        type: "base",
         docs: { languages: ["en"], defaultLanguage: "en" },
         scan: { include: ["src/**/*.js", "package.json"], exclude: [] },
       });
@@ -49,7 +49,7 @@ describe("scan scripts extraction", () => {
     try {
       writeJson(tmp, ".senti/config.json", {
         lang: "en",
-        type: "node-cli",
+        type: "base",
         docs: { languages: ["en"], defaultLanguage: "en" },
         scan: { include: ["src/**/*.js"], exclude: [] },
       });

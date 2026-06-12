@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "3 repair targets are valid. All can be fixed by removing implementation assumptions or rationale from pending question text.",
+  "items": [
+    {
+      "title": "1. q2 includes implementation instruction",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "q2 asks for confirmation but also states how official bootstrap should be implemented. Pending questions must contain only the question text.",
+      "evidence": "draft.json qa[1].question includes the sentence about `senti upgrade` official bootstrap depending on external source lookup."
+    },
+    {
+      "title": "2. q3 includes implementation assumptions",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "q3 asks whether project-local presets remain supported but also describes a specific provider completion treatment. That treatment belongs in spec after the user answers.",
+      "evidence": "draft.json qa[2].question includes a conditional implementation assumption after the first sentence."
+    },
+    {
+      "title": "3. q4 includes rationale/evidence",
+      "target": "q4",
+      "decision": "apply",
+      "rationale": "q4 asks whether docs regeneration is in scope but also includes evidence about docs/source mtimes. The evidence is already captured in analysis and does not belong in pending question text.",
+      "evidence": "draft.json qa[3].question includes the source-newer-than-docs rationale after the first sentence."
+    }
+  ]
+}

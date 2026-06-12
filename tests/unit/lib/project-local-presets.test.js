@@ -1,111 +1,94 @@
 /**
- * Unit tests for project-local preset resolution (.senti/presets/).
+ * Unit tests for project-installed plugin preset resolution.
  *
- * Tests verify:
- * 1. .senti/presets/<name>/ is preferred over src/presets/<name>/
- * 2. preset.json in project preset takes precedence
- * 3. When preset.json is omitted and built-in exists, built-in settings are inherited
- * 4. When preset.json is omitted and no built-in exists, bare preset is returned
+ * Legacy `.senti/presets/<name>` directories are migration input only. Runtime
+ * preset resolution reads builtin base plus enabled plugin preset contributions.
  */
 
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import fs from "fs";
 import path from "path";
 import { resolveChain } from "../../../src/lib/presets.js";
 import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../../helpers/tmp-dir.js";
 
-describe("project-local preset resolution: priority", () => {
+function writePluginPreset(root, { key, parent = "base", label, chapters = [] }) {
+  writeJson(root, ".senti/config.json", {
+    lang: "en",
+    type: key,
+    docs: { languages: ["en"], defaultLanguage: "en" },
+    plugin: { packages: [{ id: "local-presets" }] },
+  });
+  writeJson(root, ".senti/plugins/local-presets/plugin.json", {
+    name: "local-presets",
+    files: ["plugin.json", "presets/"],
+    contributions: {
+      presets: [{ key, path: `presets/${key}` }],
+    },
+  });
+  writeJson(root, `.senti/plugins/local-presets/presets/${key}/preset.json`, {
+    parent,
+    label,
+    chapters,
+  });
+  writeFile(root, `.senti/plugins/local-presets/presets/${key}/data/.keep`, "");
+}
+
+describe("project-installed plugin preset resolution: priority", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  it("uses project preset dir when .senti/presets/<name>/preset.json exists", () => {
+  it("uses enabled plugin preset dir when a plugin contributes the key", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senti/presets/symfony/preset.json", {
-      parent: "webapp",
-      label: "Symfony (project override)",
-      chapters: [],
+    writePluginPreset(tmp, {
+      key: "sample-preset",
+      label: "Project plugin preset",
     });
 
-    const chain = resolveChain("symfony", tmp);
+    const chain = resolveChain("sample-preset", tmp);
     const leaf = chain[chain.length - 1];
     assert.ok(
-      leaf.dir.includes(path.join(tmp, ".senti", "presets", "symfony")),
-      `Expected dir to be from .senti/presets/, got: ${leaf.dir}`,
+      leaf.dir.includes(path.join(tmp, ".senti", "plugins", "local-presets", "presets", "sample-preset")),
+      `Expected dir to be from installed plugin, got: ${leaf.dir}`,
     );
-    assert.equal(leaf.label, "Symfony (project override)");
+    assert.equal(leaf.label, "Project plugin preset");
   });
 
-  it("project preset takes precedence over built-in for the same name", () => {
+  it("plugin preset metadata takes precedence for the same key", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senti/presets/symfony/preset.json", {
+    writePluginPreset(tmp, {
+      key: "sample-preset",
       parent: "base",
-      label: "Custom Symfony",
+      label: "Custom plugin preset",
       chapters: ["overview.md"],
     });
 
-    const chain = resolveChain("symfony", tmp);
+    const chain = resolveChain("sample-preset", tmp);
     const leaf = chain[chain.length - 1];
-    // parent is "base" (from project preset), not "php-webapp" (from built-in)
     assert.equal(leaf.parent, "base");
+    assert.deepEqual(leaf.chapters, ["overview.md"]);
   });
 });
 
-describe("project-local preset resolution: preset.json omitted", () => {
-  let tmp;
-  afterEach(() => tmp && removeTmpDir(tmp));
-
-  it("inherits built-in settings when preset.json is omitted and built-in exists", () => {
-    tmp = createTmpDir();
-    // Only data/ directory, no preset.json
-    writeFile(tmp, ".senti/presets/symfony/data/.keep", "");
-
-    const chain = resolveChain("symfony", tmp);
-    const leaf = chain[chain.length - 1];
-    // Should inherit built-in symfony's parent
-    assert.equal(leaf.parent, "php-webapp", "Should inherit built-in parent");
-    // Dir should be from .senti/presets/
-    assert.ok(
-      leaf.dir.includes(path.join(tmp, ".senti", "presets", "symfony")),
-      `Expected dir to be from .senti/presets/, got: ${leaf.dir}`,
-    );
-  });
-
-  it("returns bare preset when preset.json is omitted and no built-in match", () => {
-    tmp = createTmpDir();
-    writeFile(tmp, ".senti/presets/eccube/data/.keep", "");
-
-    const chain = resolveChain("eccube", tmp);
-    assert.ok(chain.length >= 1);
-    const leaf = chain[chain.length - 1];
-    assert.equal(leaf.key, "eccube");
-    assert.equal(leaf.parent, null, "Bare preset should have no parent");
-  });
-});
-
-describe("project-local preset resolution: no project preset", () => {
-  it("falls back to built-in when .senti/presets/ does not exist", () => {
-    // Use a tmp dir with no .senti/presets/
-    const tmp2 = createTmpDir();
+describe("project-installed plugin preset resolution: missing plugin", () => {
+  it("throws when a non-base preset is not contributed by an enabled plugin", () => {
+    const tmp = createTmpDir();
     try {
-      const chain = resolveChain("symfony", tmp2);
-      const leaf = chain[chain.length - 1];
-      // Should resolve to built-in symfony
-      assert.equal(leaf.parent, "php-webapp");
-      assert.ok(leaf.dir.includes("src"), `Expected built-in dir, got: ${leaf.dir}`);
+      assert.throws(
+        () => resolveChain("sample-preset", tmp),
+        /Preset not found: sample-preset/,
+      );
     } finally {
-      removeTmpDir(tmp2);
+      removeTmpDir(tmp);
     }
   });
 
-  it("built-in chain resolution is unchanged when root has no project presets", () => {
-    const tmp3 = createTmpDir();
+  it("still resolves builtin base without project plugin state", () => {
+    const tmp = createTmpDir();
     try {
-      const chain = resolveChain("hono", tmp3);
-      const keys = chain.map((p) => p.key);
-      assert.deepEqual(keys, ["base", "webapp", "js-webapp", "hono"]);
+      const chain = resolveChain("base", tmp);
+      assert.deepEqual(chain.map((preset) => preset.key), ["base"]);
     } finally {
-      removeTmpDir(tmp3);
+      removeTmpDir(tmp);
     }
   });
 });

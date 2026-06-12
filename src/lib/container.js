@@ -33,7 +33,7 @@ import { AnalysisEntry, ANALYSIS_META_KEYS, iterateAnalysisCategories } from "..
 import { findFiles, collectFiles, patternToRegex, parseFile, parsePHPFile, parseJSFile, camelToSnake, pluralize, getFileStats } from "../docs/lib/scanner.js";
 import { stripBlockComments, extractArrayBody, extractTopLevelKeys, extractQuotedStrings } from "../docs/lib/php-array-parser.js";
 import { getLangHandler } from "../docs/lib/lang-factory.js";
-import { hasPathPrefix, hasSegmentPath, hasAnyPathPrefix } from "../presets/lib/path-match.js";
+import { hasPathPrefix, hasSegmentPath, hasAnyPathPrefix } from "./path-match.js";
 import { parseTOML } from "../docs/lib/toml-parser.js";
 
 export class Container {

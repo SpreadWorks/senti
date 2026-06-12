@@ -1,0 +1,131 @@
+{
+  "devType": "refactor",
+  "goal": "base 以外の official preset を main package から外部 plugin repository へ完全移行し、main repo を base preset と plugin preset loader / resolver / contract tests に限定する。",
+  "analysis": {
+    "problem": "現行 main repo は `src/presets`、`src/official-plugins/senti-presets`、preset resolver、`@presets` include、public container API、upgrade の provider 補完、test runner、preset tests で official preset の存在と monorepo 構造に依存している。このまま base 以外を外部 repository に移すと runtime、upgrade、docs template 解決、tests が壊れる。",
+    "proposedApproach": "Issue #377 の方針に沿って、main repo 側は builtin `base` と plugin contract に集約する。Preset registry は core base + enabled plugin presets を正とし、provider 補完は `plugin.sources[]` から parent chain 全体を逆引きする。`@presets/<key>/...` は enabled preset registry に登録された preset chain だけから解決し、shared helper は public container API として提供する。詳細 preset tests は external plugin repo 側へ移し、main repo は generic fixture による contract tests を残す。",
+    "validation": "Issue #377 は provider completion、source/package schema、parent chain、`@presets` 解決、public container API、test migration の採用方針を具体化している。現行コード確認でも `src/lib/presets.js` が bundled official preset plugin を fallback し、`src/lib/include.js` が単一 `presetsDir` root を前提にし、`src/lib/container.js` が `src/presets/lib/path-match.js` を直接 import し、`tests/run.js` と preset tests が `src/presets` / `src/official-plugins` を直接参照しているため、Issue の root problem と一致する。docs より src の mtime が新しいため、docs は補助情報として扱い、source を正とする。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "(must) Issue #377 は `base` を main package builtin として残し、base 以外の preset は plugin provider にする方針を採用済み。",
+      "(must) Issue #377 は `plugin.sources[]` を候補探索先、`plugin.packages[]` を enabled package list とし、`packages[].source` が `sources[].id` を参照する schema を採用済み。",
+      "(must) Issue #377 は provider completion で selected type だけでなく parent chain 全体を解決し、base 以外の provider が見つからなければ error にする方針を採用済み。",
+      "(must) Issue #377 は `@presets/<key>/...` を runtime virtual alias として維持し、enabled preset registry に存在する preset key だけを解決対象にする方針を採用済み。",
+      "(must) 現行 `src/lib/presets.js` は `CORE_PRESETS_DIR` と bundled official preset plugin の両方から presets を構築している。",
+      "(must) 現行 `src/lib/include.js` は `@presets/` を単一 `presetsDir` 配下に join する構造で、resolved preset chain を見ていない。",
+      "(must) 現行 `src/lib/container.js` は `../presets/lib/path-match.js` を直接 import しており、helper の配置が base 以外の preset 移行と衝突する。",
+      "(must) 現行 `tests/run.js` と `tests/helpers/test-runner-search-dirs.js` は `src/presets` と `src/official-plugins/senti-presets/presets` を test discovery に含めている。"
+    ],
+    "decisionPoints": [
+      "(must) `src/official-plugins/senti-presets` の bundled official preset copy は完全削除し、main repo 内の互換 copy には依存しない。",
+      "(must) main repo 側の contract 化をこの flow の完了条件とし、external `senti-presets` repository 側の preset source / tests 実移動はこの flow の直接完了条件に含めない。",
+      "(must) project-local `.senti/presets/<key>` leaf override は plugin-first 移行後に残さず、preset provider は plugin source / package 管理へ統合する。",
+      "(must) `senti upgrade` が provider completion を行うとき、official source を default source として補う条件と、見つからない場合の error 条件を spec で検証可能にする必要がある。",
+      "(must) 既存 CLI command 名は維持し、migration plan は `senti upgrade` に集約する。既存 project の non-base `type`、不足した `plugin.sources[]` / `plugin.packages[]`、旧 `.senti/presets/<key>` は upgrade で plugin source / enabled package へ補完または移行し、移行不能な場合だけ検証可能な error を返す。",
+      "(must) main repo に残す tests を plugin loader / resolver / DataSource factory / include / public container API の contract tests に限定し、actual official preset 名への依存を排除する必要がある。"
+    ],
+    "resolvedByProjectRules": [
+      "(must) `src/` は npm package として全ユーザーに配布されるため、main repo implementation は特定 project の構造や固有値を含めない。",
+      "(must) 外部依存は禁止。plugin source lookup、manifest validation、include resolution、test runner 変更は Node.js built-in modules だけで実装する。",
+      "(must) alpha 版ポリシーにより、旧 `plugin.repos` / `packages[].repo` 形式の互換拡張は追加しない。既存 migration がある場合も spec では新 schema を正とする。",
+      "(must) shared helper は object literal の寄せ集めではなく、必要に応じて class / public container API として意味ある境界に置く。",
+      "(must) `src/skills/`、`src/presets/`、`src/presets/base/templates/` 等を変更した場合は `senti upgrade` を実行して反映差分を確認する。",
+      "(should) docs は自動生成物なので、source と矛盾する場合は source を正とする。今回 docs より src が新しいため、docs build の要否は後続確認に残す。"
+    ],
+    "requiresUserJudgment": [
+    ],
+    "deferredToSpec": [
+      "(must) `src/lib/presets.js` の registry/resolver 境界、public API、error message、validation criteria の詳細設計。",
+      "(must) `@presets/<key>/...` include 解決が preset chain 上のどの directory precedence を使うかの acceptance criteria。",
+      "(must) `senti upgrade` による provider reverse lookup、install / enable、commit recording、parent chain completion の test matrix。",
+      "(must) main repo から削除または移設する official preset tests と、generic fixture contract tests の対応表。",
+      "(must) external plugin repo 側で担保する detailed preset tests / fixtures / helper harness の責務境界を、main repo contract の前提としてどう表現するか。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "(must) main package builtin preset を `base` に限定し、base 以外の official preset 名や directory 構造への runtime / source / test 依存を排除する。",
+      "(must) plugin preset loader / registry / resolver が enabled plugin presets を main repo runtime の正規入力として扱う。",
+      "(must) `senti upgrade` が non-base `type` と incomplete `plugin.packages` を検出し、`plugin.sources[]` から provider と parent chain を補完する。",
+      "(must) `senti upgrade` は既存 project migration plan として、non-base `type` を持つ config に official default source を追加でき、provider plugin と parent chain を install / enable でき、旧 `.senti/presets/<key>` がある場合は local plugin source / package へ移行できる。",
+      "(must) `@presets/<key>/...` include、locale、AGENTS template 参照が resolved preset chain / plugin preset dir から解決できる。",
+      "(must) preset DataSource が使う shared helper を public container API として提供し、plugin preset が main package internal path を import しなくても利用できる。",
+      "(must) main repo tests を plugin preset foundation の contract tests に整理し、non-base official preset 詳細 tests を main repo discovery から外す。",
+      "(must) official preset 名を implementation condition や main repo fixture expectation から排除し、generic fixture 名を使う。",
+      "(must) project-local preset は `.senti/presets/<key>` leaf override として残さず、local plugin source / enabled package 経由の provider として扱う。"
+    ],
+    "out": [
+      "(must) general editor completion、alias map generation、IDE link navigation の改善は今回の scope 外。",
+      "(must) npm plugin source type の実装は今回の scope 外。初期実装は git / local source のみ対象。",
+      "(must) workflow plugin の explicit install policy は今回の scope 外。official presets bootstrap とは分ける。",
+      "(must) external `senti-presets` repository 側の preset source / detailed tests / helper harness の実移動は今回の flow の直接完了条件外。",
+      "(must) 実装完了後の docs rebuild/sync は今回の flow の scope 外。必要性は follow-up として扱う。",
+      "(should) 過去 specs、reports、generated docs、user config examples に残る actual preset key の履歴修正は今回の必須 scope 外。"
+    ]
+  },
+  "impactOnExisting": [
+      "(must) `senti docs build` / `senti docs scan` の preset resolution は、non-base preset が enabled plugin として install 済みであることに依存するようになる。",
+      "(must) `senti upgrade` は non-base `type` を持つ既存 project を incomplete config とみなし、provider plugin を install / enable するか、provider not found error を返す。既存 CLI command 名と主要 option の意味は維持する。",
+      "(must) `senti upgrade` は migration plan として旧 `.senti/presets/<key>` project-local preset を local plugin source / enabled package へ移行するか、移行できない理由を error として返す。",
+      "(must) `node tests/run.js` の default / scope / preset discovery は `src/presets` 内の detailed non-base tests を前提にしなくなる。",
+      "(must) `.senti/presets/<key>` による project-local leaf override は廃止され、project-local preset は local plugin source / enabled package として管理される。",
+      "(must) plugin preset DataSource は `container.get(\"pathMatch.*\")` など public container API を使い、main package internal paths を import しない契約になる。",
+    "(must) `@presets` include resolution は installed plugin directories の broad search ではなく、enabled preset registry に登録された preset key の chain に限定される。",
+    "(should) docs generated content may change after source migration; source newer than docs, so docs sync/build should be considered after implementation."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "(must) Issue #377 の完了条件に、external `senti-presets` repository 側への preset source / detailed tests / helper harness の実移動まで含めますか。それとも、この flow では main repo が external plugin を正として扱える受け入れ境界の完成までを完了条件にしますか。",
+      "answer": "(must) main repo が external plugin を正として扱える受け入れ境界の完成までを、この flow の完了条件にする。external `senti-presets` repository 側への preset source / detailed tests / helper harness の実移動は、この flow の直接完了条件に含めない。",
+      "evidence": "User answered `1` to q1. Issue #377 scope says main repo should be limited to base preset and plugin preset loader / resolver / contract tests.",
+      "why": "(must) main repo worktree 内の flow として、runtime / tests / contract を external plugin 前提に整える範囲に限定すると、worktree 境界と検証責務が明確になる。",
+      "considered": "external `senti-presets` repository 側の実移動まで含める案も検討したが、別 repository の clean HEAD と contribution path が必要になり、この main repo flow の完了条件としては責務が広がりすぎる。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "(must) `src/official-plugins/senti-presets` の bundled official preset copy は、この flow で完全削除する前提でよいですか。",
+      "answer": "(must) `src/official-plugins/senti-presets` の bundled official preset copy は、この flow で完全削除する。main repo 内に bootstrap 用の互換 copy は残さない。",
+      "evidence": "User answered `1` to q2. Issue #377 states: `Delete src/official-plugins/senti-presets from the main package` and keep main repo limited to base plus plugin contracts.",
+      "why": "(must) main repo 内に official preset copy を残すと、actual official preset 名や directory structure への依存排除が未完了になるため。",
+      "considered": "bootstrap 用 artifact として一時保持する案も検討したが、Issue #377 の main package dependency elimination と矛盾するため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "(must) project-local `.senti/presets/<key>` は plugin-first 移行後も leaf override 機能として残しますか。",
+      "answer": "(must) project-local `.senti/presets/<key>` は plugin-first 移行後に leaf override 機能として残さない。project-local preset は plugin source / package 管理へ一本化する。",
+      "evidence": "User answered `2` to q3. Issue #377 defines `plugin.sources[]` as candidate source list and `plugin.packages[]` as enabled package list, including local source examples such as `.senti/local-plugins`.",
+      "why": "(must) preset provider を plugin source / package 管理へ統一すると、enabled registry、provider completion、`@presets` include resolution の対象境界が一貫する。",
+      "considered": "既存 `.senti/presets/<key>` leaf override を残す案も検討したが、plugin-first 移行後の provider 境界が二重になり、registry と include resolution の contract が複雑になるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "follow-up-coverage",
+      "question": "(should) 今回の実装完了後に docs を再生成する作業を scope に含めますか。",
+      "answer": "(should) 今回の実装完了後に docs を再生成する作業は、この flow の scope に含めない。docs sync/build は follow-up として扱う。",
+      "evidence": "User answered `2` to q4. Work start check found src newer than docs, but the user selected docs regeneration out of scope for this flow.",
+      "why": "(should) この flow は main repo の preset plugin migration contract と runtime/test 境界を完了条件にする。docs 更新は必要性を認識しつつ、別作業に分ける。",
+      "considered": "実装後に docs rebuild/sync まで含める案も検討したが、ユーザーは scope 外を選択した。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [
+    
+  ],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-11T15:59:17Z",
+    "notes": "All draft QA entries are answered. User selected main repo boundary only, complete bundled official preset copy deletion, no project-local leaf override, and docs regeneration out of scope."
+  }
+}

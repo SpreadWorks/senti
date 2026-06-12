@@ -7,23 +7,22 @@
  * Selector resolution order (highest first):
  *   --agent : [tests/agent] only
  *   --all   : default dirs + [tests/agent]
- *   --preset: [tests/unit, tests/e2e, src/presets/<resolved>/tests]
- *   --scope : [tests/<scope>, ...src/presets/*\/tests/<scope>]
- *   none    : default dirs ([tests/unit, tests/e2e, src/presets])
+ *   --preset: [tests/unit, tests/e2e, tests/presets/<resolved>]
+ *   --scope : [tests/<scope>]
+ *   none    : default dirs ([tests/unit, tests/e2e])
  *
  * The tests/agent directory is included only via --agent or --all.
  */
 
 import { join } from "node:path";
 
-export function buildSearchDirs({ root, presetsSubdir = "src/presets" }, opts = {}) {
+export function buildSearchDirs({ root, presetsSubdir = "tests/presets" }, opts = {}) {
   const {
     preset,
     scope,
     agent,
     all,
     presetDirName,
-    realPresetNames = [],
   } = opts;
   const PRESETS_DIR = join(root, presetsSubdir);
   const AGENT_DIR = join(root, "tests", "agent");
@@ -33,7 +32,6 @@ export function buildSearchDirs({ root, presetsSubdir = "src/presets" }, opts = 
   const defaults = () => [
     join(root, "tests", "unit"),
     join(root, "tests", "e2e"),
-    PRESETS_DIR,
   ];
 
   if (all) return [...defaults(), AGENT_DIR];
@@ -43,15 +41,12 @@ export function buildSearchDirs({ root, presetsSubdir = "src/presets" }, opts = 
     return [
       join(root, "tests", "unit"),
       join(root, "tests", "e2e"),
-      join(PRESETS_DIR, name, "tests"),
+      join(PRESETS_DIR, name),
     ];
   }
 
   if (scope) {
-    return [
-      join(root, "tests", scope),
-      ...realPresetNames.map((name) => join(PRESETS_DIR, name, "tests", scope)),
-    ];
+    return [join(root, "tests", scope)];
   }
 
   return defaults();

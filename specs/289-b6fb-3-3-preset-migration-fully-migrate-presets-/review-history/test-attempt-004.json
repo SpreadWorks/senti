@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-12T00:14:27.831Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "advisory": 1,
+    "total": 3
+  },
+  "coverageArtifact": "specs/289-b6fb-3-3-preset-migration-fully-migrate-presets-/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Missing migration-error exit-code coverage",
+      "target": "specs/289-b6fb-3-3-preset-migration-fully-migrate-presets-/tests/upgrade-migration-contract.test.js",
+      "issue": "R9 requires spec-local tests to verify failure exit-code conditions for migration errors, but the file only verifies provider completion failures, source/depth failures, invalid CLI arguments, and successful legacy migrations. There is no legacy preset migration scenario that is expected to fail with a clear migration error.",
+      "requiredChange": "Add one focused legacy `.senti/presets/<key>` migration failure case that asserts non-zero exit status and a clear migration-related error message.",
+      "whyBlocking": "An explicit must requirement has no corresponding spec-local failure test, so implementation could omit migration-error handling while still satisfying the current tests."
+    },
+    {
+      "kind": "blocking",
+      "title": "Incomplete deterministic resolution coverage for locale and AGENTS templates",
+      "target": "specs/289-b6fb-3-3-preset-migration-fully-migrate-presets-/tests/preset-runtime-boundary.test.js",
+      "issue": "R5 applies deterministic registry-only resolution to `@presets` includes, locale templates, and AGENTS templates. Current tests check project-root precedence and unregistered rejection for includes, but locale and AGENTS tests only verify that the child preset value wins in a simple enabled chain. They do not prove locale or AGENTS resolution rejects unregistered installed presets or honors project-local/config-order search behavior.",
+      "requiredChange": "Extend the R5 locale/AGENTS test setup with an unregistered installed preset and/or competing project/config-type fixtures, then assert locale and AGENTS resolution only uses enabled registry keys and the required deterministic order.",
+      "whyBlocking": "A must requirement covering three resolver surfaces is only fully exercised for includes; locale and AGENTS implementations could still broadly scan plugin preset directories or ignore required ordering without failing the current tests."
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Official-name scan is broader than the fixture requirement",
+      "target": "specs/289-b6fb-3-3-preset-migration-fully-migrate-presets-/tests/preset-runtime-boundary.test.js",
+      "improvement": "The R8 test scans nearly all main test files for several official preset words, including generic terms that may appear in unrelated tests. Narrowing the scan to preset-foundation contract tests or adding contextual matching would reduce unrelated false positives.",
+      "whyNonBlocking": "The test still enforces the intended boundary and does not prevent production behavior from being exercised elsewhere; the concern is maintainability rather than missing required coverage."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/289-b6fb-3-3-preset-migration-fully-migrate-presets-/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "e0bff597707c9d7cf980ba8eb52735ecb10057174792047e3fa920a96298ab05"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "test-004-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Missing migration-error exit-code coverage",
+      "body": "R9 requires spec-local tests to verify failure exit-code conditions for migration errors, but the file only verifies provider completion failures, source/depth failures, invalid CLI arguments, and successful legacy migrations. There is no legacy preset migration scenario that is expected to fail with a clear migration error.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-004-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Incomplete deterministic resolution coverage for locale and AGENTS templates",
+      "body": "R5 applies deterministic registry-only resolution to `@presets` includes, locale templates, and AGENTS templates. Current tests check project-root precedence and unregistered rejection for includes, but locale and AGENTS tests only verify that the child preset value wins in a simple enabled chain. They do not prove locale or AGENTS resolution rejects unregistered installed presets or honors project-local/config-order search behavior.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-004-non-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "non-blocking",
+      "title": "Official-name scan is broader than the fixture requirement",
+      "body": "Official-name scan is broader than the fixture requirement",
+      "category": "unknown"
+    }
+  ]
+}

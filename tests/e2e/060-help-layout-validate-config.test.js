@@ -31,7 +31,7 @@ describe("060-A: help layout includes flow subcommands", () => {
 function baseConfig() {
   return {
     lang: "en",
-    type: "node-cli",
+    type: "sample-node-command",
     docs: {
       languages: ["en"],
       defaultLanguage: "en",
@@ -108,7 +108,7 @@ describe("060-B: validateConfig with nested agent structure", () => {
   it("accepts full config matching real .senti/config.json structure", () => {
     const cfg = {
       lang: "ja",
-      type: "node-cli",
+      type: "sample-node-command",
       concurrency: 2,
       docs: {
         languages: ["en", "ja"],

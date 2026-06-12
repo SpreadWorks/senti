@@ -141,7 +141,10 @@ async function runAgents(ctx, rawArgs) {
   const agentsPath = path.join(srcRoot, "AGENTS.md");
   if (!fs.existsSync(agentsPath)) {
     // Generate from template
-    const specDrivenDevelopmentSection = loadSpecDrivenDevelopmentTemplate(lang || config?.lang || "en");
+    const specDrivenDevelopmentSection = loadSpecDrivenDevelopmentTemplate(lang || config?.lang || "en", {
+      projectRoot: root,
+      presetTypes: config?.type || "base",
+    });
     const template = [
       `# ${path.basename(srcRoot)}`,
       "",

@@ -14,7 +14,7 @@ function makeEnv(tmp) {
 
 function setupProject(tmp, opts = {}) {
   writeJson(tmp, ".senti/config.json", {
-    lang: "ja", type: "node-cli",
+    lang: "ja", type: "sample-node-command",
     docs: { languages: ["ja"], defaultLanguage: "ja" },
     agent: {
       default: "echo-agent",

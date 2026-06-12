@@ -8,8 +8,6 @@ import { groupTestFilesByCategory, formatLabelSummary } from "./helpers/test-run
 import { buildSearchDirs, validateFlags } from "./helpers/test-runner-search-dirs.js";
 
 const ROOT = resolve(import.meta.dirname, "..");
-const PRESETS_DIR = join(ROOT, "src", "presets");
-const OFFICIAL_PRESETS_DIR = join(ROOT, "src", "official-plugins", "senti-presets", "presets");
 const MAX_COLLECTED = 10000;
 
 function fail(message) {
@@ -40,14 +38,7 @@ function walk(dir, out) {
 }
 
 function getRealPresetNames() {
-  const names = [];
-  for (const dir of [PRESETS_DIR, OFFICIAL_PRESETS_DIR]) {
-    if (!existsSync(dir)) continue;
-    names.push(...readdirSync(dir, { withFileTypes: true })
-      .filter((e) => e.isDirectory())
-      .map((e) => e.name));
-  }
-  return [...new Set(names)];
+  return [];
 }
 
 function getPresetNames() {
@@ -187,8 +178,8 @@ function runNodeTests(files) {
   });
   const stdout = res.stdout || "";
   const stderr = res.stderr || "";
-  process.stdout.write(stdout);
-  process.stderr.write(stderr);
+  if (stdout) writeSync(1, stdout);
+  if (stderr) writeSync(2, stderr);
   if (res.error) {
     const code = res.error.code ? `${res.error.code}: ` : "";
     process.stderr.write(`[test-runner] node --test spawnError: ${code}${res.error.message}\n`);
@@ -215,14 +206,20 @@ for (const type of ["unit", "integration", "acceptance"]) {
   if (files.length === 0) continue;
   const { status, passCount } = runNodeTests(files);
   counts[type] = passCount;
-  if (status !== 0 && overallExit === 0) overallExit = status;
+  if (status !== 0) {
+    process.stderr.write(`[test-runner] ${type} group failed status=${status} passCount=${passCount}\n`);
+    if (overallExit === 0) overallExit = status;
+  }
 }
 
 if (groups.other.length > 0) {
   const { status } = runNodeTests(groups.other);
-  if (status !== 0 && overallExit === 0) overallExit = status;
+  if (status !== 0) {
+    process.stderr.write(`[test-runner] other group failed status=${status}\n`);
+    if (overallExit === 0) overallExit = status;
+  }
 }
 
 writeSync(1, "\n" + formatLabelSummary(counts) + "\n");
 
-process.exit(overallExit);
+process.exitCode = overallExit;

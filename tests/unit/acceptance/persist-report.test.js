@@ -16,11 +16,11 @@ describe("persistReport", () => {
 
   it("writes report to .senti/output/acceptance-report-{preset}.json", () => {
     tmp = createTmpDir("persist-test-");
-    const report = { preset: "cakephp2", timestamp: "2026-03-28T00:00:00.000Z" };
+    const report = { preset: "child-preset", timestamp: "2026-03-28T00:00:00.000Z" };
 
     persistReport(tmp, report);
 
-    const outPath = path.join(tmp, ".senti", "output", "acceptance-report-cakephp2.json");
+    const outPath = path.join(tmp, ".senti", "output", "acceptance-report-child-preset.json");
     assert.ok(fs.existsSync(outPath), "report file should exist");
     const written = JSON.parse(fs.readFileSync(outPath, "utf8"));
     assert.deepEqual(written, report);
@@ -38,9 +38,9 @@ describe("persistReport", () => {
 
   it("overwrites existing report file on re-run", () => {
     tmp = createTmpDir("persist-test-");
-    const oldReport = { preset: "node-cli", timestamp: "2026-03-27T00:00:00.000Z" };
-    const newReport = { preset: "node-cli", timestamp: "2026-03-28T00:00:00.000Z" };
-    const outPath = path.join(tmp, ".senti", "output", "acceptance-report-node-cli.json");
+    const oldReport = { preset: "sample-node-command", timestamp: "2026-03-27T00:00:00.000Z" };
+    const newReport = { preset: "sample-node-command", timestamp: "2026-03-28T00:00:00.000Z" };
+    const outPath = path.join(tmp, ".senti", "output", "acceptance-report-sample-node-command.json");
 
     persistReport(tmp, oldReport);
     persistReport(tmp, newReport);
@@ -52,9 +52,9 @@ describe("persistReport", () => {
   it("uses preset name from report as filename suffix", () => {
     tmp = createTmpDir("persist-test-");
 
-    persistReport(tmp, { preset: "laravel" });
+    persistReport(tmp, { preset: "sample-preset" });
 
-    const outPath = path.join(tmp, ".senti", "output", "acceptance-report-laravel.json");
+    const outPath = path.join(tmp, ".senti", "output", "acceptance-report-sample-preset.json");
     assert.ok(fs.existsSync(outPath), "file should use preset name as suffix");
   });
 

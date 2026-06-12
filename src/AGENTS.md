@@ -26,7 +26,7 @@ src/
 │   ├── agent.js              AI エージェント呼び出し
 │   ├── presets.js            プリセット自動探索・親チェーン解決
 │   ├── plugin-registry.js    plugin manifest 検証・install/sync・contribution 解決
-│   ├── official-plugins.js   公式 preset plugin artifact の場所を解決
+│   ├── official-plugins.js   公式 preset plugin repository の場所を解決
 │   ├── flow-state.js         Spec-Driven Development フロー状態永続化
 │   ├── flow-envelope.js      flow get/set/run の JSON envelope
 │   ├── git-helpers.js          git/gh 状態取得ヘルパー
@@ -50,14 +50,13 @@ src/
 │   └── commands/            内部ヘルパー（merge, cleanup, review の実体）
 ├── spec/commands/            init, gate, guardrail（flow/run/prepare-spec, gate が内部で呼ぶ）
 ├── presets/                  core builtin preset（base のみ）
-├── official-plugins/         公式 preset plugin の bundled compatibility copy（senti-presets）
 ├── locale/                   en/, ja/
 └── templates/
     ├── skills/              skill テンプレート（SKILL.md）
     └── partials/            共有パーツ（include 用）
 ```
 
-`src/official-plugins/` は npm package に含める互換用 copy であり、公式 plugin repository migration の完了証跡ではない。公式 plugin source は resolver が検出する実 repository または明示設定された repository とし、migration 完了はその repository の clean な Git HEAD と contribution path で検証する。
+公式 preset content は main package に同梱しない。公式 plugin source は resolver が検出する実 repository または明示設定された repository とし、migration 完了はその repository の clean な Git HEAD と contribution path で検証する。
 
 ## コマンドルーティング
 

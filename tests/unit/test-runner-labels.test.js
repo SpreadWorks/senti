@@ -16,7 +16,7 @@ describe("categorizeTestFile", () => {
   it("maps paths with /tests/unit/ to unit", () => {
     assert.equal(categorizeTestFile("/repo/tests/unit/foo.test.js"), "unit");
     assert.equal(
-      categorizeTestFile("/repo/src/presets/foo/tests/unit/bar.test.js"),
+      categorizeTestFile("/repo/tests/presets/foo/tests/unit/bar.test.js"),
       "unit",
     );
   });
@@ -24,14 +24,14 @@ describe("categorizeTestFile", () => {
   it("maps paths with /tests/e2e/ to integration", () => {
     assert.equal(categorizeTestFile("/repo/tests/e2e/foo.test.js"), "integration");
     assert.equal(
-      categorizeTestFile("/repo/src/presets/foo/tests/e2e/bar.test.js"),
+      categorizeTestFile("/repo/tests/presets/foo/tests/e2e/bar.test.js"),
       "integration",
     );
   });
 
   it("maps paths with /tests/acceptance/ to acceptance", () => {
     assert.equal(
-      categorizeTestFile("/repo/src/presets/foo/tests/acceptance/bar.test.js"),
+      categorizeTestFile("/repo/tests/presets/foo/tests/acceptance/bar.test.js"),
       "acceptance",
     );
   });
