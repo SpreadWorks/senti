@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied two spec repairs: defined deterministic bare built-in provider-family aliases and removed the dry-run diagnostic conflict.",
+  "items": [
+    {
+      "title": "Provider-family default behavior is underspecified against ProviderRegistry",
+      "target": "R3 / AC1 / Overview.Data Flow",
+      "decision": "applied",
+      "rationale": "The spec now requires Agent default normalization to map bare built-in provider-family keys before ProviderRegistry lookup: codex -> codex/gpt-5.4 and claude -> claude/sonnet.",
+      "evidence": "spec.json scope.in[2], constraints[2], overview.data_flow[2], overview.decisions[2], requirements[2].desc, acceptance_criteria[0], clarifications[1].a, alternatives_considered[2].reason, and T-1 test_strategy now name the alias rule.",
+      "changedFields": [
+        "scope.in[2]",
+        "constraints[2]",
+        "overview.data_flow[2]",
+        "overview.decisions[2]",
+        "requirements[2].desc",
+        "acceptance_criteria[0]",
+        "clarifications[1].a",
+        "alternatives_considered[2].reason",
+        "tasks[0].test_strategy"
+      ]
+    },
+    {
+      "title": "Dry-run diagnostic requirement conflicts with current Agent.call behavior",
+      "target": "Scope.In / T-3 test_strategy",
+      "decision": "applied",
+      "rationale": "The spec now preserves _dryRun as a pre-resolution short-circuit and requires diagnostic tests to use unresolved Agent.call without _dryRun or direct resolution seams.",
+      "evidence": "spec.json scope.in[4] now says unresolved Agent.call diagnostics without _dryRun, and tasks[2].test_strategy explicitly preserves _dryRun as a pre-resolution short-circuit.",
+      "changedFields": [
+        "scope.in[4]",
+        "tasks[2].test_strategy"
+      ]
+    }
+  ]
+}

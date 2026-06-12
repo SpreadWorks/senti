@@ -1,0 +1,116 @@
+{
+  "devType": "bugfix",
+  "goal": "must fix core Agent resolution so plugin command calls such as ctx.agent.call(prompt, { commandId: \"workflow.publish\" }) resolve through the normal default/profile fallback policy when no plugin-specific override exists.",
+  "analysis": {
+    "problem": "Plugin commands receive the core Agent instance through the plugin context, but Agent.resolve(commandId) can return null for plugin command ids that are not mapped in the active profile. In the observed project config, agent.default is \"codex\" and agent.useProfile is \"codex-only\"; workflow.publish is not present in that profile, so publish failed with a generic \"No agent configured\" error even though default agent settings existed.",
+    "proposedApproach": "Keep plugin-specific provider/profile overrides first, then make core Agent resolution apply the same fallback policy for plugin command ids as normal command ids: active profile prefix, default profile prefix, generic default provider key, and clear diagnostics when none resolves.",
+    "validation": "Existing code shows createPluginAgentApi forwards dotted plugin command ids to agent.call, Agent.resolve delegates profile/default selection to resolveProfileKey, and ProviderRegistry can resolve provider-family keys such as \"codex\" by falling back to a built-in profile prefix. Existing docs describe agent.default as a provider key, so the fix targets resolution consistency and diagnostics rather than adding plugin-specific configuration requirements."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must preserve plugin command integration through createPluginAgentApi, which converts non-dotted plugin command ids to <pluginId>.<operation> and forwards dotted ids unchanged.",
+      "must account for the observed project config where agent.default is \"codex\", agent.useProfile is \"codex-only\", and workflow.publish has no active-profile mapping.",
+      "must treat docs/configuration.md as current user-facing contract unless source code proves otherwise: agent.default is documented as a default agent provider key.",
+      "must recognize existing Agent.resolve tests already cover active profile prefix matching, default profile fallback, active profile precedence, and unknown default provider returning null."
+    ],
+    "decisionPoints": [
+      "must define the fallback order for plugin command ids when active profile has no matching prefix.",
+      "must decide whether a provider-family key such as \"codex\" is accepted as a generic default provider key or rejected with diagnostic detail.",
+      "must define the minimum diagnostic data included when resolution fails."
+    ],
+    "resolvedByProjectRules": [
+      "must not add external dependencies; implementation and tests use Node.js built-in modules only.",
+      "must keep src/ generic; no project-local plugin ids, workflow board ids, or environment-specific values may be hardcoded under src/.",
+      "must keep plugin-specific provider override precedence because createPluginAgentApi already passes pluginConfig.provider as an explicit provider override.",
+      "should update docs only through the established documentation sync path if implementation changes make docs stale."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must express requirements for plugin command fallback, override precedence, unresolved-default diagnostics, and regression tests.",
+      "should leave exact helper/class extraction to implementation while following existing Agent and ProviderRegistry module boundaries."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must fix core Agent resolution for plugin command ids passed through ctx.agent.call.",
+      "must preserve plugin-specific provider/profile override precedence over generic fallback.",
+      "must cover active profile missing plugin command mappings, default profile fallback, provider-family default resolution, and failure diagnostics with tests.",
+      "should define agent.default behavior with two verifiable cases: provider-family keys such as \"codex\" resolve when ProviderRegistry has a matching built-in provider family, and unknown keys fail with diagnostics that name the default key."
+    ],
+    "out": [
+      "must not redesign the plugin command registry or workflow board publishing semantics.",
+      "must not introduce new external dependencies or TypeScript.",
+      "must not hardcode workflow.publish as a special case; behavior must be generic for plugin command ids.",
+      "should not change npm publish or release behavior."
+    ]
+  },
+  "impactOnExisting": [
+    "must keep normal docs.* and flow.* Agent resolution behavior unchanged except for clearer diagnostics on unresolved configuration.",
+    "must keep explicit profile matches ahead of default profile and generic default fallback.",
+    "must keep explicit plugin local overlay provider overrides ahead of core fallback.",
+    "should make failed Agent resolution errors include commandId, selected profile or active profile name, default key, and explicit provider override state, while excluding prompt text and provider command arguments."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "Goal confirmation: must this spec fix the core Agent fallback so plugin command ids such as workflow.publish resolve without requiring each plugin command id to be present in the active profile?",
+      "answer": "must fix core Agent fallback for plugin command ids so workflow.publish and other plugin operations do not require explicit active-profile mappings when a generic default can resolve.",
+      "evidence": "Issue #378 Expected fix requires generic default agent resolution for ctx.agent.call(prompt, { commandId: \"<plugin>.<operation>\" }); src/lib/agent.js createPluginAgentApi forwards dotted command ids unchanged to agent.call.",
+      "why": "The failure occurred after the plugin correctly reached ctx.agent.call; requiring every plugin command id in every project profile would move a core fallback responsibility onto plugin users.",
+      "considered": "Plugin-only configuration was considered, but the Issue classifies the direct bug as core-side and requires normal command fallback policy.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "agent.default policy: should a provider-family default such as \"codex\" be treated as a resolvable generic provider key when ProviderRegistry has a built-in codex profile, instead of requiring a full key such as \"codex/gpt-5.4\"?",
+      "answer": "should keep provider-family defaults such as \"codex\" resolvable when ProviderRegistry can resolve that provider family; unresolvable values must fail with clearer diagnostics.",
+      "evidence": "src/lib/provider.js _profileForKey falls back from a slash-qualified key to the provider-family key when possible; docs/configuration.md documents agent.default as a default agent provider key; .senti/config.json currently uses agent.default: \"codex\".",
+      "why": "The observed project config relies on \"codex\" having meaning, and ProviderRegistry already exposes provider-family resolution behavior. The safer boundary is clearer failure diagnostics for truly unknown defaults.",
+      "considered": "Requiring a full key such as codex/gpt-5.4 was considered, but it would leave the observed default unusable despite existing registry semantics.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "Failure diagnostics: must unresolved Agent errors include the commandId, selected profile or active profile name, default key, and whether explicit provider override was checked?",
+      "answer": "must include commandId, selected profile or active profile name, default key, and explicit provider override state when Agent resolution fails.",
+      "evidence": "Issue #378 Expected fix requires an error showing which commandId / profile / default were checked; src/lib/agent.js currently throws only \"No agent configured. Set 'agent.default' in config.json or run 'senti setup'.\"",
+      "why": "The existing generic message hid the difference between missing config, missing profile mapping, and unresolvable default provider, making plugin failures hard to diagnose.",
+      "considered": "Leaving the generic error unchanged was considered, but it would not satisfy the Issue's explicit diagnostic requirement.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "Compatibility: must existing normal command resolution for docs.* and flow.* keep the same precedence order while plugin command ids receive the same fallback behavior?",
+      "answer": "must preserve existing docs.* and flow.* precedence: explicit active-profile prefix first, default profile prefix next, then generic default provider.",
+      "evidence": "src/lib/agent.js documents priority as SENTI_PROFILE > config.agent.useProfile > default profile > default; tests/unit/lib/agent.test.js covers active profile entries ahead of default profile fallback.",
+      "why": "The bug is a missing or ineffective fallback for plugin command ids, not a request to change normal command routing.",
+      "considered": "Changing global precedence was considered out of scope because it could regress existing flow/docs command selection.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "follow-up-coverage",
+      "question": "Test strategy: must regression tests cover plugin command fallback, active profile without plugin mapping, plugin-specific provider override precedence, provider-family default resolution, and diagnostic text for an unresolvable default?",
+      "answer": "must add or update regression tests for plugin command fallback, active profile without plugin mapping, plugin-specific provider override precedence, provider-family default resolution, and diagnostic text for unresolved defaults.",
+      "evidence": "Issue #378 Test considerations list these four behavior groups; existing tests/unit/lib/agent-service.test.js and tests/unit/lib/agent.test.js already exercise Agent.resolve and are the closest regression surface.",
+      "why": "The failure path is configuration-dependent, so unit tests around Agent.resolve/call and createPluginAgentApi provide focused coverage without invoking real AI CLIs.",
+      "considered": "End-to-end workflow publish coverage was considered, but unit coverage is sufficient for the core Agent bug and avoids network or GitHub dependencies.",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-11T15:46:47Z",
+    "notes": "Auto-approved after all draft QA entries were answered from Issue #378, project docs, and source context."
+  }
+}

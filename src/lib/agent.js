@@ -29,6 +29,10 @@ const MAX_RETRY = 5;
 const DEFAULT_RETRY_COUNT = 2;
 const DEFAULT_RETRY_DELAY_MS = 3000;
 const RETRY_BACKOFF_FACTOR = 2;
+const DEFAULT_PROVIDER_FAMILY_ALIASES = Object.freeze({
+  codex: "codex/gpt-5.4",
+  claude: "claude/sonnet",
+});
 
 class Agent {
   /**
@@ -53,27 +57,21 @@ class Agent {
    * Returns null when no profile is configured.
    */
   resolve(commandId, options = {}) {
-    const agentSection = this._config.agent || {};
-    const selectedProfileKey = resolveProfileKey(agentSection, commandId, {
-      profileName: options.profile,
-    });
-    const profileKey = resolveProviderOverrideKey(options.provider, selectedProfileKey);
-    if (!profileKey) return null;
+    return this._resolveAttempt(AgentResolutionAttempt.from({
+      agentSection: this._config.agent || {},
+      commandId,
+      options,
+      registry: this._registry,
+    }));
+  }
 
-    const resolved = this._registry.resolveProfile(profileKey);
+  _resolveAttempt(attempt) {
+    if (!attempt.lookupKey) return null;
+
+    const resolved = this._registry.resolveProfile(attempt.lookupKey);
     if (!resolved) return null;
 
-    const timeoutMs = agentSection.timeout != null
-      ? Number(agentSection.timeout) * 1000
-      : DEFAULT_AGENT_TIMEOUT_MS;
-
-    return {
-      provider: resolved.provider,
-      profile: resolved.profile,
-      providerKey: resolved.providerKey,
-      profileKey,
-      timeoutMs,
-    };
+    return attempt.toResolved(resolved);
   }
 
   /**
@@ -94,9 +92,15 @@ class Agent {
     const opts = options || {};
     if (opts._dryRun) return "";
 
-    const resolved = this.resolve(opts.commandId, opts);
+    const attempt = AgentResolutionAttempt.from({
+      agentSection: this._config.agent || {},
+      commandId: opts.commandId,
+      options: opts,
+      registry: this._registry,
+    });
+    const resolved = this._resolveAttempt(attempt);
     if (!resolved) {
-      throw new Error("No agent configured. Set 'agent.default' in config.json or run 'senti setup'.");
+      throw new Error(attempt.formatFailure());
     }
     ensureWorkDir(this._paths.agentWorkDir);
 
@@ -506,6 +510,84 @@ function stableStringify(value) {
   return JSON.stringify(value);
 }
 
+class AgentResolutionAttempt {
+  constructor({
+    agentSection,
+    commandId,
+    providerOverride,
+    profileSource,
+    profileName,
+    selectedProfileKey,
+    selectedProfileSource,
+    lookupKey,
+  }) {
+    this.agentSection = agentSection || {};
+    this.commandId = commandId || "unknown";
+    this.providerOverride = providerOverride || null;
+    this.profileSource = profileSource || "none";
+    this.profileName = profileName || null;
+    this.selectedProfileKey = selectedProfileKey || null;
+    this.selectedProfileSource = selectedProfileSource || "none";
+    this.lookupKey = lookupKey || null;
+  }
+
+  static from({ agentSection, commandId, options = {} }) {
+    const section = agentSection || {};
+    const profileSelection = resolveProfileSelection(section, commandId, {
+      profileName: options.profile,
+    });
+    const selectedProfileKey = normalizeSelectedProfileKey(profileSelection);
+    const lookupKey = resolveProviderOverrideKey(options.provider, selectedProfileKey);
+    return new AgentResolutionAttempt({
+      agentSection: section,
+      commandId,
+      providerOverride: options.provider || null,
+      profileSource: profileSelection.profileSource,
+      profileName: profileSelection.profileName,
+      selectedProfileKey,
+      selectedProfileSource: profileSelection.keySource,
+      lookupKey,
+    });
+  }
+
+  toResolved(resolved) {
+    const timeoutMs = this.agentSection.timeout != null
+      ? Number(this.agentSection.timeout) * 1000
+      : DEFAULT_AGENT_TIMEOUT_MS;
+    return {
+      provider: resolved.provider,
+      profile: resolved.profile,
+      providerKey: resolved.providerKey,
+      profileKey: this.lookupKey,
+      timeoutMs,
+    };
+  }
+
+  formatFailure() {
+    return [
+      "No agent configured.",
+      `commandId=${this.commandId}`,
+      `providerOverride=${this.providerOverride || "none"}`,
+      `profileSource=${this.profileSource}`,
+      `activeProfile=${this.profileName || "none"}`,
+      `default=${this.agentSection.default || "none"}`,
+      `selected=${this.selectedProfileKey || "none"}`,
+      `lookup=${this.lookupKey || "none"}`,
+      "reason=no provider resolved",
+      "Set 'agent.default' in config.json or run 'senti setup'.",
+    ].join(" ");
+  }
+}
+
+class ProfileSelection {
+  constructor({ profileSource, profileName, keySource, key }) {
+    this.profileSource = profileSource || "none";
+    this.profileName = profileName || null;
+    this.keySource = keySource || "none";
+    this.key = key || null;
+  }
+}
+
 function matchProfilePrefix(profile, commandId) {
   if (!commandId) return null;
   let bestKey = null;
@@ -521,19 +603,46 @@ function matchProfilePrefix(profile, commandId) {
   return bestKey;
 }
 
-function resolveProfileKey(agentSection, commandId, options = {}) {
+function resolveProfileSelection(agentSection, commandId, options = {}) {
   const defaultKey = agentSection.default;
+  const profileSource = options.profileName
+    ? "explicitProfile"
+    : process.env.SENTI_PROFILE
+      ? "SENTI_PROFILE"
+      : agentSection.useProfile
+        ? "useProfile"
+        : "none";
   const profileName = options.profileName || process.env.SENTI_PROFILE || agentSection.useProfile || null;
-  if (!profileName) return defaultKey;
+  if (!profileName) {
+    return new ProfileSelection({ profileSource, profileName, keySource: "default", key: defaultKey });
+  }
 
   const profiles = agentSection.profiles;
   if (!profiles || !profiles[profileName]) {
     throw new Error(`Profile "${profileName}" is not defined in agent.profiles.`);
   }
 
-  return matchProfilePrefix(profiles[profileName], commandId)
-    || matchDefaultProfileFallback(profiles, profileName, commandId)
-    || defaultKey;
+  const activeMatch = matchProfilePrefix(profiles[profileName], commandId);
+  if (activeMatch) {
+    return new ProfileSelection({ profileSource, profileName, keySource: "activeProfile", key: activeMatch });
+  }
+
+  const defaultProfileMatch = matchDefaultProfileFallback(profiles, profileName, commandId);
+  if (defaultProfileMatch) {
+    return new ProfileSelection({ profileSource, profileName, keySource: "defaultProfile", key: defaultProfileMatch });
+  }
+
+  return new ProfileSelection({ profileSource, profileName, keySource: "default", key: defaultKey });
+}
+
+function resolveProfileKey(agentSection, commandId, options = {}) {
+  return normalizeSelectedProfileKey(resolveProfileSelection(agentSection, commandId, options));
+}
+
+function normalizeSelectedProfileKey(selection) {
+  if (!selection?.key) return null;
+  if (selection.keySource !== "default") return selection.key;
+  return DEFAULT_PROVIDER_FAMILY_ALIASES[selection.key] || selection.key;
 }
 
 function resolveProviderOverrideKey(providerKey, selectedProfileKey) {

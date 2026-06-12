@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "generatedAt": "2026-06-11T16:04:22.856Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "nonBlocking": 1,
+    "total": 3
+  },
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Provider-family default behavior is underspecified against ProviderRegistry",
+      "target": "R3 / AC1 / Overview.Data Flow",
+      "body": "**Target:** R3 / AC1 / Overview.Data Flow\n**Issue:** The spec treats agent.default=\"codex\" as a resolvable provider-family default for the observed Issue #378 config, but verified code shows ProviderRegistry.resolveProfile(\"codex\") currently returns null for built-in Codex profiles because built-ins are keyed as \"codex/gpt-5.4\" and \"codex/gpt-5.3\" and _profileForKey only falls back from slash-qualified keys to exact family keys, not from a bare family key to a built-in profile.\n**Required change:** Specify the exact spec-level policy for bare built-in provider-family defaults: either require ProviderRegistry to map \"codex\" to a defined built-in profile key and name the selection rule, or change AC1/R3 to use only exact user-defined family keys that ProviderRegistry already resolves.\n**Why blocking:** Without this correction, an implementation can satisfy the stated 'only when ProviderRegistry can resolve' wording while leaving the observed default \"codex\" unresolved, or different implementers can choose different built-in Codex profiles, making the fix and tests unsafe to implement consistently.",
+      "issue": "The spec treats agent.default=\"codex\" as a resolvable provider-family default for the observed Issue #378 config, but verified code shows ProviderRegistry.resolveProfile(\"codex\") currently returns null for built-in Codex profiles because built-ins are keyed as \"codex/gpt-5.4\" and \"codex/gpt-5.3\" and _profileForKey only falls back from slash-qualified keys to exact family keys, not from a bare family key to a built-in profile.",
+      "requiredChange": "Specify the exact spec-level policy for bare built-in provider-family defaults: either require ProviderRegistry to map \"codex\" to a defined built-in profile key and name the selection rule, or change AC1/R3 to use only exact user-defined family keys that ProviderRegistry already resolves.",
+      "whyBlocking": "Without this correction, an implementation can satisfy the stated 'only when ProviderRegistry can resolve' wording while leaving the observed default \"codex\" unresolved, or different implementers can choose different built-in Codex profiles, making the fix and tests unsafe to implement consistently."
+    },
+    {
+      "kind": "blocking",
+      "title": "Dry-run diagnostic requirement conflicts with current Agent.call behavior",
+      "target": "Scope.In / T-3 test_strategy",
+      "body": "**Target:** Scope.In / T-3 test_strategy\n**Issue:** The scope asks for Agent.call dry-run failure diagnostic coverage, but existing Agent.call returns immediately when options._dryRun is true, before Agent.resolve runs. T-3 later says diagnostic tests should use _dryRun false for unresolved configs or use seams, which conflicts with the dry-run wording.\n**Required change:** Choose one spec-level behavior: either remove/replace the dry-run diagnostic requirement with unresolved Agent.call diagnostics that run without _dryRun, or explicitly require _dryRun to perform resolution before short-circuiting.\n**Why blocking:** The current spec changes what should be implemented and tested: preserving _dryRun means no dry-run failure diagnostics can exist, while making _dryRun resolve first changes an existing test-only contract.",
+      "issue": "The scope asks for Agent.call dry-run failure diagnostic coverage, but existing Agent.call returns immediately when options._dryRun is true, before Agent.resolve runs. T-3 later says diagnostic tests should use _dryRun false for unresolved configs or use seams, which conflicts with the dry-run wording.",
+      "requiredChange": "Choose one spec-level behavior: either remove/replace the dry-run diagnostic requirement with unresolved Agent.call diagnostics that run without _dryRun, or explicitly require _dryRun to perform resolution before short-circuiting.",
+      "whyBlocking": "The current spec changes what should be implemented and tested: preserving _dryRun means no dry-run failure diagnostics can exist, while making _dryRun resolve first changes an existing test-only contract."
+    }
+  ],
+  "nonBlockingImprovements": [
+    {
+      "kind": "improvement",
+      "title": "Clarify plugin profile override granularity",
+      "target": "R2 / AC3 / T-2",
+      "body": "**Target:** R2 / AC3 / T-2\n**Improvement:** Clarify that createPluginAgentApi's profile override is a profile name passed to Agent.resolve for command-prefix lookup, while provider override is a provider/profile key override; this would make the expected tests for pluginConfig.agentProfile versus options.profile easier to target.\n**Why non-blocking:** The existing module boundary and requirements are enough to implement precedence, but the distinction would reduce ambiguity in focused test cases.",
+      "improvement": "Clarify that createPluginAgentApi's profile override is a profile name passed to Agent.resolve for command-prefix lookup, while provider override is a provider/profile key override; this would make the expected tests for pluginConfig.agentProfile versus options.profile easier to target.",
+      "whyNonBlocking": "The existing module boundary and requirements are enough to implement precedence, but the distinction would reduce ambiguity in focused test cases."
+    }
+  ],
+  "sourceArtifact": "spec-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "spec-001-blocking-001",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Provider-family default behavior is underspecified against ProviderRegistry",
+      "body": "**Target:** R3 / AC1 / Overview.Data Flow\n**Issue:** The spec treats agent.default=\"codex\" as a resolvable provider-family default for the observed Issue #378 config, but verified code shows ProviderRegistry.resolveProfile(\"codex\") currently returns null for built-in Codex profiles because built-ins are keyed as \"codex/gpt-5.4\" and \"codex/gpt-5.3\" and _profileForKey only falls back from slash-qualified keys to exact family keys, not from a bare family key to a built-in profile.\n**Required change:** Specify the exact spec-level policy for bare built-in provider-family defaults: either require ProviderRegistry to map \"codex\" to a defined built-in profile key and name the selection rule, or change AC1/R3 to use only exact user-defined family keys that ProviderRegistry already resolves.\n**Why blocking:** Without this correction, an implementation can satisfy the stated 'only when ProviderRegistry can resolve' wording while leaving the observed default \"codex\" unresolved, or different implementers can choose different built-in Codex profiles, making the fix and tests unsafe to implement consistently.",
+      "category": "unknown"
+    },
+    {
+      "id": "spec-001-blocking-002",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Dry-run diagnostic requirement conflicts with current Agent.call behavior",
+      "body": "**Target:** Scope.In / T-3 test_strategy\n**Issue:** The scope asks for Agent.call dry-run failure diagnostic coverage, but existing Agent.call returns immediately when options._dryRun is true, before Agent.resolve runs. T-3 later says diagnostic tests should use _dryRun false for unresolved configs or use seams, which conflicts with the dry-run wording.\n**Required change:** Choose one spec-level behavior: either remove/replace the dry-run diagnostic requirement with unresolved Agent.call diagnostics that run without _dryRun, or explicitly require _dryRun to perform resolution before short-circuiting.\n**Why blocking:** The current spec changes what should be implemented and tested: preserving _dryRun means no dry-run failure diagnostics can exist, while making _dryRun resolve first changes an existing test-only contract.",
+      "category": "unknown"
+    },
+    {
+      "id": "spec-001-non-blocking-003",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "Clarify plugin profile override granularity",
+      "body": "**Target:** R2 / AC3 / T-2\n**Improvement:** Clarify that createPluginAgentApi's profile override is a profile name passed to Agent.resolve for command-prefix lookup, while provider override is a provider/profile key override; this would make the expected tests for pluginConfig.agentProfile versus options.profile easier to target.\n**Why non-blocking:** The existing module boundary and requirements are enough to implement precedence, but the distinction would reduce ambiguity in focused test cases.",
+      "category": "unknown"
+    }
+  ]
+}

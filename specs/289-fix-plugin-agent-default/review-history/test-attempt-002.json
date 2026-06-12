@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-11T16:10:40.245Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 3,
+    "advisory": 0,
+    "total": 3
+  },
+  "coverageArtifact": "specs/289-fix-plugin-agent-default/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Vacuous R7 coverage test",
+      "target": "specs/289-fix-plugin-agent-default/tests/agent-resolution.test.js",
+      "issue": "The test named \"R7: covers Issue #378 fallback, override, diagnostic, and redaction requirements\" only runs assert.ok(true), so it passes without exercising any production behavior.",
+      "requiredChange": "Remove the vacuous R7 test or replace it with executable assertions that exercise the R7 regression scenarios not already covered by the preceding tests.",
+      "whyBlocking": "This is a static anti-pattern that would pass without testing production behavior, and the coverage artifact claims R7 is covered by this file."
+    },
+    {
+      "kind": "blocking",
+      "title": "Missing explicit profile override coverage",
+      "target": "specs/289-fix-plugin-agent-default/tests/agent-resolution.test.js",
+      "issue": "R2 requires explicit plugin provider/profile overrides forwarded by createPluginAgentApi to take precedence, but the tests only cover provider override forwarding and provider override precedence. No test covers an explicit plugin profile override.",
+      "requiredChange": "Add the smallest executable test showing createPluginAgentApi forwards a plugin profile override, and that Agent.resolve or Agent.call uses that explicit profile ahead of active profile, default profile, and default fallback.",
+      "whyBlocking": "An acceptance requirement has no corresponding spec-local test coverage for the profile override half of R2."
+    },
+    {
+      "kind": "blocking",
+      "title": "Unknown default fallback is under-specified",
+      "target": "specs/289-fix-plugin-agent-default/tests/agent-resolution.test.js",
+      "issue": "R3 requires unknown agent.default keys to fail without silently selecting another provider. The current missing-provider tests use a configuration with no valid alternative provider to accidentally select, so they do not catch an implementation that falls back to another configured provider.",
+      "requiredChange": "Add a test where agent.default is an unknown key while another valid provider/profile exists, and assert Agent.call or resolve fails instead of selecting that other provider.",
+      "whyBlocking": "A critical regression risk in R3 has no focused regression test: silent fallback to a different provider would not be detected by the current cases."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/289-fix-plugin-agent-default/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "3a323346d1869badc8c70456fc1bb17941cc5b00423d966b394ac20921660cc9"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "test-002-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Vacuous R7 coverage test",
+      "body": "The test named \"R7: covers Issue #378 fallback, override, diagnostic, and redaction requirements\" only runs assert.ok(true), so it passes without exercising any production behavior.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Missing explicit profile override coverage",
+      "body": "R2 requires explicit plugin provider/profile overrides forwarded by createPluginAgentApi to take precedence, but the tests only cover provider override forwarding and provider override precedence. No test covers an explicit plugin profile override.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Unknown default fallback is under-specified",
+      "body": "R3 requires unknown agent.default keys to fail without silently selecting another provider. The current missing-provider tests use a configuration with no valid alternative provider to accidentally select, so they do not catch an implementation that falls back to another configured provider.",
+      "category": "unknown"
+    }
+  ]
+}

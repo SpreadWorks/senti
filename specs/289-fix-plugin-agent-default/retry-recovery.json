@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "Test review evidence changed after adding explicit provider override default-key diagnostic assertion.",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "b3b21ca7512c0d83598036c7ed811c6a7c9f6f1d1c7fad2a72ef11599d89bff1",
+        "currentHash": "361d9e825031abab12d1edd198cc6f7d34bad670bfa753812af321e9426c1cc1",
+        "changedPaths": [
+          "specs/289-fix-plugin-agent-default/tests/.raw/scenario-validity.log",
+          "specs/289-fix-plugin-agent-default/tests/agent-resolution.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset review test --reason \"Test review evidence changed after adding explicit provider override default-key diagnostic assertion.\" --yes",
+      "createdAt": "2026-06-11T23:59:16.211Z"
+    }
+  ]
+}

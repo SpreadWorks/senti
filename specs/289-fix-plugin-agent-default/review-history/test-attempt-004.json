@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-11T16:13:33.407Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/289-fix-plugin-agent-default/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Diagnostic coverage never exercises explicit provider override failure state",
+      "target": "specs/289-fix-plugin-agent-default/tests/agent-resolution.test.js:116",
+      "issue": "R4 requires unresolved-provider diagnostics to include the explicit provider override state, but the only R4 failure test calls Agent.call without a provider override. A diagnostic implementation could omit or mishandle the supplied explicit override value/state and still pass this test suite.",
+      "requiredChange": "Add or adjust a spec-local Agent.call rejection test that supplies an explicit unresolved provider override, then asserts the diagnostic reports that explicit override state without leaking sensitive details.",
+      "whyBlocking": "This is a concrete acceptance requirement with no executable coverage for the explicit-override failure path."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/289-fix-plugin-agent-default/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "13f8ad7bbe273a81e326b593813d3f6a2106eca1aec97aad9bd8ea86ea5b2bf7"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "test-004-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Diagnostic coverage never exercises explicit provider override failure state",
+      "body": "R4 requires unresolved-provider diagnostics to include the explicit provider override state, but the only R4 failure test calls Agent.call without a provider override. A diagnostic implementation could omit or mishandle the supplied explicit override value/state and still pass this test suite.",
+      "category": "unknown"
+    }
+  ]
+}

@@ -78,6 +78,14 @@ describe("Agent.resolve(commandId)", () => {
     const resolved = agent.resolve("docs.review");
     assert.equal(resolved.profile.command, "codex");
   });
+
+  it("resolves bare built-in default provider family keys", () => {
+    const agent = makeAgent({ config: { agent: { default: "codex" } } });
+    const resolved = agent.resolve("workflow.publish");
+    assert.ok(resolved);
+    assert.equal(resolved.profileKey, "codex/gpt-5.4");
+    assert.equal(resolved.profile.command, "codex");
+  });
 });
 
 describe("Agent.call() — option contract", () => {
@@ -97,6 +105,38 @@ describe("Agent.call() — option contract", () => {
     const result = agent.call("ignored", { commandId: "test", _dryRun: true });
     assert.ok(result && typeof result.then === "function", "call() must return a Promise");
     // Don't await — _dryRun should short-circuit.
+  });
+
+  it("includes bounded resolution context when no provider resolves", async () => {
+    const agent = makeAgent({
+      config: {
+        agent: {
+          default: "missing-provider",
+          useProfile: "codex-only",
+          profiles: {
+            "codex-only": {},
+          },
+        },
+      },
+    });
+
+    await assert.rejects(
+      agent.call("PROMPT_SHOULD_NOT_LEAK", {
+        commandId: "workflow.publish",
+        systemPrompt: "SYSTEM_SHOULD_NOT_LEAK",
+        retryCount: 0,
+      }),
+      (err) => {
+        assert.match(err.message, /commandId=workflow\.publish/);
+        assert.match(err.message, /providerOverride=none/);
+        assert.match(err.message, /profileSource=useProfile/);
+        assert.match(err.message, /activeProfile=codex-only/);
+        assert.match(err.message, /default=missing-provider/);
+        assert.doesNotMatch(err.message, /PROMPT_SHOULD_NOT_LEAK/);
+        assert.doesNotMatch(err.message, /SYSTEM_SHOULD_NOT_LEAK/);
+        return true;
+      },
+    );
   });
 });
 

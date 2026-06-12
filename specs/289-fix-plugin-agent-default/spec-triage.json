@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "Two blocking spec-review findings require small spec repairs: define the bare built-in provider-family default selection rule and remove the conflicting dry-run diagnostic wording.",
+  "items": [
+    {
+      "title": "Provider-family default behavior is underspecified against ProviderRegistry",
+      "target": "R3 / AC1 / Overview.Data Flow",
+      "decision": "apply",
+      "rationale": "The spec must state a deterministic selection rule for agent.default: \"codex\" because Issue #378's observed config depends on that bare built-in provider-family value resolving.",
+      "evidence": "spec.json R3 and AC1 currently say provider-family keys resolve when ProviderRegistry can resolve that family, but spec-review verified ProviderRegistry.resolveProfile(\"codex\") currently returns null for built-in Codex profiles."
+    },
+    {
+      "title": "Dry-run diagnostic requirement conflicts with current Agent.call behavior",
+      "target": "Scope.In / T-3 test_strategy",
+      "decision": "apply",
+      "rationale": "The spec should preserve the current _dryRun short-circuit contract and test diagnostics through unresolved Agent.call without _dryRun or direct resolution seams.",
+      "evidence": "spec.json scope mentions Agent.call dry-run failure diagnostic coverage, while src/lib/agent.js returns immediately when opts._dryRun is true before Agent.resolve runs."
+    }
+  ]
+}

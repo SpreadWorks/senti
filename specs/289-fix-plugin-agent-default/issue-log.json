@@ -1,0 +1,201 @@
+{
+  "entries": [
+    {
+      "step": "draft",
+      "reason": "Initial patch targeted the main repository relative path while the active flow uses a worktree, so the edit did not apply.",
+      "trigger": "apply_patch reported that specs/289-fix-plugin-agent-default/draft.json was missing from the main repository path",
+      "resolution": "Reapplied the patch using the absolute path under the active worktree and continued all edits inside the worktree.",
+      "guardrailCandidate": "During active worktree flows, always use worktree-relative or worktree-absolute paths for edits.",
+      "taskId": null,
+      "timestamp": "2026-06-11T15:44:46.008Z"
+    },
+    {
+      "step": "draft-refine",
+      "reason": "draft.json became invalid JSON because a comma was missing after the final QA considered field.",
+      "trigger": "node JSON.parse validation failed at draft.json line 107 before draft-refine completion",
+      "resolution": "Added the missing comma and reran JSON parsing before marking draft-refine done.",
+      "guardrailCandidate": "After manual JSON edits, parse the artifact before advancing the flow step.",
+      "taskId": null,
+      "timestamp": "2026-06-11T15:46:12.922Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "qa[4]: invalid category \"test-strategy\"",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-11T15:47:06.310Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[4]: invalid category \"test-strategy\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate failed because qa[4] used an invalid category value test-strategy outside the allowed draft QA category enum.",
+      "trigger": "senti flow run gate --phase draft returned qa[4]: invalid category test-strategy",
+      "resolution": "Changed the category to the allowed follow-up-coverage value and reran the draft gate.",
+      "guardrailCandidate": "Before draft gate, compare every draft QA category against the allowed enum from the next-action instructions.",
+      "taskId": null,
+      "timestamp": "2026-06-11T15:47:18.362Z"
+    },
+    {
+      "step": "draft-gate",
+      "phase": "draft",
+      "reason": "invalid failureMode: vague objective phrasing",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-11T15:47:35.616Z"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "gate FAIL (no details)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-11T15:47:35.647Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate could not continue because the flow retry recovery state reports attempts 6 above max 5 after an AI artifact failure.",
+      "trigger": "senti flow run gate --phase draft returned ESCALATE_RETRY_EXHAUSTED with invalid failureMode vague objective phrasing",
+      "resolution": "Stopped the flow per retry-limit rule; no further automatic recovery command is available for this plan gate phase.",
+      "guardrailCandidate": "When gate retryRecovery reports attempts above max and recoveryPossible false, stop immediately and return control to the user.",
+      "taskId": null,
+      "timestamp": "2026-06-11T15:48:02.391Z"
+    },
+    {
+      "step": "draft-gate",
+      "phase": "draft",
+      "reason": "invalid failureMode: vague objective phrasing",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-11T15:57:29.253Z"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "gate FAIL (no details)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-11T15:57:29.279Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate re-run used the cached invalid guardrail response after manual retry reset, causing the same invalid failureMode error.",
+      "trigger": "senti flow run gate --phase draft failed in under one second after retry reset and flow metrics showed agent-cache hits",
+      "resolution": "Made the draft requirements verifiable, removed only the stale gate response from .senti/agent-cache, and will reset gateRetry before rerunning.",
+      "guardrailCandidate": "When rerunning a gate after an AI schema error, clear the stale prompt-cache entry or change the prompt input before retrying.",
+      "taskId": null,
+      "timestamp": "2026-06-11T15:58:41.229Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Test review found missing fallback branch coverage and a path-redaction assertion that used an unrelated temporary directory.",
+      "trigger": "senti flow run review --phase test returned FAIL with four blocking findings for specs/289-fix-plugin-agent-default/tests/agent-resolution.test.js",
+      "resolution": "Added active-profile, default-profile, claude alias, explicit diagnostic reason, and actual Agent root redaction assertions before rerunning scenario validity and test review.",
+      "guardrailCandidate": "When writing diagnostic tests, assert against the actual object under test rather than a newly generated fixture value.",
+      "taskId": null,
+      "timestamp": "2026-06-11T16:10:04.722Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Second test review found vacuous R7 coverage plus missing profile override and unknown-default regression branches.",
+      "trigger": "senti flow run review --phase test returned FAIL with three blocking findings after the first test repair",
+      "resolution": "Replaced the R7 no-op with a production fallback assertion and added plugin profile override plus unknown default with another configured provider tests.",
+      "guardrailCandidate": "Do not use assert.ok(true) as requirement coverage; each requirement header needs production behavior assertions.",
+      "taskId": null,
+      "timestamp": "2026-06-11T16:11:27.677Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Third test review found missing flow command precedence coverage for R6 after docs command precedence was covered.",
+      "trigger": "senti flow run review --phase test returned FAIL with one blocking finding for flow.* precedence",
+      "resolution": "Added a flow.spec.gate active-profile precedence regression test under the R6 coverage file.",
+      "guardrailCandidate": "When a requirement names multiple command families, include executable coverage for each named family.",
+      "taskId": null,
+      "timestamp": "2026-06-11T16:13:03.209Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Fourth test review found missing explicit provider override failure coverage for R4 diagnostics.",
+      "trigger": "senti flow run review --phase test returned FAIL with provider override diagnostic coverage missing",
+      "resolution": "Added an Agent.call rejection test with provider missing-override and assertions for commandId, provider override state, failed lookup reason, and prompt redaction.",
+      "guardrailCandidate": "For diagnostic requirements, include tests for each named input state, including explicit override values.",
+      "taskId": null,
+      "timestamp": "2026-06-11T16:14:14.142Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Fifth test review found the R4 diagnostic assertions were too broad to prove provider override and profile selection fields.",
+      "trigger": "senti flow run review --phase test returned FAIL for permissive diagnostic regex assertions",
+      "resolution": "Replaced broad regex alternatives with concrete expected diagnostic fields: providerOverride, profileSource, activeProfile, and default.",
+      "guardrailCandidate": "Diagnostic tests should assert distinct named fields rather than broad alternatives that can match unrelated text.",
+      "taskId": null,
+      "timestamp": "2026-06-11T16:15:21.707Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Test review retry limit was exhausted before the latest corrected diagnostic assertion changes could be reviewed.",
+      "trigger": "senti flow run review --phase test returned REVIEW_MAX_ATTEMPTS_EXCEEDED with attempts 5 of 5",
+      "resolution": "Stopped per flow retry-limit rule; recovery requires resetting review/test retry after changed evidence.",
+      "guardrailCandidate": "When repeated test-review repairs consume the retry budget, reset review retry only after concrete test changes are present.",
+      "taskId": null,
+      "timestamp": "2026-06-11T16:15:42.904Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Review retry reset was rejected as unchanged evidence because the exhausted baseline already included the latest test file hash.",
+      "trigger": "senti flow set retry reset review test returned UNCHANGED_EVIDENCE",
+      "resolution": "Added a concrete default key assertion to the explicit provider override diagnostic test before rerunning scenario validity and reset.",
+      "guardrailCandidate": "When retry recovery compares evidence hashes, make a meaningful test assertion change after the exhausted baseline before requesting reset.",
+      "taskId": null,
+      "timestamp": "2026-06-11T23:58:00.258Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "Test review evidence changed after adding explicit provider override default-key diagnostic assertion.",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "b3b21ca7512c0d83598036c7ed811c6a7c9f6f1d1c7fad2a72ef11599d89bff1",
+        "currentHash": "361d9e825031abab12d1edd198cc6f7d34bad670bfa753812af321e9426c1cc1",
+        "changedPaths": [
+          "specs/289-fix-plugin-agent-default/tests/.raw/scenario-validity.log",
+          "specs/289-fix-plugin-agent-default/tests/agent-resolution.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset review test --reason \"Test review evidence changed after adding explicit provider override default-key diagnostic assertion.\" --yes",
+      "createdAt": "2026-06-11T23:59:16.211Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-06-12T00:15:28.619Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict occurred while finalizing after main advanced beyond the feature branch baseline.",
+      "trigger": "senti flow run finalize-merge reported a merge conflict and recovery hint to rebase main in the active worktree.",
+      "resolution": "Ran git rebase --autostash main in the active worktree, resolved the generated analysis.json conflict by keeping the newer main snapshot, and continued the rebase.",
+      "guardrailCandidate": "When finalize merge detects base drift, rebase inside the active worktree and resolve generated analysis artifacts by preserving the current base snapshot unless source changes require regeneration.",
+      "taskId": null,
+      "timestamp": "2026-06-12T00:17:09.547Z"
+    }
+  ]
+}

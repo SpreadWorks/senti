@@ -1,0 +1,53 @@
+{
+  "spec": "specs/289-fix-plugin-agent-default/spec.json",
+  "date": "2026-06-12T00:12:16.983Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Agent.resolve must resolve a plugin command id through the active profile prefix match, then the default profile prefix match, then the generic default provider key when no explicit plugin provider/profile override is supplied.",
+      "status": "done",
+      "note": "R1: resolves a plugin command id through the generic default when the active profile has no plugin mapping"
+    },
+    {
+      "desc": "Explicit plugin provider/profile overrides forwarded by createPluginAgentApi must take precedence over active profile, default profile, and generic default fallback.",
+      "status": "done",
+      "note": "R2: keeps explicit plugin provider overrides ahead of profile and default fallback"
+    },
+    {
+      "desc": "agent.default bare built-in provider-family values must normalize before ProviderRegistry lookup: \"codex\" maps to \"codex/gpt-5.4\" and \"claude\" maps to \"claude/sonnet\". Unknown default keys must fail without silently selecting another provider.",
+      "status": "done",
+      "note": "R3: maps bare built-in default codex to codex/gpt-5.4"
+    },
+    {
+      "desc": "When Agent.call cannot resolve a provider, the thrown error must include commandId, explicit provider override state, explicit/profile environment selection, active profile name, default key, and a concise reason for the failed lookup.",
+      "status": "done",
+      "note": "R4: includes resolution context when no provider can be resolved"
+    },
+    {
+      "desc": "The diagnostic error message must exclude prompt text, system prompt text, provider command arguments, secrets, tokens, and absolute local config paths.",
+      "status": "done",
+      "note": "R5: redacts prompt, system prompt, provider args, tokens, and absolute paths from diagnostics"
+    },
+    {
+      "desc": "Existing docs.* and flow.* command resolution precedence must remain unchanged except for the improved unresolved-configuration diagnostic text.",
+      "status": "done",
+      "note": "R6: preserves normal command active-profile precedence over default profile fallback"
+    },
+    {
+      "desc": "Regression tests must cover plugin command fallback, active profile without plugin mapping, default profile fallback, plugin-specific provider override precedence, bare built-in provider-family default resolution, unknown default diagnostics, and diagnostic redaction.",
+      "status": "done",
+      "note": "R7: exercises the regression guard against unrelated provider fallback"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 7,
+    "done": 7,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}
