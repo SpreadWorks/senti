@@ -46,7 +46,7 @@ class RenameRule {
   }
 }
 
-class RenameMigration {
+export class RenameMigration {
   constructor(root) {
     this.root = root;
     this.textRules = [
@@ -206,8 +206,9 @@ class RenameMigration {
 
   isExcludedPath(file) {
     const rel = path.relative(this.root, file).split(path.sep).join("/");
+    const segments = rel.split("/");
     if (rel === ".git" || rel.startsWith(".git/")) return true;
-    if (rel === "node_modules" || rel.startsWith("node_modules/")) return true;
+    if (segments.includes("node_modules")) return true;
     if (rel === "docs" || rel.startsWith("docs/")) return true;
     if (rel === "specs" || rel.startsWith("specs/")) return true;
     if (rel === ".tmp" || rel.startsWith(".tmp/")) return true;
