@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-12T00:17:31.072Z",
+  "analyzedAt": "2026-06-12T04:49:32.079Z",
   "package": {
     "entries": [
       {
@@ -241,15 +241,15 @@
       },
       {
         "file": "src/data/agents.js",
-        "hash": "99248240f952a07d669d01c94eb05b50",
-        "lines": 146,
-        "mtime": "2026-06-09T08:02:50.449Z",
+        "hash": "bfb6b3c9cce8a27c6a66b475db042f5c",
+        "lines": 148,
+        "mtime": "2026-06-12T04:49:16.892Z",
         "className": "agents",
         "methods": [],
         "imports": [
           "fs",
           "path",
-          "../lib/presets.js",
+          "../lib/agents-md.js",
           "../lib/cli.js"
         ],
         "exports": [
@@ -260,20 +260,23 @@
           "src/docs/commands/build.js"
         ],
         "id": "8e7abcbd",
-        "summary": "This data source supplies AGENTS.md-specific project metadata and reusable template fragments. It bridges preset templates, local config, and package metadata into the docs rendering layer.",
-        "detail": "The registered `AgentsSource` class loads a base `AGENTS.senti.md` template for the active language from the preset directory and returns it as a renderable paragraph. It also exposes structured values from `.senti/config.json` and `package.json`, falling back cleanly when files are absent. The source is designed for directive resolution, where small project facts are injected into generated documentation. Its shape follows the project's class-based `DataSource` pattern rather than ad hoc object records.",
+        "summary": "Registers an agents-related data source that reads project metadata and template content for documentation generation. It provides small formatting helpers and safe fallbacks when files are missing.",
+        "detail": "This module builds a specialized DataSource implementation and returns it from the container registration entrypoint. The class reads configuration and package metadata from the project root, using synchronous filesystem access and null-safe guards when files do not exist or cannot be parsed. It also converts plain text into paragraph objects, suggesting integration with a markdown or document composition pipeline. The dependency on the agents template loader and UTC timestamp formatting indicates that this source prepares structured values consumed by AGENTS.md templates.",
         "chapter": "internal_design",
-        "role": "AGENTS data source",
+        "role": "DataSource registration for AGENTS metadata and template-backed values",
         "enrich": {
-          "processedAt": "2026-06-09T11:45:10.652Z",
+          "processedAt": "2026-06-12T04:50:12.342Z",
           "attempts": 1
         },
         "keywords": [
           "DataSource",
+          "agents metadata",
           "AGENTS.md",
-          "template data",
-          "package metadata",
-          "config loading"
+          "project config",
+          "package.json",
+          "template loader",
+          "documentation source",
+          "paragraph builder"
         ]
       },
       {
@@ -493,9 +496,9 @@
       },
       {
         "file": "src/docs/commands/agents.js",
-        "hash": "b0d93c22af417fd20acbf19ed2495f22",
-        "lines": 227,
-        "mtime": "2026-06-09T08:02:50.449Z",
+        "hash": "b3e223869be0f0aafebebb56fc5736a7",
+        "lines": 230,
+        "mtime": "2026-06-12T04:49:16.893Z",
         "className": "agents",
         "methods": [
           "buildAgentsPromptBuilder",
@@ -528,20 +531,23 @@
           "src/docs/commands/build.js"
         ],
         "id": "5684c584",
-        "summary": "This command generates or refines `AGENTS.md` by combining project analysis, docs context, templates, and an AI agent. It automates repository-specific agent guidance from the existing documentation set.",
-        "detail": "The implementation builds a prompt from project content, docs chapters, README text, package scripts, and an optional Spec-Driven Development template. It parses and resolves directives inside `AGENTS.md`, creates the file from a starter template when missing, and replaces project-content sections after the AI response is received. The command depends on a configured default agent and fails explicitly when analysis data or agent setup is missing. Its flow shows how the docs system turns structured repository context into AI-authored operational guidance.",
-        "chapter": "internal_design",
-        "role": "AGENTS document generator",
+        "summary": "Implements the `docs agents` command that generates or updates `AGENTS.md` from project analysis, docs content, and agent prompts. It assembles context, resolves directives, and writes the final markdown file.",
+        "detail": "The command builds a prompt payload by reading project files such as `package.json`, `README.md`, and generated documentation chapters, then injecting them into a PromptBuilder. It resolves custom directives in the existing AGENTS document, including project content blocks and spec-driven development template content. If the target file does not exist, it creates a starter template before continuing, and it fails fast when analysis output or default agent configuration is missing. The flow wraps agent execution errors with a clearer message and persists the rewritten markdown back to disk.",
+        "chapter": "cli_commands",
+        "role": "CLI command for generating and refining AGENTS.md",
         "enrich": {
-          "processedAt": "2026-06-09T11:45:10.652Z",
+          "processedAt": "2026-06-12T04:50:12.342Z",
           "attempts": 1
         },
         "keywords": [
-          "AGENTS.md generation",
+          "CLI command",
+          "AGENTS generator",
           "prompt builder",
           "directive resolution",
-          "AI documentation",
-          "project context"
+          "analysis.json",
+          "documentation synthesis",
+          "agent default",
+          "markdown update"
         ]
       },
       {
@@ -981,9 +987,9 @@
       },
       {
         "file": "src/docs/commands/scan.js",
-        "hash": "bc0406b90a582b3baf02b5568e26639a",
+        "hash": "1012430328997bee781ab3faad4e5b63",
         "lines": 488,
-        "mtime": "2026-06-09T17:06:44.554Z",
+        "mtime": "2026-06-12T04:49:16.893Z",
         "className": "scan",
         "methods": [
           "resolveScanChains",
@@ -1025,22 +1031,23 @@
           "src/docs/commands/build.js"
         ],
         "id": "e229cdd1",
-        "enrich": {
-          "processedAt": "2026-06-11T02:27:40.580Z",
-          "attempts": 2
-        },
-        "summary": "This module implements the `docs scan` command that builds or updates structured analysis data for documentation generation. It handles preset resolution, source loading, reset behavior, ID stability, and output persistence.",
-        "detail": "The command reads CLI flags, resolves preset chains, and loads DataSources from project and preset locations before collecting scannable files. It preserves stable entry identifiers by indexing existing analysis items with category, file, and optional subkeys, while generating new IDs when needed. It can selectively reset categories in the existing `analysis.json` file and computes content hashes for source files and linked data sources. After scanning, it emits either a full analysis payload or a summary and writes the result into the configured output directory.",
+        "summary": "Implements the `docs scan` command that collects source data, merges it with existing analysis, and writes `analysis.json`. It also supports reset behavior, preset chains, hashing, and summary output.",
+        "detail": "The module parses command-line arguments, resolves active preset chains, and loads matching scan data sources from preset directories. It preserves stable entry identity by indexing existing analysis entries, deriving match keys, and reusing IDs when possible instead of regenerating them. The command computes file and data-source hashes so downstream processes can detect changes and trace provenance. It can reset selected categories, print JSON summaries to stdout, create the output directory when needed, and save the final normalized analysis document.",
         "chapter": "cli_commands",
-        "role": "docs scan command",
+        "role": "CLI command for repository scanning and analysis generation",
+        "enrich": {
+          "processedAt": "2026-06-12T04:50:12.342Z",
+          "attempts": 1
+        },
         "keywords": [
           "scan command",
-          "analysis generation",
-          "source scanning",
-          "preset chain",
-          "data source loading",
           "analysis.json",
-          "stable IDs"
+          "preset chain",
+          "data sources",
+          "entry ID reuse",
+          "file hash",
+          "summary output",
+          "reset categories"
         ]
       },
       {
@@ -2055,16 +2062,17 @@
       },
       {
         "file": "src/docs/lib/resolver-factory.js",
-        "hash": "7973bfc8beee215abbb21fb2352495ff",
-        "lines": 171,
-        "mtime": "2026-06-09T17:06:44.554Z",
+        "hash": "891e80923f88e9e029dfafbe0aa09e5c",
+        "lines": 186,
+        "mtime": "2026-06-12T04:49:16.893Z",
         "className": "resolver-factory",
         "methods": [
           "createResolver",
           "loadDataSources",
           "loadOverridesFor",
           "descFactory",
-          "loadChainDataSources"
+          "loadChainDataSources",
+          "fallbackDataSourceChains"
         ],
         "imports": [
           "fs",
@@ -2081,22 +2089,23 @@
         "extends": null,
         "usedBy": null,
         "id": "cb355898",
+        "summary": "Creates resolver objects that map analysis data to preset-aware documentation lookups. It combines built-in and project overrides while supporting deprecated directory layouts.",
+        "detail": "This factory loads DataSource implementations from common preset directories and project-specific preset chains, then exposes a unified resolver interface. It caches override descriptions from `.senti/overrides.json` and returns fallback markers when no override value exists. The code also warns about deprecated `.senti/data` usage, showing backward-compatibility handling while steering users toward the newer preset layout. The returned resolver can invoke named datasource methods dynamically, enumerate available resolver keys, and fall back across multiple preset chains safely.",
+        "chapter": "internal_design",
+        "role": "Resolver factory for preset-based documentation data lookup",
         "enrich": {
-          "processedAt": "2026-06-11T02:27:40.580Z",
-          "attempts": 2
+          "processedAt": "2026-06-12T04:50:12.342Z",
+          "attempts": 1
         },
-        "summary": "This module creates resolver objects that expose preset-backed documentation data and override-aware descriptions. It combines preset chains, DataSource loading, and method dispatch into a single factory.",
-        "detail": "The factory loads project overrides from `.senti/overrides.json` with caching and exposes a description helper that falls back to a placeholder when values are missing. It resolves one or more preset chains, loads DataSources from each preset, and warns about deprecated project-level data directories. The resulting resolver object dynamically dispatches methods onto matching DataSources when they exist and returns `null` when a capability is unavailable. It also exposes a way to enumerate supported resolver methods across the aggregated source set.",
-        "chapter": "creating_presets",
-        "role": "resolver factory",
         "keywords": [
           "resolver factory",
-          "preset inheritance",
-          "overrides",
-          "DataSource dispatch",
-          "preset chain",
+          "preset system",
+          "override file",
+          "data source loader",
+          "fallback chain",
           "documentation resolver",
-          "method registry"
+          "deprecated path",
+          "dynamic dispatch"
         ]
       },
       {
@@ -4572,8 +4581,23 @@
         ],
         "id": "3de0db3f",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-06-12T04:50:12.342Z",
+          "attempts": 4
+        },
+        "summary": "Defines the retry-recovery model used by flow execution to decide whether a failed gate or review step may be retried. It tracks evidence fingerprints, retry budgets, baselines, and persisted recovery artifacts.",
+        "detail": "The module validates structured recovery input, normalizes phases and paths, and distinguishes recoverable from unrecoverable states based on kind-specific rules. It records baselines and retry entries in JSON artifacts, using file hashes and changed-path fingerprints to detect whether meaningful evidence has changed since the last attempt. The logic enforces strict limits on retry counts, path volume, and reason length, which prevents uncontrolled retries and oversized state. Higher-level helpers then compute eligibility views, persist current baselines, and apply retry grants back into the flow state.",
+        "chapter": "internal_design",
+        "role": "Flow retry-recovery policy and persistence layer",
+        "keywords": [
+          "retry recovery",
+          "eligibility check",
+          "evidence fingerprint",
+          "baseline tracking",
+          "flow state",
+          "review retry",
+          "gate retry",
+          "recovery artifact"
+        ]
       },
       {
         "file": "src/flow/lib/review-failure.js",
@@ -4842,8 +4866,23 @@
         "usedBy": null,
         "id": "40e4daa5",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-06-12T04:50:12.342Z",
+          "attempts": 4
+        },
+        "summary": "Implements flow finalization cleanup, including teardown, rescue handling, metadata synchronization, and validation after worktree-based execution. It coordinates git operations and audit logging around the cleanup lifecycle.",
+        "detail": "The command inspects dirty state, orphan commits, and recovery scenarios to decide whether it can safely finalize or must surface structured failure envelopes. It supports rescue paths such as cherry-picking or forced continuation, while preserving issue-log snapshots so cleanup can roll back metadata if a step fails. During teardown it synchronizes `flow.json` metadata from the worktree back to the main repository, removes worktrees, deletes feature branches, and validates that no tracked artifacts remain. The implementation also attaches report content and warnings to the command envelope, making operational outcomes explicit for downstream consumers.",
+        "chapter": "cli_commands",
+        "role": "Flow finalize-cleanup command and teardown orchestration",
+        "keywords": [
+          "finalize cleanup",
+          "worktree teardown",
+          "git rescue",
+          "cherry-pick",
+          "flow.json sync",
+          "audit log",
+          "branch cleanup",
+          "failure envelope"
+        ]
       },
       {
         "file": "src/flow/lib/run-finalize-commit.js",
@@ -5048,9 +5087,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "945880fe06859b766be977d02b7f1775",
-        "lines": 3460,
-        "mtime": "2026-06-09T11:43:03.983Z",
+        "hash": "c719f9cca890e2ab16aa34c0e5dccfe6",
+        "lines": 3536,
+        "mtime": "2026-06-12T04:49:16.894Z",
         "className": "run-gate",
         "methods": [
           "executeGateSideEffects",
@@ -5094,6 +5133,9 @@
           "checkIntegrationTestArtifacts",
           "runGitDiff",
           "splitDiffByFile",
+          "summarizeDiffSegment",
+          "appendPromptLine",
+          "compactDiffForGuardrailPrompt",
           "collectPerFileDiffsForGate",
           "taskCursorRequiredGateFailure",
           "isGeneratedSpecArtifactForGate",
@@ -5145,6 +5187,7 @@
           "normalizeRequirementPromptInput",
           "renderRequirementPromptSection",
           "summarizeDiffForPrompt",
+          "buildGuardrailTargetTextForPrompt",
           "requirementEvaluation",
           "buildImplCheckPrompt",
           "buildPerRequirementDiffs",
@@ -5234,8 +5277,11 @@
           "buildGuardrailPrompt",
           "buildImplCheckPrompt",
           "MAX_IMPL_REQUIREMENT_BATCH_CHARS",
+          "MAX_GUARDRAIL_TARGET_CHARS",
           "checkGuardrail",
           "splitDiffByFile",
+          "buildGuardrailTargetTextForPrompt",
+          "compactDiffForGuardrailPrompt",
           "collectPerFileDiffsForGate",
           "buildPerRequirementDiffs",
           "PHASE_TO_LEVEL",
@@ -5250,25 +5296,24 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "Implements the gate system that evaluates specs, drafts, and implementation phases against guardrails and workflow rules. It combines diff collection, artifact validation, AI response parsing, retry control, and result persistence in one command surface.",
-        "detail": "The module supports multiple gate phases such as draft, spec, task implementation, and integration, and routes each phase through dedicated execution logic in RunGateCommand. It validates local artifacts like spec-review, triage, repair, draft review files, and integration test outputs before AI evaluation, which prevents malformed workflow state from reaching later steps. For AI-backed checks, it builds structured prompts, defines JSON response schemas, parses and validates returned evaluations, and normalizes observations into stable result artifacts. It also tracks retry budgets, detects repeated failures or lack of progress from git state and prior issue-log history, stores implementation memory between rounds, and can persist recovery baselines for later rescue behavior.",
-        "chapter": "internal_design",
-        "role": "multi-phase gate and guardrail engine",
+        "summary": "Implements the flow gate command that validates draft, spec, task-spec, task-implementation, and integration phases. It combines structural checks, Git diff inspection, AI guardrail evaluation, and retry protection in a single orchestration layer.",
+        "detail": "The module dispatches gate execution by phase and enforces valid level and phase combinations before any expensive work runs. For implementation-focused phases, it builds diffs from committed, uncommitted, and untracked files, maps changes back to requirements, and batches requirement checks under prompt-size limits. It strictly parses agent JSON output into typed evaluations, reports, observations, and next-action artifacts, with explicit schema errors when responses drift. It also manages retry budgets, unchanged-worktree detection, repeated-failure escalation, integration artifact trust checks, issue-log persistence, and pass-side effects such as task completion or overview updates.",
+        "chapter": "cli_commands",
+        "role": "Flow gate evaluator and phase orchestrator",
         "enrich": {
-          "processedAt": "2026-06-09T11:44:21.159Z",
+          "processedAt": "2026-06-12T04:51:26.540Z",
           "attempts": 1
         },
         "keywords": [
           "gate command",
-          "guardrails",
-          "AI evaluation",
-          "spec validation",
-          "draft review",
+          "workflow validation",
+          "guardrail evaluation",
+          "spec compliance",
+          "implementation diff",
+          "retry control",
+          "JSON schema parsing",
           "integration gate",
-          "retry budget",
-          "issue log",
-          "diff analysis",
-          "workflow enforcement"
+          "requirement checks"
         ]
       },
       {
@@ -5394,8 +5439,24 @@
         "usedBy": null,
         "id": "59eeacc6",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-06-12T04:51:26.540Z",
+          "attempts": 4
+        },
+        "summary": "Bootstraps a new spec-driven flow by creating the spec directory, draft and spec templates, and initial flow state. It also decides whether to stay local, create a feature branch, or create an isolated worktree based on flags and repository state.",
+        "detail": "The command derives a numbered spec slug, validates the base branch, and applies worktree and dirty-worktree rules so branch creation does not accidentally carry unrelated changes. It writes initial artifacts such as `spec.json`, `draft.json`, optional cached issue content, and `flow.json` with seeded steps and inherited preparing metadata. The implementation integrates plugin hook discovery and lifecycle execution, then runs a docs scan and validates the generated analysis output before marking the flow active. It supports dry-run mode, branch mode, worktree mode, and spec-only mode, and returns the exact next-step guidance for continuing with draft authoring and gate execution.",
+        "chapter": "cli_commands",
+        "role": "Flow preparation and bootstrap command",
+        "keywords": [
+          "prepare spec",
+          "flow initialization",
+          "feature branch",
+          "git worktree",
+          "draft template",
+          "flow state",
+          "bootstrap command",
+          "spec directory",
+          "plugin hooks"
+        ]
       },
       {
         "file": "src/flow/lib/run-reopen-draft.js",
@@ -6885,8 +6946,23 @@
         ],
         "id": "0b1b96b3",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-06-12T04:50:22.320Z",
+          "attempts": 3
+        },
+        "summary": "Manages test-related artifact files and validates their integrity for the flow pipeline. It centralizes paths, bounded I/O, regression evidence checks, placeholder detection, and gate trust enforcement.",
+        "detail": "This module defines the canonical filenames and relative paths for execution logs, reviews, regression outputs, upgrade results, and temporary summaries used under each spec directory. It implements strict validation routines for JSON artifacts, raw log size limits, line-range evidence, scenario-validity summaries, regression metadata, and file maps so downstream steps only consume well-formed data. The code also computes artifact pathspecs, collects existing files with bounded glob expansion, and removes rebuildable outputs when regeneration is needed. A separate trust layer scans artifacts for placeholder content, verifies permission overrides, checks required inputs, and rejects stale or incomplete regression evidence before integration gates accept the results.",
+        "chapter": "internal_design",
+        "role": "Test artifact lifecycle manager and trust validator",
+        "keywords": [
+          "test artifacts",
+          "artifact validation",
+          "regression evidence",
+          "raw log parsing",
+          "placeholder detection",
+          "integration gate",
+          "spec outputs",
+          "JSON schema checks"
+        ]
       },
       {
         "file": "src/flow/lib/test-headers.js",
@@ -7014,8 +7090,23 @@
         ],
         "id": "2980d983",
         "enrich": {
-          "attempts": 7
-        }
+          "processedAt": "2026-06-12T04:50:22.320Z",
+          "attempts": 8
+        },
+        "summary": "Plans and executes project regression testing based on changed files and configured policy. It discovers test commands, classifies changes, and runs the selected process with timeout and heartbeat controls.",
+        "detail": "The module models regression behavior with small domain classes such as parsed commands, regression classifications, and execution plans. It parses safe argv-style commands without shell metacharacters, then discovers a test command from configuration or project files like package manifests and Makefiles. Changed files are normalized and classified into trigger-relevant versus non-trigger categories, which drives targeted, full, or skipped regression plans according to policy. Process execution utilities capture exit status and output details, while helper functions format elapsed time, split output lines, and resolve effective test timeouts.",
+        "chapter": "internal_design",
+        "role": "Regression planning and test process execution",
+        "keywords": [
+          "regression testing",
+          "change classification",
+          "test command discovery",
+          "process runner",
+          "timeout handling",
+          "targeted tests",
+          "full test suite",
+          "git changed files"
+        ]
       },
       {
         "file": "src/flow/registry.js",
@@ -7390,9 +7481,9 @@
       },
       {
         "file": "src/lib/agents-md.js",
-        "hash": "675f35678a0353cc652a3bbadb1ba15a",
-        "lines": 26,
-        "mtime": "2026-06-09T08:02:50.460Z",
+        "hash": "6ed7200763fa62c6aa3d8da2d782cb66",
+        "lines": 39,
+        "mtime": "2026-06-12T04:49:16.894Z",
         "className": "agents-md",
         "methods": [
           "loadSpecDrivenDevelopmentTemplate"
@@ -7410,21 +7501,22 @@
           "src/setup.js"
         ],
         "id": "9f3f55f7",
+        "summary": "Loads the spec-driven development AGENTS template with layered fallback across project, preset, and base locations. It provides a simple lookup mechanism keyed by language.",
+        "detail": "The function first checks for a project-local `AGENTS.senti.md` under `.senti/templates/<lang>/` so repository-specific overrides take precedence. If no project template exists, it searches resolved preset entries in order and returns the first matching preset template file. When neither project nor preset sources provide a template, it falls back to the built-in base preset directory. The implementation is intentionally minimal and synchronous, reflecting its role as a deterministic template resolver rather than a rendering engine.",
+        "chapter": "project_structure",
+        "role": "AGENTS template resolver",
         "enrich": {
-          "processedAt": "2026-06-12T00:20:00.369Z",
-          "attempts": 7
+          "processedAt": "2026-06-12T04:50:22.320Z",
+          "attempts": 1
         },
-        "summary": "Loader for the preset-provided AGENTS.senti.md template. It returns the language-specific template content when present and falls back quietly when missing.",
-        "detail": "The function derives the template path from the presets base directory and a selected language. It reads AGENTS.senti.md from the expected template folder and returns the raw file contents. If the localized file does not exist, the implementation returns an empty string rather than throwing. This makes template lookup safe for optional preset-driven generation paths.",
-        "chapter": "creating_presets",
-        "role": "preset template loader",
         "keywords": [
-          "template loader",
-          "AGENTS.senti.md",
-          "preset templates",
+          "AGENTS template",
+          "preset fallback",
           "language template",
-          "scaffolding",
-          "spec-driven development"
+          "project override",
+          "template loading",
+          "spec-driven development",
+          "preset resolution"
         ]
       },
       {
@@ -7580,9 +7672,9 @@
       },
       {
         "file": "src/lib/config.js",
-        "hash": "0bf736829e7f39628012d83cfac23a70",
-        "lines": 579,
-        "mtime": "2026-06-11T15:10:44.154Z",
+        "hash": "fec4f81b60c6a29237b57fb0827ff5e2",
+        "lines": 580,
+        "mtime": "2026-06-12T04:49:16.894Z",
         "className": "config",
         "methods": [
           "resolveConcurrency",
@@ -7642,29 +7734,26 @@
           "src/lib/i18n.js",
           "src/lib/plugin-registry.js",
           "src/lib/preparing-flow-store.js",
-          "src/official-plugins/senti-presets/presets/base/tests/acceptance/fixtures/src/index.js",
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/cli.js",
-          "src/official-plugins/senti-presets/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
           "src/presets/base/tests/acceptance/fixtures/src/index.js",
           "src/setup.js",
           "src/upgrade.js"
         ],
         "id": "dff6e5b4",
-        "enrich": {
-          "processedAt": "2026-06-12T00:20:00.369Z",
-          "attempts": 2
-        },
-        "summary": "Primary configuration loader, validator, and merger for senti. It handles base config, local overlays, plugin defaults, schema extension, and path resolution.",
-        "detail": "The file defines standard paths under .senti, default concurrency and language values, and helpers for loading JSON and package fields. Validation covers core schema rules plus plugin-related constraints such as safe IDs, commit hashes, restricted test commands, and root-relative project test paths. loadRawConfig merges config.json with config.local.json, while loadConfig layers in plugin-provided defaults and merged schemas before validating the result. Additional helpers resolve work directories, language settings, and recursive overlay behavior for object and array structures.",
+        "summary": "Provides core configuration loading, validation, merging, and default resolution for the application. It also exposes common `.senti` path helpers and plugin-aware schema extension logic.",
+        "detail": "The module defines defaults such as concurrency and language, plus helper functions for locating config files, output directories, and the effective work directory beneath the repository root. It loads JSON safely, validates the merged configuration against a base schema plus plugin-provided schema fragments, and reports aggregated validation errors. Local overlay handling merges `config.local.json` into the main config with recursive object merging and id-based array merging where needed. Plugin support extends configuration with enabled plugin manifests, default namespaces, and additional schemas while enforcing basic safety checks on IDs, commits, paths, and test commands.",
         "chapter": "configuration",
-        "role": "configuration loader and validator",
+        "role": "Configuration loader and schema merger",
+        "enrich": {
+          "processedAt": "2026-06-12T04:50:22.320Z",
+          "attempts": 1
+        },
         "keywords": [
-          "config schema",
-          "config merge",
-          "local overlay",
-          "plugin defaults",
-          "validation",
+          "configuration",
+          "config validation",
+          "schema merge",
+          "plugin config",
+          "defaults",
+          "local override",
           "work directory",
           "settings loader"
         ]
@@ -7730,9 +7819,9 @@
       },
       {
         "file": "src/lib/container.js",
-        "hash": "83d9ad63ee7802ad8551ea279daf2f58",
+        "hash": "eef12af74c5f085777fd4ba6897c69af",
         "lines": 240,
-        "mtime": "2026-06-11T14:20:13.607Z",
+        "mtime": "2026-06-12T04:49:16.894Z",
         "className": "container",
         "methods": [
           "Container",
@@ -7756,7 +7845,7 @@
           "../docs/lib/scanner.js",
           "../docs/lib/php-array-parser.js",
           "../docs/lib/lang-factory.js",
-          "../presets/lib/path-match.js",
+          "./path-match.js",
           "../docs/lib/toml-parser.js"
         ],
         "exports": [
@@ -7777,20 +7866,22 @@
           "src/upgrade.js"
         ],
         "id": "fc4eae43",
-        "enrich": {
-          "processedAt": "2026-06-12T00:20:00.369Z",
-          "attempts": 2
-        },
-        "summary": "Dependency container and bootstrap logic for the application runtime. It assembles shared services, computed paths, and document-analysis dependencies in one place.",
-        "detail": "The Container class provides simple registration and lookup for runtime dependencies and preset objects. buildPaths computes root, source, work, output, log, and cleanup-related paths with support for worktree-aware relocation. initContainer loads configuration, initializes providers, agent, logger, flow manager, cleanup helpers, and documentation-related scanners and parsers. This file acts as the top-level wiring layer that connects otherwise independent subsystems into a runnable application context.",
+        "summary": "Builds and initializes the main dependency container for runtime services and derived paths. It wires configuration, logging, providers, flow management, analysis utilities, and cleanup helpers into a shared object graph.",
+        "detail": "The `Container` class offers simple registration and lookup semantics for named dependencies and preset metadata, with explicit failure when a required service is missing. Initialization loads configuration, computes derived filesystem locations such as logs and output paths, and prepares the runtime environment around the repository root and worktree context. The module imports major subsystems including agents, providers, flow orchestration, scanners, language handlers, and data sources, making it a central composition point rather than a feature-specific library. Error handling during bootstrap reports configuration failures to stderr before rethrowing, which helps preserve a clear startup failure mode for CLI entrypoints.",
         "chapter": "project_structure",
-        "role": "dependency injection bootstrap",
+        "role": "Runtime dependency container and bootstrapper",
+        "enrich": {
+          "processedAt": "2026-06-12T04:50:22.320Z",
+          "attempts": 1
+        },
         "keywords": [
-          "dependency container",
+          "dependency injection",
+          "service container",
           "bootstrap",
-          "service wiring",
-          "runtime context",
-          "path builder",
+          "runtime wiring",
+          "flow manager",
+          "provider registry",
+          "path construction",
           "application initialization"
         ]
       },
@@ -8495,9 +8586,9 @@
       },
       {
         "file": "src/lib/i18n.js",
-        "hash": "bea8dfcf386ca02a6ab65ad812b4b1c7",
-        "lines": 276,
-        "mtime": "2026-06-09T08:02:50.461Z",
+        "hash": "f153200c9b87b9199772263314773bab",
+        "lines": 294,
+        "mtime": "2026-06-12T04:49:16.894Z",
         "className": "i18n",
         "methods": [
           "deepMerge",
@@ -8507,7 +8598,7 @@
           "interpolate",
           "loadMessagesFromDir",
           "loadMergedMessages",
-          "extractPresetKey",
+          "loadPriorityMessages",
           "buildLocaleDirs",
           "parseNamespacedKey"
         ],
@@ -8535,38 +8626,41 @@
           "src/upgrade.js"
         ],
         "id": "45a1457c",
-        "summary": "Builds translation functions by merging built-in, preset, and project locale files. It supports namespaced lookups, deep merging, and template interpolation.",
-        "detail": "The i18n layer loads JSON message catalogs per language and domain from the default locale directory, preset locale directory, and project-local overrides. Nested values are resolved by dotted keys, while string templates support `{{name}}` style parameter interpolation. `createI18n` produces a domain-specific translator, and `translate` provides a namespaced variant that expects `domain:key` input. Fallback behavior ensures missing project or preset data does not break translation resolution.",
+        "summary": "Implements internationalization support with layered locale directories, deep message merging, and namespaced translation keys. It supports project, preset, and built-in locale sources.",
+        "detail": "The module loads JSON message catalogs by domain and language, then combines them through deep merge so later locale directories can override earlier values without discarding nested structures. Translation functions support placeholder interpolation with `{{name}}` syntax and namespaced keys in the form `domain:key`, covering UI, messages, and prompts. Locale search paths are assembled from the project `.senti/locale` directory, active preset locale folders, and the built-in default locale directory. It exposes both low-level creation of a translator for a specific language and a higher-level `translate()` helper that derives language and preset context from the current repository configuration.",
         "chapter": "internal_design",
-        "role": "Localization and translation service",
+        "role": "Localization and translation loader",
         "enrich": {
-          "processedAt": "2026-06-09T11:46:36.602Z",
+          "processedAt": "2026-06-12T04:50:22.320Z",
           "attempts": 1
         },
         "keywords": [
           "i18n",
           "localization",
-          "message catalog",
-          "translation lookup",
-          "template interpolation",
+          "translation",
+          "message catalogs",
           "locale merge",
-          "namespaced keys"
+          "namespaced keys",
+          "interpolation",
+          "preset locale"
         ]
       },
       {
         "file": "src/lib/include.js",
-        "hash": "f59e7897b5a83e3bff79f9029e8d7c7a",
-        "lines": 140,
-        "mtime": "2026-05-20T05:29:29.616Z",
+        "hash": "16f33861eaa429cac121247f71584af4",
+        "lines": 171,
+        "mtime": "2026-06-12T04:49:16.894Z",
         "className": "include",
         "methods": [
           "resolveIncludes",
           "resolveAliasedIncludePath",
+          "resolveRegistryPresetIncludePath",
           "resolveIncludePath"
         ],
         "imports": [
           "fs",
-          "path"
+          "path",
+          "./presets.js"
         ],
         "exports": [
           "resolveIncludes"
@@ -8576,21 +8670,22 @@
           "src/lib/skills.js"
         ],
         "id": "d35107ed",
-        "enrich": {
-          "processedAt": "2026-05-20T06:48:20.404Z",
-          "attempts": 4
-        },
-        "summary": "Resolves and expands include directives in markdown-like content with strict path and recursion controls. It prevents unsafe path traversal while supporting configurable include roots.",
-        "detail": "The module parses include directives and resolves each target through alias-aware path rules tied to configured base directories. It explicitly rejects relative traversal markers like \"../\" and \"./\" in include expressions to reduce ambiguity and escape risks. Expansion is recursive but bounded by maximum depth and total include count to avoid runaway inclusion and excessive processing. It detects missing files and circular references with clear, source-aware error messages. The final output is reconstructed line-by-line after recursively inlining referenced content.",
+        "summary": "Resolves template include directives with path restrictions, preset-aware aliases, and recursion limits. It expands included files into a single content stream while guarding against unsafe or circular references.",
+        "detail": "The module recognizes HTML comment include markers and maps them to absolute files through several resolution strategies, including base directories, package-relative paths, project-local preset overrides, and preset registry chains. It rejects path traversal forms such as `../` and `./`, enforces maximum include depth and total include count, and detects circular include graphs by tracking visited files. Missing includes are reported with both the requested token and the resolved path for easier diagnosis. Recursive expansion is performed synchronously so template assembly remains deterministic and straightforward for documentation or prompt generation flows.",
         "chapter": "internal_design",
-        "role": "Safe include preprocessor for templated documentation and skill content.",
+        "role": "Template include resolver",
+        "enrich": {
+          "processedAt": "2026-06-12T04:50:22.320Z",
+          "attempts": 1
+        },
         "keywords": [
-          "include directive",
-          "path resolution",
+          "template include",
+          "include resolution",
           "circular include detection",
-          "recursion limit",
-          "content preprocessing",
-          "path safety"
+          "path safety",
+          "preset templates",
+          "recursive expansion",
+          "template composition"
         ]
       },
       {
@@ -8844,54 +8939,89 @@
       },
       {
         "file": "src/lib/official-plugins.js",
-        "hash": "5479881a84251f2091161533dafb47e6",
-        "lines": 33,
-        "mtime": "2026-06-11T10:01:13.813Z",
+        "hash": "c845c39bb856eb8c3ef75068caf11bae",
+        "lines": 8,
+        "mtime": "2026-06-12T04:49:16.894Z",
         "className": "official-plugins",
         "methods": [
-          "bundledOfficialPresetPluginRoot",
           "officialPresetPluginRoot",
-          "findSiblingPluginRoot",
-          "officialPluginRoot",
-          "bundledOfficialPluginRoot"
+          "officialPluginRoot"
         ],
-        "imports": [
-          "fs",
-          "path",
-          "./cli.js"
-        ],
+        "imports": [],
         "exports": [
-          "bundledOfficialPresetPluginRoot",
           "officialPresetPluginRoot"
         ],
         "extends": null,
         "usedBy": [
-          "src/lib/presets.js",
           "src/upgrade.js"
         ],
         "id": "d79c8794",
+        "summary": "Exposes a tiny helper for locating the official preset plugin repository from environment variables. Its purpose is to isolate environment-based plugin root resolution behind a stable API.",
+        "detail": "The module wraps direct access to `process.env` in a small internal function that returns either the configured path or `null` when unset. A public helper then specializes that behavior for the `SENTI_OFFICIAL_PRESETS_REPO` variable. The implementation is intentionally narrow, suggesting it exists to keep environment lookup logic centralized and easy to mock or replace. This keeps higher-level preset or plugin code from hardcoding environment variable names throughout the codebase.",
+        "chapter": "configuration",
+        "role": "Official plugin root resolver",
         "enrich": {
-          "processedAt": "2026-06-12T00:20:00.369Z",
-          "attempts": 3
+          "processedAt": "2026-06-12T04:50:22.320Z",
+          "attempts": 1
         },
-        "summary": "Resolver for official plugin locations across environment overrides, sibling checkouts, and bundled copies. It lets the runtime find first-party plugins in both development and packaged setups.",
-        "detail": "The helper walks upward from the package directory to find sibling repositories that contain a plugin.json manifest. officialPluginRoot selects the source in priority order: explicit environment variable, detected sibling repository, or bundled plugin directory inside the package. Small exported wrappers provide dedicated accessors for bundled and official preset plugin roots. This makes official plugin discovery predictable without hard-coding a single deployment layout.",
-        "chapter": "development",
-        "role": "official plugin path resolver",
         "keywords": [
-          "official plugins",
-          "plugin discovery",
-          "bundled plugin",
-          "sibling repository",
-          "environment override",
-          "plugin root resolution"
+          "environment variable",
+          "plugin root",
+          "official presets",
+          "configuration helper",
+          "runtime path",
+          "env lookup"
+        ]
+      },
+      {
+        "file": "src/lib/path-match.js",
+        "hash": "52ee5a41419d6ba8a44d6152ddf129fd",
+        "lines": 37,
+        "mtime": "2026-06-12T04:49:16.894Z",
+        "className": "path-match",
+        "methods": [
+          "hasPathPrefix",
+          "hasSegmentPath",
+          "hasAnyPathPrefix",
+          "normalizeRelPath",
+          "trimOuterSlashes",
+          "trimLeadingSlashes",
+          "escapeRegExp"
+        ],
+        "imports": [],
+        "exports": [
+          "hasPathPrefix",
+          "hasSegmentPath",
+          "hasAnyPathPrefix"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/lib/container.js"
+        ],
+        "id": "98e1e857",
+        "summary": "Provides small path-matching helpers for normalized repository-relative paths. It supports prefix, segment, and multi-prefix checks after converting separators to a consistent slash-based form.",
+        "detail": "The utility first normalizes Windows-style backslashes and trims outer slashes so matching logic works consistently across platforms. It then builds regular-expression-based checks for whether a path starts with a prefix, contains a specific segment path boundary, or matches any prefix from a list. The functions are designed for higher-level modules that need safe path categorization without repeating normalization logic. Even though the implementation is compact, it plays an infrastructure role in routing files through scanning, filtering, and classification code.",
+        "chapter": "internal_design",
+        "role": "Repository path matching utility",
+        "enrich": {
+          "processedAt": "2026-06-12T04:50:22.320Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "path matching",
+          "prefix check",
+          "segment path",
+          "normalized paths",
+          "cross-platform paths",
+          "repository relative path",
+          "regex utility"
         ]
       },
       {
         "file": "src/lib/plugin-registry.js",
-        "hash": "424affe7afaa6b1059a927ed4beebf09",
-        "lines": 903,
-        "mtime": "2026-06-11T15:12:46.835Z",
+        "hash": "3cf44269f5541c1362d8133b735a021a",
+        "lines": 937,
+        "mtime": "2026-06-12T04:49:16.895Z",
         "className": "plugin-registry",
         "methods": [
           "readProjectConfig",
@@ -8956,7 +9086,8 @@
           "isEnvelopeLike",
           "snapshotPluginRoot",
           "assertSnapshotMetadata",
-          "loadHookClass"
+          "loadHookClass",
+          "materializationSource"
         ],
         "imports": [
           "fs",
@@ -9005,23 +9136,8 @@
         ],
         "id": "bfaf1dcd",
         "enrich": {
-          "processedAt": "2026-06-12T00:20:00.369Z",
-          "attempts": 2
-        },
-        "summary": "Full plugin management and execution subsystem for senti. It handles plugin installation, validation, registry loading, command dispatch, artifacts, and flow hook lifecycles.",
-        "detail": "The module reads and writes project plugin configuration, normalizes and masks source definitions, and installs or updates plugins from local paths or Git-based sources. It validates manifests and copied package trees with allowlists, path-safety checks, import restrictions, JSON size limits, and snapshot metadata. Registry classes expose plugin commands, presets, and data sources, while execution helpers build plugin context, artifact accessors, and plugin APIs for runtime use. The same file also discovers flow command hooks, snapshots hook plans, and runs pre/post/error/finally plugin lifecycle hooks around core flow commands.",
-        "chapter": "internal_design",
-        "role": "plugin manager and hook runtime",
-        "keywords": [
-          "plugin registry",
-          "plugin installation",
-          "hook lifecycle",
-          "plugin commands",
-          "manifest validation",
-          "artifact storage",
-          "plugin sources",
-          "extensibility"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/lib/preparing-flow-store.js",
@@ -9109,24 +9225,23 @@
       },
       {
         "file": "src/lib/presets.js",
-        "hash": "e7160fb83a8c196b554cddcf68a4f8d6",
-        "lines": 431,
-        "mtime": "2026-06-11T02:26:13.977Z",
+        "hash": "ac05663e3b3f4b16301973953d20a759",
+        "lines": 377,
+        "mtime": "2026-06-12T04:49:16.895Z",
         "className": "presets",
         "methods": [
           "resolveChain",
           "resolveMultiChains",
           "resolveChainSafe",
+          "normalizePresetTypes",
+          "resolvePresetChains",
+          "resolvePresetEntriesForSearch",
           "validatePresetChain",
           "presetByLeaf",
           "presetsForArch",
           "discoverPresetsInDir",
-          "discoverPresets",
-          "isPluginAwareProject",
           "registryPresets",
-          "officialPresetsWithoutProject",
           "allPresets",
-          "resolveProjectPreset",
           "resolveEffectiveChapters",
           "presetHasTemplates",
           "templateSearchDirs"
@@ -9135,7 +9250,6 @@
           "fs",
           "path",
           "url",
-          "./official-plugins.js",
           "./progress.js",
           "./plugin-registry.js"
         ],
@@ -9143,6 +9257,9 @@
           "resolveChain",
           "resolveMultiChains",
           "resolveChainSafe",
+          "normalizePresetTypes",
+          "resolvePresetChains",
+          "resolvePresetEntriesForSearch",
           "validatePresetChain",
           "presetByLeaf",
           "presetsForArch",
@@ -9156,29 +9273,15 @@
           "src/lib/agents-md.js",
           "src/lib/guardrail.js",
           "src/lib/i18n.js",
+          "src/lib/include.js",
           "src/presets-cmd.js",
           "src/setup.js",
           "src/upgrade.js"
         ],
         "id": "ae76d513",
         "enrich": {
-          "processedAt": "2026-06-11T04:00:32.862Z",
-          "attempts": 2
-        },
-        "summary": "Preset discovery and resolution logic for core, official, plugin, and project-local presets. It also validates template coverage across preset inheritance chains.",
-        "detail": "The module scans preset directories, reads `preset.json` manifests, and merges presets by key from multiple sources with project-aware overrides. It resolves parent chains, detects missing or circular inheritance, and exposes safe helpers for multi-chain resolution. Validation enforces limits on chain depth, language count, and chapter count, then checks that required template chapters exist across the effective search directories. It also warns when project-local templates exist outside the declared chapter list, which helps keep custom preset structure explicit and consistent.",
-        "chapter": "creating_presets",
-        "role": "Preset discovery and chain validation",
-        "keywords": [
-          "preset inheritance",
-          "preset.json",
-          "template resolution",
-          "chapter validation",
-          "custom presets",
-          "preset chain",
-          "project templates",
-          "official presets"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/lib/process.js",
@@ -9910,3225 +10013,7 @@
         "usedBy": null,
         "id": "59edeaf2",
         "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/base/data/package.js",
-        "hash": "1b6b8c1f2f0fa40c6c80140e9474330f",
-        "lines": 79,
-        "mtime": "2026-06-09T11:43:03.985Z",
-        "className": "package",
-        "methods": [],
-        "imports": [
-          "fs",
-          "path",
-          "../../../lib/makefile.js"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "AnalysisEntry",
-        "usedBy": null,
-        "id": "610d9db9",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/base/data/structure.js",
-        "hash": "4b898ebd586859ea963331bffe50705a",
-        "lines": 104,
-        "mtime": "2026-06-09T11:43:03.985Z",
-        "className": "structure",
-        "methods": [
-          "allItems",
-          "buildDirectoryMap",
-          "getDirectoryMap",
-          "aggregateAtDepth"
-        ],
-        "imports": [],
-        "exports": [
-          "default"
-        ],
-        "extends": "DataSource",
-        "usedBy": null,
-        "id": "e93ead84",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/base/tests/acceptance/fixtures/src/config.js",
-        "hash": "569289ed2afa967167a1d3bb421fc88d",
-        "lines": 56,
-        "mtime": "2026-06-09T11:43:03.986Z",
-        "className": "config",
-        "methods": [
-          "loadConfig",
-          "getEnv"
-        ],
-        "imports": [
-          "node:fs",
-          "node:path"
-        ],
-        "exports": [
-          "loadConfig",
-          "getEnv"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/lib/active-flow-registry.js",
-          "src/lib/container.js",
-          "src/lib/flow-manager.js",
-          "src/lib/flow-store.js",
-          "src/lib/guardrail.js",
-          "src/lib/hooks.js",
-          "src/lib/i18n.js",
-          "src/lib/plugin-registry.js",
-          "src/lib/preparing-flow-store.js",
-          "src/official-plugins/senti-presets/presets/base/tests/acceptance/fixtures/src/index.js",
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/cli.js",
-          "src/official-plugins/senti-presets/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
-          "src/presets/base/tests/acceptance/fixtures/src/index.js"
-        ],
-        "id": "7d498c2d",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/base/tests/acceptance/fixtures/src/http-client.js",
-        "hash": "cf2e199e931686b890c56a235b99bd59",
-        "lines": 89,
-        "mtime": "2026-06-09T11:43:03.986Z",
-        "className": "http-client",
-        "methods": [
-          "HttpClient"
-        ],
-        "imports": [
-          "node:http",
-          "node:https"
-        ],
-        "exports": [
-          "HttpClient"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/official-plugins/senti-presets/presets/base/tests/acceptance/fixtures/src/index.js",
-          "src/official-plugins/senti-presets/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
-          "src/presets/base/tests/acceptance/fixtures/src/index.js"
-        ],
-        "id": "09180f7a",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/base/tests/acceptance/fixtures/src/index.js",
-        "hash": "994993300bf63cd748746fee7be84457",
-        "lines": 52,
-        "mtime": "2026-06-09T11:43:03.986Z",
-        "className": "index",
-        "methods": [
-          "main",
-          "createApp"
-        ],
-        "imports": [
-          "./logger.js",
-          "./config.js",
-          "./http-client.js"
-        ],
-        "exports": [
-          "main",
-          "createApp"
-        ],
-        "extends": null,
-        "usedBy": null,
-        "id": "0335b588",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/base/tests/acceptance/fixtures/src/logger.js",
-        "hash": "f78538b465784021bdb33616d7a8da31",
-        "lines": 44,
-        "mtime": "2026-06-09T11:43:03.986Z",
-        "className": "logger",
-        "methods": [
-          "createLogger",
-          "formatMessage"
-        ],
-        "imports": [],
-        "exports": [
-          "createLogger",
-          "formatMessage"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/official-plugins/senti-presets/presets/base/tests/acceptance/fixtures/src/index.js",
-          "src/official-plugins/senti-presets/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
-          "src/presets/base/tests/acceptance/fixtures/src/index.js"
-        ],
-        "id": "11017e14",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/base/tests/acceptance/test.js",
-        "hash": "4c7c8235f24a3b7f70c50cdd6288b97c",
-        "lines": 7,
-        "mtime": "2026-06-09T11:43:03.986Z",
-        "className": "test",
-        "methods": [],
-        "imports": [
-          "../../../../../tests/acceptance/lib/test-template.js"
-        ],
-        "exports": [],
-        "extends": null,
-        "usedBy": null,
-        "id": "c9fb7b98",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cakephp2/data/commands.js",
-        "hash": "8823885d22a763120f31dee247046211",
-        "lines": 83,
-        "mtime": "2026-06-09T11:43:03.986Z",
-        "className": "commands",
-        "methods": [],
-        "imports": [
-          "fs"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "CommandsSource",
-        "usedBy": null,
-        "id": "b970b682",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cakephp2/data/config.js",
-        "hash": "545fc2af8cfb61b7773a085d57a35992",
-        "lines": 623,
-        "mtime": "2026-06-09T11:43:03.986Z",
-        "className": "config",
-        "methods": [],
-        "imports": [
-          "fs",
-          "path"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "AnalysisEntry",
-        "usedBy": [
-          "src/lib/active-flow-registry.js",
-          "src/lib/container.js",
-          "src/lib/flow-manager.js",
-          "src/lib/flow-store.js",
-          "src/lib/guardrail.js",
-          "src/lib/hooks.js",
-          "src/lib/i18n.js",
-          "src/lib/plugin-registry.js",
-          "src/lib/preparing-flow-store.js",
-          "src/official-plugins/senti-presets/presets/base/tests/acceptance/fixtures/src/index.js",
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/cli.js",
-          "src/official-plugins/senti-presets/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
-          "src/presets/base/tests/acceptance/fixtures/src/index.js"
-        ],
-        "id": "77a6b299",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cakephp2/data/controllers.js",
-        "hash": "352389b778904a46f1e5498c682be7b3",
-        "lines": 101,
-        "mtime": "2026-06-09T11:43:03.986Z",
-        "className": "controllers",
-        "methods": [],
-        "imports": [
-          "fs"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "ControllersSource",
-        "usedBy": null,
-        "id": "8f10f543",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cakephp2/data/docker.js",
-        "hash": "8caf9eec7525765ef2a53b9a4b2b2f56",
-        "lines": 18,
-        "mtime": "2026-06-09T11:43:03.986Z",
-        "className": "docker",
-        "methods": [],
-        "imports": [],
-        "exports": [
-          "default"
-        ],
-        "extends": "DataSource",
-        "usedBy": null,
-        "id": "8f450066",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cakephp2/data/email.js",
-        "hash": "e5a5c928e4131cc1ee4c759cfdfdd52e",
-        "lines": 105,
-        "mtime": "2026-06-09T11:43:03.987Z",
-        "className": "email",
-        "methods": [],
-        "imports": [
-          "fs"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "AnalysisEntry",
-        "usedBy": null,
-        "id": "b0f8f889",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cakephp2/data/libs.js",
-        "hash": "a5cafd298f23794ada29b28aadebd339",
-        "lines": 156,
-        "mtime": "2026-06-09T11:43:03.987Z",
-        "className": "libs",
-        "methods": [],
-        "imports": [
-          "fs"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "AnalysisEntry",
-        "usedBy": null,
-        "id": "4892bc67",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cakephp2/data/models.js",
-        "hash": "a522f1b32b462c75fae1781f03cbcf39",
-        "lines": 208,
-        "mtime": "2026-06-09T11:43:03.987Z",
-        "className": "models",
-        "methods": [],
-        "imports": [
-          "fs"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "ModelsSource",
-        "usedBy": null,
-        "id": "1a761ec5",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cakephp2/data/tables.js",
-        "hash": "7c7254e63c77f0ef28451100567518aa",
-        "lines": 117,
-        "mtime": "2026-06-09T11:43:03.987Z",
-        "className": "tables",
-        "methods": [
-          "resolveDbName"
-        ],
-        "imports": [],
-        "exports": [
-          "default"
-        ],
-        "extends": "TablesSource",
-        "usedBy": null,
-        "id": "69990146",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cakephp2/data/tests.js",
-        "hash": "b81eac2e904711016cc1459d4853efcb",
-        "lines": 55,
-        "mtime": "2026-06-09T11:43:03.987Z",
-        "className": "tests",
-        "methods": [],
-        "imports": [],
-        "exports": [
-          "default"
-        ],
-        "extends": "AnalysisEntry",
-        "usedBy": null,
-        "id": "4ce12b68",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cakephp2/data/views.js",
-        "hash": "29d27c20b794a204396781d6bbbd584d",
-        "lines": 110,
-        "mtime": "2026-06-09T11:43:03.987Z",
-        "className": "views",
-        "methods": [],
-        "imports": [
-          "fs"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "AnalysisEntry",
-        "usedBy": null,
-        "id": "067eb8ea",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cakephp2/tests/acceptance/test.js",
-        "hash": "5511634911bd6310b2aa9b2ce4caa93e",
-        "lines": 6,
-        "mtime": "2026-06-09T11:43:03.989Z",
-        "className": "test",
-        "methods": [],
-        "imports": [
-          "../../../../../tests/acceptance/lib/test-template.js"
-        ],
-        "exports": [],
-        "extends": null,
-        "usedBy": null,
-        "id": "637f5458",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cakephp2/tests/analyzers.js",
-        "hash": "55ca4897a535191eb2b438aef102bff7",
-        "lines": 932,
-        "mtime": "2026-06-09T11:43:03.989Z",
-        "className": "analyzers",
-        "methods": [
-          "analyzeCommandDetails",
-          "analyzePermissionComponent",
-          "analyzeAcl",
-          "analyzeEmailNotifications",
-          "analyzeTestStructure",
-          "analyzeAssets",
-          "analyzeConstants",
-          "analyzeBootstrap",
-          "analyzeModels",
-          "analyzeLogicClasses",
-          "analyzeTitlesGraphMapping",
-          "analyzeComposerDeps",
-          "analyzeAppController",
-          "analyzeAppModel",
-          "analyzeHelpers",
-          "analyzeLibraries",
-          "analyzeBehaviors",
-          "analyzeSqlFiles",
-          "analyzeLayouts",
-          "analyzeElements",
-          "extractStringProperty",
-          "parseModelContent"
-        ],
-        "imports": [
-          "fs",
-          "path",
-          "../../../docs/lib/php-array-parser.js",
-          "../../../docs/lib/scanner.js"
-        ],
-        "exports": [
-          "analyzeCommandDetails",
-          "analyzePermissionComponent",
-          "analyzeAcl",
-          "analyzeEmailNotifications",
-          "analyzeTestStructure",
-          "analyzeAssets",
-          "analyzeConstants",
-          "analyzeBootstrap",
-          "analyzeModels",
-          "analyzeLogicClasses",
-          "analyzeTitlesGraphMapping",
-          "analyzeComposerDeps",
-          "analyzeAppController",
-          "analyzeAppModel",
-          "analyzeHelpers",
-          "analyzeLibraries",
-          "analyzeBehaviors",
-          "analyzeSqlFiles",
-          "analyzeLayouts",
-          "analyzeElements"
-        ],
-        "extends": null,
-        "usedBy": null,
-        "id": "9e5dc0f4",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cakephp2/tests/unit/analyzers-assets-config.test.js",
-        "hash": "db8ecb36d4a2522503b33016fe4af4a0",
-        "lines": 274,
-        "mtime": "2026-06-09T11:43:03.989Z",
-        "className": "analyzers-assets-config.test",
-        "methods": [],
-        "imports": [
-          "node:test",
-          "node:assert/strict",
-          "../../../../../tests/helpers/tmp-dir.js",
-          "../analyzers.js"
-        ],
-        "exports": [],
-        "extends": null,
-        "usedBy": null,
-        "id": "b619fac4",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cakephp2/tests/unit/analyzers-models-business.test.js",
-        "hash": "49c2fb3ee6f0ab7b646823e105a9737d",
-        "lines": 465,
-        "mtime": "2026-06-09T11:43:03.989Z",
-        "className": "analyzers-models-business.test",
-        "methods": [],
-        "imports": [
-          "node:test",
-          "node:assert/strict",
-          "path",
-          "../../../../../tests/helpers/tmp-dir.js",
-          "../analyzers.js"
-        ],
-        "exports": [],
-        "extends": "AppModel",
-        "usedBy": null,
-        "id": "31519123",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cakephp2/tests/unit/analyzers-security.test.js",
-        "hash": "d1e052aace1bc027cafb8063754a1399",
-        "lines": 137,
-        "mtime": "2026-06-09T11:43:03.989Z",
-        "className": "analyzers-security.test",
-        "methods": [],
-        "imports": [
-          "node:test",
-          "node:assert/strict",
-          "../../../../../tests/helpers/tmp-dir.js",
-          "../analyzers.js"
-        ],
-        "exports": [],
-        "extends": "Component",
-        "usedBy": null,
-        "id": "f4aeb340",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cakephp2/tests/unit/analyzers-views-commands.test.js",
-        "hash": "330dffe536f399c4ca630bba52b37283",
-        "lines": 529,
-        "mtime": "2026-06-09T11:43:03.989Z",
-        "className": "analyzers-views-commands.test",
-        "methods": [],
-        "imports": [
-          "node:test",
-          "node:assert/strict",
-          "../../../../../tests/helpers/tmp-dir.js",
-          "../analyzers.js"
-        ],
-        "exports": [],
-        "extends": "AppHelper",
-        "usedBy": null,
-        "id": "06385296",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cakephp2/tests/unit/commands-match.test.js",
-        "hash": "9b72229857af18eaff3d854e730bcbf9",
-        "lines": 60,
-        "mtime": "2026-06-09T11:43:03.989Z",
-        "className": "commands-match.test",
-        "methods": [],
-        "imports": [
-          "node:test",
-          "node:assert/strict",
-          "../../../../lib/container.js",
-          "../../../../docs/lib/data-source-loader.js",
-          "path",
-          "url"
-        ],
-        "exports": [],
-        "extends": null,
-        "usedBy": null,
-        "id": "d36783a1",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cli/data/commands.js",
-        "hash": "e22f086029ce84346b476fae6dc1408b",
-        "lines": 57,
-        "mtime": "2026-06-09T11:43:03.989Z",
-        "className": "commands",
-        "methods": [],
-        "imports": [],
-        "exports": [
-          "default"
-        ],
-        "extends": "DataSource",
-        "usedBy": null,
-        "id": "fc850b5c",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cli/data/modules.js",
-        "hash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0",
-        "lines": 70,
-        "mtime": "2026-06-09T11:43:03.990Z",
-        "className": "modules",
-        "methods": [],
-        "imports": [
-          "fs"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "AnalysisEntry",
-        "usedBy": null,
-        "id": "a156eb96",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/cli.js",
-        "hash": "32ab28459ccdf40c284588cce876b58e",
-        "lines": 68,
-        "mtime": "2026-06-09T11:43:03.990Z",
-        "className": "cli",
-        "methods": [
-          "run",
-          "parseOptions",
-          "printUsage"
-        ],
-        "imports": [
-          "./commands/parse.js",
-          "./commands/lint.js",
-          "./commands/toc.js",
-          "./commands/format.js",
-          "./config.js"
-        ],
-        "exports": [
-          "run"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/lib/container.js",
-          "src/lib/dispatcher.js",
-          "src/lib/hooks.js",
-          "src/lib/i18n.js",
-          "src/lib/official-plugins.js",
-          "src/lib/plugin-registry.js",
-          "src/lib/preset-deploy.js",
-          "src/lib/skills.js"
-        ],
-        "id": "0f14eba0",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/commands/format.js",
-        "hash": "3dfaca1eef0d2779b105d362cdad00c9",
-        "lines": 80,
-        "mtime": "2026-06-09T11:43:03.990Z",
-        "className": "format",
-        "methods": [
-          "format",
-          "normalizeAst",
-          "normalizeHeading",
-          "normalizeList",
-          "readFile",
-          "writeFile"
-        ],
-        "imports": [
-          "../lib/parser.js",
-          "../lib/renderer.js"
-        ],
-        "exports": [
-          "format"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/cli.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/cli.js"
-        ],
-        "id": "4cd40de0",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/commands/lint.js",
-        "hash": "145d10341623c27338a1c653161553fd",
-        "lines": 96,
-        "mtime": "2026-06-09T11:43:03.990Z",
-        "className": "lint",
-        "methods": [
-          "lint",
-          "lintFile",
-          "loadLintRules",
-          "checkTrailingSpaces",
-          "checkHeadingIncrement",
-          "checkEmptyLinks",
-          "checkListMarker",
-          "readFile"
-        ],
-        "imports": [
-          "../lib/parser.js"
-        ],
-        "exports": [
-          "lint"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/cli.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/cli.js"
-        ],
-        "id": "77570238",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/commands/parse.js",
-        "hash": "1fb6dc26cab932fa41942b920a3b50d2",
-        "lines": 53,
-        "mtime": "2026-06-09T11:43:03.990Z",
-        "className": "parse",
-        "methods": [
-          "parse",
-          "readFileSync",
-          "writeFileSync"
-        ],
-        "imports": [
-          "../lib/parser.js",
-          "../lib/renderer.js"
-        ],
-        "exports": [
-          "parse"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/cli.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/cli.js"
-        ],
-        "id": "5ab85a7b",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/commands/toc.js",
-        "hash": "07763ea2701588b413e0bc48f2b23389",
-        "lines": 83,
-        "mtime": "2026-06-09T11:43:03.990Z",
-        "className": "toc",
-        "methods": [
-          "toc",
-          "extractHeadings",
-          "buildTocMarkdown",
-          "slugify",
-          "readFile"
-        ],
-        "imports": [
-          "../lib/parser.js"
-        ],
-        "exports": [
-          "toc"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/cli.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/cli.js"
-        ],
-        "id": "67be0cde",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/config.js",
-        "hash": "9d1b90e3e3c920aa5a46762977b4c123",
-        "lines": 29,
-        "mtime": "2026-06-09T11:43:03.990Z",
-        "className": "config",
-        "methods": [
-          "loadConfig"
-        ],
-        "imports": [
-          "node:fs",
-          "node:path"
-        ],
-        "exports": [
-          "loadConfig"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/lib/active-flow-registry.js",
-          "src/lib/container.js",
-          "src/lib/flow-manager.js",
-          "src/lib/flow-store.js",
-          "src/lib/guardrail.js",
-          "src/lib/hooks.js",
-          "src/lib/i18n.js",
-          "src/lib/plugin-registry.js",
-          "src/lib/preparing-flow-store.js",
-          "src/official-plugins/senti-presets/presets/base/tests/acceptance/fixtures/src/index.js",
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/cli.js",
-          "src/official-plugins/senti-presets/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
-          "src/presets/base/tests/acceptance/fixtures/src/index.js"
-        ],
-        "id": "2a0239d4",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/parser.js",
-        "hash": "44ccf6c9369b9823de45bd5a466efa4d",
-        "lines": 102,
-        "mtime": "2026-06-09T11:43:03.990Z",
-        "className": "parser",
-        "methods": [
-          "Parser"
-        ],
-        "imports": [
-          "./tokenizer.js",
-          "./rules/heading.js",
-          "./rules/list.js",
-          "./rules/code-block.js",
-          "./rules/link.js"
-        ],
-        "exports": [
-          "Parser"
-        ],
-        "extends": null,
-        "usedBy": null,
-        "id": "b44b1f6d",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/renderer.js",
-        "hash": "037c24d0f6448ba56f343ccce381d841",
-        "lines": 113,
-        "mtime": "2026-06-09T11:43:03.990Z",
-        "className": "renderer",
-        "methods": [
-          "Renderer"
-        ],
-        "imports": [],
-        "exports": [
-          "Renderer"
-        ],
-        "extends": null,
-        "usedBy": null,
-        "id": "4aed4546",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/rules/code-block.js",
-        "hash": "2357927b59351afc0cef8198a91f31c6",
-        "lines": 29,
-        "mtime": "2026-06-09T11:43:03.991Z",
-        "className": "code-block",
-        "methods": [
-          "matchCodeBlock"
-        ],
-        "imports": [],
-        "exports": [
-          "matchCodeBlock"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/parser.js",
-          "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/parser.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/parser.js"
-        ],
-        "id": "555b424b",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/rules/heading.js",
-        "hash": "030df2b7cfcde432f885ff04ff86761c",
-        "lines": 16,
-        "mtime": "2026-06-09T11:43:03.991Z",
-        "className": "heading",
-        "methods": [
-          "matchHeading"
-        ],
-        "imports": [],
-        "exports": [
-          "matchHeading"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/parser.js",
-          "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/parser.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/parser.js"
-        ],
-        "id": "8c8019c6",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/rules/link.js",
-        "hash": "6968387a0366d4ae64c601cd40704806",
-        "lines": 22,
-        "mtime": "2026-06-09T11:43:03.991Z",
-        "className": "link",
-        "methods": [
-          "matchLink"
-        ],
-        "imports": [],
-        "exports": [
-          "matchLink"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/parser.js",
-          "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/parser.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/parser.js"
-        ],
-        "id": "f3640aba",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/rules/list.js",
-        "hash": "6715d30d2bb8cb58463a28844f94f203",
-        "lines": 32,
-        "mtime": "2026-06-09T11:43:03.991Z",
-        "className": "list",
-        "methods": [
-          "matchList"
-        ],
-        "imports": [],
-        "exports": [
-          "matchList"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/parser.js",
-          "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/parser.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/parser.js"
-        ],
-        "id": "077841bf",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/tokenizer.js",
-        "hash": "a04e7a69936b04131982cbad58fd14a1",
-        "lines": 114,
-        "mtime": "2026-06-09T11:43:03.991Z",
-        "className": "tokenizer",
-        "methods": [
-          "Tokenizer"
-        ],
-        "imports": [],
-        "exports": [
-          "Tokenizer"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/parser.js",
-          "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/parser.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/parser.js"
-        ],
-        "id": "047801d3",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/cli/tests/acceptance/test.js",
-        "hash": "eb0cbf12f5910ba09c682000536a21fa",
-        "lines": 7,
-        "mtime": "2026-06-09T11:43:03.991Z",
-        "className": "test",
-        "methods": [],
-        "imports": [
-          "../../../../../tests/acceptance/lib/test-template.js"
-        ],
-        "exports": [],
-        "extends": null,
-        "usedBy": null,
-        "id": "8b8574e8",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/database/data/schema.js",
-        "hash": "a18b775f8d512ed0d39925e20ecbc5dd",
-        "lines": 43,
-        "mtime": "2026-06-09T11:43:03.991Z",
-        "className": "schema",
-        "methods": [],
-        "imports": [],
-        "exports": [
-          "default"
-        ],
-        "extends": "DataSource",
-        "usedBy": null,
-        "id": "949943f2",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/drizzle/data/schema.js",
-        "hash": "728a1a08387e69d2529203e54b9a4379",
-        "lines": 136,
-        "mtime": "2026-06-09T11:43:03.991Z",
-        "className": "schema",
-        "methods": [],
-        "imports": [
-          "fs"
-        ],
-        "exports": [
-          "default",
-          "users",
-          "usersRelations"
-        ],
-        "extends": "AnalysisEntry",
-        "usedBy": null,
-        "id": "ef3e174a",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/drizzle/tests/analyzers.js",
-        "hash": "03d882f4b6e887cf2498ada6b4204843",
-        "lines": 117,
-        "mtime": "2026-06-09T11:43:03.991Z",
-        "className": "analyzers",
-        "methods": [
-          "analyzeSchema",
-          "collectSchemaFiles",
-          "walkDir"
-        ],
-        "imports": [
-          "fs",
-          "path"
-        ],
-        "exports": [
-          "analyzeSchema",
-          "users",
-          "usersRelations"
-        ],
-        "extends": null,
-        "usedBy": null,
-        "id": "46b3a8ca",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/drizzle/tests/unit/analyzers.test.js",
-        "hash": "c3467162d5f1aa260306c65421b43ff8",
-        "lines": 223,
-        "mtime": "2026-06-09T11:43:03.991Z",
-        "className": "analyzers.test",
-        "methods": [],
-        "imports": [
-          "node:test",
-          "node:assert/strict",
-          "../../../../../tests/helpers/tmp-dir.js",
-          "../analyzers.js",
-          "drizzle-orm/pg-core",
-          "drizzle-orm/pg-core",
-          "drizzle-orm/pg-core",
-          "drizzle-orm",
-          "drizzle-orm/sqlite-core",
-          "drizzle-orm/mysql-core",
-          "drizzle-orm/pg-core",
-          "drizzle-orm/pg-core",
-          "drizzle-orm/pg-core",
-          "drizzle-kit"
-        ],
-        "exports": [
-          "default",
-          "users",
-          "posts",
-          "comments",
-          "usersRelations",
-          "postsRelations",
-          "todos",
-          "products"
-        ],
-        "extends": null,
-        "usedBy": null,
-        "id": "28c8bebb",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/edge/data/runtime.js",
-        "hash": "7884d18423b527fc788cff89460637a0",
-        "lines": 112,
-        "mtime": "2026-06-09T11:43:03.992Z",
-        "className": "runtime",
-        "methods": [],
-        "imports": [
-          "fs",
-          "path"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "AnalysisEntry",
-        "usedBy": null,
-        "id": "7d1ae163",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/github-actions/data/pipelines.js",
-        "hash": "97a7ca745360902d6198deaa32a0604b",
-        "lines": 320,
-        "mtime": "2026-06-09T11:43:03.992Z",
-        "className": "pipelines",
-        "methods": [
-          "parseWorkflow",
-          "parseTriggers",
-          "extractBranches",
-          "parseJobs",
-          "extractRefs"
-        ],
-        "imports": [
-          "fs"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "AnalysisEntry",
-        "usedBy": null,
-        "id": "3d150f2b",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/github-actions/tests/analyzers.js",
-        "hash": "ef046ee7347ef3a10505e3a87bc4624a",
-        "lines": 213,
-        "mtime": "2026-06-09T11:43:03.992Z",
-        "className": "analyzers",
-        "methods": [
-          "parseWorkflow",
-          "parseTriggers",
-          "extractBranches",
-          "parseJobs",
-          "extractRefs"
-        ],
-        "imports": [],
-        "exports": [
-          "parseWorkflow"
-        ],
-        "extends": null,
-        "usedBy": null,
-        "id": "c4eb1579",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/graphql/data/schema.js",
-        "hash": "42b9eea60c0ec62c980f4d167dd7b14d",
-        "lines": 146,
-        "mtime": "2026-06-09T11:43:03.992Z",
-        "className": "schema",
-        "methods": [
-          "parseSchemaContent"
-        ],
-        "imports": [
-          "fs"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "AnalysisEntry",
-        "usedBy": null,
-        "id": "16c764e7",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/graphql/tests/analyzers.js",
-        "hash": "bc16aaaadc90a025a81211251b04cb73",
-        "lines": 111,
-        "mtime": "2026-06-09T11:43:03.993Z",
-        "className": "analyzers",
-        "methods": [
-          "parseSchemaContent",
-          "analyzeSchema"
-        ],
-        "imports": [
-          "fs",
-          "../../../docs/lib/scanner.js"
-        ],
-        "exports": [
-          "parseSchemaContent",
-          "analyzeSchema"
-        ],
-        "extends": null,
-        "usedBy": null,
-        "id": "5c2be5a4",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/graphql/tests/unit/analyzers.test.js",
-        "hash": "e14542279860b9f9d1904ab4a2948aad",
-        "lines": 274,
-        "mtime": "2026-06-09T11:43:03.993Z",
-        "className": "analyzers.test",
-        "methods": [],
-        "imports": [
-          "node:test",
-          "node:assert/strict",
-          "../../../../../tests/helpers/tmp-dir.js",
-          "../analyzers.js"
-        ],
-        "exports": [],
-        "extends": null,
-        "usedBy": null,
-        "id": "7a46897e",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/hono/data/middleware.js",
-        "hash": "666137c55cc35cdbfe5ca8cc99257145",
-        "lines": 79,
-        "mtime": "2026-06-09T11:43:03.993Z",
-        "className": "middleware",
-        "methods": [],
-        "imports": [
-          "fs"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "AnalysisEntry",
-        "usedBy": null,
-        "id": "42734f2d",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/hono/tests/unit/analyzers.test.js",
-        "hash": "47053802789d317e6d8c3404b74ca7a7",
-        "lines": 196,
-        "mtime": "2026-06-09T11:43:03.993Z",
-        "className": "analyzers.test",
-        "methods": [
-          "analyzeMiddleware"
-        ],
-        "imports": [
-          "node:test",
-          "node:assert/strict",
-          "fs",
-          "../../../../../tests/helpers/tmp-dir.js",
-          "../../../../docs/lib/scanner.js",
-          "hono",
-          "hono/cors",
-          "hono",
-          "hono/logger",
-          "hono",
-          "hono/cors",
-          "hono/logger",
-          "hono/bearer-auth",
-          "hono",
-          "hono/factory"
-        ],
-        "exports": [
-          "default",
-          "authGuard"
-        ],
-        "extends": null,
-        "usedBy": null,
-        "id": "f183e3be",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/js-webapp/tests/acceptance/fixtures/src/config.js",
-        "hash": "569289ed2afa967167a1d3bb421fc88d",
-        "lines": 56,
-        "mtime": "2026-06-09T11:43:03.993Z",
-        "className": "config",
-        "methods": [
-          "loadConfig",
-          "getEnv"
-        ],
-        "imports": [
-          "node:fs",
-          "node:path"
-        ],
-        "exports": [
-          "loadConfig",
-          "getEnv"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/lib/active-flow-registry.js",
-          "src/lib/container.js",
-          "src/lib/flow-manager.js",
-          "src/lib/flow-store.js",
-          "src/lib/guardrail.js",
-          "src/lib/hooks.js",
-          "src/lib/i18n.js",
-          "src/lib/plugin-registry.js",
-          "src/lib/preparing-flow-store.js",
-          "src/official-plugins/senti-presets/presets/base/tests/acceptance/fixtures/src/index.js",
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/cli.js",
-          "src/official-plugins/senti-presets/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
-          "src/presets/base/tests/acceptance/fixtures/src/index.js"
-        ],
-        "id": "5f3cf81b",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/js-webapp/tests/acceptance/fixtures/src/http-client.js",
-        "hash": "cf2e199e931686b890c56a235b99bd59",
-        "lines": 89,
-        "mtime": "2026-06-09T11:43:03.993Z",
-        "className": "http-client",
-        "methods": [
-          "HttpClient"
-        ],
-        "imports": [
-          "node:http",
-          "node:https"
-        ],
-        "exports": [
-          "HttpClient"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/official-plugins/senti-presets/presets/base/tests/acceptance/fixtures/src/index.js",
-          "src/official-plugins/senti-presets/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
-          "src/presets/base/tests/acceptance/fixtures/src/index.js"
-        ],
-        "id": "bcc4aec4",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
-        "hash": "994993300bf63cd748746fee7be84457",
-        "lines": 52,
-        "mtime": "2026-06-09T11:43:03.993Z",
-        "className": "index",
-        "methods": [
-          "main",
-          "createApp"
-        ],
-        "imports": [
-          "./logger.js",
-          "./config.js",
-          "./http-client.js"
-        ],
-        "exports": [
-          "main",
-          "createApp"
-        ],
-        "extends": null,
-        "usedBy": null,
-        "id": "805128d9",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/js-webapp/tests/acceptance/fixtures/src/logger.js",
-        "hash": "f78538b465784021bdb33616d7a8da31",
-        "lines": 44,
-        "mtime": "2026-06-09T11:43:03.993Z",
-        "className": "logger",
-        "methods": [
-          "createLogger",
-          "formatMessage"
-        ],
-        "imports": [],
-        "exports": [
-          "createLogger",
-          "formatMessage"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/official-plugins/senti-presets/presets/base/tests/acceptance/fixtures/src/index.js",
-          "src/official-plugins/senti-presets/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
-          "src/presets/base/tests/acceptance/fixtures/src/index.js"
-        ],
-        "id": "f52fc93a",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/js-webapp/tests/acceptance/test.js",
-        "hash": "53e30a4177ff34a03be9697720a6bf1a",
-        "lines": 6,
-        "mtime": "2026-06-09T11:43:03.993Z",
-        "className": "test",
-        "methods": [],
-        "imports": [
-          "../../../../../tests/acceptance/lib/test-template.js"
-        ],
-        "exports": [],
-        "extends": null,
-        "usedBy": null,
-        "id": "860eaa68",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/laravel/data/commands.js",
-        "hash": "cad3b0084c96a761a5297c1bab7dbeb3",
-        "lines": 25,
-        "mtime": "2026-06-09T11:43:03.993Z",
-        "className": "commands",
-        "methods": [],
-        "imports": [],
-        "exports": [
-          "default"
-        ],
-        "extends": "CommandsSource",
-        "usedBy": null,
-        "id": "cda517e7",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/laravel/data/config.js",
-        "hash": "510a441244604440f9504642b135e16b",
-        "lines": 197,
-        "mtime": "2026-06-09T11:43:03.994Z",
-        "className": "config",
-        "methods": [],
-        "imports": [
-          "fs",
-          "path"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "AnalysisEntry",
-        "usedBy": [
-          "src/lib/active-flow-registry.js",
-          "src/lib/container.js",
-          "src/lib/flow-manager.js",
-          "src/lib/flow-store.js",
-          "src/lib/guardrail.js",
-          "src/lib/hooks.js",
-          "src/lib/i18n.js",
-          "src/lib/plugin-registry.js",
-          "src/lib/preparing-flow-store.js",
-          "src/official-plugins/senti-presets/presets/base/tests/acceptance/fixtures/src/index.js",
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/cli.js",
-          "src/official-plugins/senti-presets/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
-          "src/presets/base/tests/acceptance/fixtures/src/index.js"
-        ],
-        "id": "0e2d19e4",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/laravel/data/controllers.js",
-        "hash": "dc083f0715fa1d1fa3fb05d9c0df8f8c",
-        "lines": 147,
-        "mtime": "2026-06-09T11:43:03.994Z",
-        "className": "controllers",
-        "methods": [],
-        "imports": [
-          "fs"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "ControllerEntry",
-        "usedBy": null,
-        "id": "e31b415e",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/laravel/data/models.js",
-        "hash": "d0f7cb0462451c57a9bc5939b20ce35e",
-        "lines": 224,
-        "mtime": "2026-06-09T11:43:03.994Z",
-        "className": "models",
-        "methods": [],
-        "imports": [
-          "fs"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "ModelEntry",
-        "usedBy": null,
-        "id": "984362a2",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/laravel/data/routes.js",
-        "hash": "1f0488093839e624434358b8ec9d028d",
-        "lines": 249,
-        "mtime": "2026-06-09T11:43:03.994Z",
-        "className": "routes",
-        "methods": [],
-        "imports": [
-          "fs"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "RouteEntry",
-        "usedBy": null,
-        "id": "affdd67a",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/laravel/data/tables.js",
-        "hash": "6d177e1a4c46e3ff5699607d1dd60c1f",
-        "lines": 257,
-        "mtime": "2026-06-09T11:43:03.994Z",
-        "className": "tables",
-        "methods": [],
-        "imports": [
-          "fs"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "AnalysisEntry",
-        "usedBy": null,
-        "id": "8c003752",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/laravel/tests/acceptance/test.js",
-        "hash": "21b7f788a796e089ba88cabdfb765132",
-        "lines": 6,
-        "mtime": "2026-06-09T11:43:03.995Z",
-        "className": "test",
-        "methods": [],
-        "imports": [
-          "../../../../../tests/acceptance/lib/test-template.js"
-        ],
-        "exports": [],
-        "extends": null,
-        "usedBy": null,
-        "id": "50caf0ff",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/laravel/tests/analyzers.js",
-        "hash": "e9c10ff019780ee28a5b5afe1a069c39",
-        "lines": 675,
-        "mtime": "2026-06-09T11:43:03.996Z",
-        "className": "analyzers",
-        "methods": [
-          "analyzeControllers",
-          "analyzeModels",
-          "analyzeRoutes",
-          "analyzeMigrations",
-          "analyzeConfig",
-          "parseControllerContent",
-          "extractArrayProp",
-          "extractAssocProp",
-          "extractRelations",
-          "parseModelContent",
-          "parseHandler",
-          "parseStringList",
-          "filterResourceActions",
-          "singularize",
-          "buildResourceUri",
-          "resourceActionUri",
-          "resourceMethod",
-          "parseRouteFile",
-          "parseBlueprint",
-          "parseMigrationScan",
-          "parseAliasScan",
-          "extractClassNamesScan",
-          "parseKernelMw",
-          "parseBootstrapMw"
-        ],
-        "imports": [
-          "fs",
-          "path",
-          "../../../docs/lib/scanner.js",
-          "../../lib/composer-utils.js"
-        ],
-        "exports": [
-          "analyzeControllers",
-          "analyzeModels",
-          "analyzeRoutes",
-          "analyzeMigrations",
-          "analyzeConfig"
-        ],
-        "extends": null,
-        "usedBy": null,
-        "id": "a0531819",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/laravel/tests/e2e/integration.test.js",
-        "hash": "f4c97e047e58996b89d5362198998620",
-        "lines": 121,
-        "mtime": "2026-06-09T11:43:03.996Z",
-        "className": "integration.test",
-        "methods": [],
-        "imports": [
-          "node:test",
-          "node:assert/strict",
-          "path",
-          "child_process",
-          "../../../../../tests/helpers/tmp-dir.js"
-        ],
-        "exports": [],
-        "extends": "Controller",
-        "usedBy": null,
-        "id": "f98c59e8",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/laravel/tests/e2e/scan.test.js",
-        "hash": "424a35f6032c38731473ab4a88261d1d",
-        "lines": 36,
-        "mtime": "2026-06-09T11:43:03.996Z",
-        "className": "scan.test",
-        "methods": [],
-        "imports": [
-          "node:test",
-          "node:assert/strict",
-          "fs",
-          "path",
-          "url"
-        ],
-        "exports": [],
-        "extends": null,
-        "usedBy": null,
-        "id": "709be1a1",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/laravel/tests/unit/analyzers.test.js",
-        "hash": "682ac17e9d79a9d06af5442754663e5d",
-        "lines": 293,
-        "mtime": "2026-06-09T11:43:03.996Z",
-        "className": "analyzers.test",
-        "methods": [],
-        "imports": [
-          "node:test",
-          "node:assert/strict",
-          "../../../../../tests/helpers/tmp-dir.js",
-          "../analyzers.js"
-        ],
-        "exports": [],
-        "extends": "Controller",
-        "usedBy": null,
-        "id": "745cd2f0",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/laravel/tests/unit/commands-match.test.js",
-        "hash": "d9531dfb527ba82c7d84842d04180d9b",
-        "lines": 60,
-        "mtime": "2026-06-09T11:43:03.996Z",
-        "className": "commands-match.test",
-        "methods": [],
-        "imports": [
-          "node:test",
-          "node:assert/strict",
-          "../../../../lib/container.js",
-          "../../../../docs/lib/data-source-loader.js",
-          "path",
-          "url"
-        ],
-        "exports": [],
-        "extends": null,
-        "usedBy": null,
-        "id": "4cf3f8a7",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/laravel/tests/unit/scan-parser-bugs.test.js",
-        "hash": "9293f84032b3d8bbbe44a068201bd1d8",
-        "lines": 190,
-        "mtime": "2026-06-09T11:43:03.996Z",
-        "className": "scan-parser-bugs.test",
-        "methods": [],
-        "imports": [
-          "node:test",
-          "node:assert/strict",
-          "node:fs",
-          "node:path",
-          "../../../../../tests/helpers/tmp-dir.js",
-          "../analyzers.js"
-        ],
-        "exports": [],
-        "extends": "HttpKernel",
-        "usedBy": null,
-        "id": "6f2217a0",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/lib/composer-utils.js",
-        "hash": "00309987ad54ebf5985f87d2395c0f85",
-        "lines": 62,
-        "mtime": "2026-06-09T11:43:03.996Z",
-        "className": "composer-utils",
-        "methods": [
-          "parseComposer",
-          "parseEnvFile"
-        ],
-        "imports": [
-          "fs",
-          "path"
-        ],
-        "exports": [
-          "parseComposer",
-          "parseEnvFile"
-        ],
-        "extends": null,
-        "usedBy": null,
-        "id": "a105caf5",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/lib/path-match.js",
-        "hash": "52ee5a41419d6ba8a44d6152ddf129fd",
-        "lines": 37,
-        "mtime": "2026-06-09T11:43:03.996Z",
-        "className": "path-match",
-        "methods": [
-          "hasPathPrefix",
-          "hasSegmentPath",
-          "hasAnyPathPrefix",
-          "normalizeRelPath",
-          "trimOuterSlashes",
-          "trimLeadingSlashes",
-          "escapeRegExp"
-        ],
-        "imports": [],
-        "exports": [
-          "hasPathPrefix",
-          "hasSegmentPath",
-          "hasAnyPathPrefix"
-        ],
-        "extends": null,
-        "usedBy": null,
-        "id": "3f541c46",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/index.js",
-        "hash": "00fcb14b25f82a75f8eaed29420569bb",
-        "lines": 28,
-        "mtime": "2026-06-09T11:43:03.996Z",
-        "className": "index",
-        "methods": [
-          "parse",
-          "render"
-        ],
-        "imports": [],
-        "exports": [
-          "parse",
-          "render",
-          "Parser",
-          "Tokenizer",
-          "Renderer"
-        ],
-        "extends": null,
-        "usedBy": null,
-        "id": "578aeee2",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/parser.js",
-        "hash": "c4d964527792897b4f1cc03609c44e44",
-        "lines": 112,
-        "mtime": "2026-06-09T11:43:03.996Z",
-        "className": "parser",
-        "methods": [
-          "Parser"
-        ],
-        "imports": [
-          "./tokenizer.js",
-          "./rules/heading.js",
-          "./rules/list.js",
-          "./rules/code-block.js",
-          "./rules/link.js",
-          "./rules/table.js",
-          "./rules/emphasis.js"
-        ],
-        "exports": [
-          "Parser"
-        ],
-        "extends": null,
-        "usedBy": null,
-        "id": "242e9231",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/renderer.js",
-        "hash": "e619f1c072cb8c83208c74377637bc3d",
-        "lines": 91,
-        "mtime": "2026-06-09T11:43:03.996Z",
-        "className": "renderer",
-        "methods": [
-          "Renderer"
-        ],
-        "imports": [
-          "./utils/escape.js"
-        ],
-        "exports": [
-          "Renderer"
-        ],
-        "extends": null,
-        "usedBy": null,
-        "id": "ef3bd76b",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/rules/code-block.js",
-        "hash": "6467d0dd746613b7a406ba39825f2cc8",
-        "lines": 27,
-        "mtime": "2026-06-09T11:43:03.996Z",
-        "className": "code-block",
-        "methods": [
-          "CodeBlockRule"
-        ],
-        "imports": [],
-        "exports": [
-          "CodeBlockRule"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/parser.js",
-          "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/parser.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/parser.js"
-        ],
-        "id": "53062c55",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/rules/emphasis.js",
-        "hash": "08f4964d13e3dd71003bf2732b21b89e",
-        "lines": 52,
-        "mtime": "2026-06-09T11:43:03.997Z",
-        "className": "emphasis",
-        "methods": [
-          "EmphasisRule"
-        ],
-        "imports": [],
-        "exports": [
-          "EmphasisRule"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/parser.js"
-        ],
-        "id": "d409acc6",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/rules/heading.js",
-        "hash": "815a9e56767e6dfd29b4bc926d6e1fdc",
-        "lines": 27,
-        "mtime": "2026-06-09T11:43:03.997Z",
-        "className": "heading",
-        "methods": [
-          "HeadingRule"
-        ],
-        "imports": [],
-        "exports": [
-          "HeadingRule"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/parser.js",
-          "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/parser.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/parser.js"
-        ],
-        "id": "3a83d7fb",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/rules/link.js",
-        "hash": "e946b4d0056da623bf9dca2ef7fcb876",
-        "lines": 37,
-        "mtime": "2026-06-09T11:43:03.997Z",
-        "className": "link",
-        "methods": [
-          "LinkRule"
-        ],
-        "imports": [],
-        "exports": [
-          "LinkRule"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/parser.js",
-          "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/parser.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/parser.js"
-        ],
-        "id": "57b6cad6",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/rules/list.js",
-        "hash": "2d9663261cb0be1c9d5c922550aaac0d",
-        "lines": 30,
-        "mtime": "2026-06-09T11:43:03.997Z",
-        "className": "list",
-        "methods": [
-          "ListRule"
-        ],
-        "imports": [],
-        "exports": [
-          "ListRule"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/parser.js",
-          "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/parser.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/parser.js"
-        ],
-        "id": "cfe489eb",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/rules/table.js",
-        "hash": "4d7cee76d4df17152ed39bc25c8e2608",
-        "lines": 48,
-        "mtime": "2026-06-09T11:43:03.997Z",
-        "className": "table",
-        "methods": [
-          "TableRule"
-        ],
-        "imports": [],
-        "exports": [
-          "TableRule"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/parser.js"
-        ],
-        "id": "001ae5a0",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/tokenizer.js",
-        "hash": "ad42ffc5335cd1aa2348142343ab0b0e",
-        "lines": 118,
-        "mtime": "2026-06-09T11:43:03.997Z",
-        "className": "tokenizer",
-        "methods": [
-          "Tokenizer"
-        ],
-        "imports": [],
-        "exports": [
-          "Tokenizer"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/parser.js",
-          "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/parser.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/parser.js"
-        ],
-        "id": "c40c2149",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/utils/escape.js",
-        "hash": "fdff48f0fee5dd38acee183bdbc45a03",
-        "lines": 20,
-        "mtime": "2026-06-09T11:43:03.997Z",
-        "className": "escape",
-        "methods": [
-          "escapeHtml"
-        ],
-        "imports": [],
-        "exports": [
-          "escapeHtml"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/renderer.js"
-        ],
-        "id": "46e5d152",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/utils/normalize.js",
-        "hash": "b1c09d8b99b364ca2cb3d189d6b513cb",
-        "lines": 11,
-        "mtime": "2026-06-09T11:43:03.997Z",
-        "className": "normalize",
-        "methods": [
-          "normalizeWhitespace"
-        ],
-        "imports": [],
-        "exports": [
-          "normalizeWhitespace"
-        ],
-        "extends": null,
-        "usedBy": null,
-        "id": "ba16fdc4",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/library/tests/acceptance/test.js",
-        "hash": "64a0ddd2b362b917d654a406c75862b5",
-        "lines": 6,
-        "mtime": "2026-06-09T11:43:03.997Z",
-        "className": "test",
-        "methods": [],
-        "imports": [
-          "../../../../../tests/acceptance/lib/test-template.js"
-        ],
-        "exports": [],
-        "extends": null,
-        "usedBy": null,
-        "id": "65b6ce47",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/monorepo/data/monorepo.js",
-        "hash": "1872ec7d833c1fed45548132a7ce0ac3",
-        "lines": 80,
-        "mtime": "2026-06-09T11:43:03.997Z",
-        "className": "monorepo",
-        "methods": [],
-        "imports": [
-          "path"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "DataSource",
-        "usedBy": null,
-        "id": "347d776b",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/nextjs/data/components.js",
-        "hash": "08efeb3d6403c542e9bff25ca9eae6ae",
-        "lines": 77,
-        "mtime": "2026-06-09T11:43:03.997Z",
-        "className": "components",
-        "methods": [
-          "classifyComponent"
-        ],
-        "imports": [
-          "fs",
-          "path"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "AnalysisEntry",
-        "usedBy": null,
-        "id": "5298695e",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/nextjs/data/routes.js",
-        "hash": "ef85321b2f855266784785930a27d27f",
-        "lines": 177,
-        "mtime": "2026-06-09T11:43:03.997Z",
-        "className": "routes",
-        "methods": [
-          "dirToRoute",
-          "extractDynamicParams",
-          "detectDataFetch",
-          "classifyRouteFile"
-        ],
-        "imports": [
-          "fs",
-          "path"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "AnalysisEntry",
-        "usedBy": null,
-        "id": "3a21a48e",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/nextjs/tests/analyzers.js",
-        "hash": "c61c8964c96ee313b4fca0eca21a8877",
-        "lines": 208,
-        "mtime": "2026-06-09T11:43:03.998Z",
-        "className": "analyzers",
-        "methods": [
-          "analyzeComponents",
-          "analyzeRoutes",
-          "classifyComponentDir",
-          "dirToRoute",
-          "extractDynamicParams",
-          "detectDataFetch",
-          "pageFileToRoute",
-          "classifyScanRouteFile"
-        ],
-        "imports": [
-          "fs",
-          "path",
-          "../../../docs/lib/scanner.js"
-        ],
-        "exports": [
-          "analyzeComponents",
-          "analyzeRoutes"
-        ],
-        "extends": null,
-        "usedBy": null,
-        "id": "bc2eea02",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/nextjs/tests/unit/analyzers.test.js",
-        "hash": "23317ff5b579d0d9af7ab97b3b479fab",
-        "lines": 261,
-        "mtime": "2026-06-09T11:43:03.998Z",
-        "className": "analyzers.test",
-        "methods": [
-          "GET",
-          "POST",
-          "getStaticProps",
-          "getServerSideProps",
-          "getStaticPaths"
-        ],
-        "imports": [
-          "node:test",
-          "node:assert/strict",
-          "../../../../../tests/helpers/tmp-dir.js",
-          "../analyzers.js",
-          "react"
-        ],
-        "exports": [
-          "GET",
-          "POST",
-          "getStaticProps",
-          "getServerSideProps",
-          "getStaticPaths",
-          "default"
-        ],
-        "extends": null,
-        "usedBy": null,
-        "id": "92e4fc0e",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
-        "hash": "32ab28459ccdf40c284588cce876b58e",
-        "lines": 68,
-        "mtime": "2026-06-09T11:43:03.999Z",
-        "className": "cli",
-        "methods": [
-          "run",
-          "parseOptions",
-          "printUsage"
-        ],
-        "imports": [
-          "./commands/parse.js",
-          "./commands/lint.js",
-          "./commands/toc.js",
-          "./commands/format.js",
-          "./config.js"
-        ],
-        "exports": [
-          "run"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/lib/container.js",
-          "src/lib/dispatcher.js",
-          "src/lib/hooks.js",
-          "src/lib/i18n.js",
-          "src/lib/official-plugins.js",
-          "src/lib/plugin-registry.js",
-          "src/lib/preset-deploy.js",
-          "src/lib/skills.js"
-        ],
-        "id": "8971b3a9",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/commands/format.js",
-        "hash": "3dfaca1eef0d2779b105d362cdad00c9",
-        "lines": 80,
-        "mtime": "2026-06-09T11:43:03.999Z",
-        "className": "format",
-        "methods": [
-          "format",
-          "normalizeAst",
-          "normalizeHeading",
-          "normalizeList",
-          "readFile",
-          "writeFile"
-        ],
-        "imports": [
-          "../lib/parser.js",
-          "../lib/renderer.js"
-        ],
-        "exports": [
-          "format"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/cli.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/cli.js"
-        ],
-        "id": "b8b4b356",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/commands/lint.js",
-        "hash": "145d10341623c27338a1c653161553fd",
-        "lines": 96,
-        "mtime": "2026-06-09T11:43:03.999Z",
-        "className": "lint",
-        "methods": [
-          "lint",
-          "lintFile",
-          "loadLintRules",
-          "checkTrailingSpaces",
-          "checkHeadingIncrement",
-          "checkEmptyLinks",
-          "checkListMarker",
-          "readFile"
-        ],
-        "imports": [
-          "../lib/parser.js"
-        ],
-        "exports": [
-          "lint"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/cli.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/cli.js"
-        ],
-        "id": "bec0cbc5",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/commands/parse.js",
-        "hash": "1fb6dc26cab932fa41942b920a3b50d2",
-        "lines": 53,
-        "mtime": "2026-06-09T11:43:03.999Z",
-        "className": "parse",
-        "methods": [
-          "parse",
-          "readFileSync",
-          "writeFileSync"
-        ],
-        "imports": [
-          "../lib/parser.js",
-          "../lib/renderer.js"
-        ],
-        "exports": [
-          "parse"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/cli.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/cli.js"
-        ],
-        "id": "0c27b843",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/commands/toc.js",
-        "hash": "07763ea2701588b413e0bc48f2b23389",
-        "lines": 83,
-        "mtime": "2026-06-09T11:43:03.999Z",
-        "className": "toc",
-        "methods": [
-          "toc",
-          "extractHeadings",
-          "buildTocMarkdown",
-          "slugify",
-          "readFile"
-        ],
-        "imports": [
-          "../lib/parser.js"
-        ],
-        "exports": [
-          "toc"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/cli.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/cli.js"
-        ],
-        "id": "74ec7555",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/config.js",
-        "hash": "9d1b90e3e3c920aa5a46762977b4c123",
-        "lines": 29,
-        "mtime": "2026-06-09T11:43:03.999Z",
-        "className": "config",
-        "methods": [
-          "loadConfig"
-        ],
-        "imports": [
-          "node:fs",
-          "node:path"
-        ],
-        "exports": [
-          "loadConfig"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/lib/active-flow-registry.js",
-          "src/lib/container.js",
-          "src/lib/flow-manager.js",
-          "src/lib/flow-store.js",
-          "src/lib/guardrail.js",
-          "src/lib/hooks.js",
-          "src/lib/i18n.js",
-          "src/lib/plugin-registry.js",
-          "src/lib/preparing-flow-store.js",
-          "src/official-plugins/senti-presets/presets/base/tests/acceptance/fixtures/src/index.js",
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/cli.js",
-          "src/official-plugins/senti-presets/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
-          "src/presets/base/tests/acceptance/fixtures/src/index.js"
-        ],
-        "id": "3d6a704a",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/parser.js",
-        "hash": "44ccf6c9369b9823de45bd5a466efa4d",
-        "lines": 102,
-        "mtime": "2026-06-09T11:43:03.999Z",
-        "className": "parser",
-        "methods": [
-          "Parser"
-        ],
-        "imports": [
-          "./tokenizer.js",
-          "./rules/heading.js",
-          "./rules/list.js",
-          "./rules/code-block.js",
-          "./rules/link.js"
-        ],
-        "exports": [
-          "Parser"
-        ],
-        "extends": null,
-        "usedBy": null,
-        "id": "6a9476e8",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/renderer.js",
-        "hash": "037c24d0f6448ba56f343ccce381d841",
-        "lines": 113,
-        "mtime": "2026-06-09T11:43:04.000Z",
-        "className": "renderer",
-        "methods": [
-          "Renderer"
-        ],
-        "imports": [],
-        "exports": [
-          "Renderer"
-        ],
-        "extends": null,
-        "usedBy": null,
-        "id": "79bf9d9a",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/rules/code-block.js",
-        "hash": "2357927b59351afc0cef8198a91f31c6",
-        "lines": 29,
-        "mtime": "2026-06-09T11:43:04.000Z",
-        "className": "code-block",
-        "methods": [
-          "matchCodeBlock"
-        ],
-        "imports": [],
-        "exports": [
-          "matchCodeBlock"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/parser.js",
-          "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/parser.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/parser.js"
-        ],
-        "id": "121ea72d",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/rules/heading.js",
-        "hash": "030df2b7cfcde432f885ff04ff86761c",
-        "lines": 16,
-        "mtime": "2026-06-09T11:43:04.000Z",
-        "className": "heading",
-        "methods": [
-          "matchHeading"
-        ],
-        "imports": [],
-        "exports": [
-          "matchHeading"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/parser.js",
-          "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/parser.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/parser.js"
-        ],
-        "id": "0253726f",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/rules/link.js",
-        "hash": "6968387a0366d4ae64c601cd40704806",
-        "lines": 22,
-        "mtime": "2026-06-09T11:43:04.000Z",
-        "className": "link",
-        "methods": [
-          "matchLink"
-        ],
-        "imports": [],
-        "exports": [
-          "matchLink"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/parser.js",
-          "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/parser.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/parser.js"
-        ],
-        "id": "895145b6",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/rules/list.js",
-        "hash": "6715d30d2bb8cb58463a28844f94f203",
-        "lines": 32,
-        "mtime": "2026-06-09T11:43:04.000Z",
-        "className": "list",
-        "methods": [
-          "matchList"
-        ],
-        "imports": [],
-        "exports": [
-          "matchList"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/parser.js",
-          "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/parser.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/parser.js"
-        ],
-        "id": "01f3c1bb",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/tokenizer.js",
-        "hash": "a04e7a69936b04131982cbad58fd14a1",
-        "lines": 114,
-        "mtime": "2026-06-09T11:43:04.000Z",
-        "className": "tokenizer",
-        "methods": [
-          "Tokenizer"
-        ],
-        "imports": [],
-        "exports": [
-          "Tokenizer"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/lib/parser.js",
-          "src/official-plugins/senti-presets/presets/library/tests/acceptance/fixtures/src/parser.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/lib/parser.js"
-        ],
-        "id": "dd504f20",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/test.js",
-        "hash": "357d56874fddffd7306b3c1de7d81784",
-        "lines": 6,
-        "mtime": "2026-06-09T11:43:04.000Z",
-        "className": "test",
-        "methods": [],
-        "imports": [
-          "../../../../../tests/acceptance/lib/test-template.js"
-        ],
-        "exports": [],
-        "extends": null,
-        "usedBy": null,
-        "id": "3ab73d73",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/php-webapp/tests/acceptance/test.js",
-        "hash": "fce3498d16f6c7d44c8bef51d6d3ea09",
-        "lines": 6,
-        "mtime": "2026-06-09T11:43:04.000Z",
-        "className": "test",
-        "methods": [],
-        "imports": [
-          "../../../../../tests/acceptance/lib/test-template.js"
-        ],
-        "exports": [],
-        "extends": null,
-        "usedBy": null,
-        "id": "50428795",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/postgres/data/database.js",
-        "hash": "810f7f2ccd8d21a8d11b5e91b8da997b",
-        "lines": 24,
-        "mtime": "2026-06-09T11:43:04.000Z",
-        "className": "database",
-        "methods": [],
-        "imports": [],
-        "exports": [
-          "default"
-        ],
-        "extends": "DataSource",
-        "usedBy": null,
-        "id": "1231379a",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/r2/data/storage.js",
-        "hash": "90c9c59761e11afe8c4cbaf0dd28e479",
-        "lines": 84,
-        "mtime": "2026-06-09T11:43:04.000Z",
-        "className": "storage",
-        "methods": [],
-        "imports": [
-          "fs",
-          "path"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "AnalysisEntry",
-        "usedBy": null,
-        "id": "f1870f47",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/storage/data/buckets.js",
-        "hash": "24d67d39cfe6da4e0bd60e5f7d713717",
-        "lines": 28,
-        "mtime": "2026-06-09T11:43:04.001Z",
-        "className": "buckets",
-        "methods": [],
-        "imports": [],
-        "exports": [
-          "default"
-        ],
-        "extends": "DataSource",
-        "usedBy": null,
-        "id": "acece93e",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/symfony/data/commands.js",
-        "hash": "baf3eb0a0e9bafcecc76196620697725",
-        "lines": 49,
-        "mtime": "2026-06-09T11:43:04.001Z",
-        "className": "commands",
-        "methods": [],
-        "imports": [
-          "fs"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "CommandsSource",
-        "usedBy": null,
-        "id": "bd8fecb4",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/symfony/data/config.js",
-        "hash": "ae78e3f79f1c5d662f81f88f99e3513a",
-        "lines": 206,
-        "mtime": "2026-06-09T11:43:04.001Z",
-        "className": "config",
-        "methods": [
-          "parseEnvContent",
-          "parseBundlesContent"
-        ],
-        "imports": [
-          "fs",
-          "path"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "AnalysisEntry",
-        "usedBy": [
-          "src/lib/active-flow-registry.js",
-          "src/lib/container.js",
-          "src/lib/flow-manager.js",
-          "src/lib/flow-store.js",
-          "src/lib/guardrail.js",
-          "src/lib/hooks.js",
-          "src/lib/i18n.js",
-          "src/lib/plugin-registry.js",
-          "src/lib/preparing-flow-store.js",
-          "src/official-plugins/senti-presets/presets/base/tests/acceptance/fixtures/src/index.js",
-          "src/official-plugins/senti-presets/presets/cli/tests/acceptance/fixtures/src/cli.js",
-          "src/official-plugins/senti-presets/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
-          "src/official-plugins/senti-presets/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
-          "src/presets/base/tests/acceptance/fixtures/src/index.js"
-        ],
-        "id": "46be519f",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/symfony/data/controllers.js",
-        "hash": "644542b5d30005e88f5c08762ce0dc72",
-        "lines": 175,
-        "mtime": "2026-06-09T11:43:04.002Z",
-        "className": "controllers",
-        "methods": [],
-        "imports": [
-          "fs",
-          "path"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "ControllersSource",
-        "usedBy": null,
-        "id": "1973aa0d",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/symfony/data/entities.js",
-        "hash": "05a7913dd0ac9d85a3393a4b6f76fb3e",
-        "lines": 194,
-        "mtime": "2026-06-09T11:43:04.002Z",
-        "className": "entities",
-        "methods": [],
-        "imports": [
-          "fs",
-          "path"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "AnalysisEntry",
-        "usedBy": null,
-        "id": "35e38bd0",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/symfony/data/routes.js",
-        "hash": "74a9c03eedd2dd43149f5dd2c3d52c51",
-        "lines": 192,
-        "mtime": "2026-06-09T11:43:04.002Z",
-        "className": "routes",
-        "methods": [
-          "parseYamlContent"
-        ],
-        "imports": [
-          "fs"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "RouteEntry",
-        "usedBy": null,
-        "id": "b03f6bd4",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/symfony/data/tables.js",
-        "hash": "d998a3038f8865a8121649d0e072e979",
-        "lines": 209,
-        "mtime": "2026-06-09T11:43:04.002Z",
-        "className": "tables",
-        "methods": [
-          "parseCreateTableSql",
-          "parseAlterTable",
-          "parseMigration",
-          "collectTables"
-        ],
-        "imports": [
-          "fs"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "AnalysisEntry",
-        "usedBy": null,
-        "id": "2be8901a",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/symfony/tests/acceptance/test.js",
-        "hash": "2c17a505fa6998ba04615b5fbaceb51f",
-        "lines": 6,
-        "mtime": "2026-06-09T11:43:04.003Z",
-        "className": "test",
-        "methods": [],
-        "imports": [
-          "../../../../../tests/acceptance/lib/test-template.js"
-        ],
-        "exports": [],
-        "extends": null,
-        "usedBy": null,
-        "id": "e561bf3d",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/symfony/tests/analyzers.js",
-        "hash": "256123c17beeb196f99022bae2490339",
-        "lines": 656,
-        "mtime": "2026-06-09T11:43:04.003Z",
-        "className": "analyzers",
-        "methods": [
-          "analyzeControllers",
-          "analyzeEntities",
-          "analyzeRoutes",
-          "analyzeMigrations",
-          "analyzeConfig",
-          "findMethodsWithAttributes",
-          "parseControllerContent",
-          "extractColumns",
-          "extractRelations",
-          "parseEntityContent",
-          "parseYamlContent",
-          "findMethodsWithAttributesScan",
-          "parseScanYamlRoutes",
-          "parseScanAttributeRoutes",
-          "extractScanAttributeRoutes",
-          "parseCreateTableSql",
-          "parseAlterTable",
-          "parseMigration",
-          "parseBundlesContent"
-        ],
-        "imports": [
-          "fs",
-          "path",
-          "../../../docs/lib/scanner.js",
-          "../../../docs/lib/php-array-parser.js",
-          "../../lib/composer-utils.js"
-        ],
-        "exports": [
-          "analyzeControllers",
-          "analyzeEntities",
-          "analyzeRoutes",
-          "analyzeMigrations",
-          "analyzeConfig"
-        ],
-        "extends": null,
-        "usedBy": null,
-        "id": "fc17fa00",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/symfony/tests/e2e/integration.test.js",
-        "hash": "5c8c0b870c4a9fd66ef08cfa98269ef9",
-        "lines": 128,
-        "mtime": "2026-06-09T11:43:04.003Z",
-        "className": "integration.test",
-        "methods": [],
-        "imports": [
-          "node:test",
-          "node:assert/strict",
-          "path",
-          "child_process",
-          "../../../../../tests/helpers/tmp-dir.js"
-        ],
-        "exports": [],
-        "extends": "AbstractController",
-        "usedBy": null,
-        "id": "8a0fd432",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/symfony/tests/e2e/scan.test.js",
-        "hash": "af11561b5f49a99dbf7e7b580a5567f2",
-        "lines": 37,
-        "mtime": "2026-06-09T11:43:04.003Z",
-        "className": "scan.test",
-        "methods": [],
-        "imports": [
-          "node:test",
-          "node:assert/strict",
-          "fs",
-          "path",
-          "url"
-        ],
-        "exports": [],
-        "extends": null,
-        "usedBy": null,
-        "id": "68ad7707",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/symfony/tests/unit/analyzers.test.js",
-        "hash": "205605e154f76ebe653f0c447ca1c001",
-        "lines": 443,
-        "mtime": "2026-06-09T11:43:04.003Z",
-        "className": "analyzers.test",
-        "methods": [],
-        "imports": [
-          "node:test",
-          "node:assert/strict",
-          "../../../../../tests/helpers/tmp-dir.js",
-          "../analyzers.js"
-        ],
-        "exports": [],
-        "extends": "AbstractController",
-        "usedBy": null,
-        "id": "c12b2c1d",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/symfony/tests/unit/commands-match.test.js",
-        "hash": "fb35b220a17b23e33610732e7ddc3ddd",
-        "lines": 53,
-        "mtime": "2026-06-09T11:43:04.003Z",
-        "className": "commands-match.test",
-        "methods": [],
-        "imports": [
-          "node:test",
-          "node:assert/strict",
-          "../../../../lib/container.js",
-          "../../../../docs/lib/data-source-loader.js",
-          "path",
-          "url"
-        ],
-        "exports": [],
-        "extends": null,
-        "usedBy": null,
-        "id": "6018c37c",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/symfony/tests/unit/regex-backtracking.test.js",
-        "hash": "58c39b4f51b469dcb3cba66de334cfba",
-        "lines": 140,
-        "mtime": "2026-06-09T11:43:04.003Z",
-        "className": "regex-backtracking.test",
-        "methods": [],
-        "imports": [
-          "node:test",
-          "node:assert/strict",
-          "../../../../../tests/helpers/tmp-dir.js",
-          "../analyzers.js"
-        ],
-        "exports": [],
-        "extends": null,
-        "usedBy": null,
-        "id": "da4b0495",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/webapp/data/commands.js",
-        "hash": "b6dbf045a9d8a71fd336d31ad1682450",
-        "lines": 55,
-        "mtime": "2026-06-09T11:43:04.004Z",
-        "className": "commands",
-        "methods": [],
-        "imports": [],
-        "exports": [
-          "default"
-        ],
-        "extends": "Scannable",
-        "usedBy": null,
-        "id": "ca0c5d13",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/webapp/data/controllers.js",
-        "hash": "22fb5a96d10fea0e0761986cafacbb7b",
-        "lines": 72,
-        "mtime": "2026-06-09T11:43:04.004Z",
-        "className": "controllers",
-        "methods": [],
-        "imports": [],
-        "exports": [
-          "default"
-        ],
-        "extends": "Scannable",
-        "usedBy": null,
-        "id": "6c8b62b7",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/webapp/data/models.js",
-        "hash": "a15455dd7fe3312993dbaef640c13a86",
-        "lines": 87,
-        "mtime": "2026-06-09T11:43:04.004Z",
-        "className": "models",
-        "methods": [],
-        "imports": [],
-        "exports": [
-          "default"
-        ],
-        "extends": "Scannable",
-        "usedBy": null,
-        "id": "08a9a14a",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/webapp/data/routes.js",
-        "hash": "565675474045e9de0c39533d82a783dd",
-        "lines": 72,
-        "mtime": "2026-06-09T11:43:04.004Z",
-        "className": "routes",
-        "methods": [],
-        "imports": [
-          "fs"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "Scannable",
-        "usedBy": null,
-        "id": "3cb088fe",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/webapp/data/tables.js",
-        "hash": "cfad12311665e5094e55dd434ac3d969",
-        "lines": 59,
-        "mtime": "2026-06-09T11:43:04.004Z",
-        "className": "tables",
-        "methods": [],
-        "imports": [],
-        "exports": [
-          "default"
-        ],
-        "extends": "Scannable",
-        "usedBy": null,
-        "id": "394e3450",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/webapp/data/webapp-data-source.js",
-        "hash": "9cd42608fefb2d237b70c820d8575241",
-        "lines": 14,
-        "mtime": "2026-06-09T11:43:04.004Z",
-        "className": "webapp-data-source",
-        "methods": [],
-        "imports": [],
-        "exports": [
-          "default"
-        ],
-        "extends": "Scannable",
-        "usedBy": [
-          "src/docs/lib/scan-source.js"
-        ],
-        "id": "3e848e11",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/webapp/tests/acceptance/test.js",
-        "hash": "b0619930771023b081657d3e240856e5",
-        "lines": 7,
-        "mtime": "2026-06-09T11:43:04.005Z",
-        "className": "test",
-        "methods": [],
-        "imports": [
-          "../../../../../tests/acceptance/lib/test-template.js"
-        ],
-        "exports": [],
-        "extends": null,
-        "usedBy": null,
-        "id": "ce786474",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/workers/data/bindings.js",
-        "hash": "454cbf2eaa490263b561fad4f2e6a470",
-        "lines": 181,
-        "mtime": "2026-06-09T11:43:04.005Z",
-        "className": "bindings",
-        "methods": [],
-        "imports": [
-          "fs",
-          "path"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "AnalysisEntry",
-        "usedBy": null,
-        "id": "617dccae",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/workers/tests/analyzers.js",
-        "hash": "c5b4bf5c1aedcd597dc900aea496211d",
-        "lines": 132,
-        "mtime": "2026-06-09T11:43:04.005Z",
-        "className": "analyzers",
-        "methods": [
-          "analyzeBindings"
-        ],
-        "imports": [
-          "fs",
-          "path",
-          "../../../docs/lib/toml-parser.js"
-        ],
-        "exports": [
-          "analyzeBindings"
-        ],
-        "extends": null,
-        "usedBy": null,
-        "id": "8f6a9dae",
-        "enrich": {
-          "attempts": 7
-        }
-      },
-      {
-        "file": "src/official-plugins/senti-presets/presets/workers/tests/unit/analyzers.test.js",
-        "hash": "ceccf5de3987203c0127602ca5bed760",
-        "lines": 374,
-        "mtime": "2026-06-09T11:43:04.005Z",
-        "className": "analyzers.test",
-        "methods": [],
-        "imports": [
-          "node:test",
-          "node:assert/strict",
-          "../../../../../tests/helpers/tmp-dir.js",
-          "../analyzers.js"
-        ],
-        "exports": [],
-        "extends": null,
-        "usedBy": null,
-        "id": "ac06edc0",
-        "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -13163,7 +10048,7 @@
         "usedBy": null,
         "id": "ae80e38f",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -13189,7 +10074,7 @@
         "usedBy": null,
         "id": "85926390",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -13442,9 +10327,9 @@
       },
       {
         "file": "src/setup.js",
-        "hash": "dcb586f413ad595805b1a9b4c9876a5e",
-        "lines": 574,
-        "mtime": "2026-06-11T02:19:08.033Z",
+        "hash": "7dac03dfc345d2cc2615d7dc05930c65",
+        "lines": 577,
+        "mtime": "2026-06-12T04:49:16.896Z",
         "className": "setup",
         "methods": [
           "ask",
@@ -13487,22 +10372,8 @@
         "usedBy": null,
         "id": "9820c9db",
         "enrich": {
-          "processedAt": "2026-06-11T16:48:11.720Z",
-          "attempts": 4
-        },
-        "summary": "This command bootstraps a project for senti and writes the initial configuration. It combines interactive prompts with filesystem setup, agent document generation, and preset or skill deployment.",
-        "detail": "The module wraps generic argument parsing with setup-specific options and can also read existing defaults from `.senti/config.json` to prefill the wizard. It creates required directories such as `.senti`, `docs`, `specs`, and output folders, while also maintaining `.gitignore` and `.gitattributes` entries needed by the toolchain. Agent-facing files like `AGENTS.md` or `CLAUDE.md` are generated or patched through marker-based insertion so the senti section can be updated idempotently. The main flow merges defaults, validates preset chains and configuration, writes the final config file, prepares the work directory, deploys skills, and exits with a controlled error code on failure.",
-        "chapter": "configuration",
-        "role": "project setup command",
-        "keywords": [
-          "project bootstrap",
-          "interactive wizard",
-          "config initialization",
-          "agent file generation",
-          "preset selection",
-          "gitignore update",
-          "workspace setup"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/spec.js",
@@ -13594,9 +10465,9 @@
       },
       {
         "file": "src/upgrade.js",
-        "hash": "6840c78feccd1b3885994f7c49599bed",
-        "lines": 581,
-        "mtime": "2026-06-11T14:45:14.777Z",
+        "hash": "e3ee63a4145a2e2b3f95defbe3ca6f56",
+        "lines": 727,
+        "mtime": "2026-06-12T04:49:16.896Z",
         "className": "upgrade",
         "methods": [
           "parseUpgradeArgs",
@@ -13606,6 +10477,16 @@
           "resultFromSummary",
           "writeActiveUpgradeArtifact",
           "pluginSkillSourceDirs",
+          "readJson",
+          "writeJson",
+          "copyDirectory",
+          "normalizeTypeList",
+          "legacyPresetKeys",
+          "ensureSource",
+          "localPresetManifest",
+          "localPresetPluginManifest",
+          "migrateLegacyPresetDirectories",
+          "shouldInstallOfficialProvider",
           "main"
         ],
         "imports": [
@@ -13633,30 +10514,16 @@
         "extends": null,
         "usedBy": null,
         "id": "a631f658",
-        "summary": "This upgrade command migrates older `sdd-forge` projects to the current `senti` naming and layout. It rewrites text references, moves legacy directories, normalizes config namespaces, and records upgrade results.",
-        "detail": "The module models rename behavior with small rule objects and then applies a large legacy-to-current mapping across environment variables, directive keys, filenames, and human-readable labels. Its migration class handles both content rewrites and filesystem moves, including `.sdd-forge` to `.senti` relocation and skill directory renames, while skipping binary files and known exclusions. It also contains upgrade-specific helpers for parsing arguments, detecting the active flow context, collecting logs, and emitting artifact summaries for test or flow tracking. Configuration migration is handled separately so plugin namespace keys can be rewritten safely before validation. The main routine coordinates config loading, preset or plugin preparation, migration execution, result logging, and controlled termination on errors.",
-        "chapter": "development",
-        "role": "legacy project upgrade command",
         "enrich": {
-          "processedAt": "2026-06-11T16:48:11.720Z",
           "attempts": 1
-        },
-        "keywords": [
-          "upgrade migration",
-          "legacy rename",
-          "sdd-forge to senti",
-          "config namespace rewrite",
-          "filesystem migration",
-          "artifact logging",
-          "backward compatibility"
-        ]
+        }
       }
     ],
     "summary": {
-      "total": 336,
-      "totalMethods": 1823
+      "total": 206,
+      "totalMethods": 1628
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-12T00:21:17.027Z"
+  "enrichedAt": "2026-06-12T04:51:26.540Z"
 }
