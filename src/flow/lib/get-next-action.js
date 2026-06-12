@@ -280,6 +280,9 @@ export default class GetNextActionCommand extends FlowCommand {
     if (state.autoUpgrade?.available === true) {
       result.autoUpgrade = state.autoUpgrade;
     }
+    if (target.stepId === "acceptance-review" && derived.failurePolicy) {
+      result.failurePolicy = derived.failurePolicy;
+    }
     const reviewPhase = reviewPhaseForStepId(target.stepId);
     if (reviewPhase) {
       const reviewAttempts = countReviewRetry(state.metrics, reviewPhase);

@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "All 4 blocking findings are valid and should be repaired in spec.json.",
+  "items": [
+    {
+      "title": "Report context is required before it exists in the normal flow",
+      "target": "Data Flow / R5 / acceptance-review inputs",
+      "decision": "apply",
+      "rationale": "The current normal flow does not produce report.json before final-regression, so acceptance-review cannot require report context unconditionally at its planned position.",
+      "evidence": "spec-review.json finding 1; spec.json data_flow and scope currently list report context as a required acceptance-review input."
+    },
+    {
+      "title": "Amendment and decision routes have no concrete flow integration target",
+      "target": "R10-R12 / T-4 verdict routing",
+      "decision": "apply",
+      "rationale": "The spec must name the command/state/artifact/reset integration for amend_required, user_decision_required, blocked, abort, repair, and risk-acceptance routes so implementation and tests converge.",
+      "evidence": "spec-review.json finding 2; current spec R10-R12 name outcomes but not concrete flow integration targets."
+    },
+    {
+      "title": "Next-action envelope field names conflict with the existing public contract",
+      "target": "R4 / AC5 / R14",
+      "decision": "apply",
+      "rationale": "The existing public next-action envelope uses snake_case requires_approval and output_schema. The spec must preserve those fields and make failurePolicy additive only.",
+      "evidence": "spec-review.json finding 3; src/flow/lib/get-next-action.js returns requires_approval and output_schema."
+    },
+    {
+      "title": "Acceptance-review completion is not tied to the existing step completion guard",
+      "target": "R5 / R8-R12 / R14 flow state promotion",
+      "decision": "apply",
+      "rationale": "Acceptance-review safety depends on preventing manual completion or promotion when the artifact is missing or verdict is blocked, amend_required, or waiting for user decision.",
+      "evidence": "spec-review.json finding 4; src/flow/lib/flow-judgment-contract.js is identified as the existing completion validation integration point."
+    }
+  ]
+}

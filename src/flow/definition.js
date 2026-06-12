@@ -95,6 +95,7 @@ function requireStepList(value, field) {
 }
 
 const STEP_STATUSES = new Set(["pending", "in_progress", "done", "skipped"]);
+const FAILURE_POLICIES = new Set(["retry", "record", "amend-spec", "block"]);
 
 export class SetStepStatus {
   constructor({ step, status }) {
@@ -206,6 +207,7 @@ const IMPL_REVIEW_RESET_RANGE = Object.freeze([
   "impl-review",
   "impl-gate",
   "retro",
+  "acceptance-review",
   "final-regression",
   "finalize-commit",
   "finalize-merge",
@@ -221,6 +223,7 @@ const REBUILDABLE_TEST_ARTIFACT_PATHS = Object.freeze([
   "impl-gate-result.json",
   "final-regression-result.json",
   "retro.json",
+  "acceptance-review.json",
   "report.json",
   "tests/.raw/upgrade.log",
   "tests/.raw/scenario-validity.log",
@@ -468,6 +471,7 @@ class FlowNode {
     children = null,
     sideEffects = null,
     gatePhase = null,
+    failurePolicy = null,
   }) {
     this.id = id;
     this.label = label;
@@ -482,6 +486,10 @@ class FlowNode {
     this.children = children ? Object.freeze(children.map((c) => Object.freeze(c))) : null;
     this.sideEffects = sideEffects ? Object.freeze([...sideEffects]) : null;
     this.gatePhase = gatePhase ? Object.freeze([...gatePhase]) : null;
+    if (failurePolicy !== null && !FAILURE_POLICIES.has(failurePolicy)) {
+      throw new Error(`invalid failurePolicy: ${failurePolicy}`);
+    }
+    this.failurePolicy = failurePolicy;
   }
 
   get isBranch() { return this.children != null; }
@@ -536,6 +544,7 @@ function createPlanReviewNode({ id, label, contextKinds }) {
     contextKinds,
     outputSchemaRef: "next-action/review.schema.json",
     maxAttempts,
+    failurePolicy: "retry",
   });
 }
 
@@ -625,6 +634,7 @@ const FLOW_DEFINITION = Object.freeze([
         outputSchemaRef: "next-action/gate.schema.json",
         maxAttempts: 5,
         gatePhase: ["draft"],
+        failurePolicy: "block",
       }),
       new FlowNode({
         id: "spec",
@@ -662,6 +672,7 @@ const FLOW_DEFINITION = Object.freeze([
         outputSchemaRef: "next-action/gate.schema.json",
         maxAttempts: 5,
         gatePhase: ["spec", "task-spec"],
+        failurePolicy: "block",
       }),
       new FlowNode({
         id: "approval",
@@ -733,6 +744,7 @@ const FLOW_DEFINITION = Object.freeze([
         contextKinds: ["spec", "diff", "testlog"],
         outputSchemaRef: "next-action/review.schema.json",
         maxAttempts: 4,
+        failurePolicy: "retry",
       }),
       new FlowNode({
         id: "impl-gate",
@@ -744,6 +756,7 @@ const FLOW_DEFINITION = Object.freeze([
         maxAttempts: 5,
         sideEffects: GATE_IMPL_SIDE_EFFECTS,
         gatePhase: ["integration", "task-impl"],
+        failurePolicy: "block",
       }),
       new FlowNode({
         id: "retro",
@@ -753,6 +766,17 @@ const FLOW_DEFINITION = Object.freeze([
         contextKinds: ["spec", "test"],
         outputSchemaRef: "next-action/retro.schema.json",
         maxAttempts: 2,
+      }),
+      new FlowNode({
+        id: "acceptance-review",
+        label: "Acceptance Review",
+        action: "run-acceptance-review",
+        instructionsKey: "impl.acceptance-review",
+        contextKinds: ["spec", "diff", "test", "issue-log", "retro", "report"],
+        outputSchemaRef: "next-action/acceptance-review.schema.json",
+        maxAttempts: 1,
+        sideEffects: ["promoteFinalRegression"],
+        failurePolicy: "amend-spec",
       }),
       new FlowNode({
         id: "final-regression",
@@ -824,6 +848,7 @@ const TASK_DEFINITION = Object.freeze([
     instructionsKey: "task.task-review",
     contextKinds: ["task_spec", "diff", "testlog"],
     outputSchemaRef: "next-action/review.schema.json",
+    failurePolicy: "retry",
   }),
   new FlowNode({
     id: "task-gate",
@@ -834,6 +859,7 @@ const TASK_DEFINITION = Object.freeze([
     outputSchemaRef: "next-action/gate.schema.json",
     maxAttempts: 5,
     sideEffects: ["completeTask", "promoteNextTask", "mergeOverview"],
+    failurePolicy: "block",
   }),
 ]);
 
@@ -1068,6 +1094,7 @@ export function deriveNextAction({ scope = "flow", stepId, context = {} }) {
     requiresApproval: node.requiresApproval,
     maxAttempts: node.resolveMaxAttempts(context),
     sideEffects: node.sideEffects ? [...node.sideEffects] : null,
+    failurePolicy: node.failurePolicy,
   };
 }
 

@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-12T07:27:24.917Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 3,
+    "advisory": 1,
+    "total": 4
+  },
+  "coverageArtifact": "specs/290-acceptance-review-policy/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R10 acceptance-review run is not actually exercised",
+      "target": "specs/290-acceptance-review-policy/tests/decision-routing.test.js",
+      "issue": "The R10 test pre-writes acceptance-review.json and acceptanceReview state before running `senti flow run acceptance-review`, so the assertions can pass even if the command never writes the schema-validated artifact, never records proposals from its own output, and never applies amend_required routing from production acceptance-review behavior.",
+      "requiredChange": "Set up the flow without pre-populated acceptanceReview state/artifact for the R10 run, or invoke the production acceptance-review artifact handling path with controlled output, then assert the artifact/state are produced by that command.",
+      "whyBlocking": "R10 requires behavior of `senti flow run acceptance-review`; the current test can pass from fixture state and does not exercise the production behavior it is meant to guard."
+    },
+    {
+      "kind": "blocking",
+      "title": "R5 writer schema validation is not tested against invalid output",
+      "target": "specs/290-acceptance-review-policy/tests/artifact-verdict-contract.test.js",
+      "issue": "The writer test only passes a valid artifact to `writeAcceptanceReviewArtifact` and then validates the file afterward. It would still pass if the writer persisted invalid artifacts without schema validation.",
+      "requiredChange": "Add the smallest negative writer case that passes an artifact missing a required R5 field and asserts `writeAcceptanceReviewArtifact` rejects instead of writing it.",
+      "whyBlocking": "R5 specifically requires a schema-validated artifact. Without a negative writer test, the production writer could omit validation entirely and this suite would still pass."
+    },
+    {
+      "kind": "blocking",
+      "title": "R15 hook promotion guard is only tested as pure lifecycle resolution",
+      "target": "specs/290-acceptance-review-policy/tests/completion-guard.test.js",
+      "issue": "The hook-promotion portion of R15 calls `resolveLifecycle` directly and checks returned actions, but it does not exercise the state mutation path that applies lifecycle actions or hook promotion. A hook/application layer could still advance final-regression despite this test passing.",
+      "requiredChange": "Add a spec-local test that applies the production completion or hook lifecycle path to saved flow state with unresolved acceptance-review artifacts and asserts final-regression is not promoted.",
+      "whyBlocking": "R15 explicitly guards against manual completion or hook promotion advancing final-regression. Manual completion is covered, but hook promotion is not covered by an executable production-state regression."
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Acceptance-review envelope shape could be asserted more tightly",
+      "target": "specs/290-acceptance-review-policy/tests/next-action-contract.test.js",
+      "improvement": "For R4, assert the full acceptance-review next-action key set, allowing `failurePolicy` as the only additive key, to mirror the migration parity checks for unaffected steps.",
+      "whyNonBlocking": "The test already covers the required snake_case fields and failurePolicy value, so this is a contract-strengthening improvement rather than missing coverage."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/290-acceptance-review-policy/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "e301477407c9c50446d65efae828a5f60b2cfe82b68298b198f484eed51dac94"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 5,
+  "findings": [
+    {
+      "id": "test-005-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "R10 acceptance-review run is not actually exercised",
+      "body": "The R10 test pre-writes acceptance-review.json and acceptanceReview state before running `senti flow run acceptance-review`, so the assertions can pass even if the command never writes the schema-validated artifact, never records proposals from its own output, and never applies amend_required routing from production acceptance-review behavior.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-005-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "R5 writer schema validation is not tested against invalid output",
+      "body": "The writer test only passes a valid artifact to `writeAcceptanceReviewArtifact` and then validates the file afterward. It would still pass if the writer persisted invalid artifacts without schema validation.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-005-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "R15 hook promotion guard is only tested as pure lifecycle resolution",
+      "body": "The hook-promotion portion of R15 calls `resolveLifecycle` directly and checks returned actions, but it does not exercise the state mutation path that applies lifecycle actions or hook promotion. A hook/application layer could still advance final-regression despite this test passing.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-005-non-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "non-blocking",
+      "title": "Acceptance-review envelope shape could be asserted more tightly",
+      "body": "Acceptance-review envelope shape could be asserted more tightly",
+      "category": "unknown"
+    }
+  ]
+}

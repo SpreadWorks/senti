@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-12T09:54:04.561Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/290-acceptance-review-policy/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Optional failurePolicy exposure is tested as mandatory",
+      "target": "specs/290-acceptance-review-policy/tests/next-action-contract.test.js: R4 test `next-action exposes the public snake_case acceptance-review envelope`",
+      "issue": "R4 says `failurePolicy` may be exposed only as an additive field, but the test requires `failurePolicy` to be present in the next-action envelope and asserts its value. This turns an optional additive field into a mandatory public contract.",
+      "requiredChange": "Relax the R4 test so it accepts the existing snake_case envelope with or without `failurePolicy`, and only asserts `failurePolicy === \"amend-spec\"` when the field is present.",
+      "whyBlocking": "The test encodes an incorrect implementation premise and would reject a valid implementation that satisfies R4 without exposing the optional additive field."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/290-acceptance-review-policy/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "3b0a16c847994a9695eb9651df55c8632af240176a615a3a4dc5ed145808cd70"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 10,
+  "findings": [
+    {
+      "id": "test-010-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 10,
+      "severity": "blocking",
+      "title": "Optional failurePolicy exposure is tested as mandatory",
+      "body": "R4 says `failurePolicy` may be exposed only as an additive field, but the test requires `failurePolicy` to be present in the next-action envelope and asserts its value. This turns an optional additive field into a mandatory public contract.",
+      "category": "unknown"
+    }
+  ]
+}

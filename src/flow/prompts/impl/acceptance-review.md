@@ -1,0 +1,8 @@
+   - Run `senti flow run acceptance-review`.
+   - This step evaluates whether the approved spec and implementation satisfy the original request after retro and before final-regression.
+   - It reads implementation evidence, test evidence, issue-log, retro, and `report.json` only when that file already exists.
+   - Missing or failed mechanical evidence must produce verdict `blocked`.
+   - Semantic gaps that require spec amendment must produce verdict `amend_required` and write `requirementAmendmentProposals`.
+   - Product or scope decisions must produce verdict `user_decision_required`.
+   - Passing acceptance promotes `final-regression`; non-pass verdicts must not promote it until the matching acceptance-decision path resolves.
+   - **On complete:** the command owns artifact writing and state routing. Do not manually mark this step done unless the artifact-backed completion guard allows it.

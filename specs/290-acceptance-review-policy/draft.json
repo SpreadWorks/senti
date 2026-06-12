@@ -1,0 +1,158 @@
+{
+  "devType": "feature",
+  "goal": "Spec-Driven Development flow に phase/step failurePolicy と acceptance-review を追加し、実装後に元要求・spec・差分・test evidence・issue-log・retro/report を俯瞰して goal satisfaction を判定できるようにする。",
+  "analysis": {
+    "problem": "現行 flow は review/gate の retry loop で逐次的に指摘を直す構造が中心で、最終 regression 前に、実装が元要求を満たしているか、必要な証拠が浅くないかを俯瞰確認する dedicated step がない。",
+    "proposedApproach": "flow の単一定義である src/flow/definition.js に failurePolicy を持たせ、retro 後かつ final-regression 前に acceptance-review leaf を追加する。acceptance-review は findings と requirementAmendmentProposals を artifact 化し、verdict に応じて final-regression、spec amendment/retry、user decision、repair に分岐する。",
+    "validation": "FlowNode と定義順序、review/gate/final-regression 周辺の next-action、acceptance-review artifact schema、pass/amend_required/user_decision_required/blocked の遷移、既存 review/gate artifact の互換性をテストで確認する。must: 既存 public surface ごとに、保持する挙動、移動先 owner、削除しないこと、behavior-level verification を spec で対応付ける。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: src/flow/definition.js は flow 構造、step metadata、maxAttempts、lifecycle action、next-action 導出の単一 source of truth として使われている。",
+      "must: 現行 impl phase は implement、test-execute、test-result-review、impl-review、impl-gate、retro、final-regression、finalize の順で定義されている。",
+      "must: Issue #380 は acceptance-review を retro の後、final-regression の前に置くと明記している。",
+      "must: Issue #380 は impl-review の通常 flow を retry 互換のまま残し、record/no-loop は比較検証用に限定すると明記している。",
+      "must: draft guardrail は、ユーザー定義 Issue を AI が勝手に分割しないことを要求している。"
+    ],
+    "decisionPoints": [
+      "must: failurePolicy の候補は retry、record、amend-spec、block とし、run-review family は retry、run-gate family は block、acceptance-review は amend-spec を初期割り当てにする。",
+      "must: acceptance-review の verdict は pass、amend_required、user_decision_required、blocked の 4 値にする。",
+      "must: acceptance-review は score 平均ではなく goal satisfaction と hard/mechanical blocker を上位判定にする。",
+      "must: acceptance-review 自体は spec.json を直接変更せず、requirementAmendmentProposals を次の spec amendment/retry に渡す。",
+      "must: acceptance-review の maxAttempts は 1 とし、同じ入力で繰り返し再実行しない。",
+      "must: migration parity inventory は public CLI、next-action contract、review/gate artifact、flow state lifecycle、metrics/retry counters、finalize path を対象にする。",
+      "must: retained behavior mapping は、既存 owner を維持するものと acceptance-review/failurePolicy によって新 owner を持つものを分けて spec に書く。"
+    ],
+    "resolvedByProjectRules": [
+      "must: Issue #380 は 1 つの concern として扱い、実装範囲を複数 spec に分割しない。",
+      "must: src/ 以下にはこのプロジェクト固有の値を埋め込まず、汎用 CLI package として成立する実装にする。",
+      "must: 新しい意味ある値や artifact 構造は、オブジェクトリテラル中心ではなく必要に応じて class で invariant と振る舞いを持たせる。",
+      "must: 外部依存は追加しない。Node.js 組み込みモジュールのみを使う。",
+      "must: 既存 patterns が 2 箇所以上で繰り返される場合は共通 helper に抽出する。"
+    ],
+    "requiresUserJudgment": [
+      "must: 現時点で追加のユーザー判断が必要な draft question はない。Issue #380 の Decisions と Minimum scope が初期判断を定義している。"
+    ],
+    "deferredToSpec": [
+      "must: acceptance-review artifact の exact schema と必須 field は spec で requirements と acceptance criteria に分解する。",
+      "must: amend_required から spec amendment/retry へ戻る具体的な step/status 遷移は、既存 flow lifecycle に合わせて spec で定義する。",
+      "must: blocked の repair target が test/artifact/implementation/spec amendment のどれに戻るかは、artifact field と transition rule として spec で定義する。",
+      "must: final-regression と finalize の既存 prerequisite を壊さない検証条件は spec で明文化する。",
+      "must: migration parity table を spec に追加し、既存 public behavior、owner after change、remove decision、behavior-level verification を surface ごとに明文化する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: FlowNode または同等の flow node model に failurePolicy を追加する。",
+      "must: src/flow/definition.js の phase/step 定義に failurePolicy を割り当てる。",
+      "must: retro 後、final-regression 前に acceptance-review leaf を追加する。",
+      "must: acceptance-review の maxAttempts を 1 にする。",
+      "must: acceptance-review artifact に goalSatisfactionScore、requirementAlignmentScore、implementationQualityScore、acceptanceScore、thresholds、mechanicalBlockers、hardBlockers、attempt、findings、requirementAmendmentProposals、userDecision、blockedDecision、verdict を含める。",
+      "must: pass、amend_required、user_decision_required、blocked の verdict semantics と遷移を実装する。",
+      "must: amend_required は requirementAmendmentProposals を入力に spec amendment/retry へ戻す。",
+      "must: user_decision_required は amend_and_retry、abort、accept_risk_and_continue の選択肢を保存して分岐する。",
+      "must: blocked または mechanicalBlockers がある場合は accept_risk_and_continue を提示しない。",
+      "must: impl-review の通常 flow は current-compatible retry behavior を維持する。",
+      "should: impl-review を record policy にできる構造を用意するが、通常 flow の runtime behavior は初期実装で切り替えない。",
+      "must: migration parity inventory として、`senti flow get next-action`、`senti flow run review`、`senti flow run gate`、`senti flow run retro`、`senti flow run final-regression`、finalize-* commands、flow.json step state、review/gate/test/retro/report artifacts、retry metrics、plugin hook side effects を保持対象または追加対象として分類する。",
+      "must: migration parity mapping として、既存 review/gate/final-regression/finalize behavior は既存 owner を維持し、new acceptance-review behavior は新しい acceptance-review owner に限定し、削除する public surface がないことを明記する。",
+      "must: migration parity verification として、next-action order、existing review/gate artifact semantics、impl-review retry compatibility、final-regression after acceptance、finalize prerequisite preservation を behavior-level tests で確認する。"
+    ],
+    "out": [
+      "must: Issue #380 の実装範囲を複数 spec に分割しない。",
+      "must: roundLimit という新しい制御語を追加しない。",
+      "must: final-regression 後に別の acceptance-review を追加しない。",
+      "must: acceptance-review step 自体の副作用として spec.json を直接書き換えない。",
+      "must: 通常 flow の impl-review を record/no-loop 挙動に変更しない。",
+      "should: 比較検証 branch/spec で record/no-loop behavior を実際に試す作業は別 item に残す。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: Public CLI surface `senti flow get next-action` は既存 action envelope fields を保持し、new owner として `src/flow/definition.js` の acceptance-review node と failurePolicy metadata を追加で解決する。Behavior-level verification は acceptance-review が retro 後/final-regression 前に現れ、既存 steps の envelope shape が壊れないこと。",
+    "must: Public CLI surface `senti flow run review` は既存 draft/spec/test/impl review artifact 意味と retry metrics owner を維持する。Behavior-level verification は impl-review が通常 flow で retry-compatible のまま PASS/ADVISORY/FAIL を処理すること。",
+    "must: Public CLI surface `senti flow run gate` は schema、artifact、test evidence などの mechanical failure を block として扱う owner を維持する。Behavior-level verification は existing gate phases が block policy と retry counter を維持すること。",
+    "must: Public CLI surface `senti flow run retro` は existing retro artifact/report input owner を維持し、acceptance-review の input として参照されても retro 自体の artifact meaning を変えない。Behavior-level verification は retro 後に acceptance-review が追加されても retro result schema が変わらないこと。",
+    "must: Public CLI surface `senti flow run final-regression` は acceptance-review 後の final mechanical check owner として残る。Behavior-level verification は final-regression が acceptance-review pass 後に実行され、acceptance-review 前には進まないこと。",
+    "must: Public CLI surfaces finalize-commit、finalize-merge、finalize-sync、finalize-cleanup は既存 owner と prerequisite を維持し、今回削除または一括差し替えしない。Behavior-level verification は finalize leaves の order と requiresApproval behavior が維持されること。",
+    "must: Public persisted artifacts review/gate/test/retro/report/issue-log は既存 meaning を保持し、acceptance-review artifact は追加 artifact として扱う。Behavior-level verification は既存 artifact parser tests と acceptance-review artifact schema tests を分けて確認すること。",
+    "must: Public flow state surface flow.json steps、metrics、retry counters、plugin hook side effects は既存 owner を維持し、acceptance-review と failurePolicy が追加しても既存 counters と hooks を削除しない。Behavior-level verification は step state promotion と retry metric counting が既存 phases で変わらないこと。",
+    "should: docs/internal_design.md の flow orchestration 説明と tests/unit/flow 周辺の definition-driven tests が更新対象になる。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "Issue #380 の scope を 1 つの spec で扱い、FlowNode の failurePolicy、retro 後かつ final-regression 前の acceptance-review、acceptance-review artifact、pass/amend_required/user_decision_required/blocked の verdict transition、spec amendment/retry への戻りをまとめて実装する理解でよいですか。",
+      "answer": "はい。must: Issue #380 は 1544 を分割せず、acceptance-review、failurePolicy、artifact schema、verdict transition、spec amendment/retry への戻りを一括で扱う。",
+      "evidence": "Issue #380 Minimum scope 1-15 and Decision: `Do not split the implementation scope. Implement it all together as 1544.`",
+      "why": "ユーザー定義 Issue が scope boundary であり、draft guardrail も AI による勝手な分割提案を禁止しているため。",
+      "considered": "範囲を failurePolicy と acceptance-review に分ける案は、Issue #380 の `Do not split` 決定に反するため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "record policy は初期実装では宣言可能な構造と検証に留め、通常 flow の impl-review は retry behavior のまま維持する理解でよいですか。",
+      "answer": "はい。must: 通常 flow の impl-review は retry behavior を維持し、record/no-loop behavior は比較検証用 branch/spec に限定する。",
+      "evidence": "Issue #380 Decisions: `Do not apply record/no-loop behavior for impl-review to the normal flow in the initial implementation.`",
+      "why": "初期実装では current-compatible behavior を保ち、acceptance-review の導入効果と no-loop 化を混同しないため。",
+      "considered": "通常 flow の impl-review を即 record/no-loop にする案は、Issue #380 の初期割り当てに反するため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "acceptance-review の user_decision_required では、mechanicalBlockers がない場合だけ accept_risk_and_continue を提示し、mechanicalBlockers がある場合は repair_and_reevaluate または abort だけを提示する理解でよいですか。",
+      "answer": "はい。must: user_decision_required では amend_and_retry、abort、accept_risk_and_continue を提示するが、blocked または mechanicalBlockers がある場合は accept_risk_and_continue を提示しない。",
+      "evidence": "Issue #380 Choices for user_decision_required and Choices for blocked sections.",
+      "why": "mechanicalBlockers は test failure、artifact 欠落、schema invalid など意味的 scoring 前の blocker であり、risk acceptance で進める対象ではないため。",
+      "considered": "mechanicalBlockers でも accept_risk_and_continue を許す案は、Issue #380 の `If blocked or mechanicalBlockers exist, do not offer accept_risk_and_continue.` に反する。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "blocked や user_decision_required の abort は、今回新しい破棄 command を増やさず、既存 flow の終了・cleanup 規約に合わせる理解でよいですか。",
+      "answer": "はい。should: abort の具体的な cleanup/abort behavior は既存 flow termination convention に合わせ、初期 spec では既存 finalize/cleanup 系を不用意に差し替えない。",
+      "evidence": "Issue #380 Choices sections say abort follows existing flow termination operation; Notes say do not replace finalize prerequisites all at once.",
+      "why": "acceptance-review の主目的は final-regression 前の俯瞰判定と spec amendment/retry への接続であり、破棄 command の新設は別 concern になりやすいため。",
+      "considered": "新しい abort command を同時に追加する案は、Issue #380 の minimum scope と finalize notes から外れるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "acceptance-review の pass 判定は goalSatisfactionScore を最上位に置き、requirementAlignmentScore や implementationQualityScore の平均で goal 未達を相殺しない条件を必須 acceptance criteria にする理解でよいですか。",
+      "answer": "はい。must: pass/fail の最上位条件は goal satisfaction とし、他 score の平均で goal 未達を相殺しない。",
+      "evidence": "Issue #380 Decisions: `The highest-level pass/fail criterion for acceptance-review is whether the goal is satisfied.` and `acceptanceScore may be saved as a reference value... but must not be used in pass judgment to offset a low goalSatisfactionScore.`",
+      "why": "acceptance-review は requirement checklist だけでなく、元要求と goal を満たしたかを俯瞰する step であるため。",
+      "considered": "requirementAlignmentScore、implementationQualityScore、acceptanceScore の平均で pass 判定する案は、goal 未達を薄めるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q6",
+      "status": "answered",
+      "category": "follow-up-coverage",
+      "question": "比較検証 item との接続は、今回の実装では record policy と acceptance-review の evidence を残せる構造までに留め、実装時間・agent calls・tokens/cost の比較実験は別 item で扱う理解でよいですか。",
+      "answer": "はい。should: 今回は 1544 の実装と validation perspective までを含め、比較検証 branch/spec での no-loop + acceptance round 実験は別 RESEARCH item と接続する。",
+      "evidence": "Issue #380 Validation says combine with separate RESEARCH item `compare review/gate no-loop and acceptance round`.",
+      "why": "Issue #380 は broad scope を acceptance-review の有効性検証観点に含める一方、実測比較は別 item として明記しているため。",
+      "considered": "今回の spec 内で実装時間・agent calls・tokens/cost の比較実験まで完了条件にする案は、別 RESEARCH item の責務を取り込むため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [
+    "must: user_decision_required の回答保存先と表示文言は、既存 artifact conventions に合わせて spec で確定する。",
+    "must: blockedDecision の repair target field は、既存 step id と spec amendment への戻りを曖昧にしない形で spec で確定する。"
+  ],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-12T06:58:43Z",
+    "notes": "All draft QA entries were resolved from Issue #380 decisions and project rules before draft gate."
+  }
+}

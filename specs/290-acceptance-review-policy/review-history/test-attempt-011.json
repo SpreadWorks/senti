@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-12T09:56:18.496Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/290-acceptance-review-policy/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R5 top-level artifact requirements are not enforced by the tests",
+      "target": "specs/290-acceptance-review-policy/tests/artifact-verdict-contract.test.js",
+      "issue": "The test validates one complete artifact and only checks rejection for a missing goalSatisfactionScore. The other required top-level R5 fields could be optional in the schema or omitted by the writer and these tests would still pass.",
+      "requiredChange": "Add a negative schema/writer assertion for each required top-level R5 field: requirementAlignmentScore, implementationQualityScore, acceptanceScore, thresholds, mechanicalBlockers, hardBlockers, attempt, findings, requirementAmendmentProposals, userDecision, blockedDecision, and verdict.",
+      "whyBlocking": "R5 requires the acceptance-review artifact to contain all listed fields. The current tests do not prove most of those fields are required, so an acceptance requirement has incomplete spec-local coverage."
+    },
+    {
+      "kind": "blocking",
+      "title": "R14 plugin hook parity has no executable coverage",
+      "target": "specs/290-acceptance-review-policy/tests/migration-parity.test.js",
+      "issue": "R14 explicitly requires plugin hooks to be preserved, but the tests only assert lifecycle action classes and side-effect names. They do not configure or execute a hook and assert that it still runs after the acceptance-review insertion.",
+      "requiredChange": "Add one spec-local migration parity test that installs/configures a minimal hook fixture for an existing affected flow transition and asserts the hook side effect is executed while the existing promotion behavior is preserved.",
+      "whyBlocking": "Plugin hook preservation is a required R14 behavior. A regression that leaves ExecuteSideEffects in the lifecycle but breaks actual hook dispatch would pass the current tests."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/290-acceptance-review-policy/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "5a0de7e7a3569809fc29634c81202e561ab30ef01760a990deaf8e0a22087578"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 11,
+  "findings": [
+    {
+      "id": "test-011-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 11,
+      "severity": "blocking",
+      "title": "R5 top-level artifact requirements are not enforced by the tests",
+      "body": "The test validates one complete artifact and only checks rejection for a missing goalSatisfactionScore. The other required top-level R5 fields could be optional in the schema or omitted by the writer and these tests would still pass.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-011-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 11,
+      "severity": "blocking",
+      "title": "R14 plugin hook parity has no executable coverage",
+      "body": "R14 explicitly requires plugin hooks to be preserved, but the tests only assert lifecycle action classes and side-effect names. They do not configure or execute a hook and assert that it still runs after the acceptance-review insertion.",
+      "category": "unknown"
+    }
+  ]
+}

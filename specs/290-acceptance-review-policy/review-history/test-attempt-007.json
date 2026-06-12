@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-12T09:50:55.973Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/290-acceptance-review-policy/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R6 required finding fields are only partially tested",
+      "target": "specs/290-acceptance-review-policy/tests/artifact-verdict-contract.test.js",
+      "issue": "The R6 negative schema test removes only evidenceRefs and mappedRequirementIds. A schema or artifact helper could omit required fields such as findingId, summary, severity, category, linkedRequirementAmendmentProposalIds, confidence, shouldReimplement, reimplementationReason, or requiresUserDecision from the required contract and these tests would still pass.",
+      "requiredChange": "Add spec-local coverage that proves every R6 field is required, either by asserting the schema required list or by testing omission of each required finding field.",
+      "whyBlocking": "R6 requires every acceptance-review finding to include the listed fields, but the current tests do not exercise most of that requirement."
+    },
+    {
+      "kind": "blocking",
+      "title": "R7 required proposal fields are only partially tested",
+      "target": "specs/290-acceptance-review-policy/tests/artifact-verdict-contract.test.js",
+      "issue": "The R7 negative schema test removes only relationToOriginalRequest and shouldReimplementAfterAmendment. A schema or artifact helper could omit proposalId, proposalType, targetRequirementIds, proposedRequirementSummary, reason, or linkedFindingIds from the required contract and these tests would still pass.",
+      "requiredChange": "Add spec-local coverage that proves every R7 field is required, either by asserting the schema required list or by testing omission of each required proposal field.",
+      "whyBlocking": "R7 requires every requirementAmendmentProposal to include the listed fields, but the current tests do not exercise most of that requirement."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/290-acceptance-review-policy/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "60cee78fc4d4b623b866c93b2153dcecc67a206b37546c4aa9454bc62f28d04b"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 7,
+  "findings": [
+    {
+      "id": "test-007-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 7,
+      "severity": "blocking",
+      "title": "R6 required finding fields are only partially tested",
+      "body": "The R6 negative schema test removes only evidenceRefs and mappedRequirementIds. A schema or artifact helper could omit required fields such as findingId, summary, severity, category, linkedRequirementAmendmentProposalIds, confidence, shouldReimplement, reimplementationReason, or requiresUserDecision from the required contract and these tests would still pass.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-007-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 7,
+      "severity": "blocking",
+      "title": "R7 required proposal fields are only partially tested",
+      "body": "The R7 negative schema test removes only relationToOriginalRequest and shouldReimplementAfterAmendment. A schema or artifact helper could omit proposalId, proposalType, targetRequirementIds, proposedRequirementSummary, reason, or linkedFindingIds from the required contract and these tests would still pass.",
+      "category": "unknown"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "1 repair target remains valid: q1 should avoid referring to an unstated numbered scope list.",
+  "items": [
+    {
+      "title": "1. q1 references an unstated scope list",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "The question asks about `最小スコープ 1-15`, but the user answering the question should not need to inspect the numbered Issue body. Replacing it with visible scope wording is a small supported draft change.",
+      "evidence": "draft.json qa[0].question references `Issue #380 の最小スコープ 1-15`; draft-review-questions.json marks q1 as not self-contained."
+    }
+  ]
+}

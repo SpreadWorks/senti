@@ -26,7 +26,7 @@ const MAX_PLUGIN_COPY_FILES = 2000;
 const MAX_PLUGIN_PATH_DEPTH = 20;
 const MAX_PLUGIN_JSON_BYTES = 1024 * 1024;
 const MAX_PLUGIN_RELATIVE_PATH_BYTES = 300;
-const FLOW_COMMANDS = new Set(["prepare", "gate", "review", "test-execute", "test-result-review", "retro", "final-regression", "finalize-commit", "finalize-merge", "finalize-sync", "finalize-cleanup"]);
+const FLOW_COMMANDS = new Set(["prepare", "gate", "review", "test-execute", "test-result-review", "retro", "acceptance-review", "final-regression", "finalize-commit", "finalize-merge", "finalize-sync", "finalize-cleanup"]);
 const FLOW_COMMAND_HOOKS = new Set(["pre", "post", "onError", "finally"]);
 const CORE_COMMANDS = new Set(["docs", "flow", "check", "metrics", "spec", "hook", "setup", "upgrade", "presets", "plugin", "help"]);
 

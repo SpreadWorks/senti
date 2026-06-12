@@ -697,6 +697,18 @@ export const FLOW_COMMANDS = {
         "Unchanged evidence is rejected. --reason and --yes are required.",
       ].join("\n"),
     },
+    "acceptance-decision": {
+      helpKey: "flow.set.acceptance-decision",
+      command: () => import("./lib/set-acceptance-decision.js"),
+      args: { options: ["--choice"] },
+      help: [
+        "Usage: senti flow set acceptance-decision --choice <choice>",
+        "",
+        "Resolve a non-pass acceptance-review verdict.",
+        "user_decision_required choices: amend_and_retry, abort, accept_risk_and_continue",
+        "blocked choices: repair_and_reevaluate, abort",
+      ].join("\n"),
+    },
     auto: {
       helpKey: "flow.set.auto",
       requiresFlow: false,
@@ -1145,6 +1157,18 @@ export const FLOW_COMMANDS = {
         }
         tryUpdateStepStatus(ctx, "final-regression", "done");
       },
+    },
+    "acceptance-review": {
+      helpKey: "flow.run.acceptance-review",
+      runtimeLog: { stepId: "acceptance-review" },
+      command: () => import("./lib/run-acceptance-review.js"),
+      args: { flags: [], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
+      help: [
+        "Usage: senti flow run acceptance-review",
+        "",
+        "Evaluate original request satisfaction after retro and before final-regression.",
+        "Persists specs/<spec>/acceptance-review.json and routes pass/non-pass verdicts.",
+      ].join("\n"),
     },
     // report generates a work report from the current flow state.
     report: {

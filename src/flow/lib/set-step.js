@@ -18,6 +18,7 @@ import { resolveSideEffects } from "../definition.js";
 import { validateTestHeaders, formatValidationMessages } from "./test-headers.js";
 import { loadSpecJson, resolveSpecDir } from "../../lib/spec-json.js";
 import { validateStepCompletionTransition } from "./flow-judgment-contract.js";
+import { findStepById } from "./step-tree.js";
 import {
   assertIntegrationRegressionEvidence,
   readJsonStrict,
@@ -185,6 +186,13 @@ export default class SetStepCommand extends FlowCommand {
             `[senti] set-step auto-upgrade re-eval: ${err.message}\n`,
           );
         }
+      }
+
+      if (effects.includes("promoteFinalRegression")) {
+        ctx.flowManager.mutate((s) => {
+          const finalRegression = findStepById(s.steps || [], "final-regression");
+          if (finalRegression?.status === "pending") finalRegression.status = "in_progress";
+        });
       }
     }
 

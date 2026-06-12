@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-12T09:48:24.731Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 4,
+    "advisory": 0,
+    "total": 4
+  },
+  "coverageArtifact": "specs/290-acceptance-review-policy/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Reset assertions can pass without exercising reset behavior",
+      "target": "specs/290-acceptance-review-policy/tests/decision-routing.test.js",
+      "issue": "R10, R11, and R12 require resetting completed leaves through acceptance-review, or from repairTargetStep through acceptance-review. The shared setup initializes nearly every step as pending and only marks acceptance-review in_progress, so the reset assertions would pass even if the implementation never reset already-completed downstream steps.",
+      "requiredChange": "Set representative pre-reset steps in the affected range to done before invoking the decision/result path, then assert those steps are reset to pending and the intended restart step is in_progress where applicable.",
+      "whyBlocking": "This is a static anti-pattern that would pass without exercising the production reset behavior required by R10, R11, and R12."
+    },
+    {
+      "kind": "blocking",
+      "title": "R10 public run command path is not covered",
+      "target": "specs/290-acceptance-review-policy/tests/decision-routing.test.js R10 test",
+      "issue": "R10 specifically requires behavior from `senti flow run acceptance-review`, but the test calls `applyAcceptanceReviewResult` directly. An implementation could leave the CLI run command unwired or incorrectly wired while this test still passes.",
+      "requiredChange": "Add spec-local coverage through the production `flow run acceptance-review` command path or its command handler, with the smallest test seam needed to avoid invoking real AI, and assert the recorded verdict/proposals, reset behavior, approval skip, and spec.json non-mutation through that path.",
+      "whyBlocking": "The acceptance requirement names a public command behavior, and there is no corresponding executable coverage for that public path."
+    },
+    {
+      "kind": "blocking",
+      "title": "Hard blockers are not tested as pass blockers",
+      "target": "specs/290-acceptance-review-policy/tests/artifact-verdict-contract.test.js R9",
+      "issue": "R9 requires verdict pass to require zero hardBlockers, but the R9 test only proves that low goalSatisfactionScore cannot be offset by other scores. It never supplies hardBlockers with otherwise passing scores.",
+      "requiredChange": "Add a R9 assertion that `deriveAcceptanceReviewVerdict(validArtifact({ hardBlockers: [...] }))` cannot return `pass` when goal and score thresholds are otherwise satisfied.",
+      "whyBlocking": "A critical pass condition from R9 has no spec-local regression test, so an implementation could ignore hardBlockers and still pass the current tests."
+    },
+    {
+      "kind": "blocking",
+      "title": "reportRefs absence rule is only partially covered",
+      "target": "specs/290-acceptance-review-policy/tests/artifact-verdict-contract.test.js R5",
+      "issue": "R5 says reportRefs are used only when report.json already exists. The writer test verifies auto-omission when the input has `reportRefs: undefined`, but it does not catch an implementation that blindly persists caller-supplied reportRefs even when report.json is absent.",
+      "requiredChange": "Add a R5 case where no report.json exists and the input artifact includes reportRefs, then assert the writer strips them or rejects the artifact according to the intended contract.",
+      "whyBlocking": "The requirement's `used only when report.json already exists` constraint has no coverage against the most direct violating implementation."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/290-acceptance-review-policy/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 4,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "f747769d0500c2778dcda114e3833d4f2911f312f2353df9765bbccf2dc9d3b9"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 6,
+  "findings": [
+    {
+      "id": "test-006-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 6,
+      "severity": "blocking",
+      "title": "Reset assertions can pass without exercising reset behavior",
+      "body": "R10, R11, and R12 require resetting completed leaves through acceptance-review, or from repairTargetStep through acceptance-review. The shared setup initializes nearly every step as pending and only marks acceptance-review in_progress, so the reset assertions would pass even if the implementation never reset already-completed downstream steps.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-006-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 6,
+      "severity": "blocking",
+      "title": "R10 public run command path is not covered",
+      "body": "R10 specifically requires behavior from `senti flow run acceptance-review`, but the test calls `applyAcceptanceReviewResult` directly. An implementation could leave the CLI run command unwired or incorrectly wired while this test still passes.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-006-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 6,
+      "severity": "blocking",
+      "title": "Hard blockers are not tested as pass blockers",
+      "body": "R9 requires verdict pass to require zero hardBlockers, but the R9 test only proves that low goalSatisfactionScore cannot be offset by other scores. It never supplies hardBlockers with otherwise passing scores.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-006-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 6,
+      "severity": "blocking",
+      "title": "reportRefs absence rule is only partially covered",
+      "body": "R5 says reportRefs are used only when report.json already exists. The writer test verifies auto-omission when the input has `reportRefs: undefined`, but it does not catch an implementation that blindly persists caller-supplied reportRefs even when report.json is absent.",
+      "category": "unknown"
+    }
+  ]
+}

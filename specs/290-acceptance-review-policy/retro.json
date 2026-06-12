@@ -1,0 +1,98 @@
+{
+  "spec": "specs/290-acceptance-review-policy/spec.json",
+  "date": "2026-06-12T10:52:09.612Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "FlowNode must expose failurePolicy metadata whose accepted values include retry, record, amend-spec, and block, and invalid policy values must fail during definition construction or validation.",
+      "status": "done",
+      "note": "R1: FlowNode accepts only declared failurePolicy values"
+    },
+    {
+      "desc": "The flow definition must assign initial failurePolicy values: review-family steps retry, gate-family steps block, acceptance-review amend-spec, normal impl-review retry, and other normal steps preserving their existing maxAttempts/retry behavior.",
+      "status": "done",
+      "note": "R2: flow nodes expose initial failurePolicy assignments"
+    },
+    {
+      "desc": "The impl branch must contain acceptance-review after retro and before final-regression, and acceptance-review must resolve maxAttempts to 1.",
+      "status": "done",
+      "note": "R3: implementation flow places acceptance-review between retro and final-regression"
+    },
+    {
+      "desc": "senti flow get next-action must preserve existing public snake_case fields for acceptance-review, including output_schema and requires_approval false, and may expose failurePolicy amend-spec only as an additive field.",
+      "status": "done",
+      "note": "R4: next-action exposes the public snake_case acceptance-review envelope"
+    },
+    {
+      "desc": "Acceptance-review must write a schema-validated artifact containing goalSatisfactionScore, requirementAlignmentScore, implementationQualityScore, acceptanceScore, thresholds, mechanicalBlockers, hardBlockers, attempt, findings, requirementAmendmentProposals, userDecision, blockedDecision, verdict, and optional reportRefs used only when report.json already exists.",
+      "status": "done",
+      "note": "R5: schema validates the complete acceptance-review artifact shape"
+    },
+    {
+      "desc": "Each acceptance-review finding must include findingId, summary, severity, category, mappedRequirementIds, linkedRequirementAmendmentProposalIds, evidenceRefs, confidence, shouldReimplement, reimplementationReason, and requiresUserDecision.",
+      "status": "done",
+      "note": "R6: schema rejects findings missing required evidence and mapping fields"
+    },
+    {
+      "desc": "Each requirementAmendmentProposal must include proposalId, proposalType, targetRequirementIds, proposedRequirementSummary, reason, relationToOriginalRequest, linkedFindingIds, and shouldReimplementAfterAmendment.",
+      "status": "done",
+      "note": "R7: schema rejects requirementAmendmentProposals missing handoff fields"
+    },
+    {
+      "desc": "Acceptance-review must classify missing tests, failed tests, missing required artifacts, invalid schemas, and missing required tests as mechanicalBlockers that produce verdict blocked before semantic scoring can pass.",
+      "status": "done",
+      "note": "R8: mechanical blockers force blocked before semantic pass"
+    },
+    {
+      "desc": "Verdict pass must require goal satisfaction, zero mechanicalBlockers, and zero hardBlockers; acceptanceScore, requirementAlignmentScore, and implementationQualityScore must not offset an unmet goal.",
+      "status": "done",
+      "note": "R9: secondary scores cannot offset unmet goal satisfaction"
+    },
+    {
+      "desc": "Verdict amend_required from `senti flow run acceptance-review` must record acceptanceReview.verdict and requirementAmendmentProposals in flow state/artifact, reset spec through acceptance-review leaves for amendment retry, skip routine approval unless user_decision_required was recorded, and avoid editing spec.json inside acceptance-review.",
+      "status": "done",
+      "note": "R10: amend_required records proposals and resets spec through acceptance-review without mutating spec.json"
+    },
+    {
+      "desc": "`senti flow set acceptance-decision --choice amend_and_retry|abort|accept_risk_and_continue` must persist userDecision for verdict user_decision_required; amend_and_retry resets spec through acceptance-review, abort records an aborted acceptanceReview state and does not promote final-regression, and accept_risk_and_continue records issue-log risk then promotes final-regression only when no mechanicalBlockers exist.",
+      "status": "done",
+      "note": "R11: user_decision_required supports amend_and_retry"
+    },
+    {
+      "desc": "`senti flow set acceptance-decision --choice repair_and_reevaluate|abort` must persist blockedDecision for verdict blocked; repair_and_reevaluate resets from the recorded repairTargetStep through acceptance-review, abort records an aborted acceptanceReview state, and accept_risk_and_continue must not be accepted.",
+      "status": "done",
+      "note": "R12: blocked accepts only repair_and_reevaluate or abort decisions"
+    },
+    {
+      "desc": "Normal-flow impl-review must keep current-compatible retry behavior while the code structure can represent record policy for later comparative-validation use.",
+      "status": "done",
+      "note": "R13: normal impl-review remains retry-compatible"
+    },
+    {
+      "desc": "Migration parity must preserve existing next-action envelope shape, review/gate artifact meanings, retro artifact meaning, final-regression as the final mechanical check after acceptance-review, finalize leaf order and approval behavior, flow state promotion, retry metrics, plugin hooks, and side effects.",
+      "status": "done",
+      "note": "R14: final-regression and finalize behavior remain after acceptance-review"
+    },
+    {
+      "desc": "Acceptance-review step completion must be guarded by its artifact and verdict/decision state so manual completion or hook promotion cannot advance final-regression when the artifact is missing, blocked, amend_required, or waiting for user decision.",
+      "status": "done",
+      "note": "R15: completion policy rejects missing or unresolved acceptance-review artifacts"
+    },
+    {
+      "desc": "The implementation must add spec-local tests under specs/290-acceptance-review-policy/tests/ with // spec: R<N> headers covering R1 through R15, and may update shared tests only where public flow contracts change.",
+      "status": "done",
+      "note": "R16: spec-local tests remain header-covered while acceptance-review is present"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 16,
+    "done": 16,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

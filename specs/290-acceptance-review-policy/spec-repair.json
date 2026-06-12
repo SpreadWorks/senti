@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied 4 spec-review repairs: optional report input, concrete decision routing, snake_case next-action fields, and acceptance-review completion guard.",
+  "items": [
+    {
+      "title": "Report context is required before it exists in the normal flow",
+      "target": "Data Flow / R5 / acceptance-review inputs",
+      "decision": "applied",
+      "rationale": "Changed report context from an unconditional input to optional reportRefs used only when report.json already exists before finalize.",
+      "evidence": "spec.json scope.in, overview.data_flow, overview.decisions, R5, and clarifications now state missing report.json before finalize is not a blocker.",
+      "changedFields": [
+        "scope.in[4]",
+        "overview.data_flow[0]",
+        "overview.decisions[7]",
+        "requirements[R5].desc",
+        "clarifications[2]"
+      ]
+    },
+    {
+      "title": "Amendment and decision routes have no concrete flow integration target",
+      "target": "R10-R12 / T-4 verdict routing",
+      "decision": "applied",
+      "rationale": "Named `senti flow run acceptance-review`, `senti flow set acceptance-decision --choice <value>`, flow.json acceptanceReview state, and reset ranges for amend/retry and repair/reevaluate.",
+      "evidence": "spec.json overview.data_flow[5], R10, R11, R12, clarifications[3], and T-4 implementation_notes now define the routing integration.",
+      "changedFields": [
+        "overview.data_flow[5]",
+        "requirements[R10].desc",
+        "requirements[R11].desc",
+        "requirements[R12].desc",
+        "clarifications[3]",
+        "tasks[T-4].implementation_notes"
+      ]
+    },
+    {
+      "title": "Next-action envelope field names conflict with the existing public contract",
+      "target": "R4 / AC5 / R14",
+      "decision": "applied",
+      "rationale": "Changed public envelope language to preserve existing snake_case output_schema and requires_approval, with failurePolicy as additive metadata only.",
+      "evidence": "spec.json overview.modules[1], R4, and AC5 now use output_schema and requires_approval.",
+      "changedFields": [
+        "overview.modules[1].text",
+        "requirements[R4].desc",
+        "acceptance_criteria[4]"
+      ]
+    },
+    {
+      "title": "Acceptance-review completion is not tied to the existing step completion guard",
+      "target": "R5 / R8-R12 / R14 flow state promotion",
+      "decision": "applied",
+      "rationale": "Added flow-judgment-contract as the completion validation integration and added R15/AC15 requiring artifact-backed completion guard behavior.",
+      "evidence": "spec.json overview.modules[3], overview.decisions[8], implementationTargets, R15, AC15, and task test strategies now cover completion guard behavior.",
+      "changedFields": [
+        "overview.modules[3]",
+        "overview.decisions[8]",
+        "implementationTargets",
+        "requirements[R15]",
+        "acceptance_criteria[14]",
+        "tasks[T-4]",
+        "tasks[T-5]",
+        "tasks[T-6]"
+      ]
+    }
+  ]
+}

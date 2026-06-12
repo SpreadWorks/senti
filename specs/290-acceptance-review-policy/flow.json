@@ -1,0 +1,491 @@
+{
+  "spec": "specs/290-acceptance-review-policy/spec.json",
+  "baseBranch": "main",
+  "featureBranch": "feature/290-acceptance-review-policy",
+  "runId": "3a47f517-a8c0-41c2-8d78-14a9fe24e110",
+  "steps": [
+    {
+      "id": "plan",
+      "status": "pending",
+      "children": [
+        {
+          "id": "branch",
+          "status": "done",
+          "finishedAt": "2026-06-12T06:51:29.114Z"
+        },
+        {
+          "id": "prepare-spec",
+          "status": "done",
+          "finishedAt": "2026-06-12T06:51:29.114Z"
+        },
+        {
+          "id": "draft",
+          "status": "done",
+          "startedAt": "2026-06-12T06:51:29.114Z",
+          "finishedAt": "2026-06-12T06:54:52.072Z",
+          "runtimeLog": {
+            "runId": "3a47f517-a8c0-41c2-8d78-14a9fe24e110",
+            "sequence": 14,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-06-12T06:54:52.055Z",
+            "endedAt": "2026-06-12T06:54:52.078Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-questions-review",
+          "status": "done",
+          "startedAt": "2026-06-12T06:54:52.072Z",
+          "finishedAt": "2026-06-12T06:55:30.040Z",
+          "runtimeLog": {
+            "runId": "3a47f517-a8c0-41c2-8d78-14a9fe24e110",
+            "sequence": 17,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-06-12T06:55:06.633Z",
+            "endedAt": "2026-06-12T06:55:30.052Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-questions-triage",
+          "status": "done",
+          "startedAt": "2026-06-12T06:55:30.040Z",
+          "finishedAt": "2026-06-12T06:56:08.444Z",
+          "runtimeLog": {
+            "runId": "3a47f517-a8c0-41c2-8d78-14a9fe24e110",
+            "sequence": 20,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-06-12T06:56:08.427Z",
+            "endedAt": "2026-06-12T06:56:08.451Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-questions-repair",
+          "status": "done",
+          "startedAt": "2026-06-12T06:56:08.444Z",
+          "finishedAt": "2026-06-12T06:56:37.696Z",
+          "runtimeLog": {
+            "runId": "3a47f517-a8c0-41c2-8d78-14a9fe24e110",
+            "sequence": 23,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-06-12T06:56:37.679Z",
+            "endedAt": "2026-06-12T06:56:37.703Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-refine",
+          "status": "done",
+          "startedAt": "2026-06-12T06:56:37.696Z",
+          "finishedAt": "2026-06-12T06:57:46.471Z",
+          "runtimeLog": {
+            "runId": "3a47f517-a8c0-41c2-8d78-14a9fe24e110",
+            "sequence": 26,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-06-12T06:57:46.453Z",
+            "endedAt": "2026-06-12T06:57:46.478Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-coverage-review",
+          "status": "done",
+          "startedAt": "2026-06-12T06:57:46.471Z",
+          "finishedAt": "2026-06-12T06:58:24.612Z",
+          "runtimeLog": {
+            "runId": "3a47f517-a8c0-41c2-8d78-14a9fe24e110",
+            "sequence": 29,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-06-12T06:58:03.289Z",
+            "endedAt": "2026-06-12T06:58:24.634Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-coverage-triage",
+          "status": "done",
+          "startedAt": "2026-06-12T06:58:24.612Z",
+          "finishedAt": "2026-06-12T06:58:24.618Z"
+        },
+        {
+          "id": "draft-coverage-repair",
+          "status": "done",
+          "startedAt": "2026-06-12T06:58:24.618Z",
+          "finishedAt": "2026-06-12T06:58:24.624Z"
+        },
+        {
+          "id": "draft-gate",
+          "status": "done",
+          "startedAt": "2026-06-12T06:58:24.624Z",
+          "runtimeLog": {
+            "runId": "3a47f517-a8c0-41c2-8d78-14a9fe24e110",
+            "sequence": 34,
+            "attempt": 1,
+            "command": "flow run gate",
+            "startedAt": "2026-06-12T07:00:04.879Z",
+            "endedAt": "2026-06-12T07:00:17.246Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-06-12T07:00:17.231Z"
+        },
+        {
+          "id": "spec",
+          "status": "done",
+          "startedAt": "2026-06-12T07:00:17.231Z",
+          "finishedAt": "2026-06-12T07:03:29.643Z",
+          "runtimeLog": {
+            "runId": "3a47f517-a8c0-41c2-8d78-14a9fe24e110",
+            "sequence": 40,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-06-12T07:03:29.624Z",
+            "endedAt": "2026-06-12T07:03:29.652Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "spec-review",
+          "status": "done",
+          "startedAt": "2026-06-12T07:03:29.643Z",
+          "finishedAt": "2026-06-12T07:07:06.079Z",
+          "runtimeLog": {
+            "runId": "3a47f517-a8c0-41c2-8d78-14a9fe24e110",
+            "sequence": 43,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-06-12T07:03:45.308Z",
+            "endedAt": "2026-06-12T07:07:06.083Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "spec-triage",
+          "status": "done",
+          "startedAt": "2026-06-12T07:07:06.079Z",
+          "finishedAt": "2026-06-12T07:07:52.341Z",
+          "runtimeLog": {
+            "runId": "3a47f517-a8c0-41c2-8d78-14a9fe24e110",
+            "sequence": 46,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-06-12T07:07:52.319Z",
+            "endedAt": "2026-06-12T07:07:52.353Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "spec-repair",
+          "status": "done",
+          "startedAt": "2026-06-12T07:07:52.341Z",
+          "finishedAt": "2026-06-12T07:10:16.467Z",
+          "runtimeLog": {
+            "runId": "3a47f517-a8c0-41c2-8d78-14a9fe24e110",
+            "sequence": 50,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-06-12T07:10:16.450Z",
+            "endedAt": "2026-06-12T07:10:16.475Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "spec-gate",
+          "status": "done",
+          "startedAt": "2026-06-12T07:10:16.467Z",
+          "finishedAt": "2026-06-12T07:10:46.787Z",
+          "runtimeLog": {
+            "runId": "3a47f517-a8c0-41c2-8d78-14a9fe24e110",
+            "sequence": 53,
+            "attempt": 1,
+            "command": "flow run gate",
+            "startedAt": "2026-06-12T07:10:37.320Z",
+            "endedAt": "2026-06-12T07:10:46.804Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "approval",
+          "status": "done",
+          "startedAt": "2026-06-12T07:10:46.787Z",
+          "finishedAt": "2026-06-12T07:14:12.655Z",
+          "runtimeLog": {
+            "runId": "3a47f517-a8c0-41c2-8d78-14a9fe24e110",
+            "sequence": 61,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-06-12T07:14:12.633Z",
+            "endedAt": "2026-06-12T07:14:12.670Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "test",
+          "status": "done",
+          "startedAt": "2026-06-12T07:14:12.655Z",
+          "runtimeLog": {
+            "runId": "3a47f517-a8c0-41c2-8d78-14a9fe24e110",
+            "sequence": 94,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-06-12T09:49:36.255Z",
+            "endedAt": "2026-06-12T09:49:36.291Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-06-12T09:49:36.285Z"
+        },
+        {
+          "id": "scenario-validity",
+          "status": "done",
+          "startedAt": "2026-06-12T07:18:49.048Z",
+          "finishedAt": "2026-06-12T09:59:04.339Z",
+          "runtimeLog": {
+            "runId": "3a47f517-a8c0-41c2-8d78-14a9fe24e110",
+            "sequence": 116,
+            "attempt": 1,
+            "command": "flow run scenario-validity",
+            "startedAt": "2026-06-12T09:59:02.434Z",
+            "endedAt": "2026-06-12T09:59:04.343Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "test-review",
+          "status": "done",
+          "startedAt": "2026-06-12T07:19:00.595Z",
+          "runtimeLog": {
+            "runId": "3a47f517-a8c0-41c2-8d78-14a9fe24e110",
+            "sequence": 118,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-06-12T09:59:17.519Z",
+            "endedAt": "2026-06-12T09:59:33.317Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-06-12T09:59:33.314Z"
+        }
+      ]
+    },
+    {
+      "id": "impl",
+      "status": "pending",
+      "children": [
+        {
+          "id": "implement",
+          "status": "done",
+          "startedAt": "2026-06-12T09:59:33.314Z",
+          "finishedAt": "2026-06-12T10:33:58.412Z",
+          "runtimeLog": {
+            "runId": "3a47f517-a8c0-41c2-8d78-14a9fe24e110",
+            "sequence": 158,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-06-12T10:33:58.396Z",
+            "endedAt": "2026-06-12T10:33:58.419Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "test-execute",
+          "status": "done",
+          "startedAt": "2026-06-12T10:33:58.412Z",
+          "finishedAt": "2026-06-12T10:51:22.747Z",
+          "runtimeLog": {
+            "runId": "3a47f517-a8c0-41c2-8d78-14a9fe24e110",
+            "sequence": 177,
+            "attempt": 1,
+            "command": "flow run test-execute",
+            "startedAt": "2026-06-12T10:49:05.745Z",
+            "endedAt": "2026-06-12T10:51:22.751Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "test-result-review",
+          "status": "done",
+          "startedAt": "2026-06-12T10:36:24.647Z",
+          "finishedAt": "2026-06-12T10:51:27.266Z",
+          "runtimeLog": {
+            "runId": "3a47f517-a8c0-41c2-8d78-14a9fe24e110",
+            "sequence": 178,
+            "attempt": 1,
+            "command": "flow run test-result-review",
+            "startedAt": "2026-06-12T10:51:27.237Z",
+            "endedAt": "2026-06-12T10:51:27.271Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "impl-review",
+          "status": "done",
+          "startedAt": "2026-06-12T10:36:33.573Z",
+          "runtimeLog": {
+            "runId": "3a47f517-a8c0-41c2-8d78-14a9fe24e110",
+            "sequence": 166,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-06-12T10:37:43.552Z",
+            "endedAt": "2026-06-12T10:42:16.378Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-06-12T10:42:16.373Z"
+        },
+        {
+          "id": "impl-gate",
+          "status": "done",
+          "startedAt": "2026-06-12T10:42:16.373Z",
+          "runtimeLog": {
+            "runId": "3a47f517-a8c0-41c2-8d78-14a9fe24e110",
+            "sequence": 180,
+            "attempt": 1,
+            "command": "flow run gate",
+            "startedAt": "2026-06-12T10:51:39.981Z",
+            "endedAt": "2026-06-12T10:51:59.009Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-06-12T10:51:58.978Z"
+        },
+        {
+          "id": "retro",
+          "status": "done",
+          "startedAt": "2026-06-12T10:51:58.978Z",
+          "finishedAt": "2026-06-12T10:52:09.620Z",
+          "runtimeLog": {
+            "runId": "3a47f517-a8c0-41c2-8d78-14a9fe24e110",
+            "sequence": 182,
+            "attempt": 1,
+            "command": "flow run retro",
+            "startedAt": "2026-06-12T10:52:09.599Z",
+            "endedAt": "2026-06-12T10:52:09.626Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "final-regression",
+          "status": "done",
+          "startedAt": "2026-06-12T10:52:09.620Z",
+          "finishedAt": "2026-06-12T10:54:35.224Z",
+          "runtimeLog": {
+            "runId": "3a47f517-a8c0-41c2-8d78-14a9fe24e110",
+            "sequence": 184,
+            "attempt": 1,
+            "command": "flow run final-regression",
+            "startedAt": "2026-06-12T10:52:22.906Z",
+            "endedAt": "2026-06-12T10:54:35.227Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "finalize",
+          "status": "pending",
+          "children": [
+            {
+              "id": "finalize-commit",
+              "status": "done",
+              "startedAt": "2026-06-12T10:54:35.224Z",
+              "finishedAt": "2026-06-12T12:04:52.192Z",
+              "runtimeLog": {
+                "runId": "3a47f517-a8c0-41c2-8d78-14a9fe24e110",
+                "sequence": 189,
+                "attempt": 1,
+                "command": "flow run finalize-commit",
+                "startedAt": "2026-06-12T12:04:52.000Z",
+                "endedAt": "2026-06-12T12:04:53.478Z",
+                "exitCode": 0
+              }
+            },
+            {
+              "id": "finalize-merge",
+              "status": "in_progress",
+              "startedAt": "2026-06-12T12:04:52.192Z"
+            },
+            {
+              "id": "finalize-sync",
+              "status": "pending"
+            },
+            {
+              "id": "finalize-cleanup",
+              "status": "pending"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "requirements": [],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 380,
+  "request": "Goal: add failurePolicy to the flow definition and introduce an acceptance-review step. Scope: update src/flow/definition.js so phases/steps can declare retry/block/record/amend-spec policy; add acceptance-review after retro and before final-regression with maxAttempts 1; define acceptance artifact, findings, requirementAmendmentProposals, mechanicalBlockers, hardBlockers, and verdict values pass/amend_required/user_decision_required/blocked; route amend_required through spec amendment and implementation retry without routine approval; route user_decision_required and blocked through explicit user choices; preserve normal impl-review retry behavior while allowing record policy structure for comparative validation. Out of Scope: split the issue, add roundLimit terminology, place acceptance-review after final-regression, or make normal impl-review record/no-loop by default. Validation: tests must cover flow definition failurePolicy, acceptance-review position and maxAttempts, artifact/verdict schema, and transitions for pass/amend_required/user_decision_required/blocked.",
+  "worktree": true,
+  "plugins": {
+    "flowCommandHooks": []
+  },
+  "notes": [
+    {
+      "text": "plan.base-branch: selected current branch main",
+      "taskId": null,
+      "ts": "2026-06-12T06:52:58.342Z"
+    },
+    {
+      "text": "plan.work-environment: selected Git worktree isolated environment",
+      "taskId": null,
+      "ts": "2026-06-12T06:52:58.395Z"
+    },
+    {
+      "text": "approval: user selected [1] approve spec",
+      "taskId": null,
+      "ts": "2026-06-12T07:14:05.563Z"
+    },
+    {
+      "text": "implement: user selected [1] proceed with proposed implementation approach",
+      "taskId": null,
+      "ts": "2026-06-12T10:22:52.478Z"
+    },
+    {
+      "text": "finalize-commit: user selected [1] run finalize-commit",
+      "taskId": null,
+      "ts": "2026-06-12T12:04:40.207Z"
+    }
+  ],
+  "reviewRecoveryBaselines": [
+    {
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "fingerprint": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "hash": "85bba863f5068fa48d199311258009d85ccf66e33ccfe0f5a32cb2d83e069e75",
+        "paths": [
+          "specs/290-acceptance-review-policy/test-execute-result.json",
+          "specs/290-acceptance-review-policy/test-result-review.json",
+          "src/flow/definition.js",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/flow-judgment-contract.js",
+          "src/flow/lib/get-next-action.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/set-acceptance-decision.js",
+          "src/flow/lib/set-step.js",
+          "src/flow/prompts/impl/acceptance-review.md",
+          "src/flow/registry.js",
+          "src/flow/schemas/acceptance-review.schema.json",
+          "src/flow/schemas/next-action/acceptance-review.schema.json",
+          "src/lib/plugin-registry.js",
+          "src/lib/schema-validate.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "gate-result-fail",
+      "createdAt": "2026-06-12T10:47:14.215Z"
+    }
+  ],
+  "state": {
+    "finalizedAt": "2026-06-12T12:04:52.058Z"
+  }
+}

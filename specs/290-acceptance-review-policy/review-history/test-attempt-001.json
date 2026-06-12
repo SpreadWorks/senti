@@ -1,0 +1,138 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-12T07:20:26.510Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 6,
+    "advisory": 0,
+    "total": 6
+  },
+  "coverageArtifact": "specs/290-acceptance-review-policy/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Acceptance-review artifact writing is not exercised",
+      "target": "specs/290-acceptance-review-policy/tests/artifact-verdict-contract.test.js / R5",
+      "issue": "R5 requires acceptance-review to write a schema-validated artifact, including conditional reportRefs behavior when report.json exists. The tests only validate an in-memory fixture against the schema and never run the acceptance-review command or assert that an artifact is written and validated by production code.",
+      "requiredChange": "Add a spec-local test that runs or directly invokes the acceptance-review artifact-writing path, asserts the written artifact validates against the schema, and covers reportRefs being emitted only when report.json exists.",
+      "whyBlocking": "A schema-only fixture test can pass even if production never writes the required artifact or handles reportRefs incorrectly."
+    },
+    {
+      "kind": "blocking",
+      "title": "Mechanical blocker classification is not covered",
+      "target": "specs/290-acceptance-review-policy/tests/artifact-verdict-contract.test.js / R8",
+      "issue": "R8 requires missing tests, failed tests, missing required artifacts, invalid schemas, and missing required tests to be classified as mechanicalBlockers. The test pre-populates one missing_tests blocker and only verifies that any existing mechanicalBlocker forces a blocked verdict.",
+      "requiredChange": "Add tests that exercise the production classification path for each required blocker category and assert both the mechanicalBlockers entry and verdict blocked.",
+      "whyBlocking": "The current test would pass if classification were never implemented and callers merely supplied mechanicalBlockers manually."
+    },
+    {
+      "kind": "blocking",
+      "title": "Decision-routing fixtures contradict the acceptance-review artifact contract",
+      "target": "specs/290-acceptance-review-policy/tests/decision-routing.test.js / R10 R11 R12",
+      "issue": "The artifact() helper omits many fields required by R5, R6, and R7, including scores, thresholds, attempt, complete finding fields, and complete requirementAmendmentProposal fields. If production correctly schema-validates acceptance-review artifacts, these routing tests are based on invalid artifacts.",
+      "requiredChange": "Replace the minimal artifact() fixture with a schema-valid acceptance-review artifact builder, then override only verdict-specific fields needed by each routing scenario.",
+      "whyBlocking": "Tests that depend on invalid artifacts can fail for fixture reasons or force implementation to accept artifacts that contradict the required schema."
+    },
+    {
+      "kind": "blocking",
+      "title": "Acceptance-decision routing lacks required choice coverage",
+      "target": "specs/290-acceptance-review-policy/tests/decision-routing.test.js / R10 R11 R12",
+      "issue": "R11 requires amend_and_retry, abort, accept_risk_and_continue risk recording, and rejection of accept_risk_and_continue when mechanicalBlockers exist. The tests cover only accept_risk_and_continue without blockers. R12 requires abort behavior for blocked verdicts, but only repair_and_reevaluate is covered. R10 also does not assert that routine approval is skipped unless user_decision_required was recorded.",
+      "requiredChange": "Add focused tests for amend_and_retry, abort, accept_risk_and_continue risk logging, mechanical-blocker rejection, blocked abort handling, and the no-routine-approval condition for amend_required.",
+      "whyBlocking": "Several mandatory decision branches have no executable coverage, so an implementation could omit them while the spec-local tests still pass."
+    },
+    {
+      "kind": "blocking",
+      "title": "Completion guard covers only missing artifacts",
+      "target": "specs/290-acceptance-review-policy/tests/completion-guard.test.js / R15",
+      "issue": "R15 requires preventing final-regression advancement for missing, blocked, amend_required, and user_decision_required acceptance-review states, across manual completion and hook promotion. The current test only covers manual completion with a missing artifact.",
+      "requiredChange": "Add tests for blocked, amend_required, and user_decision_required artifacts, plus the hook-promotion path, asserting final-regression is not advanced.",
+      "whyBlocking": "The current guard test can pass while unresolved acceptance-review verdicts or hook promotion still advance final-regression."
+    },
+    {
+      "kind": "blocking",
+      "title": "Migration parity coverage is materially incomplete",
+      "target": "specs/290-acceptance-review-policy/tests/definition-policy.test.js and next-action-contract.test.js / R14",
+      "issue": "R14 covers broad migration parity, including review/gate artifact meanings, retro artifact meaning, flow state promotion, retry metrics, plugin hooks, and side effects. The current R14 assertions only check part of leaf ordering, final-regression action, finalize-commit approval, and acceptance-review context kinds.",
+      "requiredChange": "Add spec-local parity tests or update the coverage artifact to point to existing executable shared tests that cover the omitted R14 parity areas.",
+      "whyBlocking": "The coverage artifact marks R14 covered, but the actual tests do not cover several required parity guarantees."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/290-acceptance-review-policy/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 6,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "926f722c891048e17ae8b087077b5b749a714694525aa0a9548715b49618065c"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "test-001-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Acceptance-review artifact writing is not exercised",
+      "body": "R5 requires acceptance-review to write a schema-validated artifact, including conditional reportRefs behavior when report.json exists. The tests only validate an in-memory fixture against the schema and never run the acceptance-review command or assert that an artifact is written and validated by production code.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Mechanical blocker classification is not covered",
+      "body": "R8 requires missing tests, failed tests, missing required artifacts, invalid schemas, and missing required tests to be classified as mechanicalBlockers. The test pre-populates one missing_tests blocker and only verifies that any existing mechanicalBlocker forces a blocked verdict.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Decision-routing fixtures contradict the acceptance-review artifact contract",
+      "body": "The artifact() helper omits many fields required by R5, R6, and R7, including scores, thresholds, attempt, complete finding fields, and complete requirementAmendmentProposal fields. If production correctly schema-validates acceptance-review artifacts, these routing tests are based on invalid artifacts.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Acceptance-decision routing lacks required choice coverage",
+      "body": "R11 requires amend_and_retry, abort, accept_risk_and_continue risk recording, and rejection of accept_risk_and_continue when mechanicalBlockers exist. The tests cover only accept_risk_and_continue without blockers. R12 requires abort behavior for blocked verdicts, but only repair_and_reevaluate is covered. R10 also does not assert that routine approval is skipped unless user_decision_required was recorded.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-005",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Completion guard covers only missing artifacts",
+      "body": "R15 requires preventing final-regression advancement for missing, blocked, amend_required, and user_decision_required acceptance-review states, across manual completion and hook promotion. The current test only covers manual completion with a missing artifact.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-006",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Migration parity coverage is materially incomplete",
+      "body": "R14 covers broad migration parity, including review/gate artifact meanings, retro artifact meaning, flow state promotion, retry metrics, plugin hooks, and side effects. The current R14 assertions only check part of leaf ordering, final-regression action, finalize-commit approval, and acceptance-review context kinds.",
+      "category": "unknown"
+    }
+  ]
+}

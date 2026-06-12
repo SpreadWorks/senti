@@ -1,0 +1,118 @@
+{
+  "type": "object",
+  "required": [
+    "goalSatisfactionScore",
+    "requirementAlignmentScore",
+    "implementationQualityScore",
+    "acceptanceScore",
+    "thresholds",
+    "mechanicalBlockers",
+    "hardBlockers",
+    "attempt",
+    "findings",
+    "requirementAmendmentProposals",
+    "userDecision",
+    "blockedDecision",
+    "verdict"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "version": { "type": "integer" },
+    "goalSatisfactionScore": { "type": "number", "minimum": 0 },
+    "requirementAlignmentScore": { "type": "number", "minimum": 0 },
+    "implementationQualityScore": { "type": "number", "minimum": 0 },
+    "acceptanceScore": { "type": "number", "minimum": 0 },
+    "thresholds": {
+      "type": "object",
+      "required": ["goalSatisfactionPass", "requirementAlignmentPass", "implementationQualityPass"],
+      "additionalProperties": true,
+      "properties": {
+        "goalSatisfactionPass": { "type": "number", "minimum": 0 },
+        "requirementAlignmentPass": { "type": "number", "minimum": 0 },
+        "implementationQualityPass": { "type": "number", "minimum": 0 }
+      }
+    },
+    "mechanicalBlockers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["blockerId", "kind", "summary"],
+        "additionalProperties": true,
+        "properties": {
+          "blockerId": { "type": "string", "minLength": 1 },
+          "kind": { "type": "string", "minLength": 1 },
+          "summary": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "hardBlockers": { "type": "array", "items": { "type": "object" } },
+    "attempt": { "type": "integer", "minimum": 1 },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "findingId",
+          "summary",
+          "severity",
+          "category",
+          "mappedRequirementIds",
+          "linkedRequirementAmendmentProposalIds",
+          "evidenceRefs",
+          "confidence",
+          "shouldReimplement",
+          "reimplementationReason",
+          "requiresUserDecision"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "findingId": { "type": "string", "minLength": 1 },
+          "summary": { "type": "string", "minLength": 1 },
+          "severity": { "type": "string", "minLength": 1 },
+          "category": { "type": "string", "minLength": 1 },
+          "mappedRequirementIds": { "type": "array", "items": { "type": "string" } },
+          "linkedRequirementAmendmentProposalIds": { "type": "array", "items": { "type": "string" } },
+          "evidenceRefs": { "type": "array", "items": { "type": "string" } },
+          "confidence": { "type": "string", "minLength": 1 },
+          "shouldReimplement": { "type": "boolean" },
+          "reimplementationReason": { "type": "string" },
+          "requiresUserDecision": { "type": "boolean" }
+        }
+      }
+    },
+    "requirementAmendmentProposals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "proposalId",
+          "proposalType",
+          "targetRequirementIds",
+          "proposedRequirementSummary",
+          "reason",
+          "relationToOriginalRequest",
+          "linkedFindingIds",
+          "shouldReimplementAfterAmendment"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "proposalId": { "type": "string", "minLength": 1 },
+          "proposalType": { "type": "string", "minLength": 1 },
+          "targetRequirementIds": { "type": "array", "items": { "type": "string" } },
+          "proposedRequirementSummary": { "type": "string", "minLength": 1 },
+          "reason": { "type": "string", "minLength": 1 },
+          "relationToOriginalRequest": { "type": "string", "minLength": 1 },
+          "linkedFindingIds": { "type": "array", "items": { "type": "string" } },
+          "shouldReimplementAfterAmendment": { "type": "boolean" }
+        }
+      }
+    },
+    "userDecision": { "oneOf": [{ "type": "object" }, { "type": "null" }] },
+    "blockedDecision": { "oneOf": [{ "type": "object" }, { "type": "null" }] },
+    "verdict": {
+      "type": "string",
+      "enum": ["pass", "amend_required", "user_decision_required", "blocked"]
+    },
+    "reportRefs": { "type": "array", "items": { "type": "string" } }
+  }
+}

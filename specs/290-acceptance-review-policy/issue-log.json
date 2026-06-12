@@ -1,0 +1,295 @@
+{
+  "entries": [
+    {
+      "step": "prepare-spec",
+      "reason": "prepare command returned docs scan failure in main repository context after creating the worktree and flow files",
+      "trigger": "senti flow prepare reported Preset not found: node-cli while the worktree context later resolved active flow state",
+      "resolution": "confirmed the generated worktree has active flow state and continued all subsequent operations inside that worktree",
+      "guardrailCandidate": "after prepare failure in worktree mode, check the generated worktree flow status before assuming no active flow exists",
+      "taskId": null,
+      "timestamp": "2026-06-12T06:52:58.396Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The draft adds/moves flow behavior (inserting acceptance-review and applying failurePolicy changes) but does not include an explicit migration-parity inventory of existing public behavior being moved/replaced, including affected user-facing commands/APIs/hooks/config/artifacts/side effects.; Retained public surfaces are listed, but there is no explicit mapping of each retained surface to a new owner or an explicit remove decision, nor is a behavior-level acceptance check defined per retained surface through the new path.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-12T06:59:12.546Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "scopeVerification",
+            "locator": "in/out + proposed flow change around retro/final-regression"
+          },
+          "observed": "The draft adds/moves flow behavior (inserting acceptance-review and applying failurePolicy changes) but does not include an explicit migration-parity inventory of existing public behavior being moved/replaced, including affected user-facing commands/APIs/hooks/config/artifacts/side effects.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "impactOnExisting",
+            "locator": "per-surface parity evidence"
+          },
+          "observed": "Retained public surfaces are listed, but there is no explicit mapping of each retained surface to a new owner or an explicit remove decision, nor is a behavior-level acceptance check defined per retained surface through the new path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft adds/moves flow behavior (inserting acceptance-review and applying failurePolicy changes) but does not include an explicit migration-parity inventory of existing public behavior being moved/replaced, including affected user-facing commands/APIs/hooks/config/artifacts/side effects."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "Retained public surfaces are listed, but there is no explicit mapping of each retained surface to a new owner or an explicit remove decision, nor is a behavior-level acceptance check defined per retained surface through the new path."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate failed migration parity because the draft lacked an explicit public behavior inventory and per-surface retained-behavior mapping",
+      "trigger": "senti flow run gate --phase draft reported two migration-parity blocking observations",
+      "resolution": "added migration parity inventory, retained owner mapping, no-removal statements, and behavior-level verification conditions to draft.json",
+      "guardrailCandidate": "when flow behavior is inserted or reordered, draft must inventory public CLI, artifact, state, metric, hook, and finalize surfaces before gate",
+      "taskId": null,
+      "timestamp": "2026-06-12T06:59:59.998Z"
+    },
+    {
+      "step": "spec",
+      "reason": "attempted unsupported supplemental check target spec while validating newly written spec.json",
+      "trigger": "senti flow get check spec returned unknown target with valid targets impl finalize dirty gh",
+      "resolution": "validated JSON shape directly and will rely on downstream spec-review and spec-gate for authoritative validation",
+      "guardrailCandidate": "before using optional flow check targets, verify supported target names or rely on next-action gate commands",
+      "taskId": null,
+      "timestamp": "2026-06-12T07:03:29.484Z"
+    },
+    {
+      "step": "spec-repair",
+      "reason": "spec review found blocking gaps in report availability, non-pass routing integration, public next-action field naming, and acceptance-review completion guard",
+      "trigger": "senti flow run review --phase spec returned FAIL with four blocking findings",
+      "resolution": "updated spec.json to make report refs optional, define acceptance-review and acceptance-decision commands with reset semantics, preserve snake_case envelope fields, and require artifact-backed completion validation",
+      "guardrailCandidate": "specs adding new flow leaves must define input availability, command/state routing, public envelope compatibility, and completion guard integration before implementation",
+      "taskId": null,
+      "timestamp": "2026-06-12T07:10:10.701Z"
+    },
+    {
+      "step": "test",
+      "reason": "Spec-local test files were accidentally created in the main repository instead of the active flow worktree.",
+      "trigger": "apply_patch used relative paths while the active flow worktree boundary required files under .senti/worktree.",
+      "resolution": "Moved the newly created untracked tests directory into the active worktree and verified the main repository status is clean.",
+      "guardrailCandidate": "During active worktree flow, target apply_patch filenames under the worktree path or use worktree-local editing only.",
+      "taskId": null,
+      "timestamp": "2026-06-12T07:18:44.978Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Test review found incomplete acceptance-review coverage across artifact writing, blocker classification, decision routing, completion guard, and migration parity tests.",
+      "trigger": "senti flow run review --phase test returned FAIL with six blocking findings.",
+      "resolution": "Expanded spec-local tests to use schema-valid artifacts and cover artifact writing, reportRefs, classifier categories, all decision branches, unresolved completion guards, hook promotion, and parity behavior.",
+      "guardrailCandidate": "When writing spec-local tests for flow behavior, include production boundary tests for artifact creation, routing branches, and completion guards instead of schema-only fixtures.",
+      "taskId": null,
+      "timestamp": "2026-06-12T07:22:31.559Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Second test review still found R14 migration parity coverage incomplete after the initial repair.",
+      "trigger": "senti flow run review --phase test returned one blocking R14 parity finding.",
+      "resolution": "Added a dedicated migration parity spec-local test for unaffected next-action envelopes, review/gate/retro artifact schemas, lifecycle metrics, gate promotion, issue-log behavior, and impl-gate side effects.",
+      "guardrailCandidate": "Broad migration parity requirements should have a dedicated parity test file with one assertion group per preserved public surface.",
+      "taskId": null,
+      "timestamp": "2026-06-12T07:24:41.324Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Third test review found the R14 final-regression promotion assertion overclaimed by checking only acceptance-review context.",
+      "trigger": "senti flow run review --phase test returned a blocking finding for the acceptance-review pass path.",
+      "resolution": "Renamed the context test and added a pass-path test that completes acceptance-review with a pass artifact and asserts next-action promotes final-regression.",
+      "guardrailCandidate": "Test names for parity requirements must directly match the asserted production behavior, especially promotion paths.",
+      "taskId": null,
+      "timestamp": "2026-06-12T07:25:53.419Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Fourth test review found R2 lacked coverage for normal non-review and non-gate maxAttempts preservation.",
+      "trigger": "senti flow run review --phase test returned a blocking R2 retry-preservation finding.",
+      "resolution": "Added representative maxAttempts assertions for draft, spec, test, scenario-validity, implement, test-execute, test-result-review, retro, final-regression, and finalize leaves.",
+      "guardrailCandidate": "Policy-assignment tests must cover explicit changed classes and representative unchanged classes when the requirement includes preservation behavior.",
+      "taskId": null,
+      "timestamp": "2026-06-12T07:26:52.192Z"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "Scenario-validity classified R10 through R12 and R15 as invalid tests after adding static imports for a not-yet-created acceptance-review helper module.",
+      "trigger": "senti flow run scenario-validity blocked with invalid_test classifications for decision-routing and completion-guard tests.",
+      "resolution": "Changed the missing helper module references to dynamic per-test loads so pre-implementation failures remain attributable to individual requirement tests.",
+      "guardrailCandidate": "Spec-local tests for future modules should avoid top-level imports of not-yet-created files so scenario-validity can classify requirement-level expected failures.",
+      "taskId": null,
+      "timestamp": "2026-06-12T09:46:53.626Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Reset test-review rerun found remaining test-design gaps for reset behavior, public acceptance-review command coverage, hardBlocker pass prevention, and caller-supplied reportRefs without report.json.",
+      "trigger": "senti flow run review --phase test after retry reset returned FAIL with four blocking findings.",
+      "resolution": "Added done-state reset preconditions, switched R10 to the public flow run acceptance-review path with a controlled artifact seam, added hardBlocker pass prevention, and asserted reportRefs are omitted when report.json is absent even if supplied.",
+      "guardrailCandidate": "After retry reset, repair tests by exercising public command paths and negative cases for each requirement phrase the review identifies.",
+      "taskId": null,
+      "timestamp": "2026-06-12T09:50:23.001Z"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "Scenario-validity briefly blocked because decision-routing.test.js had an extra closing parenthesis after adding reset preconditions.",
+      "trigger": "senti flow run scenario-validity reported invalid_test for R10 through R12 and the raw log showed a SyntaxError in decision-routing.test.js.",
+      "resolution": "Removed the extra parenthesis and reran scenario-validity successfully.",
+      "guardrailCandidate": "After manual test edits, run scenario-validity before review so syntax errors are caught as test-design issues before static review.",
+      "taskId": null,
+      "timestamp": "2026-06-12T09:50:29.885Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Test review found R6 and R7 negative coverage only checked a subset of required finding and proposal fields.",
+      "trigger": "senti flow run review --phase test returned two blocking findings for partial field-required coverage.",
+      "resolution": "Changed R6 and R7 tests to omit each required field one at a time and assert schema validation rejects every omission.",
+      "guardrailCandidate": "For schema requirements listing required fields, tests should cover every listed field rather than representative omissions.",
+      "taskId": null,
+      "timestamp": "2026-06-12T09:51:33.340Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Test review found R14 still lacked persisted acceptance-review to final-regression state promotion and finalize leaf approval parity coverage.",
+      "trigger": "senti flow run review --phase test returned one blocking migration parity finding.",
+      "resolution": "Added assertions that acceptance-review pass persists final-regression in_progress and that finalize-commit requires approval while finalize-merge, finalize-sync, and finalize-cleanup do not.",
+      "guardrailCandidate": "Migration parity tests should verify persisted state transitions and approval flags, not only next-action shape.",
+      "taskId": null,
+      "timestamp": "2026-06-12T09:52:40.611Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Test review found R4 acceptance-review next-action coverage checked values but not the full public envelope key set.",
+      "trigger": "senti flow run review --phase test returned one blocking R4 envelope-shape finding.",
+      "resolution": "Added an assertion for the complete acceptance-review next-action key set: existing public fields plus additive failurePolicy.",
+      "guardrailCandidate": "Public envelope tests should assert the complete key set whenever a requirement says fields are preserved.",
+      "taskId": null,
+      "timestamp": "2026-06-12T09:53:36.350Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Test review found the R4 next-action test incorrectly made optional failurePolicy exposure mandatory.",
+      "trigger": "senti flow run review --phase test returned a blocking finding about optional additive failurePolicy metadata.",
+      "resolution": "Relaxed the R4 key-set assertion to require existing public snake_case fields and validate failurePolicy only when present.",
+      "guardrailCandidate": "When a spec says an additive field may be exposed, tests must allow absence and only validate the field when present.",
+      "taskId": null,
+      "timestamp": "2026-06-12T09:54:33.640Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Test review found R5 top-level artifact fields and R14 plugin hook parity lacked complete executable coverage.",
+      "trigger": "senti flow run review --phase test returned blocking findings for top-level artifact required fields and plugin hook dispatch.",
+      "resolution": "Added per-field top-level artifact omission tests and a plugin hook fixture that runs through runFlowCommandHooks and writes a spec-scoped artifact.",
+      "guardrailCandidate": "For broad artifact and migration parity requirements, include one executable assertion per named surface, including plugin hook dispatch.",
+      "taskId": null,
+      "timestamp": "2026-06-12T09:58:00.864Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Test review found R10 did not distinguish amend_required approval skipping from user_decision_required decision-state routing.",
+      "trigger": "senti flow run review --phase test returned one blocking approval-skip coverage finding.",
+      "resolution": "Added a user_decision_required acceptance-review command-path test that records the decision-required state while preserving spec and approval done states, contrasting the amend_required reset path.",
+      "guardrailCandidate": "Approval-skip tests should include both the skipped path and the exception path so negative assertions are not ambiguous.",
+      "taskId": null,
+      "timestamp": "2026-06-12T09:59:11.829Z"
+    },
+    {
+      "step": "implement",
+      "reason": "schema required-field handling and acceptance-review completion guard returned the wrong failure semantics during spec-local implementation tests",
+      "trigger": "node --test specs/290-acceptance-review-policy/tests/*.test.js reported schema-required and completion-guard assertion failures",
+      "resolution": "treated undefined required fields as missing and returned STEP_ARTIFACT_VALIDATION_FAILED for acceptance-review artifact load failures",
+      "guardrailCandidate": "when adding new schema null support, verify required-field semantics for undefined fixture fields and step-specific artifact guard error codes",
+      "taskId": null,
+      "timestamp": "2026-06-12T10:30:48.589Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl-review diff input omitted newly added untracked acceptance-review implementation files and reported missing acceptance requirements",
+      "trigger": "senti flow run review returned blocking findings for runner and decision handler files that existed only as untracked files",
+      "resolution": "staged the new acceptance-review source, schema, prompt, and spec-local test files so review diff input includes them",
+      "guardrailCandidate": "before AI diff review, ensure new implementation files are tracked or staged so diff-based context includes added files",
+      "taskId": null,
+      "timestamp": "2026-06-12T10:37:39.443Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "integration gate rejected stale project regression changed_files snapshot after new acceptance-review files were staged for review visibility",
+      "trigger": "senti flow run gate returned ARTIFACT_PLACEHOLDER with message to rerun test-execute",
+      "resolution": "rerun test-execute so the v2 test artifact records the current changed_files snapshot before rerunning test-result-review and gate",
+      "guardrailCandidate": "after staging or otherwise changing git status during impl review recovery, rerun test-execute before integration gate",
+      "taskId": null,
+      "timestamp": "2026-06-12T10:42:45.280Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The new logic adds mechanical blockers for failed/missing/invalid artifacts and blocks on blockers, but the evidence builder never derives `missing_tests` or `missing_required_tests` categories from test evidence, so not all required blocker types are guaranteed to be produced before semantic scoring.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-12T10:47:14.225Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R8",
+          "where": null,
+          "observed": "The new logic adds mechanical blockers for failed/missing/invalid artifacts and blocks on blockers, but the evidence builder never derives `missing_tests` or `missing_required_tests` categories from test evidence, so not all required blocker types are guaranteed to be produced before semantic scoring.",
+          "severity": "blocking",
+          "refs": [
+            "R8"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R13",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R9",
+        "R10",
+        "R11",
+        "R12",
+        "R14",
+        "R15",
+        "R16"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R8",
+          "reason": "The new logic adds mechanical blockers for failed/missing/invalid artifacts and blocks on blockers, but the evidence builder never derives `missing_tests` or `missing_required_tests` categories from test evidence, so not all required blocker types are guaranteed to be produced before semantic scoring."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: acceptance-review evidence builder did not derive missing_tests or missing_required_tests from persisted test evidence",
+      "trigger": "integration gate R8 observation reported missing mechanical blocker derivation for test evidence categories",
+      "resolution": "added spec-local test file discovery and test-execute summary coverage comparison so missing test files and missing testable requirement IDs become mechanical blockers before semantic scoring",
+      "guardrailCandidate": "mechanical blocker requirements must be proven through the evidence builder path, not only direct classifier unit tests",
+      "taskId": null,
+      "timestamp": "2026-06-12T10:48:52.574Z"
+    }
+  ]
+}

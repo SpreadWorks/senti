@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-12T10:37:07.893Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 2,
+    "nonBlocking": 0,
+    "total": 2
+  },
+  "blockingFindings": [
+    {
+      "title": "Acceptance review command is registered without the required implementation/artifact changes",
+      "failureMode": "missing_acceptance_requirement",
+      "requirementId": "R8",
+      "issue": "The diff adds the `acceptance-review` flow node and registers `senti flow run acceptance-review`, but the touched file set does not include `src/flow/lib/run-acceptance-review.js` or `src/flow/lib/acceptance-review-artifacts.js`, which R8 maps as required for persisting and routing acceptance-review artifacts.",
+      "suggestion": "Implement or update `run-acceptance-review` and the acceptance review artifact handling so the command writes `acceptance-review.json` and routes pass/non-pass verdicts according to the acceptance review policy.",
+      "rationale": "Without the runner and artifact persistence/routing logic, the new flow step can be selected but cannot satisfy the required acceptance-review behavior."
+    },
+    {
+      "title": "Acceptance decision command is registered without the required decision handler changes",
+      "failureMode": "missing_acceptance_requirement",
+      "requirementId": "R11",
+      "issue": "The diff registers `senti flow set acceptance-decision`, but the touched file set does not include `src/flow/lib/set-acceptance-decision.js` or `src/flow/lib/acceptance-review-artifacts.js`, which R11 maps as required for resolving non-pass acceptance-review decisions.",
+      "suggestion": "Implement or update `set-acceptance-decision` and the acceptance review artifact handling for the documented choices, including the `user_decision_required` and `blocked` routing cases.",
+      "rationale": "A registered command without the required decision semantics leaves non-pass acceptance-review outcomes unresolved, so the implementation does not meet the acceptance decision requirement."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/290-acceptance-review-policy/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "3d1522163ab7bdb76a18240dec569d87a7837f8a5ee0df0cbe8018ffa4632907"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "impl-001-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Acceptance review command is registered without the required implementation/artifact changes",
+      "body": "The diff adds the `acceptance-review` flow node and registers `senti flow run acceptance-review`, but the touched file set does not include `src/flow/lib/run-acceptance-review.js` or `src/flow/lib/acceptance-review-artifacts.js`, which R8 maps as required for persisting and routing acceptance-review artifacts.",
+      "category": "missing_acceptance_requirement"
+    },
+    {
+      "id": "impl-001-blocking-002",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Acceptance decision command is registered without the required decision handler changes",
+      "body": "The diff registers `senti flow set acceptance-decision`, but the touched file set does not include `src/flow/lib/set-acceptance-decision.js` or `src/flow/lib/acceptance-review-artifacts.js`, which R11 maps as required for resolving non-pass acceptance-review decisions.",
+      "category": "missing_acceptance_requirement"
+    }
+  ]
+}

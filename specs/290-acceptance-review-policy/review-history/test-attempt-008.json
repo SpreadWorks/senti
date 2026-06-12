@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-12T09:52:02.136Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 1,
+    "total": 2
+  },
+  "coverageArtifact": "specs/290-acceptance-review-policy/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R14 migration parity lacks coverage for finalize leaf approval behavior and state promotion",
+      "target": "specs/290-acceptance-review-policy/tests/definition-policy.test.js and specs/290-acceptance-review-policy/tests/migration-parity.test.js",
+      "issue": "R14 requires migration parity for finalize leaf order and approval behavior, flow state promotion, retry metrics, plugin hooks, and side effects. The current tests cover finalize-commit approval and some lifecycle side effects, but they do not cover approval behavior for the finalize leaves whose behavior is explicitly called out, nor do they verify saved flow-state promotion across the acceptance-review to final-regression/finalize path beyond a next-action read.",
+      "requiredChange": "Add the smallest spec-local assertion that exercises the persisted flow transition after acceptance-review pass and verifies the finalize leaf approval behavior expected by the existing public contract.",
+      "whyBlocking": "R14 is a must requirement and the coverage artifact marks it covered, but part of the required migration parity contract has no corresponding executable spec-local coverage."
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Temporary directory cleanup pattern is fragile inside looped tests",
+      "target": "specs/290-acceptance-review-policy/tests/completion-guard.test.js and specs/290-acceptance-review-policy/tests/migration-parity.test.js",
+      "improvement": "Prefer creating a fresh local tmp variable inside each loop iteration or resetting tmp in a finally block so a mid-loop assertion failure does not leave afterEach pointing at an already-removed or stale directory.",
+      "whyNonBlocking": "This is a test hygiene issue, not a missing acceptance requirement or an anti-pattern that would make the tests pass without production behavior."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/290-acceptance-review-policy/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "b7655412ca65c0d99cbc5b425c6ca78e675a6658012cc64172f348e161660270"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 8,
+  "findings": [
+    {
+      "id": "test-008-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 8,
+      "severity": "blocking",
+      "title": "R14 migration parity lacks coverage for finalize leaf approval behavior and state promotion",
+      "body": "R14 requires migration parity for finalize leaf order and approval behavior, flow state promotion, retry metrics, plugin hooks, and side effects. The current tests cover finalize-commit approval and some lifecycle side effects, but they do not cover approval behavior for the finalize leaves whose behavior is explicitly called out, nor do they verify saved flow-state promotion across the acceptance-review to final-regression/finalize path beyond a next-action read.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-008-non-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 8,
+      "severity": "non-blocking",
+      "title": "Temporary directory cleanup pattern is fragile inside looped tests",
+      "body": "Temporary directory cleanup pattern is fragile inside looped tests",
+      "category": "unknown"
+    }
+  ]
+}

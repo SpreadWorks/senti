@@ -78,7 +78,7 @@ export function validateSchema(value, schema, path = "") {
     // required
     if (schema.required) {
       for (const key of schema.required) {
-        if (value[key] == null) {
+        if (!Object.prototype.hasOwnProperty.call(value, key) || value[key] === undefined) {
           errors.push(`${path ? path + "." : ""}${key}: required field is missing`);
         }
       }
@@ -125,6 +125,7 @@ function checkType(value, type) {
     case "boolean": return typeof value === "boolean";
     case "object": return value !== null && typeof value === "object" && !Array.isArray(value);
     case "array": return Array.isArray(value);
+    case "null": return value === null;
     default: return true;
   }
 }

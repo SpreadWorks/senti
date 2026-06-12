@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-12T07:26:18.921Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 1,
+    "total": 2
+  },
+  "coverageArtifact": "specs/290-acceptance-review-policy/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R2 does not cover preservation of existing retry/maxAttempts behavior for other normal steps",
+      "target": "specs/290-acceptance-review-policy/tests/definition-policy.test.js",
+      "issue": "The R2 test verifies review-family retry, gate-family block, acceptance-review amend-spec, and task-review retry, but it does not assert that other normal flow steps preserve their existing maxAttempts/retry behavior. An implementation could accidentally change normal non-review/non-gate step retry behavior and still pass these tests.",
+      "requiredChange": "Add the smallest R2 assertion covering representative normal non-review/non-gate steps and their resolved maxAttempts/retry-compatible behavior, or enumerate the affected normal steps if the contract is step-specific.",
+      "whyBlocking": "R2 explicitly requires other normal steps to preserve existing maxAttempts/retry behavior, and that acceptance requirement currently lacks corresponding executable coverage."
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R10 run test relies on a prewritten acceptance artifact",
+      "target": "specs/290-acceptance-review-policy/tests/decision-routing.test.js",
+      "improvement": "Consider adding a focused assertion that `flow run acceptance-review` updates or records the artifact path/state from the command path, because the current fixture prewrites `acceptance-review.json` before invoking the command.",
+      "whyNonBlocking": "The test still exercises decision routing, state reset, proposal persistence, approval skipping, and spec immutability for amend_required; this is a coverage-strength improvement rather than a clear contradiction."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/290-acceptance-review-policy/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "f613bf52c896eb4cf5234635f5ff011625dc00a2d5f9208bc6851fe2483b05e3"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "test-004-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "R2 does not cover preservation of existing retry/maxAttempts behavior for other normal steps",
+      "body": "The R2 test verifies review-family retry, gate-family block, acceptance-review amend-spec, and task-review retry, but it does not assert that other normal flow steps preserve their existing maxAttempts/retry behavior. An implementation could accidentally change normal non-review/non-gate step retry behavior and still pass these tests.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-004-non-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "non-blocking",
+      "title": "R10 run test relies on a prewritten acceptance artifact",
+      "body": "R10 run test relies on a prewritten acceptance artifact",
+      "category": "unknown"
+    }
+  ]
+}

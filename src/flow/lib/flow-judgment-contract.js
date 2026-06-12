@@ -12,6 +12,7 @@ const TARGET_ARTIFACT_FILE_BY_STEP = Object.freeze({
   "impl-review": "impl-review.json",
   "impl-gate": IMPL_GATE_RESULT_FILE,
   "test-result-review": "test-result-review.json",
+  "acceptance-review": "acceptance-review.json",
   "final-regression": "final-regression-result.json",
 });
 
@@ -186,6 +187,13 @@ export class StepCompletionPolicy {
       ["impl-review", new StepCompletionPolicy({ stepId: "impl-review", allowedVerdicts: ["PASS", "ADVISORY"] })],
       ["impl-gate", new StepCompletionPolicy({ stepId: "impl-gate", allowedVerdicts: ["pass"] })],
       ["test-result-review", new StepCompletionPolicy({ stepId: "test-result-review", allowedVerdicts: ["pass"], requireNoBlocking: false })],
+      ["acceptance-review", new StepCompletionPolicy({
+        stepId: "acceptance-review",
+        allowedVerdicts: ["pass"],
+        requireNoBlocking: true,
+        failureKind: null,
+        nextAction: "final-regression",
+      })],
       ["final-regression", new StepCompletionPolicy({
         stepId: "final-regression",
         allowedVerdicts: ["pass"],
@@ -397,6 +405,19 @@ export function contractFromFinalRegressionArtifact(artifact, opts = {}) {
   });
 }
 
+export function contractFromAcceptanceReviewArtifact(artifact, opts = {}) {
+  const mechanical = Array.isArray(artifact.mechanicalBlockers) ? artifact.mechanicalBlockers : [];
+  const hard = Array.isArray(artifact.hardBlockers) ? artifact.hardBlockers : [];
+  return new FlowJudgmentContract({
+    ...contractInput("acceptance-review", artifact, opts),
+    verdict: artifact.verdict,
+    blockingFindings: [...mechanical, ...hard],
+    failureKind: artifact.verdict === "pass" ? null : "acceptance_review_not_pass",
+    nextAction: artifact.verdict === "pass" ? "final-regression" : null,
+    rawArtifactPath: opts.rawArtifactPath || opts.artifactPath || TARGET_ARTIFACT_FILE_BY_STEP["acceptance-review"],
+  });
+}
+
 export function contractFromGateArtifact(artifact, opts = {}) {
   const phase = opts.phase || artifact.phase;
   const targetStep = phase === "integration" ? "impl-gate" : `${phase}-gate`;
@@ -466,6 +487,9 @@ export function contractForStepFromSpecDir({ root, specDir, stepId }) {
   if (stepId === "test-result-review") {
     return contractFromTestResultReviewArtifact(artifact, { artifactPath: artifactPathRelative });
   }
+  if (stepId === "acceptance-review") {
+    return contractFromAcceptanceReviewArtifact(artifact, { artifactPath: artifactPathRelative });
+  }
   if (stepId === "final-regression") {
     return contractFromFinalRegressionArtifact(artifact, { artifactPath: artifactPathRelative });
   }
@@ -480,7 +504,7 @@ export function validateStepCompletionTransition({ root, state, stepId, requeste
     return Envelope.fail(
       "set",
       "step",
-      "STEP_COMPLETION_VALIDATION_FAILED",
+      stepId === "acceptance-review" ? "STEP_ARTIFACT_VALIDATION_FAILED" : "STEP_COMPLETION_VALIDATION_FAILED",
       `${stepId} cannot be marked done without an active flow spec`,
       {
         completionValidation: {
@@ -502,7 +526,7 @@ export function validateStepCompletionTransition({ root, state, stepId, requeste
     return Envelope.fail(
       "set",
       "step",
-      "STEP_COMPLETION_VALIDATION_FAILED",
+      stepId === "acceptance-review" ? "STEP_ARTIFACT_VALIDATION_FAILED" : "STEP_COMPLETION_VALIDATION_FAILED",
       `${stepId} completion artifact is invalid: ${err.message}`,
       {
         completionValidation: {
@@ -538,6 +562,23 @@ export function validateStepCompletionTransition({ root, state, stepId, requeste
     overrideEvidence,
   });
   if (result.kind === "normal" || result.kind === "override") return null;
+  if (stepId === "acceptance-review") {
+    return Envelope.fail(
+      "set",
+      "step",
+      "STEP_ARTIFACT_VALIDATION_FAILED",
+      result.reason,
+      {
+        completionValidation: {
+          stepId,
+          result: result.kind,
+          reason: result.reason,
+          artifactPath: contract.artifactPath,
+          overridePath,
+        },
+      },
+    );
+  }
   return buildCompletionValidationEnvelope({ contract, policy, overridePath, result });
 }
 

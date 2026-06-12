@@ -1,0 +1,367 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".../draft-coverage-repair.json                     |   8 +\n .../draft-coverage-triage.json                     |   8 +\n .../draft-questions-repair.json                    |  17 +\n .../draft-questions-triage.json                    |  15 +\n .../draft-review-coverage.json                     |  11 +\n .../draft-review-questions.json                    |  19 +\n specs/290-acceptance-review-policy/draft.json      | 158 +++++\n specs/290-acceptance-review-policy/file-map.json   |  82 +++\n specs/290-acceptance-review-policy/flow.json       | 480 +++++++++++++\n .../290-acceptance-review-policy/impl-review.json  | 349 ++++++++++\n specs/290-acceptance-review-policy/issue-log.json  | 295 ++++++++\n specs/290-acceptance-review-policy/issue.md        | 242 +++++++\n .../review-history/draft-coverage-attempt-001.json |  14 +\n .../draft-questions-attempt-001.json               |  33 +\n .../review-history/impl-attempt-001.json           |  69 ++\n .../review-history/impl-attempt-001.md             |  29 +\n .../review-history/impl-attempt-002.json           | 753 +++++++++++++++++++++\n .../review-history/impl-attempt-002.md             | 455 +++++++++++++\n .../review-history/spec-attempt-001.json           | 113 ++++\n .../review-history/spec-attempt-001.md             |  37 +\n .../review-history/test-attempt-001.json           | 138 ++++\n .../review-history/test-attempt-001.md             |  48 ++\n .../review-history/test-attempt-002.json           |  66 ++\n .../review-history/test-attempt-002.md             |  21 +\n .../review-history/test-attempt-003.json           |  66 ++\n .../review-history/test-attempt-003.md             |  21 +\n .../review-history/test-attempt-004.json           |  66 ++\n .../review-history/test-attempt-004.md             |  21 +\n .../review-history/test-attempt-005.json           | 102 +++\n .../review-history/test-attempt-005.md             |  33 +\n .../review-history/test-attempt-006.json           | 102 +++\n .../review-history/test-attempt-006.md             |  36 +\n .../review-history/test-attempt-007.json           |  66 ++\n .../review-history/test-attempt-007.md             |  24 +\n .../review-history/test-attempt-008.json           |  66 ++\n .../review-history/test-attempt-008.md             |  21 +\n .../review-history/test-attempt-009.json           |  48 ++\n .../review-history/test-attempt-009.md             |  18 +\n .../review-history/test-attempt-010.json           |  48 ++\n .../review-history/test-attempt-010.md             |  18 +\n .../review-history/test-attempt-011.json           |  66 ++\n .../review-history/test-attempt-011.md             |  24 +\n .../review-history/test-attempt-012.json           |  66 ++\n .../review-history/test-attempt-012.md             |  21 +\n .../review-history/test-attempt-013.json           |  28 +\n .../review-history/test-attempt-013.md             |  13 +\n specs/290-acceptance-review-policy/review.md       | 455 +++++++++++++\n .../290-acceptance-review-policy/spec-repair.json  |  66 ++\n .../290-acceptance-review-policy/spec-review.json  |  59 ++\n specs/290-acceptance-review-policy/spec-review.md  |  37 +\n .../290-acceptance-review-policy/spec-triage.json  |  36 +\n specs/290-acceptance-review-policy/spec.json       | 427 ++++++++++++\n specs/290-acceptance-review-policy/spec.md         | 179 +++++\n specs/290-acceptance-review-policy/tasks/T-1.md    |  20 +\n specs/290-acceptance-review-policy/tasks/T-2.md    |  20 +\n specs/290-acceptance-review-policy/tasks/T-3.md    |  20 +\n specs/290-acceptance-review-policy/tasks/T-4.md    |  21 +\n specs/290-acceptance-review-policy/tasks/T-5.md    |  21 +\n specs/290-acceptance-review-policy/tasks/T-6.md    |  20 +\n .../test-coverage.json                             | 242 +++++++\n .../290-acceptance-review-policy/test-review.json  |  25 +\n specs/290-acceptance-review-policy/test-review.md  |  13 +\n .../tests/artifact-verdict-contract.test.js        | 297 ++++++++\n .../tests/completion-guard.test.js                 | 165 +++++\n .../tests/decision-routing.test.js                 | 323 +++++++++\n .../tests/definition-policy.test.js                | 166 +++++\n .../tests/migration-parity.test.js                 | 236 +++++++\n .../tests/next-action-contract.test.js             | 152 +++++\n src/flow/definition.js                             |  27 +\n src/flow/lib/acceptance-review-artifacts.js        | 380 +++++++++++\n src/flow/lib/flow-judgment-contract.js             |  45 +-\n src/flow/lib/get-next-action.js                    |   3 +\n src/flow/lib/run-acceptance-review.js              |  35 +\n src/flow/lib/set-acceptance-decision.js            |  14 +\n src/flow/lib/set-step.js                           |   8 +\n src/flow/prompts/impl/acceptance-review.md         |   8 +\n src/flow/registry.js                               |  24 +\n src/flow/schemas/acceptance-review.schema.json     | 118 ++++\n .../next-action/acceptance-review.schema.json      |  14 +\n src/lib/plugin-registry.js                         |   2 +-\n src/lib/schema-validate.js                         |   3 +-\n 81 files changed, 8111 insertions(+), 4 deletions(-)",
+      "commits": [
+        "Add acceptance review flow policy"
+      ]
+    },
+    "retro": {
+      "total": 16,
+      "done": 16,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "FlowNode must expose failurePolicy metadata whose accepted values include retry, record, amend-spec, and block, and invalid policy values must fail during definition construction or validation.",
+          "status": "done",
+          "note": "R1: FlowNode accepts only declared failurePolicy values"
+        },
+        {
+          "desc": "The flow definition must assign initial failurePolicy values: review-family steps retry, gate-family steps block, acceptance-review amend-spec, normal impl-review retry, and other normal steps preserving their existing maxAttempts/retry behavior.",
+          "status": "done",
+          "note": "R2: flow nodes expose initial failurePolicy assignments"
+        },
+        {
+          "desc": "The impl branch must contain acceptance-review after retro and before final-regression, and acceptance-review must resolve maxAttempts to 1.",
+          "status": "done",
+          "note": "R3: implementation flow places acceptance-review between retro and final-regression"
+        },
+        {
+          "desc": "senti flow get next-action must preserve existing public snake_case fields for acceptance-review, including output_schema and requires_approval false, and may expose failurePolicy amend-spec only as an additive field.",
+          "status": "done",
+          "note": "R4: next-action exposes the public snake_case acceptance-review envelope"
+        },
+        {
+          "desc": "Acceptance-review must write a schema-validated artifact containing goalSatisfactionScore, requirementAlignmentScore, implementationQualityScore, acceptanceScore, thresholds, mechanicalBlockers, hardBlockers, attempt, findings, requirementAmendmentProposals, userDecision, blockedDecision, verdict, and optional reportRefs used only when report.json already exists.",
+          "status": "done",
+          "note": "R5: schema validates the complete acceptance-review artifact shape"
+        },
+        {
+          "desc": "Each acceptance-review finding must include findingId, summary, severity, category, mappedRequirementIds, linkedRequirementAmendmentProposalIds, evidenceRefs, confidence, shouldReimplement, reimplementationReason, and requiresUserDecision.",
+          "status": "done",
+          "note": "R6: schema rejects findings missing required evidence and mapping fields"
+        },
+        {
+          "desc": "Each requirementAmendmentProposal must include proposalId, proposalType, targetRequirementIds, proposedRequirementSummary, reason, relationToOriginalRequest, linkedFindingIds, and shouldReimplementAfterAmendment.",
+          "status": "done",
+          "note": "R7: schema rejects requirementAmendmentProposals missing handoff fields"
+        },
+        {
+          "desc": "Acceptance-review must classify missing tests, failed tests, missing required artifacts, invalid schemas, and missing required tests as mechanicalBlockers that produce verdict blocked before semantic scoring can pass.",
+          "status": "done",
+          "note": "R8: mechanical blockers force blocked before semantic pass"
+        },
+        {
+          "desc": "Verdict pass must require goal satisfaction, zero mechanicalBlockers, and zero hardBlockers; acceptanceScore, requirementAlignmentScore, and implementationQualityScore must not offset an unmet goal.",
+          "status": "done",
+          "note": "R9: secondary scores cannot offset unmet goal satisfaction"
+        },
+        {
+          "desc": "Verdict amend_required from `senti flow run acceptance-review` must record acceptanceReview.verdict and requirementAmendmentProposals in flow state/artifact, reset spec through acceptance-review leaves for amendment retry, skip routine approval unless user_decision_required was recorded, and avoid editing spec.json inside acceptance-review.",
+          "status": "done",
+          "note": "R10: amend_required records proposals and resets spec through acceptance-review without mutating spec.json"
+        },
+        {
+          "desc": "`senti flow set acceptance-decision --choice amend_and_retry|abort|accept_risk_and_continue` must persist userDecision for verdict user_decision_required; amend_and_retry resets spec through acceptance-review, abort records an aborted acceptanceReview state and does not promote final-regression, and accept_risk_and_continue records issue-log risk then promotes final-regression only when no mechanicalBlockers exist.",
+          "status": "done",
+          "note": "R11: user_decision_required supports amend_and_retry"
+        },
+        {
+          "desc": "`senti flow set acceptance-decision --choice repair_and_reevaluate|abort` must persist blockedDecision for verdict blocked; repair_and_reevaluate resets from the recorded repairTargetStep through acceptance-review, abort records an aborted acceptanceReview state, and accept_risk_and_continue must not be accepted.",
+          "status": "done",
+          "note": "R12: blocked accepts only repair_and_reevaluate or abort decisions"
+        },
+        {
+          "desc": "Normal-flow impl-review must keep current-compatible retry behavior while the code structure can represent record policy for later comparative-validation use.",
+          "status": "done",
+          "note": "R13: normal impl-review remains retry-compatible"
+        },
+        {
+          "desc": "Migration parity must preserve existing next-action envelope shape, review/gate artifact meanings, retro artifact meaning, final-regression as the final mechanical check after acceptance-review, finalize leaf order and approval behavior, flow state promotion, retry metrics, plugin hooks, and side effects.",
+          "status": "done",
+          "note": "R14: final-regression and finalize behavior remain after acceptance-review"
+        },
+        {
+          "desc": "Acceptance-review step completion must be guarded by its artifact and verdict/decision state so manual completion or hook promotion cannot advance final-regression when the artifact is missing, blocked, amend_required, or waiting for user decision.",
+          "status": "done",
+          "note": "R15: completion policy rejects missing or unresolved acceptance-review artifacts"
+        },
+        {
+          "desc": "The implementation must add spec-local tests under specs/290-acceptance-review-policy/tests/ with // spec: R<N> headers covering R1 through R15, and may update shared tests only where public flow contracts change.",
+          "status": "done",
+          "note": "R16: spec-local tests remain header-covered while acceptance-review is present"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 24,
+      "fullLogPath": "specs/290-acceptance-review-policy/issue-log.json",
+      "importantTotal": 13,
+      "importantShown": 10,
+      "importantOmitted": 3,
+      "recentOtherTotal": 11,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 6,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "prepare-spec",
+          "reason": "prepare command returned docs scan failure in main repository context after creating the worktree and flow files",
+          "resolution": "confirmed the generated worktree has active flow state and continued all subsequent operations inside that worktree"
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "The draft adds/moves flow behavior (inserting acceptance-review and applying failurePolicy changes) but does not include an explicit migration-parity inventory of existing public behavior being moved/replaced, including affected user-fac...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "draft gate failed migration parity because the draft lacked an explicit public behavior inventory and per-surface retained-behavior mapping",
+          "resolution": "added migration parity inventory, retained owner mapping, no-removal statements, and behavior-level verification conditions to draft.json"
+        },
+        {
+          "classification": "important",
+          "step": "spec-repair",
+          "reason": "spec review found blocking gaps in report availability, non-pass routing integration, public next-action field naming, and acceptance-review completion guard",
+          "resolution": "updated spec.json to make report refs optional, define acceptance-review and acceptance-decision commands with reset semantics, preserve snake_case envelope fields, and require artifact-backed completion validation"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Test review found incomplete acceptance-review coverage across artifact writing, blocker classification, decision routing, completion guard, and migration parity tests.",
+          "resolution": "Expanded spec-local tests to use schema-valid artifacts and cover artifact writing, reportRefs, classifier categories, all decision branches, unresolved completion guards, hook promotion, and parity behavior."
+        },
+        {
+          "classification": "important",
+          "step": "scenario-validity",
+          "reason": "Scenario-validity classified R10 through R12 and R15 as invalid tests after adding static imports for a not-yet-created acceptance-review helper module.",
+          "resolution": "Changed the missing helper module references to dynamic per-test loads so pre-implementation failures remain attributable to individual requirement tests."
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Reset test-review rerun found remaining test-design gaps for reset behavior, public acceptance-review command coverage, hardBlocker pass prevention, and caller-supplied reportRefs without report.json.",
+          "resolution": "Added done-state reset preconditions, switched R10 to the public flow run acceptance-review path with a controlled artifact seam, added hardBlocker pass prevention, and asserted reportRefs are omitted when report.json is absent even if s..."
+        },
+        {
+          "classification": "important",
+          "step": "scenario-validity",
+          "reason": "Scenario-validity briefly blocked because decision-routing.test.js had an extra closing parenthesis after adding reset preconditions.",
+          "resolution": "Removed the extra parenthesis and reran scenario-validity successfully."
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Test review found R4 acceptance-review next-action coverage checked values but not the full public envelope key set.",
+          "resolution": "Added an assertion for the complete acceptance-review next-action key set: existing public fields plus additive failurePolicy."
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Test review found the R4 next-action test incorrectly made optional failurePolicy exposure mandatory.",
+          "resolution": "Relaxed the R4 key-set assertion to require existing public snake_case fields and validate failurePolicy only when present."
+        },
+        {
+          "classification": "recent-other",
+          "step": "test-review",
+          "reason": "Test review found R14 still lacked persisted acceptance-review to final-regression state promotion and finalize leaf approval parity coverage.",
+          "resolution": "Added assertions that acceptance-review pass persists final-regression in_progress and that finalize-commit requires approval while finalize-merge, finalize-sync, and finalize-cleanup do not."
+        },
+        {
+          "classification": "recent-other",
+          "step": "test-review",
+          "reason": "Test review found R5 top-level artifact fields and R14 plugin hook parity lacked complete executable coverage.",
+          "resolution": "Added per-field top-level artifact omission tests and a plugin hook fixture that runs through runFlowCommandHooks and writes a spec-scoped artifact."
+        },
+        {
+          "classification": "recent-other",
+          "step": "test-review",
+          "reason": "Test review found R10 did not distinguish amend_required approval skipping from user_decision_required decision-state routing.",
+          "resolution": "Added a user_decision_required acceptance-review command-path test that records the decision-required state while preserving spec and approval done states, contrasting the amend_required reset path."
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-review",
+          "reason": "impl-review diff input omitted newly added untracked acceptance-review implementation files and reported missing acceptance requirements",
+          "resolution": "staged the new acceptance-review source, schema, prompt, and spec-local test files so review diff input includes them"
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: acceptance-review evidence builder did not derive missing_tests or missing_required_tests from persisted test evidence",
+          "resolution": "added spec-local test file discovery and test-execute summary coverage comparison so missing test files and missing testable requirement IDs become mechanical blockers before semantic scoring"
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 0,
+      "output": 0,
+      "cacheRead": 0,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 0,
+      "durationMs": 0,
+      "phaseDurations": []
+    },
+    "tests": {
+      "total": 16,
+      "passed": 16,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/290-acceptance-review-policy/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 289,
+          "end_line": 18754
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/290-acceptance-review-policy/review-history/"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/290-acceptance-review-policy/tasks/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/definition.js"
+          },
+          {
+            "status": "added",
+            "path": "src/flow/lib/acceptance-review-artifacts.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/flow-judgment-contract.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/get-next-action.js"
+          },
+          {
+            "status": "added",
+            "path": "src/flow/lib/run-acceptance-review.js"
+          },
+          {
+            "status": "added",
+            "path": "src/flow/lib/set-acceptance-decision.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-step.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/plugin-registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/schema-validate.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/290-acceptance-review-policy/review-history/"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/290-acceptance-review-policy/tasks/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/definition.js"
+          },
+          {
+            "status": "added",
+            "path": "src/flow/lib/acceptance-review-artifacts.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/flow-judgment-contract.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/get-next-action.js"
+          },
+          {
+            "status": "added",
+            "path": "src/flow/lib/run-acceptance-review.js"
+          },
+          {
+            "status": "added",
+            "path": "src/flow/lib/set-acceptance-decision.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-step.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/plugin-registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/schema-validate.js"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/290-acceptance-review-policy/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    Add acceptance review flow policy\n    81 files changed, 8111 insertions(+), 4 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (16 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 0\n\n  Tests\n  ────────────────────────────────────────────────\n    total 16  passed 16  failed 0 verdict=pass\n    raw_output: specs/290-acceptance-review-policy/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (24 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/290-acceptance-review-policy/issue-log.json\n\n    Important (10 of 13)\n    - [prepare-spec] prepare command returned docs scan failure in main repository context after creating the worktree and flow files\n    - [draft-gate] The draft adds/moves flow behavior (inserting acceptance-review and applying failurePolicy changes) but does not include an explicit migration-parity inventory of existing public behavior being moved/replaced, including affected user-fac...\n    - [draft-gate] draft gate failed migration parity because the draft lacked an explicit public behavior inventory and per-surface retained-behavior mapping\n    - [spec-repair] spec review found blocking gaps in report availability, non-pass routing integration, public next-action field naming, and acceptance-review completion guard\n    - [test-review] Test review found incomplete acceptance-review coverage across artifact writing, blocker classification, decision routing, completion guard, and migration parity tests.\n    - [scenario-validity] Scenario-validity classified R10 through R12 and R15 as invalid tests after adding static imports for a not-yet-created acceptance-review helper module.\n    - [test-review] Reset test-review rerun found remaining test-design gaps for reset behavior, public acceptance-review command coverage, hardBlocker pass prevention, and caller-supplied reportRefs without report.json.\n    - [scenario-validity] Scenario-validity briefly blocked because decision-routing.test.js had an extra closing parenthesis after adding reset preconditions.\n    - [test-review] Test review found R4 acceptance-review next-action coverage checked values but not the full public envelope key set.\n    - [test-review] Test review found the R4 next-action test incorrectly made optional failurePolicy exposure mandatory.\n    ... 3 important issue-log entries omitted\n\n    Recent Other (5 of 11)\n    - [test-review] Test review found R14 still lacked persisted acceptance-review to final-regression state promotion and finalize leaf approval parity coverage.\n    - [test-review] Test review found R5 top-level artifact fields and R14 plugin hook parity lacked complete executable coverage.\n    - [test-review] Test review found R10 did not distinguish amend_required approval skipping from user_decision_required decision-state routing.\n    - [impl-review] impl-review diff input omitted newly added untracked acceptance-review implementation files and reported missing acceptance requirements\n    - [impl-gate] fix: acceptance-review evidence builder did not derive missing_tests or missing_required_tests from persisted test evidence\n    ... 6 other issue-log entries omitted"
+}
