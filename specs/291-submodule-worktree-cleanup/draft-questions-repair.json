@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Added the approved auto preflight intent as the initial draft QA entry.",
+  "items": [
+    {
+      "title": "1. Empty initial QA list",
+      "target": "q<N> (no qa.id present)",
+      "rationale": "Inserted q1 as an approved goal-confirmation entry that records the user-approved Issue #381 goal and scope without adding new requirements.",
+      "evidence": "draft.json qa[0] now contains an approved goal-confirmation entry covering the finalize-cleanup submodule worktree cleanup goal.",
+      "changedFieldPaths": [
+        "qa"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "devType": "bugfix",
+  "goal": "Spec-Driven Development の worktree mode で、初期化済み submodule を含む clean な worktree を finalize-cleanup が安全に削除できるようにする。",
+  "analysis": {
+    "problem": "現在の finalize-cleanup は `git worktree remove <path>` の失敗を一律 `WORKTREE_REMOVE_FAILED` として返す。Git は初期化済み submodule を含む worktree の通常 remove を拒否するため、submodule 利用プロジェクトでは clean でも cleanup が止まる。一方で `--force` の常用は dirty や untracked の削除につながる。",
+    "proposedApproach": "通常の remove を最初に実行する。失敗理由が submodule 起因と確認できた場合のみ、worktree 本体と submodule の dirty 状態を検査し、clean と確認できたときだけ `git worktree remove --force <path>` に限定して retry する。dirty や locked など安全確認できない状態では worktree と feature branch を保持し、復旧案内付きのエラーを返す。",
+    "validation": "対象コード `src/flow/lib/run-finalize-cleanup.js` は commit 後に `git worktree remove` を実行し、失敗時は現在 `WORKTREE_REMOVE_FAILED` を返している。既存テスト `tests/unit/flow/finalize-cleanup-robustness.test.js` には dirty worktree の remove 失敗検証があるため、submodule clean 成功、submodule dirty 保持、submodule 状態取得失敗または locked 保持を追加検証できる。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #381 は finalize-cleanup の worktree 削除処理を対象にしている。",
+      "must: Git は初期化済み submodule を含む worktree の通常 remove を拒否する場合がある。",
+      "must: 現行 `runTeardown` は通常 remove の失敗を `WORKTREE_REMOVE_FAILED` として返し、submodule 起因の限定 retry を持たない。",
+      "must: `--force` は dirty や untracked の削除を起こし得るため、clean 確認なしに使わない。",
+      "must: 移行棚卸しとして、非 submodule 起因の通常 remove 失敗は既存の `WORKTREE_REMOVE_FAILED` 所有のまま維持する。",
+      "must: 移行棚卸しとして、submodule 起因かつ clean 確認済みの通常 remove 失敗は新しい限定 force retry 分岐が所有する。",
+      "must: 移行棚卸しとして、submodule 起因でも dirty または状態確認不能の worktree は削除保護分岐が所有する。"
+    ],
+    "decisionPoints": [
+      "must: 通常 remove は既存の第一選択として維持し、submodule 起因の失敗だけを特別扱いする。",
+      "must: `--force` retry の前に worktree 本体と submodule 内の変更有無を確認する。",
+      "must: dirty または状態確認不能の場合は削除せず、次に取れる復旧手順を envelope に含める。",
+      "must: 既存 `WORKTREE_REMOVE_FAILED` は非 submodule 失敗の公開契約として残し、submodule 専用の保護エラーと混同しない。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 外部依存は追加せず、Node.js 組み込みモジュールと既存の git helper を使う。",
+      "must: finalize-cleanup の成功時だけ worktree 境界が解除される既存契約を維持する。",
+      "must: 変更対象は `src/` の汎用 CLI 実装に限定し、特定プロジェクト名や環境固有値を入れない。",
+      "must: orphan commit guard、metadata commit、report attachment、active-flow clear、branch delete、teardown validation は既存所有のまま維持する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: submodule 起因と判定する stderr/stdout 条件を仕様で明文化する。",
+      "must: dirty 判定対象に含める worktree 本体と submodule の状態コマンド、失敗時のエラーコード、復旧案内文言を仕様で固定する。",
+      "must: 既存 `WORKTREE_REMOVE_FAILED` との関係を仕様で定義し、非 submodule の失敗挙動を保つ。",
+      "must: migration parity の検証項目として、維持する公開挙動と置換する submodule 分岐の対応表を spec に展開する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: finalize-cleanup の worktree teardown で、通常 remove 失敗が submodule 起因なら安全確認後に限定 `--force` retry を行う。",
+      "must: worktree 本体または submodule に dirty 状態がある場合、worktree と feature branch を削除しない。",
+      "must: submodule 状態確認や worktree 削除の失敗時、原因と復旧案内を envelope に含める。",
+      "must: 既存の orphan commit guard、finalize metadata commit、branch delete、teardown validation の契約を維持する。",
+      "must: submodule clean 成功、submodule dirty 保持、非 submodule 失敗維持をテストで確認する。",
+      "must: finalize metadata commit、report attachment、active-flow clear、branch delete、teardown validation が submodule 対応後も同じ順序で成立することを検証する。"
+    ],
+    "out": [
+      "must: submodule の初期化、同期、更新、再帰 checkout は扱わない。",
+      "must: orphan commit rescue、squash baseline 判定、merge 戦略の挙動は変更しない。",
+      "must: ユーザーの dirty 変更を自動 commit、stash、削除しない。",
+      "must: Git 以外の VCS や外部 submodule 管理ツールは対象外とする。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: `senti flow run finalize-cleanup` の worktree mode における teardown 成否とエラー envelope が変わる。",
+    "must: submodule を含まない通常 worktree の cleanup 成功経路は維持する。",
+    "must: dirty worktree の保護は維持し、既存テストが期待する削除失敗の安全性を弱めない。",
+    "must: finalize-cleanup 成功後の report 添付、last-finalized pointer、active flow clear、branch delete の順序契約を壊さない。",
+    "must: migration inventory は `WORKTREE_REMOVE_FAILED` 維持、submodule clean retry 追加、submodule dirty 保護追加、locked 保護維持の四分類で扱う。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "must: Issue #381 の目的は、Spec-Driven Development の worktree mode における finalize-cleanup で、初期化済み submodule を含む clean な worktree を安全に削除できるようにし、dirty または locked の場合は削除せず復旧案内を返すこと。",
+      "answer": "must: この目的と範囲で進める。通常 remove を先に試し、submodule 起因の失敗だけを安全確認後の限定 force retry 対象にする。",
+      "evidence": "specs/291-submodule-worktree-cleanup/issue.md describes the submodule worktree remove failure and requested safe retry behavior; flow.json has autoApprove true after user selected the preflight option.",
+      "why": "Issue 本文で goal、scope、out-of-scope が十分に具体化されており、追加のユーザー判断なしに仕様化できるため。",
+      "considered": "",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-12T15:16:30Z",
+    "notes": "AutoApprove preflight summary accepted by user; no unresolved user decisions remain."
+  }
+}

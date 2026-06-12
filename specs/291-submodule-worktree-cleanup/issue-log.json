@@ -1,0 +1,152 @@
+{
+  "entries": [
+    {
+      "step": "prepare-spec",
+      "reason": "prepare-spec first returned a docs scan preset resolution error from the main repository context, then a repeated prepare attempt collided with the already-created worktree branch",
+      "trigger": "senti flow prepare initially reported Preset not found: node-cli, followed by branch already exists for feature/291-submodule-worktree-cleanup",
+      "resolution": "verified the created worktree contains an active flow, switched execution to that worktree, and continued from the active draft step",
+      "guardrailCandidate": "after prepare failure, check the generated worktree status before retrying prepare with the same title",
+      "taskId": null,
+      "timestamp": "2026-06-12T15:11:04.072Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The draft introduces changed finalize-cleanup behavior but does not include a migration inventory of existing public behavior being replaced (e.g., existing `WORKTREE_REMOVE_FAILED` failure flow and teardown contract surfaces) mapped to new owners or explicit remove decisions before implementation.; The draft includes verification for the new submodule cases but does not provide behavior-level migration-parity checks for all retained public surfaces it says will be preserved (e.g., orphan commit guard, finalize metadata commit/report attachment order, active-flow clear and branch delete contracts).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-12T15:17:17.850Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "deferredToSpec / resolvedByProjectRules / scopeVerification"
+          },
+          "observed": "The draft introduces changed finalize-cleanup behavior but does not include a migration inventory of existing public behavior being replaced (e.g., existing `WORKTREE_REMOVE_FAILED` failure flow and teardown contract surfaces) mapped to new owners or explicit remove decisions before implementation.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "qa / validation / scopeVerification.in"
+          },
+          "observed": "The draft includes verification for the new submodule cases but does not provide behavior-level migration-parity checks for all retained public surfaces it says will be preserved (e.g., orphan commit guard, finalize metadata commit/report attachment order, active-flow clear and branch delete contracts).",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft introduces changed finalize-cleanup behavior but does not include a migration inventory of existing public behavior being replaced (e.g., existing `WORKTREE_REMOVE_FAILED` failure flow and teardown contract surfaces) mapped to new owners or explicit remove decisions before implementation."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft includes verification for the new submodule cases but does not provide behavior-level migration-parity checks for all retained public surfaces it says will be preserved (e.g., orphan commit guard, finalize metadata commit/report attachment order, active-flow clear and branch delete contracts)."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft-gate failed migration-parity because retained and replaced finalize-cleanup behaviors were not inventoried",
+      "trigger": "senti flow run gate --phase draft reported two migration-parity blocking observations",
+      "resolution": "will add migration inventory and parity verification requirements to draft before rerunning gate",
+      "guardrailCandidate": "when changing cleanup behavior, inventory existing public errors and teardown contracts before gate",
+      "taskId": null,
+      "timestamp": "2026-06-12T15:17:26.204Z"
+    },
+    {
+      "step": "spec-review",
+      "reason": "spec-review failed because submodule cleanup halt and force retry failure contracts were underspecified",
+      "trigger": "senti flow run review --phase spec reported two blocking findings",
+      "resolution": "will triage both findings as apply and add envelope/failure-path contracts during spec repair",
+      "guardrailCandidate": "specs for destructive cleanup retries must define every halt envelope and retry failure outcome",
+      "taskId": null,
+      "timestamp": "2026-06-12T15:23:55.607Z"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "scenario-validity classified all requirements as invalid_test due to an invalid regex literal in the spec-local test",
+      "trigger": "node --test failed to parse cleanup-submodule-contract.test.js before executing tests",
+      "resolution": "replaced slash-heavy regex literals with explicit string inclusion checks",
+      "guardrailCandidate": "after replacing tests, run scenario-validity immediately to catch syntax errors before test-review",
+      "taskId": null,
+      "timestamp": "2026-06-12T15:31:24.116Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review failed because halt-path tests did not assert feature branch preservation for dirty and status failure cases",
+      "trigger": "senti flow run review --phase test reported missing branch preservation assertions",
+      "resolution": "added negative branch deletion assertions for R4 and R7 and strengthened R2 submodule inspection assertion",
+      "guardrailCandidate": "halt-path tests must assert every preserved resource named by the requirement, not only the worktree path",
+      "taskId": null,
+      "timestamp": "2026-06-12T15:32:22.886Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review failed because executable tests still missed side effects, recovery guidance, submodule status command shape, and bounded diagnostics",
+      "trigger": "senti flow run review --phase test reported four blocking findings after replacing static tests",
+      "resolution": "extended tests to assert report and active-flow side effects, status-porcelain submodule inspection, recovery guidance, and oversized diagnostic truncation",
+      "guardrailCandidate": "behavior tests for cleanup must assert side effects, recovery messages, command shape, and diagnostic bounds named by requirements",
+      "taskId": null,
+      "timestamp": "2026-06-12T15:35:48.377Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review failed because force retry cardinality, submodule diagnostic bounds, and worktree-root status target were not asserted",
+      "trigger": "senti flow run review --phase test reported three remaining blocking findings",
+      "resolution": "added exact force retry count checks, dirty submodule diagnostic size assertions, and command target checks for worktree-root status and submodule inspection",
+      "guardrailCandidate": "cleanup tests with fake git must assert command cardinality and target repository, not only command text",
+      "taskId": null,
+      "timestamp": "2026-06-12T15:38:39.808Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review failed because submodule-only status failure, force-failure validation skipping, and alternate submodule status inspection were not covered",
+      "trigger": "senti flow run review --phase test reported three blocking findings for R7 R8 R9 test coverage",
+      "resolution": "added submodule-only status failure scenarios, validation skip assertions after force failure, and fake git support for direct submodule path status checks",
+      "guardrailCandidate": "test fixtures must allow all valid implementation mechanisms while covering each independent failure path",
+      "taskId": null,
+      "timestamp": "2026-06-12T15:41:39.104Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl-review found a data-integrity bug where diagnostic bounding limited submodule cleanliness inspection before force removal",
+      "trigger": "senti flow run review reported capped submodule inspection before cleanliness was proven",
+      "resolution": "inspect the full initialized submodule list, apply bounds only to diagnostics, skip uninitialized submodule entries, and add a late dirty submodule test",
+      "guardrailCandidate": "cleanup diagnostics may be bounded, but destructive safety inspection must cover the full target set before force removal",
+      "taskId": null,
+      "timestamp": "2026-06-12T15:50:55.885Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "impl-gate failed because the spec-local R6 test used Array.entries as data and reported a false failure",
+      "trigger": "senti flow run gate reported test artifact validation failed for R6",
+      "resolution": "fixed the R6 assertion to compare the active-flow array directly",
+      "guardrailCandidate": "tests must avoid truthy prototype methods when selecting optional object fields",
+      "taskId": null,
+      "timestamp": "2026-06-12T15:55:51.613Z"
+    },
+    {
+      "step": "acceptance-review",
+      "reason": "acceptance-review blocked because test-execute cleanup removed scenario-validity-result.json",
+      "trigger": "senti flow run acceptance-review",
+      "resolution": "preserve plan-phase scenario-validity evidence in removeRebuildableTestArtifacts and refresh downstream evidence",
+      "guardrailCandidate": "test-execute cleanup must not delete artifacts that later acceptance-review requires",
+      "taskId": null,
+      "timestamp": "2026-06-12T16:04:41.055Z"
+    }
+  ]
+}

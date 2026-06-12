@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "Both blocking findings are valid and directly repairable in spec.json by defining the submodule halt envelope contract and force retry failure path.",
+  "items": [
+    {
+      "title": "Submodule halt envelope contract is undefined",
+      "target": "Scope / R4 / R7 / Acceptance Criteria",
+      "decision": "apply",
+      "rationale": "The current spec requires cause-specific recovery guidance but does not name the machine-readable envelope contract needed for implementation and tests.",
+      "evidence": "spec.json requirements R4/R7 mention halt and diagnostics, but no error code or required data payload distinguishes dirty root, dirty submodule, and status inspection failure."
+    },
+    {
+      "title": "Force retry failure path is omitted",
+      "target": "R3 / Data Flow / Acceptance Criteria",
+      "decision": "apply",
+      "rationale": "The force retry is a destructive cleanup boundary; the spec must state that branch deletion does not proceed if the retry fails and must define the failure envelope.",
+      "evidence": "spec.json R3 and data_flow describe successful force retry only; acceptance criteria do not cover force retry failure."
+    }
+  ]
+}

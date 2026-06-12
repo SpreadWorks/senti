@@ -97,15 +97,19 @@ describe("test-artifacts", () => {
     }
   });
 
-  it("removeRebuildableTestArtifacts preserves final-regression attempt logs", () => {
+  it("removeRebuildableTestArtifacts preserves plan-phase and final-regression evidence", () => {
     const tmp = createTmpDir();
     try {
+      writeFile(tmp, "scenario-validity-result.json", "{}\n");
+      writeFile(tmp, "tests/.raw/scenario-validity.log", "scenario validity\n");
       writeFile(tmp, "final-regression-result.json", "{}\n");
       writeFile(tmp, "tests/.raw/final-regression-attempt-001.log", "attempt 1\n");
       writeFile(tmp, "tests/.raw/requirement-summary.json", "[]\n");
 
       removeRebuildableTestArtifacts(tmp);
 
+      assert.equal(fs.existsSync(path.join(tmp, "scenario-validity-result.json")), true);
+      assert.equal(fs.existsSync(path.join(tmp, "tests/.raw/scenario-validity.log")), true);
       assert.equal(fs.existsSync(path.join(tmp, "final-regression-result.json")), false);
       assert.equal(fs.existsSync(path.join(tmp, "tests/.raw/requirement-summary.json")), false);
       assert.equal(fs.existsSync(path.join(tmp, "tests/.raw/final-regression-attempt-001.log")), true);

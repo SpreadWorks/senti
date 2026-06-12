@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-12T15:40:47.153Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 3,
+    "advisory": 0,
+    "total": 3
+  },
+  "coverageArtifact": "specs/291-submodule-worktree-cleanup/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Submodule status failure path is not independently covered",
+      "target": "specs/291-submodule-worktree-cleanup/tests/cleanup-submodule-contract.test.js::R7/R9 status_fail scenarios",
+      "issue": "The only status-failure scenarios make the root `git status --porcelain` fail before an implementation needs to inspect initialized submodules. An implementation that correctly halts on root status failure but mishandles submodule status failures can still pass these tests.",
+      "requiredChange": "Add a submodule-only status failure scenario where root status succeeds, initialized submodule discovery succeeds, and submodule cleanliness inspection fails; assert `SUBMODULE_WORKTREE_STATUS_FAILED`, preserved worktree/branch, bounded diagnostics, and retained submodule git error output.",
+      "whyBlocking": "R7 and R9 require correct behavior when cleanliness cannot be confirmed for initialized submodules, but the current executable coverage does not force that case."
+    },
+    {
+      "kind": "blocking",
+      "title": "Force failure does not assert teardown validation is skipped",
+      "target": "specs/291-submodule-worktree-cleanup/tests/cleanup-submodule-contract.test.js::R8",
+      "issue": "The force-remove failure test asserts branch deletion is skipped, but it does not assert the teardown validation path is skipped after `git worktree remove --force` fails.",
+      "requiredChange": "Extend the R8 force-failure test to assert validateTeardown commands such as `git worktree list --porcelain` and `git branch --list feature/submodule-cleanup` are not run after the failed force retry.",
+      "whyBlocking": "R3 says the existing branch-delete and teardown-validation path may continue only if the force retry succeeds; the current tests leave the validation half of that requirement uncovered on failure."
+    },
+    {
+      "kind": "blocking",
+      "title": "Submodule dirty fixture over-constrains the inspection mechanism",
+      "target": "specs/291-submodule-worktree-cleanup/tests/cleanup-submodule-contract.test.js::writeFakeGit dirty_submodule handling",
+      "issue": "The fake git only reports dirty submodule contents when the implementation uses `git submodule foreach` containing `status --porcelain`. A valid implementation that discovers initialized submodules with `git submodule status` and then runs `git -C <worktree>/vendor/sub status --porcelain` would be reported clean by the fixture and fail R4 despite satisfying the requirement.",
+      "requiredChange": "Teach the fake git status handler to emit the dirty/status-failure submodule outputs when `cTarget` points at the initialized submodule path as well as when `submodule foreach` is used.",
+      "whyBlocking": "The tests encode an implementation premise that is stricter than the requirement, so they can reject a valid production implementation before behavior is evaluated."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/291-submodule-worktree-cleanup/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "06e9a8ffc08150e90b4500b4c83fdf260a045c0d6155172920d368a2631864ff"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 5,
+  "findings": [
+    {
+      "id": "test-005-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "Submodule status failure path is not independently covered",
+      "body": "The only status-failure scenarios make the root `git status --porcelain` fail before an implementation needs to inspect initialized submodules. An implementation that correctly halts on root status failure but mishandles submodule status failures can still pass these tests.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-005-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "Force failure does not assert teardown validation is skipped",
+      "body": "The force-remove failure test asserts branch deletion is skipped, but it does not assert the teardown validation path is skipped after `git worktree remove --force` fails.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-005-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "Submodule dirty fixture over-constrains the inspection mechanism",
+      "body": "The fake git only reports dirty submodule contents when the implementation uses `git submodule foreach` containing `status --porcelain`. A valid implementation that discovers initialized submodules with `git submodule status` and then runs `git -C <worktree>/vendor/sub status --porcelain` would be reported clean by the fixture and fail R4 despite satisfying the requirement.",
+      "category": "unknown"
+    }
+  ]
+}

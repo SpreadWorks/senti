@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-12T15:33:45.251Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 4,
+    "advisory": 0,
+    "total": 4
+  },
+  "coverageArtifact": "specs/291-submodule-worktree-cleanup/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Successful cleanup side effects are not fully covered",
+      "target": "specs/291-submodule-worktree-cleanup/tests/cleanup-submodule-contract.test.js test \"R6: successful cleanup preserves side effects and teardown validation ordering\"",
+      "issue": "R6 requires preserving report attachment, the last-finalized pointer, active-flow clearing, branch deletion, and validateTeardown execution. The test only checks git add/commit, branch deletion, and validation-related git commands; it never inspects the resulting flow/report metadata, `.senti/last-finalized`, or `.senti/active-flow`.",
+      "requiredChange": "Extend the successful cleanup scenario to return or inspect the main repo files before cleanup, and assert the report attachment, last-finalized pointer, and active-flow removal in addition to the existing command-order checks.",
+      "whyBlocking": "The coverage artifact marks R6 covered, but several required side effects could regress without this test failing."
+    },
+    {
+      "kind": "blocking",
+      "title": "Submodule cleanliness inspection can pass without checking submodule status",
+      "target": "specs/291-submodule-worktree-cleanup/tests/cleanup-submodule-contract.test.js tests \"R2: submodule cleanup inspects root and submodule cleanliness\" and \"R4: dirty root or submodule returns SUBMODULE_WORKTREE_DIRTY and preserves resources\"",
+      "issue": "The fake git returns dirty submodule output for any `submodule foreach` invocation, and the R2 regex accepts `submodule foreach` by itself. An implementation could run a foreach command that does not execute `git status --porcelain` inside initialized submodules and still satisfy these tests.",
+      "requiredChange": "Make the fake git behavior and assertions require the submodule cleanliness command to include an actual status inspection, such as `submodule foreach ... status --porcelain`, before dirty submodule output is produced or accepted.",
+      "whyBlocking": "R2 specifically requires inspecting dirty state for initialized submodules before deciding whether to force-remove; the current test can pass without exercising that production behavior."
+    },
+    {
+      "kind": "blocking",
+      "title": "Recovery guidance is not asserted for cleanup failures",
+      "target": "specs/291-submodule-worktree-cleanup/tests/cleanup-submodule-contract.test.js tests for R4, R5, and R7",
+      "issue": "R4 requires recovery guidance for dirty root/submodule failures, R5 requires retaining existing WORKTREE_REMOVE_FAILED guidance, and R7 requires recovery guidance when status cannot be confirmed. The tests assert error codes and resource preservation but do not assert that guidance is present or meaningful.",
+      "requiredChange": "Add minimal assertions on the returned error/message/data for `SUBMODULE_WORKTREE_DIRTY`, `WORKTREE_REMOVE_FAILED`, and `SUBMODULE_WORKTREE_STATUS_FAILED` confirming recovery guidance is included.",
+      "whyBlocking": "User-facing recovery guidance is an explicit acceptance requirement, and these regressions would currently pass unnoticed."
+    },
+    {
+      "kind": "blocking",
+      "title": "Bounded diagnostics are not actually exercised",
+      "target": "specs/291-submodule-worktree-cleanup/tests/cleanup-submodule-contract.test.js test \"R9: submodule halt diagnostics are bounded and carry git error output\"",
+      "issue": "R9 requires diagnostics for dirty, status-failed, and force-remove-failed paths to be bounded and to preserve git errors. The test uses only short outputs and asserts `truncated === false`; it does not create oversized dirty/status/force diagnostics or verify truncation/count limits. It also omits the dirty diagnostics path entirely.",
+      "requiredChange": "Add oversized-output scenarios for dirty, status-failed, and force-remove-failed cleanup paths, then assert diagnostic lists/text are capped, truncation is reported, and representative git error output is preserved.",
+      "whyBlocking": "The requirement coverage artifact claims R9 is covered, but the current test would pass with unbounded diagnostics and does not cover dirty diagnostic bounding."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/291-submodule-worktree-cleanup/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 4,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "20dbd0063037d41294337cf1c6733d568813d52468d97ff1239cbbd1a0f941d3"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "test-003-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Successful cleanup side effects are not fully covered",
+      "body": "R6 requires preserving report attachment, the last-finalized pointer, active-flow clearing, branch deletion, and validateTeardown execution. The test only checks git add/commit, branch deletion, and validation-related git commands; it never inspects the resulting flow/report metadata, `.senti/last-finalized`, or `.senti/active-flow`.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-003-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Submodule cleanliness inspection can pass without checking submodule status",
+      "body": "The fake git returns dirty submodule output for any `submodule foreach` invocation, and the R2 regex accepts `submodule foreach` by itself. An implementation could run a foreach command that does not execute `git status --porcelain` inside initialized submodules and still satisfy these tests.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-003-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Recovery guidance is not asserted for cleanup failures",
+      "body": "R4 requires recovery guidance for dirty root/submodule failures, R5 requires retaining existing WORKTREE_REMOVE_FAILED guidance, and R7 requires recovery guidance when status cannot be confirmed. The tests assert error codes and resource preservation but do not assert that guidance is present or meaningful.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-003-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Bounded diagnostics are not actually exercised",
+      "body": "R9 requires diagnostics for dirty, status-failed, and force-remove-failed paths to be bounded and to preserve git errors. The test uses only short outputs and asserts `truncated === false`; it does not create oversized dirty/status/force diagnostics or verify truncation/count limits. It also omits the dirty diagnostics path entirely.",
+      "category": "unknown"
+    }
+  ]
+}

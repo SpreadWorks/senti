@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Defined the submodule cleanup halt envelope contract and force retry failure behavior.",
+  "items": [
+    {
+      "title": "Submodule halt envelope contract is undefined",
+      "target": "Scope / R4 / R7 / Acceptance Criteria",
+      "decision": "applied",
+      "rationale": "Added dedicated submodule cleanup halt codes, required bounded data fields, recovery options, and diagnostic granularity.",
+      "evidence": "spec.json constraints, requirements R4/R7/R9, acceptance_criteria, clarifications, and overview.decisions now define `SUBMODULE_WORKTREE_DIRTY` and `SUBMODULE_WORKTREE_STATUS_FAILED` contracts.",
+      "changedFields": [
+        "constraints",
+        "overview.decisions",
+        "requirements",
+        "acceptance_criteria",
+        "clarifications",
+        "tasks"
+      ]
+    },
+    {
+      "title": "Force retry failure path is omitted",
+      "target": "R3 / Data Flow / Acceptance Criteria",
+      "decision": "applied",
+      "rationale": "Specified that a failed clean-confirmed force retry returns a dedicated halt envelope and does not proceed to branch deletion.",
+      "evidence": "spec.json data_flow, requirements R3/R8/R9, acceptance_criteria, clarifications, and task acceptance now cover `SUBMODULE_WORKTREE_FORCE_REMOVE_FAILED` and branch deletion ordering.",
+      "changedFields": [
+        "constraints",
+        "overview.data_flow",
+        "overview.decisions",
+        "requirements",
+        "acceptance_criteria",
+        "clarifications",
+        "tasks"
+      ]
+    }
+  ]
+}

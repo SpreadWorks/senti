@@ -43,10 +43,15 @@ import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
 import { runFlowCommandWithPluginLifecycle } from "../../lib/plugin-registry.js";
 
 const ORPHAN_COMMIT_LIST_LIMIT = 50;
+const SUBMODULE_DIAGNOSTIC_LIMIT = 50;
+const SUBMODULE_ERROR_TEXT_LIMIT = 1000;
 const RECOVERY_OPTIONS_DETECT = ["cherry-pick", "abort", "force-continue"];
 const RECOVERY_OPTIONS_BASELINE = ["archive-and-manual-cherry-pick", "force-continue"];
 const RECOVERY_OPTIONS_RESCUE_FAIL = ["archive-and-manual-cherry-pick", "retry-without-rescue"];
 const RECOVERY_OPTIONS_DIRTY = ["commit-or-stash-first", "retry-without-rescue"];
+const SUBMODULE_RECOVERY_OPTIONS_DIRTY = ["commit-or-stash-first", "clean-submodules-and-retry", "manual-remove-after-review"];
+const SUBMODULE_RECOVERY_OPTIONS_STATUS = ["inspect-status-manually", "clean-submodules-and-retry", "manual-remove-after-review"];
+const SUBMODULE_RECOVERY_OPTIONS_FORCE = ["inspect-worktree-manually", "manual-remove-after-review", "retry-after-fixing-git-error"];
 
 function buildReportField(mainRoot) {
   // The embedded cleanup report is the same report-show text generated from
@@ -142,6 +147,216 @@ function attachOtherFlowMetadataWarning(env, mainRepoPath, specId) {
     ],
   );
   return env;
+}
+
+function boundedEntries(entries, limit = SUBMODULE_DIAGNOSTIC_LIMIT) {
+  return {
+    entries: entries.slice(0, limit),
+    truncated: entries.length > limit,
+  };
+}
+
+function boundedText(text, limit = SUBMODULE_ERROR_TEXT_LIMIT) {
+  const s = String(text || "");
+  return {
+    text: s.length > limit ? s.slice(0, limit) : s,
+    truncated: s.length > limit,
+  };
+}
+
+function parsePorcelainPaths(stdout) {
+  return stdout
+    .split("\n")
+    .map((line) => line.trimEnd())
+    .filter(Boolean)
+    .map((line) => line.slice(3).trim())
+    .filter(Boolean);
+}
+
+function statusFailure(scope, targetPath, res) {
+  const stderr = boundedText(res.stderr || "");
+  const stdout = boundedText(res.stdout || "");
+  return {
+    failure: {
+      scope,
+      path: targetPath,
+      stderr: stderr.text,
+      stdout: stdout.text,
+    },
+    truncated: stderr.truncated || stdout.truncated,
+  };
+}
+
+function isSubmoduleWorktreeRemoveFailure(res) {
+  const text = `${res.stdout || ""}\n${res.stderr || ""}`;
+  return /working trees containing submodules cannot be moved or removed/i.test(text);
+}
+
+function listInitializedSubmodules(worktreePath) {
+  const res = runGit(["-C", worktreePath, "submodule", "status"]);
+  if (!res.ok) {
+    const failure = statusFailure("submodule-list", worktreePath, res);
+    return { ok: false, statusFailures: [failure.failure], truncated: failure.truncated };
+  }
+  const paths = res.stdout
+    .split("\n")
+    .map((line) => line.trimEnd())
+    .filter(Boolean)
+    .filter((line) => line[0] !== "-")
+    .map((line) => line.trim().split(/\s+/)[1])
+    .filter(Boolean);
+  return { ok: true, paths };
+}
+
+function inspectSubmoduleWorktreeCleanliness(worktreePath) {
+  let truncated = false;
+  const rootStatus = runGit(["-C", worktreePath, "status", "--porcelain", "--untracked-files=all"]);
+  if (!rootStatus.ok) {
+    const failure = statusFailure("worktree", worktreePath, rootStatus);
+    return { ok: false, statusFailures: [failure.failure], truncated: failure.truncated };
+  }
+
+  const root = boundedEntries(parsePorcelainPaths(rootStatus.stdout));
+  truncated = truncated || root.truncated;
+
+  const submodules = listInitializedSubmodules(worktreePath);
+  if (!submodules.ok) return submodules;
+
+  const dirtySubmodules = [];
+  const statusFailures = [];
+  for (const submodulePath of submodules.paths) {
+    const absPath = path.join(worktreePath, submodulePath);
+    const res = runGit(["-C", absPath, "status", "--porcelain", "--untracked-files=all"]);
+    if (!res.ok) {
+      const failure = statusFailure("submodule", submodulePath, res);
+      statusFailures.push(failure.failure);
+      truncated = truncated || failure.truncated;
+      continue;
+    }
+    const dirtyFiles = boundedEntries(parsePorcelainPaths(res.stdout));
+    truncated = truncated || dirtyFiles.truncated;
+    if (dirtyFiles.entries.length > 0) {
+      dirtySubmodules.push({ path: submodulePath, dirtyFiles: dirtyFiles.entries });
+    }
+  }
+
+  const failures = boundedEntries(statusFailures);
+  truncated = truncated || failures.truncated;
+  if (failures.entries.length > 0) {
+    return { ok: false, statusFailures: failures.entries, truncated };
+  }
+
+  const dirtyModules = boundedEntries(dirtySubmodules);
+  return {
+    ok: true,
+    dirtyRootFiles: root.entries,
+    dirtySubmodules: dirtyModules.entries,
+    dirty: root.entries.length > 0 || dirtyModules.entries.length > 0,
+    truncated: truncated || dirtyModules.truncated,
+  };
+}
+
+function submoduleDirtyEnvelope({ worktreePath, featureBranch, inspection }) {
+  return Envelope.fail(
+    "run",
+    "finalize-cleanup",
+    "SUBMODULE_WORKTREE_DIRTY",
+    [
+      "Submodule worktree cleanup stopped because the worktree or an initialized submodule is dirty.",
+      "Commit, stash, or remove the dirty changes, then retry finalize-cleanup.",
+      "The worktree and feature branch were retained for recovery.",
+    ],
+    {
+      worktreePath,
+      featureBranch,
+      dirtyRootFiles: inspection.dirtyRootFiles,
+      dirtySubmodules: inspection.dirtySubmodules,
+      truncated: inspection.truncated,
+      recoveryOptions: SUBMODULE_RECOVERY_OPTIONS_DIRTY,
+    },
+  );
+}
+
+function submoduleStatusFailedEnvelope({ worktreePath, featureBranch, inspection }) {
+  return Envelope.fail(
+    "run",
+    "finalize-cleanup",
+    "SUBMODULE_WORKTREE_STATUS_FAILED",
+    [
+      "Submodule worktree cleanup stopped because cleanliness could not be confirmed.",
+      "Inspect the reported git status failure, clean the worktree or submodules, then retry finalize-cleanup.",
+      "The worktree and feature branch were retained for recovery.",
+    ],
+    {
+      worktreePath,
+      featureBranch,
+      statusFailures: inspection.statusFailures,
+      truncated: inspection.truncated,
+      recoveryOptions: SUBMODULE_RECOVERY_OPTIONS_STATUS,
+    },
+  );
+}
+
+function submoduleForceRemoveFailedEnvelope({ worktreePath, featureBranch, res }) {
+  const stderr = boundedText(res.stderr || "");
+  const stdout = boundedText(res.stdout || "");
+  return Envelope.fail(
+    "run",
+    "finalize-cleanup",
+    "SUBMODULE_WORKTREE_FORCE_REMOVE_FAILED",
+    [
+      "Submodule worktree cleanup stopped because clean-confirmed force removal failed.",
+      "Inspect the git error, resolve the worktree removal problem manually, then retry finalize-cleanup.",
+      "Branch deletion was not attempted; the feature branch was retained for recovery.",
+    ],
+    {
+      worktreePath,
+      featureBranch,
+      stderr: stderr.text,
+      stdout: stdout.text,
+      truncated: stderr.truncated || stdout.truncated,
+      recoveryOptions: SUBMODULE_RECOVERY_OPTIONS_FORCE,
+    },
+  );
+}
+
+function removeWorktreeForCleanup({ mainRepoPath, worktreePath, featureBranch }) {
+  const removeRes = runGit(["-C", mainRepoPath, "worktree", "remove", worktreePath]);
+  if (removeRes.ok) return { ok: true };
+
+  if (!isSubmoduleWorktreeRemoveFailure(removeRes)) {
+    return {
+      ok: false,
+      env: Envelope.fail("run", "finalize-cleanup", "WORKTREE_REMOVE_FAILED", [
+        `git worktree remove failed: ${removeRes.stderr || removeRes.stdout || "unknown"}`,
+        "Common cause: untracked files or uncommitted changes in the worktree.",
+        "Resolve the dirty state and retry cleanup.",
+      ]),
+    };
+  }
+
+  const inspection = inspectSubmoduleWorktreeCleanliness(worktreePath);
+  if (!inspection.ok) {
+    return {
+      ok: false,
+      env: submoduleStatusFailedEnvelope({ worktreePath, featureBranch, inspection }),
+    };
+  }
+  if (inspection.dirty) {
+    return {
+      ok: false,
+      env: submoduleDirtyEnvelope({ worktreePath, featureBranch, inspection }),
+    };
+  }
+
+  const forceRes = runGit(["-C", mainRepoPath, "worktree", "remove", "--force", worktreePath]);
+  if (!forceRes.ok) {
+    return {
+      ok: false,
+      env: submoduleForceRemoveFailedEnvelope({ worktreePath, featureBranch, res: forceRes }),
+    };
+  }
+  return { ok: true };
 }
 
 /**
@@ -677,14 +892,8 @@ async function runTeardown(ctx, { worktreePath, mainRepoPath, reportRoot, specId
   if (worktree && mainRepoPath) {
     const wtPath = worktreePath || ctx.root;
     if (fs.existsSync(wtPath)) {
-      const removeRes = runGit(["-C", mainRepoPath, "worktree", "remove", wtPath]);
-      if (!removeRes.ok) {
-        return Envelope.fail("run", "finalize-cleanup", "WORKTREE_REMOVE_FAILED", [
-          `git worktree remove failed: ${removeRes.stderr || removeRes.stdout || "unknown"}`,
-          "Common cause: untracked files or uncommitted changes in the worktree.",
-          "Resolve the dirty state and retry cleanup.",
-        ]);
-      }
+      const removeResult = removeWorktreeForCleanup({ mainRepoPath, worktreePath: wtPath, featureBranch });
+      if (!removeResult.ok) return removeResult.env;
     }
     const branchRes = runGit(["-C", mainRepoPath, "branch", "-D", featureBranch]);
     if (!branchRes.ok && !branchRes.stderr.includes("not found")) {

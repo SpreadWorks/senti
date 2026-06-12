@@ -1,0 +1,63 @@
+{
+  "spec": "specs/291-submodule-worktree-cleanup/spec.json",
+  "date": "2026-06-12T16:13:43.471Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "When worktree-mode finalize-cleanup removes a worktree, it must first attempt the existing normal `git worktree remove <path>` path before any force retry.",
+      "status": "done",
+      "note": "R1: normal worktree remove is attempted before submodule force retry"
+    },
+    {
+      "desc": "When the normal remove failure is submodule-related, finalize-cleanup must inspect dirty state for the worktree root and initialized submodules before deciding whether to force-remove.",
+      "status": "done",
+      "note": "R2: submodule cleanup inspects root and submodule cleanliness"
+    },
+    {
+      "desc": "When the submodule-related failure is confirmed clean, finalize-cleanup must retry `git worktree remove --force <path>` once and continue the existing branch delete and teardown validation path only if that retry succeeds.",
+      "status": "done",
+      "note": "R3: clean submodule force retry succeeds before branch deletion"
+    },
+    {
+      "desc": "When the worktree root or any initialized submodule is dirty, finalize-cleanup must keep the worktree and feature branch and return `SUBMODULE_WORKTREE_DIRTY` with bounded dirty path details and recovery guidance.",
+      "status": "done",
+      "note": "R4: dirty root or submodule returns SUBMODULE_WORKTREE_DIRTY and preserves resources"
+    },
+    {
+      "desc": "Non-submodule worktree remove failures must retain the existing `WORKTREE_REMOVE_FAILED` behavior and guidance.",
+      "status": "done",
+      "note": "R5: non-submodule remove failure retains WORKTREE_REMOVE_FAILED"
+    },
+    {
+      "desc": "The change must preserve existing teardown side effects: report attachment, last-finalized pointer, active-flow clear, branch delete, and validateTeardown execution for successful cleanup.",
+      "status": "done",
+      "note": "R6: successful cleanup preserves side effects and teardown validation ordering"
+    },
+    {
+      "desc": "When cleanliness cannot be confirmed, finalize-cleanup must keep the worktree and feature branch and return `SUBMODULE_WORKTREE_STATUS_FAILED` with bounded status failure details and recovery guidance.",
+      "status": "done",
+      "note": "R7: status inspection failure returns SUBMODULE_WORKTREE_STATUS_FAILED and preserves resources"
+    },
+    {
+      "desc": "When the clean-confirmed `git worktree remove --force <path>` retry fails, finalize-cleanup must keep the feature branch, report the git failure via `SUBMODULE_WORKTREE_FORCE_REMOVE_FAILED`, and must not run branch deletion.",
+      "status": "done",
+      "note": "R8: force retry failure returns SUBMODULE_WORKTREE_FORCE_REMOVE_FAILED before branch deletion"
+    },
+    {
+      "desc": "Diagnostics for dirty, status-failed, or force-remove-failed submodule cleanup must be bounded and must not silently discard git errors.",
+      "status": "done",
+      "note": "R9: submodule halt diagnostics are bounded and carry git error output"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 9,
+    "done": 9,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

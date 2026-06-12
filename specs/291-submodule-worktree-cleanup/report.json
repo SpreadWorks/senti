@@ -1,0 +1,238 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".../acceptance-review.json                         |  21 +\n .../draft-coverage-repair.json                     |   8 +\n .../draft-coverage-triage.json                     |   8 +\n .../draft-questions-repair.json                    |  17 +\n .../draft-questions-triage.json                    |  15 +\n .../draft-review-coverage.json                     |  11 +\n .../draft-review-questions.json                    |  19 +\n specs/291-submodule-worktree-cleanup/draft.json    |  81 ++++\n specs/291-submodule-worktree-cleanup/file-map.json |  38 ++\n specs/291-submodule-worktree-cleanup/flow.json     | 481 +++++++++++++++++++++\n .../impl-review.json                               |  28 ++\n .../291-submodule-worktree-cleanup/issue-log.json  | 152 +++++++\n specs/291-submodule-worktree-cleanup/issue.md      |  36 ++\n .../review-history/draft-coverage-attempt-001.json |  14 +\n .../draft-questions-attempt-001.json               |  33 ++\n .../review-history/impl-attempt-001.json           |  70 +++\n .../review-history/impl-attempt-001.md             |  28 ++\n .../review-history/impl-attempt-002.json           |  31 ++\n .../review-history/impl-attempt-002.md             |  16 +\n .../review-history/impl-attempt-003.json           |  31 ++\n .../review-history/impl-attempt-003.md             |  16 +\n .../review-history/impl-attempt-004.json           |  31 ++\n .../review-history/impl-attempt-004.md             |  16 +\n .../review-history/spec-attempt-001.json           |  75 ++++\n .../review-history/spec-attempt-001.md             |  25 ++\n .../review-history/test-attempt-001.json           |  48 ++\n .../review-history/test-attempt-001.md             |  18 +\n .../review-history/test-attempt-002.json           |  66 +++\n .../review-history/test-attempt-002.md             |  21 +\n .../review-history/test-attempt-003.json           | 102 +++++\n .../review-history/test-attempt-003.md             |  36 ++\n .../review-history/test-attempt-004.json           |  84 ++++\n .../review-history/test-attempt-004.md             |  30 ++\n .../review-history/test-attempt-005.json           |  84 ++++\n .../review-history/test-attempt-005.md             |  30 ++\n .../review-history/test-attempt-006.json           |  28 ++\n .../review-history/test-attempt-006.md             |  13 +\n specs/291-submodule-worktree-cleanup/review.md     |  16 +\n .../spec-repair.json                               |  39 ++\n .../spec-review.json                               |  41 ++\n .../291-submodule-worktree-cleanup/spec-review.md  |  25 ++\n .../spec-triage.json                               |  22 +\n specs/291-submodule-worktree-cleanup/spec.json     | 254 +++++++++++\n specs/291-submodule-worktree-cleanup/spec.md       | 123 ++++++\n specs/291-submodule-worktree-cleanup/tasks/T-1.md  |  23 +\n specs/291-submodule-worktree-cleanup/tasks/T-2.md  |  20 +\n .../test-coverage.json                             | 119 +++++\n .../test-review.json                               |  25 ++\n .../291-submodule-worktree-cleanup/test-review.md  |  13 +\n .../tests/cleanup-submodule-contract.test.js       | 390 +++++++++++++++++\n src/flow/lib/run-finalize-cleanup.js               | 225 +++++++++-\n src/flow/lib/test-artifacts.js                     |   6 +-\n .../flow/run-finalize-retro-commit-scope.test.js   |   6 +-\n 53 files changed, 3198 insertions(+), 10 deletions(-)",
+      "commits": [
+        "Fix submodule worktree cleanup"
+      ]
+    },
+    "retro": {
+      "total": 9,
+      "done": 9,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "When worktree-mode finalize-cleanup removes a worktree, it must first attempt the existing normal `git worktree remove <path>` path before any force retry.",
+          "status": "done",
+          "note": "R1: normal worktree remove is attempted before submodule force retry"
+        },
+        {
+          "desc": "When the normal remove failure is submodule-related, finalize-cleanup must inspect dirty state for the worktree root and initialized submodules before deciding whether to force-remove.",
+          "status": "done",
+          "note": "R2: submodule cleanup inspects root and submodule cleanliness"
+        },
+        {
+          "desc": "When the submodule-related failure is confirmed clean, finalize-cleanup must retry `git worktree remove --force <path>` once and continue the existing branch delete and teardown validation path only if that retry succeeds.",
+          "status": "done",
+          "note": "R3: clean submodule force retry succeeds before branch deletion"
+        },
+        {
+          "desc": "When the worktree root or any initialized submodule is dirty, finalize-cleanup must keep the worktree and feature branch and return `SUBMODULE_WORKTREE_DIRTY` with bounded dirty path details and recovery guidance.",
+          "status": "done",
+          "note": "R4: dirty root or submodule returns SUBMODULE_WORKTREE_DIRTY and preserves resources"
+        },
+        {
+          "desc": "Non-submodule worktree remove failures must retain the existing `WORKTREE_REMOVE_FAILED` behavior and guidance.",
+          "status": "done",
+          "note": "R5: non-submodule remove failure retains WORKTREE_REMOVE_FAILED"
+        },
+        {
+          "desc": "The change must preserve existing teardown side effects: report attachment, last-finalized pointer, active-flow clear, branch delete, and validateTeardown execution for successful cleanup.",
+          "status": "done",
+          "note": "R6: successful cleanup preserves side effects and teardown validation ordering"
+        },
+        {
+          "desc": "When cleanliness cannot be confirmed, finalize-cleanup must keep the worktree and feature branch and return `SUBMODULE_WORKTREE_STATUS_FAILED` with bounded status failure details and recovery guidance.",
+          "status": "done",
+          "note": "R7: status inspection failure returns SUBMODULE_WORKTREE_STATUS_FAILED and preserves resources"
+        },
+        {
+          "desc": "When the clean-confirmed `git worktree remove --force <path>` retry fails, finalize-cleanup must keep the feature branch, report the git failure via `SUBMODULE_WORKTREE_FORCE_REMOVE_FAILED`, and must not run branch deletion.",
+          "status": "done",
+          "note": "R8: force retry failure returns SUBMODULE_WORKTREE_FORCE_REMOVE_FAILED before branch deletion"
+        },
+        {
+          "desc": "Diagnostics for dirty, status-failed, or force-remove-failed submodule cleanup must be bounded and must not silently discard git errors.",
+          "status": "done",
+          "note": "R9: submodule halt diagnostics are bounded and carry git error output"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 12,
+      "fullLogPath": "specs/291-submodule-worktree-cleanup/issue-log.json",
+      "importantTotal": 12,
+      "importantShown": 10,
+      "importantOmitted": 2,
+      "recentOtherTotal": 0,
+      "recentOtherShown": 0,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "prepare-spec",
+          "reason": "prepare-spec first returned a docs scan preset resolution error from the main repository context, then a repeated prepare attempt collided with the already-created worktree branch",
+          "resolution": "verified the created worktree contains an active flow, switched execution to that worktree, and continued from the active draft step"
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "The draft introduces changed finalize-cleanup behavior but does not include a migration inventory of existing public behavior being replaced (e.g., existing `WORKTREE_REMOVE_FAILED` failure flow and teardown contract surfaces) mapped to ...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "draft-gate failed migration-parity because retained and replaced finalize-cleanup behaviors were not inventoried",
+          "resolution": "will add migration inventory and parity verification requirements to draft before rerunning gate"
+        },
+        {
+          "classification": "important",
+          "step": "spec-review",
+          "reason": "spec-review failed because submodule cleanup halt and force retry failure contracts were underspecified",
+          "resolution": "will triage both findings as apply and add envelope/failure-path contracts during spec repair"
+        },
+        {
+          "classification": "important",
+          "step": "scenario-validity",
+          "reason": "scenario-validity classified all requirements as invalid_test due to an invalid regex literal in the spec-local test",
+          "resolution": "replaced slash-heavy regex literals with explicit string inclusion checks"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test-review failed because halt-path tests did not assert feature branch preservation for dirty and status failure cases",
+          "resolution": "added negative branch deletion assertions for R4 and R7 and strengthened R2 submodule inspection assertion"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test-review failed because executable tests still missed side effects, recovery guidance, submodule status command shape, and bounded diagnostics",
+          "resolution": "extended tests to assert report and active-flow side effects, status-porcelain submodule inspection, recovery guidance, and oversized diagnostic truncation"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test-review failed because force retry cardinality, submodule diagnostic bounds, and worktree-root status target were not asserted",
+          "resolution": "added exact force retry count checks, dirty submodule diagnostic size assertions, and command target checks for worktree-root status and submodule inspection"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test-review failed because submodule-only status failure, force-failure validation skipping, and alternate submodule status inspection were not covered",
+          "resolution": "added submodule-only status failure scenarios, validation skip assertions after force failure, and fake git support for direct submodule path status checks"
+        },
+        {
+          "classification": "important",
+          "step": "impl-review",
+          "reason": "impl-review found a data-integrity bug where diagnostic bounding limited submodule cleanliness inspection before force removal",
+          "resolution": "inspect the full initialized submodule list, apply bounds only to diagnostics, skip uninitialized submodule entries, and add a late dirty submodule test"
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 0,
+      "output": 0,
+      "cacheRead": 0,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 0,
+      "durationMs": 0,
+      "phaseDurations": []
+    },
+    "tests": {
+      "total": 9,
+      "passed": 9,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/291-submodule-worktree-cleanup/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 78,
+          "end_line": 18556
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/291-submodule-worktree-cleanup/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-finalize-cleanup.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-artifacts.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/run-finalize-retro-commit-scope.test.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/291-submodule-worktree-cleanup/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-finalize-cleanup.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-artifacts.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/run-finalize-retro-commit-scope.test.js"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/291-submodule-worktree-cleanup/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    Fix submodule worktree cleanup\n    53 files changed, 3198 insertions(+), 10 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (9 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 0\n\n  Tests\n  ────────────────────────────────────────────────\n    total 9  passed 9  failed 0 verdict=pass\n    raw_output: specs/291-submodule-worktree-cleanup/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (12 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/291-submodule-worktree-cleanup/issue-log.json\n\n    Important (10 of 12)\n    - [prepare-spec] prepare-spec first returned a docs scan preset resolution error from the main repository context, then a repeated prepare attempt collided with the already-created worktree branch\n    - [draft-gate] The draft introduces changed finalize-cleanup behavior but does not include a migration inventory of existing public behavior being replaced (e.g., existing `WORKTREE_REMOVE_FAILED` failure flow and teardown contract surfaces) mapped to ...\n    - [draft-gate] draft-gate failed migration-parity because retained and replaced finalize-cleanup behaviors were not inventoried\n    - [spec-review] spec-review failed because submodule cleanup halt and force retry failure contracts were underspecified\n    - [scenario-validity] scenario-validity classified all requirements as invalid_test due to an invalid regex literal in the spec-local test\n    - [test-review] test-review failed because halt-path tests did not assert feature branch preservation for dirty and status failure cases\n    - [test-review] test-review failed because executable tests still missed side effects, recovery guidance, submodule status command shape, and bounded diagnostics\n    - [test-review] test-review failed because force retry cardinality, submodule diagnostic bounds, and worktree-root status target were not asserted\n    - [test-review] test-review failed because submodule-only status failure, force-failure validation skipping, and alternate submodule status inspection were not covered\n    - [impl-review] impl-review found a data-integrity bug where diagnostic bounding limited submodule cleanliness inspection before force removal\n    ... 2 important issue-log entries omitted"
+}

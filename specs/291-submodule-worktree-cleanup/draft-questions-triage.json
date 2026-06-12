@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "One repair target remains valid: the accepted auto preflight intent should be represented as the initial approved QA entry.",
+  "items": [
+    {
+      "title": "1. Empty initial QA list",
+      "target": "q<N> (no qa.id present)",
+      "decision": "apply",
+      "rationale": "The flow started in autoApprove mode after the user selected the preflight summary. The flow rules treat that accepted summary as Draft Q1, so draft.json should include an approved goal-confirmation QA entry instead of an empty qa array.",
+      "evidence": "draft.json qa[] is empty; flow.json autoApprove is true and request contains the approved Issue #381 goal/scope summary."
+    }
+  ]
+}
