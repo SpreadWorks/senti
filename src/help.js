@@ -2,130 +2,376 @@
 /**
  * senti/help.js
  *
- * Display available commands.
- * Language is determined by .senti/config.json lang, defaulting to "en".
+ * Shared help renderer. Core command help is derived from command metadata,
+ * and plugin command help is normalized into the same renderer input shape.
+ * Help rendering must stay import-safe: it reads metadata only and never
+ * imports command implementation modules or executes command behavior.
  */
 
 import { getPackageVersion } from "./lib/cli.js";
-import { translate } from "./lib/i18n.js";
+import { loadConfig } from "./lib/config.js";
+import { createI18n } from "./lib/i18n.js";
+import {
+  CommandHelpMetadata,
+  CoreCommandMetadataRegistry,
+  allCommands,
+  coreCommandMetadataRegistry,
+} from "./lib/command-registry.js";
 import { loadPluginRegistry } from "./lib/plugin-registry.js";
 
-/** Command layout — name keys correspond to ui.json help.commands.* */
-const LAYOUT = [
-  { name: "help" },
-  { section: "Project" },
-  { name: "setup" },
-  { name: "upgrade" },
-  { name: "plugin" },
-  { section: "Docs" },
-  { name: "docs build" },
-  { name: "docs scan" },
-  { name: "docs enrich" },
-  { name: "docs init" },
-  { name: "docs data" },
-  { name: "docs text" },
-  { name: "docs readme" },
-  { name: "docs forge" },
-  { name: "docs review" },
-  { name: "docs translate" },
-  { name: "docs changelog" },
-  { name: "docs agents" },
-  { name: "docs snapshot" },
-  { section: "Flow" },
-  { name: "flow get" },
-  { name: "flow set" },
-  { name: "flow run" },
-  { section: "Metrics" },
-  { name: "metrics token" },
-  { section: "Info" },
-  { name: "presets list" },
-];
+const HELP_FLAGS = new Set(["--help", "-h"]);
+const DEFAULT_LANG = "en";
 
-function localizedCommand(command, lang) {
-  const localized = command.locale?.[lang] || {};
+export class HelpCommandView {
+  constructor(metadata, { lang = DEFAULT_LANG, parentName = null } = {}) {
+    const localized = resolveLocalizedText(metadata, lang);
+    this.fullName = metadata.name;
+    this.name = parentName ? metadata.name.split(" ").at(-1) : metadata.name;
+    this.section = metadata.section || "";
+    this.summary = localized.summary;
+    this.usage = localized.usage;
+    this.args = metadata.args || {};
+    this.options = Array.isArray(metadata.options) ? metadata.options : [];
+    this.experimental = Boolean(metadata.experimental);
+    this.localeKey = metadata.localeKey || null;
+    this.locale = metadata.locale || null;
+    this.owner = metadata.owner || "core-command-metadata";
+    this.subcommands = (metadata.subcommands || []).map((entry) => new HelpCommandView(entry, { lang, parentName: metadata.name }));
+  }
+
+  find(parts) {
+    const [head, ...rest] = parts;
+    if (!head) return this;
+    const sub = this.subcommands.find((entry) => entry.name === head || entry.fullName === [this.fullName, head].join(" "));
+    const found = rest.length === 0 ? sub : sub?.find(rest);
+    return found?.resolved();
+  }
+
+  all() {
+    return [this.resolved(), ...this.subcommands.flatMap((entry) => entry.all())];
+  }
+
+  resolved() {
+    const view = Object.create(HelpCommandView.prototype);
+    Object.assign(view, this, { name: this.fullName });
+    return view;
+  }
+}
+
+export class HelpModel {
+  constructor(entries, { lang = DEFAULT_LANG } = {}) {
+    this.entries = entries.map((entry) => new HelpCommandView(entry, { lang }));
+  }
+
+  findCommand(parts) {
+    const normalized = Array.isArray(parts) ? parts : String(parts).split(/\s+/);
+    const [head, ...rest] = normalized;
+    const top = this.entries.find((entry) => entry.name === head);
+    if (!top) throw new Error(`unknown command metadata: ${normalized.join(" ")}`);
+    if (rest.length === 0) return top;
+    const found = top.find(rest);
+    if (!found) throw new Error(`unknown command metadata: ${normalized.join(" ")}`);
+    return found;
+  }
+
+  topLevelCommands() {
+    return this.entries.flatMap((entry) => entry.subcommands.length ? entry.subcommands : [entry]);
+  }
+
+  allCommands() {
+    return this.entries.flatMap((entry) => entry.all());
+  }
+}
+
+function i18n(lang) {
+  return createI18n(lang || DEFAULT_LANG, { domain: "ui" });
+}
+
+function resolveLang(root, lang) {
+  if (lang) return lang;
+  try {
+    const config = loadConfig(root, { allowMissingType: true });
+    return config.lang || config.docs?.defaultLanguage || DEFAULT_LANG;
+  } catch (_) {
+    return DEFAULT_LANG;
+  }
+}
+
+function normalizeLocaleKey(key) {
+  return String(key || "").replace(/^ui:/, "");
+}
+
+function resolveLocaleValue(value, lang) {
+  if (!value || typeof value !== "object") return null;
+  return value[lang] || value[DEFAULT_LANG] || null;
+}
+
+function resolveLocalizedText(metadata, lang) {
+  const locale = resolveLocaleValue(metadata.locale, lang);
+  const t = i18n(lang);
+  const localeKey = normalizeLocaleKey(metadata.localeKey);
+  const translated = localeKey ? t(localeKey) : null;
+  const fallback = i18n(DEFAULT_LANG);
+  const fallbackTranslated = localeKey ? fallback(localeKey) : null;
+  const summary = locale?.summary
+    || locale?.desc
+    || (translated && translated !== localeKey ? translated : null)
+    || metadata.summary
+    || metadata.desc
+    || "";
+  const usage = locale?.usage || metadata.usage || `Usage: senti ${metadata.name}`;
+  const help = locale?.help || metadata.help || "";
   return {
-    ...command,
-    desc: localized.desc || command.desc || command.description || command.help || "",
-    help: localized.help || command.help || "",
-    subcommands: (command.subcommands || []).map((sub) => {
-      const subLocalized = sub.locale?.[lang] || {};
-      return { ...sub, desc: subLocalized.desc || sub.desc || sub.description || "", help: subLocalized.help || sub.help || "" };
-    }),
+    summary,
+    usage,
+    help,
+    fallbackSummary: fallbackTranslated && fallbackTranslated !== metadata.localeKey ? fallbackTranslated : metadata.summary,
   };
 }
 
-function pluginCommands(root, lang) {
-  try {
-    return [...loadPluginRegistry(root).commands.values()].map((command) => localizedCommand(command, lang));
-  } catch (_) {
-    return [];
+function registryFromPlainTree(tree) {
+  const entries = [];
+  for (const [name, entry] of Object.entries(tree || {})) {
+    entries.push(metadataFromEntry(name, entry));
   }
+  return new CoreCommandMetadataRegistry(entries);
 }
 
-export async function renderHelp({ root = process.cwd(), argv = [], lang = null } = {}) {
-  const t = translate();
-  const effectiveLang = lang || "en";
-  const plugins = pluginCommands(root, effectiveLang);
-  const target = argv.find((arg) => arg !== "--help" && arg !== "-h") || null;
-  const subTarget = target ? argv.filter((arg) => arg !== "--help" && arg !== "-h")[1] : null;
-  const pluginTarget = target ? plugins.find((command) => command.name === target) : null;
-
-  if (pluginTarget && subTarget) {
-    const sub = pluginTarget.subcommands.find((entry) => entry.name === subTarget);
-    if (sub) return [sub.help || `Usage: senti ${pluginTarget.name} ${sub.name}`, "", sub.desc || ""].join("\n");
-  }
-  if (pluginTarget) {
-    const lines = [pluginTarget.help || `Usage: senti ${pluginTarget.name}`, ""];
-    if (pluginTarget.desc) lines.push(pluginTarget.desc);
-    if (pluginTarget.subcommands.length) {
-      lines.push("", "Subcommands:");
-      for (const sub of pluginTarget.subcommands) lines.push(`  ${sub.name}  ${sub.desc || ""}`.trimEnd());
+function metadataFromEntry(name, entry, parent = null, inheritedSection = null) {
+  if (entry instanceof CommandHelpMetadata) return entry;
+  const fullName = parent ? `${parent} ${name}` : name;
+  const hasCommand = typeof entry?.command === "function";
+  const children = [];
+  const childEntries = entry?.subcommands || (!hasCommand && entry && typeof entry === "object" ? entry : null);
+  const metadataFields = new Set(["metadata", "section", "summary", "desc", "usage", "help", "args", "options", "experimental", "localeKey", "locale", "owner", "subcommands"]);
+  if (childEntries && typeof childEntries === "object") {
+    for (const [childName, childEntry] of Object.entries(childEntries)) {
+      if (metadataFields.has(childName)) continue;
+      children.push(metadataFromEntry(childName, childEntry, fullName, entry?.section || inheritedSection));
     }
-    return lines.join("\n");
   }
-
-  const version = getPackageVersion();
-
-  const commands = LAYOUT.map((entry) => {
-    if (entry.section) return entry;
-    return { name: entry.name, desc: t(`ui:help.commands.${entry.name}`) };
+  if (entry?.metadata instanceof CommandHelpMetadata) return entry.metadata;
+  return new CommandHelpMetadata({
+    name: fullName,
+    section: entry?.section || inheritedSection || (parent ? titleCase(parent) : titleCase(name)),
+    summary: entry?.summary || entry?.desc || fullName,
+    usage: entry?.help?.split(/\r?\n/, 1)[0] || `Usage: senti ${fullName}`,
+    args: entry?.args || {},
+    options: entry?.args?.flags || [],
+    experimental: Boolean(entry?.experimental),
+    localeKey: entry?.localeKey || null,
+    subcommands: children,
   });
-  if (plugins.length) {
-    commands.push({ section: "Plugins" });
-    for (const command of plugins) {
-      commands.push({
-        name: command.name,
-        desc: `${command.desc || ""}${command.experimental ? " [experimental]" : ""}`.trim(),
-      });
-    }
+}
+
+function resolveCoreRegistry(commands = null) {
+  if (!commands || commands === allCommands || commands === coreCommandMetadataRegistry) {
+    return coreCommandMetadataRegistry;
   }
+  if (commands instanceof CoreCommandMetadataRegistry) return commands;
+  if (typeof commands.findCommand === "function" && typeof commands.allCommands === "function") return commands;
+  return registryFromPlainTree(commands);
+}
 
-  const maxName = Math.max(...commands.filter((c) => c.name).map((c) => c.name.length));
-  const lines = [];
-  lines.push("");
-  lines.push(`  senti v${version} - ${t("ui:help.title")}`);
-  lines.push("");
-  lines.push(`  ${t("ui:help.usage")}`);
-  lines.push("");
+export function buildCoreHelpModel({ commands = allCommands, lang = DEFAULT_LANG } = {}) {
+  const registry = resolveCoreRegistry(commands);
+  return new HelpModel(registry.entries || registry.allCommands(), { lang });
+}
 
-  for (const cmd of commands) {
-    if (cmd.section) {
+function titleCase(text) {
+  return String(text || "").replace(/^./, (m) => m.toUpperCase());
+}
+
+function sectionOrder(section) {
+  return ["Project", "Docs", "Flow", "Metrics", "Info", "Plugins"].indexOf(section);
+}
+
+function renderTopLevel(model, plugins, lang) {
+  const t = i18n(lang);
+  const commands = [...model.topLevelCommands(), ...plugins];
+  const maxName = Math.max(...commands.map((command) => (command.fullName || command.name).length), 4);
+  const lines = [
+    "",
+    `  senti v${getPackageVersion()} - ${t("help.title")}`,
+    "",
+    `  ${t("help.usage")}`,
+    "",
+  ];
+  let currentSection = null;
+  for (const command of commands.sort((a, b) => {
+    const sectionDiff = sectionOrder(a.section) - sectionOrder(b.section);
+    return sectionDiff || a.name.localeCompare(b.name);
+  })) {
+    if (command.section !== currentSection) {
+      currentSection = command.section;
       lines.push("");
-      lines.push(`  ${cmd.section}`);
-      continue;
+      lines.push(`  ${currentSection}`);
     }
-    const padded = cmd.name.padEnd(maxName + 2);
-    lines.push(`    ${padded}${cmd.desc}`);
+    const padded = (command.fullName || command.name).padEnd(maxName + 2);
+    const experimental = command.experimental ? " [experimental]" : "";
+    lines.push(`    ${padded}${command.summary}${experimental}`.trimEnd());
   }
-
   lines.push("");
-  lines.push(`  ${t("ui:help.runHelp")}`);
+  lines.push(`  ${t("help.runHelp")}`);
   lines.push("");
   return lines.join("\n");
+}
+
+function renderCommand(command) {
+  const lines = [command.usage, ""];
+  if (command.summary) lines.push(command.summary);
+  if (command.experimental) lines.push("", "Experimental: true");
+  if (command.options.length) {
+    lines.push("", "Options:");
+    for (const option of command.options) lines.push(`  ${option}`);
+  } else if (command.args?.flags?.length || command.args?.options?.length) {
+    lines.push("", "Options:");
+    for (const option of [...(command.args.flags || []), ...(command.args.options || [])]) lines.push(`  ${option}`);
+  }
+  if (command.args?.positional?.length) {
+    lines.push("", "Arguments:");
+    for (const arg of command.args.positional) lines.push(`  ${arg}`);
+  }
+  if (command.subcommands.length) {
+    lines.push("", "Subcommands:");
+    for (const sub of command.subcommands) {
+      const shortName = sub.name.split(" ").at(-1);
+      lines.push(`  ${shortName.padEnd(14)}${sub.summary}`.trimEnd());
+    }
+  }
+  return lines.join("\n");
+}
+
+function pluginCommands(root, lang) {
+  return [...loadPluginRegistry(root).commands.values()].map((command) => normalizePluginHelpMetadata(command, { lang }));
+}
+
+export function normalizePluginHelpMetadata(command, { lang = DEFAULT_LANG } = {}) {
+  const localized = command.locale?.[lang] || command.locale?.[DEFAULT_LANG] || {};
+  return new CommandHelpMetadata({
+    name: command.name,
+    section: "Plugins",
+    summary: localized.desc || command.desc || command.description || command.summary || "",
+    usage: localized.help || command.help || `Usage: senti ${command.name}`,
+    args: command.args || {},
+    options: command.options || command.args?.flags || [],
+    experimental: Boolean(command.experimental),
+    localeKey: `plugin:${command.providerId || "plugin"}.${command.name}`,
+    locale: command.locale || null,
+    owner: "plugin-command-metadata",
+    subcommands: (command.subcommands || []).map((sub) => {
+      const subLocalized = sub.locale?.[lang] || sub.locale?.[DEFAULT_LANG] || {};
+      return new CommandHelpMetadata({
+        name: sub.name,
+        section: "Plugins",
+        summary: subLocalized.desc || sub.desc || sub.description || sub.summary || "",
+        usage: subLocalized.help || sub.help || `Usage: senti ${command.name} ${sub.name}`,
+        args: sub.args || {},
+        options: sub.options || sub.args?.flags || [],
+        experimental: Boolean(sub.experimental),
+        localeKey: `plugin:${command.providerId || "plugin"}.${command.name}.${sub.name}`,
+        locale: sub.locale || null,
+        owner: "plugin-command-metadata",
+      });
+    }),
+  });
+}
+
+function findPluginPackage(registry, id) {
+  return registry.manifests.find((manifest) => manifest.providerId === id || manifest.name === id) || null;
+}
+
+export async function renderPluginPackageHelp({ root = process.cwd(), plugin, lang = DEFAULT_LANG } = {}) {
+  const registry = loadPluginRegistry(root);
+  const manifest = findPluginPackage(registry, plugin);
+  if (!manifest) throw new Error(`unknown plugin: ${plugin}`);
+  const commands = [...registry.commands.values()]
+    .filter((command) => command.providerId === manifest.providerId)
+    .map((command) => normalizePluginHelpMetadata(command, { lang }));
+  const lines = [`Plugin: ${manifest.providerId}`, "", "Commands:"];
+  for (const command of commands) lines.push(`  ${command.name.padEnd(14)}${command.summary}`.trimEnd());
+  return lines.join("\n");
+}
+
+function coreTopicFromArgs(args) {
+  const clean = args.filter((arg) => !HELP_FLAGS.has(arg));
+  if (clean[0] === "help") return clean.slice(1);
+  return clean;
+}
+
+export function resolveHelpSurfaceOwner(args = [], { root = process.cwd() } = {}) {
+  const topic = coreTopicFromArgs(args);
+  if (topic.length === 0) {
+    return { owner: "renderer-backed-metadata", source: "core-command-metadata-registry", topic: [] };
+  }
+  const registry = loadPluginRegistry(root);
+  const pluginPackage = findPluginPackage(registry, topic[0]);
+  if (pluginPackage && topic.length === 1) {
+    return {
+      owner: "renderer-backed-metadata",
+      kind: "plugin-package",
+      packageId: pluginPackage.providerId,
+      topic,
+    };
+  }
+  const pluginCommand = registry.resolveCommand(topic[0]);
+  if (pluginCommand) return { owner: "renderer-backed-metadata", topic };
+  if (coreCommandMetadataRegistry.findCommand(topic)) {
+    return { owner: "renderer-backed-metadata", source: "core-command-metadata-registry", topic };
+  }
+  return { owner: "unknown", topic };
+}
+
+export function resolveExecutionOwner(args = []) {
+  const [head, second] = args;
+  if (head === "flow" && second === "review") return { owner: "plugin-hook-dispatch" };
+  if (head === "flow") return { owner: "flow-lifecycle-registry" };
+  if (["docs", "check", "metrics", "spec", "hook"].includes(head)) return { owner: "core-dispatcher" };
+  if (["setup", "upgrade", "plugin", "presets"].includes(head)) return { owner: "independent-entrypoint" };
+  return { owner: "unknown" };
+}
+
+export function resolvePluginDiscoveryMode() {
+  return "contribution-only";
+}
+
+export async function renderCommandHelp({
+  root = process.cwd(),
+  command = [],
+  lang = null,
+  commands = allCommands,
+} = {}) {
+  const effectiveLang = resolveLang(root, lang);
+  const topic = Array.isArray(command) ? command : String(command).split(/\s+/);
+  const plugins = pluginCommands(root, effectiveLang);
+  const plugin = plugins.find((entry) => entry.name === topic[0]);
+  if (plugin) {
+    const target = topic.length === 1 ? plugin : plugin.find(topic.slice(1));
+    if (!target) throw new Error(`unknown plugin command help: ${topic.join(" ")}`);
+    return renderCommand(target);
+  }
+  const model = buildCoreHelpModel({ commands, lang: effectiveLang });
+  return renderCommand(model.findCommand(topic));
+}
+
+export async function renderHelp({ root = process.cwd(), argv = [], lang = null, commands = allCommands } = {}) {
+  const effectiveLang = resolveLang(root, lang);
+  const topic = coreTopicFromArgs(argv);
+  const registry = loadPluginRegistry(root);
+  if (topic.length > 0) {
+    const pluginPackage = findPluginPackage(registry, topic[0]);
+    if (pluginPackage && topic.length === 1) return renderPluginPackageHelp({ root, plugin: topic[0], lang: effectiveLang });
+    return renderCommandHelp({ root, command: topic, lang: effectiveLang, commands });
+  }
+  const model = buildCoreHelpModel({ commands, lang: effectiveLang });
+  const plugins = commands === allCommands || commands === coreCommandMetadataRegistry || !commands
+    ? pluginCommands(root, effectiveLang)
+    : [];
+  return renderTopLevel(model, plugins, effectiveLang);
 }
 
 async function main() {
   console.log(await renderHelp({ root: process.cwd(), argv: process.argv.slice(2) }));
 }
 
-export { main, LAYOUT as commands };
+export { main, coreCommandMetadataRegistry as commands };

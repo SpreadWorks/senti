@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-13T11:26:11.758Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/292-command-help-registry/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R6 test depends on a missing fixture path",
+      "target": "specs/292-command-help-registry/tests/core-help-registry.test.js / test \"R6: non-help execution still routes through existing dispatchers\"",
+      "issue": "The test runs `senti docs changelog --dry-run .tmp/spec-292-changelog.md`, but the spec-local test code does not create that file or otherwise guarantee it exists. In a clean checkout this can fail before it verifies dispatcher ownership, making the test environment-dependent rather than executable as a spec-local regression test.",
+      "requiredChange": "Create the changelog input fixture in the test, use an existing guaranteed fixture, or replace this assertion with a non-help command path that does not depend on an undeclared file.",
+      "whyBlocking": "A spec-local test that is not executable in a clean environment blocks implementation because runtime failure would not distinguish an implementation regression from missing test setup."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/292-command-help-registry/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "ff743058b9557a5d77155db3baa8d44f6354768b083c8592050f0b24fc9ca662"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 12,
+  "findings": [
+    {
+      "id": "test-012-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 12,
+      "severity": "blocking",
+      "title": "R6 test depends on a missing fixture path",
+      "body": "The test runs `senti docs changelog --dry-run .tmp/spec-292-changelog.md`, but the spec-local test code does not create that file or otherwise guarantee it exists. In a clean checkout this can fail before it verifies dispatcher ownership, making the test environment-dependent rather than executable as a spec-local regression test.",
+      "category": "unknown"
+    }
+  ]
+}

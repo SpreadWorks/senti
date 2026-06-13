@@ -1,0 +1,951 @@
+[senti] scenario-validity tests start
+command: node --test specs/292-command-help-registry/tests/core-help-registry.test.js specs/292-command-help-registry/tests/help-metadata-model.test.js specs/292-command-help-registry/tests/plugin-help-rendering.test.js
+[senti] scenario-validity file start command=node specs/292-command-help-registry/tests/core-help-registry.test.js
+TAP version 13
+# Subtest: core help from command registry
+    # Subtest: R2: top-level core help is generated from registry metadata, not a static layout
+    not ok 1 - R2: top-level core help is generated from registry metadata, not a static layout
+      ---
+      duration_ms: 2.672814
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/core-help-registry.test.js:82:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + 'undefined'
+        - 'function'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'function'
+      actual: 'undefined'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/core-help-registry.test.js:83:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Test.start (node:internal/test_runner/test:944:17)
+        node:internal/test_runner/test:1440:71
+        node:internal/per_context/primordials:464:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:433:3)
+        node:internal/per_context/primordials:464:9
+        Array.map (<anonymous>)
+      ...
+    # Subtest: R3: core command and subcommand help render from the same metadata source
+    not ok 2 - R3: core command and subcommand help render from the same metadata source
+      ---
+      duration_ms: 0.451442
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/core-help-registry.test.js:143:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + 'undefined'
+        - 'function'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'function'
+      actual: 'undefined'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/core-help-registry.test.js:144:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1442:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+      ...
+    # Subtest: R6: non-help execution still routes through existing dispatchers
+    not ok 3 - R6: non-help execution still routes through existing dispatchers
+      ---
+      duration_ms: 484.356765
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/core-help-registry.test.js:181:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Command failed: node /home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/senti.js docs changelog --dry-run .tmp/spec-292-changelog.md
+        Error: Unknown option: .tmp/spec-292-changelog.md
+            at parseArgs (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/lib/cli.js:83:11)
+            at runChangelog (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/docs/commands/changelog.js:107:16)
+            at DocsChangelogCommand.execute (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/docs/commands/changelog.js:234:12)
+            at DocsChangelogCommand.run (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/lib/command.js:53:17)
+            at async dispatch (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/lib/dispatcher.js:369:14)
+            at async file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/docs.js:35:1
+        
+      code: 'ERR_TEST_FAILURE'
+      stack: |-
+        parseArgs (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/lib/cli.js:83:11)
+        runChangelog (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/docs/commands/changelog.js:107:16)
+        DocsChangelogCommand.execute (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/docs/commands/changelog.js:234:12)
+        DocsChangelogCommand.run (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/lib/command.js:53:17)
+        async dispatch (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/lib/dispatcher.js:369:14)
+        async file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/docs.js:35:1
+        genericNodeError (node:internal/errors:983:15)
+        wrappedFn (node:internal/errors:537:14)
+        checkExecSyncError (node:child_process:916:11)
+        execFileSync (node:child_process:952:15)
+        runCli (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/core-help-registry.test.js:62:10)
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/core-help-registry.test.js:187:23)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+      ...
+    # Subtest: R7: retained core and locale help surfaces are covered by executable assertions
+    not ok 4 - R7: retained core and locale help surfaces are covered by executable assertions
+      ---
+      duration_ms: 74.978144
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/core-help-registry.test.js:204:3'
+      failureType: 'testCodeFailure'
+      error: 'help.renderCommandHelp is not a function'
+      code: 'ERR_TEST_FAILURE'
+      name: 'TypeError'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/core-help-registry.test.js:206:32)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R11: independent top-level commands have explicit metadata owners
+    not ok 5 - R11: independent top-level commands have explicit metadata owners
+      ---
+      duration_ms: 0.460762
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/core-help-registry.test.js:216:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + 'undefined'
+        - 'function'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'function'
+      actual: 'undefined'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/core-help-registry.test.js:217:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R12: global help surfaces resolve through renderer-backed metadata
+    not ok 6 - R12: global help surfaces resolve through renderer-backed metadata
+      ---
+      duration_ms: 0.481843
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/core-help-registry.test.js:243:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + 'undefined'
+        - 'function'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'function'
+      actual: 'undefined'
+      operator: 'strictEqual'
+      stack: |-
+        assertRendererBackedHelpSurface (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/core-help-registry.test.js:231:12)
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/core-help-registry.test.js:244:11)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R12: core command topic help resolves through renderer-backed metadata
+    not ok 7 - R12: core command topic help resolves through renderer-backed metadata
+      ---
+      duration_ms: 0.628843
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/core-help-registry.test.js:249:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + 'undefined'
+        - 'function'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'function'
+      actual: 'undefined'
+      operator: 'strictEqual'
+      stack: |-
+        assertRendererBackedHelpSurface (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/core-help-registry.test.js:231:12)
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/core-help-registry.test.js:250:11)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R12: core subcommand topic help resolves through renderer-backed metadata
+    not ok 8 - R12: core subcommand topic help resolves through renderer-backed metadata
+      ---
+      duration_ms: 0.787324
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/core-help-registry.test.js:253:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + 'undefined'
+        - 'function'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'function'
+      actual: 'undefined'
+      operator: 'strictEqual'
+      stack: |-
+        assertRendererBackedHelpSurface (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/core-help-registry.test.js:231:12)
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/core-help-registry.test.js:254:11)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R12: core namespace --help resolves through renderer-backed metadata
+    not ok 9 - R12: core namespace --help resolves through renderer-backed metadata
+      ---
+      duration_ms: 1.026525
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/core-help-registry.test.js:261:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + 'undefined'
+        - 'function'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'function'
+      actual: 'undefined'
+      operator: 'strictEqual'
+      stack: |-
+        assertRendererBackedHelpSurface (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/core-help-registry.test.js:231:12)
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/core-help-registry.test.js:262:11)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R12: core leaf --help resolves through renderer-backed metadata
+    not ok 10 - R12: core leaf --help resolves through renderer-backed metadata
+      ---
+      duration_ms: 1.105806
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/core-help-registry.test.js:265:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + 'undefined'
+        - 'function'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'function'
+      actual: 'undefined'
+      operator: 'strictEqual'
+      stack: |-
+        assertRendererBackedHelpSurface (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/core-help-registry.test.js:231:12)
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/core-help-registry.test.js:266:11)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    1..10
+not ok 1 - core help from command registry
+  ---
+  duration_ms: 568.767558
+  type: 'suite'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/core-help-registry.test.js:81:1'
+  failureType: 'subtestsFailed'
+  error: '10 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 10
+# suites 1
+# pass 0
+# fail 10
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 587.584095
+Error: Unknown option: .tmp/spec-292-changelog.md
+    at parseArgs (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/lib/cli.js:83:11)
+    at runChangelog (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/docs/commands/changelog.js:107:16)
+    at DocsChangelogCommand.execute (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/docs/commands/changelog.js:234:12)
+    at DocsChangelogCommand.run (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/lib/command.js:53:17)
+    at async dispatch (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/lib/dispatcher.js:369:14)
+    at async file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/docs.js:35:1
+exitCode: 1
+[senti] scenario-validity file end command=node specs/292-command-help-registry/tests/core-help-registry.test.js
+[senti] scenario-validity file start command=node specs/292-command-help-registry/tests/help-metadata-model.test.js
+TAP version 13
+# Subtest: command help metadata model
+    # Subtest: R1: core command metadata exposes renderer-ready fields
+    not ok 1 - R1: core command metadata exposes renderer-ready fields
+      ---
+      duration_ms: 1.90345
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/help-metadata-model.test.js:13:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + 'undefined'
+        - 'function'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'function'
+      actual: 'undefined'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/help-metadata-model.test.js:14:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Test.start (node:internal/test_runner/test:944:17)
+        node:internal/test_runner/test:1440:71
+        node:internal/per_context/primordials:464:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:433:3)
+        node:internal/per_context/primordials:464:9
+        Array.map (<anonymous>)
+      ...
+    # Subtest: R5: renderer resolves localized command text with fallback
+    not ok 2 - R5: renderer resolves localized command text with fallback
+      ---
+      duration_ms: 0.661284
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/help-metadata-model.test.js:50:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + 'undefined'
+        - 'function'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'function'
+      actual: 'undefined'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/help-metadata-model.test.js:51:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1442:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+      ...
+    # Subtest: R8: metadata read path does not invoke command run behavior
+    not ok 3 - R8: metadata read path does not invoke command run behavior
+      ---
+      duration_ms: 0.451562
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/help-metadata-model.test.js:83:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + 'undefined'
+        - 'function'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'function'
+      actual: 'undefined'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/help-metadata-model.test.js:84:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R8: command metadata convention documents import-time side effect policy
+    not ok 4 - R8: command metadata convention documents import-time side effect policy
+      ---
+      duration_ms: 1.338406
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/help-metadata-model.test.js:122:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        The input did not match the regular expression /import-time side effects/i. Input:
+        
+        '/**\n' +
+          ' * src/lib/command-registry.js\n' +
+          ' *\n' +
+          ' * Unified command registry. Every CLI subcommand (flow / docs / check /\n' +
+          ' * metrics) is declared here as a tree. Each dispatcher imports only the\n' +
+          ' * subtree it needs via named exports (e.g. `flowCommands`), while static\n' +
+          ' * checks and tests import the combined `allCommands` root.\n' +
+          ' *\n' +
+          ' * An entry shape:\n' +
+          ' *\n' +
+          ' *   {\n' +
+          ' *     help?: string,\n' +
+          ' *     args?: { flags?, options?, positional? },\n' +
+          ' *     command: () => Promise<{ default: typeof Command }>,\n' +
+          ' *     outputMode: "envelope" | "raw",\n' +
+          ' *     passthroughArgs?: boolean,\n' +
+          ' *     pre?, post?, onError?,\n' +
+          ' *   }\n' +
+          ' */\n' +
+          '\n' +
+          'import { FLOW_COMMANDS } from "../flow/registry.js";\n' +
+          '\n' +
+          '// ---------------------------------------------------------------------------\n' +
+          '// flow subtree — re-use FLOW_COMMANDS and attach outputMode: "envelope".\n' +
+          '// ---------------------------------------------------------------------------\n' +
+          '\n' +
+          'function decorateFlowEntry(entry) {\n' +
+          '  if (entry && typeof entry.command === "function") {\n' +
+          '    return { ...entry, outputMode: "envelope" };\n' +
+          '  }\n' +
+          '  if (entry && typeof entry === "object") {\n' +
+          '    const out = {};\n' +
+          '    for (const [k, v] of Object.entries(entry)) out[k] = decorateFlowEntry(v);\n' +
+          '    return out;\n' +
+          '  }\n' +
+          '  return entry;\n' +
+          '}\n' +
+          '\n' +
+          'export const flowCommands = decorateFlowEntry(FLOW_COMMANDS);\n' +
+          '\n' +
+          '// ---------------------------------------------------------------------------\n' +
+          "// Helpers for raw-output commands. Each command's args are parsed internally\n" +
+          '// by the command (via `parseArgs(ctx._rawArgs, ...)`), so the registry\n' +
+          '// declares `passthroughArgs: true` rather than a full `args` spec.\n' +
+          '// ---------------------------------------------------------------------------\n' +
+          '\n' +
+          'function rawEntry(modulePath) {\n' +
+          '  return {\n' +
+          '    command: () => import(modulePath),\n' +
+          '    outputMode: "raw",\n' +
+          '    passthroughArgs: true,\n' +
+          '  };\n' +
+          '}\n' +
+          '\n' +
+          '// ---------------------------------------------------------------------------\n' +
+          '// docs subtree\n' +
+          '// ---------------------------------------------------------------------------\n' +
+          '\n' +
+          'export const docsCommands = {\n' +
+          '  build:     rawEntry("../docs/commands/build.js"),\n' +
+          '  scan:      rawEntry("../docs/commands/scan.js"),\n' +
+          '  enrich:    rawEntry("../docs/commands/enrich.js"),\n' +
+          '  init:      rawEntry("../docs/commands/init.js"),\n' +
+          '  data:      rawEntry("../docs/commands/data.js"),\n' +
+          '  text:      rawEntry("../docs/commands/text.js"),\n' +
+          '  readme:    rawEntry("../docs/commands/readme.js"),\n' +
+          '  forge:     rawEntry("../docs/commands/forge.js"),\n' +
+          '  review:    rawEntry("../docs/commands/review.js"),\n' +
+          '  changelog: rawEntry("../docs/commands/changelog.js"),\n' +
+          '  agents:    rawEntry("../docs/commands/agents.js"),\n' +
+          '  translate: rawEntry("../docs/commands/translate.js"),\n' +
+          '};\n' +
+          '\n' +
+          '// ---------------------------------------------------------------------------\n' +
+          '// check subtree\n' +
+          '// ---------------------------------------------------------------------------\n' +
+          '\n' +
+          'export const checkCommands = {\n' +
+          '  config:    rawEntry("../check/commands/config.js"),\n' +
+          '  freshness: rawEntry("../check/commands/freshness.js"),\n' +
+          '  scan:      rawEntry("../check/commands/scan.js"),\n' +
+          '};\n' +
+          '\n' +
+          '// ---------------------------------------------------------------------------\n' +
+          '// metrics subtree\n' +
+          '// ---------------------------------------------------------------------------\n' +
+          '\n' +
+          'export const metricsCommands = {\n' +
+          '  token: rawEntry("../metrics/commands/token.js"),\n' +
+          '  review: rawEntry("../metrics/commands/review.js"),\n' +
+          '};\n' +
+          '\n' +
+          '// ---------------------------------------------------------------------------\n' +
+          '// spec subtree\n' +
+          '// ---------------------------------------------------------------------------\n' +
+          '\n' +
+          'export const specCommands = {\n' +
+          '  render: rawEntry("../spec/commands/render.js"),\n' +
+          '};\n' +
+          '\n' +
+          '// ---------------------------------------------------------------------------\n' +
+          '// hook subtree\n' +
+          '// ---------------------------------------------------------------------------\n' +
+          '\n' +
+          'export const hookCommands = {\n' +
+          '  list: {\n' +
+          '    command: () => import("../hook/commands/list.js"),\n' +
+          '    outputMode: "raw",\n' +
+          '    args: { flags: ["--json"] },\n' +
+          '    help: [\n' +
+          '      "Usage: senti hook list [--json]",\n' +
+          '      "",\n' +
+          '      "List available flow hooks and current configured commands.",\n' +
+          '      "",\n' +
+          '      "Options:",\n' +
+          '      "  --json    Output structured JSON",\n' +
+          '    ].join("\\n"),\n' +
+          '  },\n' +
+          '};\n' +
+          '\n' +
+          '// ---------------------------------------------------------------------------\n' +
+          '// Unified root\n' +
+          '// ---------------------------------------------------------------------------\n' +
+          '\n' +
+          'export const allCommands = {\n' +
+          '  flow: flowCommands,\n' +
+          '  docs: docsCommands,\n' +
+          '  check: checkCommands,\n' +
+          '  metrics: metricsCommands,\n' +
+          '  spec: specCommands,\n' +
+          '  hook: hookCommands,\n' +
+          '};\n'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: |-
+        /**
+         * src/lib/command-registry.js
+         *
+         * Unified command registry. Every CLI subcommand (flow / docs / check /
+         * metrics) is declared here as a tree. Each dispatcher imports only the
+         * subtree it needs via named exports (e.g. `flowCommands`), while static
+         * checks and tests import the combined `allCommands` root.
+         *
+         * An entry shape:
+         *
+         *   {
+         *     help?: string,
+         *     args?: { flags?, options?, positional? },
+         *     command: () => Promise<{ default: typeof Command }>,
+         *     outputMode: "envelope" | "raw",
+         *     passthroughArgs?: boolean,
+         *     pre?, post?, onError?,
+         *   }
+         */
+        
+        import { FLOW_COMMANDS } from "../flow/registry.js";
+        
+        // ---------------------------------------------------------------------------
+        // flow subtree — re-use FLOW_COMMANDS and attach outputMode: "envelope".
+        // ---------------------------------------------------------------------------
+        
+        function decorateFlowEntry(entry) {
+          if (entry && typeof entry.command === "function") {
+            return { ...entry, outputMode: "envelope" };
+          }
+          if (entry && typeof entry === "object") {
+            const out = {};
+            for (const [k, v] of Object.entries(entry)) out[k] = decorateFlowEntry(v);
+            return out;
+          }
+          return entry;
+        }
+        
+        export const flowCommands = decorateFlowEntry(FLOW_COMMANDS);
+        
+        // ---------------------------------------------------------------------------
+        // Helpers for raw-output commands. Each command's args are parsed internally
+        // by the command (via `parseArgs(ctx._rawArgs, ...)`), so the registry
+        // declares `passthroughArgs: true` rather than a full `args` spec.
+        // ---------------------------------------------------------------------------
+        
+        function rawEntry(modulePath) {
+          return {
+            command: () => import(modulePath),
+            outputMode: "raw",
+            passthroughArgs: true,
+          };
+        }
+        
+        // ---------------------------------------------------------------------------
+        // docs subtree
+        // ---------------------------------------------------------------------------
+        
+        export const docsCommands = {
+          build:     rawEntry("../docs/commands/build.js"),
+          scan:      rawEntry("../docs/commands/scan.js"),
+          enrich:    rawEntry("../docs/commands/enrich.js"),
+          init:      rawEntry("../docs/commands/init.js"),
+          data:      rawEntry("../docs/commands/data.js"),
+          text:      rawEntry("../docs/commands/text.js"),
+          readme:    rawEntry("../docs/commands/readme.js"),
+          forge:     rawEntry("../docs/commands/forge.js"),
+          review:    rawEntry("../docs/commands/review.js"),
+          changelog: rawEntry("../docs/commands/changelog.js"),
+          agents:    rawEntry("../docs/commands/agents.js"),
+          translate: rawEntry("../docs/commands/translate.js"),
+        };
+        
+        // ---------------------------------------------------------------------------
+        // check subtree
+        // ---------------------------------------------------------------------------
+        
+        export const checkCommands = {
+          config:    rawEntry("../check/commands/config.js"),
+          freshness: rawEntry("../check/commands/freshness.js"),
+          scan:      rawEntry("../check/commands/scan.js"),
+        };
+        
+        // ---------------------------------------------------------------------------
+        // metrics subtree
+        // ---------------------------------------------------------------------------
+        
+        export const metricsCommands = {
+          token: rawEntry("../metrics/commands/token.js"),
+          review: rawEntry("../metrics/commands/review.js"),
+        };
+        
+        // ---------------------------------------------------------------------------
+        // spec subtree
+        // ---------------------------------------------------------------------------
+        
+        export const specCommands = {
+          render: rawEntry("../spec/commands/render.js"),
+        };
+        
+        // ---------------------------------------------------------------------------
+        // hook subtree
+        // ---------------------------------------------------------------------------
+        
+        export const hookCommands = {
+          list: {
+            command: () => import("../hook/commands/list.js"),
+            outputMode: "raw",
+            args: { flags: ["--json"] },
+            help: [
+              "Usage: senti hook list [--json]",
+              "",
+              "List available flow hooks and current configured commands.",
+              "",
+              "Options:",
+              "  --json    Output structured JSON",
+            ].join("\n"),
+          },
+        };
+        
+        // ---------------------------------------------------------------------------
+        // Unified root
+        // ---------------------------------------------------------------------------
+        
+        export const allCommands = {
+          flow: flowCommands,
+          docs: docsCommands,
+          check: checkCommands,
+          metrics: metricsCommands,
+          spec: specCommands,
+          hook: hookCommands,
+        };
+        
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/help-metadata-model.test.js:124:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R10: this spec-local test file declares requirement coverage in the header
+    ok 5 - R10: this spec-local test file declares requirement coverage in the header
+      ---
+      duration_ms: 1.051445
+      type: 'test'
+      ...
+    1..5
+not ok 1 - command help metadata model
+  ---
+  duration_ms: 6.831955
+  type: 'suite'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/help-metadata-model.test.js:12:1'
+  failureType: 'subtestsFailed'
+  error: '4 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 5
+# suites 1
+# pass 1
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 25.32145
+Command failed: node specs/292-command-help-registry/tests/help-metadata-model.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/292-command-help-registry/tests/help-metadata-model.test.js
+[senti] scenario-validity file start command=node specs/292-command-help-registry/tests/plugin-help-rendering.test.js
+TAP version 13
+# Subtest: plugin help rendering
+    # Subtest: R4: plugin command metadata normalizes to the shared renderer input shape
+    not ok 1 - R4: plugin command metadata normalizes to the shared renderer input shape
+      ---
+      duration_ms: 1.720569
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/plugin-help-rendering.test.js:99:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + 'undefined'
+        - 'function'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'function'
+      actual: 'undefined'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/plugin-help-rendering.test.js:100:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Test.start (node:internal/test_runner/test:944:17)
+        node:internal/test_runner/test:1440:71
+        node:internal/per_context/primordials:464:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:433:3)
+        node:internal/per_context/primordials:464:9
+        Array.map (<anonymous>)
+      ...
+    # Subtest: R7: retained plugin help surfaces render through the shared help renderer
+    not ok 2 - R7: retained plugin help surfaces render through the shared help renderer
+      ---
+      duration_ms: 0.695323
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/plugin-help-rendering.test.js:122:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + 'undefined'
+        - 'function'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'function'
+      actual: 'undefined'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/plugin-help-rendering.test.js:123:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1442:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+      ...
+    # Subtest: R6: plugin hook dispatch remains owned by the existing plugin lifecycle path
+    not ok 3 - R6: plugin hook dispatch remains owned by the existing plugin lifecycle path
+      ---
+      duration_ms: 13.186187
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/plugin-help-rendering.test.js:139:3'
+      failureType: 'testCodeFailure'
+      error: 'plugin hook artifact context requires flow.spec for example'
+      code: 'ERR_TEST_FAILURE'
+      stack: |-
+        artifactRoot (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/lib/plugin-registry.js:732:11)
+        artifactHelpers (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/lib/plugin-registry.js:738:15)
+        buildPluginContext (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/lib/plugin-registry.js:775:16)
+        runFlowCommandHooks (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/lib/plugin-registry.js:851:21)
+        async TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/plugin-help-rendering.test.js:142:20)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R12: plugin CLI help surfaces render metadata without running plugin command behavior
+    not ok 4 - R12: plugin CLI help surfaces render metadata without running plugin command behavior
+      ---
+      duration_ms: 0.949685
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/plugin-help-rendering.test.js:157:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + 'undefined'
+        - 'function'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'function'
+      actual: 'undefined'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/plugin-help-rendering.test.js:159:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R9: direct plugin command execution remains contribution-based, not convention-discovered
+    not ok 5 - R9: direct plugin command execution remains contribution-based, not convention-discovered
+      ---
+      duration_ms: 138.920753
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/plugin-help-rendering.test.js:210:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Command failed: node /home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/senti.js sample --alpha value
+        [senti] config load failed: Config validation failed:
+          - docs: required field is missing
+          - plugin.packages[0].source: required field is missing
+          - plugin.packages[0].commit: required field is missing
+          - 'plugin.packages[0].source': unknown plugin source "undefined"
+          - 'plugin.packages[0].commit': must be a 40-character lowercase git commit
+        file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/lib/config.js:392
+            throw new Error(`Config validation failed:\n  - ${errors.join("\n  - ")}`);
+                  ^
+        
+        Error: Config validation failed:
+          - docs: required field is missing
+          - plugin.packages[0].source: required field is missing
+          - plugin.packages[0].commit: required field is missing
+          - 'plugin.packages[0].source': unknown plugin source "undefined"
+          - 'plugin.packages[0].commit': must be a 40-character lowercase git commit
+            at validate (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/lib/config.js:392:11)
+            at loadConfig (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/lib/config.js:462:10)
+            at initContainer (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/lib/container.js:153:14)
+            at file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/senti.js:58:1
+            at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+            at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+            at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+        
+        Node.js v22.22.0
+        
+      code: 'ERR_TEST_FAILURE'
+      stack: |-
+        validate (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/lib/config.js:392:11)
+        loadConfig (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/lib/config.js:462:10)
+        initContainer (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/lib/container.js:153:14)
+        file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/senti.js:58:1
+        ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+        async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+        async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+        genericNodeError (node:internal/errors:983:15)
+        wrappedFn (node:internal/errors:537:14)
+        checkExecSyncError (node:child_process:916:11)
+        execFileSync (node:child_process:952:15)
+        runPluginCli (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/plugin-help-rendering.test.js:91:10)
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/plugin-help-rendering.test.js:212:20)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+      ...
+    1..5
+not ok 1 - plugin help rendering
+  ---
+  duration_ms: 158.238372
+  type: 'suite'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/specs/292-command-help-registry/tests/plugin-help-rendering.test.js:98:1'
+  failureType: 'subtestsFailed'
+  error: '5 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 5
+# suites 1
+# pass 0
+# fail 5
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 176.949468
+[senti] config load failed: Config validation failed:
+  - docs: required field is missing
+  - plugin.packages[0].source: required field is missing
+  - plugin.packages[0].commit: required field is missing
+  - 'plugin.packages[0].source': unknown plugin source "undefined"
+  - 'plugin.packages[0].commit': must be a 40-character lowercase git commit
+file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/lib/config.js:392
+    throw new Error(`Config validation failed:\n  - ${errors.join("\n  - ")}`);
+          ^
+Error: Config validation failed:
+  - docs: required field is missing
+  - plugin.packages[0].source: required field is missing
+  - plugin.packages[0].commit: required field is missing
+  - 'plugin.packages[0].source': unknown plugin source "undefined"
+  - 'plugin.packages[0].commit': must be a 40-character lowercase git commit
+    at validate (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/lib/config.js:392:11)
+    at loadConfig (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/lib/config.js:462:10)
+    at initContainer (file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/lib/container.js:153:14)
+    at file:///home/nakano/workspace/senti/.senti/worktree/feature-292-command-help-registry/src/senti.js:58:1
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+Node.js v22.22.0
+exitCode: 1
+[senti] scenario-validity file end command=node specs/292-command-help-registry/tests/plugin-help-rendering.test.js
+exitCode: 1
+[senti] requirement R1 observed: R1: core command metadata exposes renderer-ready fields
+[senti] requirement R2 observed: R2: top-level core help is generated from registry metadata, not a static layout
+[senti] requirement R3 observed: R3: core command and subcommand help render from the same metadata source
+[senti] requirement R4 observed: R4: plugin command metadata normalizes to the shared renderer input shape
+[senti] requirement R5 observed: R5: renderer resolves localized command text with fallback
+[senti] requirement R6 observed: R6: non-help execution still routes through existing dispatchers
+[senti] requirement R7 observed: R7: retained core and locale help surfaces are covered by executable assertions
+[senti] requirement R8 observed: R8: metadata read path does not invoke command run behavior
+[senti] requirement R9 observed: R9: direct plugin command execution remains contribution-based, not convention-discovered
+[senti] requirement R10 observed: R10: this spec-local test file declares requirement coverage in the header
+[senti] requirement R11 observed: R11: independent top-level commands have explicit metadata owners
+[senti] requirement R12 observed: R12: global help surfaces resolve through renderer-backed metadata
+[senti] scenario-validity tests end

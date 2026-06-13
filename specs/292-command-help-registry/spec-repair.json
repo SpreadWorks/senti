@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied both spec-review blocking findings by adding explicit metadata owner mapping for independent core commands and concrete help invocation surface ownership.",
+  "items": [
+    {
+      "title": "Independent core commands have no metadata owner",
+      "target": "R2 / Overview Modules / Acceptance Criteria",
+      "decision": "applied",
+      "rationale": "Added an overview module entry, migration decision, R11, acceptance criteria, and task acceptance item naming metadata owners for `help`, `setup`, `upgrade`, `plugin`, and `presets list`.",
+      "evidence": "spec.json overview.modules, overview.decisions, requirements[R11], acceptance_criteria, and tasks[T-2].acceptance now map independent top-level core commands to command metadata ownership while retaining execution entrypoints.",
+      "changedFields": [
+        "overview.modules",
+        "overview.decisions",
+        "requirements",
+        "acceptance_criteria",
+        "tasks[1].acceptance"
+      ]
+    },
+    {
+      "title": "Public help invocation surfaces are not mapped to renderer ownership",
+      "target": "R3 / R4 / R7 / Migration parity",
+      "decision": "applied",
+      "rationale": "Added concrete CLI help invocation ownership mapping for global help, `senti help <...>`, core namespace/leaf `--help`, plugin help through `senti help`, and direct plugin `--help` while preserving non-help execution owners.",
+      "evidence": "spec.json overview.data_flow, overview.decisions, requirements[R12], acceptance_criteria, and tasks[T-4].acceptance now enumerate renderer-backed help paths and unchanged non-help execution ownership.",
+      "changedFields": [
+        "overview.data_flow",
+        "overview.decisions",
+        "requirements",
+        "acceptance_criteria",
+        "tasks[3].acceptance"
+      ]
+    }
+  ]
+}

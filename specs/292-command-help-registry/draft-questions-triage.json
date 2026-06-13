@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "5 repair targets are valid. Each pending question should keep only the question text; recommendation and rationale belong in later user-facing presentation, not in draft.json pending entries.",
+  "items": [
+    {
+      "title": "1. q1 includes guidance and rationale",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "The pending question includes recommendation and rationale text after the actual question. Pending QA entries must not include answer guidance.",
+      "evidence": "draft.json qa[0].question contains the core migration-scope question plus recommendation/rationale prose."
+    },
+    {
+      "title": "2. q2 includes guidance and rationale",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "The pending question includes recommendation and rationale text after the actual question. Pending QA entries must not include answer guidance.",
+      "evidence": "draft.json qa[1].question contains the help output parity question plus recommendation/rationale prose."
+    },
+    {
+      "title": "3. q3 includes guidance and rationale",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "The pending question includes recommendation and rationale text after the actual question. Pending QA entries must not include answer guidance.",
+      "evidence": "draft.json qa[2].question contains the locale metadata ownership question plus recommendation/rationale prose."
+    },
+    {
+      "title": "4. q4 includes guidance and rationale",
+      "target": "q4",
+      "decision": "apply",
+      "rationale": "The pending question includes recommendation and rationale text after the actual question. Pending QA entries must not include answer guidance.",
+      "evidence": "draft.json qa[3].question contains the plugin discovery boundary question plus recommendation/rationale prose."
+    },
+    {
+      "title": "5. q5 includes guidance and rationale",
+      "target": "q5",
+      "decision": "apply",
+      "rationale": "The pending question includes recommendation and rationale text after the actual question. Pending QA entries must not include answer guidance.",
+      "evidence": "draft.json qa[4].question contains the import-time side effect policy question plus recommendation/rationale prose."
+    }
+  ]
+}

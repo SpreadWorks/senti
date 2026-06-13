@@ -1,0 +1,177 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Core command help metadata must expose enough structured data to render top-level, command, and subcommand help: command name, section, summary, usage, args/options, experimental marker, locale source, and subcommands where applicable.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/help-metadata-model.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "Top-level help must be generated from core command registry / command metadata for every existing core command shown by the current help output, rather than from the static `src/help.js` LAYOUT as the source of truth.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/core-help-registry.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "Core command and subcommand help must be rendered from the same command metadata source used for top-level help, preserving user-visible usage, args/options, subcommand listing, descriptions, and experimental markers by semantic parity.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/core-help-registry.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "Plugin command metadata must be normalized to the same renderer input shape as core command metadata so plugin top-level help, command help, and subcommand help use the shared renderer.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/plugin-help-rendering.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "Locale support must be reachable from command metadata through a locale key or locale map, and the renderer must resolve command summaries/help text using the current language with fallback behavior.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/help-metadata-model.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "The implementation must preserve command execution ownership: dispatchers, argument parsing, exit codes, plugin command execution, flow lifecycle hooks, and plugin hook dispatch must not be moved or semantically changed by help rendering.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/core-help-registry.test.js",
+        "tests/plugin-help-rendering.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "Migration parity tests must verify each retained public help surface through the new path: top-level core help, core command help, core subcommand help, plugin top-level help, plugin command help, plugin subcommand help, and locale-specific rendering.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/core-help-registry.test.js",
+        "tests/plugin-help-rendering.test.js"
+      ]
+    },
+    {
+      "id": "R8",
+      "desc": "Import-time side effect policy must be documented near the command metadata convention, and focused tests must show help rendering reads metadata without invoking command run behavior.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/help-metadata-model.test.js"
+      ]
+    },
+    {
+      "id": "R9",
+      "desc": "The implementation must not add convention-based plugin command discovery or a full import-time side-effect static checker in this spec.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/plugin-help-rendering.test.js"
+      ]
+    },
+    {
+      "id": "R10",
+      "desc": "All newly introduced spec-local tests must include `// spec: R<N>` headers that map each test to the requirement it verifies.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/help-metadata-model.test.js"
+      ]
+    },
+    {
+      "id": "R11",
+      "desc": "Independent top-level core commands currently shown by help but not aggregated in `allCommands` must have explicit metadata owners: `help`, `setup`, `upgrade`, `plugin`, and `presets list` must be represented in the core command metadata registry while their existing execution entrypoints remain unchanged.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/core-help-registry.test.js"
+      ]
+    },
+    {
+      "id": "R12",
+      "desc": "The spec implementation must map concrete public help invocation surfaces to owners: `senti help`, global `--help`, `senti help <command>`, `senti help <subcommand>`, core namespace `--help`, core leaf `--help`, plugin help through `senti help <plugin>`, and direct plugin `--help` must be renderer-backed metadata paths; non-help execution remains with existing dispatchers.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/core-help-registry.test.js",
+        "tests/plugin-help-rendering.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/core-help-registry.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R2",
+        "R3",
+        "R6",
+        "R7",
+        "R11",
+        "R12"
+      ],
+      "testNameIds": [
+        "R2",
+        "R3",
+        "R6",
+        "R7",
+        "R11",
+        "R12"
+      ]
+    },
+    {
+      "file": "tests/help-metadata-model.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R5",
+        "R8",
+        "R10"
+      ],
+      "testNameIds": [
+        "R1",
+        "R5",
+        "R8",
+        "R10"
+      ]
+    },
+    {
+      "file": "tests/plugin-help-rendering.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R4",
+        "R6",
+        "R7",
+        "R9",
+        "R12"
+      ],
+      "testNameIds": [
+        "R4",
+        "R7",
+        "R6",
+        "R12",
+        "R9"
+      ]
+    }
+  ]
+}

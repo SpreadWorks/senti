@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "Both blocking findings are valid migration-parity gaps. The spec needs explicit metadata owners for independent core commands and concrete help invocation ownership mapping.",
+  "items": [
+    {
+      "title": "Independent core commands have no metadata owner",
+      "target": "R2 / Overview Modules / Acceptance Criteria",
+      "decision": "apply",
+      "rationale": "The spec requires all current top-level core help entries to become metadata-derived, but it does not name owners for independent entrypoints outside allCommands.",
+      "evidence": "spec.json currently names src/lib/command-registry.js for flow/docs/check/metrics/spec/hook but does not map help, setup, upgrade, plugin, or presets list."
+    },
+    {
+      "title": "Public help invocation surfaces are not mapped to renderer ownership",
+      "target": "R3 / R4 / R7 / Migration parity",
+      "decision": "apply",
+      "rationale": "The spec lists broad help surfaces but does not assign concrete CLI invocations to shared renderer or unchanged owners.",
+      "evidence": "spec.json requirements and acceptance criteria mention core/plugin command help generally but do not map senti help, namespace --help, leaf --help, or direct plugin --help behavior."
+    }
+  ]
+}

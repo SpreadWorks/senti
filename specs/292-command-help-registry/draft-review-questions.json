@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "phase": "draft-questions-review",
+  "sourceDraft": "draft.json",
+  "generatedAt": "2026-06-13T09:27:16.729Z",
+  "verdict": "ADVISORY",
+  "summary": "0 blocking, 0 advisory, 5 repair target finding(s) recorded.",
+  "blockingFindings": [],
+  "advisoryFindings": [],
+  "repairTargets": [
+    {
+      "title": "1. q1 includes guidance and rationale",
+      "target": "q1",
+      "rationale": "この spec の移行範囲は、全 core command の help metadata を今回の差分で registry / command class 由来に揃える方針でよいですか。",
+      "evidence": "The shown question includes an answer recommendation and rationale instead of only question text.",
+      "classification": "repair_target"
+    },
+    {
+      "title": "2. q2 includes guidance and rationale",
+      "target": "q2",
+      "rationale": "help output の互換性は、既存 command list / section order / usage / args / descriptions の内容 parity を必須にし、spacing などの表示整形差分は読みやすさを保つ範囲で許容してよいですか。",
+      "evidence": "The shown question includes an answer recommendation and rationale instead of only question text.",
+      "classification": "repair_target"
+    },
+    {
+      "title": "3. q3 includes guidance and rationale",
+      "target": "q3",
+      "rationale": "locale support は、command metadata が locale key または locale map を持ち、renderer が現在言語へ解決する形にしてよいですか。",
+      "evidence": "The shown question includes an answer recommendation and rationale instead of only question text.",
+      "classification": "repair_target"
+    },
+    {
+      "title": "4. q4 includes guidance and rationale",
+      "target": "q4",
+      "rationale": "plugin command は今回、core と同じ metadata shape / renderer 互換までを対象にし、convention-based discovery の全面実装は後続の plugin migration 側へ残してよいですか。",
+      "evidence": "The shown question includes an answer recommendation and rationale instead of only question text.",
+      "classification": "repair_target"
+    },
+    {
+      "title": "5. q5 includes guidance and rationale",
+      "target": "q5",
+      "rationale": "command module の import-time side effect 禁止は、今回の初期実装では規約と review / tests で担保し、完全な機械検査は作らない方針でよいですか。",
+      "evidence": "The shown question includes an answer recommendation and rationale instead of only question text.",
+      "classification": "repair_target"
+    }
+  ]
+}

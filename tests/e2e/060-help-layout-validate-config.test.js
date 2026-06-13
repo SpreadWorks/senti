@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { commands } from "../../src/help.js";
+import { buildCoreHelpModel } from "../../src/help.js";
+import { allCommands } from "../../src/lib/command-registry.js";
 import { validate } from "../../src/lib/config.js";
 
 // ---------------------------------------------------------------------------
@@ -8,7 +9,7 @@ import { validate } from "../../src/lib/config.js";
 // ---------------------------------------------------------------------------
 
 describe("060-A: help layout includes flow subcommands", () => {
-  const names = commands.filter((c) => c.name).map((c) => c.name);
+  const names = buildCoreHelpModel({ commands: allCommands, lang: "en" }).allCommands().map((c) => c.name);
 
   it("includes flow get", () => {
     assert.ok(names.includes("flow get"));

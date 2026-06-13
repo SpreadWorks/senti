@@ -1,0 +1,249 @@
+{
+  "entries": [
+    {
+      "step": "prepare-spec",
+      "reason": "worktree prepare created flow state before docs scan, but worktree lacked enabled official preset plugin files so node-cli preset resolution failed",
+      "trigger": "senti flow prepare --worktree for Issue 382 ran docs scan inside the new worktree",
+      "resolution": "ran senti plugin sync inside the worktree to restore enabled official-presets plugin files before continuing",
+      "guardrailCandidate": "worktree prepare should sync enabled plugin packages before running docs scan that resolves plugin presets",
+      "taskId": null,
+      "timestamp": "2026-06-13T09:22:34.402Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Migration parity requirements are deferred rather than defined in the draft itself, so the draft does not currently inventory moved/replaced public behavior or map retained behavior before implementation.; The draft specifies verification only for representative surfaces and does not provide behavior-level verification for each retained public help surface, nor a full inventory-to-owner mapping of all retained behaviors.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-13T09:45:05.441Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "deferredToSpec",
+            "locator": "item: must: migration parity inventory と behavior-level verification を spec に展開する。"
+          },
+          "observed": "Migration parity requirements are deferred rather than defined in the draft itself, so the draft does not currently inventory moved/replaced public behavior or map retained behavior before implementation.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "scopeVerification.in",
+            "locator": "item: existing help surface の migration parity を定義し、top-level help、代表 command help、代表 subcommand help、plugin command help を behavior-level tests で確認する。"
+          },
+          "observed": "The draft specifies verification only for representative surfaces and does not provide behavior-level verification for each retained public help surface, nor a full inventory-to-owner mapping of all retained behaviors.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "Migration parity requirements are deferred rather than defined in the draft itself, so the draft does not currently inventory moved/replaced public behavior or map retained behavior before implementation."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft specifies verification only for representative surfaces and does not provide behavior-level verification for each retained public help surface, nor a full inventory-to-owner mapping of all retained behaviors."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate failed because migration parity inventory and retained-surface behavior verification were deferred instead of defined in draft",
+      "trigger": "senti flow run gate --phase draft returned two migration-parity blocking observations",
+      "resolution": "added migration inventory, retained behavior mapping, and behavior-level verification requirements for core and plugin help surfaces",
+      "guardrailCandidate": "migration parity details must be present in draft before gate rather than deferred to spec",
+      "taskId": null,
+      "timestamp": "2026-06-13T09:46:07.579Z"
+    },
+    {
+      "step": "spec-repair",
+      "reason": "spec review failed because independent core command metadata owners and concrete help invocation ownership were not mapped",
+      "trigger": "senti flow run review --phase spec reported two blocking migration parity findings",
+      "resolution": "added R11/R12, metadata owner mapping for independent commands, and renderer ownership mapping for concrete help invocation surfaces",
+      "guardrailCandidate": "spec migration parity must name independent entrypoint owners and concrete invocation-surface owners before review",
+      "taskId": null,
+      "timestamp": "2026-06-13T09:55:13.650Z"
+    },
+    {
+      "step": "test",
+      "reason": "Spec-local tests were first added outside the active flow worktree, so header validation saw no spec tests in the worktree.",
+      "trigger": "test step header validation reported every requirement as uncovered because specs/292-command-help-registry/tests did not exist inside the worktree.",
+      "resolution": "Added the same spec-local test files under the active worktree spec directory and will rerun the test-step header validation.",
+      "guardrailCandidate": "Manual file edits during active worktree flows must use relative paths from the worktree or absolute paths under the active worktree.",
+      "taskId": null,
+      "timestamp": "2026-06-13T11:01:53.490Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Static test review found missing coverage for plugin help CLI surfaces, locale fallback behavior, and import-time side-effect documentation.",
+      "trigger": "senti flow run review --phase test returned FAIL with three blocking findings.",
+      "resolution": "Added plugin CLI help surface coverage for senti help <plugin> and direct plugin --help, added unsupported-locale fallback assertion, and added documentation-policy assertion.",
+      "guardrailCandidate": "Spec-local tests must cover every concrete public surface and every compound requirement clause, not only the primary runtime path.",
+      "taskId": null,
+      "timestamp": "2026-06-13T11:04:27.619Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Second static test review found self-referential core help coverage and insufficient renderer-owner observability in spec-local tests.",
+      "trigger": "senti flow run review --phase test returned FAIL after the first test repair.",
+      "resolution": "Added an explicit existing core help command baseline, args/subcommands metadata assertions, and a renderer-backed surface owner assertion.",
+      "guardrailCandidate": "Migration parity tests must compare against an explicit legacy public surface baseline, not only against newly generated model output.",
+      "taskId": null,
+      "timestamp": "2026-06-13T11:05:52.292Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Third static test review found that R6, R2, R3, R7, and R9 tests still did not exercise the specific migration risks.",
+      "trigger": "senti flow run review --phase test returned FAIL with five blocking findings after the second repair.",
+      "resolution": "Added registry-only render fixture, deeper command help parity assertions, non-help dispatcher execution and owner assertions, core R7 surfaces, and an unlisted plugin command file check.",
+      "guardrailCandidate": "Expected-fail tests should directly exercise the risk surface and include an implementation-owned observable, not just current behavior that may already pass.",
+      "taskId": null,
+      "timestamp": "2026-06-13T11:08:57.097Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Fourth static test review found missing R6 coverage for plugin hook dispatch preservation.",
+      "trigger": "senti flow run review --phase test returned FAIL with one blocking finding after the third repair.",
+      "resolution": "Added a plugin hook fixture, discovered the hook snapshot, invoked runFlowCommandHooks, and asserted hook dispatch output plus execution-owner metadata.",
+      "guardrailCandidate": "When a requirement lists multiple ownership surfaces, spec-local tests must include focused coverage for each named surface.",
+      "taskId": null,
+      "timestamp": "2026-06-13T11:11:05.150Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Fifth static test review found loose migration parity assertions, missing plugin namespace help coverage, and narrow execution ownership checks.",
+      "trigger": "senti flow run review --phase test returned FAIL with three blocking findings after plugin hook coverage was added.",
+      "resolution": "Added explicit retained help content expectations, plugin namespace help invocation coverage, docs non-help execution, and plugin command args plus failure exit-code assertions.",
+      "guardrailCandidate": "Migration parity tests should assert retained content and execution semantics with concrete expected values for each public surface.",
+      "taskId": null,
+      "timestamp": "2026-06-13T11:14:17.916Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Sixth static test review found R12 core subcommand help surface coverage was grouped and ambiguous.",
+      "trigger": "senti flow run review --phase test returned FAIL with one blocking finding after parity and execution checks were added.",
+      "resolution": "Split R12 core help assertions into explicit global, command-topic, subcommand-topic, namespace --help, and leaf --help test cases with expected topics.",
+      "guardrailCandidate": "Public surface mapping tests should use one explicit assertion per invocation shape when a requirement enumerates concrete CLI forms.",
+      "taskId": null,
+      "timestamp": "2026-06-13T11:16:18.511Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Seventh static test review found R8 side-effect coverage only exercised model construction, not help rendering.",
+      "trigger": "senti flow run review --phase test returned FAIL with one blocking R8 finding after R12 was split.",
+      "resolution": "Extended the R8 fake command test to call renderCommandHelp with fake metadata and assert lazy command import remains uninvoked.",
+      "guardrailCandidate": "Side-effect tests for read-only rendering must execute the actual renderer path, not just metadata model construction.",
+      "taskId": null,
+      "timestamp": "2026-06-13T11:17:34.430Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Eighth static test review found plugin R12 help-surface tests did not assert renderer-backed ownership.",
+      "trigger": "senti flow run review --phase test returned FAIL with one plugin R12 blocking finding after R8 renderer coverage was added.",
+      "resolution": "Added resolveHelpSurfaceOwner assertions for plugin namespace help, plugin command topic help, and direct plugin --help surfaces.",
+      "guardrailCandidate": "For renderer migration requirements, CLI output assertions should be paired with an owner/path assertion for every legacy-compatible help surface.",
+      "taskId": null,
+      "timestamp": "2026-06-13T11:19:43.324Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Ninth static test review found the parity helper used fragile regex escaping in spec-local tests.",
+      "trigger": "senti flow run review --phase test returned FAIL with one blocking assertion-helper finding.",
+      "resolution": "Replaced regex-based expected-fragment checks with direct String.includes assertions for literal help content.",
+      "guardrailCandidate": "Spec-local parity helpers should prefer literal includes checks when regex matching is not required.",
+      "taskId": null,
+      "timestamp": "2026-06-13T11:21:02.668Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Tenth static test review found missing plugin subcommand public help coverage and a vacuous R10 header test.",
+      "trigger": "senti flow run review --phase test returned FAIL with two blocking findings after regex helper cleanup.",
+      "resolution": "Added plugin subcommand owner and CLI help assertions, and replaced the R10 no-op with a static scan of spec-local test headers and R-N test names.",
+      "guardrailCandidate": "Requirement-header tests must inspect actual files, and plugin help parity must include subcommand public CLI surfaces.",
+      "taskId": null,
+      "timestamp": "2026-06-13T11:22:55.927Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Eleventh static test review found R2, top-level locale, core import-time side effect, and plugin import-time side effect gaps.",
+      "trigger": "senti flow run review --phase test returned FAIL with four blocking findings after R10 and plugin subcommand coverage were added.",
+      "resolution": "Added customized existing-command metadata rendering, top-level locale and fallback assertions, temp command import side-effect marker checks, and plugin command top-level import side-effect marker checks.",
+      "guardrailCandidate": "Renderer migration tests must prove metadata changes drive output and that help rendering does not import command implementation modules.",
+      "taskId": null,
+      "timestamp": "2026-06-13T11:25:30.665Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Twelfth static test review found the R6 docs changelog non-help execution assertion depended on an undeclared .tmp output path.",
+      "trigger": "senti flow run review --phase test returned FAIL with one clean-environment fixture finding.",
+      "resolution": "Added explicit .tmp directory and output fixture file setup before invoking docs changelog --dry-run.",
+      "guardrailCandidate": "Spec-local command tests must create every file path they pass to a command unless the path is guaranteed by the repository.",
+      "taskId": null,
+      "timestamp": "2026-06-13T11:27:04.505Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Thirteenth static test review found plugin package-id help surface was not distinguished from plugin command help.",
+      "trigger": "senti flow run review --phase test returned FAIL with one R12 plugin package help finding.",
+      "resolution": "Added package-level owner fields for help example and asserted package help lists commands without rendering Usage: senti example.",
+      "guardrailCandidate": "Plugin package help tests must distinguish package-id surfaces from command-name help surfaces.",
+      "taskId": null,
+      "timestamp": "2026-06-13T11:28:12.575Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Fourteenth static test review found core CLI renderer routing, R11 registry ownership, R1 full-shape coverage, and R4 plugin shape gaps.",
+      "trigger": "senti flow run review --phase test returned FAIL with four blocking findings after plugin package help distinction was added.",
+      "resolution": "Added CLI-output-to-renderer-output comparison, direct coreCommandMetadataRegistry assertions, recursive model shape checks, and plugin normalized shape field assertions.",
+      "guardrailCandidate": "Migration tests should assert both public output and the internal ownership boundary required by the spec.",
+      "taskId": null,
+      "timestamp": "2026-06-13T11:32:15.030Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Fifteenth static test review found default top-level core help and plugin CLI help were not compared to shared renderer output.",
+      "trigger": "senti flow run review --phase test returned FAIL with two renderer-routing blocking findings.",
+      "resolution": "Added default renderHelp versus core registry renderHelp comparison, help surface source assertion, and plugin CLI output comparisons against renderPluginPackageHelp/renderCommandHelp.",
+      "guardrailCandidate": "Renderer-backed surface tests should compare public CLI output to the shared renderer output for the same topic.",
+      "taskId": null,
+      "timestamp": "2026-06-13T11:34:49.534Z"
+    },
+    {
+      "step": "test-execute",
+      "reason": "Spec-local plugin R9 fixture overwrote the success marker before returning an intentional SAMPLE_FAILED envelope, then asserted the previous marker value. The assertion contradicted the fixture side effect rather than the product requirement.",
+      "trigger": "node --test specs/292-command-help-registry/tests/plugin-help-rendering.test.js",
+      "resolution": "Moved the fixture marker write after the intentional --fail branch so the test still verifies contribution-based plugin execution and failure envelopes without a self-contradictory side effect.",
+      "taskId": null,
+      "timestamp": "2026-06-13T12:00:19.593Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: refreshed spec-local R12 help comparison after CLI help began honoring config.lang by default",
+      "resolution": "test-execute-result.json now reports every R1-R12 spec-local requirement as pass and project regression as pass, so the previous ARTIFACT_PLACEHOLDER failure is addressed by updated tests and regenerated artifacts.",
+      "taskId": null,
+      "timestamp": "2026-06-13T12:24:05.412Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-06-13T13:09:48.858Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-06-13T13:11:47.460Z"
+    }
+  ]
+}

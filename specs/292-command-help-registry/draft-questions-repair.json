@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Removed recommendation and rationale prose from all pending QA question strings while preserving the underlying user decisions to ask.",
+  "items": [
+    {
+      "title": "1. q1 includes guidance and rationale",
+      "target": "q1",
+      "rationale": "Removed the recommendation and rationale sentence from the pending core migration-scope question.",
+      "evidence": "draft.json qa[0].question now contains only the scope question.",
+      "changedFieldPaths": [
+        "qa[0].question"
+      ]
+    },
+    {
+      "title": "2. q2 includes guidance and rationale",
+      "target": "q2",
+      "rationale": "Removed the recommendation and rationale sentence from the pending help output parity question.",
+      "evidence": "draft.json qa[1].question now contains only the behavior parity question.",
+      "changedFieldPaths": [
+        "qa[1].question"
+      ]
+    },
+    {
+      "title": "3. q3 includes guidance and rationale",
+      "target": "q3",
+      "rationale": "Removed the recommendation and rationale sentence from the pending locale metadata ownership question.",
+      "evidence": "draft.json qa[2].question now contains only the locale support question.",
+      "changedFieldPaths": [
+        "qa[2].question"
+      ]
+    },
+    {
+      "title": "4. q4 includes guidance and rationale",
+      "target": "q4",
+      "rationale": "Removed the recommendation and rationale sentence from the pending plugin discovery boundary question.",
+      "evidence": "draft.json qa[3].question now contains only the plugin command scope boundary question.",
+      "changedFieldPaths": [
+        "qa[3].question"
+      ]
+    },
+    {
+      "title": "5. q5 includes guidance and rationale",
+      "target": "q5",
+      "rationale": "Removed the recommendation and rationale sentence from the pending import-time side effect policy question.",
+      "evidence": "draft.json qa[4].question now contains only the side effect assurance question.",
+      "changedFieldPaths": [
+        "qa[4].question"
+      ]
+    }
+  ]
+}

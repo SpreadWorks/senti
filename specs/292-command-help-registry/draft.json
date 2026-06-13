@@ -1,0 +1,150 @@
+{
+  "devType": "feature",
+  "goal": "command registry / command class metadata を help 表示の single source of truth にし、core command と plugin command を同じ help rendering pipeline で扱えるようにする。",
+  "analysis": {
+    "problem": "現在の top-level help は `src/help.js` の静的 LAYOUT と `help.commands` locale 文言に依存し、実行可能 command 定義は `src/lib/command-registry.js`、`src/flow/registry.js`、各 command entry、plugin manifest に分散している。command 追加・変更時に help 表示が drift しやすく、plugin command も core command と同じ help 表示契約に載せにくい。",
+    "proposedApproach": "help 表示に必要な section、summary、usage、args/options、experimental、subcommands などの metadata を command entry または command class に寄せ、top-level help / command help / subcommand help を registry 由来で生成する。plugin command metadata も同じ構造に合わせ、core と plugin を同じ renderer に通す。",
+    "validation": "Issue #382 は `src/help.js` の static LAYOUT、`src/locale/*/ui.json` の `help.commands`、各 registry に分散する usage / args / description を対象としている。`src/help.js` は LAYOUT と locale lookup で core help を生成し、plugin command だけを `loadPluginRegistry(root).commands` から追加している。`src/lib/command-registry.js` は core command tree を持つが help metadata は一部のみで、`src/flow/registry.js` は registry 型 command の help / args / lifecycle metadata を既に持つ。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #382 は core CLI command registry、help display、plugin command metadata を対象にしている。",
+      "must: `src/help.js` には top-level help 用の static LAYOUT があり、core command の説明は `ui:help.commands.*` locale lookup で取得される。",
+      "must: `src/lib/command-registry.js` は docs / check / metrics / spec / hook / flow の実行 registry を持つが、raw command の help metadata は一部のみである。",
+      "must: `src/flow/registry.js` は help、args、lazy import、lifecycle hook を同じ entry に持つ registry 型 command の先行例である。",
+      "must: plugin command は `PluginManifest.commandEntries()` と `loadPluginRegistry(root).commands` で metadata と absolutePath を持ち、現在の `src/help.js` は plugin command の top-level / command / subcommand help を別経路で表示している。",
+      "must: Issue #382 の方針更新は metadata を command class の static property / method に寄せ、import-time side effect は規約で禁止するとしている。",
+      "must: `flow` は lifecycle hook と既存 registry の結合が強いため、一括置換ではなく段階移行する。",
+      "must: この spec では、top-level help に出る全 core command の help metadata を registry / command class 由来に揃える。",
+      "must: help output parity は、ユーザーに意味が伝わる内容 parity を必須とし、細かい表現・spacing の完全一致は不要とする。",
+      "must: locale support は command metadata が locale key または locale map を持ち、renderer が現在言語へ解決する形にする。",
+      "must: plugin command は core と同じ metadata shape と help renderer 互換までを今回の対象にし、command class discovery と実行登録の全面移行は対象外にする。",
+      "must: command module の import-time side effect 禁止は規約と focused tests で担保し、完全な機械検査は今回作らない。",
+      "must: Migration inventory: top-level core help is currently owned by `src/help.js` static LAYOUT plus `ui:help.commands.*`; retained behavior moves to command metadata plus shared help renderer.",
+      "must: Migration inventory: core command and subcommand help is currently split across registry entries and command entrypoints; retained behavior moves to command metadata interpreted by the shared renderer while command execution remains with existing dispatchers.",
+      "must: Migration inventory: plugin top-level / command / subcommand help is currently rendered through plugin metadata in a separate `src/help.js` branch; retained behavior moves to normalized plugin metadata rendered by the same renderer as core commands.",
+      "must: Migration inventory: `flow` lifecycle behavior remains owned by `src/flow/registry.js`; only its help metadata is consumed for rendering, and pre/post/onError/finally execution semantics are retained.",
+      "must: Migration inventory: locale-aware descriptions currently read from locale files; retained multilingual behavior moves to command metadata locale key/map resolved by the renderer.",
+      "must: Migration mapping: command execution, argument parsing, exit codes, flow lifecycle hooks, plugin hook dispatch, and plugin command execution are retained by their existing owners and must not be moved by this spec."
+    ],
+    "decisionPoints": [
+      "must: help 表示の source of truth を static LAYOUT / locale-only descriptions から command metadata へ移す。",
+      "must: core command と plugin command が同じ renderer に渡せる metadata shape を定義する。",
+      "must: top-level help、command help、subcommand help の既存 user-visible behavior を棚卸しし、維持または意図的変更を明記する。",
+      "must: retained top-level core help behavior は、全 core command 名、section grouping、semantic descriptions、experimental marker を registry metadata 由来で表示することで維持する。",
+      "must: retained core command help behavior は、usage、args/options、subcommand listing、description の意味が metadata 由来で伝わることで維持する。",
+      "must: retained plugin help behavior は、plugin command metadata を core と同じ renderer に渡し、top-level / command / subcommand help が意味内容 parity を満たすことで維持する。",
+      "must: retained locale behavior は、ja/en など現在言語で command description と help text が解決されることで維持する。",
+      "must: retained execution behavior は、help metadata 移行後も dispatcher / plugin execution / flow lifecycle hooks の実行経路を変えないことで維持する。",
+      "must: command module import による metadata 読み取りを採用する場合、top-level side effect 禁止の契約を spec に含める。",
+      "must: `flow` registry は既存 lifecycle behavior を維持したまま help metadata generation の対象にする。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 外部依存を追加せず、Node.js built-in modules と既存 command/registry/plugin infrastructure を使う。",
+      "must: `src/` には特定プロジェクトや環境固有情報を入れない。",
+      "must: 値の構造的制約は、必要に応じて専用 class と invariant で表現する。",
+      "must: 既存パターンが複数箇所に出る場合は共通 helper に抽出する。",
+      "must: behavior を変える実装なので、help rendering と registry metadata の regression tests を追加または更新する。",
+      "must: public behavior の移行を伴うため、migration parity guardrail に従って既存 help surface の inventory、mapping、behavior-level verification を spec に含める。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: command help metadata の正確な field set、required/optional、locale fallback、subcommand nesting の仕様を定義する。",
+      "must: static LAYOUT の置換方法と、既存 command section order の維持条件を仕様化する。",
+      "must: plugin command metadata と core command metadata の互換 contract を仕様化する。",
+      "must: `flow` lifecycle registry との統合境界を仕様化し、実行 hook behavior を変更しない検証を入れる。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: `src/help.js` の static LAYOUT 依存を削減または置換し、registry / command metadata 由来で top-level help を生成する。",
+      "must: core command entry または command class に help metadata を持たせ、command help と subcommand help の source of truth を実行定義近傍へ寄せる。",
+      "must: plugin command metadata を core command metadata と同じ renderer に渡せる形にする。",
+      "must: existing help surface の migration parity を定義し、top-level core help、all core command metadata coverage、core command/subcommand help rendering、plugin top-level/command/subcommand help rendering、locale resolution、and unchanged execution ownership を behavior-level tests で確認する。",
+      "must: `flow` の lifecycle hook / pre / post / onError / finally behavior は維持する。",
+      "should: docs / check / metrics / spec / hook / setup / upgrade / plugin の metadata drift を減らすため、代表的または全体的な metadata alignment を行う。",
+      "should: command module の top-level side effect 禁止規約を contributor が見つけやすい場所に反映する。"
+    ],
+    "out": [
+      "must: `flow` lifecycle registry の一括置換はしない。",
+      "must: plugin command を `plugin.json` の肥大化した `contributions.commands` 列挙へ寄せる変更はしない。",
+      "must: workflow plugin migration 本体や `senti workflow` core removal はこの spec の目的に含めない。",
+      "must: command behavior、exit code、argument parsing semantics を help metadata 移行の副作用として変更しない。",
+      "must: import-time side effect の完全な静的解析器は、この spec で明示承認されない限り作らない。",
+      "must: plugin command の convention-based discovery と実行登録の全面移行は今回の対象外とする。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: `senti help` または top-level help 表示の生成元が変わるため、section order、command list、description source、experimental marker の parity を確認する必要がある。",
+    "must: `senti help <command>` や plugin command help の renderer 経路が統合されるため、既存 plugin command metadata の互換性を確認する必要がある。",
+    "must: `src/locale/*/ui.json` の `help.commands` 依存は削減対象だが、locale support 自体は維持する必要がある。",
+    "must: command registry / command class authors の更新箇所が変わるため、command 追加時の作業対象とテスト期待値が変わる。",
+    "must: `flow` registry の lifecycle behavior は変更しない。help metadata 読み取りだけを統合対象にする。",
+    "must: Migration parity verification must include behavior-level tests for each retained public help surface: top-level core help, core command help, core subcommand help, plugin top-level help, plugin command help, plugin subcommand help, and locale-specific rendering.",
+    "must: Migration parity verification must include at least one unchanged-execution test or existing regression assertion showing help metadata rendering does not import/execute command runtime paths that perform command behavior.",
+    "should: existing docs that describe CLI command help or plugin metadata may need sync after implementation."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "must: この spec の移行範囲は、全 core command の help metadata を今回の差分で registry / command class 由来に揃える方針でよいですか。",
+      "answer": "must: 全 core command の help metadata を今回の差分で registry / command class 由来に揃える。",
+      "evidence": "User selected option 1 during draft-refine q1. `src/help.js` currently uses static LAYOUT for top-level core help, while `src/lib/command-registry.js` and `src/flow/registry.js` own executable command definitions.",
+      "why": "must: The selected scope removes the static LAYOUT drift root cause for core commands rather than leaving part of the old help source in place.",
+      "considered": "A representative-command-only migration was considered, but it would leave the old static LAYOUT structure for remaining core commands.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "must: help output の互換性は、既存 command list / section order / usage / args / descriptions の内容 parity を必須にし、spacing などの表示整形差分は読みやすさを保つ範囲で許容してよいですか。",
+      "answer": "must: help output は、ユーザーに意味が伝わる内容 parity を必須にする。細かい表現、wording、spacing の完全一致は不要とする。",
+      "evidence": "User selected option 1 during draft-refine q2 and added: \"ユーザーに意味が伝われば細かい表現はあわなくてもよいです。\"",
+      "why": "must: The user-visible contract is that help communicates the command list, sections, usage, arguments, and descriptions clearly; exact text matching is less important than preserving meaning.",
+      "considered": "Strict byte-for-byte output parity was considered but rejected because it would make renderer integration and future help wording changes unnecessarily brittle.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "must: locale support は、command metadata が locale key または locale map を持ち、renderer が現在言語へ解決する形にしてよいですか。",
+      "answer": "must: command metadata が locale key または locale map を持ち、help renderer が現在言語へ解決する形にする。",
+      "evidence": "User selected option 1 during draft-refine q3. Current `src/help.js` resolves core descriptions from `ui:help.commands.*`, separate from executable registry metadata.",
+      "why": "must: Keeping locale source reachable from command metadata lets the implementation and localized help text be tracked together while preserving multilingual help rendering.",
+      "considered": "Keeping `help.commands` as the central source was considered, but it would preserve the current split between command definition and help text ownership.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "must: plugin command は今回、core と同じ metadata shape / renderer 互換までを対象にし、convention-based discovery の全面実装は後続の plugin migration 側へ残してよいですか。",
+      "answer": "must: 今回は plugin command metadata shape と help renderer 互換までを対象にする。convention-based command discovery と plugin command 実行登録の全面移行は対象外にする。",
+      "evidence": "User selected option 1 during draft-refine q4 after asking what discovery means. Current `PluginManifest.commandEntries()` reads commands from plugin manifest metadata, while Issue #382 also mentions future command directory discovery.",
+      "why": "must: The root problem for this spec is help metadata source drift. Full plugin command discovery would also change plugin command registration and execution discovery, increasing blast radius beyond help rendering.",
+      "considered": "Including convention-based discovery now was considered because Issue #382 mentions it, but it is separated as follow-up scope so this spec can focus on shared help metadata and rendering.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "must: command module の import-time side effect 禁止は、今回の初期実装では規約と review / tests で担保し、完全な機械検査は作らない方針でよいですか。",
+      "answer": "must: import-time side effect 禁止は規約と focused tests で担保する。完全な機械検査は今回作らない。",
+      "evidence": "User selected option 1 during draft-refine q5. Issue #382 states that the initial implementation will not mechanically check import-time side effects and will rely on convention and review.",
+      "why": "must: The selected approach matches the Issue policy while keeping this spec focused on help metadata and renderer integration rather than static side-effect analysis.",
+      "considered": "Adding a mechanical checker was considered, but it would broaden implementation scope beyond the initial help metadata migration policy.",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-13T09:43:53Z",
+    "notes": "All five draft-refine questions were answered by the user. No unresolved user decisions remain."
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-13T11:27:45.893Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 1,
+    "total": 2
+  },
+  "coverageArtifact": "specs/292-command-help-registry/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R12 plugin package help surface is not executable through the CLI",
+      "target": "specs/292-command-help-registry/tests/plugin-help-rendering.test.js: R12 test",
+      "issue": "The test asserts `resolveHelpSurfaceOwner([\"help\", \"example\"], { root })` and runs `senti help example`, but it never defines executable renderer behavior that maps the plugin package id `example` to the plugin top-level help model. The plugin contribution command is named `sample`, so an implementation could satisfy command help for `sample` while `senti help <plugin>` remains unsupported or ambiguous unless this package-id surface is explicitly asserted against renderer output semantics.",
+      "requiredChange": "Add the smallest executable assertion that `senti help example` is resolved as plugin package top-level help through metadata and fails if only command-name lookup is implemented, for example by checking package-level help output contains the plugin command list while not treating `example` as a command.",
+      "whyBlocking": "R12 explicitly requires plugin help through `senti help <plugin>` to be a renderer-backed metadata path. Without a precise package-id surface test, a required public help invocation can be left unimplemented while adjacent plugin command help tests still pass."
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R2 current-help parity is maintained through a hard-coded command list",
+      "target": "specs/292-command-help-registry/tests/core-help-registry.test.js: EXISTING_CORE_HELP_COMMANDS",
+      "improvement": "Consider deriving or snapshotting the retained public command list from the pre-migration help surface so the test fails when the old help output contains a command omitted from `EXISTING_CORE_HELP_COMMANDS`.",
+      "whyNonBlocking": "The test does cover a broad explicit set of current commands, so this is mainly a maintainability guard against stale fixtures rather than missing executable coverage for the named requirements."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/292-command-help-registry/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "8ac40e8d405e0ef32e742d39b29230488225b9658639605b5c535cc6891d3dfc"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 13,
+  "findings": [
+    {
+      "id": "test-013-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 13,
+      "severity": "blocking",
+      "title": "R12 plugin package help surface is not executable through the CLI",
+      "body": "The test asserts `resolveHelpSurfaceOwner([\"help\", \"example\"], { root })` and runs `senti help example`, but it never defines executable renderer behavior that maps the plugin package id `example` to the plugin top-level help model. The plugin contribution command is named `sample`, so an implementation could satisfy command help for `sample` while `senti help <plugin>` remains unsupported or ambiguous unless this package-id surface is explicitly asserted against renderer output semantics.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-013-non-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 13,
+      "severity": "non-blocking",
+      "title": "R2 current-help parity is maintained through a hard-coded command list",
+      "body": "R2 current-help parity is maintained through a hard-coded command list",
+      "category": "unknown"
+    }
+  ]
+}

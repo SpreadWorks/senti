@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-13T11:09:39.916Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 1,
+    "total": 2
+  },
+  "coverageArtifact": "specs/292-command-help-registry/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R6 lacks plugin hook dispatch regression coverage",
+      "target": "specs/292-command-help-registry/tests/core-help-registry.test.js",
+      "issue": "R6 requires preserving plugin hook dispatch, but the executable R6 coverage only checks a core hook CLI path, a flow path, invalid option handling, and owner resolution helpers. It does not create or invoke a plugin hook contribution, so a help-rendering refactor could break plugin hook dispatch while these tests still pass.",
+      "requiredChange": "Add the smallest focused spec-local R6 test that registers a plugin hook contribution and verifies normal hook dispatch still invokes it through the existing dispatcher after help metadata changes.",
+      "whyBlocking": "This is an explicit acceptance requirement with no corresponding regression test for one of its listed preserved execution ownership surfaces."
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R2 source-of-truth assertion is indirect",
+      "target": "specs/292-command-help-registry/tests/core-help-registry.test.js",
+      "improvement": "Strengthen the R2 test by asserting the rendered top-level model is derived from command metadata ordering/sections or by using a fixture command with section placement expectations. The current `help.commands` assertion only checks one legacy export shape and could miss another static layout source.",
+      "whyNonBlocking": "The test still exercises registry model construction and custom command rendering, so R2 has useful coverage; this is a robustness improvement rather than absent coverage."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/292-command-help-registry/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "179e6fe94edd2ba85a3ecb75f1cb2927d4008aae36490c19e2a4c43e9bca24d0"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "test-004-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "R6 lacks plugin hook dispatch regression coverage",
+      "body": "R6 requires preserving plugin hook dispatch, but the executable R6 coverage only checks a core hook CLI path, a flow path, invalid option handling, and owner resolution helpers. It does not create or invoke a plugin hook contribution, so a help-rendering refactor could break plugin hook dispatch while these tests still pass.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-004-non-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "non-blocking",
+      "title": "R2 source-of-truth assertion is indirect",
+      "body": "R2 source-of-truth assertion is indirect",
+      "category": "unknown"
+    }
+  ]
+}

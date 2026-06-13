@@ -1,0 +1,249 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/292-command-help-registry/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/292-command-help-registry/tests/help-metadata-model.test.js",
+        "test_name": "R1: core command metadata exposes renderer-ready fields",
+        "command": "node --test specs/292-command-help-registry/tests/core-help-registry.test.js specs/292-command-help-registry/tests/help-metadata-model.test.js specs/292-command-help-registry/tests/plugin-help-rendering.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 168
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/292-command-help-registry/tests/core-help-registry.test.js",
+        "test_name": "R2: top-level core help is generated from registry metadata, not a static layout",
+        "command": "node --test specs/292-command-help-registry/tests/core-help-registry.test.js specs/292-command-help-registry/tests/help-metadata-model.test.js specs/292-command-help-registry/tests/plugin-help-rendering.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 168
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/292-command-help-registry/tests/core-help-registry.test.js",
+        "test_name": "R3: core command and subcommand help render from the same metadata source",
+        "command": "node --test specs/292-command-help-registry/tests/core-help-registry.test.js specs/292-command-help-registry/tests/help-metadata-model.test.js specs/292-command-help-registry/tests/plugin-help-rendering.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 168
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/292-command-help-registry/tests/plugin-help-rendering.test.js",
+        "test_name": "R4: plugin command metadata normalizes to the shared renderer input shape",
+        "command": "node --test specs/292-command-help-registry/tests/core-help-registry.test.js specs/292-command-help-registry/tests/help-metadata-model.test.js specs/292-command-help-registry/tests/plugin-help-rendering.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 168
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/292-command-help-registry/tests/help-metadata-model.test.js",
+        "test_name": "R5: renderer resolves localized command text with fallback",
+        "command": "node --test specs/292-command-help-registry/tests/core-help-registry.test.js specs/292-command-help-registry/tests/help-metadata-model.test.js specs/292-command-help-registry/tests/plugin-help-rendering.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 168
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/292-command-help-registry/tests/core-help-registry.test.js",
+        "test_name": "R6: non-help execution still routes through existing dispatchers",
+        "command": "node --test specs/292-command-help-registry/tests/core-help-registry.test.js specs/292-command-help-registry/tests/help-metadata-model.test.js specs/292-command-help-registry/tests/plugin-help-rendering.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 168
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/292-command-help-registry/tests/core-help-registry.test.js",
+        "test_name": "R7: retained core and locale help surfaces are covered by executable assertions",
+        "command": "node --test specs/292-command-help-registry/tests/core-help-registry.test.js specs/292-command-help-registry/tests/help-metadata-model.test.js specs/292-command-help-registry/tests/plugin-help-rendering.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 168
+        }
+      }
+    },
+    {
+      "id": "R8",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/292-command-help-registry/tests/help-metadata-model.test.js",
+        "test_name": "R8: metadata read path does not invoke command run behavior",
+        "command": "node --test specs/292-command-help-registry/tests/core-help-registry.test.js specs/292-command-help-registry/tests/help-metadata-model.test.js specs/292-command-help-registry/tests/plugin-help-rendering.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 168
+        }
+      }
+    },
+    {
+      "id": "R9",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/292-command-help-registry/tests/plugin-help-rendering.test.js",
+        "test_name": "R9: direct plugin command execution remains contribution-based, not convention-discovered",
+        "command": "node --test specs/292-command-help-registry/tests/core-help-registry.test.js specs/292-command-help-registry/tests/help-metadata-model.test.js specs/292-command-help-registry/tests/plugin-help-rendering.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 168
+        }
+      }
+    },
+    {
+      "id": "R10",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/292-command-help-registry/tests/help-metadata-model.test.js",
+        "test_name": "R10: this spec-local test file declares requirement coverage in the header",
+        "command": "node --test specs/292-command-help-registry/tests/core-help-registry.test.js specs/292-command-help-registry/tests/help-metadata-model.test.js specs/292-command-help-registry/tests/plugin-help-rendering.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 168
+        }
+      }
+    },
+    {
+      "id": "R11",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/292-command-help-registry/tests/core-help-registry.test.js",
+        "test_name": "R11: independent top-level commands have explicit metadata owners",
+        "command": "node --test specs/292-command-help-registry/tests/core-help-registry.test.js specs/292-command-help-registry/tests/help-metadata-model.test.js specs/292-command-help-registry/tests/plugin-help-rendering.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 168
+        }
+      }
+    },
+    {
+      "id": "R12",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/292-command-help-registry/tests/core-help-registry.test.js",
+        "test_name": "R12: global help surfaces resolve through renderer-backed metadata",
+        "command": "node --test specs/292-command-help-registry/tests/core-help-registry.test.js specs/292-command-help-registry/tests/help-metadata-model.test.js specs/292-command-help-registry/tests/plugin-help-rendering.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 168
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": true,
+    "mode": "full",
+    "root_test_command": "node tests/run.js",
+    "root_test_command_source": "test.command",
+    "command": "node tests/run.js",
+    "result": "pass",
+    "raw_output_lines": {
+      "start_line": 169,
+      "end_line": 18647
+    },
+    "trigger_relevant_changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/292-command-help-registry/"
+      },
+      {
+        "status": "modified",
+        "path": "src/docs/commands/changelog.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/help.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/command-registry.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/plugin-registry.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/senti.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/e2e/060-help-layout-validate-config.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/e2e/help.test.js"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/292-command-help-registry/"
+      },
+      {
+        "status": "modified",
+        "path": "src/docs/commands/changelog.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/help.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/command-registry.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/plugin-registry.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/senti.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/e2e/060-help-layout-validate-config.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/e2e/help.test.js"
+      }
+    ],
+    "process": {
+      "started": true,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "spawnError": null
+    }
+  }
+}

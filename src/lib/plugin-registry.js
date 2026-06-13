@@ -732,6 +732,13 @@ function artifactRoot(root, pluginId, flow = {}, { requireSpec = false } = {}) {
     const specPath = normalizeRel(flow.spec, "flow spec path");
     return path.join(root, path.dirname(specPath), "plugin-artifacts", pluginId);
   }
+  if (flow?.specId) {
+    const specId = normalizeRel(String(flow.specId), "flow spec id");
+    if (specId.includes("/") || specId.includes("\\")) {
+      throw new Error(`flow spec id must be a single directory name: ${flow.specId}`);
+    }
+    return path.join(root, "specs", specId, "plugin-artifacts", pluginId);
+  }
   if (requireSpec) {
     throw new Error(`plugin hook artifact context requires flow.spec for ${pluginId}`);
   }

@@ -1,0 +1,297 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".senti/output/analysis.json                        |   2 +-\n .../acceptance-review.json                         |  21 +\n .../draft-coverage-repair.json                     |   8 +\n .../draft-coverage-triage.json                     |   8 +\n .../draft-questions-repair.json                    |  53 +++\n .../draft-questions-triage.json                    |  43 ++\n .../draft-review-coverage.json                     |  11 +\n .../draft-review-questions.json                    |  47 ++\n specs/292-command-help-registry/draft.json         | 150 +++++++\n specs/292-command-help-registry/file-map.json      |  68 +++\n specs/292-command-help-registry/flow.json          | 486 +++++++++++++++++++++\n specs/292-command-help-registry/impl-review.json   |  28 ++\n specs/292-command-help-registry/issue-log.json     | 239 ++++++++++\n specs/292-command-help-registry/issue.md           | 120 +++++\n .../review-history/draft-coverage-attempt-001.json |  14 +\n .../draft-questions-attempt-001.json               | 101 +++++\n .../review-history/impl-attempt-001.json           |  89 ++++\n .../review-history/impl-attempt-001.md             |  38 ++\n .../review-history/impl-attempt-002.json           |  31 ++\n .../review-history/impl-attempt-002.md             |  16 +\n .../review-history/spec-attempt-001.json           |  75 ++++\n .../review-history/spec-attempt-001.md             |  25 ++\n .../review-history/test-attempt-001.json           | 102 +++++\n .../review-history/test-attempt-001.md             |  33 ++\n .../review-history/test-attempt-002.json           | 102 +++++\n .../review-history/test-attempt-002.md             |  33 ++\n .../review-history/test-attempt-003.json           | 120 +++++\n .../review-history/test-attempt-003.md             |  42 ++\n .../review-history/test-attempt-004.json           |  66 +++\n .../review-history/test-attempt-004.md             |  21 +\n .../review-history/test-attempt-005.json           | 102 +++++\n .../review-history/test-attempt-005.md             |  33 ++\n .../review-history/test-attempt-006.json           |  66 +++\n .../review-history/test-attempt-006.md             |  21 +\n .../review-history/test-attempt-007.json           |  66 +++\n .../review-history/test-attempt-007.md             |  21 +\n .../review-history/test-attempt-008.json           |  66 +++\n .../review-history/test-attempt-008.md             |  21 +\n .../review-history/test-attempt-009.json           |  66 +++\n .../review-history/test-attempt-009.md             |  21 +\n .../review-history/test-attempt-010.json           |  66 +++\n .../review-history/test-attempt-010.md             |  24 +\n .../review-history/test-attempt-011.json           | 120 +++++\n .../review-history/test-attempt-011.md             |  39 ++\n .../review-history/test-attempt-012.json           |  48 ++\n .../review-history/test-attempt-012.md             |  18 +\n .../review-history/test-attempt-013.json           |  66 +++\n .../review-history/test-attempt-013.md             |  21 +\n .../review-history/test-attempt-014.json           | 120 +++++\n .../review-history/test-attempt-014.md             |  39 ++\n .../review-history/test-attempt-015.json           |  84 ++++\n .../review-history/test-attempt-015.md             |  27 ++\n .../review-history/test-attempt-016.json           |  28 ++\n .../review-history/test-attempt-016.md             |  13 +\n specs/292-command-help-registry/review.md          |  16 +\n specs/292-command-help-registry/spec-repair.json   |  36 ++\n specs/292-command-help-registry/spec-review.json   |  41 ++\n specs/292-command-help-registry/spec-review.md     |  25 ++\n specs/292-command-help-registry/spec-triage.json   |  22 +\n specs/292-command-help-registry/spec.json          | 360 +++++++++++++++\n specs/292-command-help-registry/spec.md            | 156 +++++++\n specs/292-command-help-registry/tasks/T-1.md       |  20 +\n specs/292-command-help-registry/tasks/T-2.md       |  21 +\n specs/292-command-help-registry/tasks/T-3.md       |  20 +\n specs/292-command-help-registry/tasks/T-4.md       |  21 +\n specs/292-command-help-registry/test-coverage.json | 177 ++++++++\n specs/292-command-help-registry/test-review.json   |  25 ++\n specs/292-command-help-registry/test-review.md     |  13 +\n .../tests/core-help-registry.test.js               | 272 ++++++++++++\n .../tests/help-metadata-model.test.js              | 142 ++++++\n .../tests/plugin-help-rendering.test.js            | 235 ++++++++++\n src/docs/commands/changelog.js                     |  10 +-\n src/help.js                                        | 438 +++++++++++++++----\n src/lib/command-registry.js                        | 267 +++++++++++\n src/lib/plugin-registry.js                         |   7 +\n src/senti.js                                       |  53 ++-\n tests/e2e/060-help-layout-validate-config.test.js  |   5 +-\n tests/e2e/help.test.js                             |  15 +-\n 78 files changed, 5662 insertions(+), 123 deletions(-)",
+      "commits": [
+        "feat: feature/292-command-help-registry"
+      ]
+    },
+    "retro": {
+      "total": 12,
+      "done": 12,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "Core command help metadata must expose enough structured data to render top-level, command, and subcommand help: command name, section, summary, usage, args/options, experimental marker, locale source, and subcommands where applicable.",
+          "status": "done",
+          "note": "R1: core command metadata exposes renderer-ready fields"
+        },
+        {
+          "desc": "Top-level help must be generated from core command registry / command metadata for every existing core command shown by the current help output, rather than from the static `src/help.js` LAYOUT as the source of truth.",
+          "status": "done",
+          "note": "R2: top-level core help is generated from registry metadata, not a static layout"
+        },
+        {
+          "desc": "Core command and subcommand help must be rendered from the same command metadata source used for top-level help, preserving user-visible usage, args/options, subcommand listing, descriptions, and experimental markers by semantic parity.",
+          "status": "done",
+          "note": "R3: core command and subcommand help render from the same metadata source"
+        },
+        {
+          "desc": "Plugin command metadata must be normalized to the same renderer input shape as core command metadata so plugin top-level help, command help, and subcommand help use the shared renderer.",
+          "status": "done",
+          "note": "R4: plugin command metadata normalizes to the shared renderer input shape"
+        },
+        {
+          "desc": "Locale support must be reachable from command metadata through a locale key or locale map, and the renderer must resolve command summaries/help text using the current language with fallback behavior.",
+          "status": "done",
+          "note": "R5: renderer resolves localized command text with fallback"
+        },
+        {
+          "desc": "The implementation must preserve command execution ownership: dispatchers, argument parsing, exit codes, plugin command execution, flow lifecycle hooks, and plugin hook dispatch must not be moved or semantically changed by help rendering.",
+          "status": "done",
+          "note": "R6: non-help execution still routes through existing dispatchers"
+        },
+        {
+          "desc": "Migration parity tests must verify each retained public help surface through the new path: top-level core help, core command help, core subcommand help, plugin top-level help, plugin command help, plugin subcommand help, and locale-specific rendering.",
+          "status": "done",
+          "note": "R7: retained core and locale help surfaces are covered by executable assertions"
+        },
+        {
+          "desc": "Import-time side effect policy must be documented near the command metadata convention, and focused tests must show help rendering reads metadata without invoking command run behavior.",
+          "status": "done",
+          "note": "R8: metadata read path does not invoke command run behavior"
+        },
+        {
+          "desc": "The implementation must not add convention-based plugin command discovery or a full import-time side-effect static checker in this spec.",
+          "status": "done",
+          "note": "R9: direct plugin command execution remains contribution-based, not convention-discovered"
+        },
+        {
+          "desc": "All newly introduced spec-local tests must include `// spec: R<N>` headers that map each test to the requirement it verifies.",
+          "status": "done",
+          "note": "R10: this spec-local test file declares requirement coverage in the header"
+        },
+        {
+          "desc": "Independent top-level core commands currently shown by help but not aggregated in `allCommands` must have explicit metadata owners: `help`, `setup`, `upgrade`, `plugin`, and `presets list` must be represented in the core command metadata registry while their existing execution entrypoints remain unchanged.",
+          "status": "done",
+          "note": "R11: independent top-level commands have explicit metadata owners"
+        },
+        {
+          "desc": "The spec implementation must map concrete public help invocation surfaces to owners: `senti help`, global `--help`, `senti help <command>`, `senti help <subcommand>`, core namespace `--help`, core leaf `--help`, plugin help through `senti help <plugin>`, and direct plugin `--help` must be renderer-backed metadata paths; non-help execution remains with existing dispatchers.",
+          "status": "done",
+          "note": "R12: global help surfaces resolve through renderer-backed metadata"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 22,
+      "fullLogPath": "specs/292-command-help-registry/issue-log.json",
+      "importantTotal": 20,
+      "importantShown": 10,
+      "importantOmitted": 10,
+      "recentOtherTotal": 2,
+      "recentOtherShown": 2,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "prepare-spec",
+          "reason": "worktree prepare created flow state before docs scan, but worktree lacked enabled official preset plugin files so node-cli preset resolution failed",
+          "resolution": "ran senti plugin sync inside the worktree to restore enabled official-presets plugin files before continuing"
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "draft gate failed because migration parity inventory and retained-surface behavior verification were deferred instead of defined in draft",
+          "resolution": "added migration inventory, retained behavior mapping, and behavior-level verification requirements for core and plugin help surfaces"
+        },
+        {
+          "classification": "important",
+          "step": "spec-repair",
+          "reason": "spec review failed because independent core command metadata owners and concrete help invocation ownership were not mapped",
+          "resolution": "added R11/R12, metadata owner mapping for independent commands, and renderer ownership mapping for concrete help invocation surfaces"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Static test review found missing coverage for plugin help CLI surfaces, locale fallback behavior, and import-time side-effect documentation.",
+          "resolution": "Added plugin CLI help surface coverage for senti help <plugin> and direct plugin --help, added unsupported-locale fallback assertion, and added documentation-policy assertion."
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Second static test review found self-referential core help coverage and insufficient renderer-owner observability in spec-local tests.",
+          "resolution": "Added an explicit existing core help command baseline, args/subcommands metadata assertions, and a renderer-backed surface owner assertion."
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Third static test review found that R6, R2, R3, R7, and R9 tests still did not exercise the specific migration risks.",
+          "resolution": "Added registry-only render fixture, deeper command help parity assertions, non-help dispatcher execution and owner assertions, core R7 surfaces, and an unlisted plugin command file check."
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Fourth static test review found missing R6 coverage for plugin hook dispatch preservation.",
+          "resolution": "Added a plugin hook fixture, discovered the hook snapshot, invoked runFlowCommandHooks, and asserted hook dispatch output plus execution-owner metadata."
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Fifth static test review found loose migration parity assertions, missing plugin namespace help coverage, and narrow execution ownership checks.",
+          "resolution": "Added explicit retained help content expectations, plugin namespace help invocation coverage, docs non-help execution, and plugin command args plus failure exit-code assertions."
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Sixth static test review found R12 core subcommand help surface coverage was grouped and ambiguous.",
+          "resolution": "Split R12 core help assertions into explicit global, command-topic, subcommand-topic, namespace --help, and leaf --help test cases with expected topics."
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Seventh static test review found R8 side-effect coverage only exercised model construction, not help rendering.",
+          "resolution": "Extended the R8 fake command test to call renderCommandHelp with fake metadata and assert lazy command import remains uninvoked."
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "Migration parity requirements are deferred rather than defined in the draft itself, so the draft does not currently inventory moved/replaced public behavior or map retained behavior before implementation.; The draft specifies verificatio...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "test",
+          "reason": "Spec-local tests were first added outside the active flow worktree, so header validation saw no spec tests in the worktree.",
+          "resolution": "Added the same spec-local test files under the active worktree spec directory and will rerun the test-step header validation."
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 0,
+      "output": 0,
+      "cacheRead": 0,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 0,
+      "durationMs": 0,
+      "phaseDurations": []
+    },
+    "tests": {
+      "total": 12,
+      "passed": 12,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/292-command-help-registry/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 169,
+          "end_line": 18647
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/292-command-help-registry/"
+          },
+          {
+            "status": "modified",
+            "path": "src/docs/commands/changelog.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/help.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/command-registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/plugin-registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/senti.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/060-help-layout-validate-config.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/help.test.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/292-command-help-registry/"
+          },
+          {
+            "status": "modified",
+            "path": "src/docs/commands/changelog.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/help.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/command-registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/plugin-registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/senti.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/060-help-layout-validate-config.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/help.test.js"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/292-command-help-registry/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/292-command-help-registry\n    78 files changed, 5662 insertions(+), 123 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (12 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 0\n\n  Tests\n  ────────────────────────────────────────────────\n    total 12  passed 12  failed 0 verdict=pass\n    raw_output: specs/292-command-help-registry/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (22 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/292-command-help-registry/issue-log.json\n\n    Important (10 of 20)\n    - [prepare-spec] worktree prepare created flow state before docs scan, but worktree lacked enabled official preset plugin files so node-cli preset resolution failed\n    - [draft-gate] draft gate failed because migration parity inventory and retained-surface behavior verification were deferred instead of defined in draft\n    - [spec-repair] spec review failed because independent core command metadata owners and concrete help invocation ownership were not mapped\n    - [test-review] Static test review found missing coverage for plugin help CLI surfaces, locale fallback behavior, and import-time side-effect documentation.\n    - [test-review] Second static test review found self-referential core help coverage and insufficient renderer-owner observability in spec-local tests.\n    - [test-review] Third static test review found that R6, R2, R3, R7, and R9 tests still did not exercise the specific migration risks.\n    - [test-review] Fourth static test review found missing R6 coverage for plugin hook dispatch preservation.\n    - [test-review] Fifth static test review found loose migration parity assertions, missing plugin namespace help coverage, and narrow execution ownership checks.\n    - [test-review] Sixth static test review found R12 core subcommand help surface coverage was grouped and ambiguous.\n    - [test-review] Seventh static test review found R8 side-effect coverage only exercised model construction, not help rendering.\n    ... 10 important issue-log entries omitted\n\n    Recent Other (2)\n    - [draft-gate] Migration parity requirements are deferred rather than defined in the draft itself, so the draft does not currently inventory moved/replaced public behavior or map retained behavior before implementation.; The draft specifies verificatio...\n    - [test] Spec-local tests were first added outside the active flow worktree, so header validation saw no spec tests in the worktree."
+}

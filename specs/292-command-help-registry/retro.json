@@ -1,0 +1,78 @@
+{
+  "spec": "specs/292-command-help-registry/spec.json",
+  "date": "2026-06-13T12:25:55.406Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Core command help metadata must expose enough structured data to render top-level, command, and subcommand help: command name, section, summary, usage, args/options, experimental marker, locale source, and subcommands where applicable.",
+      "status": "done",
+      "note": "R1: core command metadata exposes renderer-ready fields"
+    },
+    {
+      "desc": "Top-level help must be generated from core command registry / command metadata for every existing core command shown by the current help output, rather than from the static `src/help.js` LAYOUT as the source of truth.",
+      "status": "done",
+      "note": "R2: top-level core help is generated from registry metadata, not a static layout"
+    },
+    {
+      "desc": "Core command and subcommand help must be rendered from the same command metadata source used for top-level help, preserving user-visible usage, args/options, subcommand listing, descriptions, and experimental markers by semantic parity.",
+      "status": "done",
+      "note": "R3: core command and subcommand help render from the same metadata source"
+    },
+    {
+      "desc": "Plugin command metadata must be normalized to the same renderer input shape as core command metadata so plugin top-level help, command help, and subcommand help use the shared renderer.",
+      "status": "done",
+      "note": "R4: plugin command metadata normalizes to the shared renderer input shape"
+    },
+    {
+      "desc": "Locale support must be reachable from command metadata through a locale key or locale map, and the renderer must resolve command summaries/help text using the current language with fallback behavior.",
+      "status": "done",
+      "note": "R5: renderer resolves localized command text with fallback"
+    },
+    {
+      "desc": "The implementation must preserve command execution ownership: dispatchers, argument parsing, exit codes, plugin command execution, flow lifecycle hooks, and plugin hook dispatch must not be moved or semantically changed by help rendering.",
+      "status": "done",
+      "note": "R6: non-help execution still routes through existing dispatchers"
+    },
+    {
+      "desc": "Migration parity tests must verify each retained public help surface through the new path: top-level core help, core command help, core subcommand help, plugin top-level help, plugin command help, plugin subcommand help, and locale-specific rendering.",
+      "status": "done",
+      "note": "R7: retained core and locale help surfaces are covered by executable assertions"
+    },
+    {
+      "desc": "Import-time side effect policy must be documented near the command metadata convention, and focused tests must show help rendering reads metadata without invoking command run behavior.",
+      "status": "done",
+      "note": "R8: metadata read path does not invoke command run behavior"
+    },
+    {
+      "desc": "The implementation must not add convention-based plugin command discovery or a full import-time side-effect static checker in this spec.",
+      "status": "done",
+      "note": "R9: direct plugin command execution remains contribution-based, not convention-discovered"
+    },
+    {
+      "desc": "All newly introduced spec-local tests must include `// spec: R<N>` headers that map each test to the requirement it verifies.",
+      "status": "done",
+      "note": "R10: this spec-local test file declares requirement coverage in the header"
+    },
+    {
+      "desc": "Independent top-level core commands currently shown by help but not aggregated in `allCommands` must have explicit metadata owners: `help`, `setup`, `upgrade`, `plugin`, and `presets list` must be represented in the core command metadata registry while their existing execution entrypoints remain unchanged.",
+      "status": "done",
+      "note": "R11: independent top-level commands have explicit metadata owners"
+    },
+    {
+      "desc": "The spec implementation must map concrete public help invocation surfaces to owners: `senti help`, global `--help`, `senti help <command>`, `senti help <subcommand>`, core namespace `--help`, core leaf `--help`, plugin help through `senti help <plugin>`, and direct plugin `--help` must be renderer-backed metadata paths; non-help execution remains with existing dispatchers.",
+      "status": "done",
+      "note": "R12: global help surfaces resolve through renderer-backed metadata"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 12,
+    "done": 12,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

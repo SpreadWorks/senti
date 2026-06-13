@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-13T11:11:57.418Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 3,
+    "advisory": 1,
+    "total": 4
+  },
+  "coverageArtifact": "specs/292-command-help-registry/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Migration parity is asserted only by loose substrings",
+      "target": "specs/292-command-help-registry/tests/core-help-registry.test.js / specs/292-command-help-registry/tests/plugin-help-rendering.test.js",
+      "issue": "R3 and R7 require preserving retained public help surfaces by semantic parity, but the tests only assert broad substrings such as `Usage:`, `Subcommands:`, command names, or a locale difference. These assertions can pass while dropping or changing descriptions, arguments, options, subcommand listings, experimental markers, or whole sections.",
+      "requiredChange": "Add spec-local parity assertions that compare the rendered metadata-backed help against the retained expected public help content for representative top-level, command, subcommand, plugin, and localized surfaces, including usage, args/options, descriptions, subcommands, and experimental markers where applicable.",
+      "whyBlocking": "The current tests do not exercise the acceptance requirement that user-visible help is preserved; an implementation could satisfy the tests while regressing public help output."
+    },
+    {
+      "kind": "blocking",
+      "title": "R12 omits direct plugin top-level help surface",
+      "target": "specs/292-command-help-registry/tests/plugin-help-rendering.test.js",
+      "issue": "R12 requires plugin help through `senti help <plugin>` and direct plugin `--help` to be renderer-backed metadata paths. The test only covers `senti help sample` and `senti sample --help`; it does not cover the plugin top-level help surface for the plugin namespace itself, despite R7 also requiring plugin top-level help.",
+      "requiredChange": "Add an executable assertion for the plugin top-level help invocation surface, such as `senti help example` if `example` is the plugin namespace, and verify it renders through metadata without invoking plugin command behavior.",
+      "whyBlocking": "A required public help surface has no corresponding spec-local executable coverage."
+    },
+    {
+      "kind": "blocking",
+      "title": "R6 execution ownership coverage is too narrow for required preservation scope",
+      "target": "specs/292-command-help-registry/tests/core-help-registry.test.js / specs/292-command-help-registry/tests/plugin-help-rendering.test.js",
+      "issue": "R6 requires dispatchers, argument parsing, exit codes, plugin command execution, flow lifecycle hooks, and plugin hook dispatch to remain semantically unchanged. The tests cover a hook command, one flow get path, one invalid option, one plugin execution, and one hook dispatch, but they do not cover exit-code preservation for plugin execution or representative non-help execution for command metadata paths such as docs commands.",
+      "requiredChange": "Add focused non-help regression assertions for at least one metadata-backed core command execution path and plugin command exit-code/argument behavior, in addition to the existing dispatcher and hook checks.",
+      "whyBlocking": "Help rendering changes could accidentally intercept or alter non-help execution for core or plugin commands while these tests still pass."
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R10 self-check is only a placeholder",
+      "target": "specs/292-command-help-registry/tests/help-metadata-model.test.js",
+      "improvement": "The `R10` test currently only asserts `true`. It would be more useful to read the spec-local test files and verify each file has a `// spec:` header with requirement ids.",
+      "whyNonBlocking": "The coverage artifact already records valid headers, and the test files shown do include headers, so this is a test-strength improvement rather than a blocker."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/292-command-help-registry/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "15517acd9ac199865cc227b8951c915001b22dff0d7f808711ab734ef1729906"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 5,
+  "findings": [
+    {
+      "id": "test-005-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "Migration parity is asserted only by loose substrings",
+      "body": "R3 and R7 require preserving retained public help surfaces by semantic parity, but the tests only assert broad substrings such as `Usage:`, `Subcommands:`, command names, or a locale difference. These assertions can pass while dropping or changing descriptions, arguments, options, subcommand listings, experimental markers, or whole sections.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-005-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "R12 omits direct plugin top-level help surface",
+      "body": "R12 requires plugin help through `senti help <plugin>` and direct plugin `--help` to be renderer-backed metadata paths. The test only covers `senti help sample` and `senti sample --help`; it does not cover the plugin top-level help surface for the plugin namespace itself, despite R7 also requiring plugin top-level help.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-005-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "R6 execution ownership coverage is too narrow for required preservation scope",
+      "body": "R6 requires dispatchers, argument parsing, exit codes, plugin command execution, flow lifecycle hooks, and plugin hook dispatch to remain semantically unchanged. The tests cover a hook command, one flow get path, one invalid option, one plugin execution, and one hook dispatch, but they do not cover exit-code preservation for plugin execution or representative non-help execution for command metadata paths such as docs commands.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-005-non-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "non-blocking",
+      "title": "R10 self-check is only a placeholder",
+      "body": "R10 self-check is only a placeholder",
+      "category": "unknown"
+    }
+  ]
+}

@@ -13,7 +13,6 @@ import { sourceRoot, parseArgs, formatUTCTimestamp } from "../../lib/cli.js";
 import { DEFAULT_LANG } from "../../lib/config.js";
 import { translate } from "../../lib/i18n.js";
 import { Command } from "../../lib/command.js";
-import { loadSpecJson } from "../../lib/spec-json.js";
 import { mapWithConcurrency } from "../lib/concurrency.js";
 
 async function optional(fsOp) {
@@ -47,10 +46,7 @@ function sanitize(text) {
  * 実行後はこの方針で全 spec が揃う）。
  */
 async function parseSpecDir(specDir, dirName) {
-  // loadSpecJson guarantees a schema-validated object (caller pre-filters by
-  // spec.json existence). Throws on malformed spec.json so that corrupt
-  // artifacts surface immediately rather than silently skewing the changelog.
-  const spec = loadSpecJson(specDir);
+  const spec = JSON.parse(fs.readFileSync(path.join(specDir, "spec.json"), "utf8"));
 
   let title = dirName;
   let inputLine = "";
@@ -104,7 +100,8 @@ function parseDirName(dirName) {
 
 async function runChangelog(rawArgs, container) {
   const args = rawArgs;
-  const opts = parseArgs(args, { flags: ["--dry-run"], options: [], defaults: { dryRun: false } });
+  const optionArgs = args.filter((arg) => arg.startsWith("-"));
+  const opts = parseArgs(optionArgs, { flags: ["--dry-run"], options: [], defaults: { dryRun: false } });
 
   if (opts.help) {
     const tu = translate();
@@ -234,4 +231,3 @@ export default class DocsChangelogCommand extends Command {
     return runChangelog(ctx._rawArgs || [], this.container);
   }
 }
-

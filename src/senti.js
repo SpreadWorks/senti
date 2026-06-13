@@ -45,22 +45,13 @@ if (subCmd === "-v" || subCmd === "--version" || subCmd === "-V") {
 
 // help (no args / -h / --help / help [topic])
 if (!subCmd || subCmd === "-h" || subCmd === "--help" || subCmd === "help") {
-  initContainer({ entryCommand: rawArgs.join(" ") });
+  initContainer({ entryCommand: rawArgs.join(" "), allowInvalidConfig: true });
   const helpPath = path.join(PKG_DIR, "help.js");
   process.argv = [process.argv[0], helpPath, ...rest];
   const helpMod = await import(pathToFileURL(helpPath).href);
   if (typeof helpMod.main === "function") await helpMod.main();
   process.exit(0);
 }
-
-// Initialize the shared dependency container once; dispatchers and commands
-// below import `container` directly from ./lib/container.js.
-initContainer({
-  entryCommand: rawArgs.join(" "),
-  agentWorkDirOverride,
-  finalizeCleanupDurablePaths: enableFinalizeCleanupDurablePaths,
-  allowInvalidConfig: subCmd === "upgrade",
-});
 
 /** Namespace dispatchers — receive subcommand + rest args */
 const NAMESPACE_SCRIPTS = {
@@ -79,6 +70,45 @@ const INDEPENDENT = {
   presets: "presets-cmd",
   plugin:  "plugin",
 };
+
+function isHelpRequest(args) {
+  return args.includes("-h") || args.includes("--help");
+}
+
+function helpTopic(head, args) {
+  return [head, ...args.filter((arg) => arg !== "-h" && arg !== "--help")];
+}
+
+async function hasCoreHelpMetadata(topic) {
+  const { coreCommandMetadataRegistry } = await import("./lib/command-registry.js");
+  return Boolean(coreCommandMetadataRegistry.findCommand(topic));
+}
+
+async function renderSharedHelp(argv) {
+  initContainer({ entryCommand: rawArgs.join(" "), allowInvalidConfig: true });
+  const { renderHelp } = await import("./help.js");
+  console.log(await renderHelp({ root: process.cwd(), argv }));
+  process.exit(0);
+}
+
+const sharedHelpTopic = helpTopic(subCmd, rest);
+if (NAMESPACE_SCRIPTS[subCmd] && isHelpRequest(rest) && await hasCoreHelpMetadata(sharedHelpTopic)) {
+  await renderSharedHelp([subCmd, ...rest]);
+}
+
+if (INDEPENDENT[subCmd] && isHelpRequest(rest)) {
+  await renderSharedHelp([subCmd, ...rest]);
+}
+
+// Initialize the shared dependency container once; dispatchers and commands
+// below import `container` directly from ./lib/container.js.
+const CORE_ENTRY_COMMANDS = new Set(["docs", "flow", "check", "metrics", "spec", "hook", "setup", "upgrade", "presets", "plugin"]);
+initContainer({
+  entryCommand: rawArgs.join(" "),
+  agentWorkDirOverride,
+  finalizeCleanupDurablePaths: enableFinalizeCleanupDurablePaths,
+  allowInvalidConfig: subCmd === "upgrade" || !CORE_ENTRY_COMMANDS.has(subCmd),
+});
 
 if (NAMESPACE_SCRIPTS[subCmd]) {
   const dispatcherPath = path.join(PKG_DIR, `${NAMESPACE_SCRIPTS[subCmd]}.js`);
@@ -102,6 +132,9 @@ if (NAMESPACE_SCRIPTS[subCmd]) {
   try {
     const { repoRoot } = await import("./lib/cli.js");
     const { dispatchPluginCommand } = await import("./lib/plugin-registry.js");
+    if (isHelpRequest(rest)) {
+      await renderSharedHelp([subCmd, ...rest]);
+    }
     const handled = await dispatchPluginCommand(repoRoot(), subCmd, rest);
     if (handled) {
       if (handled.ok != null) {

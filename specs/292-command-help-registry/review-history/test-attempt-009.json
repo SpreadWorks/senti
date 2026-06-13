@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-13T11:20:29.098Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 1,
+    "total": 2
+  },
+  "coverageArtifact": "specs/292-command-help-registry/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Spec-local tests contain an invalid placeholder in regex escaping",
+      "target": "specs/292-command-help-registry/tests/core-help-registry.test.js assertContainsAll",
+      "issue": "The helper replaces regex metacharacters with the literal string \"\\\\{{PROMPT}}\" instead of escaping the matched character. Any expected fragment containing a regex metacharacter will compile to a pattern that no longer represents the expected text, so the test contradicts its intended assertion helper and can fail or pass for the wrong reason.",
+      "requiredChange": "Replace the replacement string with a correct regex escape replacement, e.g. \"\\\\$&\".",
+      "whyBlocking": "This is a static test anti-pattern in shared assertion code for multiple requirements; it can prevent the tests from accurately exercising the specified help output parity."
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R1 coverage is representative rather than exhaustive",
+      "target": "specs/292-command-help-registry/tests/help-metadata-model.test.js R1",
+      "improvement": "Consider checking all registry metadata entries, or at least every top-level namespace and one plugin-normalized entry, for the renderer-ready field shape.",
+      "whyNonBlocking": "The current test does verify the required field shape on a meaningful core leaf and namespace, so there is corresponding coverage; broader iteration would improve confidence rather than unblock implementation."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/292-command-help-registry/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "2583a54242ef5045d0f61ca81dd4c1418367801900a0bee87837406eddd1724c"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 9,
+  "findings": [
+    {
+      "id": "test-009-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 9,
+      "severity": "blocking",
+      "title": "Spec-local tests contain an invalid placeholder in regex escaping",
+      "body": "The helper replaces regex metacharacters with the literal string \"\\\\{{PROMPT}}\" instead of escaping the matched character. Any expected fragment containing a regex metacharacter will compile to a pattern that no longer represents the expected text, so the test contradicts its intended assertion helper and can fail or pass for the wrong reason.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-009-non-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 9,
+      "severity": "non-blocking",
+      "title": "R1 coverage is representative rather than exhaustive",
+      "body": "R1 coverage is representative rather than exhaustive",
+      "category": "unknown"
+    }
+  ]
+}
