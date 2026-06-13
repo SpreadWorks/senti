@@ -18,7 +18,9 @@ import { emptySpecStub } from "../../lib/spec-json.js";
 import { onHook } from "../../lib/hooks.js";
 import { FlowCommand } from "./base-command.js";
 import { writeIssueMd } from "./issue-body-cache.js";
-import { discoverFlowCommandHooks, runFlowCommandWithPluginLifecycle } from "../../lib/plugin-registry.js";
+import { discoverFlowCommandHooks, readProjectConfig, runFlowCommandWithPluginLifecycle } from "../../lib/plugin-registry.js";
+
+const MAX_PLUGIN_RUNTIME_SYNC_FILES = 2000;
 
 function runGitTrim(root, args) {
   const res = runGit(["-C", root, ...args]);
@@ -139,6 +141,44 @@ function runDocsScanAndValidate(root) {
 
 async function hookSnapshotFor(root) {
   return discoverFlowCommandHooks(root);
+}
+
+function copyPluginRuntimeDirectory(src, dest, counter = { files: 0 }) {
+  const stat = fs.lstatSync(src);
+  if (stat.isSymbolicLink()) throw new Error(`plugin runtime sync rejected symlink: ${src}`);
+  if (stat.isDirectory()) {
+    fs.mkdirSync(dest, { recursive: true });
+    for (const entry of fs.readdirSync(src)) {
+      copyPluginRuntimeDirectory(path.join(src, entry), path.join(dest, entry), counter);
+    }
+    return;
+  }
+  if (!stat.isFile()) return;
+  counter.files += 1;
+  if (counter.files > MAX_PLUGIN_RUNTIME_SYNC_FILES) {
+    throw new Error(`plugin runtime sync exceeds ${MAX_PLUGIN_RUNTIME_SYNC_FILES} files`);
+  }
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  fs.copyFileSync(src, dest);
+}
+
+function syncPluginRuntimeToWorktree(root, worktreePath) {
+  const config = readProjectConfig(root);
+  const sourceSentiDir = sentiDir(root);
+  const targetSentiDir = sentiDir(worktreePath);
+  const localConfigPath = path.join(sourceSentiDir, "config.local.json");
+  if (fs.existsSync(localConfigPath)) {
+    fs.mkdirSync(targetSentiDir, { recursive: true });
+    fs.copyFileSync(localConfigPath, path.join(targetSentiDir, "config.local.json"));
+  }
+  for (const pkg of config.plugin?.packages || []) {
+    if (pkg.enabled === false) continue;
+    const sourcePluginRoot = path.join(sourceSentiDir, "plugins", pkg.id);
+    if (!fs.existsSync(sourcePluginRoot)) continue;
+    const targetPluginRoot = path.join(targetSentiDir, "plugins", pkg.id);
+    fs.rmSync(targetPluginRoot, { recursive: true, force: true });
+    copyPluginRuntimeDirectory(sourcePluginRoot, targetPluginRoot);
+  }
 }
 
 export async function runPrepareWithPluginHooks({ root, title, request, noBranch = true, issue = null }) {
@@ -341,6 +381,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
 
     if (useWorktree) {
       runGitTrim(root, ["worktree", "add", worktreePath, "-b", branchName, resolvedBase]);
+      syncPluginRuntimeToWorktree(root, worktreePath);
       await onHook("PostWorktree", { CWD: worktreePath });
       writeSpecFiles();
       await writeFlowState({ worktree: true });

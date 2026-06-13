@@ -3,7 +3,7 @@ import path from "path";
 import crypto from "crypto";
 import { fileURLToPath, pathToFileURL } from "url";
 import { repoRoot } from "./cli.js";
-import { loadRawConfig, sentiConfigPath, sentiDir } from "./config.js";
+import { loadConfig, loadRawConfig, sentiConfigPath, sentiDir } from "./config.js";
 import { Envelope } from "./flow-envelope.js";
 import { runCmd, assertOk } from "./process.js";
 
@@ -717,9 +717,13 @@ export function loadFlowCommandHookSnapshot(flowPath) {
 
 function pluginConfigFor(root, pluginId) {
   try {
-    return readProjectConfig(root).plugin.config?.[pluginId] || {};
+    return loadConfig(root).plugin?.config?.[pluginId] || {};
   } catch (_) {
-    return {};
+    try {
+      return readProjectConfig(root).plugin.config?.[pluginId] || {};
+    } catch (_) {
+      return {};
+    }
   }
 }
 

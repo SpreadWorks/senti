@@ -33,7 +33,7 @@ function setupProject(command) {
   return root;
 }
 
-function runPrepare(root, title = "post-worktree") {
+function runPrepare(root, title = "post-worktree", extraArgs = []) {
   const output = execFileSync("node", [
     SENTI,
     "flow",
@@ -43,6 +43,7 @@ function runPrepare(root, title = "post-worktree") {
     "--worktree",
     "--request",
     "post worktree test",
+    ...extraArgs,
   ], {
     cwd: root,
     encoding: "utf8",
@@ -80,5 +81,67 @@ describe("flow prepare PostWorktree hook", () => {
 
     assert.equal(envelope.ok, true);
     assert.ok(fs.existsSync(specPath));
+  });
+
+  it("mirrors ignored plugin runtime into worktree before plugin prepare hooks are discovered", () => {
+    tmp = setupProject("");
+    writeFile(tmp, ".gitignore", ".senti/*\n!.senti/config.json\n!.senti/output/\n");
+    writeJson(tmp, ".senti/config.local.json", {
+      plugin: {
+        sources: [{ id: "workflow-src", type: "local", path: ".senti/plugins/workflow" }],
+        packages: [{
+          id: "workflow",
+          source: "workflow-src",
+          commit: "0000000000000000000000000000000000000000",
+        }],
+      },
+    });
+    writeJson(tmp, ".senti/plugins/workflow/plugin.json", {
+      name: "workflow",
+      files: ["plugin.json", "hooks/", "config.defaults.json"],
+      contributions: {
+        hooks: [{ path: "hooks/prepare.js" }],
+        config: { defaults: "config.defaults.json" },
+      },
+    });
+    writeJson(tmp, ".senti/plugins/workflow/config.defaults.json", {
+      plugin: {
+        config: {
+          workflow: { flowIntegration: "enable" },
+        },
+      },
+    });
+    writeFile(tmp, ".senti/plugins/workflow/hooks/prepare.js", `
+export default function register(api) {
+  return class PrepareHook extends api.FlowCommandHook {
+    static command = "prepare";
+    static hook = "post";
+    async run(context) {
+      await context.artifacts.writeJson("prepare-seen.json", {
+        issue: context.flow.issue,
+        snapshot: context.flow.plugins.flowCommandHooks.length,
+        flowIntegration: context.config.flowIntegration
+      });
+      return context.envelope.ok("plugin-hook", "prepare", {});
+    }
+  };
+}
+`);
+    commitAll(tmp, "plugin overlay");
+
+    const envelope = runPrepare(tmp, "worktree-plugin-runtime", ["--issue", "123"]);
+    const worktreePath = envelope.data.artifacts.worktree;
+    const specDir = path.join(worktreePath, envelope.data.artifacts.specDir);
+    const flow = JSON.parse(fs.readFileSync(path.join(specDir, "flow.json"), "utf8"));
+    const artifact = JSON.parse(fs.readFileSync(path.join(specDir, "plugin-artifacts", "workflow", "prepare-seen.json"), "utf8"));
+
+    assert.equal(fs.existsSync(path.join(worktreePath, ".senti", "config.local.json")), true);
+    assert.equal(fs.existsSync(path.join(worktreePath, ".senti", "plugins", "workflow", "hooks", "prepare.js")), true);
+    assert.ok(flow.plugins.flowCommandHooks.some((hook) => hook.pluginId === "workflow" && hook.command === "prepare"));
+    assert.deepEqual(artifact, {
+      issue: 123,
+      snapshot: flow.plugins.flowCommandHooks.length,
+      flowIntegration: "enable",
+    });
   });
 });
