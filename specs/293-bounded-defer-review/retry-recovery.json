@@ -1,0 +1,417 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "spec-local test evidence changed after moving final disposition evidence into the R5 acceptance-review fixture and tightening R6/R7 assertions",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "06fb929bc6d02d50db3dd2273023046c4400c8374fe0fb46262a0cda740a6f5e",
+        "currentHash": "1a983f72b48422aa694613fc6576ea4330591cad01442dc068471b2d942adf15",
+        "changedPaths": [
+          "specs/293-bounded-defer-review/tests/.raw/scenario-validity.log",
+          "specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset review test --reason \"spec-local test evidence changed after moving final disposition evidence into the R5 acceptance-review fixture and tightening R6/R7 assertions\" --yes",
+      "createdAt": "2026-06-13T15:51:00.376Z"
+    },
+    {
+      "id": "recovery-002",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "spec-local test evidence changed after adding full finalDisposition coverage, nextAction allowlist coverage, and gate defer traversal assertions",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "1a983f72b48422aa694613fc6576ea4330591cad01442dc068471b2d942adf15",
+        "currentHash": "0af66d3e2ed62fe8e4401be86ff5055c4713dfbc9127f82496732538dcff4d05",
+        "changedPaths": [
+          "specs/293-bounded-defer-review/tests/.raw/scenario-validity.log",
+          "specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset review test --reason \"spec-local test evidence changed after adding full finalDisposition coverage, nextAction allowlist coverage, and gate defer traversal assertions\" --yes",
+      "createdAt": "2026-06-13T15:53:16.448Z"
+    },
+    {
+      "id": "recovery-003",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "spec-local test evidence changed after adding negative review defer coverage for non-AI findings",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "0af66d3e2ed62fe8e4401be86ff5055c4713dfbc9127f82496732538dcff4d05",
+        "currentHash": "3420bc5dbe34cdf07e23623fb14b0e3bedb47613692cfd0dfd90009f5d31261a",
+        "changedPaths": [
+          "specs/293-bounded-defer-review/tests/.raw/scenario-validity.log",
+          "specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset review test --reason \"spec-local test evidence changed after adding negative review defer coverage for non-AI findings\" --yes",
+      "createdAt": "2026-06-13T15:54:22.586Z"
+    },
+    {
+      "id": "recovery-004",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review fixes changed gate deferral ordering and acceptance deferred finding classification evidence",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "814b53bbf2b5505f689a98c5ad315e2d42c79c17d105aed5fec2e71e51af0e91",
+        "currentHash": "aaf69c70a14912ee1b669d0534f0bd08c9ed14b067b40148f727799c213c5bb8",
+        "changedPaths": [
+          "specs/293-bounded-defer-review/spec.json",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/flow-judgment-contract.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review fixes changed gate deferral ordering and acceptance deferred finding classification evidence\" --yes",
+      "createdAt": "2026-06-13T16:25:28.581Z"
+    },
+    {
+      "id": "recovery-005",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review fixes now return explicit deferred terminal results and skip deferred lifecycle mutations",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "aaf69c70a14912ee1b669d0534f0bd08c9ed14b067b40148f727799c213c5bb8",
+        "currentHash": "efb01a9dc61f63f13132ee3a8ce8dab6443a1735a82546743c197cfe2a962edc",
+        "changedPaths": [
+          "specs/293-bounded-defer-review/spec.json",
+          "src/flow/definition.js",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/flow-judgment-contract.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review fixes now return explicit deferred terminal results and skip deferred lifecycle mutations\" --yes",
+      "createdAt": "2026-06-13T16:31:07.307Z"
+    },
+    {
+      "id": "recovery-006",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review fixes sourceArtifact path traversal protection for deferred flow findings",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "efb01a9dc61f63f13132ee3a8ce8dab6443a1735a82546743c197cfe2a962edc",
+        "currentHash": "53e58f9f02ca5228a2bf37e0223979970a0bd78edb29d15e57f58ba0e1e9b246",
+        "changedPaths": [
+          "specs/293-bounded-defer-review/spec.json",
+          "src/flow/definition.js",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/flow-judgment-contract.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review fixes sourceArtifact path traversal protection for deferred flow findings\" --yes",
+      "createdAt": "2026-06-13T16:35:49.344Z"
+    },
+    {
+      "id": "recovery-007",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review fixes deferred evidence artifact matching to exact spec-relative paths",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "53e58f9f02ca5228a2bf37e0223979970a0bd78edb29d15e57f58ba0e1e9b246",
+        "currentHash": "882a89d6ed695acce1e48234acf4a5b318a8ef3b53409c5ddd297600a6efbac4",
+        "changedPaths": [
+          "specs/293-bounded-defer-review/spec.json",
+          "src/flow/definition.js",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/flow-judgment-contract.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review fixes deferred evidence artifact matching to exact spec-relative paths\" --yes",
+      "createdAt": "2026-06-13T16:41:20.931Z"
+    },
+    {
+      "id": "recovery-008",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review fixes acceptance verdict derivation and requires durable source finding ids for deferred evidence",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "882a89d6ed695acce1e48234acf4a5b318a8ef3b53409c5ddd297600a6efbac4",
+        "currentHash": "237e11437088de43702184406e3b0fb880116a32c8f697013f0d5e14756a86a5",
+        "changedPaths": [
+          "specs/293-bounded-defer-review/spec.json",
+          "src/flow/definition.js",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/flow-judgment-contract.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review fixes acceptance verdict derivation and requires durable source finding ids for deferred evidence\" --yes",
+      "createdAt": "2026-06-13T16:45:18.188Z"
+    },
+    {
+      "id": "recovery-009",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review fixes gate deferred source ids to require per-finding identifiers",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "237e11437088de43702184406e3b0fb880116a32c8f697013f0d5e14756a86a5",
+        "currentHash": "bcce7dac92e45216197ba79393478f32752444f59659ab7147c6a85407c24752",
+        "changedPaths": [
+          "specs/293-bounded-defer-review/spec.json",
+          "src/flow/definition.js",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/flow-judgment-contract.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review fixes gate deferred source ids to require per-finding identifiers\" --yes",
+      "createdAt": "2026-06-13T16:46:41.848Z"
+    },
+    {
+      "id": "recovery-010",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review fixes diff-based gate deferral ordering and finding-aware deferred completion evidence",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "bcce7dac92e45216197ba79393478f32752444f59659ab7147c6a85407c24752",
+        "currentHash": "d618d69b9d4a875c7ab1b184940ff43365c12f216e51905caafca8fde563f73a",
+        "changedPaths": [
+          "specs/293-bounded-defer-review/spec.json",
+          "src/flow/definition.js",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/flow-judgment-contract.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review fixes diff-based gate deferral ordering and finding-aware deferred completion evidence\" --yes",
+      "createdAt": "2026-06-13T16:52:46.237Z"
+    },
+    {
+      "id": "recovery-011",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review fixes integration deferred artifact preservation and ignores mirrored flow-findings dispositions",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "d618d69b9d4a875c7ab1b184940ff43365c12f216e51905caafca8fde563f73a",
+        "currentHash": "5144d016b9b804baf4fc2e2016aa9c5d80b1b871fa34eefc8263732cd654b4c2",
+        "changedPaths": [
+          "specs/293-bounded-defer-review/spec.json",
+          "src/flow/definition.js",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/flow-judgment-contract.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review fixes integration deferred artifact preservation and ignores mirrored flow-findings dispositions\" --yes",
+      "createdAt": "2026-06-13T16:57:06.840Z"
+    },
+    {
+      "id": "recovery-012",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review fixes durable id injection for production review and gate artifacts",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "5144d016b9b804baf4fc2e2016aa9c5d80b1b871fa34eefc8263732cd654b4c2",
+        "currentHash": "dbde45923c87082af48c3806ef8ad0ccf83989615e6a2616ec4ac903517e916b",
+        "changedPaths": [
+          "specs/293-bounded-defer-review/spec.json",
+          "src/flow/definition.js",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/flow-judgment-contract.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review fixes durable id injection for production review and gate artifacts\" --yes",
+      "createdAt": "2026-06-13T17:04:22.938Z"
+    },
+    {
+      "id": "recovery-013",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review fixes production semantic classifiers and stale gate source precedence",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "dbde45923c87082af48c3806ef8ad0ccf83989615e6a2616ec4ac903517e916b",
+        "currentHash": "2c32a5a0fa4e62c1f2dd13e6554864d4192e1cc2ff9a25ea95184c59c1f79164",
+        "changedPaths": [
+          "specs/293-bounded-defer-review/spec.json",
+          "src/flow/definition.js",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/flow-judgment-contract.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review fixes production semantic classifiers and stale gate source precedence\" --yes",
+      "createdAt": "2026-06-13T17:17:30.784Z"
+    },
+    {
+      "id": "recovery-014",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review fixes acceptance-review carried deferred finding handling",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "2c32a5a0fa4e62c1f2dd13e6554864d4192e1cc2ff9a25ea95184c59c1f79164",
+        "currentHash": "7edf88fb02537d0b32f168cb5e6e225d011c28700c1288db8a78449e565f363e",
+        "changedPaths": [
+          "specs/293-bounded-defer-review/spec.json",
+          "src/flow/definition.js",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/flow-judgment-contract.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review fixes acceptance-review carried deferred finding handling\" --yes",
+      "createdAt": "2026-06-13T17:22:45.125Z"
+    }
+  ]
+}

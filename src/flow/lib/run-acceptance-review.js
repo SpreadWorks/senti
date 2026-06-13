@@ -27,6 +27,7 @@ export default class RunAcceptanceReviewCommand extends FlowCommand {
       verdict: result.verdict,
       artifact_path: result.artifactPath,
       findings: result.artifact.findings,
+      deferredFindings: result.artifact.deferredFindings || [],
       requirementAmendmentProposals: result.artifact.requirementAmendmentProposals,
       mechanicalBlockers: result.artifact.mechanicalBlockers,
       hardBlockers: result.artifact.hardBlockers,

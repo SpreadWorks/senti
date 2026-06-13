@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-13T16:55:45.788Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 2,
+    "nonBlocking": 0,
+    "total": 2
+  },
+  "blockingFindings": [
+    {
+      "title": "Integration gate deferral overwrites the referenced source artifact",
+      "failureMode": "security_or_data_integrity_bug",
+      "file": "src/flow/lib/run-gate.js",
+      "issue": "For integration gates, tryDeferGateRetryExhaustion creates flow-findings entries that reference impl-gate-result.json, but executeDiffBasedGate wraps the returned deferred result in persistIntegrationGateResult. That persistence rewrites impl-gate-result.json from the deferred envelope, which contains no failed evaluations, erasing the source finding that was just referenced.",
+      "suggestion": "In persistIntegrationGateResult, preserve the existing impl-gate-result.json when result.artifacts.deferred is true, or include and persist the original failed evaluations/source artifact unchanged for deferred integration results.",
+      "rationale": "R3 and the source-of-truth constraints require a durable bounded gate source artifact for deferred gate findings. Overwriting the integration detector artifact breaks the audit reference and makes later completion/acceptance evidence unable to prove the deferred finding came from the retained failed artifact."
+    },
+    {
+      "title": "Flow-findings mirror can decide acceptance disposition",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "src/flow/lib/acceptance-review-artifacts.js",
+      "issue": "buildDeferredFindingsFromEvidence falls back to entry.finalDisposition from flow-findings.json when acceptance-review-evidence.json has no classification. Because deriveAcceptanceReviewVerdict uses those deferredFindings, a stale or edited flow-findings.json finalDisposition such as fixed can make acceptance-review pass without acceptance-review producing its own final classification.",
+      "suggestion": "Change buildDeferredFindingsFromEvidence to ignore entry.finalDisposition as an input decision source. Use only acceptance-review-owned classification evidence for finalDisposition, and treat missing acceptance classification as still_open or fail validation until acceptance-review writes a fresh disposition.",
+      "rationale": "R4/R5 and the explicit source-of-truth constraint say flow-findings.finalDisposition is nullable, non-authoritative mirror state derived from acceptance-review.json. Letting it drive the generated acceptance-review verdict makes flow-findings.json a routing/verdict source of truth."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/293-bounded-defer-review/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "e1f5fb7fae0967a8340466a774bd3a45b3903bc8f584746eac425f18b5548e3c"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 11,
+  "findings": [
+    {
+      "id": "impl-011-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 11,
+      "severity": "blocking",
+      "title": "Integration gate deferral overwrites the referenced source artifact",
+      "body": "For integration gates, tryDeferGateRetryExhaustion creates flow-findings entries that reference impl-gate-result.json, but executeDiffBasedGate wraps the returned deferred result in persistIntegrationGateResult. That persistence rewrites impl-gate-result.json from the deferred envelope, which contains no failed evaluations, erasing the source finding that was just referenced.",
+      "category": "security_or_data_integrity_bug"
+    },
+    {
+      "id": "impl-011-blocking-002",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 11,
+      "severity": "blocking",
+      "title": "Flow-findings mirror can decide acceptance disposition",
+      "body": "buildDeferredFindingsFromEvidence falls back to entry.finalDisposition from flow-findings.json when acceptance-review-evidence.json has no classification. Because deriveAcceptanceReviewVerdict uses those deferredFindings, a stale or edited flow-findings.json finalDisposition such as fixed can make acceptance-review pass without acceptance-review producing its own final classification.",
+      "category": "spec_behavior_contradiction"
+    }
+  ]
+}

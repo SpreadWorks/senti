@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "All 5 repair targets are valid pending-question shape issues; remove embedded recommendations, priority markers, and rationale from qa[].question in the repair step.",
+  "items": [
+    {
+      "title": "1. q1 includes answer and rationale",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "The pending question should contain only the user-facing question. The recommendation and rationale can be presented later outside the draft artifact when asking the user.",
+      "evidence": "draft.json qa[0].question contains '推奨: Yes' and rationale text."
+    },
+    {
+      "title": "2. q2 includes instruction, answer, and rationale",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "The pending question should not embed a priority marker, recommended answer, or rationale. The mechanical blocker definition can remain as neutral explanatory context.",
+      "evidence": "draft.json qa[1].question contains 'must:', '推奨: Yes', and rationale text."
+    },
+    {
+      "title": "3. q3 includes instruction, answer, and rationale",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "The pending question should ask for confirmation of the artifact contract without embedding the recommended answer or rationale.",
+      "evidence": "draft.json qa[2].question contains 'must:', '推奨: Yes', and rationale text."
+    },
+    {
+      "title": "4. q4 includes instruction, answer, and rationale",
+      "target": "q4",
+      "decision": "apply",
+      "rationale": "The pending question should ask for confirmation of acceptance-review classification and routing without embedding the recommended answer or rationale.",
+      "evidence": "draft.json qa[3].question contains 'must:', '推奨: Yes', and rationale text."
+    },
+    {
+      "title": "5. q5 includes instruction, answer, and rationale",
+      "target": "q5",
+      "decision": "apply",
+      "rationale": "The pending question should ask for confirmation of round-limit behavior without embedding the priority marker, recommended answer, or rationale.",
+      "evidence": "draft.json qa[4].question contains 'must:', '推奨: Yes', and rationale text."
+    }
+  ]
+}

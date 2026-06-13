@@ -4,6 +4,11 @@ import path from "node:path";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { resolveSpecDir } from "../../lib/spec-json.js";
 import { IMPL_GATE_RESULT_FILE, readJsonStrict } from "./test-artifacts.js";
+import {
+  normalizeSourceArtifactPath,
+  readBoundedSourceArtifact,
+  readFlowFindingsArtifact,
+} from "./flow-findings.js";
 
 export const COMPLETION_OVERRIDE_FILE = "completion-overrides.json";
 
@@ -289,7 +294,7 @@ export class CompletionValidator {
     }
   }
 
-  validate({ contract, requestedStatus, overrideEvidence = null }) {
+  validate({ contract, requestedStatus, overrideEvidence = null, deferredEvidence = null }) {
     if (!(contract instanceof FlowJudgmentContract)) throw new Error("contract must be a FlowJudgmentContract");
     if (requestedStatus !== "done") {
       return new CompletionValidationResult({ kind: "normal", reason: `status ${requestedStatus} does not require completion validation`, contract });
@@ -304,12 +309,99 @@ export class CompletionValidator {
     if (overrideEvidence instanceof OverrideCompletionEvidence && overrideEvidence.appliesTo(contract)) {
       return new CompletionValidationResult({ kind: "override", reason: "valid override completion evidence found", contract, override: overrideEvidence });
     }
+    if (deferredEvidence === true) {
+      return new CompletionValidationResult({ kind: "deferred", reason: "valid deferred flow finding evidence found", contract });
+    }
     return new CompletionValidationResult({
       kind: "inconsistent",
       reason: "normal completion policy failed and no valid override evidence was found",
       contract,
     });
   }
+}
+
+function deferredEvidenceApplies(specDir, contract) {
+  let artifact;
+  try {
+    artifact = readFlowFindingsArtifact(specDir);
+  } catch {
+    return false;
+  }
+  const contractArtifact = contractArtifactRelativeToSpec(specDir, contract.artifactPath);
+  if (!contractArtifact) return false;
+  return artifact.entries.some((entry) => (
+    entry.completionKind === "deferred"
+    && entry.retryExhausted === true
+    && entry.sourceArtifact === contractArtifact
+    && (entry.sourceStep === contract.targetStep || entry.sourceStep === contract.targetStep.replace(/-gate$/, "-gate"))
+    && sourceArtifactContainsFinding(specDir, entry)
+  ));
+}
+
+function contractArtifactRelativeToSpec(specDir, artifactPath) {
+  let normalized;
+  try {
+    normalized = normalizeSourceArtifactPath(artifactPath, "artifactPath");
+  } catch {
+    return null;
+  }
+  const specPrefix = `${path.basename(path.dirname(specDir))}/${path.basename(specDir)}/`;
+  return normalized.startsWith(specPrefix) ? normalized.slice(specPrefix.length) : normalized;
+}
+
+function sourceArtifactContainsFinding(specDir, entry) {
+  const source = readBoundedSourceArtifact(specDir, entry.sourceArtifact);
+  if (!source) return false;
+  return deferredFindingCandidates(source).some((finding) => (
+    findingIdOf(finding) === entry.sourceFindingId
+    && isFailedFinding(source, finding)
+    && isContentAlignmentFinding(finding)
+  ));
+}
+
+function deferredFindingCandidates(source) {
+  const candidates = [
+    source?.blockingFindings,
+    source?.findings,
+    source?.comments,
+    source?.proposals,
+    source?.advisoryFindings,
+    source?.evaluations,
+    source?.observations,
+    source?.nextAction?.diagnosis?.observations,
+  ];
+  return candidates.filter(Array.isArray).flat();
+}
+
+function findingIdOf(finding) {
+  return finding?.findingId || finding?.id || finding?.proposalId || null;
+}
+
+function isFailedFinding(source, finding) {
+  if (typeof finding?.result === "string") return finding.result.toLowerCase() === "fail";
+  if (typeof finding?.verdict === "string") return finding.verdict.toLowerCase() === "fail";
+  return String(source?.verdict || source?.result || "").toLowerCase() === "fail";
+}
+
+function findingText(value) {
+  if (value == null) return "";
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value.map(findingText).join(" ");
+  if (typeof value === "object") return Object.values(value).map(findingText).join(" ");
+  return String(value);
+}
+
+function isContentAlignmentFinding(finding) {
+  const text = findingText({
+    kind: finding?.kind,
+    category: finding?.category,
+    failureMode: finding?.failureMode,
+    title: finding?.title,
+    guardrail_id: finding?.guardrail_id,
+    requirementRef: finding?.requirementRef,
+  }).toLowerCase().replace(/[_-]+/g, " ");
+  return /\b(content|alignment|semantic|requirement\s?alignment)\b/.test(text)
+    && !/\b(schema|tooling|command|test|missing|invalid|corrupt|no\s?progress|mechanical)\b/.test(text);
 }
 
 export function progressSignature(contract) {
@@ -560,8 +652,9 @@ export function validateStepCompletionTransition({ root, state, stepId, requeste
     contract,
     requestedStatus,
     overrideEvidence,
+    deferredEvidence: deferredEvidenceApplies(specDir, contract),
   });
-  if (result.kind === "normal" || result.kind === "override") return null;
+  if (result.kind === "normal" || result.kind === "override" || result.kind === "deferred") return null;
   if (stepId === "acceptance-review") {
     return Envelope.fail(
       "set",

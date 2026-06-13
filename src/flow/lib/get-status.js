@@ -17,6 +17,7 @@ import { resolveGateRecoveryDisplayPhase } from "./gate-recovery-display.js";
 import { countReviewRetry } from "./run-review.js";
 import { buildStateRetryRecoveryView, resolveRecoveryMaxAttempts } from "./retry-recovery.js";
 import { buildBoundedBroadModeHistory } from "./task-scope.js";
+import { buildDeferredFindingsSummary, specDirFromFlowState } from "./flow-findings.js";
 
 /** Token sub-fields that the Logger / flow-store emit per agent entry. */
 export const TOKEN_KEYS = ["input", "output", "cacheRead", "cacheCreation"];
@@ -223,6 +224,9 @@ function buildStatusOutput(state, root, options = {}) {
 
   // autoApprove is always false in preparing state
   const autoApprove = state.lifecycle === "preparing" ? false : (state.autoApprove || false);
+  const deferredFindings = state.spec
+    ? buildDeferredFindingsSummary({ specDir: specDirFromFlowState(root, state) })
+    : { count: 0, sourceSteps: [], artifactPath: "flow-findings.json" };
 
   const output = {
     active: true,
@@ -237,6 +241,7 @@ function buildStatusOutput(state, root, options = {}) {
     stepsProgress: { done: doneSteps, total: totalSteps },
     requirements,
     requirementsProgress: { done: doneReqs, total: totalReqs },
+    ...(deferredFindings.count > 0 && { deferredFindings }),
     ...(retryRecovery && { retryRecovery }),
     mergeStrategy: state.mergeStrategy || null,
     autoApprove,

@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Introduce a retry-then-defer policy path for AI-derived content/alignment findings after the configured maxAttempts is exhausted without adding any new step status values; deferred completion is represented by artifact evidence and existing done traversal.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/deferred-flow-findings.test.mjs"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "When flow-scope review retry exhaustion contains only AI-derived content/alignment findings, persist a flow findings entry that references the source review artifact and mark the review step complete according to the existing traversal model.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/deferred-flow-findings.test.mjs"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "When gate retry exhaustion contains only AI-derived content/alignment findings, persist or reuse a bounded durable gate source artifact for the phase, persist flow finding references, and allow traversal to continue, while schema invalid, missing artifact, failed command/test evidence, tooling failure, no-progress guard, and flow corruption remain blocking.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/deferred-flow-findings.test.mjs"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "Add a bounded flow-findings artifact model that records findingId, sourceStep, sourceArtifact, sourceFindingId, retryExhausted, attempts, round, completionKind, and nullable non-authoritative finalDisposition without copying full finding detail.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/deferred-flow-findings.test.mjs"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "Extend acceptance-review so it reads flow findings as input history and writes final classifications fixed, not_needed, false_positive, pre_existing, still_open, or blocking for each carried finding.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/deferred-flow-findings.test.mjs"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "For non-pass acceptance-review results, validate and persist nextAction and targetStep, where targetStep is limited to spec, test, implement, test-execute, impl-review, or impl-gate.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/deferred-flow-findings.test.mjs"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "Limit automatic acceptance-review repair rounds to 2; after the second non-pass verdict, stop automatic routing and require a user choice, with risk acceptance disallowed when any mechanical blocker exists.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/deferred-flow-findings.test.mjs"
+      ]
+    },
+    {
+      "id": "R8",
+      "desc": "Preserve existing review/gate artifacts, add missing durable gate source artifacts where needed, preserve retry metrics, issue-log recording, no-progress rerun guard behavior, tooling failure behavior, and acceptance-review pass/mechanical reset behavior through the new path.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/deferred-flow-findings.test.mjs"
+      ]
+    },
+    {
+      "id": "R9",
+      "desc": "Expose deferred flow findings in flow state or status/report summaries with count, sourceStep list, and artifact path without making those summaries the routing source of truth.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/deferred-flow-findings.test.mjs"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/deferred-flow-findings.test.mjs",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9"
+      ],
+      "testNameIds": [
+        "R4",
+        "R1",
+        "R2",
+        "R3",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9"
+      ]
+    }
+  ]
+}

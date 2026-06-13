@@ -1,0 +1,811 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Migration parity is deferred as a future decomposition point rather than fully defined; the draft does not currently enumerate the existing public behavior being moved/replaced (commands/APIs/hooks/config entries/side effects) before implementation.; No explicit mapping of each retained public behavior to a new owner or explicit removal decision is documented, and no behavior-level verification criteria are provided for retained surfaces (e.g., existing review/gate/blocking paths, verdict/decision/reset behavior) in the new path.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-13T15:08:23.279Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "decisionMap.deferredToSpec[0]"
+          },
+          "observed": "Migration parity is deferred as a future decomposition point rather than fully defined; the draft does not currently enumerate the existing public behavior being moved/replaced (commands/APIs/hooks/config entries/side effects) before implementation.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification, impactOnExisting, qa"
+          },
+          "observed": "No explicit mapping of each retained public behavior to a new owner or explicit removal decision is documented, and no behavior-level verification criteria are provided for retained surfaces (e.g., existing review/gate/blocking paths, verdict/decision/reset behavior) in the new path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "Migration parity is deferred as a future decomposition point rather than fully defined; the draft does not currently enumerate the existing public behavior being moved/replaced (commands/APIs/hooks/config entries/side effects) before implementation."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "No explicit mapping of each retained public behavior to a new owner or explicit removal decision is documented, and no behavior-level verification criteria are provided for retained surfaces (e.g., existing review/gate/blocking paths, verdict/decision/reset behavior) in the new path."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft-gate failed because migration parity inventory, retained behavior mapping, and behavior-level verification were under-specified",
+      "trigger": "senti flow run gate --phase draft returned migration-parity guardrail failures",
+      "resolution": "expanded draft.json with retained review/gate behavior inventory, mapping, and behavior-level verification expectations",
+      "guardrailCandidate": "when a draft changes retry or gate behavior, enumerate retained public behavior and verification before draft-gate",
+      "taskId": null,
+      "timestamp": "2026-06-13T15:09:20.366Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Retained public behavior mapping is only specified for mechanical blocker stops and no-progress/tooling failures, but does not map all retained behaviors listed in the inventory (e.g., review/gate artifacts, retry metrics, issue-log recording, acceptance-review verdict/reset behavior) to a new owner or an explicit removal decision.; Behavior-level verification list omits explicit behavior-level checks for all retained public surfaces in the migration inventory, including retry metrics, issue-log recording, and acceptance-review verdict/reset behavior, so retained behavior is not fully verified through the new path.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-13T15:09:42.325Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "decisionMap.knownFacts[1]"
+          },
+          "observed": "Retained public behavior mapping is only specified for mechanical blocker stops and no-progress/tooling failures, but does not map all retained behaviors listed in the inventory (e.g., review/gate artifacts, retry metrics, issue-log recording, acceptance-review verdict/reset behavior) to a new owner or an explicit removal decision.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "decisionMap.knownFacts[2]"
+          },
+          "observed": "Behavior-level verification list omits explicit behavior-level checks for all retained public surfaces in the migration inventory, including retry metrics, issue-log recording, and acceptance-review verdict/reset behavior, so retained behavior is not fully verified through the new path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "Retained public behavior mapping is only specified for mechanical blocker stops and no-progress/tooling failures, but does not map all retained behaviors listed in the inventory (e.g., review/gate artifacts, retry metrics, issue-log recording, acceptance-review verdict/reset behavior) to a new owner or an explicit removal decision."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "Behavior-level verification list omits explicit behavior-level checks for all retained public surfaces in the migration inventory, including retry metrics, issue-log recording, and acceptance-review verdict/reset behavior, so retained behavior is not fully verified through the new path."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft-gate still failed because retained behavior mapping and behavior-level verification did not cover every public surface in the migration inventory",
+      "trigger": "second senti flow run gate --phase draft returned migration-parity guardrail failures",
+      "resolution": "expanded mapping and verification text to cover review/gate artifacts, retry metrics, issue-log, blocker preservation, and acceptance-review verdict/reset behavior",
+      "guardrailCandidate": "migration parity fixes must map and verify every retained surface named in the inventory",
+      "taskId": null,
+      "timestamp": "2026-06-13T15:10:10.175Z"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "invalid failureMode: vague-adjective requirement",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-13T15:19:06.070Z"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec-gate failed because guardrail AI emitted an invalid failureMode while evaluating vague wording",
+      "trigger": "senti flow run gate returned invalid failureMode vague-adjective requirement",
+      "resolution": "replaced vague requirement wording in spec.json with concrete audit summary fields and bounded behavior wording",
+      "guardrailCandidate": "when spec-gate reports invalid vague-adjective observations, scan spec authored fields and replace vague terms before rerun",
+      "taskId": null,
+      "timestamp": "2026-06-13T15:20:11.358Z"
+    },
+    {
+      "step": "spec-gate",
+      "phase": "spec",
+      "reason": "gate retry limit exhausted: 5/5 FAIL attempts recorded for phase \"spec\".\nCounter breakdown: AI-FAIL=5\nPrevious FAIL reasons:\n  (no issue-log entries found)\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-13T15:20:16.707Z"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec-gate recovery command rejected plan phase gate spec, so manual metric reset was needed after tightening vague requirement wording",
+      "trigger": "user requested manual reset and rerun after INVALID_RECOVERY_INPUT for gate spec",
+      "resolution": "added a reset gateRetry metric for phase spec in flow.json and replaced semantic wording with content/alignment finding terminology",
+      "guardrailCandidate": "if plan gate phases are unrecoverable by set retry, document or implement an audited recovery path before relying on manual flow metrics edits",
+      "taskId": null,
+      "timestamp": "2026-06-13T15:24:22.651Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Migration parity is only listed as a set of retained behaviors, but there is no per-behavior mapping to a new owner or an explicit retain/remove decision.; The spec calls out that count/size limits are required, but it does not define concrete upper-bound values for flow-finding collection size/length, source-artifact read limits, or prompt-input size limits.; New spec-local behavior coverage is not specified under specs/<specid>/tests/ with `// spec: R<N> ...` headers; testing is described only as generic unit tests under tests/unit.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-13T15:24:43.479Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "constraints[7]"
+          },
+          "observed": "Migration parity is only listed as a set of retained behaviors, but there is no per-behavior mapping to a new owner or an explicit retain/remove decision.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "constraints[6]"
+          },
+          "observed": "The spec calls out that count/size limits are required, but it does not define concrete upper-bound values for flow-finding collection size/length, source-artifact read limits, or prompt-input size limits.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "implementationTargets, tasks[*].test_strategy"
+          },
+          "observed": "New spec-local behavior coverage is not specified under specs/<specid>/tests/ with `// spec: R<N> ...` headers; testing is described only as generic unit tests under tests/unit.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "Migration parity is only listed as a set of retained behaviors, but there is no per-behavior mapping to a new owner or an explicit retain/remove decision."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "The spec calls out that count/size limits are required, but it does not define concrete upper-bound values for flow-finding collection size/length, source-artifact read limits, or prompt-input size limits."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "New spec-local behavior coverage is not specified under specs/<specid>/tests/ with `// spec: R<N> ...` headers; testing is described only as generic unit tests under tests/unit."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec-gate failed after reset because migration parity mapping, resource limits, and spec-local test coverage were under-specified",
+      "trigger": "senti flow run gate returned migration-parity, bounded-resource-usage, and spec-test-coverage guardrail failures",
+      "resolution": "added per-behavior owner mapping, concrete resource limits, and specs/293-bounded-defer-review/tests coverage requirements with spec headers",
+      "guardrailCandidate": "spec-gate repairs must address every reported guardrail field and scan related task test_strategy entries before rerun",
+      "taskId": null,
+      "timestamp": "2026-06-13T15:25:39.108Z"
+    },
+    {
+      "step": "test",
+      "reason": "spec-local test file was initially created outside the active worktree due to patch default cwd",
+      "trigger": "test header validation reported every requirement uncovered because the worktree did not contain the new test file",
+      "resolution": "moved the file into the active worktree specs/293-bounded-defer-review/tests directory with a .test.mjs name that matches the validator",
+      "guardrailCandidate": "during active worktree flows, use absolute worktree paths for apply_patch or verify file location before marking a step done",
+      "taskId": null,
+      "timestamp": "2026-06-13T15:35:24.620Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review retry budget was exhausted after repeated spec-local test coverage repairs",
+      "trigger": "senti flow run review --phase test returned REVIEW_MAX_ATTEMPTS_EXCEEDED at 5/5 FAIL attempts",
+      "resolution": "stopped before further review attempts and will require user-approved retry reset after changed test evidence",
+      "guardrailCandidate": "when test-review reports blocking findings repeatedly, batch all remaining coverage changes before consuming the final review retry",
+      "taskId": null,
+      "timestamp": "2026-06-13T15:46:04.523Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "spec-local test evidence changed after moving final disposition evidence into the R5 acceptance-review fixture and tightening R6/R7 assertions",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "06fb929bc6d02d50db3dd2273023046c4400c8374fe0fb46262a0cda740a6f5e",
+        "currentHash": "1a983f72b48422aa694613fc6576ea4330591cad01442dc068471b2d942adf15",
+        "changedPaths": [
+          "specs/293-bounded-defer-review/tests/.raw/scenario-validity.log",
+          "specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset review test --reason \"spec-local test evidence changed after moving final disposition evidence into the R5 acceptance-review fixture and tightening R6/R7 assertions\" --yes",
+      "createdAt": "2026-06-13T15:51:00.376Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review still failed after the user-approved retry reset and one re-review attempt",
+      "trigger": "senti flow run review --phase test returned FAIL with three blocking findings after recovery-001",
+      "resolution": "stopped at retry exhaustion boundary; remaining fixes require another evidence change before any additional reset",
+      "guardrailCandidate": "before resetting a one-shot review retry, map each blocking finding to explicit test changes that cover the full required contract",
+      "taskId": null,
+      "timestamp": "2026-06-13T15:51:58.909Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-002",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "spec-local test evidence changed after adding full finalDisposition coverage, nextAction allowlist coverage, and gate defer traversal assertions",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "1a983f72b48422aa694613fc6576ea4330591cad01442dc068471b2d942adf15",
+        "currentHash": "0af66d3e2ed62fe8e4401be86ff5055c4713dfbc9127f82496732538dcff4d05",
+        "changedPaths": [
+          "specs/293-bounded-defer-review/tests/.raw/scenario-validity.log",
+          "specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset review test --reason \"spec-local test evidence changed after adding full finalDisposition coverage, nextAction allowlist coverage, and gate defer traversal assertions\" --yes",
+      "createdAt": "2026-06-13T15:53:16.448Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-003",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "spec-local test evidence changed after adding negative review defer coverage for non-AI findings",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "0af66d3e2ed62fe8e4401be86ff5055c4713dfbc9127f82496732538dcff4d05",
+        "currentHash": "3420bc5dbe34cdf07e23623fb14b0e3bedb47613692cfd0dfd90009f5d31261a",
+        "changedPaths": [
+          "specs/293-bounded-defer-review/tests/.raw/scenario-validity.log",
+          "specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset review test --reason \"spec-local test evidence changed after adding negative review defer coverage for non-AI findings\" --yes",
+      "createdAt": "2026-06-13T15:54:22.586Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl-review found missing flow-findings diff visibility and acceptance routing contradictions",
+      "trigger": "senti flow run review returned three blocking findings for R4, R6, and R7",
+      "resolution": "added intent-to-add for flow-findings.js and changed acceptance-review round-limit and blocked repair decisions to use persisted verdict/targetStep routing",
+      "guardrailCandidate": "new implementation files must be visible in git diff before impl-review, and acceptance decision handlers must consume the same routing fields validated in acceptance-review.json",
+      "taskId": null,
+      "timestamp": "2026-06-13T16:09:45.617Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl-review found unresolved deferred findings and unverified deferred source evidence could incorrectly permit pass or done traversal",
+      "trigger": "senti flow run review returned blocking findings for R1, R3, and R5 after the first repair",
+      "resolution": "made still_open/blocking deferred findings produce non-pass acceptance results, preserved mechanical gate source fields, and verified deferred completion source artifact plus sourceFindingId",
+      "guardrailCandidate": "deferred reference artifacts must never be trusted without reading bounded source evidence and unresolved final dispositions must affect acceptance verdicts",
+      "taskId": null,
+      "timestamp": "2026-06-13T16:14:01.703Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl-review found retry exhaustion deferral could run before no-progress guard evaluation",
+      "trigger": "senti flow run review returned a blocking R8 finding about stale content-only gate source artifacts bypassing current no-progress state",
+      "resolution": "moved no-progress guard checks before retry-exhaustion deferral in gate execution paths",
+      "guardrailCandidate": "mechanical guard checks must run before any retry-exhaustion defer path that can complete a gate step",
+      "taskId": null,
+      "timestamp": "2026-06-13T16:15:32.673Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl-review found retry deferral could bypass current gate structural blockers and acceptance deferred findings could remain unclassified",
+      "trigger": "impl-review sequence 123 reported R3/R5/R7 blocking findings",
+      "resolution": "moved gate structural textCheck before retry deferral, required acceptance final dispositions, preserved second-round user decision verdict, and added regression tests",
+      "guardrailCandidate": "retry deferral must evaluate current mechanical blockers before using stale semantic source artifacts",
+      "taskId": null,
+      "timestamp": "2026-06-13T16:25:13.510Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-004",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review fixes changed gate deferral ordering and acceptance deferred finding classification evidence",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "814b53bbf2b5505f689a98c5ad315e2d42c79c17d105aed5fec2e71e51af0e91",
+        "currentHash": "aaf69c70a14912ee1b669d0534f0bd08c9ed14b067b40148f727799c213c5bb8",
+        "changedPaths": [
+          "specs/293-bounded-defer-review/spec.json",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/flow-judgment-contract.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review fixes changed gate deferral ordering and acceptance deferred finding classification evidence\" --yes",
+      "createdAt": "2026-06-13T16:25:28.581Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl-review found deferred retry completion returned the same null signal as normal retry continuation",
+      "trigger": "impl-review sequence 129 reported R2/R3 terminal deferral still allowed another exhausted retry",
+      "resolution": "returned explicit deferred terminal results for review and gate retry exhaustion and skipped deferred lifecycle post-hook mutations",
+      "guardrailCandidate": "bounded retry deferral must use a distinct terminal result so callers cannot continue retry execution",
+      "taskId": null,
+      "timestamp": "2026-06-13T16:30:56.088Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-005",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review fixes now return explicit deferred terminal results and skip deferred lifecycle mutations",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "aaf69c70a14912ee1b669d0534f0bd08c9ed14b067b40148f727799c213c5bb8",
+        "currentHash": "efb01a9dc61f63f13132ee3a8ce8dab6443a1735a82546743c197cfe2a962edc",
+        "changedPaths": [
+          "specs/293-bounded-defer-review/spec.json",
+          "src/flow/definition.js",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/flow-judgment-contract.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review fixes now return explicit deferred terminal results and skip deferred lifecycle mutations\" --yes",
+      "createdAt": "2026-06-13T16:31:07.307Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl-review found deferred sourceArtifact paths could escape the active spec directory",
+      "trigger": "impl-review sequence 134 reported R4 data integrity issue for path traversal in flow-findings evidence",
+      "resolution": "added sourceArtifact normalization and spec-directory containment checks for flow findings and bounded source artifact reads",
+      "guardrailCandidate": "routing evidence file references must reject absolute paths and normalized paths outside the owning spec directory",
+      "taskId": null,
+      "timestamp": "2026-06-13T16:35:36.262Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-006",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review fixes sourceArtifact path traversal protection for deferred flow findings",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "efb01a9dc61f63f13132ee3a8ce8dab6443a1735a82546743c197cfe2a962edc",
+        "currentHash": "53e58f9f02ca5228a2bf37e0223979970a0bd78edb29d15e57f58ba0e1e9b246",
+        "changedPaths": [
+          "specs/293-bounded-defer-review/spec.json",
+          "src/flow/definition.js",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/flow-judgment-contract.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review fixes sourceArtifact path traversal protection for deferred flow findings\" --yes",
+      "createdAt": "2026-06-13T16:35:49.344Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl-review found deferred evidence matched source artifacts by basename instead of exact spec-relative path",
+      "trigger": "impl-review sequence after path traversal fix reported R1 data integrity issue in deferredEvidenceApplies",
+      "resolution": "normalized contract artifact paths relative to the active spec directory and required exact sourceArtifact equality",
+      "guardrailCandidate": "deferred routing evidence must compare canonical spec-relative artifact paths, never basenames",
+      "taskId": null,
+      "timestamp": "2026-06-13T16:41:06.401Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-007",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review fixes deferred evidence artifact matching to exact spec-relative paths",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "53e58f9f02ca5228a2bf37e0223979970a0bd78edb29d15e57f58ba0e1e9b246",
+        "currentHash": "882a89d6ed695acce1e48234acf4a5b318a8ef3b53409c5ddd297600a6efbac4",
+        "changedPaths": [
+          "specs/293-bounded-defer-review/spec.json",
+          "src/flow/definition.js",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/flow-judgment-contract.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review fixes deferred evidence artifact matching to exact spec-relative paths\" --yes",
+      "createdAt": "2026-06-13T16:41:20.931Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl-review found unresolved deferred findings could be hidden by pass verdicts and idless deferred findings could create unverifiable evidence",
+      "trigger": "impl-review sequence reported R5 pass-verdict bypass plus R2/R3 generated source id integrity issues",
+      "resolution": "enforced evidence-derived acceptance verdicts and allowed review/gate deferral only for source findings with durable ids present in the artifact",
+      "guardrailCandidate": "deferred evidence must be both acceptance-classified and durably linked to identifiers already present in source artifacts",
+      "taskId": null,
+      "timestamp": "2026-06-13T16:45:03.043Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-008",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review fixes acceptance verdict derivation and requires durable source finding ids for deferred evidence",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "882a89d6ed695acce1e48234acf4a5b318a8ef3b53409c5ddd297600a6efbac4",
+        "currentHash": "237e11437088de43702184406e3b0fb880116a32c8f697013f0d5e14756a86a5",
+        "changedPaths": [
+          "specs/293-bounded-defer-review/spec.json",
+          "src/flow/definition.js",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/flow-judgment-contract.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review fixes acceptance verdict derivation and requires durable source finding ids for deferred evidence\" --yes",
+      "createdAt": "2026-06-13T16:45:18.188Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl-review found gate deferred source ids could reuse non-unique guardrail or requirement identifiers",
+      "trigger": "impl-review reported sourceFindingId integrity issue for gateSourceFindingId using broad fields",
+      "resolution": "limited gate deferred source ids to findingId or id only and added a guardrail_id-only regression case that remains blocking",
+      "guardrailCandidate": "deferred gate evidence must use per-finding durable identifiers, not guardrail or requirement identifiers",
+      "taskId": null,
+      "timestamp": "2026-06-13T16:46:28.892Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-009",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review fixes gate deferred source ids to require per-finding identifiers",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "237e11437088de43702184406e3b0fb880116a32c8f697013f0d5e14756a86a5",
+        "currentHash": "bcce7dac92e45216197ba79393478f32752444f59659ab7147c6a85407c24752",
+        "changedPaths": [
+          "specs/293-bounded-defer-review/spec.json",
+          "src/flow/definition.js",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/flow-judgment-contract.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review fixes gate deferred source ids to require per-finding identifiers\" --yes",
+      "createdAt": "2026-06-13T16:46:41.848Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl-review found diff-based gate deferral could bypass current structural spec inputs and deferred completion matched arbitrary artifact values",
+      "trigger": "impl-review reported R3 ordering issue in executeDiffBasedGate and R1 sourceArtifactContainsFinding integrity issue",
+      "resolution": "moved diff-based retry deferral after current spec and diff validation and changed deferred completion to match failed content/alignment finding ids",
+      "guardrailCandidate": "deferred completion must validate current mechanical inputs first and prove the referenced failed finding, not an arbitrary artifact value",
+      "taskId": null,
+      "timestamp": "2026-06-13T16:52:32.895Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-010",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review fixes diff-based gate deferral ordering and finding-aware deferred completion evidence",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "bcce7dac92e45216197ba79393478f32752444f59659ab7147c6a85407c24752",
+        "currentHash": "d618d69b9d4a875c7ab1b184940ff43365c12f216e51905caafca8fde563f73a",
+        "changedPaths": [
+          "specs/293-bounded-defer-review/spec.json",
+          "src/flow/definition.js",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/flow-judgment-contract.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review fixes diff-based gate deferral ordering and finding-aware deferred completion evidence\" --yes",
+      "createdAt": "2026-06-13T16:52:46.237Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl-review found integration deferred result could overwrite impl-gate source artifact and flow-findings mirror disposition could drive acceptance decisions",
+      "trigger": "impl-review reported R3 integration artifact preservation and R5 source-of-truth issues",
+      "resolution": "preserved existing impl-gate-result.json for deferred integration results and ignored mirrored flow-findings finalDisposition when building acceptance findings",
+      "guardrailCandidate": "deferred source artifacts must remain unchanged and mirrored disposition fields must never be used as verdict input",
+      "taskId": null,
+      "timestamp": "2026-06-13T16:56:53.908Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-011",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review fixes integration deferred artifact preservation and ignores mirrored flow-findings dispositions",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "d618d69b9d4a875c7ab1b184940ff43365c12f216e51905caafca8fde563f73a",
+        "currentHash": "5144d016b9b804baf4fc2e2016aa9c5d80b1b871fa34eefc8263732cd654b4c2",
+        "changedPaths": [
+          "specs/293-bounded-defer-review/spec.json",
+          "src/flow/definition.js",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/flow-judgment-contract.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review fixes integration deferred artifact preservation and ignores mirrored flow-findings dispositions\" --yes",
+      "createdAt": "2026-06-13T16:57:06.840Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl-review found production review and gate artifacts without durable finding ids made required deferral paths unreachable",
+      "trigger": "impl-review reported R2/R3 missing acceptance requirements after idless source findings were rejected",
+      "resolution": "injected stable findingId values into retained review and gate source artifacts before appending deferred flow findings",
+      "guardrailCandidate": "when production artifacts lack per-finding ids, persist stable ids into the retained source artifact before creating reference-only deferred evidence",
+      "taskId": null,
+      "timestamp": "2026-06-13T17:04:11.495Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-012",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review fixes durable id injection for production review and gate artifacts",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "5144d016b9b804baf4fc2e2016aa9c5d80b1b871fa34eefc8263732cd654b4c2",
+        "currentHash": "dbde45923c87082af48c3806ef8ad0ccf83989615e6a2616ec4ac903517e916b",
+        "changedPaths": [
+          "specs/293-bounded-defer-review/spec.json",
+          "src/flow/definition.js",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/flow-judgment-contract.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review fixes durable id injection for production review and gate artifacts\" --yes",
+      "createdAt": "2026-06-13T17:04:22.938Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Fixed production semantic review classification, requirements gate deferral classification, and stale gate source precedence.",
+      "trigger": "Latest impl-review reported review semantic findings not deferring, requirement gate failures not deferring, and stale gate source artifacts masking current blockers.",
+      "resolution": "Added field-aware classifiers and result-first gate source resolution; verified node --check for changed files and node --test specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs.",
+      "taskId": null,
+      "timestamp": "2026-06-13T17:17:20.485Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-013",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review fixes production semantic classifiers and stale gate source precedence",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "dbde45923c87082af48c3806ef8ad0ccf83989615e6a2616ec4ac903517e916b",
+        "currentHash": "2c32a5a0fa4e62c1f2dd13e6554864d4192e1cc2ff9a25ea95184c59c1f79164",
+        "changedPaths": [
+          "specs/293-bounded-defer-review/spec.json",
+          "src/flow/definition.js",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/flow-judgment-contract.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review fixes production semantic classifiers and stale gate source precedence\" --yes",
+      "createdAt": "2026-06-13T17:17:30.784Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Fixed acceptance-review deferred finding verdict consistency and carried finding coverage validation.",
+      "trigger": "Latest impl-review reported still_open deferred findings produced invalid acceptance artifacts and omitted flow findings could pass acceptance.",
+      "resolution": "Separated still_open from blocking in evidence-built acceptance artifacts and required deferredFindings to exactly cover flow-findings entries; verified node --check and targeted deferred-flow-findings tests.",
+      "taskId": null,
+      "timestamp": "2026-06-13T17:22:35.910Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-014",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review fixes acceptance-review carried deferred finding handling",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "2c32a5a0fa4e62c1f2dd13e6554864d4192e1cc2ff9a25ea95184c59c1f79164",
+        "currentHash": "7edf88fb02537d0b32f168cb5e6e225d011c28700c1288db8a78449e565f363e",
+        "changedPaths": [
+          "specs/293-bounded-defer-review/spec.json",
+          "src/flow/definition.js",
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/flow-judgment-contract.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review fixes acceptance-review carried deferred finding handling\" --yes",
+      "createdAt": "2026-06-13T17:22:45.125Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: refreshed stale test-execute and test-result-review artifacts after implementation/test updates",
+      "resolution": "The previous impl-gate stopped before AI evaluation because test-execute-result.json still recorded spec-local failures; reran test-execute and test-result-review, producing pass artifacts with regression pass.",
+      "taskId": null,
+      "timestamp": "2026-06-13T17:31:19.520Z"
+    }
+  ]
+}

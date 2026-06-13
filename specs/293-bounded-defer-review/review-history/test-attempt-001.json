@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-13T15:37:32.229Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 3,
+    "advisory": 1,
+    "total": 4
+  },
+  "coverageArtifact": "specs/293-bounded-defer-review/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R3 mechanical blocker coverage is incomplete",
+      "target": "specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs R3 test",
+      "issue": "The R3 test only verifies the all-AI gate deferral path and one missing-artifact escalation. It does not cover the required blocking cases for schema-invalid artifacts, failed command/test evidence, tooling failure, no-progress guard, or flow corruption, while the coverage artifact marks R3 fully covered.",
+      "requiredChange": "Add spec-local tests or table cases proving each non-AI/mechanical gate exhaustion condition remains blocking.",
+      "whyBlocking": "R3 explicitly requires these failure modes to remain blocking; without regression coverage, implementation could incorrectly defer mechanical blockers and still pass the current tests."
+    },
+    {
+      "kind": "blocking",
+      "title": "R5 does not verify persisted final classifications",
+      "target": "specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs R5 test",
+      "issue": "The R5 test checks that a built artifact contains one deferred finding and that finalDisposition matches any allowed string, but it does not verify acceptance-review writes/persists a final classification for each carried finding.",
+      "requiredChange": "Exercise the acceptance-review write/apply path and assert carried findings are persisted with one of the allowed final classifications, including coverage for multiple carried findings.",
+      "whyBlocking": "R5 requires acceptance-review to read flow findings as input history and write final classifications for each carried finding; the current test could pass with a non-persistent default value."
+    },
+    {
+      "kind": "blocking",
+      "title": "R8 preservation coverage omits required behaviors",
+      "target": "specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs R8 test",
+      "issue": "The R8 test preserves retry metrics, review artifacts, and issue-log evidence, but does not cover no-progress rerun guard behavior, tooling failure behavior, acceptance-review pass reset, or mechanical reset behavior through the new deferred path.",
+      "requiredChange": "Add focused tests that prove those named existing behaviors are unchanged when deferred flow findings exist.",
+      "whyBlocking": "R8 names these as must-preserve behaviors. Missing coverage leaves critical regression paths untested while the coverage artifact reports R8 covered."
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R7 boundary naming could be clearer",
+      "target": "specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs R7 test",
+      "improvement": "Rename or split the R7 test so the two assertions are separately visible: second non-pass stops automatic routing, and risk acceptance is disallowed with mechanical blockers.",
+      "whyNonBlocking": "Both behaviors are at least touched by the executable test; clearer structure would improve diagnosis but is not required before implementation."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/293-bounded-defer-review/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "019080ad9057d10b2f5cb2d2a2ed991c804f08c22ff77bbcab69434b70d71b82"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "test-001-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R3 mechanical blocker coverage is incomplete",
+      "body": "The R3 test only verifies the all-AI gate deferral path and one missing-artifact escalation. It does not cover the required blocking cases for schema-invalid artifacts, failed command/test evidence, tooling failure, no-progress guard, or flow corruption, while the coverage artifact marks R3 fully covered.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R5 does not verify persisted final classifications",
+      "body": "The R5 test checks that a built artifact contains one deferred finding and that finalDisposition matches any allowed string, but it does not verify acceptance-review writes/persists a final classification for each carried finding.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R8 preservation coverage omits required behaviors",
+      "body": "The R8 test preserves retry metrics, review artifacts, and issue-log evidence, but does not cover no-progress rerun guard behavior, tooling failure behavior, acceptance-review pass reset, or mechanical reset behavior through the new deferred path.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-non-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "R7 boundary naming could be clearer",
+      "body": "R7 boundary naming could be clearer",
+      "category": "unknown"
+    }
+  ]
+}

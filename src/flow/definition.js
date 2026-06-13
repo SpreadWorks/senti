@@ -314,6 +314,7 @@ function resolvePlanReviewLifecycle(input) {
 }
 
 function resolveImplReviewLifecycle(input) {
+  if (input.result?.artifacts?.deferred === true) return [];
   const verdict = input.result?.artifacts?.verdict;
   const proposalCount = input.result?.artifacts?.proposalCount ?? 0;
   const actions = [];
@@ -336,6 +337,7 @@ function resolveImplReviewLifecycle(input) {
 }
 
 function resolveReviewLifecycle(input) {
+  if (input.result?.artifacts?.deferred === true) return [];
   if (input.phase === "draft" || input.phase === "spec" || input.phase === "test") {
     return resolvePlanReviewLifecycle(input);
   }
@@ -348,6 +350,7 @@ function resolveGateLifecycle(input) {
   if (input.event === "gate:pre") {
     return [new SetStepStatus({ step, status: "in_progress" })];
   }
+  if (input.result?.artifacts?.deferred === true) return [];
   const actions = [new IncrementMetric({ phase, counter: "gateRetry" })];
   if (input.result?.result === "pass") {
     actions.push(new SetStepStatus({ step, status: "done" }));

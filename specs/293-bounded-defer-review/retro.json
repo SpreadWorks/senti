@@ -1,0 +1,63 @@
+{
+  "spec": "specs/293-bounded-defer-review/spec.json",
+  "date": "2026-06-13T17:32:56.623Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Introduce a retry-then-defer policy path for AI-derived content/alignment findings after the configured maxAttempts is exhausted without adding any new step status values; deferred completion is represented by artifact evidence and existing done traversal.",
+      "status": "done",
+      "note": "R1: deferred completion evidence allows done traversal without rewriting failed detector artifacts"
+    },
+    {
+      "desc": "When flow-scope review retry exhaustion contains only AI-derived content/alignment findings, persist a flow findings entry that references the source review artifact and mark the review step complete according to the existing traversal model.",
+      "status": "done",
+      "note": "R2: review retry exhaustion with only content alignment findings writes flow findings and does not hard stop"
+    },
+    {
+      "desc": "When gate retry exhaustion contains only AI-derived content/alignment findings, persist or reuse a bounded durable gate source artifact for the phase, persist flow finding references, and allow traversal to continue, while schema invalid, missing artifact, failed command/test evidence, tooling failure, no-progress guard, and flow corruption remain blocking.",
+      "status": "done",
+      "note": "R3: gate retry exhaustion writes a durable source artifact reference and preserves mechanical blockers"
+    },
+    {
+      "desc": "Add a bounded flow-findings artifact model that records findingId, sourceStep, sourceArtifact, sourceFindingId, retryExhausted, attempts, round, completionKind, and nullable non-authoritative finalDisposition without copying full finding detail.",
+      "status": "done",
+      "note": "R4: persists bounded reference-only flow-findings entries"
+    },
+    {
+      "desc": "Extend acceptance-review so it reads flow findings as input history and writes final classifications fixed, not_needed, false_positive, pre_existing, still_open, or blocking for each carried finding.",
+      "status": "done",
+      "note": "R5: acceptance-review reads carried findings and persists final dispositions"
+    },
+    {
+      "desc": "For non-pass acceptance-review results, validate and persist nextAction and targetStep, where targetStep is limited to spec, test, implement, test-execute, impl-review, or impl-gate.",
+      "status": "done",
+      "note": "R6: non-pass acceptance-review requires allowlisted nextAction and targetStep"
+    },
+    {
+      "desc": "Limit automatic acceptance-review repair rounds to 2; after the second non-pass verdict, stop automatic routing and require a user choice, with risk acceptance disallowed when any mechanical blocker exists.",
+      "status": "done",
+      "note": "R7: first non-pass acceptance round automatically routes to the target step"
+    },
+    {
+      "desc": "Preserve existing review/gate artifacts, add missing durable gate source artifacts where needed, preserve retry metrics, issue-log recording, no-progress rerun guard behavior, tooling failure behavior, and acceptance-review pass/mechanical reset behavior through the new path.",
+      "status": "done",
+      "note": "R8: retry metrics, review artifacts, and issue-log evidence remain intact after deferral"
+    },
+    {
+      "desc": "Expose deferred flow findings in flow state or status/report summaries with count, sourceStep list, and artifact path without making those summaries the routing source of truth.",
+      "status": "done",
+      "note": "R9: status summary exposes bounded deferred finding counts without becoming routing source"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 9,
+    "done": 9,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

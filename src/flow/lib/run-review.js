@@ -32,6 +32,11 @@ import {
   taskScopeViolationMessages,
 } from "./task-scope.js";
 import { draftReviewRouteForRetryPhase } from "./draft-review-routes.js";
+import {
+  appendDeferredFlowFinding,
+  readBoundedSourceArtifact,
+  specDirFromFlowState,
+} from "./flow-findings.js";
 
 const DEFAULT_AGENT_TIMEOUT_MS = 300_000;
 const IMPL_REVIEW_PHASE = "impl";
@@ -60,6 +65,13 @@ const REVIEW_NODE_ID_BY_PHASE = Object.freeze({
 });
 
 const REVIEW_PHASE_KEYS = Object.freeze(Object.keys(REVIEW_NODE_ID_BY_PHASE));
+const REVIEW_SOURCE_ARTIFACT_BY_PHASE = Object.freeze({
+  "draft-questions": "draft-review-questions.json",
+  "draft-coverage": "draft-review-coverage.json",
+  spec: "spec-review.json",
+  test: "test-review.json",
+  impl: "impl-review.json",
+});
 
 function persistedPhaseKey(ctxPhase) {
   return ctxPhase == null ? IMPL_REVIEW_PHASE : ctxPhase;
@@ -154,6 +166,130 @@ export function resolveReviewRetryMax(retryContext = {}, phase) {
   return resolveMaxAttempts({ scope: "flow", stepId: nodeId, context: flowState }) ?? 5;
 }
 
+function textOf(value) {
+  if (value == null) return "";
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value.map(textOf).join(" ");
+  if (typeof value === "object") return Object.values(value).map(textOf).join(" ");
+  return String(value);
+}
+
+const REVIEW_SEMANTIC_FAILURE_MODES = new Set([
+  "missing_acceptance_requirement",
+  "spec_behavior_contradiction",
+]);
+
+function normalizeFindingMode(value) {
+  return String(value || "").toLowerCase().replace(/[-\s]+/g, "_");
+}
+
+function normalizedReviewText(value) {
+  return textOf(value).toLowerCase().replace(/[_-]+/g, " ");
+}
+
+function hasReviewMechanicalBlocker(finding, { allowMissing = false } = {}) {
+  const blockerPattern = allowMissing
+    ? /\b(schema|tooling|command|test|invalid|corrupt|no\s?progress|mechanical|security|data\s?integrity)\b/
+    : /\b(schema|tooling|command|test|missing|invalid|corrupt|no\s?progress|mechanical|security|data\s?integrity)\b/;
+  const text = normalizedReviewText({
+    kind: finding?.kind,
+    category: finding?.category,
+    failureMode: finding?.failureMode,
+    title: finding?.title,
+    summary: finding?.summary,
+    reason: finding?.reason,
+    guardrail_id: finding?.guardrail_id,
+  });
+  return blockerPattern.test(text);
+}
+
+function isContentAlignmentFinding(finding) {
+  const failureMode = normalizeFindingMode(finding?.failureMode);
+  if (REVIEW_SEMANTIC_FAILURE_MODES.has(failureMode)) {
+    return !hasReviewMechanicalBlocker(finding, { allowMissing: true });
+  }
+  const text = normalizedReviewText({
+    kind: finding?.kind,
+    category: finding?.category,
+    failureMode: finding?.failureMode,
+    title: finding?.title,
+    guardrail_id: finding?.guardrail_id,
+  });
+  return /\b(content|alignment|semantic|requirement\s?alignment)\b/.test(text)
+    && !hasReviewMechanicalBlocker(finding);
+}
+
+function reviewFindingsFromArtifact(artifact) {
+  const candidates = [
+    artifact?.blockingFindings,
+    artifact?.findings,
+    artifact?.comments,
+    artifact?.proposals,
+    artifact?.advisoryFindings,
+  ];
+  return candidates.find(Array.isArray) || [];
+}
+
+function reviewFindingId(finding, index) {
+  return finding?.findingId || finding?.id || finding?.proposalId || `review-finding-${index + 1}`;
+}
+
+function persistReviewSourceFindingIds(specDir, sourceArtifact, artifact) {
+  const normalized = JSON.parse(JSON.stringify(artifact));
+  const findings = reviewFindingsFromArtifact(normalized);
+  findings.forEach((finding, index) => {
+    if (!finding.findingId && !finding.id && !finding.proposalId) {
+      finding.findingId = reviewFindingId(finding, index);
+    }
+  });
+  fs.writeFileSync(path.join(specDir, sourceArtifact), JSON.stringify(normalized, null, 2) + "\n");
+  return { artifact: normalized, findings };
+}
+
+function reviewDeferredResult(phase, attempts, findingCount) {
+  return {
+    result: "deferred",
+    changed: ["flow-findings.json"],
+    artifacts: {
+      phase,
+      verdict: "DEFERRED",
+      deferred: true,
+      retryExhausted: true,
+      attempts,
+      findingCount,
+      completionKind: "deferred",
+    },
+    next: null,
+  };
+}
+
+function tryDeferReviewRetryExhaustion(ctx, phase, attempts) {
+  if (!ctx?.root || !ctx?.flowState?.spec || typeof ctx?.flowManager?.updateStepStatus !== "function") return null;
+  const sourceArtifact = REVIEW_SOURCE_ARTIFACT_BY_PHASE[phase];
+  if (!sourceArtifact) return null;
+  const specDir = specDirFromFlowState(ctx.root, ctx.flowState);
+  let artifact = readBoundedSourceArtifact(specDir, sourceArtifact);
+  if (!artifact) return null;
+  if (artifact.verdict === "TOOLING_FAILURE" || artifact.toolingFailure) return null;
+  let findings = reviewFindingsFromArtifact(artifact);
+  if (findings.length === 0 || !findings.every(isContentAlignmentFinding)) return null;
+  ({ artifact, findings } = persistReviewSourceFindingIds(specDir, sourceArtifact, artifact));
+  const sourceFindingIds = findings.map(reviewFindingId);
+  findings.forEach((finding, index) => {
+    appendDeferredFlowFinding({
+      root: ctx.root,
+      flowState: ctx.flowState,
+      sourceStep: REVIEW_NODE_ID_BY_PHASE[phase],
+      sourceArtifact,
+      sourceFindingId: sourceFindingIds[index],
+      attempts,
+      round: attempts,
+    });
+  });
+  ctx.flowManager.updateStepStatus(REVIEW_NODE_ID_BY_PHASE[phase], "done");
+  return reviewDeferredResult(phase, attempts, findings.length);
+}
+
 /**
  * Pre-check called from RunReviewCommand.execute. Returns:
  *  - null when count < max (proceed) OR currentTaskId is non-null (R15: task scope skip)
@@ -177,6 +313,8 @@ export function checkReviewRetryBelowMax(ctx, phase) {
   }
   const count = countReviewRetry(flowState.metrics, persistedPhase);
   if (count < max) return null;
+  const deferred = tryDeferReviewRetryExhaustion(ctx, persistedPhase, count);
+  if (deferred) return deferred;
   mutateReviewRecoveryState(ctx, persistedPhase, REVIEW_RECOVERY_TRIGGER_RETRY_EXHAUSTED);
   const failure = ReviewFailure.maxAttemptsExceeded({ phase: persistedPhase, attempts: count, max });
   return Envelope.fail("run", "review", "REVIEW_MAX_ATTEMPTS_EXCEEDED",

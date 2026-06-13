@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-13T16:14:28.584Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "title": "Gate deferral can still bypass no-progress guard state",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "src/flow/lib/run-gate.js",
+      "requirementId": "R8",
+      "issue": "tryDeferGateRetryExhaustion defers solely from the persisted source artifact returned by resolveGateSourceForDefer. If a retry-exhausted gate now fails because the no-progress guard is active but an older durable gate source artifact still contains only content-alignment findings, classifyGateRetryExhaustionSource sees no guardCode and allows the step to be marked done.",
+      "suggestion": "In tryDeferGateRetryExhaustion or checkRetryBelowMax, pass the current retry-exhaustion context into classifyGateRetryExhaustionSource and reject deferral when the current gate failure is a no-progress guard, tooling failure, command/test failure, invalid schema, or flow corruption, even if the persisted source artifact looks content-only.",
+      "rationale": "R8 requires no-progress guards and other mechanical retry-exhaustion conditions to remain blocking. Deferring from stale content-looking artifact evidence can incorrectly complete the gate after a mechanical guard has fired."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/293-bounded-defer-review/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "dd3acd7637bb37e1dbeee6ba7b04f92c1c37daf11596f0547f52bb492dbc3431"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "impl-003-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Gate deferral can still bypass no-progress guard state",
+      "body": "tryDeferGateRetryExhaustion defers solely from the persisted source artifact returned by resolveGateSourceForDefer. If a retry-exhausted gate now fails because the no-progress guard is active but an older durable gate source artifact still contains only content-alignment findings, classifyGateRetryExhaustionSource sees no guardCode and allows the step to be marked done.",
+      "category": "spec_behavior_contradiction"
+    }
+  ]
+}

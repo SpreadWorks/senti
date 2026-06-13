@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-13T15:43:11.713Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "advisory": 2,
+    "total": 4
+  },
+  "coverageArtifact": "specs/293-bounded-defer-review/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Acceptance-review input history is not actually exercised",
+      "target": "tests/deferred-flow-findings.test.mjs R5",
+      "issue": "The R5 test builds the acceptance-review artifact directly with buildAcceptanceReviewArtifactFromEvidence and only checks the returned/persisted shape. It does not exercise the acceptance-review step path that must read carried flow findings as input history when running acceptance-review.",
+      "requiredChange": "Add a spec-local test that drives the acceptance-review production path used by the flow and asserts deferred flow findings are included and classified in the written acceptance-review artifact.",
+      "whyBlocking": "R5 specifically requires extending acceptance-review behavior, not just a low-level artifact builder; the current test could pass while the actual acceptance-review step ignores flow findings."
+    },
+    {
+      "kind": "blocking",
+      "title": "No coverage that new step statuses are not introduced",
+      "target": "tests/deferred-flow-findings.test.mjs R1",
+      "issue": "R1 includes the constraint that deferral must not add any new step status values, but the tests only assert that one existing done transition is accepted. They do not detect an implementation that introduces or uses a new deferred status elsewhere.",
+      "requiredChange": "Add a focused assertion against the step status contract or affected flow state after deferral showing deferred completion uses existing done traversal and no deferred/new status value is present.",
+      "whyBlocking": "This is an explicit must requirement, and the current coverage would not fail for an implementation that adds a new status while also allowing the tested done transition."
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Gate mechanical blocker coverage is mostly classifier-level",
+      "target": "tests/deferred-flow-findings.test.mjs R3",
+      "improvement": "Consider adding one end-to-end checkRetryBelowMax case for a mechanical blocker such as failed command or invalid schema, not only classifyGateRetryExhaustionSource.",
+      "whyNonBlocking": "The classifier assertions are useful static coverage for the listed blocker categories, but one integrated case would better protect wiring between classification and retry handling."
+    },
+    {
+      "kind": "advisory",
+      "title": "Flow-finding model could test multiple entries",
+      "target": "tests/deferred-flow-findings.test.mjs R4",
+      "improvement": "Consider adding a second entry or append/read path assertion to catch accidental overwrite or unstable ID generation behavior.",
+      "whyNonBlocking": "The required bounded fields and reference-only constraint are covered for a single entry; multi-entry behavior is helpful boundary coverage rather than missing core coverage."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/293-bounded-defer-review/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "279d506588224b63c9ee5fd7e59c39e9f04da7babd506da2c23475e3a0da24b7"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "test-004-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Acceptance-review input history is not actually exercised",
+      "body": "The R5 test builds the acceptance-review artifact directly with buildAcceptanceReviewArtifactFromEvidence and only checks the returned/persisted shape. It does not exercise the acceptance-review step path that must read carried flow findings as input history when running acceptance-review.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-004-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "No coverage that new step statuses are not introduced",
+      "body": "R1 includes the constraint that deferral must not add any new step status values, but the tests only assert that one existing done transition is accepted. They do not detect an implementation that introduces or uses a new deferred status elsewhere.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-004-non-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "non-blocking",
+      "title": "Gate mechanical blocker coverage is mostly classifier-level",
+      "body": "Gate mechanical blocker coverage is mostly classifier-level",
+      "category": "unknown"
+    },
+    {
+      "id": "test-004-non-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "non-blocking",
+      "title": "Flow-finding model could test multiple entries",
+      "body": "Flow-finding model could test multiple entries",
+      "category": "unknown"
+    }
+  ]
+}

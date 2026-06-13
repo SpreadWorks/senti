@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Removed embedded recommendations, priority markers, and rationale from all pending draft questions identified by triage.",
+  "items": [
+    {
+      "title": "1. q1 includes answer and rationale",
+      "target": "q1",
+      "rationale": "Removed the recommended answer and rationale from q1 while keeping the goal-confirmation question self-contained.",
+      "evidence": "draft.json qa[0].question now asks only whether the Issue #383 goal interpretation is correct.",
+      "changedFieldPaths": [
+        "qa[0].question"
+      ]
+    },
+    {
+      "title": "2. q2 includes instruction, answer, and rationale",
+      "target": "q2",
+      "rationale": "Removed the priority marker, recommended answer, and rationale from q2 while preserving the neutral definition of mechanical blocker.",
+      "evidence": "draft.json qa[1].question now asks only whether the blocker boundary is correct.",
+      "changedFieldPaths": [
+        "qa[1].question"
+      ]
+    },
+    {
+      "title": "3. q3 includes instruction, answer, and rationale",
+      "target": "q3",
+      "rationale": "Removed the priority marker, recommended answer, and rationale from q3 while keeping the artifact contract question.",
+      "evidence": "draft.json qa[2].question now asks only whether flow-findings.json should store reference fields instead of duplicated detail.",
+      "changedFieldPaths": [
+        "qa[2].question"
+      ]
+    },
+    {
+      "title": "4. q4 includes instruction, answer, and rationale",
+      "target": "q4",
+      "rationale": "Removed the priority marker, recommended answer, and rationale from q4 while keeping the acceptance-review classification and routing question.",
+      "evidence": "draft.json qa[3].question now asks only whether the classification and targetStep contract is correct.",
+      "changedFieldPaths": [
+        "qa[3].question"
+      ]
+    },
+    {
+      "title": "5. q5 includes instruction, answer, and rationale",
+      "target": "q5",
+      "rationale": "Removed the priority marker, recommended answer, and rationale from q5 while keeping the round-limit behavior question.",
+      "evidence": "draft.json qa[4].question now asks only whether the round-limit and risk-acceptance behavior is correct.",
+      "changedFieldPaths": [
+        "qa[4].question"
+      ]
+    }
+  ]
+}

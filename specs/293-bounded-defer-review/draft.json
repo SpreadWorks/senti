@@ -1,0 +1,131 @@
+{
+  "devType": "feature",
+  "goal": "AI review/gate の retry 上限到達時に、未解決の意味的 finding を自動 defer し、acceptance-review で再評価できるようにする。",
+  "analysis": {
+    "problem": "現行の review/gate は品質改善に役立つ一方、AI 判定を pass/fail の停止条件として扱うため、誤検知、既存問題、工程途中では未完で当然の指摘、同一論点の反復で長い retry loop になりやすい。",
+    "proposedApproach": "maxAttempts までは従来どおり retry し、上限到達後は機械的 blocker でない AI 由来の意味的 finding を flow finding として保存して次工程へ進める。acceptance-review は完成物と証拠を見て flow finding を再評価し、必要なら allowlist された工程へ戻す。",
+    "validation": "Issue #383 の決定事項は、すべての AI review/gate、flow-findings artifact、mechanical blocker の維持、acceptance-review の再分類と戻り先選択を明示している。既存コードでは review/gate retry と acceptance-review が独立しているため、root problem は retry 上限後の進行権と最終品質判定の分離として扱える。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #383 は対象をすべての AI review/gate と定義している。Evidence: Issue #383 Decisions.",
+      "must: 現行 FlowNode は failurePolicy と maxAttempts を持ち、review は retry、gate は block、acceptance-review は amend-spec として定義されている。Evidence: src/flow/definition.js.",
+      "must: 現行 review は retry 回数が上限に達すると REVIEW_MAX_ATTEMPTS_EXCEEDED で停止し、ユーザーに retry reset を求める。Evidence: src/flow/lib/run-review.js.",
+      "must: 現行 gate は draft/spec/task-impl/integration の retry を追跡し、上限到達時は ESCALATE_RETRY_EXHAUSTED で停止する。Evidence: src/flow/lib/run-gate.js.",
+      "must: 現行 acceptance-review は mechanicalBlockers、hardBlockers、findings、requirementAmendmentProposals を artifact として扱い、verdict に応じて spec から acceptance-review までを reset する。Evidence: src/flow/lib/acceptance-review-artifacts.js.",
+      "must: Migration parity inventory は review retry exhaustion、gate retry exhaustion、review/gate artifacts、retry metrics、issue-log recording、mechanical blocker stops、no-progress rerun guard、tooling failure handling、acceptance-review verdict/reset behavior を retained public behavior として扱う。",
+      "must: Retained behavior mapping は、review/gate artifacts と retry metrics と issue-log recording は既存 owner に保持し、mechanical blocker stops と no-progress rerun guard と tooling failure handling も既存 blocking owner に保持し、acceptance-review verdict/reset behavior は acceptance-review.json owner に保持し、semantic retry-exhausted findings だけを flow findings artifact と acceptance-review input に移す。",
+      "must: Behavior-level verification は、review exhaustion defer、gate exhaustion defer、review/gate artifact retention、retry metric retention、issue-log retention、mechanical blocker preservation、no-progress/tooling blocker preservation、artifact/reference persistence、acceptance-review verdict/reset retention、acceptance-review classification/routing、round limit choice をそれぞれ実行可能な test evidence で確認する。"
+    ],
+    "decisionPoints": [
+      "must: retry 上限後に defer できる finding と、停止すべき mechanical blocker の境界を spec で明文化する。",
+      "must: flow-findings artifact の保存内容と source artifact 参照ルールを spec で定義する。",
+      "must: acceptance-review の分類、nextAction、targetStep、round limit の扱いを spec で定義する。",
+      "should: 既存 retry metrics、issue-log、review/gate artifacts との関係を spec で定義し、重複保存を避ける。"
+    ],
+    "resolvedByProjectRules": [
+      "must: Issue は 1 つの concern として扱い、AI 側から分割提案しない。Evidence: Single Responsibility guardrail and AGENTS.md.",
+      "must: src/ 配下にプロジェクト固有情報を入れない。Evidence: AGENTS.md src/ 禁止事項.",
+      "must: 新しい構造的な値は専用 class で表現し、単なる object literal や discriminated union 風の形に寄せない。Evidence: AGENTS.md OOP による型表現.",
+      "must: src/skills または src/presets を変更した場合は senti upgrade を実行する。Evidence: AGENTS.md 開発ワークフロー."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: 対象 step ごとの failurePolicy 名、lifecycle hook、artifact schema を spec で分解する。",
+      "must: test plan は review/gate retry exhaustion、mechanical blocker preservation、acceptance-review routing、round limit choice を requirement ごとに割り当てる。",
+      "should: 既存 spec からの historical sampling は実装対象ではなく、必要なら acceptance/retro の観測項目として扱う。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: draft/spec/test/impl/task の AI review/gate に対し、maxAttempts 到達後の semantic finding defer を扱う。",
+      "must: retry exhausted finding を flow-findings.json などの artifact と flow state summary に記録する。",
+      "must: schema invalid、required artifact missing、test command failure、test evidence missing、flow state corruption、no-progress rerun guard、tooling failure は blocking のまま維持する。",
+      "must: acceptance-review は flow findings を入力履歴として読み、completed spec、implementation、test evidence、retro、issue-log、final regression 前の状態で再評価する。",
+      "must: acceptance-review が pass でない場合、allowlist された targetStep へ戻すための nextAction と targetStep を検証する。",
+      "must: acceptance round は自動 2 回までとし、上限到達時はユーザー選択へ移る。",
+      "must: 既存 review/gate の public behavior のうち、artifact 生成、retry metrics、issue-log 記録、mechanical blocker 停止、no-progress rerun guard、tooling failure 停止は保持する。",
+      "must: retry 上限到達時の semantic finding だけは、停止から flow findings への記録と acceptance-review 入力へ移行する。"
+    ],
+    "out": [
+      "must: npm publish または npm dist-tag は行わない。",
+      "must: 新しい step status は追加しない。",
+      "must: flow findings を acceptance-review の routing/verdict の source of truth にしない。source of truth は acceptance-review.json とする。",
+      "should: Issue にある historical sampling は今回の実装完了条件には含めず、検証メトリクスまたは retro/report の観点として扱う。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: review/gate retry exhaustion のユーザー体験が変わる。従来の停止/手動 reset から、semantic finding は artifact 化して後段へ進む。",
+    "must: gate の mechanical failure は既存どおり停止するため、schema、artifact、test、tooling、flow state の安全境界は維持する。",
+    "must: acceptance-review artifact と flow state の責務が増えるため、既存の verdict 派生、decision command、reset range に影響する。",
+    "should: report、retro、issue-log、status 表示は flow findings の存在を監査できる形に保つ。",
+    "must: migration parity として、既存 review/gate artifacts と retry metrics は保持し、追加される flow findings はそれらへの参照索引として扱う。",
+    "must: migration parity として、acceptance-review の既存 mechanicalBlockers と reset behavior は保持し、semantic findings の再評価と allowlisted targetStep routing を追加する。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "Issue #383 の Goal は、AI review/gate の retry 上限到達時に semantic finding を自動 defer し、acceptance-review で完成物と証拠から再評価することでよいですか。",
+      "answer": "must: Issue #383 の Goal は、AI review/gate の retry 上限到達時に semantic finding を自動 defer し、acceptance-review で完成物と証拠から再評価すること。",
+      "evidence": "User confirmed Draft Q1 with option [1]; Issue #383 Decisions:対象はすべての AI review/gate、上限到達後は自動 defer、acceptance-review が再判定。",
+      "why": "ユーザー確認と Issue 本文が一致しており、spec writing の前提として扱えるため。",
+      "considered": "現行相当の retry/stop 維持は Issue の比較案 A であり、今回の実装対象は比較案 B として明示されているため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "mechanical blocker は defer 対象外として停止を維持し、semantic insufficiency だけを acceptance-review に送る境界でよいですか。mechanical blocker とは schema invalid、required artifact missing、test/command failure、tooling failure、flow state corruption、no-progress guard のように存在や成功条件が満たされない失敗です。",
+      "answer": "must: mechanical blocker は defer せず停止を維持し、artifact/test/command が存在し成功している場合の semantic insufficiency を acceptance-review に送る。",
+      "evidence": "Issue #383 Decisions: block 境界は artifact / test / command の存在と成功まで。schema invalid、required artifact missing、test command failure、test evidence missing、flow state corruption、no-progress rerun guard、tooling failure remain blocking.",
+      "why": "進行権を AI semantic judgment から切り離しつつ、実行不能・証拠欠落・状態破損を後段へ流さない安全境界として必要なため。",
+      "considered": "すべての失敗を defer する案は、証拠なしの acceptance-review や壊れた flow state を許すため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "flow-findings.json は finding 詳細を複製せず、findingId、sourceStep、sourceArtifact、sourceFindingId、retryExhausted、attempts、round などの参照情報を保存する契約でよいですか。",
+      "answer": "must: flow-findings.json は詳細本文を複製せず、sourceArtifact/sourceFindingId で元 artifact の finding を参照できる情報を保存する。",
+      "evidence": "Issue #383 Implementation Notes: flow-findings.json contains findingId, sourceStep, sourceArtifact, sourceFindingId, retryExhausted, attempts, round; do not copy detailed findings.",
+      "why": "review/gate artifacts を source of detail として保ち、flow findings は retry exhaustion と持ち越し状態の索引として扱うため。",
+      "considered": "finding 詳細を flow-findings.json に複製する案は、source artifact との同期ずれと重複保存を増やすため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "acceptance-review の final classification は fixed、not_needed、false_positive、pre_existing、still_open、blocking を最低限含め、verdict が pass でない場合は nextAction と allowlist 済み targetStep を artifact に保存する条件でよいですか。",
+      "answer": "must: acceptance-review は fixed、not_needed、false_positive、pre_existing、still_open、blocking を分類し、pass 以外では nextAction と allowlist 済み targetStep を acceptance-review.json に保存する。",
+      "evidence": "Issue #383 Decisions: final classifications are fixed / not_needed / false_positive / pre_existing / still_open / blocking; acceptance-review.json specifies nextAction and targetStep; targetStep candidates are spec, test, implement, test-execute, impl-review, impl-gate.",
+      "why": "後続 routing の source of truth を acceptance-review.json に限定し、flow-findings.json を入力履歴に留めるため。",
+      "considered": "flow-findings.json を routing/verdict の source of truth にする案は Issue の決定事項と矛盾するため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "acceptance round 2 回目でも verdict が pass でない場合は自動 loop を止め、仕様から修正、実装/検証から修正、リスク受け入れ、中止の選択肢を出す扱いでよいですか。mechanical blocker がある場合はリスク受け入れを許可しません。",
+      "answer": "must: acceptance round の自動上限は 2 回。2 回目でも pass でなければ user choice を提示し、mechanical blocker がある場合は risk acceptance を許可しない。",
+      "evidence": "Issue #383 Decisions: automatic limit for acceptance rounds is 2; after round 2 present choices; if mechanical blocker such as test failure, missing artifact, or no evidence exists, do not allow risk acceptance.",
+      "why": "連続実行性を保ちながら、同じ acceptance gap を無限に自動往復させないため。",
+      "considered": "round 上限なしの自動修正 loop は、Issue が避けたい長い AI 主導 loop と同じ問題を再発させるため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [
+    "should: historical sampling のメトリクスを今回の acceptance-review artifact に含めるか、retro/report の観測だけに留めるか。",
+    "should: flow findings の status/report 表示を必須 acceptance criteria に含めるか、artifact 存在の検証に留めるか。"
+  ],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-13T15:06:00.000Z",
+    "notes": "Draft QA resolved from Issue #383 and prior user confirmation."
+  }
+}

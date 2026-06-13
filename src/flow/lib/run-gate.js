@@ -71,6 +71,12 @@ import {
   DRAFT_TRIAGE_REPAIR_ARTIFACT_LIMIT,
 } from "./draft-review-routes.js";
 import { persistCurrentRecoveryBaseline } from "./retry-recovery.js";
+import {
+  appendDeferredFlowFinding,
+  readBoundedSourceArtifact,
+  sourceArtifactExists,
+  specDirFromFlowState,
+} from "./flow-findings.js";
 
 export { resolveGateStepId };
 
@@ -196,6 +202,18 @@ const TASK_IMPL_GATE_DIFF_MAX_BYTES = 1024 * 1024; // 1 MiB
 const MAX_IMPL_REQUIREMENT_BATCH_CHARS = 120000;
 const MAX_AGENT_PROMPT_INPUT_CHARS = 900000;
 const MAX_GUARDRAIL_TARGET_CHARS = 250000;
+const GATE_SOURCE_ARTIFACT_BY_PHASE = Object.freeze({
+  draft: "draft-gate-source.json",
+  spec: "spec-gate-source.json",
+  "task-impl": "task-impl-gate-source.json",
+  integration: IMPL_GATE_RESULT_FILE,
+});
+const GATE_RESULT_ARTIFACT_BY_PHASE = Object.freeze({
+  draft: "draft-gate-result.json",
+  spec: "spec-gate-result.json",
+  "task-impl": "task-impl-gate-result.json",
+  integration: IMPL_GATE_RESULT_FILE,
+});
 
 /**
  * Synthesize a unified diff for every untracked file in `root` and return the
@@ -1789,6 +1807,202 @@ export function buildGateRetryExhaustedEnvelope({ phase, attempts, max, reason }
   );
 }
 
+function gateTextOf(value) {
+  if (value == null) return "";
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value.map(gateTextOf).join(" ");
+  if (typeof value === "object") return Object.values(value).map(gateTextOf).join(" ");
+  return String(value);
+}
+
+function normalizedGateText(value) {
+  return gateTextOf(value).toLowerCase().replace(/[_-]+/g, " ");
+}
+
+function hasGateMechanicalBlocker(finding, { allowMissing = false } = {}) {
+  const blockerPattern = allowMissing
+    ? /\b(schema|tooling|command|test|invalid|corrupt|no\s?progress|mechanical|security|data\s?integrity)\b/
+    : /\b(schema|tooling|command|test|missing|invalid|corrupt|no\s?progress|mechanical|security|data\s?integrity)\b/;
+  const text = normalizedGateText({
+    failureMode: finding?.failureMode,
+    kind: finding?.kind,
+    category: finding?.category,
+    title: finding?.title,
+    reason: finding?.reason,
+    guardrail_id: finding?.guardrail_id,
+    requirementRef: finding?.requirementRef,
+  });
+  return blockerPattern.test(text);
+}
+
+function isGateContentAlignmentFinding(finding) {
+  const category = String(finding?.category || "").toLowerCase();
+  if (category === "requirements" || category === "requirement") {
+    return !hasGateMechanicalBlocker(finding, { allowMissing: true });
+  }
+  const text = normalizedGateText({
+    failureMode: finding?.failureMode,
+    kind: finding?.kind,
+    category: finding?.category,
+    guardrail_id: finding?.guardrail_id,
+    requirementRef: finding?.requirementRef,
+  });
+  return /\b(content|alignment|semantic|requirement[-_\s]?alignment)\b/.test(text)
+    && !hasGateMechanicalBlocker(finding);
+}
+
+function failedGateFindings(artifact) {
+  const evaluations = Array.isArray(artifact?.evaluations)
+    ? artifact.evaluations.filter((entry) => entry?.result === "fail")
+    : [];
+  if (evaluations.length > 0) return evaluations;
+  const observations = artifact?.nextAction?.diagnosis?.observations || artifact?.observations || [];
+  return Array.isArray(observations)
+    ? observations.filter((entry) => entry?.severity === "blocking")
+    : [];
+}
+
+export function classifyGateRetryExhaustionSource(input = {}) {
+  const artifact = input.sourceArtifact || {};
+  const merged = { ...artifact, ...input };
+  if (merged.flowStateValid === false) return { completionKind: "blocking", deferAllowed: false, reason: "flow_corruption" };
+  if (merged.guardCode === "NO_PROGRESS_SINCE_LAST_FAIL") return { completionKind: "blocking", deferAllowed: false, reason: "no_progress_guard" };
+  if (merged.toolingFailure) return { completionKind: "blocking", deferAllowed: false, reason: "tooling_failure" };
+  if (merged.command && merged.command.exitCode != null && merged.command.exitCode !== 0) return { completionKind: "blocking", deferAllowed: false, reason: "failed_command" };
+  if (merged.testEvidence && merged.testEvidence.result === "fail") return { completionKind: "blocking", deferAllowed: false, reason: "failed_test_evidence" };
+  if (merged.sourceArtifactStatus === "invalid_schema") return { completionKind: "blocking", deferAllowed: false, reason: "invalid_schema" };
+  const findings = failedGateFindings(artifact.evaluations || artifact.observations ? artifact : input);
+  if (findings.length === 0) return { completionKind: "blocking", deferAllowed: false, reason: "missing_content_findings" };
+  const deferAllowed = findings.every(isGateContentAlignmentFinding);
+  return {
+    completionKind: deferAllowed ? "deferred" : "blocking",
+    deferAllowed,
+    reason: deferAllowed ? "content_alignment_only" : "mechanical_or_mixed_findings",
+  };
+}
+
+function gateSourceFindingId(finding, index) {
+  return finding?.findingId || finding?.id || `gate-finding-${index + 1}`;
+}
+
+function persistGateSourceFindingIds(specDir, sourceArtifact, artifact) {
+  const normalized = JSON.parse(JSON.stringify(artifact));
+  const findings = failedGateFindings(normalized);
+  findings.forEach((finding, index) => {
+    if (!finding.findingId && !finding.id) {
+      finding.findingId = gateSourceFindingId(finding, index);
+    }
+  });
+  fs.writeFileSync(path.join(specDir, sourceArtifact), JSON.stringify(normalized, null, 2) + "\n");
+  return { artifact: normalized, findings };
+}
+
+function gateDeferredResult(phase, attempts, findingCount) {
+  return {
+    result: "deferred",
+    changed: ["flow-findings.json"],
+    artifacts: {
+      phase,
+      deferred: true,
+      retryExhausted: true,
+      attempts,
+      findingCount,
+      completionKind: "deferred",
+    },
+    next: null,
+  };
+}
+
+function writeDurableGateSourceArtifact(specDir, phase, sourceArtifact, artifact) {
+  const full = path.join(specDir, sourceArtifact);
+  fs.mkdirSync(path.dirname(full), { recursive: true });
+  fs.writeFileSync(full, JSON.stringify({
+    version: 1,
+    phase,
+    result: artifact.result || artifact.verdict || "fail",
+    evaluations: Array.isArray(artifact.evaluations) ? artifact.evaluations : [],
+    observations: artifact?.nextAction?.diagnosis?.observations || artifact?.observations || [],
+    command: artifact.command,
+    testEvidence: artifact.testEvidence,
+    toolingFailure: artifact.toolingFailure,
+    guardCode: artifact.guardCode,
+    sourceArtifactStatus: artifact.sourceArtifactStatus,
+    flowStateValid: artifact.flowStateValid,
+  }, null, 2) + "\n");
+}
+
+function resolveGateSourceForDefer({ root, flowState, phase }) {
+  const specDir = specDirFromFlowState(root, flowState);
+  const sourceArtifact = GATE_SOURCE_ARTIFACT_BY_PHASE[phase];
+  if (!sourceArtifact) return null;
+  const resultArtifact = GATE_RESULT_ARTIFACT_BY_PHASE[phase];
+  const artifact = resultArtifact ? readBoundedSourceArtifact(specDir, resultArtifact) : null;
+  if (artifact) {
+    if (!classifyGateRetryExhaustionSource({ sourceArtifact: artifact }).deferAllowed) {
+      return { specDir, sourceArtifact: resultArtifact, artifact };
+    }
+    if (sourceArtifact === resultArtifact) {
+      return { specDir, sourceArtifact: resultArtifact, artifact };
+    }
+    writeDurableGateSourceArtifact(specDir, phase, sourceArtifact, artifact);
+    return { specDir, sourceArtifact, artifact: readBoundedSourceArtifact(specDir, sourceArtifact) };
+  }
+  if (sourceArtifactExists(specDir, sourceArtifact)) {
+    const source = readBoundedSourceArtifact(specDir, sourceArtifact);
+    return { specDir, sourceArtifact, artifact: source };
+  }
+  if (resultArtifact) {
+    return { specDir, sourceArtifact: resultArtifact, artifact };
+  }
+  return null;
+}
+
+function tryDeferGateRetryExhaustion(ctx, phase, attempts) {
+  if (!ctx?.root || !ctx?.flowState?.spec || typeof ctx?.flowManager?.updateStepStatus !== "function") return null;
+  const source = resolveGateSourceForDefer({ root: ctx.root, flowState: ctx.flowState, phase });
+  if (!source?.artifact) return null;
+  const classification = classifyGateRetryExhaustionSource({ sourceArtifact: source.artifact });
+  if (!classification.deferAllowed) return null;
+  const { findings } = persistGateSourceFindingIds(source.specDir, source.sourceArtifact, source.artifact);
+  const sourceFindingIds = findings.map(gateSourceFindingId);
+  findings.forEach((finding, index) => {
+    appendDeferredFlowFinding({
+      root: ctx.root,
+      flowState: ctx.flowState,
+      sourceStep: resolveGateStepId(phase),
+      sourceArtifact: source.sourceArtifact,
+      sourceFindingId: sourceFindingIds[index],
+      attempts,
+      round: attempts,
+    });
+  });
+  ctx.flowManager.updateStepStatus(resolveGateStepId(phase), "done");
+  return gateDeferredResult(phase, attempts, findings.length);
+}
+
+function persistGateSourceFromResult(ctx, result, phase) {
+  if (result?.result !== "fail") return;
+  if (!ctx?.root || !ctx?.flowState?.spec) return;
+  const sourceArtifact = GATE_SOURCE_ARTIFACT_BY_PHASE[phase];
+  if (!sourceArtifact || sourceArtifact === IMPL_GATE_RESULT_FILE) return;
+  const artifact = {
+    phase,
+    result: "fail",
+    evaluations: result?.artifacts?.evaluations || [],
+    observations: result?.artifacts?.nextAction?.diagnosis?.observations || [],
+    command: result?.artifacts?.command,
+    testEvidence: result?.artifacts?.testEvidence,
+    toolingFailure: result?.artifacts?.toolingFailure,
+    guardCode: result?.artifacts?.guardCode,
+    sourceArtifactStatus: result?.artifacts?.sourceArtifactStatus,
+    flowStateValid: result?.artifacts?.flowStateValid,
+  };
+  const classification = classifyGateRetryExhaustionSource({ sourceArtifact: artifact });
+  if (!classification.deferAllowed) return;
+  const specDir = specDirFromFlowState(ctx.root, ctx.flowState);
+  writeDurableGateSourceArtifact(specDir, phase, sourceArtifact, artifact);
+}
+
 /**
  * Returns a failure Envelope when the retry budget for the given phase is
  * exhausted, or null when the command is still allowed to proceed. Callers
@@ -1800,6 +2014,8 @@ export function checkRetryBelowMax(ctx, phase) {
   const count = readGateRetryCount(ctx.flowState, phase);
   const max = resolveRetryMax(ctx, phase);
   if (count < max) return null;
+  const deferred = tryDeferGateRetryExhaustion(ctx, phase, count);
+  if (deferred) return deferred;
 
   const history = formatRetryHistory(ctx.root, ctx.flowState?.spec, max, phase);
   persistGateRecoveryBaseline(ctx, phase, GATE_RECOVERY_TRIGGER_RETRY_EXHAUSTED, { seedOnly: true });
@@ -1881,6 +2097,7 @@ function appendGateEscalationIssueLog(ctx, phase, messages) {
 export function updateGateRetryCounter(ctx, result) {
   const phase = result?.artifacts?.phase || ctx?.phase;
   if (!RETRY_TRACKED_PHASES.includes(phase)) return;
+  persistGateSourceFromResult(ctx, result, phase);
   const mgr = ctx.flowManager;
   if (!mgr) return;
   const payload = result?.result === "pass"
@@ -2789,6 +3006,7 @@ function gateFail(level, phase, targetPath, evaluations, issues) {
 
 function persistIntegrationGateResult({ root, state, result }) {
   if (!result || typeof result !== "object" || result.ok === false) return result;
+  if (result?.artifacts?.deferred === true) return result;
   if (!state?.spec) return result;
   const specDir = resolveSpecDir(path.resolve(root, state.spec));
   const artifactPath = path.join(specDir, IMPL_GATE_RESULT_FILE);
@@ -2850,11 +3068,13 @@ async function runGateFlow(args) {
 
   validateLevelPhase(level, phase);
 
+  const issues = textCheck();
+  if (issues.length > 0) {
+    return gateFail(level, phase, targetPath, [], issues);
+  }
+
   if (ctx && RETRY_TRACKED_PHASES.includes(phase)) {
     warnGateRetryBudget(ctx, phase);
-    const retryFail = checkRetryBelowMax(ctx, phase);
-    if (retryFail) return retryFail;
-
     if (ctx.gitState) {
       const noProgressFail = checkNoProgressSinceLastFail({
         flowState: ctx.flowState,
@@ -2865,11 +3085,8 @@ async function runGateFlow(args) {
       });
       if (noProgressFail) return noProgressFail;
     }
-  }
-
-  const issues = textCheck();
-  if (issues.length > 0) {
-    return gateFail(level, phase, targetPath, [], issues);
+    const retryFail = checkRetryBelowMax(ctx, phase);
+    if (retryFail) return retryFail;
   }
 
   if (skipGuardrail) {
@@ -3219,12 +3436,6 @@ export class RunGateCommand extends FlowCommand {
       if (integrationCheck) return finish(integrationCheck);
     }
 
-    // spec 209 REQ-6: surface remaining retry budget before running the gate.
-    warnGateRetryBudget(ctx, phase);
-    // spec 201 P2-R2/R3: refuse to run further retries once the limit is reached.
-    const retryFail = checkRetryBelowMax(ctx, phase);
-    if (retryFail) return finish(retryFail);
-
     // spec 210 REQ-2/REQ-3: reject re-run when the working tree is unchanged
     // since the previous FAIL. Returns ok:false envelope before AI invocation,
     // so gateRetry is not incremented (the registry post-hook never runs on
@@ -3278,6 +3489,14 @@ export class RunGateCommand extends FlowCommand {
         "no changes found (committed or uncommitted) against base branch",
       ]));
     }
+
+    // spec 209 REQ-6: surface remaining retry budget after current structural
+    // inputs have been validated, so stale semantic deferral cannot bypass
+    // missing/invalid spec or diff evidence.
+    warnGateRetryBudget(ctx, phase);
+    // spec 201 P2-R2/R3: refuse to run further retries once the limit is reached.
+    const retryFail = checkRetryBelowMax(ctx, phase);
+    if (retryFail) return finish(retryFail);
 
 
     const agent = container.get("agent");

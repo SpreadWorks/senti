@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied all 3 spec-review blocking repairs: durable gate source artifacts, deferred completion contract, and finalDisposition authority.",
+  "items": [
+    {
+      "title": "Gate defer references artifacts that do not exist for all tracked gate phases",
+      "target": "R3/R4 Data Flow",
+      "decision": "applied",
+      "rationale": "Specified that every retry-then-defer gate phase must persist or reuse a bounded durable gate source artifact before flow-findings references sourceArtifact/sourceFindingId.",
+      "evidence": "spec.json constraints, overview.data_flow, R3, R8, acceptance criteria, clarifications, and T-3 now name durable gate source artifacts.",
+      "changedFields": [
+        "constraints",
+        "overview.data_flow",
+        "overview.decisions",
+        "requirements[R3].desc",
+        "requirements[R8].desc",
+        "acceptance_criteria",
+        "clarifications",
+        "tasks[T-3]"
+      ]
+    },
+    {
+      "title": "Deferred completion conflicts with existing completion contracts",
+      "target": "R1/R2/R3/R8",
+      "decision": "applied",
+      "rationale": "Defined deferred completion as truthful FAIL/fail detector artifacts plus completionKind=deferred flow finding evidence accepted by completion-contract validation.",
+      "evidence": "spec.json overview.data_flow, overview.decisions, R1, acceptance criteria, and clarifications now state the completion contract.",
+      "changedFields": [
+        "overview.data_flow",
+        "overview.decisions",
+        "requirements[R1].desc",
+        "acceptance_criteria",
+        "clarifications"
+      ]
+    },
+    {
+      "title": "Final disposition ownership conflicts between artifacts",
+      "target": "R4/R5 Constraints",
+      "decision": "applied",
+      "rationale": "Clarified that acceptance-review.json is authoritative and flow-findings.finalDisposition is nullable and non-authoritative derived mirror state.",
+      "evidence": "spec.json constraints, overview.decisions, R4, acceptance criteria, clarifications, T-1, and T-4 now define the authority rule.",
+      "changedFields": [
+        "constraints",
+        "overview.decisions",
+        "requirements[R4].desc",
+        "acceptance_criteria",
+        "clarifications",
+        "tasks[T-1]",
+        "tasks[T-4]"
+      ]
+    }
+  ]
+}

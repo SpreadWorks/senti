@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-13T15:53:38.753Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/293-bounded-defer-review/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Review deferral lacks negative coverage for non-AI findings",
+      "target": "specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs R2",
+      "issue": "R2 covers the happy path where review retry exhaustion contains only a content_alignment finding, but there is no spec-local test proving review retry exhaustion with schema/tooling/mechanical or mixed non-AI findings remains blocking instead of being deferred.",
+      "requiredChange": "Add the smallest negative review retry exhaustion test that uses a non-AI or mixed review finding and asserts checkReviewRetryBelowMax returns a blocking retry-exhausted result and does not write flow-findings or mark the review step done.",
+      "whyBlocking": "The new policy is explicitly limited to only AI-derived content/alignment findings. Without this regression test, an implementation could defer all exhausted review findings and still pass the current tests."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/293-bounded-defer-review/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "cbea41e0a0d7bcfc932b390c50e436d22b8e05c9eb2f18ec1d16c8ed7afeb0b5"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 7,
+  "findings": [
+    {
+      "id": "test-007-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 7,
+      "severity": "blocking",
+      "title": "Review deferral lacks negative coverage for non-AI findings",
+      "body": "R2 covers the happy path where review retry exhaustion contains only a content_alignment finding, but there is no spec-local test proving review retry exhaustion with schema/tooling/mechanical or mixed non-AI findings remains blocking instead of being deferred.",
+      "category": "unknown"
+    }
+  ]
+}

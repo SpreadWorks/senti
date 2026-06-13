@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "All 3 blocking findings are valid spec gaps and should be repaired before spec-gate.",
+  "items": [
+    {
+      "title": "Gate defer references artifacts that do not exist for all tracked gate phases",
+      "target": "R3/R4 Data Flow",
+      "decision": "apply",
+      "rationale": "The current spec requires sourceArtifact/sourceFindingId references but does not define a durable source for draft/spec gate findings. A bounded gate findings source or alternate reference must be specified.",
+      "evidence": "spec-review.json blockingFindings[0]; spec.json requirements R3/R4 and overview.data_flow currently imply all gate phases already have durable artifacts."
+    },
+    {
+      "title": "Deferred completion conflicts with existing completion contracts",
+      "target": "R1/R2/R3/R8",
+      "decision": "apply",
+      "rationale": "The spec must define how a retained FAIL/fail detector artifact, flow findings entry, and step completion validation can coexist without rewriting detector artifacts as pass.",
+      "evidence": "spec-review.json blockingFindings[1]; source context references src/flow/lib/flow-judgment-contract.js completion validation."
+    },
+    {
+      "title": "Final disposition ownership conflicts between artifacts",
+      "target": "R4/R5 Constraints",
+      "decision": "apply",
+      "rationale": "The spec currently assigns finalDisposition to flow-findings while also making acceptance-review.json the source of truth. The authority rule must be made unambiguous.",
+      "evidence": "spec-review.json blockingFindings[2]; spec.json constraints and R4/R5."
+    }
+  ]
+}

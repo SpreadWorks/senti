@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-13T17:02:34.957Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 2,
+    "nonBlocking": 0,
+    "total": 2
+  },
+  "blockingFindings": [
+    {
+      "title": "Review deferral rejects production review findings without durable ids",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/run-review.js",
+      "requirementId": "R2",
+      "issue": "tryDeferReviewRetryExhaustion only accepts review findings whose objects contain findingId, id, or proposalId. The existing review artifacts produced by the review pipeline, including impl-review/spec-review blockingFindings, do not include those fields, so a retry-exhausted content/alignment-only review falls through to REVIEW_MAX_ATTEMPTS_EXCEEDED instead of writing flow-findings.json and completing the review step.",
+      "suggestion": "Update the review artifact production or deferral path so every deferred source review finding has a durable id present in the retained source artifact, then have reviewFindingId use that persisted id before appendDeferredFlowFinding.",
+      "rationale": "R2 requires flow-scope review retry exhaustion with only AI-derived content/alignment findings to persist a source review artifact reference and advance traversal. Requiring an id that production artifacts do not provide means the required path does not work outside hand-authored fixtures."
+    },
+    {
+      "title": "Gate deferral rejects production gate findings without durable ids",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/run-gate.js",
+      "requirementId": "R3",
+      "issue": "tryDeferGateRetryExhaustion requires each failed gate finding to have findingId or id, but gateFail/checkGuardrail and the diff-based gate evaluations persist guardrail_id/result/reason without findingId or id. The durable gate source artifact is written unchanged, then sourceFindingIds contains null and the command returns ESCALATE_RETRY_EXHAUSTED instead of deferring content/alignment-only gate failures.",
+      "suggestion": "Normalize failed gate evaluations/observations in writeDurableGateSourceArtifact or persistGateSourceFromResult by injecting stable per-finding ids into the persisted source artifact, and use the same ids in gateSourceFindingId and deferred completion validation.",
+      "rationale": "R3 requires gate retry exhaustion with only AI-derived content/alignment findings to persist durable source references, write flow-findings.json, and continue traversal. Without ids in production gate artifacts, the required gate deferral path is unreachable."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/293-bounded-defer-review/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "35d32b8113162aad6bf07657136ff5b2fdd0eadb4706acccfdbd9ac8594c306e"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 12,
+  "findings": [
+    {
+      "id": "impl-012-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 12,
+      "severity": "blocking",
+      "title": "Review deferral rejects production review findings without durable ids",
+      "body": "tryDeferReviewRetryExhaustion only accepts review findings whose objects contain findingId, id, or proposalId. The existing review artifacts produced by the review pipeline, including impl-review/spec-review blockingFindings, do not include those fields, so a retry-exhausted content/alignment-only review falls through to REVIEW_MAX_ATTEMPTS_EXCEEDED instead of writing flow-findings.json and completing the review step.",
+      "category": "missing_acceptance_requirement"
+    },
+    {
+      "id": "impl-012-blocking-002",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 12,
+      "severity": "blocking",
+      "title": "Gate deferral rejects production gate findings without durable ids",
+      "body": "tryDeferGateRetryExhaustion requires each failed gate finding to have findingId or id, but gateFail/checkGuardrail and the diff-based gate evaluations persist guardrail_id/result/reason without findingId or id. The durable gate source artifact is written unchanged, then sourceFindingIds contains null and the command returns ESCALATE_RETRY_EXHAUSTED instead of deferring content/alignment-only gate failures.",
+      "category": "missing_acceptance_requirement"
+    }
+  ]
+}

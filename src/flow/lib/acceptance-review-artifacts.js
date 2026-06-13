@@ -5,13 +5,21 @@ import { validateSchema } from "../../lib/schema-validate.js";
 import { resolveSpecDir } from "../../lib/spec-json.js";
 import { collectFlowLeafIds } from "../definition.js";
 import { findStepById } from "./step-tree.js";
+import {
+  readFlowFindingsArtifact,
+  mirrorFinalDispositions,
+  validateFinalDisposition,
+  ACCEPTANCE_FINAL_DISPOSITIONS,
+} from "./flow-findings.js";
 
 export const ACCEPTANCE_REVIEW_ARTIFACT_FILE = "acceptance-review.json";
 
 const SCHEMA_PATH = fileURLToPath(new URL("../schemas/acceptance-review.schema.json", import.meta.url));
 const VERDICTS = new Set(["pass", "amend_required", "user_decision_required", "blocked"]);
 const USER_DECISION_CHOICES = new Set(["amend_and_retry", "abort", "accept_risk_and_continue"]);
-const BLOCKED_DECISION_CHOICES = new Set(["repair_and_reevaluate", "abort"]);
+const BLOCKED_DECISION_CHOICES = new Set(["repair_and_reevaluate", "abort", "accept_risk_and_continue"]);
+const NON_PASS_NEXT_ACTIONS = new Set(["amend", "repair", "user_decision"]);
+const NON_PASS_TARGET_STEPS = new Set(["spec", "test", "implement", "test-execute", "impl-review", "impl-gate"]);
 
 function requireString(value, field) {
   if (typeof value !== "string" || value.trim() === "") throw new Error(`${field} must be a non-empty string`);
@@ -50,6 +58,14 @@ function removeUndefined(value) {
     return out;
   }
   return value;
+}
+
+function requireAcceptanceFinalDisposition(value, field = "finalDisposition") {
+  const disposition = validateFinalDisposition(value, field);
+  if (disposition === null) {
+    throw new Error(`${field} must be one of ${ACCEPTANCE_FINAL_DISPOSITIONS.join(", ")}`);
+  }
+  return disposition;
 }
 
 export class AcceptanceFinding {
@@ -104,12 +120,29 @@ export class MechanicalBlocker {
   }
 }
 
+export class DeferredAcceptanceFinding {
+  constructor(input = {}) {
+    this.findingId = requireString(input.findingId, "findingId");
+    this.sourceStep = requireString(input.sourceStep, "sourceStep");
+    this.sourceArtifact = requireString(input.sourceArtifact, "sourceArtifact");
+    this.sourceFindingId = requireString(input.sourceFindingId, "sourceFindingId");
+    this.finalDisposition = requireAcceptanceFinalDisposition(input.finalDisposition, "finalDisposition");
+    this.evidenceRefs = requireArray(input.evidenceRefs || [], "evidenceRefs");
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return { ...this };
+  }
+}
+
 function normalizeArtifact(input) {
   const artifact = removeUndefined(clone(input));
   artifact.version = artifact.version ?? 1;
   artifact.findings = (artifact.findings || []).map((finding) => new AcceptanceFinding(finding).toJSON());
   artifact.requirementAmendmentProposals = (artifact.requirementAmendmentProposals || []).map((proposal) => new RequirementAmendmentProposal(proposal).toJSON());
   artifact.mechanicalBlockers = (artifact.mechanicalBlockers || []).map((blocker) => new MechanicalBlocker(blocker).toJSON());
+  artifact.deferredFindings = (artifact.deferredFindings || []).map((finding) => new DeferredAcceptanceFinding(finding).toJSON());
   artifact.hardBlockers = artifact.hardBlockers || [];
   artifact.userDecision = artifact.userDecision === undefined ? null : artifact.userDecision;
   artifact.blockedDecision = artifact.blockedDecision === undefined ? null : artifact.blockedDecision;
@@ -121,11 +154,29 @@ export function validateAcceptanceReviewArtifact(artifact) {
   const errors = validateSchema(artifact, acceptanceSchema());
   if (errors.length > 0) throw new Error(`acceptance-review schema validation failed: ${errors.join("; ")}`);
   if (!VERDICTS.has(artifact.verdict)) throw new Error(`invalid acceptance-review verdict: ${artifact.verdict}`);
+  const derivedVerdict = deriveAcceptanceReviewVerdict(artifact);
+  if (artifact.verdict !== derivedVerdict) {
+    throw new Error(`acceptance-review verdict must match evidence-derived verdict: ${derivedVerdict}`);
+  }
+  if (artifact.verdict !== "pass") {
+    if (!NON_PASS_NEXT_ACTIONS.has(artifact.nextAction)) {
+      throw new Error(`nextAction must be one of ${[...NON_PASS_NEXT_ACTIONS].join(", ")} for non-pass acceptance-review`);
+    }
+    if (!NON_PASS_TARGET_STEPS.has(artifact.targetStep)) {
+      throw new Error(`targetStep must be one of ${[...NON_PASS_TARGET_STEPS].join(", ")} for non-pass acceptance-review`);
+    }
+  }
   return artifact;
 }
 
 export function deriveAcceptanceReviewVerdict(artifact = {}) {
   if (Array.isArray(artifact.mechanicalBlockers) && artifact.mechanicalBlockers.length > 0) return "blocked";
+  const deferredFindings = Array.isArray(artifact.deferredFindings) ? artifact.deferredFindings : [];
+  if (deferredFindings.some((finding) => finding?.finalDisposition === "blocking")) return "blocked";
+  if (artifact.nextAction === "user_decision" && artifact.verdict === "user_decision_required") {
+    return "user_decision_required";
+  }
+  if (deferredFindings.some((finding) => finding?.finalDisposition === "still_open")) return "amend_required";
   if (Array.isArray(artifact.hardBlockers) && artifact.hardBlockers.length > 0) return "amend_required";
   if (Array.isArray(artifact.findings) && artifact.findings.some((finding) => finding?.requiresUserDecision === true)) {
     return "user_decision_required";
@@ -135,6 +186,26 @@ export function deriveAcceptanceReviewVerdict(artifact = {}) {
   if (Number(artifact.goalSatisfactionScore) < goalPass) return "amend_required";
   if (artifact.verdict && artifact.verdict !== "pass") return artifact.verdict;
   return "pass";
+}
+
+function validateDeferredFindingCoverage(specDir, deferredFindings = []) {
+  const expectedEntries = readFlowFindingsArtifact(specDir).entries;
+  const expectedIds = new Set(expectedEntries.map((entry) => entry.findingId));
+  const actualIds = new Set();
+  for (const finding of deferredFindings) {
+    if (actualIds.has(finding.findingId)) {
+      throw new Error(`duplicate deferred finding classification: ${finding.findingId}`);
+    }
+    actualIds.add(finding.findingId);
+    if (!expectedIds.has(finding.findingId)) {
+      throw new Error(`unknown deferred finding classification: ${finding.findingId}`);
+    }
+  }
+  for (const findingId of expectedIds) {
+    if (!actualIds.has(findingId)) {
+      throw new Error(`missing deferred finding classification: ${findingId}`);
+    }
+  }
 }
 
 export function classifyMechanicalBlockers(input = {}) {
@@ -159,9 +230,13 @@ export function writeAcceptanceReviewArtifact({ specDir, artifact }) {
   const reportPath = path.join(specDir, "report.json");
   if (fs.existsSync(reportPath)) normalized.reportRefs = ["report.json"];
   else delete normalized.reportRefs;
+  validateDeferredFindingCoverage(specDir, normalized.deferredFindings);
   validateAcceptanceReviewArtifact(normalized);
   const file = path.join(specDir, ACCEPTANCE_REVIEW_ARTIFACT_FILE);
   writeJson(file, normalized);
+  if (Array.isArray(normalized.deferredFindings) && normalized.deferredFindings.length > 0) {
+    mirrorFinalDispositions(specDir, normalized.deferredFindings);
+  }
   return { path: file, artifact: normalized };
 }
 
@@ -213,23 +288,37 @@ export function applyAcceptanceReviewResult({ root, flowManager, artifact }) {
   const state = flowManager.load();
   if (!state?.spec) throw new Error("active flow spec is required");
   const specDir = resolveSpecDir(path.resolve(root, state.spec));
-  const written = writeAcceptanceReviewArtifact({ specDir, artifact });
+  const currentRound = Number.isInteger(state.acceptanceReview?.round) ? state.acceptanceReview.round : 0;
+  const preliminary = normalizeArtifact(artifact);
+  const nextRound = preliminary.verdict === "pass" ? currentRound : currentRound + 1;
+  const artifactForWrite = preliminary.verdict !== "pass" && nextRound >= 2
+    ? {
+      ...preliminary,
+      verdict: preliminary.verdict === "blocked" ? "blocked" : "user_decision_required",
+      nextAction: "user_decision",
+    }
+    : preliminary;
+  const written = writeAcceptanceReviewArtifact({ specDir, artifact: artifactForWrite });
   const next = written.artifact;
   flowManager.mutate((s) => {
     s.acceptanceReview = {
       verdict: next.verdict,
       artifactPath: acceptanceArtifactPath(s),
       findings: next.findings,
+      deferredFindings: next.deferredFindings || [],
       requirementAmendmentProposals: next.requirementAmendmentProposals,
       mechanicalBlockers: next.mechanicalBlockers,
       hardBlockers: next.hardBlockers,
+      nextAction: next.nextAction || null,
+      targetStep: next.targetStep || null,
+      round: nextRound,
       updatedAt: new Date().toISOString(),
     };
     if (next.verdict === "pass") {
       markStep(s, "acceptance-review", "done");
       markStep(s, "final-regression", "in_progress");
-    } else if (next.verdict === "amend_required") {
-      resetSteps(s, flowOrderRange("spec", "acceptance-review"));
+    } else if (next.nextAction === "repair" || next.nextAction === "amend") {
+      resetSteps(s, flowOrderRange(next.targetStep, "acceptance-review"), { inProgress: next.targetStep });
     } else {
       markStep(s, "acceptance-review", "in_progress");
     }
@@ -257,7 +346,7 @@ export function applyAcceptanceDecision({ root, flowManager, choice }) {
       s.acceptanceReview = s.acceptanceReview || { verdict };
       s.acceptanceReview.userDecision = { choice, decidedAt };
       if (choice === "amend_and_retry") {
-        resetSteps(s, flowOrderRange("spec", "acceptance-review"));
+        resetSteps(s, flowOrderRange(artifact.targetStep || "spec", "acceptance-review"), { inProgress: artifact.targetStep || "spec" });
       } else if (choice === "abort") {
         s.acceptanceReview.status = "aborted";
       } else {
@@ -272,12 +361,18 @@ export function applyAcceptanceDecision({ root, flowManager, choice }) {
   }
   if (verdict === "blocked") {
     if (!BLOCKED_DECISION_CHOICES.has(choice)) throw new Error(`invalid acceptance decision for blocked: ${choice}`);
+    if (choice === "accept_risk_and_continue" && artifact.mechanicalBlockers?.length > 0) {
+      throw new Error("accept_risk_and_continue is not allowed while mechanicalBlockers exist");
+    }
     flowManager.mutate((s) => {
       s.acceptanceReview = s.acceptanceReview || { verdict };
       s.acceptanceReview.blockedDecision = { choice, decidedAt };
       if (choice === "repair_and_reevaluate") {
-        const target = artifact.repairTargetStep || "implement";
+        const target = artifact.targetStep || artifact.repairTargetStep || "implement";
         resetSteps(s, flowOrderRange(target, "acceptance-review"), { inProgress: target });
+      } else if (choice === "accept_risk_and_continue") {
+        markStep(s, "acceptance-review", "done");
+        markStep(s, "final-regression", "in_progress");
       } else {
         s.acceptanceReview.status = "aborted";
       }
@@ -356,12 +451,17 @@ export function buildAcceptanceReviewArtifactFromEvidence({ specDir }) {
     tests: { missing: testsMissing, failed, missingRequired },
     artifacts: { missing, invalidSchemas },
   });
+  const deferredFindings = buildDeferredFindingsFromEvidence(specDir);
+  const hasBlockingDeferred = deferredFindings.some((finding) => finding.finalDisposition === "blocking");
+  const hasStillOpenDeferred = deferredFindings.some((finding) => finding.finalDisposition === "still_open");
+  const hasBlocking = mechanicalBlockers.length > 0 || hasBlockingDeferred;
+  const hasRepairNeeded = hasBlocking || hasStillOpenDeferred;
   return {
     version: 1,
-    goalSatisfactionScore: mechanicalBlockers.length ? 0 : 1,
-    requirementAlignmentScore: mechanicalBlockers.length ? 0 : 1,
+    goalSatisfactionScore: hasRepairNeeded ? 0 : 1,
+    requirementAlignmentScore: hasRepairNeeded ? 0 : 1,
     implementationQualityScore: mechanicalBlockers.length ? 0 : 1,
-    acceptanceScore: mechanicalBlockers.length ? 0 : 1,
+    acceptanceScore: hasRepairNeeded ? 0 : 1,
     thresholds: {
       goalSatisfactionPass: 0.9,
       requirementAlignmentPass: 0.9,
@@ -371,10 +471,45 @@ export function buildAcceptanceReviewArtifactFromEvidence({ specDir }) {
     hardBlockers: [],
     attempt: 1,
     findings: [],
+    deferredFindings,
     requirementAmendmentProposals: [],
     userDecision: null,
     blockedDecision: null,
-    verdict: mechanicalBlockers.length ? "blocked" : "pass",
-    repairTargetStep: mechanicalBlockers.length ? "test-execute" : null,
+    verdict: hasBlocking ? "blocked" : (hasRepairNeeded ? "amend_required" : "pass"),
+    nextAction: hasRepairNeeded ? "repair" : undefined,
+    targetStep: mechanicalBlockers.length ? "test-execute" : (hasRepairNeeded ? "implement" : undefined),
   };
 }
+
+function readDispositionEvidence(specDir) {
+  const file = path.join(specDir, "acceptance-review-evidence.json");
+  if (!fs.existsSync(file)) return new Map();
+  const data = readJson(file);
+  const map = new Map();
+  for (const entry of data.deferredFindingDispositions || []) {
+    requireAcceptanceFinalDisposition(entry.finalDisposition, "finalDisposition");
+    map.set(entry.findingId, {
+      finalDisposition: entry.finalDisposition,
+      evidenceRefs: Array.isArray(entry.evidenceRefs) ? entry.evidenceRefs : [],
+    });
+  }
+  return map;
+}
+
+function buildDeferredFindingsFromEvidence(specDir) {
+  const flowFindings = readFlowFindingsArtifact(specDir);
+  const evidence = readDispositionEvidence(specDir);
+  return flowFindings.entries.map((entry) => {
+    const classified = evidence.get(entry.findingId);
+    return new DeferredAcceptanceFinding({
+      findingId: entry.findingId,
+      sourceStep: entry.sourceStep,
+      sourceArtifact: entry.sourceArtifact,
+      sourceFindingId: entry.sourceFindingId,
+      finalDisposition: classified?.finalDisposition || "still_open",
+      evidenceRefs: classified?.evidenceRefs || [],
+    }).toJSON();
+  });
+}
+
+export { ACCEPTANCE_FINAL_DISPOSITIONS };

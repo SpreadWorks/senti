@@ -1,0 +1,218 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/293-bounded-defer-review/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs",
+        "test_name": "R1: deferred completion evidence allows done traversal without rewriting failed detector artifacts",
+        "command": "node --test specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 175
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs",
+        "test_name": "R2: review retry exhaustion with only content alignment findings writes flow findings and does not hard stop",
+        "command": "node --test specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 175
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs",
+        "test_name": "R3: gate retry exhaustion writes a durable source artifact reference and preserves mechanical blockers",
+        "command": "node --test specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 175
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs",
+        "test_name": "R4: persists bounded reference-only flow-findings entries",
+        "command": "node --test specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 175
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs",
+        "test_name": "R5: acceptance-review reads carried findings and persists final dispositions",
+        "command": "node --test specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 175
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs",
+        "test_name": "R6: non-pass acceptance-review requires allowlisted nextAction and targetStep",
+        "command": "node --test specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 175
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs",
+        "test_name": "R7: first non-pass acceptance round automatically routes to the target step",
+        "command": "node --test specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 175
+        }
+      }
+    },
+    {
+      "id": "R8",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs",
+        "test_name": "R8: retry metrics, review artifacts, and issue-log evidence remain intact after deferral",
+        "command": "node --test specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 175
+        }
+      }
+    },
+    {
+      "id": "R9",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs",
+        "test_name": "R9: status summary exposes bounded deferred finding counts without becoming routing source",
+        "command": "node --test specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 175
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": true,
+    "mode": "full",
+    "root_test_command": "node tests/run.js",
+    "root_test_command_source": "test.command",
+    "command": "node tests/run.js",
+    "result": "pass",
+    "raw_output_lines": {
+      "start_line": 176,
+      "end_line": 18655
+    },
+    "trigger_relevant_changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/293-bounded-defer-review/"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/definition.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/acceptance-review-artifacts.js"
+      },
+      {
+        "status": "added",
+        "path": "src/flow/lib/flow-findings.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/flow-judgment-contract.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/get-status.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-acceptance-review.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-gate.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-review.js"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/293-bounded-defer-review/"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/definition.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/acceptance-review-artifacts.js"
+      },
+      {
+        "status": "added",
+        "path": "src/flow/lib/flow-findings.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/flow-judgment-contract.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/get-status.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-acceptance-review.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-gate.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-review.js"
+      }
+    ],
+    "process": {
+      "started": true,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "spawnError": null
+    }
+  }
+}
