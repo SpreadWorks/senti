@@ -42,4 +42,18 @@ describe("help", () => {
     assert.match(result, /senti/);
     assert.match(result, /コマンド一覧/);
   });
+
+  it("prints plugin subcommands via CLI", () => {
+    const result = execFileSync("node", [CMD, "plugin", "--help"], { encoding: "utf8" });
+    assert.match(result, /Subcommands:/);
+    assert.match(result, /source\s+Manage plugin sources/);
+    assert.match(result, /find\s+Find installable plugin packages/);
+    assert.match(result, /update-all\s+Update all installed plugin packages/);
+  });
+
+  it("prints plugin command options via CLI", () => {
+    const result = execFileSync("node", [CMD, "plugin", "find", "--help"], { encoding: "utf8" });
+    assert.match(result, /Usage: senti plugin find \[--json\]/);
+    assert.match(result, /--json/);
+  });
 });

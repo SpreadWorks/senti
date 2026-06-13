@@ -14,39 +14,9 @@ import {
   updatePluginRepos,
 } from "./lib/plugin-registry.js";
 
-function printHelp() {
-  console.log([
-    "Usage: senti plugin <command> [args]",
-    "",
-    "Manage plugin sources and installed plugin packages.",
-    "",
-    "Commands:",
-    "  source add <git URL|local path> [--ref <ref>]",
-    "  source update",
-    "  source list [--json]",
-    "  find [--json]",
-    "  install <id>",
-    "  list [--json]",
-    "  enable <id>",
-    "  disable <id>",
-    "  update-all",
-    "  sync",
-    "",
-    "Installed packages are recorded with a reproducible commit pin.",
-  ].join("\n"));
-}
-
-function printRepoHelp() {
-  console.log([
-    "Usage: senti plugin source <command>",
-    "",
-    "Manage plugin sources. Sources may be a git URL or a clean local path.",
-    "",
-    "Commands:",
-    "  source add <git URL|local path> [--ref <ref>]",
-    "  source update",
-    "  source list [--json]",
-  ].join("\n"));
+async function printHelp(root, command) {
+  const { renderCommandHelp } = await import("./help.js");
+  console.log(await renderCommandHelp({ root, command }));
 }
 
 function hasJson(args) {
@@ -118,7 +88,7 @@ export async function main() {
   const [command, ...rest] = args;
 
   if (!command || command === "-h" || command === "--help") {
-    printHelp();
+    await printHelp(root, ["plugin"]);
     return;
   }
 
@@ -127,7 +97,7 @@ export async function main() {
     if (command === "source") {
       const [repoCommand, ...repoRest] = rest;
       if (!repoCommand || repoCommand === "-h" || repoCommand === "--help") {
-        printRepoHelp();
+        await printHelp(root, ["plugin", "source"]);
         return;
       }
       if (repoCommand === "add") {

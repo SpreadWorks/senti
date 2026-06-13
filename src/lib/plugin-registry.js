@@ -905,7 +905,8 @@ const DEFAULT_OFFICIAL_PRESET_SOURCE = Object.freeze({
 });
 
 function materializationSource(source, sourceRoot) {
-  if (!sourceRoot || !fs.existsSync(sourceRoot)) return source;
+  if (!sourceRoot) return source;
+  if (!fs.existsSync(sourceRoot)) throw new Error(`plugin source not found: ${sourceRoot}`);
   const locationKey = isGitUrl(sourceRoot) ? "url" : "path";
   const next = { ...source, type: isGitUrl(sourceRoot) ? "git" : "local" };
   delete next.path;
@@ -928,17 +929,14 @@ export function ensureOfficialPackage(root, { id, sourceRoot, ref } = {}) {
       ? { ...DEFAULT_OFFICIAL_PRESET_SOURCE }
       : { id: `official-${id}`, type: "local", path: sourceRoot };
     if (ref) source.ref = ref;
-    plugin.sources.push(source);
     addedSource = true;
   }
-  writeProjectConfig(root, config);
-  const materializedSource = addedSource ? materializationSource(source, sourceRoot) : source;
-  if (source.type === "git" && materializedSource === source && source.remote === DEFAULT_OFFICIAL_PRESET_SOURCE.remote) {
-    throw new Error(`official preset provider source not found: ${source.remote}`);
-  }
+  const materializedSource = materializationSource(source, sourceRoot);
   const resolved = resolveSource(root, materializedSource);
   const sourceManifest = PluginManifest.fromRoot(resolved.root);
   if (sourceManifest.name !== id) throw new Error(`official package mismatch: expected ${id}, got ${sourceManifest.name}`);
+  if (addedSource) plugin.sources.push(source);
+  writeProjectConfig(root, config);
   const existing = plugin.packages.find((pkg) => pkg.id === id);
   const installedManifest = path.join(installedPluginsDir(root), id, "plugin.json");
   if (!existing || existing.commit !== resolved.commit || !fs.existsSync(installedManifest)) {

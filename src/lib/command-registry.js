@@ -168,6 +168,40 @@ const flowSubcommands = [
   subcommands: name === "run" ? flowRunSubcommands : [],
 }));
 
+const pluginSourceSubcommands = [
+  ["add", "Add a plugin source", "Usage: senti plugin source add <git URL|local path> [--ref <ref>]", { positional: ["source"], options: ["--ref"] }, ["--ref <ref>", "-h, --help"]],
+  ["update", "Update plugin sources", "Usage: senti plugin source update", {}, ["-h, --help"]],
+  ["list", "List plugin sources", "Usage: senti plugin source list [--json]", { flags: ["--json"] }, ["--json", "-h, --help"]],
+].map(([name, summary, usage, args, options]) => new CommandHelpMetadata({
+  name: `plugin source ${name}`,
+  section: "Project",
+  summary,
+  usage,
+  args,
+  options,
+  localeKey: `ui:help.commands.plugin source ${name}`,
+}));
+
+const pluginSubcommands = [
+  ["source", "Manage plugin sources", "Usage: senti plugin source <command>", { positional: ["command"], rest: "args" }, ["-h, --help"], pluginSourceSubcommands],
+  ["find", "Find installable plugin packages", "Usage: senti plugin find [--json]", { flags: ["--json"] }, ["--json", "-h, --help"]],
+  ["install", "Install a plugin package", "Usage: senti plugin install <id>", { positional: ["id"] }, ["-h, --help"]],
+  ["list", "List installed plugin packages", "Usage: senti plugin list [--json]", { flags: ["--json"] }, ["--json", "-h, --help"]],
+  ["enable", "Enable an installed plugin package", "Usage: senti plugin enable <id>", { positional: ["id"] }, ["-h, --help"]],
+  ["disable", "Disable an installed plugin package", "Usage: senti plugin disable <id>", { positional: ["id"] }, ["-h, --help"]],
+  ["update-all", "Update all installed plugin packages", "Usage: senti plugin update-all [--json]", { flags: ["--json"] }, ["--json", "-h, --help"]],
+  ["sync", "Sync installed plugin packages", "Usage: senti plugin sync [--json]", { flags: ["--json"] }, ["--json", "-h, --help"]],
+].map(([name, summary, usage, args, options, subcommands]) => new CommandHelpMetadata({
+  name: `plugin ${name}`,
+  section: "Project",
+  summary,
+  usage,
+  args,
+  options,
+  localeKey: `ui:help.commands.plugin ${name}`,
+  subcommands: subcommands || [],
+}));
+
 export const coreCommandMetadataRegistry = new CoreCommandMetadataRegistry([
   {
     name: "help",
@@ -204,6 +238,7 @@ export const coreCommandMetadataRegistry = new CoreCommandMetadataRegistry([
     args: { positional: ["command"], rest: "args" },
     options: ["-h, --help"],
     localeKey: "ui:help.commands.plugin",
+    subcommands: pluginSubcommands,
   },
   {
     name: "docs",
