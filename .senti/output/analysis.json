@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-13T09:22:38.447Z",
+  "analyzedAt": "2026-06-13T13:38:34.694Z",
   "package": {
     "entries": [
       {
@@ -605,9 +605,9 @@
       },
       {
         "file": "src/docs/commands/changelog.js",
-        "hash": "432bc284090a521a9a013939cbe85f9b",
-        "lines": 238,
-        "mtime": "2026-04-27T03:02:21.757Z",
+        "hash": "46e7248b976a42e9d8e7baab499f2933",
+        "lines": 234,
+        "mtime": "2026-06-13T13:38:12.255Z",
         "className": "changelog",
         "methods": [
           "optional",
@@ -624,7 +624,6 @@
           "../../lib/config.js",
           "../../lib/i18n.js",
           "../../lib/command.js",
-          "../../lib/spec-json.js",
           "../lib/concurrency.js"
         ],
         "exports": [
@@ -636,22 +635,21 @@
           "src/lib/container.js"
         ],
         "id": "d83c89fb",
-        "summary": "Implements the `docs changelog` command that scans spec directories and generates a markdown change log file. It handles optional files and malformed metadata gracefully while preserving CLI usability.",
-        "detail": "The module parses CLI args, resolves source and output paths, and ensures the destination directory exists before writing results. It walks `specs/` entries, reads `spec.json` and `flow.json` when present, and skips invalid or incomplete records instead of failing the whole run. Helper functions sanitize text and normalize directory names for stable output. It uses bounded concurrency for per-spec parsing and writes a single assembled markdown document. The command is exposed through a `Command` subclass that delegates execution to `runChangelog`.",
+        "summary": "Builds a changelog document by scanning spec directories and extracting metadata from `spec.json` and `flow.json`. The command writes a generated Markdown file and tolerates optional or malformed inputs where possible.",
+        "detail": "The module combines synchronous JSON reads with promise-based filesystem writes to assemble a documentation artifact. Small helpers such as `optional` and `sanitize` show a defensive style that avoids hard failures for non-critical files and cleans text for Markdown output. `parseSpecDir` loads the spec definition, optionally reads flow state, and reports malformed `flow.json` files to stderr instead of stopping the run. `runChangelog` resolves source and output paths, iterates spec folders, and writes the final `change_log.md` content.",
         "chapter": "cli_commands",
-        "role": "cli",
+        "role": "Generate a changelog document from spec directories.",
         "enrich": {
-          "processedAt": "2026-04-27T03:03:14.026Z",
+          "processedAt": "2026-06-13T13:40:08.618Z",
           "attempts": 1
         },
         "keywords": [
-          "changelog",
-          "docs command",
+          "changelog generation",
+          "release notes",
           "spec scan",
-          "markdown generation",
-          "concurrency mapping",
-          "flow metadata",
-          "optional file handling"
+          "flow.json parsing",
+          "markdown output",
+          "docs command"
         ]
       },
       {
@@ -5533,9 +5531,9 @@
       },
       {
         "file": "src/flow/lib/run-prepare-spec.js",
-        "hash": "d7e898cab8e69dba3e1bd4d29d89d113",
-        "lines": 400,
-        "mtime": "2026-06-11T10:01:13.812Z",
+        "hash": "a83187b83a09a6f9120a1949e6de372a",
+        "lines": 441,
+        "mtime": "2026-06-13T11:23:32.141Z",
         "className": "run-prepare-spec",
         "methods": [
           "buildDraftTemplate",
@@ -5547,7 +5545,9 @@
           "ensureBaseBranch",
           "detectBaseBranch",
           "runDocsScanAndValidate",
-          "hookSnapshotFor"
+          "hookSnapshotFor",
+          "copyPluginRuntimeDirectory",
+          "syncPluginRuntimeToWorktree"
         ],
         "imports": [
           "fs",
@@ -5574,24 +5574,22 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "59eeacc6",
-        "enrich": {
-          "processedAt": "2026-06-12T04:51:26.540Z",
-          "attempts": 4
-        },
-        "summary": "Bootstraps a new spec-driven flow by creating the spec directory, draft and spec templates, and initial flow state. It also decides whether to stay local, create a feature branch, or create an isolated worktree based on flags and repository state.",
-        "detail": "The command derives a numbered spec slug, validates the base branch, and applies worktree and dirty-worktree rules so branch creation does not accidentally carry unrelated changes. It writes initial artifacts such as `spec.json`, `draft.json`, optional cached issue content, and `flow.json` with seeded steps and inherited preparing metadata. The implementation integrates plugin hook discovery and lifecycle execution, then runs a docs scan and validates the generated analysis output before marking the flow active. It supports dry-run mode, branch mode, worktree mode, and spec-only mode, and returns the exact next-step guidance for continuing with draft authoring and gate execution.",
+        "summary": "Prepares a new spec workspace, initializes flow state, and optionally creates an isolated worktree. It also syncs plugin runtime files and records plugin hook snapshots for later flow execution.",
+        "detail": "The file ties together git helpers, config loading, docs analysis, step bootstrapping, and plugin lifecycle support into one preparation pipeline. Utility functions create safe spec IDs, choose the next numeric directory index, detect base branches, and verify analysis output from a docs scan. Plugin runtime synchronization copies selected `.senti` files into a worktree with explicit file-count limits to reduce risk and cost. The main prepare flow creates `flow.json`, `spec.json`, `draft.json`, and related files, runs hook callbacks, and blocks dirty worktrees unless isolation is enabled.",
         "chapter": "cli_commands",
-        "role": "Flow preparation and bootstrap command",
+        "role": "Initialize spec state and worktree context for flow commands.",
+        "enrich": {
+          "processedAt": "2026-06-13T13:40:08.618Z",
+          "attempts": 1
+        },
         "keywords": [
-          "prepare spec",
+          "spec preparation",
+          "worktree setup",
+          "plugin hooks",
           "flow initialization",
-          "feature branch",
-          "git worktree",
-          "draft template",
-          "flow state",
-          "bootstrap command",
-          "spec directory",
-          "plugin hooks"
+          "git base branch",
+          "draft scaffold",
+          "dirty worktree"
         ]
       },
       {
@@ -7348,22 +7346,55 @@
       },
       {
         "file": "src/help.js",
-        "hash": "8fe8b2138ad7878ba76cf177e8f45480",
-        "lines": 132,
-        "mtime": "2026-06-11T02:26:13.976Z",
+        "hash": "dbd3e3032a185deb083c2259526a6d82",
+        "lines": 378,
+        "mtime": "2026-06-13T13:38:12.256Z",
         "className": "help",
         "methods": [
+          "HelpCommandView",
+          "HelpModel",
+          "buildCoreHelpModel",
+          "normalizePluginHelpMetadata",
+          "renderPluginPackageHelp",
+          "resolveHelpSurfaceOwner",
+          "resolveExecutionOwner",
+          "resolvePluginDiscoveryMode",
+          "renderCommandHelp",
           "renderHelp",
-          "localizedCommand",
+          "i18n",
+          "resolveLang",
+          "normalizeLocaleKey",
+          "resolveLocaleValue",
+          "resolveLocalizedText",
+          "registryFromPlainTree",
+          "metadataFromEntry",
+          "resolveCoreRegistry",
+          "titleCase",
+          "sectionOrder",
+          "renderTopLevel",
+          "renderCommand",
           "pluginCommands",
+          "findPluginPackage",
+          "coreTopicFromArgs",
           "main"
         ],
         "imports": [
           "./lib/cli.js",
+          "./lib/config.js",
           "./lib/i18n.js",
+          "./lib/command-registry.js",
           "./lib/plugin-registry.js"
         ],
         "exports": [
+          "HelpCommandView",
+          "HelpModel",
+          "buildCoreHelpModel",
+          "normalizePluginHelpMetadata",
+          "renderPluginPackageHelp",
+          "resolveHelpSurfaceOwner",
+          "resolveExecutionOwner",
+          "resolvePluginDiscoveryMode",
+          "renderCommandHelp",
           "renderHelp",
           "main",
           "commands"
@@ -7371,23 +7402,21 @@
         "extends": null,
         "usedBy": null,
         "id": "4ac07fa0",
-        "enrich": {
-          "processedAt": "2026-06-12T00:20:00.369Z",
-          "attempts": 5
-        },
-        "summary": "Help renderer for the CLI and plugin-contributed commands. It builds localized command listings and full help output.",
-        "detail": "The file defines a LAYOUT structure that controls how help sections are displayed. It localizes command metadata by combining static command definitions with translated descriptions and subcommand help text. Plugin commands are loaded from the plugin registry and folded into the same localized rendering path with fail-safe fallback behavior. The main renderHelp function assembles version, command summaries, and detailed topic help into a printable string, and main writes that output to stdout.",
+        "summary": "Implements the help rendering system for core and plugin commands using localized metadata. It resolves help topics, language, and ownership before producing top-level or command-specific output.",
+        "detail": "The module defines recursive view and model classes that support tree traversal and nested command lookup. It normalizes metadata from core registries and plugin manifests, resolves localized labels and descriptions, and applies section ordering for rendering. Helper functions determine whether a help request belongs to core metadata, a plugin package, or an unknown surface. `renderHelp` and `renderCommandHelp` build the final text output, while `main` exposes the renderer as a standalone entry point.",
         "chapter": "cli_commands",
-        "role": "CLI help generator",
+        "role": "Render localized help for core and plugin commands.",
+        "enrich": {
+          "processedAt": "2026-06-13T13:40:08.618Z",
+          "attempts": 1
+        },
         "keywords": [
-          "help output",
-          "usage text",
-          "command list",
+          "CLI help",
+          "command metadata",
           "localization",
-          "i18n",
-          "plugin commands",
-          "CLI documentation",
-          "render help"
+          "plugin help",
+          "topic resolution",
+          "usage renderer"
         ]
       },
       {
@@ -7762,11 +7791,15 @@
       },
       {
         "file": "src/lib/command-registry.js",
-        "hash": "04f2ccb2ecb6eb60572230c13296e489",
-        "lines": 133,
-        "mtime": "2026-06-09T08:02:50.460Z",
+        "hash": "5445e3d71cdb3b9b795b9474acea6790",
+        "lines": 400,
+        "mtime": "2026-06-13T13:38:12.256Z",
         "className": "command-registry",
         "methods": [
+          "CommandHelpMetadata",
+          "CoreCommandMetadataRegistry",
+          "flowHelpSummary",
+          "flowHelpOptions",
           "decorateFlowEntry",
           "rawEntry"
         ],
@@ -7774,6 +7807,9 @@
           "../flow/registry.js"
         ],
         "exports": [
+          "CommandHelpMetadata",
+          "CoreCommandMetadataRegistry",
+          "coreCommandMetadataRegistry",
           "flowCommands",
           "docsCommands",
           "checkCommands",
@@ -7787,27 +7823,27 @@
           "src/check.js",
           "src/docs.js",
           "src/flow.js",
+          "src/help.js",
           "src/hook.js",
           "src/metrics.js",
-          "src/spec.js",
-          "src/workflow/index.js"
+          "src/spec.js"
         ],
         "id": "0d680f4f",
-        "enrich": {
-          "processedAt": "2026-06-12T00:20:00.369Z",
-          "attempts": 7
-        },
-        "summary": "Central registry that wires command namespaces to their modules. It normalizes flow command entries and exposes a single command map for dispatch.",
-        "detail": "The module decorates flow command entries so they default to envelope output mode, then exports that adjusted registry as flowCommands. For non-flow areas such as docs, check, metrics, spec, and hook, it creates lightweight raw entries that point to their implementation modules. The allCommands export merges every command family into one lookup table consumed by the dispatcher. This keeps namespace wiring separate from the actual business logic of each command.",
+        "summary": "Defines the canonical command metadata objects and registry used by the help system. It centralizes the command tree for core namespaces and adapts flow commands into a consistent help format.",
+        "detail": "`CommandHelpMetadata` models a recursive command node with validation, nested lookup, and flattening helpers. `CoreCommandMetadataRegistry` provides top-level and subcommand search along with methods for listing visible commands. The module extracts summaries and option lines from flow help text so flow commands can be presented like other command groups. It exports grouped registries and a combined `allCommands` structure consumed by dispatch and help-rendering layers.",
         "chapter": "project_structure",
-        "role": "command namespace registry",
+        "role": "Store and expose the core CLI command tree.",
+        "enrich": {
+          "processedAt": "2026-06-13T13:40:08.618Z",
+          "attempts": 1
+        },
         "keywords": [
           "command registry",
-          "dispatcher map",
-          "namespace wiring",
+          "help metadata",
+          "command tree",
           "flow commands",
-          "CLI routing",
-          "module registry"
+          "CLI namespace",
+          "dispatch metadata"
         ]
       },
       {
@@ -7910,7 +7946,8 @@
           "src/lib/preparing-flow-store.js",
           "src/presets/base/tests/acceptance/fixtures/src/index.js",
           "src/setup.js",
-          "src/upgrade.js"
+          "src/upgrade.js",
+          "src/help.js"
         ],
         "id": "dff6e5b4",
         "summary": "Provides core configuration loading, validation, merging, and default resolution for the application. It also exposes common `.senti` path helpers and plugin-aware schema extension logic.",
@@ -9193,9 +9230,9 @@
       },
       {
         "file": "src/lib/plugin-registry.js",
-        "hash": "199114138a9dfe240cda9a6f88b62651",
-        "lines": 937,
-        "mtime": "2026-06-12T12:05:07.133Z",
+        "hash": "428ded9f7a258b2ba516f40bd79197bf",
+        "lines": 948,
+        "mtime": "2026-06-13T13:38:12.256Z",
         "className": "plugin-registry",
         "methods": [
           "readProjectConfig",
@@ -9309,25 +9346,22 @@
           "src/upgrade.js"
         ],
         "id": "bfaf1dcd",
-        "enrich": {
-          "processedAt": "2026-06-12T16:17:40.795Z",
-          "attempts": 2
-        },
-        "summary": "Implements the plugin registry, installation flow, hook discovery, and command lifecycle integration for extensible senti features. It manages plugin sources, manifests, safe file materialization, enabled-state configuration, and runtime hook execution.",
-        "detail": "This module reads and writes plugin-aware project configuration, resolves plugin packages from local paths or git sources, and installs them into the internal `.senti/plugins` area with allowlisted file copying and package validation. It enforces safety constraints on plugin IDs, relative paths, import boundaries, source counts, file counts, and JSON sizes so third-party extensions cannot reach core internals arbitrarily. At runtime it loads plugin manifests, commands, presets, and hook classes, builds artifact helpers and execution context objects, and dispatches plugin commands or flow-command hooks through structured lifecycle APIs. Snapshot-based hook loading guards against changed or missing plugin modules across flow stages, while helper functions support official package bootstrapping and synchronized plugin updates. The module is effectively the backbone of the plugin system and its controlled extension surface.",
+        "summary": "Manages plugin discovery, installation, validation, source synchronization, command contributions, and flow-command hooks. It is the central runtime for secure plugin integration.",
+        "detail": "The module defines strict limits for IDs, file counts, JSON sizes, and path depth, then applies normalization checks to prevent traversal and unsafe imports into core internals. `PluginManifest` and `PluginRegistry` expose commands, presets, data sources, and config defaults from installed plugin packages. Source-management routines support local paths and git repositories, materialize pinned commits, copy allowlisted files, and keep installed plugins in sync with configured sources. Runtime helpers discover hook classes, snapshot hook plans into flow state, build artifact-aware plugin contexts, and dispatch plugin commands or lifecycle hooks through structured envelopes.",
         "chapter": "internal_design",
-        "role": "Plugin package registry and lifecycle runtime",
+        "role": "Provide secure plugin installation and runtime integration.",
+        "enrich": {
+          "processedAt": "2026-06-13T13:40:08.618Z",
+          "attempts": 1
+        },
         "keywords": [
           "plugin registry",
           "plugin installation",
           "hook discovery",
-          "flow hooks",
-          "manifest loading",
-          "package validation",
-          "git source sync",
-          "preset contributions",
-          "plugin command dispatch",
-          "artifact helpers"
+          "manifest validation",
+          "preset contribution",
+          "command dispatch",
+          "artifact storage"
         ]
       },
       {
@@ -9471,8 +9505,21 @@
         ],
         "id": "ae76d513",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-06-13T13:40:08.618Z",
+          "attempts": 4
+        },
+        "summary": "Resolves core and plugin presets, walks inheritance chains, and validates template coverage across languages and chapters. It acts as the composition layer behind preset lookup and authoring rules.",
+        "detail": "The module discovers presets from bundled directories and plugin registries, then deduplicates them by key before resolution. Chain walkers detect missing parents, circular references, and excessive depth, while multi-chain helpers preserve ordering across configured preset types. Template search logic builds precedence-ordered directories from project-local overrides and inherited preset templates. Validation functions bound language and chapter counts and warn when local template files exist without corresponding chapter declarations.",
+        "chapter": "creating_presets",
+        "role": "Resolve preset inheritance and template search behavior.",
+        "keywords": [
+          "preset inheritance",
+          "template lookup",
+          "chain validation",
+          "project templates",
+          "chapter coverage",
+          "preset discovery"
+        ]
       },
       {
         "file": "src/lib/process.js",
@@ -9707,8 +9754,21 @@
         ],
         "id": "8bb94bbb",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-06-13T13:40:08.618Z",
+          "attempts": 3
+        },
+        "summary": "Implements a lightweight recursive schema validator that collects errors instead of throwing immediately. It checks object shape, arrays, primitive types, and required properties.",
+        "detail": "The main `validateSchema` function walks a value against a schema while tracking a path string for precise error messages. It branches by schema kind and returns an accumulated error list so callers can report multiple problems at once. Helper functions isolate type checks and normalize JavaScript runtime values for comparison. The design fits small config or manifest validation tasks without introducing external dependencies.",
+        "chapter": "configuration",
+        "role": "Validate JSON-like configuration data against simple schemas.",
+        "keywords": [
+          "schema validation",
+          "config validation",
+          "recursive checker",
+          "JSON schema lite",
+          "required fields",
+          "type checking"
+        ]
       },
       {
         "file": "src/lib/skill-rules.js",
@@ -10190,8 +10250,22 @@
         "usedBy": null,
         "id": "59edeaf2",
         "enrich": {
-          "attempts": 10
-        }
+          "processedAt": "2026-06-13T13:40:08.618Z",
+          "attempts": 11
+        },
+        "summary": "Aggregates token, cache, duration, and cost metrics from finalized flow states and renders them as text, JSON, or CSV. The command also derives spec difficulty signals to enrich summaries.",
+        "detail": "The module defines cache versioning, row-building helpers, formatters, and grouped phase summaries for multiple output modes. It scans `specs/*/flow.json`, enforces a maximum file count, and compares finalized timestamps against `.senti/output/metrics.json` to decide whether cached results remain valid. During rebuilds it parses flow metrics, normalizes provider dimensions, estimates complexity from spec artifacts, and merges results into per-date and per-phase rows. The runner validates arguments, reads or writes the cache, and prints the selected report to stdout.",
+        "chapter": "cli_commands",
+        "role": "Report token usage and cost metrics for flow phases.",
+        "keywords": [
+          "token metrics",
+          "cost report",
+          "CSV export",
+          "cache invalidation",
+          "flow analytics",
+          "usage summary",
+          "difficulty scoring"
+        ]
       },
       {
         "file": "src/plugin.js",
@@ -10225,8 +10299,21 @@
         "usedBy": null,
         "id": "ae80e38f",
         "enrich": {
-          "attempts": 6
-        }
+          "processedAt": "2026-06-13T13:40:08.618Z",
+          "attempts": 7
+        },
+        "summary": "Provides the CLI entry point for plugin and plugin-repo management. It parses flags, prints help, dispatches subcommands, and supports JSON output for automation.",
+        "detail": "The module uses small helpers for detecting help mode, JSON mode, reference arguments, and non-flag parameters. It includes renderers for installed package lists and a migration guide for source-based plugin workflows. The main dispatcher inspects `process.argv`, routes repo and package operations, and throws explicit errors for unsupported commands. Failures terminate with a shared error exit code so automation sees predictable CLI behavior.",
+        "chapter": "cli_commands",
+        "role": "Dispatch plugin management commands and format their output.",
+        "keywords": [
+          "plugin CLI",
+          "repo management",
+          "JSON output",
+          "command dispatcher",
+          "plugin source",
+          "help text"
+        ]
       },
       {
         "file": "src/presets-cmd.js",
@@ -10251,8 +10338,21 @@
         "usedBy": null,
         "id": "85926390",
         "enrich": {
-          "attempts": 10
-        }
+          "processedAt": "2026-06-13T13:40:08.618Z",
+          "attempts": 11
+        },
+        "summary": "Implements the `presets` command for inspecting preset trees and localized preset information. It prints a hierarchy view and indicates whether each preset provides templates.",
+        "detail": "The command reads the subcommand from `process.argv` and falls back to English if localized resources cannot be loaded. Tree rendering walks parent and child relationships recursively and formats the structure with branch prefixes. It checks each preset directory for a templates folder so the output reflects documentation asset availability. Errors use the shared exit code path to stay consistent with the rest of the CLI.",
+        "chapter": "cli_commands",
+        "role": "List and visualize preset inheritance trees.",
+        "keywords": [
+          "presets command",
+          "preset tree",
+          "template availability",
+          "localization fallback",
+          "CLI inspection",
+          "preset hierarchy"
+        ]
       },
       {
         "file": "src/presets/base/data/package.js",
@@ -10468,11 +10568,16 @@
       },
       {
         "file": "src/senti.js",
-        "hash": "181628f89fec2a45d61989be63b37ffb",
-        "lines": 124,
-        "mtime": "2026-06-11T14:37:10.220Z",
+        "hash": "c157464477342dcf2cffc016fb8bc168",
+        "lines": 157,
+        "mtime": "2026-06-13T13:38:12.256Z",
         "className": "senti",
-        "methods": [],
+        "methods": [
+          "isHelpRequest",
+          "helpTopic",
+          "hasCoreHelpMetadata",
+          "renderSharedHelp"
+        ],
         "imports": [
           "path",
           "node:url",
@@ -10484,22 +10589,21 @@
         "extends": null,
         "usedBy": null,
         "id": "a8608997",
-        "summary": "This file is the main CLI entrypoint for `senti`. It routes top-level arguments to namespace dispatchers, standalone scripts, or the container-backed command system.",
-        "detail": "The module reads raw CLI arguments early and handles help-style invocations by redirecting execution to a dedicated help script. It maintains explicit maps for namespace commands and independent scripts, then loads the target module dynamically with `import()` and adjusted `process.argv` values. For the remaining command surface, it initializes the dependency container and executes the shared handler pipeline. Exit behavior is normalized through explicit success and error codes, including JSON output for handled command results.",
+        "summary": "Acts as the top-level executable that dispatches core namespaces, independent scripts, shared help rendering, and plugin commands. It is the root of the project's multi-surface CLI model.",
+        "detail": "The module inspects raw arguments, special-cases version and help behavior, and forwards eligible help requests through the shared renderer. Namespace commands such as `docs`, `flow`, and `metrics` are routed to dedicated dispatcher scripts, while standalone commands are loaded from direct module paths. If no built-in handler matches, the code attempts plugin command dispatch and prints structured results for plugin-backed execution. Exit handling is centralized so success, help, and failure paths all produce consistent process codes.",
         "chapter": "project_structure",
-        "role": "top-level CLI dispatcher",
+        "role": "Serve as the main CLI dispatcher and help gateway.",
         "enrich": {
-          "processedAt": "2026-06-11T16:48:11.720Z",
+          "processedAt": "2026-06-13T13:40:08.618Z",
           "attempts": 1
         },
         "keywords": [
           "CLI entrypoint",
-          "command dispatcher",
-          "dynamic import",
-          "subcommand routing",
-          "namespace script",
-          "process argv",
-          "dependency container"
+          "command dispatch",
+          "plugin fallback",
+          "help routing",
+          "namespace scripts",
+          "top-level executable"
         ]
       },
       {
@@ -10549,8 +10653,23 @@
         "usedBy": null,
         "id": "9820c9db",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-06-13T13:38:55.904Z",
+          "attempts": 4
+        },
+        "summary": "`src/setup.js` implements the interactive project setup command for Senti. It collects or derives configuration, creates the required workspace structure, and writes bootstrap files for agents, presets, and ignore settings.",
+        "detail": "The module parses CLI arguments, loads existing defaults from `.senti/config.json`, and falls back to an interactive wizard when values are missing. It prepares project directories such as `.senti`, `docs`, `specs`, and output folders, then normalizes repository metadata files like `.gitignore` and `.gitattributes`. It also generates or updates agent-facing markdown files such as `AGENTS.md` or `CLAUDE.md`, including template-driven content and provider-specific defaults. Additional logic validates preset chains, merges agent defaults, deploys skills, resolves work directories, and persists the final configuration JSON before exiting.",
+        "chapter": "cli_commands",
+        "role": "CLI setup command entrypoint and project bootstrapper",
+        "keywords": [
+          "setup command",
+          "project bootstrap",
+          "interactive wizard",
+          "config generation",
+          "agent markdown",
+          "preset validation",
+          "gitignore normalization",
+          "workspace initialization"
+        ]
       },
       {
         "file": "src/spec.js",
@@ -10694,15 +10813,31 @@
         "usedBy": null,
         "id": "a631f658",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-06-13T13:38:55.904Z",
+          "attempts": 2
+        },
+        "summary": "`src/upgrade.js` implements the upgrade and migration command for moving older Senti project layouts and configuration into the current format. It handles text rewrites, file and directory renames, preset/plugin migration, and upgrade result reporting.",
+        "detail": "The module defines rename rules that systematically replace legacy `sdd-forge` names with `senti` equivalents across file contents, paths, skill directories, and environment-related identifiers. It includes migration helpers for legacy preset directories, plugin namespace changes, local preset manifest generation, and official provider installation checks. The upgrade flow reads and rewrites JSON config files, records changed files, normalizes `.gitignore`, and preserves upgrade diagnostics through structured logging and artifact output. The command also detects active upgrade flow context, supports dry-run behavior, validates preset chains and plugin state, and exits with explicit error handling when migration steps fail.",
+        "chapter": "cli_commands",
+        "role": "CLI upgrade command entrypoint and legacy migration engine",
+        "keywords": [
+          "upgrade command",
+          "migration",
+          "rename rules",
+          "legacy compatibility",
+          "preset migration",
+          "plugin registry",
+          "config rewrite",
+          "dry run",
+          "artifact logging"
+        ]
       }
     ],
     "summary": {
       "total": 209,
-      "totalMethods": 1670
+      "totalMethods": 1702
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-12T16:18:45.581Z"
+  "enrichedAt": "2026-06-13T13:40:08.618Z"
 }
