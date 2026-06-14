@@ -259,6 +259,12 @@ function officialPresetCandidateOptions({ required = false } = {}) {
   return { includeOfficialPresets: required || Boolean(root), officialPresetRoot: root };
 }
 
+function listInteractiveSetupPresetCandidates(projectRoot) {
+  return listSetupPresetCandidates(projectRoot, officialPresetCandidateOptions());
+}
+
+export const listSetupWizardPresetCandidates = listInteractiveSetupPresetCandidates;
+
 // ---------------------------------------------------------------------------
 // Interactive wizard (returns settings object)
 // ---------------------------------------------------------------------------
@@ -302,7 +308,7 @@ async function runWizard(defaults, t, { projectRoot } = {}) {
   }
 
   // --- Preset selection ---
-  const treeItems = buildTreeItems(listSetupPresetCandidates(projectRoot, officialPresetCandidateOptions({ required: true })));
+  const treeItems = buildTreeItems(listInteractiveSetupPresetCandidates(projectRoot));
   const presetDefaults = s.additionalTypes.length > 0
     ? [s.type, ...s.additionalTypes]
     : s.type ? [s.type] : [];

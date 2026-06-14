@@ -204,6 +204,25 @@ describe("setup retained behavior parity", () => {
     assert.match(setupSource, /listSetupPresetCandidates|buildSetupPresetTreeItems/);
   });
 
+  it("R7: setup wizard preset candidates tolerate an unresolved official source", async () => {
+    tmp = createTmpDir("senti-294-unresolved-official-");
+    const previousOfficialRoot = process.env.SENTI_OFFICIAL_PRESETS_REPO;
+    delete process.env.SENTI_OFFICIAL_PRESETS_REPO;
+
+    try {
+      const setup = await import(`../../../src/setup.js?spec294=${Date.now()}-${Math.random()}`);
+      assert.equal(typeof setup.listSetupWizardPresetCandidates, "function");
+      const candidates = setup.listSetupWizardPresetCandidates(tmp);
+      assert.ok(candidates.some((candidate) => candidate.key === "base"));
+    } finally {
+      if (previousOfficialRoot === undefined) {
+        delete process.env.SENTI_OFFICIAL_PRESETS_REPO;
+      } else {
+        process.env.SENTI_OFFICIAL_PRESETS_REPO = previousOfficialRoot;
+      }
+    }
+  });
+
   it("R10: spec-local tests declare requirement coverage headers", () => {
     const expected = new Map([
       ["preset-candidates.test.js", "// spec: R1 R2 R5 R9"],
