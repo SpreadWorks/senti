@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-14T14:37:54.664Z",
+  "analyzedAt": "2026-06-14T23:04:31.654Z",
   "package": {
     "entries": [
       {
@@ -22,7 +22,25 @@
         "composerDeps": null,
         "composerScripts": null,
         "makefileTest": null,
-        "id": "451a9f25"
+        "id": "451a9f25",
+        "summary": "This package manifest defines Senti as a Node.js ESM CLI for spec-driven documentation and source analysis. It exposes the `senti` executable, sets the runtime floor, and declares the test entrypoints used during development.",
+        "detail": "The manifest configures the package as an ES module and exports the same entry file for both library and CLI usage through `src/senti.js`. It limits published contents to `src/` while excluding preset test fixtures from distribution, which keeps the package footprint focused on runtime code. The `engines` field requires Node.js 18.19.0 or newer, showing an explicit runtime compatibility policy. Its script set separates unit, end-to-end, acceptance, agent, and aggregate test runs, which reflects a multi-scope validation workflow for the toolchain.",
+        "chapter": "stack_and_ops",
+        "role": "Package manifest and CLI distribution definition",
+        "enrich": {
+          "processedAt": "2026-06-14T23:04:56.145Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "package manifest",
+          "Node.js ESM",
+          "CLI entrypoint",
+          "npm bin",
+          "runtime requirements",
+          "test scripts",
+          "spec-driven development",
+          "documentation tooling"
+        ]
       }
     ],
     "summary": {
@@ -2569,9 +2587,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "745c2f1f8c55b54d1cef619e55258ef8",
-        "lines": 3426,
-        "mtime": "2026-06-09T08:02:50.452Z",
+        "hash": "af081302b73f168d9e7becdc49d8c22d",
+        "lines": 3437,
+        "mtime": "2026-06-14T23:04:20.651Z",
         "className": "review",
         "methods": [
           "writeReviewAttemptHistory",
@@ -2792,24 +2810,25 @@
         "extends": "Error",
         "usedBy": null,
         "id": "331cf497",
-        "enrich": {
-          "processedAt": "2026-06-09T17:07:35.166Z",
-          "attempts": 2
-        },
-        "summary": "Implements the `flow review` command and the full review pipeline for draft, spec, implementation, and test phases. It coordinates diff collection, prompt generation, AI calls, result validation, and artifact persistence.",
-        "detail": "This module acts as the central review orchestrator for the flow system, routing execution by phase and building the right review prompt from specs, diffs, guardrails, and prior review memory. It uses schema-validated JSON outputs with repair fallbacks, then normalizes and filters findings against touched files, requirement IDs, and review scope. The implementation includes specialized paths for loop-based implementation review, draft QA review, spec review, and test coverage review, each with its own artifact classes and markdown/JSON writers. It also maintains review history, assigns stable finding identifiers, writes per-attempt snapshots, and converts AI responses into durable review artifacts for later retries and lifecycle hooks.",
+        "summary": "This module implements the flow review command and the review pipeline used to evaluate specs, implementation changes, drafts, and tests. It coordinates Git diffs, spec context, AI prompts, schema validation, artifact persistence, and retry-oriented review loops.",
+        "detail": "The file aggregates review behavior for multiple phases, including implementation review, spec review, draft review, and test review, and routes each phase through specialized prompt builders and parsing logic. It uses Git-based diff collection, touched-file filtering, requirement-to-file mapping, and optional looped chunk review to keep reviews scoped to relevant changes. Several artifact classes and JSON schemas normalize structured findings, enforce validation, and persist both machine-readable and Markdown review outputs in spec-local files and review history. The implementation also includes repair flows for malformed AI responses, memory loading from previous review artifacts, lifecycle-aware retry handling, and guarded file writes for generated test fixes.",
         "chapter": "cli_commands",
-        "role": "Flow review command orchestrator",
+        "role": "Review command engine for the flow subsystem",
+        "enrich": {
+          "processedAt": "2026-06-14T23:04:56.145Z",
+          "attempts": 1
+        },
         "keywords": [
-          "flow review",
+          "review command",
           "code review pipeline",
-          "AI review",
-          "diff analysis",
           "spec review",
+          "implementation review",
           "test review",
-          "artifact persistence",
+          "Git diff analysis",
+          "prompt orchestration",
+          "artifact generation",
           "schema validation",
-          "review history"
+          "retry loop"
         ]
       },
       {
@@ -2933,14 +2952,31 @@
         ],
         "id": "2cb27b93",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-06-14T23:04:56.145Z",
+          "attempts": 4
+        },
+        "summary": "This module defines the flow and task workflow model, including step graphs, retry policies, lifecycle actions, and branch traversal helpers. It serves as the internal state machine behind review, gating, finalize, and task progression logic.",
+        "detail": "The file models workflow nodes with a `FlowNode` class, typed max-attempt strategies, failure policies, and optional side effects so execution behavior can be resolved from declarative definitions. It provides lifecycle action objects such as status updates, metric increments, step resets, hook execution, and issue logging, then maps those actions to phases like draft review, implementation review, gates, and finalize. Helper functions derive phase maps, prerequisite sets, next actions, leaf orders, active nodes, and nested initial step trees from the static flow definition. It also manages route-specific review artifacts and targeted cleanup logic, showing a design where orchestration rules are centralized and reusable across both full flows and task-level subflows.",
+        "chapter": "internal_design",
+        "role": "Workflow definition and lifecycle orchestration core",
+        "keywords": [
+          "workflow definition",
+          "state machine",
+          "flow graph",
+          "retry policy",
+          "lifecycle actions",
+          "step orchestration",
+          "phase mapping",
+          "task pipeline",
+          "prerequisite resolution",
+          "review routing"
+        ]
       },
       {
         "file": "src/flow/lib/acceptance-review-artifacts.js",
-        "hash": "cc02822bd5eeebaa2de2151b50cb1553",
-        "lines": 516,
-        "mtime": "2026-06-13T17:36:17.991Z",
+        "hash": "64510ae4d4b0e2b735d1de207b87ce09",
+        "lines": 545,
+        "mtime": "2026-06-14T23:04:20.651Z",
         "className": "acceptance-review-artifacts",
         "methods": [
           "AcceptanceFinding",
@@ -2964,6 +3000,8 @@
           "requireAcceptanceFinalDisposition",
           "normalizeArtifact",
           "validateDeferredFindingCoverage",
+          "sourceIncludesFindingId",
+          "deferredSourceBlockers",
           "flowOrderRange",
           "resetSteps",
           "markStep",
@@ -3009,7 +3047,7 @@
         ],
         "id": "aa8dda77",
         "enrich": {
-          "attempts": 3
+          "attempts": 1
         }
       },
       {
@@ -3059,9 +3097,9 @@
       },
       {
         "file": "src/flow/lib/artifact-completion.js",
-        "hash": "52abb489a64057c873b20a8e5d800f2c",
-        "lines": 243,
-        "mtime": "2026-06-14T08:44:32.742Z",
+        "hash": "da7faec999e8222da50b1612980fcd17",
+        "lines": 244,
+        "mtime": "2026-06-14T09:21:08.796Z",
         "className": "artifact-completion",
         "methods": [
           "ArtifactCompletionSuccess",
@@ -3533,7 +3571,7 @@
         ],
         "id": "1c664aa8",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -3627,7 +3665,7 @@
         ],
         "id": "f336678e",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -4174,7 +4212,7 @@
         ],
         "id": "9aca938f",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -4266,9 +4304,9 @@
       },
       {
         "file": "src/flow/lib/observation.js",
-        "hash": "83e649a6be3661894213712da6e6de1c",
-        "lines": 279,
-        "mtime": "2026-05-25T01:30:29.357Z",
+        "hash": "8a9023ddff22ef1efe9a41d60fede558",
+        "lines": 281,
+        "mtime": "2026-06-14T09:22:26.797Z",
         "className": "observation",
         "methods": [
           "Observation",
@@ -4300,24 +4338,8 @@
         ],
         "id": "1dd5bb71",
         "enrich": {
-          "processedAt": "2026-05-25T03:57:50.884Z",
-          "attempts": 2
-        },
-        "summary": "Provides typed domain objects for review observations, diagnoses, and next actions with strict normalization and policy checks. It also includes legacy evaluation migration into the new object model.",
-        "detail": "The module validates required fields, rejects unknown keys, normalizes location and references, and enforces controlled vocabularies for failure modes and severities. Severity policy logic encodes special rules, such as blocking requirements for diff-verifiable process-evidence gaps. `Observation`, `Diagnosis`, and `NextAction` classes encapsulate invariants, JSON serialization, markdown rendering, and stable hashing for deduplication. Legacy evaluation entries are transformed into first-class observations with fallback classification logic. This design keeps review semantics explicit and machine-consumable while preserving human-readable output.",
-        "chapter": "internal_design",
-        "role": "Review evidence domain model and normalization layer",
-        "keywords": [
-          "observation model",
-          "diagnosis",
-          "next action",
-          "failure mode",
-          "severity policy",
-          "data normalization",
-          "legacy migration",
-          "invariant enforcement",
-          "hash deduplication"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/overview-merge.js",
@@ -4663,7 +4685,7 @@
         "usedBy": null,
         "id": "45f8cc74",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4859,7 +4881,7 @@
         "usedBy": null,
         "id": "2d93c301",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -5306,9 +5328,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "cbf9d84c9cbd04af55c0342c26b17e96",
-        "lines": 3768,
-        "mtime": "2026-06-14T08:44:32.744Z",
+        "hash": "890559eadabcea1c7d0d979c7d575cae",
+        "lines": 3758,
+        "mtime": "2026-06-14T23:04:20.652Z",
         "className": "run-gate",
         "methods": [
           "completeGateArtifactBeforeSemanticEvaluation",
@@ -5394,10 +5416,8 @@
           "persistGateRecoveryBaseline",
           "isRetryHistoryGateEntry",
           "formatRetryHistory",
-          "gateTextOf",
-          "normalizedGateText",
-          "hasGateMechanicalBlocker",
-          "isGateContentAlignmentFinding",
+          "normalizeGateMode",
+          "hasStructuredCoverageFailure",
           "failedGateFindings",
           "gateSourceFindingId",
           "persistGateSourceFindingIds",
@@ -5533,24 +5553,25 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "Implements the flow gate pipeline that validates spec, draft, implementation, and integration phases before progress can continue. It combines artifact checks, diff analysis, AI guardrail evaluation, and retry/recovery handling into one command layer.",
-        "detail": "The module maps flow phases to gate levels, collects committed, uncommitted, and untracked diffs, and compacts them for prompt input under strict size limits. It validates multiple durable artifacts such as spec review files, draft review sets, integration outputs, and file maps before running semantic checks. For AI-backed evaluation, it builds structured prompts, enforces JSON-only response schemas, parses guardrail and requirement results, and converts them into normalized gate reports and next actions. It also tracks retry history, stores recovery baselines, detects repeated failures or no-progress states, persists source/result artifacts, and maintains implementation memory for later attempts.",
+        "summary": "Implements the flow gate runner that validates spec, draft, task implementation, and integration phases. It combines diff analysis, guardrail evaluation, retry handling, and artifact persistence into a single gate pipeline.",
+        "detail": "This module orchestrates gate execution across multiple flow phases by mapping phases to levels, selecting source and result artifacts, and running phase-specific validation before semantic evaluation. It builds AI-facing guardrail and requirement prompts from specs, diffs, file maps, and prior memory, then parses strict JSON responses with schema checks and explicit error types. The code also enforces lifecycle and audit rules for spec and draft artifacts, including triage, repair, monotonic task checks, and unresolved placeholder detection. For failure handling, it tracks retry counts, persists recovery baselines, detects repeated failures or no-progress states from git state and issue logs, and can defer exhausted retries by writing durable source artifacts. The `RunGateCommand` class ties these pieces into the CLI flow command and returns normalized pass/fail envelopes and gate result artifacts.",
         "chapter": "internal_design",
-        "role": "Flow gate orchestrator and semantic guardrail engine",
+        "role": "Flow gate engine for validation, guardrail judgment, retry control, and result artifact generation.",
         "enrich": {
-          "processedAt": "2026-06-14T08:46:19.562Z",
+          "processedAt": "2026-06-14T23:04:52.661Z",
           "attempts": 1
         },
         "keywords": [
-          "flow gate",
+          "gate runner",
           "guardrail evaluation",
-          "semantic validation",
+          "requirement checks",
           "diff analysis",
-          "retry recovery",
+          "retry handling",
           "artifact validation",
-          "implementation gate",
-          "integration check",
-          "JSON schema parsing"
+          "flow command",
+          "issue log",
+          "semantic gate",
+          "integration gate"
         ]
       },
       {
@@ -5917,9 +5938,9 @@
       },
       {
         "file": "src/flow/lib/run-review.js",
-        "hash": "5e4ad2af29abe8b5bfeba45765b0d7bf",
-        "lines": 705,
-        "mtime": "2026-06-14T08:44:32.744Z",
+        "hash": "e195471bcaf1870bdf34dbd5eb9d6886",
+        "lines": 700,
+        "mtime": "2026-06-14T15:16:18.655Z",
         "className": "run-review",
         "methods": [
           "countReviewRetry",
@@ -5937,11 +5958,10 @@
           "mutateReviewRecoveryState",
           "resolveDraftReviewPhaseKey",
           "reviewPhaseKeyForCtx",
-          "textOf",
           "normalizeFindingMode",
-          "normalizedReviewText",
-          "hasReviewMechanicalBlocker",
-          "isContentAlignmentFinding",
+          "isStructuredReviewMechanicalFinding",
+          "reviewArtifactHasStructuredCoverageFailure",
+          "isReviewSemanticFinding",
           "reviewFindingsFromArtifact",
           "reviewFindingId",
           "persistReviewSourceFindingIds",
@@ -6001,24 +6021,25 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "d4e97204",
-        "summary": "Runs review phases in the flow system and interprets the results from external review commands. It standardizes verdict parsing, retry limits, phase routing, and recovery behavior across spec, draft, test, and implementation reviews.",
-        "detail": "The module defines review phase constants, verdict enums, and mappings from phase to flow node so retry budgets and next-step routing stay consistent. It wraps subprocess execution with bounded retry and delay controls, then parses stdout, stderr, and generated JSON artifacts into normalized review results. For draft and implementation review paths, it resolves specialized retry phases, deferred outcomes, and downstream reset behavior when proposals require evidence changes. It also persists recovery baselines, updates retry counters, classifies failures, and converts tooling or verdict failures into flow envelopes and issue-log entries.",
+        "summary": "Implements the flow review runner for spec, draft, test, and implementation review phases. It parses subprocess review output, manages retries and recovery, and determines the next workflow step from review verdicts.",
+        "detail": "This module defines review-phase routing and verdict handling for the flow system, including implementation review, draft-question routes, and downstream reset behavior after proposal-driven reviews. It executes the external review command with bounded retry logic, configurable delay, and timeout handling, then parses structured stdout and stderr into normalized review results. The code distinguishes semantic findings from structured mechanical failures such as coverage issues, persists finding identifiers into review artifacts, and supports deferred outcomes when retry budgets are exhausted. It also updates retry counters, recovery baselines, and issue logs so the surrounding flow can resume consistently after failures or stops. The `RunReviewCommand` class exposes the behavior as a CLI-integrated flow command that returns envelope failures for unknown phases or cursor violations.",
         "chapter": "internal_design",
-        "role": "Review phase runner and verdict parser",
+        "role": "Flow review engine for phase-specific review execution, verdict parsing, retry management, and workflow routing.",
         "enrich": {
-          "processedAt": "2026-06-14T08:46:19.562Z",
+          "processedAt": "2026-06-14T23:04:52.661Z",
           "attempts": 1
         },
         "keywords": [
-          "review pipeline",
-          "verdict parsing",
-          "subprocess retry",
+          "review runner",
+          "review verdict",
           "flow review",
+          "subprocess retry",
           "implementation review",
           "draft review",
-          "issue log",
-          "retry budget",
-          "phase routing"
+          "artifact parsing",
+          "coverage failure",
+          "workflow routing",
+          "CLI command"
         ]
       },
       {
@@ -11012,9 +11033,9 @@
     ],
     "summary": {
       "total": 212,
-      "totalMethods": 1822
+      "totalMethods": 1821
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-14T08:47:00.298Z"
+  "enrichedAt": "2026-06-14T23:05:16.875Z"
 }
