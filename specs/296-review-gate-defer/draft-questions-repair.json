@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Rewrote four leading draft questions into neutral decision questions without changing scope, requirements, or known facts.",
+  "items": [
+    {
+      "title": "1. Leading confirmation wording",
+      "target": "q1",
+      "rationale": "Removed the embedded desired outcome and asked for the retry-exhaustion behavior decision neutrally.",
+      "evidence": "draft.json qa[0].question now asks what should happen when retry limits are exhausted with unresolved AI semantic findings.",
+      "changedFieldPaths": [
+        "qa[0].question"
+      ]
+    },
+    {
+      "title": "2. Leading confirmation wording",
+      "target": "q2",
+      "rationale": "Removed the embedded mechanical-classification rule and asked what evidence should determine mechanical status.",
+      "evidence": "draft.json qa[1].question now asks what evidence should determine whether a finding is mechanical rather than semantic.",
+      "changedFieldPaths": [
+        "qa[1].question"
+      ]
+    },
+    {
+      "title": "3. Leading confirmation wording",
+      "target": "q3",
+      "rationale": "Removed the embedded desired test-review outcome and asked for the retry-limit behavior neutrally.",
+      "evidence": "draft.json qa[2].question now asks what behavior test-review should have at retry limit with unresolved semantic findings.",
+      "changedFieldPaths": [
+        "qa[2].question"
+      ]
+    },
+    {
+      "title": "4. Leading confirmation wording",
+      "target": "q4",
+      "rationale": "Removed the embedded acceptance-review outcome list and asked for the responsibility neutrally.",
+      "evidence": "draft.json qa[3].question now asks what responsibility acceptance-review should have for flow-findings.json entries.",
+      "changedFieldPaths": [
+        "qa[3].question"
+      ]
+    }
+  ]
+}

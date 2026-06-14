@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "All four repair targets are valid leading-question wording issues and can be repaired by neutralizing the question text.",
+  "items": [
+    {
+      "title": "1. Leading confirmation wording",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "The current q1 question embeds the desired behavior instead of asking for the behavior decision.",
+      "evidence": "draft.json qa[0].question starts with \"Confirm the intended user-visible behavior\" and states the exact desired outcome."
+    },
+    {
+      "title": "2. Leading confirmation wording",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "The current q2 question embeds the desired classification boundary instead of asking what should determine the boundary.",
+      "evidence": "draft.json qa[1].question starts with \"Confirm the mechanical classification boundary\" and states the exact desired rule."
+    },
+    {
+      "title": "3. Leading confirmation wording",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "The current q3 question embeds the desired test-review behavior instead of asking what behavior should apply.",
+      "evidence": "draft.json qa[2].question starts with \"Confirm test-review behavior\" and states the exact desired outcome."
+    },
+    {
+      "title": "4. Leading confirmation wording",
+      "target": "q4",
+      "decision": "apply",
+      "rationale": "The current q4 question embeds the desired acceptance-review responsibility instead of asking what responsibility should apply.",
+      "evidence": "draft.json qa[3].question starts with \"Confirm acceptance-review responsibility\" and states the exact desired responsibility."
+    }
+  ]
+}

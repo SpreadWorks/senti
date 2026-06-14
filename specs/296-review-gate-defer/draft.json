@@ -1,0 +1,120 @@
+{
+  "devType": "bugfix",
+  "goal": "Review, gate, and test-review must delegate unresolved AI semantic findings to acceptance-review when their retry limits are exhausted, instead of stopping the flow for user recovery.",
+  "analysis": {
+    "problem": "Issue #386 reports remaining review/gate paths that still return REVIEW_MAX_ATTEMPTS_EXCEEDED, GATE_MAX_ATTEMPTS_EXCEEDED, ESCALATE_RETRY_EXHAUSTED, or equivalent stop guidance after the configured AI retry budget is exhausted. Existing retry exhaustion code already has a flow-findings.json deferral path, but review/gate can reject deferral by applying regex-based mechanical classification to AI finding prose, and prompts still instruct the skill to STOP at the retry limit.",
+    "proposedApproach": "must: Use the existing flow-findings.json and acceptance-review lifecycle as the main retry-exhaustion path. Semantic AI findings are recorded as deferred findings and the source step completes; deterministic tooling, schema, command, coverage, header, and artifact failures are identified by structured prechecks or structured artifact fields before AI semantic retry budget is consumed. Test-review joins the same bounded fix/re-review/defer behavior instead of remaining a one-shot stop path.",
+    "validation": "The approach addresses the root problem because it changes the retry-exhaustion contract rather than adding another manual reset path. The known affected surfaces are src/flow/lib/run-review.js, src/flow/lib/run-gate.js, src/flow/lib/flow-judgment-contract.js, src/flow/commands/review.js, flow prompt files that mention retry-limit STOP behavior, and unit/e2e tests that assert retry exhaustion behavior."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #386 defines retry-limit stopping in review/gate/test-review as a bug against the expected flow behavior.",
+      "must: src/flow/lib/run-review.js already imports deferExhaustedSemanticFindings and writes flow-findings.json when tryDeferReviewRetryExhaustion succeeds.",
+      "must: src/flow/lib/run-gate.js already imports deferExhaustedSemanticFindings and has tryDeferGateRetryExhaustion, but classifyGateRetryExhaustionSource can reject AI findings as mechanical_or_mixed_findings.",
+      "must: src/flow/prompts/plan/test-review.md currently says REVIEW_MAX_ATTEMPTS_EXCEEDED returns control to the user.",
+      "must: src/flow/prompts/impl/acceptance-review.md says acceptance-review reads implementation evidence, test evidence, issue-log, retro, and report evidence, and routes non-pass verdicts before final-regression.",
+      "should: docs/ja/internal_design.md describes flow subcommands as FlowCommand-based modules with state persistence in FlowManager, so retry exhaustion behavior belongs in the flow command/state boundary rather than in project-specific callers."
+    ],
+    "decisionPoints": [
+      "must: Define retry exhaustion for AI semantic findings as a normal deferred-completion path, not a user-stop path.",
+      "must: Define mechanical/tooling failures by structured precheck results or structured artifact fields, not by regex matching words in AI finding title/body/reason text.",
+      "must: Decide how test-review performs bounded repair/re-review and delegates unresolved findings when its retry limit is reached.",
+      "must: Inventory existing public retry-limit behavior before replacement: flow run review can return REVIEW_MAX_ATTEMPTS_EXCEEDED with retry reset guidance; flow run gate can return ESCALATE_RETRY_EXHAUSTED with stop guidance; plan/test-review prompt currently describes one-shot review and STOP recovery.",
+      "must: Map retained retry behaviors to new owners: review/gate/test-review own source finding capture and step completion, flow-findings.json owns durable deferred finding references, acceptance-review owns final disposition, and structured prechecks own non-semantic tooling/schema/command failures.",
+      "should: Preserve existing structured override behavior for TOOLING_FAILURE and other non-semantic failures without counting them as AI semantic retries.",
+      "should: Update prompt guidance consistently so the skill no longer instructs STOP for retry-limit cases that delegate to acceptance-review."
+    ],
+    "resolvedByProjectRules": [
+      "must: This Issue is treated as one concern; do not split it into multiple specs.",
+      "must: No external dependencies may be added; implementation uses Node.js built-in modules and existing local helpers.",
+      "must: Values with meaningful structure are represented by classes or existing domain objects rather than ad hoc discriminated unions.",
+      "must: Because src/flow/prompts or src/skills changes may occur, run senti upgrade if source prompt/template files under src/skills or src/presets are changed."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: flow-findings.json entries contain findingId, sourceStep, sourceArtifact, sourceFindingId, retryExhausted=true, attempts, round, completionKind=deferred, and finalDisposition=null until acceptance-review mirrors the final disposition.",
+      "must: Source artifacts retain full finding detail while flow-findings.json stores bounded references only; acceptance-review resolves details through sourceArtifact and sourceFindingId.",
+      "must: Behavior tests cover review retry limit, gate retry limit, test-review retry limit, acceptance-review deferred finding input, and structured non-semantic precheck blocking.",
+      "should: Specify prompt placement updates for plan and impl review/gate instructions."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: Review retry exhaustion paths for draft, spec, test, and impl review phases that currently can stop with REVIEW_MAX_ATTEMPTS_EXCEEDED.",
+      "must: Gate retry exhaustion paths for draft, spec, task-impl, and integration gate phases that currently can stop with ESCALATE_RETRY_EXHAUSTED or equivalent.",
+      "must: Test-review behavior, including static review FAIL repair/re-review and retry-limit delegation to acceptance-review.",
+      "must: flow-findings.json recording and acceptance-review visibility of deferred unresolved AI findings.",
+      "must: Migration parity for retry-limit behavior: preserve bounded retry attempts, preserve structured recovery for non-semantic failures, replace semantic retry-limit stop output with deferred finding handoff, and verify each changed command/step through behavior-level tests.",
+      "must: Removal or reduction of regex-based mechanical classification over AI finding prose in review/gate and completion contract logic.",
+      "must: Deterministic precheck handling for test coverage/header/tooling/schema/command/artifact failures before AI semantic retry budget is consumed.",
+      "must: Prompt and test updates for retry-limit delegation behavior."
+    ],
+    "out": [
+      "must: No unrelated flow lifecycle redesign outside retry exhaustion and deferred finding routing.",
+      "must: No project-specific logic or paths from the external OOS_echub reference.",
+      "must: No release publishing or npm dist-tag work.",
+      "should: No weakening of required test-execute, test-result-review, impl-review, impl-gate, acceptance-review, final-regression, or finalize steps."
+    ]
+  },
+  "impactOnExisting": [
+    "must: CLI behavior changes for flow run review and flow run gate when retry limits are reached after unresolved AI semantic findings remain.",
+    "must: Existing retry recovery messages and prompt instructions that tell the skill to STOP are replaced for deferrable semantic findings.",
+    "must: flow-findings.json becomes the durable handoff artifact from review/gate/test-review retry exhaustion to acceptance-review.",
+    "must: acceptance-review considers deferred findings in its final pass/amend/blocked/user-decision decision.",
+    "must: Behavior-level verification covers these retained public surfaces: flow run review at retry limit completes with flow-findings.json for semantic findings; flow run gate at retry limit completes with flow-findings.json for semantic findings; test-review at retry limit delegates semantic findings; structured tooling/schema/command failures remain blocking or require explicit override evidence.",
+    "must: Plan-phase and implementation-phase deferred semantic findings share the same owner chain: source review/gate/test-review writes references, the source step completes, later flow steps continue, and acceptance-review owns the final disposition before final-regression.",
+    "should: Tooling/schema/command failures continue to block or require explicit override evidence instead of being silently deferred as semantic findings."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "What should happen when review, gate, or test-review exhausts its retry limit while unresolved AI semantic findings remain?",
+      "answer": "must: At retry limit, the source step records unresolved AI semantic findings in flow-findings.json, marks the target step complete, and continues to acceptance-review instead of stopping for retry reset.",
+      "evidence": "Issue #386 Fix Policy: \"When the retry limit is reached in review / gate, do not stop; record unresolved AI findings in flow-findings.json\" and \"After recording them in flow-findings.json, mark the target step as done and proceed to the next step.\"",
+      "why": "must: The request defines retry-limit stopping as the bug. Existing source already has deferExhaustedSemanticFindings in src/flow/lib/run-review.js and src/flow/lib/run-gate.js, so the spec makes that path the required behavior.",
+      "considered": "Keeping REVIEW_MAX_ATTEMPTS_EXCEEDED / ESCALATE_RETRY_EXHAUSTED as a user-stop path was rejected because it contradicts Issue #386 acceptance criteria.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "What evidence should determine whether a finding is mechanical rather than an AI semantic finding?",
+      "answer": "must: Mechanical status comes from deterministic prechecks or structured artifact fields such as toolingFailure, command exit status, invalid schema, failed test evidence, no-progress guard, or flow-state corruption. AI finding prose alone does not determine mechanical status.",
+      "evidence": "Issue #386 states that finding title/body words such as test, missing, or invalid must not drive mechanical/mixed classification; src/flow/lib/run-gate.js currently has hasGateMechanicalBlocker and classifyGateRetryExhaustionSource text matching that can produce mechanical_or_mixed_findings.",
+      "why": "must: The bug occurs when semantic AI findings are rejected from deferral because prose regexes infer a mechanical category. Moving the boundary to structured prechecks preserves deterministic failures while allowing semantic findings to reach acceptance-review.",
+      "considered": "Keeping regex matching over title/body/reason text was rejected because it misclassifies examples such as test-review R10/R12 from the referenced failure.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "What behavior should test-review have when retry limits are reached and unresolved AI semantic findings remain?",
+      "answer": "must: Test-review supports bounded fix and re-review attempts for AI semantic findings, then delegates unresolved semantic findings to acceptance-review at the retry limit. TOOLING_FAILURE and other structured non-semantic failures remain separate from semantic retry consumption.",
+      "evidence": "Issue #386 Fix Policy says \"test-review should also perform fixes and re-review until the retry limit, and delegate to acceptance-review when the limit is reached\"; src/flow/prompts/plan/test-review.md currently says test-review is one-shot and stops on REVIEW_MAX_ATTEMPTS_EXCEEDED.",
+      "why": "must: The referenced failure stopped in test-review after AI findings R10/R12. Treating test-review as part of the same bounded retry/defer model closes that remaining stop path.",
+      "considered": "Leaving test-review as one-shot was rejected because Issue #386 names it as a current problem area and includes it in acceptance criteria.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "What responsibility should acceptance-review have for findings deferred in flow-findings.json?",
+      "answer": "must: Acceptance-review reads deferred findings from flow-findings.json together with the normal implementation, test, issue-log, retro, and report evidence, then decides pass, amend_required, blocked, or user_decision_required.",
+      "evidence": "Issue #386 Acceptance Criteria says acceptance-review reads deferred findings and reflects them in the final decision; src/flow/prompts/impl/acceptance-review.md defines pass, amend_required, blocked, and user_decision_required routing before final-regression.",
+      "why": "must: Deferral is safe only if a later acceptance step owns the final decision. This keeps review/gate focused on bounded cleanup while preserving a blocking decision point before final-regression.",
+      "considered": "Treating deferred findings as automatically accepted risk was rejected because Issue #386 says acceptance-review must decide repair, amend, or blocked if necessary.",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-14T14:43:20.000Z",
+    "notes": "autoApprove accepted Issue #386 preflight summary; draft-refine answered all QA from Issue content and source context."
+  }
+}

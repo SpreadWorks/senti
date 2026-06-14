@@ -1,0 +1,501 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-14T15:32:17.794Z",
+  "verdict": "ADVISORY",
+  "summary": {
+    "blocking": 0,
+    "nonBlocking": 26,
+    "total": 26
+  },
+  "blockingFindings": [],
+  "nonBlockingImprovements": [
+    {
+      "title": "1. Bound generated header findings",
+      "failureMode": "refactor",
+      "file": "src/flow/commands/review.js",
+      "issue": "**File:** `src/flow/commands/review.js`  \n**Issue:** `buildHeaderBlockingFindings()` iterates over every array in `headerResult` without an explicit cap. A malformed or huge `test-coverage.json` could produce unbounded findings, violating the bounded-resource-usage guardrail.  \n**Suggestion:** Add a shared maximum, such as `MAX_HEADER_BLOCKING_FINDINGS`, stop after that count, and optionally append one summary finding indicating additional failures were omitted.",
+      "suggestion": "**File:** `src/flow/commands/review.js`  \n**Issue:** `buildHeaderBlockingFindings()` iterates over every array in `headerResult` without an explicit cap. A malformed or huge `test-coverage.json` could produce unbounded findings, violating the bounded-resource-usage guardrail.  \n**Suggestion:** Add a shared maximum, such as `MAX_HEADER_BLOCKING_FINDINGS`, stop after that count, and optionally append one summary finding indicating additional failures were omitted.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Prevent metadata override in header finding factory",
+      "failureMode": "refactor",
+      "file": "src/flow/commands/review.js",
+      "issue": "**File:** `src/flow/commands/review.js`  \n**Issue:** `headerFinding()` sets `origin` and `failureKind` before spreading `item`, so a future caller could accidentally override the structured metadata.  \n**Suggestion:** Reverse the spread order:\n\n```js\nconst headerFinding = (failureKind, item) => new TestReviewFinding(\"blocking\", {\n  ...item,\n  origin: \"test-coverage\",\n  failureKind,\n});\n```",
+      "suggestion": "**File:** `src/flow/commands/review.js`  \n**Issue:** `headerFinding()` sets `origin` and `failureKind` before spreading `item`, so a future caller could accidentally override the structured metadata.  \n**Suggestion:** Reverse the spread order:\n\n```js\nconst headerFinding = (failureKind, item) => new TestReviewFinding(\"blocking\", {\n  ...item,\n  origin: \"test-coverage\",\n  failureKind,\n});\n```",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Extract optional string normalization",
+      "failureMode": "refactor",
+      "file": "src/flow/commands/review.js",
+      "issue": "**File:** `src/flow/commands/review.js`  \n**Issue:** `origin` and `failureKind` duplicate the same trim/non-empty normalization logic.  \n**Suggestion:** Add a small helper, for example `normalizeOptionalTestReviewText(value)`, and use it for both fields to keep future optional structured fields consistent.",
+      "suggestion": "**File:** `src/flow/commands/review.js`  \n**Issue:** `origin` and `failureKind` duplicate the same trim/non-empty normalization logic.  \n**Suggestion:** Add a small helper, for example `normalizeOptionalTestReviewText(value)`, and use it for both fields to keep future optional structured fields consistent.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "4. Reduce repeated header-finding loop structure",
+      "failureMode": "refactor",
+      "file": "src/flow/commands/review.js",
+      "issue": "**File:** `src/flow/commands/review.js`  \n**Issue:** `buildHeaderBlockingFindings()` now repeats the same pattern for every header error type: read array, map entry, create blocking finding with a `failureKind`.  \n**Suggestion:** Consider a descriptor table with `{ key, failureKind, buildItem }` entries and one loop over descriptors. That would make it harder for future header failure types to forget `origin` or `failureKind`.",
+      "suggestion": "**File:** `src/flow/commands/review.js`  \n**Issue:** `buildHeaderBlockingFindings()` now repeats the same pattern for every header error type: read array, map entry, create blocking finding with a `failureKind`.  \n**Suggestion:** Consider a descriptor table with `{ key, failureKind, buildItem }` entries and one loop over descriptors. That would make it harder for future header failure types to forget `origin` or `failureKind`.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Avoid Unbounded Deferred Source Scanning",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/acceptance-review-artifacts.js",
+      "issue": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Issue:** `deferredSourceBlockers` iterates every deferred finding and `sourceIncludesFindingId` stringifies each source artifact. The new processing path has no visible upper bound on finding count or serialized source size.  \n**Suggestion:** Enforce an explicit cap before scanning, or rely on and document a bounded normalized deferred-findings collection. Prefer checking structured fields over `JSON.stringify(...).includes(...)`.",
+      "suggestion": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Issue:** `deferredSourceBlockers` iterates every deferred finding and `sourceIncludesFindingId` stringifies each source artifact. The new processing path has no visible upper bound on finding count or serialized source size.  \n**Suggestion:** Enforce an explicit cap before scanning, or rely on and document a bounded normalized deferred-findings collection. Prefer checking structured fields over `JSON.stringify(...).includes(...)`.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Replace Broad String Matching With Structured Lookup",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/acceptance-review-artifacts.js",
+      "issue": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Issue:** `sourceIncludesFindingId` can produce false positives by matching the finding ID anywhere in the serialized artifact, including unrelated fields or substrings.  \n**Suggestion:** Inspect the expected source artifact shape directly and compare against finding ID fields exactly, for example by walking known finding arrays and matching `id === sourceFindingId`.",
+      "suggestion": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Issue:** `sourceIncludesFindingId` can produce false positives by matching the finding ID anywhere in the serialized artifact, including unrelated fields or substrings.  \n**Suggestion:** Inspect the expected source artifact shape directly and compare against finding ID fields exactly, for example by walking known finding arrays and matching `id === sourceFindingId`.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Align Helper Naming With Existing Classifier Pattern",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/acceptance-review-artifacts.js",
+      "issue": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Issue:** `deferredSourceBlockers` returns mechanical blockers but is named like a data accessor rather than a classifier/build step.  \n**Suggestion:** Rename it to something like `classifyDeferredSourceBlockers` or `buildDeferredSourceBlockers` to match `classifyMechanicalBlockers` and make the returned type clearer.",
+      "suggestion": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Issue:** `deferredSourceBlockers` returns mechanical blockers but is named like a data accessor rather than a classifier/build step.  \n**Suggestion:** Rename it to something like `classifyDeferredSourceBlockers` or `buildDeferredSourceBlockers` to match `classifyMechanicalBlockers` and make the returned type clearer.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Combine Finding Sources Before Classification",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-gate.js",
+      "issue": "**File:** `src/flow/lib/run-gate.js`  \n**Issue:** `failedGateFindings()` now returns `blockingFindings` immediately when present, skipping failed `evaluations` and `observations`. That can hide structured coverage/header failures if `blockingFindings` contains only semantic findings.  \n**Suggestion:** Build one combined findings list from `blockingFindings`, failed `evaluations`, and `observations`, then classify across the full set.",
+      "suggestion": "**File:** `src/flow/lib/run-gate.js`  \n**Issue:** `failedGateFindings()` now returns `blockingFindings` immediately when present, skipping failed `evaluations` and `observations`. That can hide structured coverage/header failures if `blockingFindings` contains only semantic findings.  \n**Suggestion:** Build one combined findings list from `blockingFindings`, failed `evaluations`, and `observations`, then classify across the full set.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Add Explicit Bounds When Collecting Findings",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-gate.js",
+      "issue": "**File:** `src/flow/lib/run-gate.js`  \n**Issue:** `failedGateFindings()` can return unbounded arrays from `blockingFindings`, `evaluations`, or `observations`, which conflicts with the `bounded-resource-usage` guardrail and R6’s bounded deferred-finding references.  \n**Suggestion:** Apply a shared max findings constant when collecting/classifying retry-exhausted findings, and ensure downstream deferred references are capped consistently.",
+      "suggestion": "**File:** `src/flow/lib/run-gate.js`  \n**Issue:** `failedGateFindings()` can return unbounded arrays from `blockingFindings`, `evaluations`, or `observations`, which conflicts with the `bounded-resource-usage` guardrail and R6’s bounded deferred-finding references.  \n**Suggestion:** Apply a shared max findings constant when collecting/classifying retry-exhausted findings, and ensure downstream deferred references are capped consistently.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Clarify semantic classification name",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-review.js",
+      "issue": "**File:** `src/flow/lib/run-review.js`  \n**Issue:** `isReviewSemanticFinding()` currently means “not a structured mechanical finding,” which is broader than proving the finding is semantic. That name can mislead future changes into treating unknown structured values as positively semantic.  \n**Suggestion:** Rename it to something like `isDeferableReviewFinding()` or `isNotStructuredMechanicalReviewFinding()`, and keep the defer-specific intent local to `tryDeferReviewRetryExhaustion()`.",
+      "suggestion": "**File:** `src/flow/lib/run-review.js`  \n**Issue:** `isReviewSemanticFinding()` currently means “not a structured mechanical finding,” which is broader than proving the finding is semantic. That name can mislead future changes into treating unknown structured values as positively semantic.  \n**Suggestion:** Rename it to something like `isDeferableReviewFinding()` or `isNotStructuredMechanicalReviewFinding()`, and keep the defer-specific intent local to `tryDeferReviewRetryExhaustion()`.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Reduce duplicated failure-mode checks",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-review.js",
+      "issue": "**File:** `src/flow/lib/run-review.js`  \n**Issue:** `isStructuredReviewMechanicalFinding()` normalizes and checks `failureKind` and `failureMode` separately against the same set. This duplicates the membership logic and makes future structured fields easier to miss.  \n**Suggestion:** Use a small helper or array check, for example normalize the candidate fields into an array and return `modes.some(mode => REVIEW_STRUCTURED_MECHANICAL_FAILURE_MODES.has(mode))`.",
+      "suggestion": "**File:** `src/flow/lib/run-review.js`  \n**Issue:** `isStructuredReviewMechanicalFinding()` normalizes and checks `failureKind` and `failureMode` separately against the same set. This duplicates the membership logic and makes future structured fields easier to miss.  \n**Suggestion:** Use a small helper or array check, for example normalize the candidate fields into an array and return `modes.some(mode => REVIEW_STRUCTURED_MECHANICAL_FAILURE_MODES.has(mode))`.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Make coverage artifact helper more specific",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-review.js",
+      "issue": "**File:** `src/flow/lib/run-review.js`  \n**Issue:** `reviewArtifactHasStructuredCoverageFailure()` sounds generic, but it specifically reads `test-coverage.json` and checks `validation.ok === false`.  \n**Suggestion:** Rename it to `testCoverageArtifactHasValidationFailure()` or similar so callers can immediately see that this is the test-review coverage artifact path, not a general review artifact inspection.",
+      "suggestion": "**File:** `src/flow/lib/run-review.js`  \n**Issue:** `reviewArtifactHasStructuredCoverageFailure()` sounds generic, but it specifically reads `test-coverage.json` and checks `validation.ok === false`.  \n**Suggestion:** Rename it to `testCoverageArtifactHasValidationFailure()` or similar so callers can immediately see that this is the test-review coverage artifact path, not a general review artifact inspection.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Add Explicit Bounds For Deferred Artifact Reads",
+      "failureMode": "refactor",
+      "file": "src/flow/prompts/impl/acceptance-review.md",
+      "issue": "**File:** `src/flow/prompts/impl/acceptance-review.md`\n**Issue:** The prompt now instructs acceptance-review to read `flow-findings.json` and source artifacts referenced by deferred findings, but it does not define limits on finding count, artifact count, artifact size, or total loaded content. This violates the bounded-resource-usage guardrail.\n**Suggestion:** Add explicit caps, for example: maximum deferred findings processed, maximum source artifacts per finding, maximum bytes/characters per artifact, and maximum total loaded content. Also specify the fallback behavior when limits are exceeded, such as producing `blocked` with a clear rationale.",
+      "suggestion": "**File:** `src/flow/prompts/impl/acceptance-review.md`\n**Issue:** The prompt now instructs acceptance-review to read `flow-findings.json` and source artifacts referenced by deferred findings, but it does not define limits on finding count, artifact count, artifact size, or total loaded content. This violates the bounded-resource-usage guardrail.\n**Suggestion:** Add explicit caps, for example: maximum deferred findings processed, maximum source artifacts per finding, maximum bytes/characters per artifact, and maximum total loaded content. Also specify the fallback behavior when limits are exceeded, such as producing `blocked` with a clear rationale.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Make `finalDisposition` Values Explicit",
+      "failureMode": "refactor",
+      "file": "src/flow/prompts/impl/acceptance-review.md",
+      "issue": "**File:** `src/flow/prompts/impl/acceptance-review.md`\n**Issue:** “Deferred findings must receive a bounded `finalDisposition`” says the value is bounded, but does not name the allowed values. That leaves room for inconsistent string values in `flow-findings.json`.\n**Suggestion:** Enumerate the allowed `finalDisposition` values in the prompt, or refer directly to the existing schema-defined enum if one exists.",
+      "suggestion": "**File:** `src/flow/prompts/impl/acceptance-review.md`\n**Issue:** “Deferred findings must receive a bounded `finalDisposition`” says the value is bounded, but does not name the allowed values. That leaves room for inconsistent string values in `flow-findings.json`.\n**Suggestion:** Enumerate the allowed `finalDisposition` values in the prompt, or refer directly to the existing schema-defined enum if one exists.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Preserve Explicit Retry Bound",
+      "failureMode": "refactor",
+      "file": "src/flow/prompts/impl/impl-gate.md",
+      "issue": "**File:** `src/flow/prompts/impl/impl-gate.md`  \n**Issue:** The updated text says “At semantic retry exhaustion” but removes the explicit `maxAttempts` bound that previously made retry behavior concrete. This weakens bounded-resource clarity and may violate the `bounded-resource-usage` guardrail.  \n**Suggestion:** Reintroduce the bound while keeping the new deferral behavior, e.g. “If semantic gate retries are exhausted within the definition’s `maxAttempts` limit, unresolved gate findings are recorded…”",
+      "suggestion": "**File:** `src/flow/prompts/impl/impl-gate.md`  \n**Issue:** The updated text says “At semantic retry exhaustion” but removes the explicit `maxAttempts` bound that previously made retry behavior concrete. This weakens bounded-resource clarity and may violate the `bounded-resource-usage` guardrail.  \n**Suggestion:** Reintroduce the bound while keeping the new deferral behavior, e.g. “If semantic gate retries are exhausted within the definition’s `maxAttempts` limit, unresolved gate findings are recorded…”",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Keep CLI Outcome Naming Consistent",
+      "failureMode": "refactor",
+      "file": "src/flow/prompts/impl/impl-gate.md",
+      "issue": "**File:** `src/flow/prompts/impl/impl-gate.md`  \n**Issue:** The previous instruction named the CLI outcome `ESCALATE_RETRY_EXHAUSTED`; the new wording replaces it with prose only. That makes this prompt less consistent with CLI-facing instructions and harder to trace mechanically.  \n**Suggestion:** Mention the CLI code alongside the semantic behavior, e.g. “When the CLI returns `ESCALATE_RETRY_EXHAUSTED` for semantic findings…”",
+      "suggestion": "**File:** `src/flow/prompts/impl/impl-gate.md`  \n**Issue:** The previous instruction named the CLI outcome `ESCALATE_RETRY_EXHAUSTED`; the new wording replaces it with prose only. That makes this prompt less consistent with CLI-facing instructions and harder to trace mechanically.  \n**Suggestion:** Mention the CLI code alongside the semantic behavior, e.g. “When the CLI returns `ESCALATE_RETRY_EXHAUSTED` for semantic findings…”",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Preserve the Explicit Retry-Exceeded Trigger",
+      "failureMode": "refactor",
+      "file": "src/flow/prompts/impl/impl-review.md",
+      "issue": "**File:** `src/flow/prompts/impl/impl-review.md`  \n**Issue:** The updated text removes the concrete `REVIEW_MAX_ATTEMPTS_EXCEEDED` condition and payload details, replacing them with the vaguer phrase “At semantic retry exhaustion.” That makes the prompt less precise and less consistent with nearby condition-driven bullets.  \n**Suggestion:** Reintroduce the explicit trigger name, then describe the semantic vs non-semantic behavior under it.",
+      "suggestion": "**File:** `src/flow/prompts/impl/impl-review.md`  \n**Issue:** The updated text removes the concrete `REVIEW_MAX_ATTEMPTS_EXCEEDED` condition and payload details, replacing them with the vaguer phrase “At semantic retry exhaustion.” That makes the prompt less precise and less consistent with nearby condition-driven bullets.  \n**Suggestion:** Reintroduce the explicit trigger name, then describe the semantic vs non-semantic behavior under it.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Consolidate Recovery Guidance",
+      "failureMode": "refactor",
+      "file": "src/flow/prompts/impl/impl-review.md",
+      "issue": "**File:** `src/flow/prompts/impl/impl-review.md`  \n**Issue:** Recovery behavior is now spread across adjacent bullets: non-semantic failures mention retry reset, the next bullet explains recovery reason/audit/evidence behavior, and provider/input-size recovery is separate. This makes the retry policy harder to scan.  \n**Suggestion:** Group recovery rules under one `Recovery:` bullet with subclauses for semantic deferral, non-semantic retry reset, and provider/input-size recovery.",
+      "suggestion": "**File:** `src/flow/prompts/impl/impl-review.md`  \n**Issue:** Recovery behavior is now spread across adjacent bullets: non-semantic failures mention retry reset, the next bullet explains recovery reason/audit/evidence behavior, and provider/input-size recovery is separate. This makes the retry policy harder to scan.  \n**Suggestion:** Group recovery rules under one `Recovery:` bullet with subclauses for semantic deferral, non-semantic retry reset, and provider/input-size recovery.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Resolve PASS-only contradiction",
+      "failureMode": "refactor",
+      "file": "src/flow/prompts/plan/draft-gate.md",
+      "issue": "**File:** `src/flow/prompts/plan/draft-gate.md`  \n**Issue:** The new retry-exhaustion behavior says semantic findings can be deferred to `acceptance-review`, but the later instruction still says “Do not proceed until PASS,” which conflicts with R8.  \n**Suggestion:** Change the final instruction to allow either `PASS` or documented semantic retry exhaustion, e.g. “Do not proceed until PASS, except when semantic retry exhaustion has recorded unresolved findings in `flow-findings.json` and the gate step completed as deferred.”",
+      "suggestion": "**File:** `src/flow/prompts/plan/draft-gate.md`  \n**Issue:** The new retry-exhaustion behavior says semantic findings can be deferred to `acceptance-review`, but the later instruction still says “Do not proceed until PASS,” which conflicts with R8.  \n**Suggestion:** Change the final instruction to allow either `PASS` or documented semantic retry exhaustion, e.g. “Do not proceed until PASS, except when semantic retry exhaustion has recorded unresolved findings in `flow-findings.json` and the gate step completed as deferred.”",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Bound failure output volume",
+      "failureMode": "refactor",
+      "file": "src/flow/prompts/plan/draft-gate.md",
+      "issue": "**File:** `src/flow/prompts/plan/draft-gate.md`  \n**Issue:** “show every row” and “every entry” can require unbounded bulk output, which conflicts with `bounded-resource-usage`.  \n**Suggestion:** Add explicit caps, such as showing the first N reasons/issues with per-entry character limits and reporting the omitted count while preserving the full artifact path for later review.",
+      "suggestion": "**File:** `src/flow/prompts/plan/draft-gate.md`  \n**Issue:** “show every row” and “every entry” can require unbounded bulk output, which conflicts with `bounded-resource-usage`.  \n**Suggestion:** Add explicit caps, such as showing the first N reasons/issues with per-entry character limits and reporting the omitted count while preserving the full artifact path for later review.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Clarify Deferred Gate Progression",
+      "failureMode": "refactor",
+      "file": "src/flow/prompts/plan/spec-gate.md",
+      "issue": "**File:** `src/flow/prompts/plan/spec-gate.md`\n**Issue:** The new semantic retry exhaustion rule says the gate can complete as deferred, but the final instruction still says “Do not proceed until PASS,” which conflicts with the deferred path.\n**Suggestion:** Update the final line to explicitly allow the deferred semantic-exhaustion case, e.g. “Do not proceed until PASS unless the gate completed as deferred due to semantic retry exhaustion.”",
+      "suggestion": "**File:** `src/flow/prompts/plan/spec-gate.md`\n**Issue:** The new semantic retry exhaustion rule says the gate can complete as deferred, but the final instruction still says “Do not proceed until PASS,” which conflicts with the deferred path.\n**Suggestion:** Update the final line to explicitly allow the deferred semantic-exhaustion case, e.g. “Do not proceed until PASS unless the gate completed as deferred due to semantic retry exhaustion.”",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Bound Retry Reset Behavior",
+      "failureMode": "refactor",
+      "file": "src/flow/prompts/plan/spec-gate.md",
+      "issue": "**File:** `src/flow/prompts/plan/spec-gate.md`\n**Issue:** “Recover them with changed evidence and a retry reset before re-running the gate” could permit repeated retry resets without an explicit upper bound, which risks violating the `bounded-resource-usage` guardrail.\n**Suggestion:** Add a clear bound or reference the existing maxAttempts policy for retry resets, such as limiting reset attempts to changed mechanical evidence or a configured maximum.",
+      "suggestion": "**File:** `src/flow/prompts/plan/spec-gate.md`\n**Issue:** “Recover them with changed evidence and a retry reset before re-running the gate” could permit repeated retry resets without an explicit upper bound, which risks violating the `bounded-resource-usage` guardrail.\n**Suggestion:** Add a clear bound or reference the existing maxAttempts policy for retry resets, such as limiting reset attempts to changed mechanical evidence or a configured maximum.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Preserve retry reset bounds",
+      "failureMode": "refactor",
+      "file": "src/flow/prompts/plan/spec-review.md",
+      "issue": "**File:** `src/flow/prompts/plan/spec-review.md`  \n**Issue:** The new non-semantic failure instruction says to recover with “changed evidence and a retry reset before re-review,” but no longer states an explicit retry bound. This weakens the `bounded-resource-usage` guardrail for retry behavior.  \n**Suggestion:** Add an explicit cap, e.g. “A retry reset grants exactly one re-review attempt, and unchanged evidence is rejected.”",
+      "suggestion": "**File:** `src/flow/prompts/plan/spec-review.md`  \n**Issue:** The new non-semantic failure instruction says to recover with “changed evidence and a retry reset before re-review,” but no longer states an explicit retry bound. This weakens the `bounded-resource-usage` guardrail for retry behavior.  \n**Suggestion:** Add an explicit cap, e.g. “A retry reset grants exactly one re-review attempt, and unchanged evidence is rejected.”",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Name the exact semantic exhaustion trigger",
+      "failureMode": "refactor",
+      "file": "src/flow/prompts/plan/spec-review.md",
+      "issue": "**File:** `src/flow/prompts/plan/spec-review.md`  \n**Issue:** “At semantic retry exhaustion” is less precise than the previous `REVIEW_MAX_ATTEMPTS_EXCEEDED received` wording, which may make the prompt less consistent with tooling or other review prompts.  \n**Suggestion:** Rephrase to include the trigger explicitly, e.g. “When `REVIEW_MAX_ATTEMPTS_EXCEEDED` is received for semantic retry exhaustion, unresolved blocking findings…”",
+      "suggestion": "**File:** `src/flow/prompts/plan/spec-review.md`  \n**Issue:** “At semantic retry exhaustion” is less precise than the previous `REVIEW_MAX_ATTEMPTS_EXCEEDED received` wording, which may make the prompt less consistent with tooling or other review prompts.  \n**Suggestion:** Rephrase to include the trigger explicitly, e.g. “When `REVIEW_MAX_ATTEMPTS_EXCEEDED` is received for semantic retry exhaustion, unresolved blocking findings…”",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Consolidate TOOLING_FAILURE handling",
+      "failureMode": "refactor",
+      "file": "src/flow/prompts/plan/test-review.md",
+      "issue": "**File:** `src/flow/prompts/plan/test-review.md`\n**Issue:** TOOLING_FAILURE policy is now split across several adjacent bullets, including artifact creation, synthetic finding IDs, overrides, and non-semantic deferral behavior. This increases drift risk.\n**Suggestion:** Group these bullets under one `TOOLING_FAILURE handling` bullet or short subsection, keeping the non-semantic/no-deferral rule with the override requirements.",
+      "suggestion": "**File:** `src/flow/prompts/plan/test-review.md`\n**Issue:** TOOLING_FAILURE policy is now split across several adjacent bullets, including artifact creation, synthetic finding IDs, overrides, and non-semantic deferral behavior. This increases drift risk.\n**Suggestion:** Group these bullets under one `TOOLING_FAILURE handling` bullet or short subsection, keeping the non-semantic/no-deferral rule with the override requirements.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Clarify deferred completion terminology",
+      "failureMode": "refactor",
+      "file": "src/flow/prompts/plan/test-review.md",
+      "issue": "**File:** `src/flow/prompts/plan/test-review.md`\n**Issue:** “the review step completes as deferred” is slightly ambiguous because earlier wording distinguishes completion overrides, retry resets, and step done behavior.\n**Suggestion:** Use the project’s exact state/action wording if available, for example: “the review step is marked complete with deferred semantic findings recorded in `flow-findings.json`...” or similar.",
+      "suggestion": "**File:** `src/flow/prompts/plan/test-review.md`\n**Issue:** “the review step completes as deferred” is slightly ambiguous because earlier wording distinguishes completion overrides, retry resets, and step done behavior.\n**Suggestion:** Use the project’s exact state/action wording if available, for example: “the review step is marked complete with deferred semantic findings recorded in `flow-findings.json`...” or similar.",
+      "rationale": "Loop review proposal."
+    }
+  ],
+  "excluded": {
+    "missingFile": 5,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/296-review-gate-defer/impl-review.json",
+    "verdict": "ADVISORY",
+    "result": "ADVISORY",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": "impl-gate",
+    "completionKind": "normal",
+    "progressSignature": "bf3f772564bae747852dfff623ba04b58905b8c624f038309184f7cb21363cff"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "impl-001-non-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Bound generated header findings",
+      "body": "**File:** `src/flow/commands/review.js`  \n**Issue:** `buildHeaderBlockingFindings()` iterates over every array in `headerResult` without an explicit cap. A malformed or huge `test-coverage.json` could produce unbounded findings, violating the bounded-resource-usage guardrail.  \n**Suggestion:** Add a shared maximum, such as `MAX_HEADER_BLOCKING_FINDINGS`, stop after that count, and optionally append one summary finding indicating additional failures were omitted.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-002",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Prevent metadata override in header finding factory",
+      "body": "**File:** `src/flow/commands/review.js`  \n**Issue:** `headerFinding()` sets `origin` and `failureKind` before spreading `item`, so a future caller could accidentally override the structured metadata.  \n**Suggestion:** Reverse the spread order:\n\n```js\nconst headerFinding = (failureKind, item) => new TestReviewFinding(\"blocking\", {\n  ...item,\n  origin: \"test-coverage\",\n  failureKind,\n});\n```",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-003",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "3. Extract optional string normalization",
+      "body": "**File:** `src/flow/commands/review.js`  \n**Issue:** `origin` and `failureKind` duplicate the same trim/non-empty normalization logic.  \n**Suggestion:** Add a small helper, for example `normalizeOptionalTestReviewText(value)`, and use it for both fields to keep future optional structured fields consistent.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-004",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "4. Reduce repeated header-finding loop structure",
+      "body": "**File:** `src/flow/commands/review.js`  \n**Issue:** `buildHeaderBlockingFindings()` now repeats the same pattern for every header error type: read array, map entry, create blocking finding with a `failureKind`.  \n**Suggestion:** Consider a descriptor table with `{ key, failureKind, buildItem }` entries and one loop over descriptors. That would make it harder for future header failure types to forget `origin` or `failureKind`.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-005",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Avoid Unbounded Deferred Source Scanning",
+      "body": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Issue:** `deferredSourceBlockers` iterates every deferred finding and `sourceIncludesFindingId` stringifies each source artifact. The new processing path has no visible upper bound on finding count or serialized source size.  \n**Suggestion:** Enforce an explicit cap before scanning, or rely on and document a bounded normalized deferred-findings collection. Prefer checking structured fields over `JSON.stringify(...).includes(...)`.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-006",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Replace Broad String Matching With Structured Lookup",
+      "body": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Issue:** `sourceIncludesFindingId` can produce false positives by matching the finding ID anywhere in the serialized artifact, including unrelated fields or substrings.  \n**Suggestion:** Inspect the expected source artifact shape directly and compare against finding ID fields exactly, for example by walking known finding arrays and matching `id === sourceFindingId`.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-007",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "3. Align Helper Naming With Existing Classifier Pattern",
+      "body": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Issue:** `deferredSourceBlockers` returns mechanical blockers but is named like a data accessor rather than a classifier/build step.  \n**Suggestion:** Rename it to something like `classifyDeferredSourceBlockers` or `buildDeferredSourceBlockers` to match `classifyMechanicalBlockers` and make the returned type clearer.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-008",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Combine Finding Sources Before Classification",
+      "body": "**File:** `src/flow/lib/run-gate.js`  \n**Issue:** `failedGateFindings()` now returns `blockingFindings` immediately when present, skipping failed `evaluations` and `observations`. That can hide structured coverage/header failures if `blockingFindings` contains only semantic findings.  \n**Suggestion:** Build one combined findings list from `blockingFindings`, failed `evaluations`, and `observations`, then classify across the full set.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-009",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Add Explicit Bounds When Collecting Findings",
+      "body": "**File:** `src/flow/lib/run-gate.js`  \n**Issue:** `failedGateFindings()` can return unbounded arrays from `blockingFindings`, `evaluations`, or `observations`, which conflicts with the `bounded-resource-usage` guardrail and R6’s bounded deferred-finding references.  \n**Suggestion:** Apply a shared max findings constant when collecting/classifying retry-exhausted findings, and ensure downstream deferred references are capped consistently.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-010",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Clarify semantic classification name",
+      "body": "**File:** `src/flow/lib/run-review.js`  \n**Issue:** `isReviewSemanticFinding()` currently means “not a structured mechanical finding,” which is broader than proving the finding is semantic. That name can mislead future changes into treating unknown structured values as positively semantic.  \n**Suggestion:** Rename it to something like `isDeferableReviewFinding()` or `isNotStructuredMechanicalReviewFinding()`, and keep the defer-specific intent local to `tryDeferReviewRetryExhaustion()`.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-011",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Reduce duplicated failure-mode checks",
+      "body": "**File:** `src/flow/lib/run-review.js`  \n**Issue:** `isStructuredReviewMechanicalFinding()` normalizes and checks `failureKind` and `failureMode` separately against the same set. This duplicates the membership logic and makes future structured fields easier to miss.  \n**Suggestion:** Use a small helper or array check, for example normalize the candidate fields into an array and return `modes.some(mode => REVIEW_STRUCTURED_MECHANICAL_FAILURE_MODES.has(mode))`.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-012",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "3. Make coverage artifact helper more specific",
+      "body": "**File:** `src/flow/lib/run-review.js`  \n**Issue:** `reviewArtifactHasStructuredCoverageFailure()` sounds generic, but it specifically reads `test-coverage.json` and checks `validation.ok === false`.  \n**Suggestion:** Rename it to `testCoverageArtifactHasValidationFailure()` or similar so callers can immediately see that this is the test-review coverage artifact path, not a general review artifact inspection.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-013",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Add Explicit Bounds For Deferred Artifact Reads",
+      "body": "**File:** `src/flow/prompts/impl/acceptance-review.md`\n**Issue:** The prompt now instructs acceptance-review to read `flow-findings.json` and source artifacts referenced by deferred findings, but it does not define limits on finding count, artifact count, artifact size, or total loaded content. This violates the bounded-resource-usage guardrail.\n**Suggestion:** Add explicit caps, for example: maximum deferred findings processed, maximum source artifacts per finding, maximum bytes/characters per artifact, and maximum total loaded content. Also specify the fallback behavior when limits are exceeded, such as producing `blocked` with a clear rationale.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-014",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Make `finalDisposition` Values Explicit",
+      "body": "**File:** `src/flow/prompts/impl/acceptance-review.md`\n**Issue:** “Deferred findings must receive a bounded `finalDisposition`” says the value is bounded, but does not name the allowed values. That leaves room for inconsistent string values in `flow-findings.json`.\n**Suggestion:** Enumerate the allowed `finalDisposition` values in the prompt, or refer directly to the existing schema-defined enum if one exists.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-015",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Preserve Explicit Retry Bound",
+      "body": "**File:** `src/flow/prompts/impl/impl-gate.md`  \n**Issue:** The updated text says “At semantic retry exhaustion” but removes the explicit `maxAttempts` bound that previously made retry behavior concrete. This weakens bounded-resource clarity and may violate the `bounded-resource-usage` guardrail.  \n**Suggestion:** Reintroduce the bound while keeping the new deferral behavior, e.g. “If semantic gate retries are exhausted within the definition’s `maxAttempts` limit, unresolved gate findings are recorded…”",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-016",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Keep CLI Outcome Naming Consistent",
+      "body": "**File:** `src/flow/prompts/impl/impl-gate.md`  \n**Issue:** The previous instruction named the CLI outcome `ESCALATE_RETRY_EXHAUSTED`; the new wording replaces it with prose only. That makes this prompt less consistent with CLI-facing instructions and harder to trace mechanically.  \n**Suggestion:** Mention the CLI code alongside the semantic behavior, e.g. “When the CLI returns `ESCALATE_RETRY_EXHAUSTED` for semantic findings…”",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-017",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Preserve the Explicit Retry-Exceeded Trigger",
+      "body": "**File:** `src/flow/prompts/impl/impl-review.md`  \n**Issue:** The updated text removes the concrete `REVIEW_MAX_ATTEMPTS_EXCEEDED` condition and payload details, replacing them with the vaguer phrase “At semantic retry exhaustion.” That makes the prompt less precise and less consistent with nearby condition-driven bullets.  \n**Suggestion:** Reintroduce the explicit trigger name, then describe the semantic vs non-semantic behavior under it.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-018",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Consolidate Recovery Guidance",
+      "body": "**File:** `src/flow/prompts/impl/impl-review.md`  \n**Issue:** Recovery behavior is now spread across adjacent bullets: non-semantic failures mention retry reset, the next bullet explains recovery reason/audit/evidence behavior, and provider/input-size recovery is separate. This makes the retry policy harder to scan.  \n**Suggestion:** Group recovery rules under one `Recovery:` bullet with subclauses for semantic deferral, non-semantic retry reset, and provider/input-size recovery.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-019",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Resolve PASS-only contradiction",
+      "body": "**File:** `src/flow/prompts/plan/draft-gate.md`  \n**Issue:** The new retry-exhaustion behavior says semantic findings can be deferred to `acceptance-review`, but the later instruction still says “Do not proceed until PASS,” which conflicts with R8.  \n**Suggestion:** Change the final instruction to allow either `PASS` or documented semantic retry exhaustion, e.g. “Do not proceed until PASS, except when semantic retry exhaustion has recorded unresolved findings in `flow-findings.json` and the gate step completed as deferred.”",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-020",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Bound failure output volume",
+      "body": "**File:** `src/flow/prompts/plan/draft-gate.md`  \n**Issue:** “show every row” and “every entry” can require unbounded bulk output, which conflicts with `bounded-resource-usage`.  \n**Suggestion:** Add explicit caps, such as showing the first N reasons/issues with per-entry character limits and reporting the omitted count while preserving the full artifact path for later review.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-021",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Clarify Deferred Gate Progression",
+      "body": "**File:** `src/flow/prompts/plan/spec-gate.md`\n**Issue:** The new semantic retry exhaustion rule says the gate can complete as deferred, but the final instruction still says “Do not proceed until PASS,” which conflicts with the deferred path.\n**Suggestion:** Update the final line to explicitly allow the deferred semantic-exhaustion case, e.g. “Do not proceed until PASS unless the gate completed as deferred due to semantic retry exhaustion.”",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-022",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Bound Retry Reset Behavior",
+      "body": "**File:** `src/flow/prompts/plan/spec-gate.md`\n**Issue:** “Recover them with changed evidence and a retry reset before re-running the gate” could permit repeated retry resets without an explicit upper bound, which risks violating the `bounded-resource-usage` guardrail.\n**Suggestion:** Add a clear bound or reference the existing maxAttempts policy for retry resets, such as limiting reset attempts to changed mechanical evidence or a configured maximum.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-023",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Preserve retry reset bounds",
+      "body": "**File:** `src/flow/prompts/plan/spec-review.md`  \n**Issue:** The new non-semantic failure instruction says to recover with “changed evidence and a retry reset before re-review,” but no longer states an explicit retry bound. This weakens the `bounded-resource-usage` guardrail for retry behavior.  \n**Suggestion:** Add an explicit cap, e.g. “A retry reset grants exactly one re-review attempt, and unchanged evidence is rejected.”",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-024",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Name the exact semantic exhaustion trigger",
+      "body": "**File:** `src/flow/prompts/plan/spec-review.md`  \n**Issue:** “At semantic retry exhaustion” is less precise than the previous `REVIEW_MAX_ATTEMPTS_EXCEEDED received` wording, which may make the prompt less consistent with tooling or other review prompts.  \n**Suggestion:** Rephrase to include the trigger explicitly, e.g. “When `REVIEW_MAX_ATTEMPTS_EXCEEDED` is received for semantic retry exhaustion, unresolved blocking findings…”",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-025",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Consolidate TOOLING_FAILURE handling",
+      "body": "**File:** `src/flow/prompts/plan/test-review.md`\n**Issue:** TOOLING_FAILURE policy is now split across several adjacent bullets, including artifact creation, synthetic finding IDs, overrides, and non-semantic deferral behavior. This increases drift risk.\n**Suggestion:** Group these bullets under one `TOOLING_FAILURE handling` bullet or short subsection, keeping the non-semantic/no-deferral rule with the override requirements.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-001-non-blocking-026",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. Clarify deferred completion terminology",
+      "body": "**File:** `src/flow/prompts/plan/test-review.md`\n**Issue:** “the review step completes as deferred” is slightly ambiguous because earlier wording distinguishes completion overrides, retry resets, and step done behavior.\n**Suggestion:** Use the project’s exact state/action wording if available, for example: “the review step is marked complete with deferred semantic findings recorded in `flow-findings.json`...” or similar.",
+      "category": "refactor"
+    }
+  ]
+}

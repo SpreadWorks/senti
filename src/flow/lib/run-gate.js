@@ -1874,7 +1874,8 @@ export function classifyGateRetryExhaustionSource(input = {}) {
   if (merged.malformedArtifact) return { completionKind: "blocking", deferAllowed: false, reason: "malformed_artifact" };
   if (merged.coverage?.validation?.ok === false) return { completionKind: "blocking", deferAllowed: false, reason: "coverage_header_failure" };
   if (merged.phase === "test" && merged.validation?.ok === false) return { completionKind: "blocking", deferAllowed: false, reason: "coverage_header_failure" };
-  const findings = failedGateFindings(artifact.evaluations || artifact.observations ? artifact : input);
+  const artifactFindings = failedGateFindings(artifact);
+  const findings = artifactFindings.length > 0 ? artifactFindings : failedGateFindings(merged);
   if (findings.length === 0) return { completionKind: "blocking", deferAllowed: false, reason: "missing_content_findings" };
   if (findings.some(hasStructuredCoverageFailure)) {
     return { completionKind: "blocking", deferAllowed: false, reason: "coverage_header_failure" };

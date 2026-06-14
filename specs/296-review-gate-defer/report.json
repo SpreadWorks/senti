@@ -1,0 +1,305 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".senti/output/analysis.json                        |   25 +-\n specs/296-review-gate-defer/acceptance-review.json |   21 +\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-questions-repair.json                    |   44 +\n .../draft-questions-triage.json                    |   36 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   40 +\n specs/296-review-gate-defer/draft.json             |  120 ++\n specs/296-review-gate-defer/file-map.json          |   49 +\n specs/296-review-gate-defer/flow.json              | 1386 ++++++++++++++++++++\n specs/296-review-gate-defer/impl-review.json       |  237 ++++\n specs/296-review-gate-defer/issue-log.json         |  298 +++++\n specs/296-review-gate-defer/issue.md               |  118 ++\n .../plugin-artifacts/workflow/prepare.json         |   10 +\n specs/296-review-gate-defer/retry-recovery.json    |   29 +\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |   84 ++\n .../review-history/impl-attempt-001.json           |  501 +++++++\n .../review-history/impl-attempt-001.md             |  317 +++++\n .../review-history/spec-attempt-001.json           |   93 ++\n .../review-history/spec-attempt-001.md             |   30 +\n .../review-history/test-attempt-001.json           |  156 +++\n .../review-history/test-attempt-001.md             |   54 +\n .../review-history/test-attempt-002.json           |   66 +\n .../review-history/test-attempt-002.md             |   21 +\n .../review-history/test-attempt-003.json           |   84 ++\n .../review-history/test-attempt-003.md             |   30 +\n .../review-history/test-attempt-004.json           |   66 +\n .../review-history/test-attempt-004.md             |   21 +\n .../review-history/test-attempt-005.json           |  102 ++\n .../review-history/test-attempt-005.md             |   36 +\n .../review-history/test-attempt-006.json           |   64 +\n .../review-history/test-attempt-006.md             |   21 +\n specs/296-review-gate-defer/review.md              |  317 +++++\n specs/296-review-gate-defer/spec-repair.json       |   41 +\n specs/296-review-gate-defer/spec-review.json       |   49 +\n specs/296-review-gate-defer/spec-review.md         |   30 +\n specs/296-review-gate-defer/spec-triage.json       |   22 +\n specs/296-review-gate-defer/spec.json              |  383 ++++++\n specs/296-review-gate-defer/spec.md                |  163 +++\n specs/296-review-gate-defer/tasks/T-1.md           |   21 +\n specs/296-review-gate-defer/tasks/T-2.md           |   20 +\n specs/296-review-gate-defer/tasks/T-3.md           |   20 +\n specs/296-review-gate-defer/tasks/T-4.md           |   21 +\n specs/296-review-gate-defer/tasks/T-5.md           |   20 +\n specs/296-review-gate-defer/tasks/T-6.md           |   20 +\n specs/296-review-gate-defer/tasks/T-7.md           |   20 +\n specs/296-review-gate-defer/test-coverage.json     |  119 ++\n specs/296-review-gate-defer/test-review.json       |   40 +\n specs/296-review-gate-defer/test-review.md         |   21 +\n .../tests/retry-exhaustion-defer.test.js           |  562 ++++++++\n src/flow/commands/review.js                        |   31 +-\n src/flow/lib/acceptance-review-artifacts.js        |   37 +-\n src/flow/lib/run-gate.js                           |   80 +-\n src/flow/lib/run-review.js                         |   79 +-\n src/flow/prompts/impl/acceptance-review.md         |    3 +-\n src/flow/prompts/impl/impl-gate.md                 |    3 +-\n src/flow/prompts/impl/impl-review.md               |    5 +-\n src/flow/prompts/plan/draft-gate.md                |    5 +-\n src/flow/prompts/plan/spec-gate.md                 |    3 +-\n src/flow/prompts/plan/spec-review.md               |    3 +-\n src/flow/prompts/plan/test-review.md               |   12 +-\n tests/unit/flow/retry-exhaustion-defer.test.js     |  166 +++\n 64 files changed, 6380 insertions(+), 136 deletions(-)",
+      "commits": [
+        "Defer retry-exhausted findings to acceptance review"
+      ]
+    },
+    "retro": {
+      "total": 9,
+      "done": 9,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "Review retry exhaustion for draft, spec, test, and impl review phases records unresolved AI semantic findings in flow-findings.json, marks the source review step done, and returns a successful deferred result instead of REVIEW_MAX_ATTEMPTS_EXCEEDED.",
+          "status": "done",
+          "note": "R1: demo"
+        },
+        {
+          "desc": "Gate retry exhaustion for draft, spec, task-impl, and integration phases records unresolved AI semantic findings in flow-findings.json, marks the source gate step done, and returns a successful deferred result instead of ESCALATE_RETRY_EXHAUSTED.",
+          "status": "done",
+          "note": "R2: gate retry exhaustion defers semantic findings for every tracked gate phase"
+        },
+        {
+          "desc": "AI finding prose does not determine mechanical status. Words such as test, missing, invalid, schema, command, or tooling in title/body/reason/guardrail text cannot by themselves reject semantic deferral.",
+          "status": "done",
+          "note": "R3: prose words do not turn AI semantic findings into mechanical blockers"
+        },
+        {
+          "desc": "Structured non-semantic failures are classified before semantic retry accounting and are not deferred as semantic findings. This includes toolingFailure, command non-zero exit, invalid source schema, failed test evidence, no-progress guard, flow-state corruption, malformed artifact failures, and test-review coverage/header failures identified by test-coverage.json validation.ok=false or equivalent structured origin/failureKind fields on generated header findings.",
+          "status": "done",
+          "note": "R4: structured non-semantic prechecks are not deferred as semantic findings"
+        },
+        {
+          "desc": "Test-review supports bounded flow-level repair between separate senti flow run review --phase test invocations. Each semantic FAIL invocation consumes the existing reviewRetry budget; at retry exhaustion unresolved AI semantic findings delegate to acceptance-review, while TOOLING_FAILURE remains a separate non-semantic failure path.",
+          "status": "done",
+          "note": "R5: test-review uses flow-level repair and reviewRetry budget"
+        },
+        {
+          "desc": "flow-findings.json stores bounded deferred-finding references with findingId, sourceStep, sourceArtifact, sourceFindingId, retryExhausted=true, attempts, round, completionKind=deferred, and finalDisposition=null until acceptance-review mirrors a final disposition.",
+          "status": "done",
+          "note": "R6: flow-findings records bounded references after review deferral"
+        },
+        {
+          "desc": "Acceptance-review reads deferred findings from flow-findings.json and source artifacts, includes them in pass/amend_required/blocked/user_decision_required decisions, and mirrors finalDisposition back into flow-findings.json before final-regression proceeds.",
+          "status": "done",
+          "note": "R7: acceptance-review consumes deferred findings and mirrors finalDisposition"
+        },
+        {
+          "desc": "Prompt instructions for plan/impl review, gate, and test-review describe semantic retry exhaustion delegation to acceptance-review and no longer instruct STOP for deferrable semantic retry-limit cases.",
+          "status": "done",
+          "note": "R8: retry-limit prompts delegate deferrable semantic findings instead of stopping"
+        },
+        {
+          "desc": "Behavior-level regression coverage proves migrated retry-limit parity for review, gate, test-review, acceptance-review deferred input, and structured non-semantic precheck blocking.",
+          "status": "done",
+          "note": "R9: shared regression coverage exists for retry exhaustion deferral contracts"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 16,
+      "fullLogPath": "specs/296-review-gate-defer/issue-log.json",
+      "importantTotal": 13,
+      "importantShown": 10,
+      "importantOmitted": 3,
+      "recentOtherTotal": 3,
+      "recentOtherShown": 3,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft-questions-repair",
+          "reason": "draft.json became temporarily invalid because the repair patch omitted a comma after qa[3].question",
+          "resolution": "added the missing comma and reran JSON validation for draft, triage, and repair artifacts"
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "draft gate failed because migration parity inventory, ownership mapping, and behavior-level verification were missing",
+          "resolution": "added retry-limit behavior inventory, new owner mapping, and behavior-level verification expectations to draft.json"
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "draft gate failed again because migration parity details remained deferred as open questions instead of concrete draft requirements",
+          "resolution": "closed open questions and specified flow-findings fields, source artifact ownership, owner chain, and behavior-level test coverage in draft.json"
+        },
+        {
+          "classification": "important",
+          "step": "spec-review",
+          "reason": "spec review failed because test-review header precheck data path and repair loop ownership were underspecified",
+          "resolution": "specified test-coverage.json validation as the structured signal and flow-level repair between separate review invocations consuming reviewRetry"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test-review failed because the spec-local tests used static prompt and file-existence checks instead of behavior-level coverage",
+          "resolution": "rewrote the spec-local tests to exercise review deferral, gate deferral, structured non-semantic classification, acceptance-review disposition mirroring, and prompt/shared coverage contracts"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test-review still failed because the R9 test used keyword checks for shared coverage instead of executable behavior assertions",
+          "resolution": "rewrote R9 to execute review deferral, gate deferral, mechanical blocking, and acceptance deferred-finding behavior directly"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test-review failed because R5 R7 and R4 coverage still did not exercise retry accounting and acceptance decision paths",
+          "resolution": "added retry-path assertions for test-review and non-semantic gate failures plus acceptance-review amend blocked and final-regression gating assertions"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test-review still failed because R5 did not prove budget consumption across separate persisted invocations",
+          "resolution": "added an R5 test that starts below max, records a semantic FAIL via updateReviewRetryCounter, then verifies the next invocation defers at exhaustion"
+        },
+        {
+          "classification": "important",
+          "step": "retry-recovery",
+          "reason": "test evidence changed after fixing remaining R7 R4 and R8 test-review blockers",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test-review retry budget reached max before the latest corrected test evidence could be reviewed",
+          "resolution": "used flow set retry reset review test after changed spec-test evidence to grant one re-evaluation"
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "The draft does not define a migration inventory of existing public behaviors being moved/replaced (e.g., concrete CLI/user-facing flow behaviors such as review/gate/test-review stop messaging and control-transfer points) before the behav...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "Migration parity is incomplete because ownership of plan-phase review/gate deferred findings is unresolved (whether they can return to spec amend or only implementation-phase findings go to acceptance-review is left as an open question)....",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "implement",
+          "reason": "senti upgrade updated unrelated rename migration files while syncing prompt changes",
+          "resolution": "removed unrelated .senti config README and upgrade test side effects from the worktree diff"
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 3,
+      "srcRead": 3,
+      "question": 0,
+      "issueLog": 13
+    },
+    "tokenMetrics": {
+      "input": 610631,
+      "output": 100869,
+      "cacheRead": 3530112,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 34,
+      "durationMs": 1156098,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 17128
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 10399
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 35270
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 283737
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 8385
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 225622
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 282535
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 293022
+        }
+      ]
+    },
+    "tests": {
+      "total": 9,
+      "passed": 9,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/296-review-gate-defer/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 78,
+          "end_line": 18599
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/296-review-gate-defer/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/review.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/acceptance-review-artifacts.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-review.js"
+          },
+          {
+            "status": "untracked",
+            "path": "tests/unit/flow/retry-exhaustion-defer.test.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/296-review-gate-defer/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/review.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/acceptance-review-artifacts.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-review.js"
+          },
+          {
+            "status": "untracked",
+            "path": "tests/unit/flow/retry-exhaustion-defer.test.js"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/296-review-gate-defer/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    Defer retry-exhausted findings to acceptance review\n    64 files changed, 6380 insertions(+), 136 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (9 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 3\n    src read .................... 3\n    Q&A ......................... 0\n    issue-log ................... 13\n    agent calls ................. 34\n    input tokens ................ 610,631\n    output tokens ............... 100,869\n    cache-read tokens ........... 3,530,112\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 1156.1s\n      draft-questions-review .... 17.1s\n      draft-coverage-review ..... 10.4s\n      draft-gate ................ 35.3s\n      spec-review ............... 283.7s\n      spec-gate ................. 8.4s\n      test-review ............... 225.6s\n      impl-review ............... 282.5s\n      impl-gate ................. 293.0s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 9  passed 9  failed 0 verdict=pass\n    raw_output: specs/296-review-gate-defer/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (16 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/296-review-gate-defer/issue-log.json\n\n    Important (10 of 13)\n    - [draft-questions-repair] draft.json became temporarily invalid because the repair patch omitted a comma after qa[3].question\n    - [draft-gate] draft gate failed because migration parity inventory, ownership mapping, and behavior-level verification were missing\n    - [draft-gate] draft gate failed again because migration parity details remained deferred as open questions instead of concrete draft requirements\n    - [spec-review] spec review failed because test-review header precheck data path and repair loop ownership were underspecified\n    - [test-review] test-review failed because the spec-local tests used static prompt and file-existence checks instead of behavior-level coverage\n    - [test-review] test-review still failed because the R9 test used keyword checks for shared coverage instead of executable behavior assertions\n    - [test-review] test-review failed because R5 R7 and R4 coverage still did not exercise retry accounting and acceptance decision paths\n    - [test-review] test-review still failed because R5 did not prove budget consumption across separate persisted invocations\n    - [retry-recovery] test evidence changed after fixing remaining R7 R4 and R8 test-review blockers\n    - [test-review] test-review retry budget reached max before the latest corrected test evidence could be reviewed\n    ... 3 important issue-log entries omitted\n\n    Recent Other (3)\n    - [draft-gate] The draft does not define a migration inventory of existing public behaviors being moved/replaced (e.g., concrete CLI/user-facing flow behaviors such as review/gate/test-review stop messaging and control-transfer points) before the behav...\n    - [draft-gate] Migration parity is incomplete because ownership of plan-phase review/gate deferred findings is unresolved (whether they can return to spec amend or only implementation-phase findings go to acceptance-review is left as an open question)....\n    - [implement] senti upgrade updated unrelated rename migration files while syncing prompt changes"
+}

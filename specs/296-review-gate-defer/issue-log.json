@@ -1,0 +1,317 @@
+{
+  "entries": [
+    {
+      "step": "draft-questions-repair",
+      "reason": "draft.json became temporarily invalid because the repair patch omitted a comma after qa[3].question",
+      "trigger": "JSON validation after draft-questions-repair patch failed after the step had already been marked done",
+      "resolution": "added the missing comma and reran JSON validation for draft, triage, and repair artifacts",
+      "guardrailCandidate": "validate edited JSON artifacts before marking the repair step done",
+      "taskId": null,
+      "timestamp": "2026-06-14T14:42:36.308Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The draft does not define a migration inventory of existing public behaviors being moved/replaced (e.g., concrete CLI/user-facing flow behaviors such as review/gate/test-review stop messaging and control-transfer points) before the behavior change.; There is no mapping from retained retry-related behaviors to their new owner or an explicit removal decision per surface (e.g., behavior formerly returning REVIEW_MAX_ATTEMPTS_EXCEEDED/ESCALATE_RETRY_EXHAUSTED is only stated as intended to delegate, but ownership mapping across review, gate, and test-review handoff steps is not explicitly documented).; No behavior-level verification is specified for each retained public surface proving retained behavior still works through the new path; only future/test intent is mentioned, not explicit acceptance evidence per retained command/step output.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-14T14:44:34.880Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "decisionMap.deferredToSpec"
+          },
+          "observed": "The draft does not define a migration inventory of existing public behaviors being moved/replaced (e.g., concrete CLI/user-facing flow behaviors such as review/gate/test-review stop messaging and control-transfer points) before the behavior change.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "scopeVerification.in"
+          },
+          "observed": "There is no mapping from retained retry-related behaviors to their new owner or an explicit removal decision per surface (e.g., behavior formerly returning REVIEW_MAX_ATTEMPTS_EXCEEDED/ESCALATE_RETRY_EXHAUSTED is only stated as intended to delegate, but ownership mapping across review, gate, and test-review handoff steps is not explicitly documented).",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "impactOnExisting + qa"
+          },
+          "observed": "No behavior-level verification is specified for each retained public surface proving retained behavior still works through the new path; only future/test intent is mentioned, not explicit acceptance evidence per retained command/step output.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft does not define a migration inventory of existing public behaviors being moved/replaced (e.g., concrete CLI/user-facing flow behaviors such as review/gate/test-review stop messaging and control-transfer points) before the behavior change."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "There is no mapping from retained retry-related behaviors to their new owner or an explicit removal decision per surface (e.g., behavior formerly returning REVIEW_MAX_ATTEMPTS_EXCEEDED/ESCALATE_RETRY_EXHAUSTED is only stated as intended to delegate, but ownership mapping across review, gate, and test-review handoff steps is not explicitly documented)."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "No behavior-level verification is specified for each retained public surface proving retained behavior still works through the new path; only future/test intent is mentioned, not explicit acceptance evidence per retained command/step output."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate failed because migration parity inventory, ownership mapping, and behavior-level verification were missing",
+      "trigger": "senti flow run gate --phase draft returned three migration-parity blocking observations",
+      "resolution": "added retry-limit behavior inventory, new owner mapping, and behavior-level verification expectations to draft.json",
+      "guardrailCandidate": "when changing public retry behavior, draft must include migration parity inventory mapping and per-surface verification",
+      "taskId": null,
+      "timestamp": "2026-06-14T14:45:45.831Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Migration parity is incomplete because ownership of plan-phase review/gate deferred findings is unresolved (whether they can return to spec amend or only implementation-phase findings go to acceptance-review is left as an open question).; Required migration-parity details are deferred: exact observable fields/artifacts for deferred findings in flow-findings.json are not defined in the spec itself.; Required test coverage for migrated behavior is not defined; the draft only states that coverage must be specified for review/gate/test-review/mechanical classification.; Behavior-level verification is not actually specified for retained public surfaces (the item remains a future work note; retained gate retry-limit parity verification is not present in current requirements).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-14T14:46:06.256Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "/openQuestions/0"
+          },
+          "observed": "Migration parity is incomplete because ownership of plan-phase review/gate deferred findings is unresolved (whether they can return to spec amend or only implementation-phase findings go to acceptance-review is left as an open question).",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "/deferredToSpec/0"
+          },
+          "observed": "Required migration-parity details are deferred: exact observable fields/artifacts for deferred findings in flow-findings.json are not defined in the spec itself.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "/deferredToSpec/1"
+          },
+          "observed": "Required test coverage for migrated behavior is not defined; the draft only states that coverage must be specified for review/gate/test-review/mechanical classification.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "/deferredToSpec/2"
+          },
+          "observed": "Behavior-level verification is not actually specified for retained public surfaces (the item remains a future work note; retained gate retry-limit parity verification is not present in current requirements).",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "Migration parity is incomplete because ownership of plan-phase review/gate deferred findings is unresolved (whether they can return to spec amend or only implementation-phase findings go to acceptance-review is left as an open question)."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "Required migration-parity details are deferred: exact observable fields/artifacts for deferred findings in flow-findings.json are not defined in the spec itself."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "Required test coverage for migrated behavior is not defined; the draft only states that coverage must be specified for review/gate/test-review/mechanical classification."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "Behavior-level verification is not actually specified for retained public surfaces (the item remains a future work note; retained gate retry-limit parity verification is not present in current requirements)."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate failed again because migration parity details remained deferred as open questions instead of concrete draft requirements",
+      "trigger": "second senti flow run gate --phase draft reported unresolved plan-phase ownership and unspecified flow-findings/test verification",
+      "resolution": "closed open questions and specified flow-findings fields, source artifact ownership, owner chain, and behavior-level test coverage in draft.json",
+      "guardrailCandidate": "do not leave migration parity ownership or verification as deferred-to-spec when draft gate requires the policy now",
+      "taskId": null,
+      "timestamp": "2026-06-14T14:46:45.468Z"
+    },
+    {
+      "step": "spec-review",
+      "reason": "spec review failed because test-review header precheck data path and repair loop ownership were underspecified",
+      "trigger": "senti flow run review --phase spec returned two blocking findings for R4/R5/T-1/T-4",
+      "resolution": "specified test-coverage.json validation as the structured signal and flow-level repair between separate review invocations consuming reviewRetry",
+      "guardrailCandidate": "specs that change retry behavior must define structured failure data paths and retry ownership before implementation",
+      "taskId": null,
+      "timestamp": "2026-06-14T14:56:54.382Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review failed because the spec-local tests used static prompt and file-existence checks instead of behavior-level coverage",
+      "trigger": "senti flow run review --phase test reported seven blocking findings for R1/R2/R4/R5/R6/R7/R9",
+      "resolution": "rewrote the spec-local tests to exercise review deferral, gate deferral, structured non-semantic classification, acceptance-review disposition mirroring, and prompt/shared coverage contracts",
+      "guardrailCandidate": "spec-local tests for migrated flow behavior must exercise production helpers or commands rather than only checking text existence",
+      "taskId": null,
+      "timestamp": "2026-06-14T15:03:27.546Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review still failed because the R9 test used keyword checks for shared coverage instead of executable behavior assertions",
+      "trigger": "second senti flow run review --phase test reported R9 string-presence check as the only blocking finding",
+      "resolution": "rewrote R9 to execute review deferral, gate deferral, mechanical blocking, and acceptance deferred-finding behavior directly",
+      "guardrailCandidate": "regression coverage requirements must be satisfied by executable behavior assertions, not shared-test keyword existence checks",
+      "taskId": null,
+      "timestamp": "2026-06-14T15:04:32.522Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review failed because R5 R7 and R4 coverage still did not exercise retry accounting and acceptance decision paths",
+      "trigger": "third senti flow run review --phase test reported three blocking findings for prompt-only and classifier-only coverage",
+      "resolution": "added retry-path assertions for test-review and non-semantic gate failures plus acceptance-review amend blocked and final-regression gating assertions",
+      "guardrailCandidate": "when a requirement names flow routing or retry accounting, spec-local tests must call the routing helper or command path",
+      "taskId": null,
+      "timestamp": "2026-06-14T15:06:03.694Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review still failed because R5 did not prove budget consumption across separate persisted invocations",
+      "trigger": "fourth senti flow run review --phase test reported missing below-limit then exhausted invocation coverage",
+      "resolution": "added an R5 test that starts below max, records a semantic FAIL via updateReviewRetryCounter, then verifies the next invocation defers at exhaustion",
+      "guardrailCandidate": "retry budget behavior tests should include both below-limit and exhausted states in the same persisted flow state",
+      "taskId": null,
+      "timestamp": "2026-06-14T15:07:16.684Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "test evidence changed after fixing remaining R7 R4 and R8 test-review blockers",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "082a05cf025ffe6ad5d3f70c72f8bfa02498d57a51a8c953aa2c3db8ce5f0f53",
+        "currentHash": "cfa48bebccaf51dbea1d4b7513ad7cf702ded2ef3463ed1c40b4270e4dc1f43a",
+        "changedPaths": [
+          "specs/296-review-gate-defer/tests/.raw/scenario-validity.log",
+          "specs/296-review-gate-defer/tests/retry-exhaustion-defer.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset review test --reason \"test evidence changed after fixing remaining R7 R4 and R8 test-review blockers\" --yes",
+      "createdAt": "2026-06-14T15:10:18.219Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review retry budget reached max before the latest corrected test evidence could be reviewed",
+      "trigger": "reviewRetry for test was at 5 of 5 after repeated test-review repairs",
+      "resolution": "used flow set retry reset review test after changed spec-test evidence to grant one re-evaluation",
+      "guardrailCandidate": "when test-review repairs consume the retry budget, reset only after changed evidence is verified by the retry recovery command",
+      "taskId": null,
+      "timestamp": "2026-06-14T15:10:26.395Z"
+    },
+    {
+      "step": "implement",
+      "reason": "senti upgrade updated unrelated rename migration files while syncing prompt changes",
+      "trigger": "required upgrade run after modifying flow prompt source files",
+      "resolution": "removed unrelated .senti config README and upgrade test side effects from the worktree diff",
+      "guardrailCandidate": "after running upgrade during a scoped implementation inspect generated side effects and keep only files relevant to the spec",
+      "taskId": null,
+      "timestamp": "2026-06-14T15:21:56.406Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "spec-local R7 fixture omitted required acceptance-review prerequisite artifacts",
+      "trigger": "impl-gate validation rejected test-execute evidence because R7 spec-local test failed",
+      "resolution": "added minimal scenario test-execute test-result-review retro and test file artifacts to the R7 fixture",
+      "guardrailCandidate": "acceptance-review fixture tests must include prerequisite artifacts before asserting deferred finding verdict routing",
+      "taskId": null,
+      "timestamp": "2026-06-14T15:34:02.011Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "spec-local R7 user-decision fixture used an incomplete acceptance finding object",
+      "trigger": "test-execute rerun failed while normalizing writeAcceptanceReviewArtifact fixture data",
+      "resolution": "expanded the user-decision finding fixture with all required AcceptanceFinding fields",
+      "guardrailCandidate": "artifact writer tests must use complete schema-valid fixture objects when exercising verdict derivation",
+      "taskId": null,
+      "timestamp": "2026-06-14T15:37:40.676Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "spec-local R7 user-decision fixture omitted non-pass routing fields",
+      "trigger": "test-execute rerun failed acceptance-review artifact validation for user_decision_required",
+      "resolution": "added nextAction user_decision and targetStep spec to the user-decision fixture",
+      "guardrailCandidate": "acceptance-review non-pass fixture artifacts must include validator-required routing fields",
+      "taskId": null,
+      "timestamp": "2026-06-14T15:41:38.449Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-06-14T15:53:37.485Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-06-14T23:02:05.813Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Rebase onto main conflicted in retry deferral implementation files after main advanced",
+      "trigger": "git rebase main while recovering from finalize-merge merge conflict",
+      "resolution": "resolved acceptance-review and gate retry classification hunks by keeping combined structured deferral behavior",
+      "guardrailCandidate": "when finalize merge asks for rebase resolve worktree conflicts and record the conflict before retrying finalize",
+      "taskId": null,
+      "timestamp": "2026-06-14T23:03:49.472Z"
+    }
+  ]
+}

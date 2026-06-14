@@ -476,8 +476,8 @@ export function buildAcceptanceReviewArtifactFromEvidence({ specDir }) {
   const deferredFindings = buildDeferredFindingsFromEvidence(specDir);
   const mechanicalBlockers = [
     ...classifyMechanicalBlockers({
-    tests: { missing: testsMissing, failed, missingRequired },
-    artifacts: { missing, invalidSchemas },
+      tests: { missing: testsMissing, failed, missingRequired },
+      artifacts: { missing, invalidSchemas },
     }),
     ...deferredSourceBlockers(specDir, deferredFindings),
   ];

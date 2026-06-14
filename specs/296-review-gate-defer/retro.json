@@ -1,0 +1,63 @@
+{
+  "spec": "specs/296-review-gate-defer/spec.json",
+  "date": "2026-06-14T15:49:53.585Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Review retry exhaustion for draft, spec, test, and impl review phases records unresolved AI semantic findings in flow-findings.json, marks the source review step done, and returns a successful deferred result instead of REVIEW_MAX_ATTEMPTS_EXCEEDED.",
+      "status": "done",
+      "note": "R1: demo"
+    },
+    {
+      "desc": "Gate retry exhaustion for draft, spec, task-impl, and integration phases records unresolved AI semantic findings in flow-findings.json, marks the source gate step done, and returns a successful deferred result instead of ESCALATE_RETRY_EXHAUSTED.",
+      "status": "done",
+      "note": "R2: gate retry exhaustion defers semantic findings for every tracked gate phase"
+    },
+    {
+      "desc": "AI finding prose does not determine mechanical status. Words such as test, missing, invalid, schema, command, or tooling in title/body/reason/guardrail text cannot by themselves reject semantic deferral.",
+      "status": "done",
+      "note": "R3: prose words do not turn AI semantic findings into mechanical blockers"
+    },
+    {
+      "desc": "Structured non-semantic failures are classified before semantic retry accounting and are not deferred as semantic findings. This includes toolingFailure, command non-zero exit, invalid source schema, failed test evidence, no-progress guard, flow-state corruption, malformed artifact failures, and test-review coverage/header failures identified by test-coverage.json validation.ok=false or equivalent structured origin/failureKind fields on generated header findings.",
+      "status": "done",
+      "note": "R4: structured non-semantic prechecks are not deferred as semantic findings"
+    },
+    {
+      "desc": "Test-review supports bounded flow-level repair between separate senti flow run review --phase test invocations. Each semantic FAIL invocation consumes the existing reviewRetry budget; at retry exhaustion unresolved AI semantic findings delegate to acceptance-review, while TOOLING_FAILURE remains a separate non-semantic failure path.",
+      "status": "done",
+      "note": "R5: test-review uses flow-level repair and reviewRetry budget"
+    },
+    {
+      "desc": "flow-findings.json stores bounded deferred-finding references with findingId, sourceStep, sourceArtifact, sourceFindingId, retryExhausted=true, attempts, round, completionKind=deferred, and finalDisposition=null until acceptance-review mirrors a final disposition.",
+      "status": "done",
+      "note": "R6: flow-findings records bounded references after review deferral"
+    },
+    {
+      "desc": "Acceptance-review reads deferred findings from flow-findings.json and source artifacts, includes them in pass/amend_required/blocked/user_decision_required decisions, and mirrors finalDisposition back into flow-findings.json before final-regression proceeds.",
+      "status": "done",
+      "note": "R7: acceptance-review consumes deferred findings and mirrors finalDisposition"
+    },
+    {
+      "desc": "Prompt instructions for plan/impl review, gate, and test-review describe semantic retry exhaustion delegation to acceptance-review and no longer instruct STOP for deferrable semantic retry-limit cases.",
+      "status": "done",
+      "note": "R8: retry-limit prompts delegate deferrable semantic findings instead of stopping"
+    },
+    {
+      "desc": "Behavior-level regression coverage proves migrated retry-limit parity for review, gate, test-review, acceptance-review deferred input, and structured non-semantic precheck blocking.",
+      "status": "done",
+      "note": "R9: shared regression coverage exists for retry exhaustion deferral contracts"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 9,
+    "done": 9,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

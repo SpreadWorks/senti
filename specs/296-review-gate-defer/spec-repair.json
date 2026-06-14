@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied both spec-review blocking findings by specifying test-review coverage/header structured data and flow-level repair ownership.",
+  "items": [
+    {
+      "title": "Test-review header precheck has no specified structured data path",
+      "target": "R4 / R5 / T-1 / T-4",
+      "decision": "applied",
+      "rationale": "Specified test-coverage.json validation.ok/messages as the structured non-semantic signal and allowed equivalent structured origin/failureKind fields for generated header findings.",
+      "evidence": "spec.json requirements[R4], acceptance_criteria[R4], overview.data_flow, overview.decisions, clarifications, and task T-1 now name the structured coverage/header signal.",
+      "changedFields": [
+        "overview.modules",
+        "overview.data_flow",
+        "overview.decisions",
+        "requirements[3].desc",
+        "acceptance_criteria[3]",
+        "clarifications",
+        "tasks[0].acceptance"
+      ]
+    },
+    {
+      "title": "Test-review repair loop ownership is ambiguous",
+      "target": "R5 / T-4",
+      "decision": "applied",
+      "rationale": "Specified flow-level repair between separate review invocations, with each semantic FAIL consuming the existing reviewRetry budget and no command-internal auto-fix loop.",
+      "evidence": "spec.json requirements[R5], acceptance_criteria[R5], overview.data_flow, clarifications, implementationTargets, and task T-4 now define ownership and budget consumption.",
+      "changedFields": [
+        "overview.modules",
+        "overview.data_flow",
+        "requirements[4].desc",
+        "acceptance_criteria[4]",
+        "clarifications",
+        "implementationTargets",
+        "tasks[3].acceptance",
+        "tasks[3].implementation_notes"
+      ]
+    }
+  ]
+}

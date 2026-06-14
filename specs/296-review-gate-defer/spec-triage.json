@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "Both blocking findings are valid and require small spec changes before spec-gate.",
+  "items": [
+    {
+      "title": "Test-review header precheck has no specified structured data path",
+      "target": "R4 / R5 / T-1 / T-4",
+      "decision": "apply",
+      "rationale": "The spec requires coverage/header failures to stay non-semantic but does not yet identify the structured source of that classification.",
+      "evidence": "spec.json R4 names coverage/header failures, and R5/T-4 cover test-review retry behavior; neither names test-coverage.json or an equivalent structured failure field."
+    },
+    {
+      "title": "Test-review repair loop ownership is ambiguous",
+      "target": "R5 / T-4",
+      "decision": "apply",
+      "rationale": "The spec requires bounded fix/re-review but does not choose command-internal versus flow-level ownership or connect attempts to reviewRetry.",
+      "evidence": "spec.json R5 and T-4 say test-review supports bounded fix/re-review attempts without defining the owner or budget consumption path."
+    }
+  ]
+}

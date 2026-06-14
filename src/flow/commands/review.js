@@ -1364,6 +1364,8 @@ const TEST_REVIEW_BLOCKING_ITEM_SCHEMA = Object.freeze({
     issue: { type: "string", minLength: 1 },
     requiredChange: { type: "string", minLength: 1 },
     whyBlocking: { type: "string", minLength: 1 },
+    origin: { type: "string" },
+    failureKind: { type: "string" },
   },
 });
 
@@ -1422,6 +1424,8 @@ class TestReviewFinding {
       this.issue = normalizeTestReviewText(item.issue, "Blocking test issue.");
       this.requiredChange = normalizeTestReviewText(item.requiredChange, "Fix the blocking test issue.");
       this.whyBlocking = normalizeTestReviewText(item.whyBlocking, "Implementation cannot proceed with this test issue unresolved.");
+      this.origin = typeof item.origin === "string" && item.origin.trim() !== "" ? item.origin.trim() : null;
+      this.failureKind = typeof item.failureKind === "string" && item.failureKind.trim() !== "" ? item.failureKind.trim() : null;
     } else {
       this.improvement = normalizeTestReviewText(item.improvement, "Advisory test improvement.");
       this.whyNonBlocking = normalizeTestReviewText(item.whyNonBlocking, "Implementation can proceed without this improvement.");
@@ -1440,6 +1444,8 @@ class TestReviewFinding {
         issue: this.issue,
         requiredChange: this.requiredChange,
         whyBlocking: this.whyBlocking,
+        ...(this.origin && { origin: this.origin }),
+        ...(this.failureKind && { failureKind: this.failureKind }),
       };
     }
     return {
@@ -1665,8 +1671,13 @@ function parseTestReviewFindings(raw) {
 
 function buildHeaderBlockingFindings(headerResult) {
   const findings = [];
+  const headerFinding = (failureKind, item) => new TestReviewFinding("blocking", {
+    origin: "test-coverage",
+    failureKind,
+    ...item,
+  });
   for (const file of headerResult.missingHeaders || []) {
-    findings.push(new TestReviewFinding("blocking", {
+    findings.push(headerFinding("missing_header", {
       title: "Missing spec header",
       target: file,
       issue: "A spec-local test file lacks the required `// spec: R1 R2 ...` header.",
@@ -1675,7 +1686,7 @@ function buildHeaderBlockingFindings(headerResult) {
     }));
   }
   for (const req of headerResult.uncoveredRequirements || []) {
-    findings.push(new TestReviewFinding("blocking", {
+    findings.push(headerFinding("uncovered_requirement", {
       title: "Uncovered requirement",
       target: req.id,
       issue: `${req.id} is testable but no spec-local test header declares it.`,
@@ -1684,7 +1695,7 @@ function buildHeaderBlockingFindings(headerResult) {
     }));
   }
   for (const entry of headerResult.unknownIds || []) {
-    findings.push(new TestReviewFinding("blocking", {
+    findings.push(headerFinding("unknown_requirement_id", {
       title: "Unknown requirement id in test header",
       target: `${entry.file}:${entry.id}`,
       issue: `The test header declares ${entry.id}, which is not in spec.json requirements.`,
@@ -1693,7 +1704,7 @@ function buildHeaderBlockingFindings(headerResult) {
     }));
   }
   for (const entry of headerResult.malformedHeaders || []) {
-    findings.push(new TestReviewFinding("blocking", {
+    findings.push(headerFinding("malformed_header", {
       title: "Malformed spec header",
       target: `${entry.file}:${entry.line}`,
       issue: entry.reason || "The spec header does not match the required strict form.",
@@ -1702,7 +1713,7 @@ function buildHeaderBlockingFindings(headerResult) {
     }));
   }
   for (const entry of headerResult.duplicateIds || []) {
-    findings.push(new TestReviewFinding("blocking", {
+    findings.push(headerFinding("duplicate_requirement_id", {
       title: "Duplicate requirement id in spec header",
       target: `${entry.file}:${entry.id}`,
       issue: `The spec header repeats ${entry.id}.`,
@@ -1711,7 +1722,7 @@ function buildHeaderBlockingFindings(headerResult) {
     }));
   }
   for (const entry of headerResult.duplicateHeaders || []) {
-    findings.push(new TestReviewFinding("blocking", {
+    findings.push(headerFinding("duplicate_header", {
       title: "Multiple spec headers in one test file",
       target: `${entry.file}:${entry.lineNumber}`,
       issue: "The test file contains more than one spec header.",
@@ -1720,7 +1731,7 @@ function buildHeaderBlockingFindings(headerResult) {
     }));
   }
   for (const entry of headerResult.notTestableInHeader || []) {
-    findings.push(new TestReviewFinding("blocking", {
+    findings.push(headerFinding("not_testable_in_header", {
       title: "Non-testable requirement declared as covered",
       target: `${entry.file}:${entry.id}`,
       issue: `${entry.id} is marked testable=false but appears in a test header.`,
@@ -1729,7 +1740,7 @@ function buildHeaderBlockingFindings(headerResult) {
     }));
   }
   for (const entry of headerResult.mismatchedMarker || []) {
-    findings.push(new TestReviewFinding("blocking", {
+    findings.push(headerFinding("wrong_header_marker", {
       title: "Wrong spec header marker",
       target: `${entry.file}:${entry.lineNumber}`,
       issue: `JS-like test files must use // spec headers, but this file uses ${entry.found}.`,
@@ -1738,7 +1749,7 @@ function buildHeaderBlockingFindings(headerResult) {
     }));
   }
   for (const entry of headerResult.headerNoTest || []) {
-    findings.push(new TestReviewFinding("blocking", {
+    findings.push(headerFinding("header_without_test_name", {
       title: "Header id has no matching test name",
       target: `${entry.file}:${entry.id}`,
       issue: `The header declares ${entry.id}, but the file has no '${entry.id}: ...' test name.`,
@@ -1747,7 +1758,7 @@ function buildHeaderBlockingFindings(headerResult) {
     }));
   }
   for (const entry of headerResult.testNoHeader || []) {
-    findings.push(new TestReviewFinding("blocking", {
+    findings.push(headerFinding("test_name_without_header", {
       title: "Test name lacks matching header id",
       target: `${entry.file}:${entry.id}`,
       issue: `The file has a '${entry.id}: ...' test name but the header does not declare ${entry.id}.`,

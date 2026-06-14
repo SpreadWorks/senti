@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-14T15:04:03.994Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 1,
+    "total": 2
+  },
+  "coverageArtifact": "specs/296-review-gate-defer/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R9 uses string-presence checks instead of behavior-level regression coverage",
+      "target": "specs/296-review-gate-defer/tests/retry-exhaustion-defer.test.js: R9 test",
+      "issue": "The R9 test only asserts that a shared test file exists and contains several terms. It would pass if the shared regression file merely mentioned checkReviewRetryBelowMax, checkRetryBelowMax, coverage_header_failure, buildAcceptanceReviewArtifactFromEvidence, and flow-findings without exercising retry-limit parity or deferred-input behavior.",
+      "requiredChange": "Replace or supplement the R9 string-presence assertion with executable spec-local coverage that exercises the migrated retry-limit parity contracts, or invoke/assert the concrete shared regression behavior rather than checking for keywords.",
+      "whyBlocking": "R9 explicitly requires behavior-level regression coverage. A keyword check is a static anti-pattern that can pass without exercising production behavior, so the acceptance requirement lacks valid corresponding coverage."
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R5 prompt-only coverage could be paired with executable flow behavior",
+      "target": "specs/296-review-gate-defer/tests/retry-exhaustion-defer.test.js: R5 test",
+      "improvement": "Add a focused executable case for repeated test-review invocations consuming reviewRetry budget and deferring at exhaustion, while keeping the current prompt assertions as documentation coverage.",
+      "whyNonBlocking": "The R5 test does check the required prompt contract and budget wording, and related retry behavior is partly covered elsewhere, but a direct flow-level invocation scenario would make the requirement coverage stronger."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/296-review-gate-defer/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "f418efe99b790745c9d9e98604f60d0b3147ea33b3e1b4b373831eb19f39668c"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "test-002-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R9 uses string-presence checks instead of behavior-level regression coverage",
+      "body": "The R9 test only asserts that a shared test file exists and contains several terms. It would pass if the shared regression file merely mentioned checkReviewRetryBelowMax, checkRetryBelowMax, coverage_header_failure, buildAcceptanceReviewArtifactFromEvidence, and flow-findings without exercising retry-limit parity or deferred-input behavior.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-non-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "R5 prompt-only coverage could be paired with executable flow behavior",
+      "body": "R5 prompt-only coverage could be paired with executable flow behavior",
+      "category": "unknown"
+    }
+  ]
+}

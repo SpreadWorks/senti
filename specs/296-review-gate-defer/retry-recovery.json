@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "test evidence changed after fixing remaining R7 R4 and R8 test-review blockers",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "082a05cf025ffe6ad5d3f70c72f8bfa02498d57a51a8c953aa2c3db8ce5f0f53",
+        "currentHash": "cfa48bebccaf51dbea1d4b7513ad7cf702ded2ef3463ed1c40b4270e4dc1f43a",
+        "changedPaths": [
+          "specs/296-review-gate-defer/tests/.raw/scenario-validity.log",
+          "specs/296-review-gate-defer/tests/retry-exhaustion-defer.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset review test --reason \"test evidence changed after fixing remaining R7 R4 and R8 test-review blockers\" --yes",
+      "createdAt": "2026-06-14T15:10:18.219Z"
+    }
+  ]
+}

@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Review retry exhaustion for draft, spec, test, and impl review phases records unresolved AI semantic findings in flow-findings.json, marks the source review step done, and returns a successful deferred result instead of REVIEW_MAX_ATTEMPTS_EXCEEDED.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/retry-exhaustion-defer.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "Gate retry exhaustion for draft, spec, task-impl, and integration phases records unresolved AI semantic findings in flow-findings.json, marks the source gate step done, and returns a successful deferred result instead of ESCALATE_RETRY_EXHAUSTED.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/retry-exhaustion-defer.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "AI finding prose does not determine mechanical status. Words such as test, missing, invalid, schema, command, or tooling in title/body/reason/guardrail text cannot by themselves reject semantic deferral.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/retry-exhaustion-defer.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "Structured non-semantic failures are classified before semantic retry accounting and are not deferred as semantic findings. This includes toolingFailure, command non-zero exit, invalid source schema, failed test evidence, no-progress guard, flow-state corruption, malformed artifact failures, and test-review coverage/header failures identified by test-coverage.json validation.ok=false or equivalent structured origin/failureKind fields on generated header findings.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/retry-exhaustion-defer.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "Test-review supports bounded flow-level repair between separate senti flow run review --phase test invocations. Each semantic FAIL invocation consumes the existing reviewRetry budget; at retry exhaustion unresolved AI semantic findings delegate to acceptance-review, while TOOLING_FAILURE remains a separate non-semantic failure path.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/retry-exhaustion-defer.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "flow-findings.json stores bounded deferred-finding references with findingId, sourceStep, sourceArtifact, sourceFindingId, retryExhausted=true, attempts, round, completionKind=deferred, and finalDisposition=null until acceptance-review mirrors a final disposition.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/retry-exhaustion-defer.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "Acceptance-review reads deferred findings from flow-findings.json and source artifacts, includes them in pass/amend_required/blocked/user_decision_required decisions, and mirrors finalDisposition back into flow-findings.json before final-regression proceeds.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/retry-exhaustion-defer.test.js"
+      ]
+    },
+    {
+      "id": "R8",
+      "desc": "Prompt instructions for plan/impl review, gate, and test-review describe semantic retry exhaustion delegation to acceptance-review and no longer instruct STOP for deferrable semantic retry-limit cases.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/retry-exhaustion-defer.test.js"
+      ]
+    },
+    {
+      "id": "R9",
+      "desc": "Behavior-level regression coverage proves migrated retry-limit parity for review, gate, test-review, acceptance-review deferred input, and structured non-semantic precheck blocking.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/retry-exhaustion-defer.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/retry-exhaustion-defer.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9"
+      ]
+    }
+  ]
+}

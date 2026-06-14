@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-14T15:09:00.389Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 4,
+    "advisory": 0,
+    "total": 4
+  },
+  "coverageArtifact": "specs/296-review-gate-defer/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R7 decision coverage is incomplete",
+      "target": "specs/296-review-gate-defer/tests/retry-exhaustion-defer.test.js R7 test",
+      "issue": "The acceptance-review test covers fixed, amend_required, and blocked paths, but it does not cover pass or user_decision_required decisions, and it does not prove that source artifacts are actually read and incorporated rather than only flow-findings.json/evidence data.",
+      "requiredChange": "Add spec-local acceptance-review cases for pass and user_decision_required, and assert deferred findings are built using the source artifact referenced by flow-findings.json before finalDisposition is mirrored.",
+      "whyBlocking": "R7 explicitly requires acceptance-review to include deferred findings in pass/amend_required/blocked/user_decision_required decisions and to read both flow-findings.json and source artifacts; two required decision paths and the source-artifact behavior have no corresponding executable coverage."
+    },
+    {
+      "kind": "blocking",
+      "title": "R4 review-side structured failures are not covered",
+      "target": "specs/296-review-gate-defer/tests/retry-exhaustion-defer.test.js R4/R5 tests",
+      "issue": "The structured non-semantic failure matrix exercises classifyGateRetryExhaustionSource, and the review path only checks TOOLING_FAILURE. A test-review coverage/header failure or equivalent origin/failureKind finding could still be deferred by checkReviewRetryBelowMax without this test file failing.",
+      "requiredChange": "Add a checkReviewRetryBelowMax test for test-review structured coverage/header failure, such as test-coverage.json validation.ok=false or a blocking finding with origin test-coverage and failureKind, asserting it is not deferred and no flow-findings.json entry is written.",
+      "whyBlocking": "R4 specifically calls out test-review coverage/header failures as non-semantic prechecks that must be classified before semantic retry accounting; that acceptance requirement is not covered on the review retry path where the failure originates."
+    },
+    {
+      "kind": "blocking",
+      "title": "R8 gate STOP regression can pass unnoticed",
+      "target": "specs/296-review-gate-defer/tests/retry-exhaustion-defer.test.js R8 test",
+      "issue": "The prompt assertion rejects REVIEW_MAX_ATTEMPTS_EXCEEDED STOP text but does not reject ESCALATE_RETRY_EXHAUSTED received: STOP or equivalent gate retry-exhaustion STOP instructions.",
+      "requiredChange": "Extend the R8 prompt assertions to reject ESCALATE_RETRY_EXHAUSTED retry-limit STOP language for gate prompts.",
+      "whyBlocking": "R8 requires gate prompts to delegate deferrable semantic retry exhaustion to acceptance-review and no longer instruct STOP; the current test can pass while the prohibited gate STOP instruction remains."
+    },
+    {
+      "kind": "blocking",
+      "title": "Deferred finding ID format is over-specified",
+      "target": "specs/296-review-gate-defer/tests/retry-exhaustion-defer.test.js R7 test",
+      "issue": "The R7 test hardcodes findingId DF-1 in acceptance-review evidence even though the requirements only require a findingId field, not sequential DF-1 generation.",
+      "requiredChange": "Read the generated findingId from flow-findings.json and use that value when writing acceptance-review evidence.",
+      "whyBlocking": "This encodes an implementation premise not present in the requirements, so a valid implementation with a different bounded stable ID format would fail the test."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/296-review-gate-defer/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 4,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "30064705f497657af2fb604081e0d4977f44681192b57845ee51dd473ec65865"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 5,
+  "findings": [
+    {
+      "id": "test-005-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "R7 decision coverage is incomplete",
+      "body": "The acceptance-review test covers fixed, amend_required, and blocked paths, but it does not cover pass or user_decision_required decisions, and it does not prove that source artifacts are actually read and incorporated rather than only flow-findings.json/evidence data.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-005-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "R4 review-side structured failures are not covered",
+      "body": "The structured non-semantic failure matrix exercises classifyGateRetryExhaustionSource, and the review path only checks TOOLING_FAILURE. A test-review coverage/header failure or equivalent origin/failureKind finding could still be deferred by checkReviewRetryBelowMax without this test file failing.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-005-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "R8 gate STOP regression can pass unnoticed",
+      "body": "The prompt assertion rejects REVIEW_MAX_ATTEMPTS_EXCEEDED STOP text but does not reject ESCALATE_RETRY_EXHAUSTED received: STOP or equivalent gate retry-exhaustion STOP instructions.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-005-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "Deferred finding ID format is over-specified",
+      "body": "The R7 test hardcodes findingId DF-1 in acceptance-review evidence even though the requirements only require a findingId field, not sequential DF-1 generation.",
+      "category": "unknown"
+    }
+  ]
+}

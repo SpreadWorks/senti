@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-14T15:11:02.354Z",
+  "verdict": "ADVISORY",
+  "counts": {
+    "blocking": 0,
+    "advisory": 2,
+    "total": 2
+  },
+  "coverageArtifact": "specs/296-review-gate-defer/test-coverage.json",
+  "blockingFindings": [],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Broaden prose-field coverage for semantic deferral",
+      "target": "tests/retry-exhaustion-defer.test.js R3",
+      "improvement": "Add small cases that put the trigger words in title, body, reason, and guardrail text fields, not only observed/reason-shaped fields.",
+      "whyNonBlocking": "Existing tests already exercise semantic deferral despite words like missing, test, command, and tooling, so the core requirement has executable coverage; this would make the coverage more explicit."
+    },
+    {
+      "kind": "advisory",
+      "title": "Add review-side structured precheck variants",
+      "target": "tests/retry-exhaustion-defer.test.js R4/R5",
+      "improvement": "Consider adding review retry cases for non-semantic structured failures beyond TOOLING_FAILURE and coverage headers, such as command exit, invalid schema, no-progress, flow-state corruption, and malformed artifact markers.",
+      "whyNonBlocking": "The suite covers the structured classifier directly and includes review-side TOOLING_FAILURE and coverage-header paths, so this is extra parity coverage rather than a missing executable requirement."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/296-review-gate-defer/test-review.json",
+    "verdict": "ADVISORY",
+    "result": "ADVISORY",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": "implement",
+    "completionKind": "normal",
+    "progressSignature": "61688e1da65ba0d17414fc5c3ddce33123fd4672ca5fd51249e15eaa47d44ef6"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 6,
+  "findings": [
+    {
+      "id": "test-006-non-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 6,
+      "severity": "non-blocking",
+      "title": "Broaden prose-field coverage for semantic deferral",
+      "body": "Broaden prose-field coverage for semantic deferral",
+      "category": "unknown"
+    },
+    {
+      "id": "test-006-non-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 6,
+      "severity": "non-blocking",
+      "title": "Add review-side structured precheck variants",
+      "body": "Add review-side structured precheck variants",
+      "category": "unknown"
+    }
+  ]
+}
