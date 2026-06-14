@@ -120,9 +120,10 @@ export async function completeDraftArtifactChange(input = {}) {
   if (!parsed.ok) return parsed.failure;
   const artifact = parsed.artifact;
   const issueCodes = [];
-  if (!artifact || typeof artifact !== "object" || Array.isArray(artifact) || !Array.isArray(artifact.questions)) {
+  const hasQuestionState = Array.isArray(artifact?.qa) || Array.isArray(artifact?.questions);
+  if (!artifact || typeof artifact !== "object" || Array.isArray(artifact) || !hasQuestionState) {
     issueCodes.push("draft-schema-invalid");
-    if (artifact && !Array.isArray(artifact?.questions)) issueCodes.push("draft-lifecycle-invalid");
+    if (artifact && !hasQuestionState) issueCodes.push("draft-lifecycle-invalid");
   }
   if (artifact?.review?.verdict === "FAIL" && !Array.isArray(artifact?.review?.triage?.applied)) {
     issueCodes.push("draft-schema-invalid", "draft-lifecycle-invalid", "review-triage-repair-audit-invalid");

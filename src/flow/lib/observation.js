@@ -85,12 +85,14 @@ export class Observation {
     }
     assertNoExtraKeys(input, OBSERVATION_KEYS, "Observation");
     if (input.kind !== "violation") throw new Error("kind must be violation");
-    if (!FAILURE_MODES.has(input.failureMode)) throw new Error(`invalid failureMode: ${input.failureMode}`);
+    const failureMode = FAILURE_MODES.has(input.failureMode)
+      ? input.failureMode
+      : "guardrail-violation";
     if (!SEVERITIES.has(input.severity)) throw new Error(`invalid severity: ${input.severity}`);
 
     const normalized = {
       kind: "violation",
-      failureMode: input.failureMode,
+      failureMode,
       requirementRef: typeof input.requirementRef === "string" ? input.requirementRef.trim() : requireString(input.requirementRef, "requirementRef"),
       where: normalizeWhere(input.where),
       observed: requireString(input.observed, "observed"),

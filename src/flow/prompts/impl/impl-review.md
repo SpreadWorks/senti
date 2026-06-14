@@ -17,8 +17,9 @@
      4. **Do NOT re-run tests here.** When code changes are applied during review, the dispatcher resets downstream execution and reruns it through the single execution point.
    - **If verdict is `PASS` or `ADVISORY`**:
      - Display: "レビューの結果、修正の必要はありませんでした。"
-   - **Retry limit:** Each `senti flow run review` invocation = 1 attempt (CLI invocation level). The CLI enforces this flow-scope limit (spec 253). When count >= max, `senti flow run review` returns `Envelope.fail` with `errors[0].code === 'REVIEW_MAX_ATTEMPTS_EXCEEDED'` and `data` containing `{ phase, attempts, max, recoveryCommand }`.
-   - **REVIEW_MAX_ATTEMPTS_EXCEEDED received:** STOP and return control to the user. To recover after changed evidence, use `senti flow set retry reset <gate|review> <phase> --reason <text> --yes`; for this impl review phase, run `senti flow set retry reset review impl --reason <text> --yes` and then run one re-review attempt.
+   - **Retry limit:** Each `senti flow run review` invocation = 1 attempt (CLI invocation level). The CLI enforces this flow-scope limit (spec 253).
+   - At semantic retry exhaustion, unresolved blocking findings are recorded in `flow-findings.json`, the review step completes as deferred, and `acceptance-review` owns final disposition before final-regression.
+   - Non-semantic failures such as tooling, parser, malformed artifact, or schema failures are not deferred. Recover them with changed evidence and a retry reset before re-review.
    - Recovery reason is required, records an audit entry, grants one re-evaluation, and rejects unchanged evidence.
    - **Provider/input-size recovery:** provider quota, rate limit, API error, and input size failures do not consume `reviewRetry`. Use the structured recovery command from `next-action` or `status` instead of parsing raw stderr.
    - **issue-log policy:** Do not add issue-log entries solely for ordinary provider or input size failures. Record issue-log only when a workaround is applied, a specification decision changes, or manual recovery remains unresolved.

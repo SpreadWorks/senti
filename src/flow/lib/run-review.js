@@ -166,57 +166,51 @@ export function resolveReviewRetryMax(retryContext = {}, phase) {
   return resolveMaxAttempts({ scope: "flow", stepId: nodeId, context: flowState }) ?? 5;
 }
 
-function textOf(value) {
-  if (value == null) return "";
-  if (typeof value === "string") return value;
-  if (Array.isArray(value)) return value.map(textOf).join(" ");
-  if (typeof value === "object") return Object.values(value).map(textOf).join(" ");
-  return String(value);
-}
-
-const REVIEW_SEMANTIC_FAILURE_MODES = new Set([
-  "missing_acceptance_requirement",
-  "spec_behavior_contradiction",
+const REVIEW_STRUCTURED_MECHANICAL_FAILURE_MODES = new Set([
+  "tooling_failure",
+  "parser_error",
+  "coverage_error",
+  "schema_error",
+  "invalid_schema",
+  "command_failure",
+  "failed_command",
+  "failed_test_evidence",
+  "coverage_header_failure",
+  "missing_header",
+  "uncovered_requirement",
+  "unknown_requirement_id",
+  "malformed_header",
+  "duplicate_requirement_id",
+  "duplicate_header",
+  "not_testable_in_header",
+  "wrong_header_marker",
+  "header_without_test_name",
+  "test_name_without_header",
+  "no_progress_guard",
+  "flow_corruption",
+  "malformed_artifact",
 ]);
 
 function normalizeFindingMode(value) {
   return String(value || "").toLowerCase().replace(/[-\s]+/g, "_");
 }
 
-function normalizedReviewText(value) {
-  return textOf(value).toLowerCase().replace(/[_-]+/g, " ");
-}
-
-function hasReviewMechanicalBlocker(finding, { allowMissing = false } = {}) {
-  const blockerPattern = allowMissing
-    ? /\b(schema|tooling|command|test|invalid|corrupt|no\s?progress|mechanical|security|data\s?integrity)\b/
-    : /\b(schema|tooling|command|test|missing|invalid|corrupt|no\s?progress|mechanical|security|data\s?integrity)\b/;
-  const text = normalizedReviewText({
-    kind: finding?.kind,
-    category: finding?.category,
-    failureMode: finding?.failureMode,
-    title: finding?.title,
-    summary: finding?.summary,
-    reason: finding?.reason,
-    guardrail_id: finding?.guardrail_id,
-  });
-  return blockerPattern.test(text);
-}
-
-function isContentAlignmentFinding(finding) {
+function isStructuredReviewMechanicalFinding(finding) {
+  const origin = normalizeFindingMode(finding?.origin);
+  const failureKind = normalizeFindingMode(finding?.failureKind);
   const failureMode = normalizeFindingMode(finding?.failureMode);
-  if (REVIEW_SEMANTIC_FAILURE_MODES.has(failureMode)) {
-    return !hasReviewMechanicalBlocker(finding, { allowMissing: true });
-  }
-  const text = normalizedReviewText({
-    kind: finding?.kind,
-    category: finding?.category,
-    failureMode: finding?.failureMode,
-    title: finding?.title,
-    guardrail_id: finding?.guardrail_id,
-  });
-  return /\b(content|alignment|semantic|requirement\s?alignment)\b/.test(text)
-    && !hasReviewMechanicalBlocker(finding);
+  return origin === "test_coverage"
+    || REVIEW_STRUCTURED_MECHANICAL_FAILURE_MODES.has(failureKind)
+    || REVIEW_STRUCTURED_MECHANICAL_FAILURE_MODES.has(failureMode);
+}
+
+function reviewArtifactHasStructuredCoverageFailure(specDir) {
+  const coverage = readBoundedSourceArtifact(specDir, "test-coverage.json");
+  return coverage?.validation?.ok === false;
+}
+
+function isReviewSemanticFinding(finding) {
+  return !isStructuredReviewMechanicalFinding(finding);
 }
 
 function reviewFindingsFromArtifact(artifact) {
@@ -272,8 +266,9 @@ function tryDeferReviewRetryExhaustion(ctx, phase, attempts) {
   let artifact = readBoundedSourceArtifact(specDir, sourceArtifact);
   if (!artifact) return null;
   if (artifact.verdict === "TOOLING_FAILURE" || artifact.toolingFailure) return null;
+  if (phase === "test" && reviewArtifactHasStructuredCoverageFailure(specDir)) return null;
   let findings = reviewFindingsFromArtifact(artifact);
-  if (findings.length === 0 || !findings.every(isContentAlignmentFinding)) return null;
+  if (findings.length === 0 || !findings.every(isReviewSemanticFinding)) return null;
   ({ artifact, findings } = persistReviewSourceFindingIds(specDir, sourceArtifact, artifact));
   deferExhaustedSemanticFindings({
     root: ctx.root,

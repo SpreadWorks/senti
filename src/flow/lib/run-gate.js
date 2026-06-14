@@ -1823,51 +1823,35 @@ export function buildGateRetryExhaustedEnvelope({ phase, attempts, max, reason }
   );
 }
 
-function gateTextOf(value) {
-  if (value == null) return "";
-  if (typeof value === "string") return value;
-  if (Array.isArray(value)) return value.map(gateTextOf).join(" ");
-  if (typeof value === "object") return Object.values(value).map(gateTextOf).join(" ");
-  return String(value);
+const GATE_COVERAGE_FAILURE_KINDS = new Set([
+  "coverage_header_failure",
+  "missing_header",
+  "uncovered_requirement",
+  "unknown_requirement_id",
+  "malformed_header",
+  "duplicate_requirement_id",
+  "duplicate_header",
+  "not_testable_in_header",
+  "wrong_header_marker",
+  "header_without_test_name",
+  "test_name_without_header",
+]);
+
+function normalizeGateMode(value) {
+  return String(value || "").toLowerCase().replace(/[-\s]+/g, "_");
 }
 
-function normalizedGateText(value) {
-  return gateTextOf(value).toLowerCase().replace(/[_-]+/g, " ");
-}
-
-function hasGateMechanicalBlocker(finding, { allowMissing = false } = {}) {
-  const blockerPattern = allowMissing
-    ? /\b(schema|tooling|command|test|invalid|corrupt|no\s?progress|mechanical|security|data\s?integrity)\b/
-    : /\b(schema|tooling|command|test|missing|invalid|corrupt|no\s?progress|mechanical|security|data\s?integrity)\b/;
-  const text = normalizedGateText({
-    failureMode: finding?.failureMode,
-    kind: finding?.kind,
-    category: finding?.category,
-    title: finding?.title,
-    reason: finding?.reason,
-    guardrail_id: finding?.guardrail_id,
-    requirementRef: finding?.requirementRef,
-  });
-  return blockerPattern.test(text);
-}
-
-function isGateContentAlignmentFinding(finding) {
-  const category = String(finding?.category || "").toLowerCase();
-  if (category === "requirements" || category === "requirement") {
-    return !hasGateMechanicalBlocker(finding, { allowMissing: true });
-  }
-  const text = normalizedGateText({
-    failureMode: finding?.failureMode,
-    kind: finding?.kind,
-    category: finding?.category,
-    guardrail_id: finding?.guardrail_id,
-    requirementRef: finding?.requirementRef,
-  });
-  return /\b(content|alignment|semantic|requirement[-_\s]?alignment)\b/.test(text)
-    && !hasGateMechanicalBlocker(finding);
+function hasStructuredCoverageFailure(finding) {
+  return normalizeGateMode(finding?.origin) === "test_coverage"
+    || GATE_COVERAGE_FAILURE_KINDS.has(normalizeGateMode(finding?.failureKind))
+    || GATE_COVERAGE_FAILURE_KINDS.has(normalizeGateMode(finding?.failureMode));
 }
 
 function failedGateFindings(artifact) {
+  const blockingFindings = Array.isArray(artifact?.blockingFindings)
+    ? artifact.blockingFindings
+    : [];
+  if (blockingFindings.length > 0) return blockingFindings;
   const evaluations = Array.isArray(artifact?.evaluations)
     ? artifact.evaluations.filter((entry) => entry?.result === "fail")
     : [];
@@ -1887,13 +1871,18 @@ export function classifyGateRetryExhaustionSource(input = {}) {
   if (merged.command && merged.command.exitCode != null && merged.command.exitCode !== 0) return { completionKind: "blocking", deferAllowed: false, reason: "failed_command" };
   if (merged.testEvidence && merged.testEvidence.result === "fail") return { completionKind: "blocking", deferAllowed: false, reason: "failed_test_evidence" };
   if (merged.sourceArtifactStatus === "invalid_schema") return { completionKind: "blocking", deferAllowed: false, reason: "invalid_schema" };
+  if (merged.malformedArtifact) return { completionKind: "blocking", deferAllowed: false, reason: "malformed_artifact" };
+  if (merged.coverage?.validation?.ok === false) return { completionKind: "blocking", deferAllowed: false, reason: "coverage_header_failure" };
+  if (merged.phase === "test" && merged.validation?.ok === false) return { completionKind: "blocking", deferAllowed: false, reason: "coverage_header_failure" };
   const findings = failedGateFindings(artifact.evaluations || artifact.observations ? artifact : input);
   if (findings.length === 0) return { completionKind: "blocking", deferAllowed: false, reason: "missing_content_findings" };
-  const deferAllowed = findings.every(isGateContentAlignmentFinding);
+  if (findings.some(hasStructuredCoverageFailure)) {
+    return { completionKind: "blocking", deferAllowed: false, reason: "coverage_header_failure" };
+  }
   return {
-    completionKind: deferAllowed ? "deferred" : "blocking",
-    deferAllowed,
-    reason: deferAllowed ? "content_alignment_only" : "mechanical_or_mixed_findings",
+    completionKind: "deferred",
+    deferAllowed: true,
+    reason: "semantic_findings",
   };
 }
 

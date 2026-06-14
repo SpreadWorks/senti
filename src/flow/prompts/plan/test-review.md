@@ -1,6 +1,6 @@
    - Run `senti flow run review --phase test` after `scenario-validity` has passed.
    - Phase split: `plan/test` writes tests only, `plan/scenario-validity` performs pre-implementation runtime validity, this `plan/test-review` step performs static anti-pattern review, `impl/test-execute` performs post-implementation spec-local verification, and `impl/final-regression` runs the full project regression.
-   - The review writes a requirement-to-test coverage artifact and performs a one-shot static review of actual test code.
+   - The review writes a requirement-to-test coverage artifact and performs static review of actual test code.
    - The `test-review` step is static anti-pattern review. Runtime pre-implementation validity belongs to `scenario-validity`.
    - Check for these anti-pattern classes:
      - assertions that do not go through production code
@@ -24,8 +24,8 @@
      - When a TOOLING_FAILURE artifact has no parsed review finding, use a stable synthetic `findingId` such as `test-review:tooling_failure:<toolingFailure>`; for example, `test-review:tooling_failure:parser_error`.
      - For `accepted_risk`, keep an audit or task trail by referencing the issue-log TOOLING_FAILURE entry or an explicit related task reference in `reason` or `acceptedRisk`.
      - Free-text issue-log alone is not completion override evidence. The structured `completion-overrides.json` entry is still required before marking `test-review` done.
-   - `test-review` does not auto-fix tests and does not run an internal PASS-seeking loop.
-   - Re-run `test-review` only when requirements, acceptance criteria, target API, spec-local tests, or the requirement-to-test coverage artifact changed.
-   - **REVIEW_MAX_ATTEMPTS_EXCEEDED received:** STOP and return control to the user. Do not set step done. To recover after changed evidence, the user can run `senti flow set retry reset <gate|review> <phase> --reason <text> --yes` (for this phase: `senti flow set retry reset review test --reason <text> --yes`) and then run exactly one re-review attempt.
-   - Recovery reason is required, records an audit entry, grants one re-evaluation, and rejects unchanged evidence.
-   - Quality gates after implementation (`test-execute`, `test-result-review`, `impl-review`, `impl-gate`, `final-regression`) remain mandatory and are not weakened by the one-shot review.
+   - `test-review` uses flow-level repair between separate `senti flow run review --phase test` invocations. Fix tests only after the review command returns and rerun review only after requirements, acceptance criteria, target API, spec-local tests, or the requirement-to-test coverage artifact changed.
+   - Each semantic `FAIL` invocation consumes `reviewRetry`. At semantic retry exhaustion, unresolved findings are recorded in `flow-findings.json`, the review step completes as deferred, and `acceptance-review` owns final disposition.
+   - `TOOLING_FAILURE` is non-semantic. It must be recovered or explicitly overridden and does not complete through semantic deferral.
+   - Recovery reason is required for manual retry reset, records an audit entry, grants one re-evaluation, and rejects unchanged evidence.
+   - Quality gates after implementation (`test-execute`, `test-result-review`, `impl-review`, `impl-gate`, `acceptance-review`, `final-regression`) remain mandatory and are not weakened by deferred semantic review findings.

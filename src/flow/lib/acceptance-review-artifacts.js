@@ -7,6 +7,7 @@ import { collectFlowLeafIds } from "../definition.js";
 import { findStepById } from "./step-tree.js";
 import {
   readFlowFindingsArtifact,
+  readBoundedSourceArtifact,
   mirrorFinalDispositions,
   validateFinalDisposition,
   ACCEPTANCE_FINAL_DISPOSITIONS,
@@ -222,6 +223,31 @@ export function classifyMechanicalBlockers(input = {}) {
   for (const reqId of input.tests?.missingRequired || []) add("missing_required_tests", `Required test coverage is missing for ${reqId}.`);
   for (const file of input.artifacts?.missing || []) add("missing_artifact", `Required artifact is missing: ${file}.`);
   for (const file of input.artifacts?.invalidSchemas || []) add("invalid_schema", `Required artifact schema is invalid: ${file}.`);
+  return blockers;
+}
+
+function sourceIncludesFindingId(source, sourceFindingId) {
+  if (!source || typeof sourceFindingId !== "string" || sourceFindingId.trim() === "") return false;
+  return JSON.stringify(source).includes(sourceFindingId);
+}
+
+function deferredSourceBlockers(specDir, deferredFindings) {
+  const blockers = [];
+  function add(kind, summary) {
+    blockers.push(new MechanicalBlocker({
+      blockerId: `M-deferred-source-${blockers.length + 1}`,
+      kind,
+      summary,
+    }).toJSON());
+  }
+  for (const finding of deferredFindings) {
+    const source = readBoundedSourceArtifact(specDir, finding.sourceArtifact);
+    if (!source) {
+      add("missing_deferred_source", `Deferred finding source artifact is missing: ${finding.sourceArtifact}.`);
+    } else if (!sourceIncludesFindingId(source, finding.sourceFindingId)) {
+      add("missing_deferred_source_finding", `Deferred source finding is missing: ${finding.sourceArtifact}#${finding.sourceFindingId}.`);
+    }
+  }
   return blockers;
 }
 
@@ -447,11 +473,14 @@ export function buildAcceptanceReviewArtifactFromEvidence({ specDir }) {
   } catch (_) {
     missingRequired = testableRequirementIds(specDir);
   }
-  const mechanicalBlockers = classifyMechanicalBlockers({
+  const deferredFindings = buildDeferredFindingsFromEvidence(specDir);
+  const mechanicalBlockers = [
+    ...classifyMechanicalBlockers({
     tests: { missing: testsMissing, failed, missingRequired },
     artifacts: { missing, invalidSchemas },
-  });
-  const deferredFindings = buildDeferredFindingsFromEvidence(specDir);
+    }),
+    ...deferredSourceBlockers(specDir, deferredFindings),
+  ];
   const hasBlockingDeferred = deferredFindings.some((finding) => finding.finalDisposition === "blocking");
   const hasStillOpenDeferred = deferredFindings.some((finding) => finding.finalDisposition === "still_open");
   const hasBlocking = mechanicalBlockers.length > 0 || hasBlockingDeferred;
