@@ -1,0 +1,122 @@
+{
+  "devType": "bugfix",
+  "goal": "senti setup のプリセット選択で base 以外の公式プリセットを選べるようにする。",
+  "analysis": {
+    "problem": "senti setup の対話式プリセット選択は must で公式プリセットを表示する必要があるが、現在は src/setup.js が PRESETS 固定で候補を作るため、同梱 core preset の base しか表示されない。",
+    "proposedApproach": "既存プロジェクトでは core preset と enabled plugin registry の preset を統合した候補一覧を使う。新規 setup では候補表示前に公式 preset plugin を利用可能にする bootstrap 経路を用意し、候補一覧を同じ preset 解決経路から作る。",
+    "validation": "src/lib/presets.js は plugin registry preset を projectRoot 付きの解決で統合できるが、PRESETS は CORE_PRESETS のみである。src/lib/plugin-registry.js は config が無い場合に空 registry を返すため、新規 setup には公式 preset source を候補表示前に解決する追加経路が必要である。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: src/setup.js は preset selection で buildTreeItems(PRESETS) を呼び、PRESETS は src/lib/presets.js の CORE_PRESETS だけを指す。",
+      "must: src/presets に同梱されている core preset は base だけで、node-cli や webapp などの公式 preset は official-presets plugin 由来である。",
+      "must: loadPluginRegistry(root) は config または installed plugin が無い新規 setup では空 registry を返す。",
+      "must: upgrade.js には ensureOfficialPackage 経由で official-presets を有効化する既存経路があるが、setup の候補表示前には実行されない。",
+      "must: 公式 preset bootstrap の解決不能は配布物または実行環境の異常として扱い、base だけで黙って継続しない。",
+      "must: 公式以外の既存 plugin は installed manifest が存在する場合だけ setup 候補として使い、setup 中に fetch/update しない。"
+    ],
+    "decisionPoints": [
+      "must: setup の候補一覧を PRESETS 固定から plugin-aware な preset 一覧に変更する。",
+      "must: 新規 setup で公式 preset plugin を候補表示前に利用可能にする条件と失敗時の挙動を定義する。",
+      "should: presets list など、同じ PRESETS 固定に見える関連表示コマンドへの影響も確認する。",
+      "must: migration parity として、既存の setup 候補表示、既存 config default 読み込み、選択結果の type 保存、summary 表示、validatePresetChain、agent template 生成での preset 解決をすべて retained public behavior として扱う。"
+    ],
+    "resolvedByProjectRules": [
+      "must: src/ 以下には特定プロジェクト固有の値を入れない。公式 plugin source の扱いは既存 official plugin resolver と plugin registry の境界に合わせる。",
+      "must: 外部依存は追加しない。Node.js 組み込みモジュールと既存 plugin registry API を使う。",
+      "must: 後方互換用の旧 preset format 維持ではなく、現行 plugin contribution 設計に合わせる。"
+    ],
+    "requiresUserJudgment": [
+      "must: 公式 preset source を解決できない環境で setup を継続するか、候補取得失敗として止めるかを確認する。answered by q2.",
+      "should: setup が公式 preset plugin を自動的に config に記録することを期待するか、候補表示用の一時利用に留めるかを確認する。answered by q3."
+    ],
+    "deferredToSpec": [
+      "must: 既存プロジェクト、新規プロジェクト、公式 preset source 不在時の受け入れ条件を spec で明文化する。",
+      "must: 対話式 setup の候補表示と非対話式 --type 指定の検証方針を spec で分けて定義する。",
+      "must: 既存 config の type が missing plugin preset を参照する場合は修復が必要なエラーとして扱う。",
+      "must: retained public behavior の新 owner を spec で対応付ける。候補表示は plugin-aware preset list helper、type 保存と summary は resolveMultiChains/resolveLeafTypes、template/gate validation は既存 projectRoot-aware preset resolver を owner とする。",
+      "must: behavior-level acceptance criteria を spec に含める。新規 setup で official preset が候補に出ること、既存 installed plugin preset が候補に出ること、missing official bootstrap は fatal になること、base-only selection は不要な official plugin state を保存しないことを検証する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: senti setup の対話式 preset candidate 生成を plugin-aware にする。",
+      "must: 新規 setup で official-presets の候補を表示できる bootstrap 経路を扱う。",
+      "must: 既存 project config に enabled plugin preset がある場合、その preset を setup 候補に含める。",
+      "should: preset tree 表示を作る共通 helper を導入する場合は、既存の PRESETS 固定利用箇所も影響確認する。",
+      "must: 回帰テストで base だけになるケースを検出する。",
+      "must: migration parity inventory として、setup の user-visible preset selection、既存 config defaults、選択 type の保存、summary の leaf type 表示、validatePresetChain の startup validation、agent config template generation の preset lookup を保持対象にする。",
+      "must: retained behavior の acceptance criteria として、各 public surface が plugin-aware path 経由で従来通り動くことをテストまたは spec-level verification で確認する。",
+      "must: migration parity verification として、対話式 setup の候補表示で official preset が base と同じ tree UI に表示されることを検証する。",
+      "must: migration parity verification として、既存 installed plugin preset を持つ project で setup の既定値と候補表示がその preset を失わないことを検証する。",
+      "must: migration parity verification として、非対話式 --type の config 保存、summary leaf 表示、validatePresetChain、AGENTS/CLAUDE template generation が projectRoot-aware resolver で継続することを検証する。",
+      "must: migration parity verification として、official preset source 解決不能時は base-only fallback ではなく fatal error になることを検証する。",
+      "must: migration parity verification として、base のみを選んだ場合は不要な official-presets package state を config に保存しないことを検証する。"
+    ],
+    "out": [
+      "must: official-presets repository の preset 内容そのものは変更しない。",
+      "must: plugin manifest schema や contribution format の変更は含めない。",
+      "must: npm publish や dist-tag 操作は行わない。",
+      "should: setup UI 全体の再設計や multi-select 操作体系の変更は行わない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: senti setup の対話式 preset selection 表示が変わる。",
+    "must: .senti/config.json が存在する既存プロジェクトでは、enabled plugin preset が候補に追加される。",
+    "must: 新規 setup では候補表示前に official preset source 解決が走る可能性があるため、失敗時メッセージと継続可否を明確にする。",
+    "should: setup の非対話式 --type 指定、validatePresetChain、resolveLeafTypes の既存挙動を壊さない。",
+    "should: upgrade 側の official preset plugin migration と重複または競合しない。",
+    "must: retained public behavior mapping として、setup candidate rendering は plugin-aware preset list helper に移すが UI selection の操作体系は維持する。",
+    "must: retained public behavior mapping として、非対話式 --type、summary 表示、config.type 保存、validatePresetChain、AGENTS/CLAUDE template generation は既存の projectRoot-aware resolver 経由で維持する。",
+    "must: retained public behavior verification として、setup candidate rendering は output/TTY harness または helper-level test で official preset label を確認する。",
+    "must: retained public behavior verification として、config.type 保存後に resolveMultiChains と validatePresetChain が選択した official preset を解決できることを確認する。",
+    "must: retained public behavior verification として、既存 non-official plugin は installed manifest がある場合だけ候補に出し、missing source の更新を setup が試みないことを確認する。",
+    "must: intentional removal は行わない。公式以外の plugin source 更新は setup では実行しないが、これは既存の plugin sync/upgrade owner を維持するもので public behavior removal ではない。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "この修正のゴールは、senti setup の対話式プリセット選択で official-presets 由来の preset（例: node-cli, webapp, cakephp2）を候補表示することでよいですか？",
+      "answer": "はい。must: Issue #384 のゴールは、senti setup の対話式プリセット選択で official-presets 由来の preset を候補表示し、base しか選べない状態を解消することです。",
+      "evidence": "Issue #384 body states that only base is shown and official presets such as node-cli, webapp, and cakephp2 do not appear. The user approved the intent confirmation for this goal.",
+      "why": "Issue #384 は setup preset selection の候補不足を扱っており、plugin registry 由来 preset の表示が root problem に対応するためです。",
+      "considered": "setup 以外の docs/init 側だけを直す案は、ユーザーが最初に見る preset selection の不具合を解消しないため採用しません。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "新規 setup で official-presets source を解決できない場合、setup は base のみで継続せず、候補取得エラーとして止める方針でよいですか？",
+      "answer": "はい。must: 公式 preset bootstrap の解決不能は配布物・インストール・実行環境の異常として扱い、base のみで黙って継続せず fatal error にします。must: 公式以外の既存 plugin は installed manifest がある場合だけ候補に使い、解決不能な source の fetch/update は setup の責務にしません。",
+      "evidence": "src/lib/plugin-registry.js loadPluginRegistry() reads only installed .senti/plugins/<id>/plugin.json manifests, while syncInstalledPlugins() and installPlugin() own source resolution and update behavior. The user confirmed this policy after discussing official and non-official plugin failure modes.",
+      "why": "base のみで継続すると Issue #384 と同じユーザー症状を隠すためです。一方、非公式 plugin の source 解決や更新は plugin sync/upgrade の責務であり、setup の候補表示でネットワーク更新まで実行すると責務が広がります。",
+      "considered": "base のみで警告継続する案は、公式 preset が候補に出ない状態を許容してしまうため採用しません。setup 中に全 plugin source を更新する案は、setup と plugin sync/upgrade の責務を混ぜるため採用しません。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "setup が official-presets を候補表示に使った場合、その plugin source/package を生成される .senti/config.json に記録する挙動を期待しますか？",
+      "answer": "must: setup が official-presets 由来の非 base preset を選択結果として保存する場合は、後続の docs/build や validatePresetChain が同じ preset を解決できるように official-presets plugin source/package を .senti/config.json に記録します。should: 候補表示だけに使い、選択結果が base のみなら不要な plugin 記録は避けます。",
+      "evidence": "src/lib/presets.js resolves non-base presets through projectRoot-aware plugin registry lookup, and src/lib/plugin-registry.js loadPluginRegistry() requires installed package manifests referenced from config. The user accepted the policy that setup should not own arbitrary plugin updates while official bootstrap failure is exceptional.",
+      "why": "非 base official preset を config.type に保存しても plugin registry が再現できなければ、後続コマンドが Preset not found になるためです。一方、base だけを選んだ project に official plugin state を強制する必要はありません。",
+      "considered": "候補表示用に一時利用するだけで config に記録しない案は、選択後の preset 解決を壊すため採用しません。すべての setup 実行で常に official-presets を記録する案は、base-only project に不要な plugin state を増やすため採用しません。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [
+    "must: official-presets source 解決失敗時の user-visible error message を spec で確定する。",
+    "should: setup と presets list の候補一覧生成を共通化するか、setup のみの修正に留めるかを spec で判断する。",
+    "must: migration parity acceptance criteria を spec の requirements または scenarios に展開する。",
+    "must: migration parity verification を spec の test scenarios に展開し、retained public surface ごとに最低 1 件の behavior-level verification を持たせる。"
+  ],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-13T22:45:52Z",
+    "notes": "Issue intent confirmed by user. Draft questions answered through user-approved policy for official and non-official plugin preset handling."
+  }
+}

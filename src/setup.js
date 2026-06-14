@@ -18,13 +18,15 @@ import { EXIT_ERROR } from "./lib/constants.js";
 import { validate } from "./lib/config.js";
 import { DEFAULT_LANG, sentiDir as sentiDirFn } from "./lib/config.js";
 import { createI18n } from "./lib/i18n.js";
-import { PRESETS, resolveMultiChains, validatePresetChain } from "./lib/presets.js";
+import { listSetupPresetCandidates, resolveMultiChains, resolvePresetCandidateChains, validatePresetCandidateChain } from "./lib/presets.js";
 import { buildTreeItems, select } from "./lib/multi-select.js";
 import { loadSpecDrivenDevelopmentTemplate } from "./lib/agents-md.js";
 import { resolveWorkDir } from "./lib/config.js";
 import { mergeAgentDefaults } from "./lib/agent-defaults.js";
 import { deploySkills } from "./lib/skills.js";
 import { SENTI_GITIGNORE_LINES, hasSentiGitignore, normalizeSentiGitignore } from "./lib/gitignore.js";
+import { officialPresetPluginRoot } from "./lib/official-plugins.js";
+import { ensureSetupOfficialPresetState } from "./lib/plugin-registry.js";
 
 // ---------------------------------------------------------------------------
 // readline helpers
@@ -84,6 +86,20 @@ function readConfigFile(configPath) {
   }
 }
 
+function snapshotConfigFile(configPath) {
+  return fs.existsSync(configPath)
+    ? { exists: true, content: fs.readFileSync(configPath, "utf8") }
+    : { exists: false, content: null };
+}
+
+function restoreConfigFile(configPath, snapshot) {
+  if (snapshot.exists) {
+    fs.writeFileSync(configPath, snapshot.content, "utf8");
+  } else if (fs.existsSync(configPath)) {
+    fs.unlinkSync(configPath);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Load existing config as defaults
 // ---------------------------------------------------------------------------
@@ -105,6 +121,8 @@ function loadExistingDefaults(workRoot) {
     agent: cfg.agent?.default || "",
   };
 }
+
+export const loadSetupDefaults = loadExistingDefaults;
 
 // ---------------------------------------------------------------------------
 // Project registration
@@ -236,11 +254,16 @@ function fixClaudeMdSymlink(sourceDir) {
   } catch (err) { if (err.code !== "ENOENT") console.error(err); }
 }
 
+function officialPresetCandidateOptions({ required = false } = {}) {
+  const root = officialPresetPluginRoot();
+  return { includeOfficialPresets: required || Boolean(root), officialPresetRoot: root };
+}
+
 // ---------------------------------------------------------------------------
 // Interactive wizard (returns settings object)
 // ---------------------------------------------------------------------------
 
-async function runWizard(defaults, t) {
+async function runWizard(defaults, t, { projectRoot } = {}) {
   const s = { ...defaults };
 
   // --- Project name ---
@@ -279,7 +302,7 @@ async function runWizard(defaults, t) {
   }
 
   // --- Preset selection ---
-  const treeItems = buildTreeItems(PRESETS);
+  const treeItems = buildTreeItems(listSetupPresetCandidates(projectRoot, officialPresetCandidateOptions({ required: true })));
   const presetDefaults = s.additionalTypes.length > 0
     ? [s.type, ...s.additionalTypes]
     : s.type ? [s.type] : [];
@@ -346,15 +369,20 @@ async function runWizard(defaults, t) {
 // Summary display
 // ---------------------------------------------------------------------------
 
-function resolveLeafTypes(primaryType, additionalTypes, projectRoot) {
+function resolveLeafTypes(primaryType, additionalTypes, projectRoot, candidates = null) {
   const allTypes = additionalTypes.length > 0
     ? [primaryType, ...additionalTypes] : [primaryType];
-  const chains = resolveMultiChains(allTypes, projectRoot);
+  const chains = candidates
+    ? resolvePresetCandidateChains(allTypes, candidates)
+    : resolveMultiChains(allTypes, projectRoot);
   return chains.map((chain) => chain[chain.length - 1].key);
 }
 
+export const resolveSetupLeafTypes = resolveLeafTypes;
+
 function buildSummaryLines(s, t, projectRoot) {
-  const leafTypes = resolveLeafTypes(s.type, s.additionalTypes, projectRoot);
+  const candidates = listSetupPresetCandidates(projectRoot, officialPresetCandidateOptions());
+  const leafTypes = resolveLeafTypes(s.type, s.additionalTypes, projectRoot, candidates);
   const agentFile = s.agent === "claude" ? "CLAUDE.md" : "AGENTS.md";
 
   return [
@@ -369,6 +397,8 @@ function buildSummaryLines(s, t, projectRoot) {
     `    ${agentFile}: ${s.agentFileMode === "generate" ? "✓" : "skip"}`,
   ];
 }
+
+export const buildSetupSummaryLines = buildSummaryLines;
 
 // ---------------------------------------------------------------------------
 // Main
@@ -391,9 +421,10 @@ async function main() {
   }
 
   const defaultPath = process.cwd();
-  const defaultName = path.basename(defaultPath);
   const sourcePath = cli.path || defaultPath;
   const workRootPath = cli.workRoot || "";
+  const setupRoot = path.resolve(workRootPath || sourcePath);
+  const defaultName = path.basename(setupRoot);
 
   // Non-interactive mode: all required values provided via CLI
   const hasAllRequired = cli.name && cli.type && cli.purpose && cli.tone;
@@ -417,7 +448,7 @@ async function main() {
     };
   } else {
     // Load existing config as defaults
-    const existing = loadExistingDefaults(defaultPath);
+    const existing = loadExistingDefaults(setupRoot);
 
     let defaults = {
       projectName: cli.name || defaultName,
@@ -448,10 +479,10 @@ async function main() {
 
     // --- Wizard loop with confirmation ---
     while (true) {
-      settings = await runWizard(defaults, t);
+      settings = await runWizard(defaults, t, { projectRoot: setupRoot });
 
       // Show summary
-      const lines = buildSummaryLines(settings, t, defaultPath);
+      const lines = buildSummaryLines(settings, t, setupRoot);
       console.log("");
       for (const line of lines) console.log(line);
 
@@ -481,15 +512,14 @@ async function main() {
   // Build config: merge wizard values into existing config to preserve customizations
   const configPath = path.join(workRoot, ".senti", "config.json");
   let config = readConfigFile(configPath) || {};
-
-  // Minimize type array: remove parents that are already implied by children
-  const leafTypes = resolveLeafTypes(settings.type, settings.additionalTypes, workRoot);
-  const finalType = leafTypes.length === 1 ? leafTypes[0] : leafTypes;
+  const selectedTypes = settings.additionalTypes.length > 0
+    ? [settings.type, ...settings.additionalTypes]
+    : [settings.type];
 
   // Wizard-managed fields (overwrite)
   config.name = settings.projectName;
   config.lang = settings.lang;
-  config.type = finalType;
+  config.type = selectedTypes.length === 1 ? selectedTypes[0] : selectedTypes;
   config.docs = {
     ...config.docs,
     languages: settings.outputLangs,
@@ -520,8 +550,17 @@ async function main() {
 
   validate(config);
 
-  // Fail-fast: chapters ↔ templates static integrity check (spec 218).
-  validatePresetChain(config.type, workRoot, {
+  const setupCandidates = listSetupPresetCandidates(workRoot, officialPresetCandidateOptions());
+  const leafTypes = resolveLeafTypes(
+    settings.type,
+    settings.additionalTypes,
+    workRoot,
+    setupCandidates,
+  );
+  config.type = leafTypes.length === 1 ? leafTypes[0] : leafTypes;
+  validate(config);
+
+  validatePresetCandidateChain(config.type, setupCandidates, workRoot, {
     languages: config.docs?.languages || [],
     configChapters: config.chapters,
   });
@@ -532,7 +571,19 @@ async function main() {
     return;
   }
 
-  // Write config.json
+  const configSnapshot = snapshotConfigFile(configPath);
+  try {
+    ensureSetupOfficialPresetState(workRoot, {
+      selectedTypes,
+      officialPresetRoot: officialPresetPluginRoot(),
+    });
+  } catch (err) {
+    restoreConfigFile(configPath, configSnapshot);
+    throw err;
+  }
+  const preparedConfig = readConfigFile(configPath);
+  if (preparedConfig?.plugin) config.plugin = preparedConfig.plugin;
+
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n", "utf8");
   console.log(t("setup.messages.configGenerated", { path: configPath }));
 
@@ -569,7 +620,7 @@ async function main() {
   console.log(`    ${t("setup.messages.step2")}`);
   console.log("");
 
-  process.stdin.unref();
+  if (typeof process.stdin.unref === "function") process.stdin.unref();
 }
 
 

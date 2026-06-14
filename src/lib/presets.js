@@ -12,7 +12,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createLogger } from "./progress.js";
-import { loadPluginRegistry } from "./plugin-registry.js";
+import { loadPluginRegistry, PluginManifest } from "./plugin-registry.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const logger = createLogger("presets");
@@ -49,11 +49,12 @@ function discoverPresetsInDir(presetsDir) {
 export const CORE_PRESETS = discoverPresetsInDir(CORE_PRESETS_DIR);
 export const PRESETS = CORE_PRESETS;
 
-function registryPresets(projectRoot) {
+function registryPresets(projectRoot, { strict = false } = {}) {
   if (!projectRoot) return [];
   try {
     return [...loadPluginRegistry(projectRoot).presets.values()];
   } catch (err) {
+    if (strict) throw err;
     logger.verbose(`plugin registry failed: ${err.message}`);
     return [];
   }
@@ -66,6 +67,30 @@ function allPresets(projectRoot) {
   }
   for (const preset of registryPresets(projectRoot)) byKey.set(preset.key, preset);
   return [...byKey.values()];
+}
+
+export function listSetupPresetCandidates(projectRoot, { includeOfficialPresets = false, officialPresetRoot } = {}) {
+  const byKey = new Map(CORE_PRESETS.map((preset) => [preset.key, preset]));
+  if (projectRoot) {
+    for (const preset of registryPresets(projectRoot, { strict: true })) byKey.set(preset.key, preset);
+  }
+  if (includeOfficialPresets) {
+    if (!officialPresetRoot) throw new Error("official preset source cannot be resolved");
+    const manifest = PluginManifest.fromRoot(officialPresetRoot, "official-presets");
+    if (manifest.name !== "official-presets") {
+      throw new Error(`official package mismatch: expected official-presets, got ${manifest.name}`);
+    }
+    for (const preset of manifest.presetEntries()) byKey.set(preset.key, preset);
+  }
+  const candidates = [...byKey.values()];
+  validatePresetCandidateChains(candidates, projectRoot);
+  return candidates;
+}
+
+export function validatePresetCandidateChains(candidates, projectRoot) {
+  for (const candidate of candidates) {
+    resolvePresetCandidateChains(candidate.key, candidates, { maxDepth: MAX_CHAIN_DEPTH });
+  }
 }
 
 /**
@@ -126,6 +151,44 @@ export function resolveMultiChains(types, projectRoot, opts = {}) {
   // Resolve each type into its full chain
   const chains = unique.map((t) => resolveChain(t, projectRoot, opts));
 
+  return dedupeParentChains(chains);
+}
+
+export function resolvePresetCandidateChains(types, candidates, opts = {}) {
+  const maxDepth = opts.maxDepth || MAX_CHAIN_DEPTH;
+  const byKey = new Map(candidates.map((preset) => [preset.key, preset]));
+  const typeList = Array.isArray(types) ? types : [types];
+  const unique = [...new Set(typeList)];
+  const chains = unique.map((leafKey) => {
+    const preset = byKey.get(leafKey);
+    if (!preset) throw new Error(`Preset not found: ${leafKey}`);
+    const chain = [preset];
+    const visited = new Set([leafKey]);
+    let current = preset;
+
+    while (current.parent) {
+      if (visited.has(current.parent)) {
+        throw new Error(`Circular parent reference detected: ${current.key} → ${current.parent}`);
+      }
+      const parentPreset = byKey.get(current.parent);
+      if (!parentPreset) {
+        throw new Error(`Parent preset not found: ${current.parent} (referenced by ${current.key})`);
+      }
+      visited.add(current.parent);
+      chain.unshift(parentPreset);
+      if (chain.length > maxDepth) {
+        throw new Error(`preset parent chain exceeds depth ${maxDepth}`);
+      }
+      current = parentPreset;
+    }
+
+    return chain;
+  });
+
+  return dedupeParentChains(chains);
+}
+
+function dedupeParentChains(chains) {
   // Dedup: if one chain's leaf is an ancestor of another chain, keep only the longer one
   const result = [];
   for (let i = 0; i < chains.length; i++) {
@@ -211,7 +274,7 @@ export function resolvePresetEntriesForSearch(types, projectRoot, { chainOrder =
  * Mirrors the priority used by template-merger.resolveChaptersOrder():
  *   configChapters (when non-empty) > union of leaf chapters across type chains.
  */
-function resolveEffectiveChapters(typeList, projectRoot, configChapters) {
+function resolveEffectiveChapters(typeList, projectRoot, configChapters, resolveChainForType) {
   if (configChapters?.length) {
     return configChapters
       .filter((c) => typeof c === "string" || !c.exclude)
@@ -220,7 +283,7 @@ function resolveEffectiveChapters(typeList, projectRoot, configChapters) {
   const seen = new Set();
   const result = [];
   for (const key of typeList) {
-    const chain = resolveChain(key, projectRoot);
+    const chain = resolveChainForType(key);
     let chainChapters = [];
     for (const preset of chain) {
       if (preset.chapters?.length && (presetHasTemplates(preset) || preset.localManifest)) {
@@ -250,7 +313,7 @@ function presetHasTemplates(preset) {
  * searches across all type chains for each chapter. Validator PASS ≡ build
  * can resolve the chapter via some chain.
  */
-function templateSearchDirs(typeList, projectRoot, lang) {
+function templateSearchDirs(typeList, projectRoot, lang, resolveChainForType) {
   const dirs = [];
   const seen = new Set();
   const push = (d) => {
@@ -265,7 +328,7 @@ function templateSearchDirs(typeList, projectRoot, lang) {
     push(path.join(projectRoot, ".senti", "templates", lang, "docs"));
   }
   for (const typeKey of typeList) {
-    const chain = resolveChain(typeKey, projectRoot);
+    const chain = resolveChainForType(typeKey);
     if (chain.length > MAX_CHAIN_DEPTH) {
       throw new Error(`validatePresetChain: chain depth exceeds MAX_CHAIN_DEPTH (${chain.length} > ${MAX_CHAIN_DEPTH}) for type=${typeKey}`);
     }
@@ -294,14 +357,14 @@ function templateSearchDirs(typeList, projectRoot, lang) {
  * @param {string[]} options.languages - Languages to validate (from config.docs.languages).
  * @param {Array} [options.configChapters] - Override chapters (from config.chapters).
  */
-export function validatePresetChain(types, projectRoot, { languages, configChapters } = {}) {
+function validatePresetChainWithResolver(types, projectRoot, { languages, configChapters } = {}, resolveChainForType) {
   if (!languages?.length) return;
   if (languages.length > MAX_LANGUAGES) {
     throw new Error(`validatePresetChain: languages count exceeds MAX_LANGUAGES (${languages.length} > ${MAX_LANGUAGES})`);
   }
 
   const typeList = Array.isArray(types) ? types : [types];
-  const effectiveChapters = resolveEffectiveChapters(typeList, projectRoot, configChapters);
+  const effectiveChapters = resolveEffectiveChapters(typeList, projectRoot, configChapters, resolveChainForType);
   if (effectiveChapters.length > MAX_CHAPTERS_PER_PRESET) {
     throw new Error(`validatePresetChain: chapter count exceeds MAX_CHAPTERS_PER_PRESET (${effectiveChapters.length} > ${MAX_CHAPTERS_PER_PRESET})`);
   }
@@ -313,7 +376,7 @@ export function validatePresetChain(types, projectRoot, { languages, configChapt
 
   for (const chapter of effectiveChapters) {
     for (const lang of languages) {
-      const dirs = templateSearchDirs(typeList, projectRoot, lang);
+      const dirs = templateSearchDirs(typeList, projectRoot, lang, resolveChainForType);
       dirs.forEach((d) => searchedPaths.add(d));
       const found = dirs.some((d) => fs.existsSync(path.join(d, chapter)));
       if (!found) missing.push({ chapter, lang });
@@ -355,6 +418,24 @@ export function validatePresetChain(types, projectRoot, { languages, configChapt
       );
     }
   }
+}
+
+export function validatePresetChain(types, projectRoot, opts = {}) {
+  return validatePresetChainWithResolver(
+    types,
+    projectRoot,
+    opts,
+    (type) => resolveChain(type, projectRoot, { maxDepth: MAX_CHAIN_DEPTH }),
+  );
+}
+
+export function validatePresetCandidateChain(types, candidates, projectRoot, opts = {}) {
+  return validatePresetChainWithResolver(
+    types,
+    projectRoot,
+    opts,
+    (type) => resolvePresetCandidateChains(type, candidates, { maxDepth: MAX_CHAIN_DEPTH })[0],
+  );
 }
 
 /**

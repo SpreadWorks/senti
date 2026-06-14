@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-14T01:38:17.899Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 3,
+    "nonBlocking": 0,
+    "total": 3
+  },
+  "blockingFindings": [
+    {
+      "title": "Interactive setup resolves candidates from cwd instead of the target work root",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/setup.js",
+      "requirementId": "R1",
+      "issue": "main() passes defaultPath to loadExistingDefaults(), runWizard(), and buildSummaryLines(), even when --path or --work-root points setup at a different target project root. As a result, installed plugin presets and configured defaults in the actual target work root are not used for the preset tree or summary.",
+      "suggestion": "In main(), compute the target setup root from workRootPath when provided, otherwise sourcePath, and pass that target root to loadExistingDefaults(), runWizard({ projectRoot }), and buildSummaryLines(). Keep final post-registration validation on the registered workRoot.",
+      "rationale": "R1/R5/R6 require setup candidates, defaults, and summary resolution to use available plugin preset contributions for the target project root. Using process.cwd() creates candidate/validation drift for existing projects configured via --work-root or --path."
+    },
+    {
+      "title": "Candidate discovery still omits required resource bounds",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/lib/presets.js",
+      "requirementId": "R9",
+      "issue": "listSetupPresetCandidates() relies on loadPluginRegistry() and PluginManifest.fromRoot() but only the enabled package count and preset chain depth are enforced on this path. The R9-required source count, manifest JSON size, and official metadata read/file bounds are still not checked during candidate discovery.",
+      "suggestion": "Update listSetupPresetCandidates() and the manifest-loading path it uses to enforce MAX_PLUGIN_SOURCES, MAX_PLUGIN_JSON_BYTES, and bounded official preset metadata reads before returning candidates. Apply the same bounded reader to installed plugin manifests and officialPresetRoot metadata.",
+      "rationale": "A9 explicitly requires candidate discovery to reject or stop at package count, source count, manifest JSON/path/file limits, and preset parent chain depth. The current implementation can still read unbounded official/plugin metadata and ignore excessive source lists."
+    },
+    {
+      "title": "Non-interactive setup exits with failure after completing setup",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/setup.js",
+      "requirementId": "R6",
+      "issue": "main() unconditionally calls process.stdin.unref() at the end. In spawned non-interactive setup runs, process.stdin.unref is not always a function, so the command exits with status 1 after writing config and agent files.",
+      "suggestion": "In main(), replace the final process.stdin.unref() call with a guarded branch that only calls it when typeof process.stdin.unref === \"function\", or remove the call if it is not required for setup completion.",
+      "rationale": "R6/A7 require non-interactive --type setup to complete successfully through the same validation path. A post-success TypeError makes the CLI report failure even when the generated official preset state is otherwise valid."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/294-setup-preset-options/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "a1413f28ca88c0d884f80097634d5f12eb9ed1a22613cf548ba838c699effe1d"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 5,
+  "findings": [
+    {
+      "id": "impl-005-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "Interactive setup resolves candidates from cwd instead of the target work root",
+      "body": "main() passes defaultPath to loadExistingDefaults(), runWizard(), and buildSummaryLines(), even when --path or --work-root points setup at a different target project root. As a result, installed plugin presets and configured defaults in the actual target work root are not used for the preset tree or summary.",
+      "category": "missing_acceptance_requirement"
+    },
+    {
+      "id": "impl-005-blocking-002",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "Candidate discovery still omits required resource bounds",
+      "body": "listSetupPresetCandidates() relies on loadPluginRegistry() and PluginManifest.fromRoot() but only the enabled package count and preset chain depth are enforced on this path. The R9-required source count, manifest JSON size, and official metadata read/file bounds are still not checked during candidate discovery.",
+      "category": "missing_acceptance_requirement"
+    },
+    {
+      "id": "impl-005-blocking-003",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "Non-interactive setup exits with failure after completing setup",
+      "body": "main() unconditionally calls process.stdin.unref() at the end. In spawned non-interactive setup runs, process.stdin.unref is not always a function, so the command exits with status 1 after writing config and agent files.",
+      "category": "missing_acceptance_requirement"
+    }
+  ]
+}

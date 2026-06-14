@@ -1,0 +1,68 @@
+{
+  "spec": "specs/294-setup-preset-options/spec.json",
+  "date": "2026-06-14T02:07:39.014Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Interactive setup preset candidates must be generated from core presets plus available project plugin preset contributions.",
+      "status": "done",
+      "note": "R1: candidate provider includes core presets and installed plugin presets in deterministic order"
+    },
+    {
+      "desc": "Fresh setup must discover bundled official presets through a read-only pre-prompt path that does not require `.senti/config.json`, and must fail loudly if that official source cannot be resolved.",
+      "status": "done",
+      "note": "R2: fresh official discovery is read-only before setup confirmation"
+    },
+    {
+      "desc": "When setup saves a non-base official preset selection, the generated config and local plugin state must allow later project-root-aware preset resolution to find that preset.",
+      "status": "done",
+      "note": "R3: selected non-base official presets persist resolvable plugin state"
+    },
+    {
+      "desc": "When setup saves only `base`, it must not persist unnecessary official preset plugin package state.",
+      "status": "done",
+      "note": "R4: base-only selections do not persist official preset plugin state"
+    },
+    {
+      "desc": "Setup must use installed non-official plugin manifests as candidates without attempting to fetch or update missing non-official plugin sources.",
+      "status": "done",
+      "note": "R5: missing non-official installed manifests are ignored without source fetch or update"
+    },
+    {
+      "desc": "Existing behavior for defaults, non-interactive `--type`, summary leaf display, config type minimization, `validatePresetChain`, and agent template preset lookup must continue through the project-root-aware resolver.",
+      "status": "done",
+      "note": "R6: summary and agent template lookup use project-root-aware preset resolution"
+    },
+    {
+      "desc": "Related PRESETS-fixed display paths must be reviewed and either moved to the shared candidate helper or explicitly kept out of scope with tests protecting setup.",
+      "status": "done",
+      "note": "R7: setup no longer renders preset candidates from the core-only PRESETS constant"
+    },
+    {
+      "desc": "Setup's official plugin state writes must preserve `.senti/config.json` and `.senti/config.local.json` separation and must not publish local-only plugin sources or packages.",
+      "status": "done",
+      "note": "R8: official state writes do not publish config.local plugin entries"
+    },
+    {
+      "desc": "Preset candidate discovery and official metadata reads must enforce bounded resource usage through existing plugin registry count/size/path limits and preset chain depth limits.",
+      "status": "done",
+      "note": "R9: official state rejects adding a source beyond the source count bound"
+    },
+    {
+      "desc": "Spec-local tests under `specs/294-setup-preset-options/tests/` must include `// spec: R<N>` headers and collectively cover every testable requirement.",
+      "status": "done",
+      "note": "R10: spec-local tests declare requirement coverage headers"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 10,
+    "done": 10,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

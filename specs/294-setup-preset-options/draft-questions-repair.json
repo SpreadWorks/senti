@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Removed priority labels from 3 pending question texts.",
+  "items": [
+    {
+      "title": "1. Priority label included in question text",
+      "target": "q1",
+      "rationale": "Removed the leading `must:` marker while preserving the goal-confirmation question.",
+      "evidence": "draft.json qa[0].question now starts with the user-facing question text.",
+      "changedFieldPaths": [
+        "qa[0].question"
+      ]
+    },
+    {
+      "title": "2. Priority label included in question text",
+      "target": "q2",
+      "rationale": "Removed the leading `must:` marker while preserving the dependency-boundary question.",
+      "evidence": "draft.json qa[1].question now starts with the user-facing question text.",
+      "changedFieldPaths": [
+        "qa[1].question"
+      ]
+    },
+    {
+      "title": "3. Priority label included in question text",
+      "target": "q3",
+      "rationale": "Removed the leading `should:` marker while preserving the persistence-behavior question.",
+      "evidence": "draft.json qa[2].question now starts with the user-facing question text.",
+      "changedFieldPaths": [
+        "qa[2].question"
+      ]
+    }
+  ]
+}

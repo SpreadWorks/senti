@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-13T23:31:09.791Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 4,
+    "advisory": 1,
+    "total": 5
+  },
+  "coverageArtifact": "specs/294-setup-preset-options/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R2 fail-loud official source path is untested",
+      "target": "specs/294-setup-preset-options/tests/preset-candidates.test.js",
+      "issue": "The R2 test only injects a valid officialPresetRoot and verifies read-only discovery. It does not cover the required loud failure when the official preset source cannot be resolved, so an implementation that silently falls back to base would pass.",
+      "requiredChange": "Add an R2 spec-local test that calls setup candidate discovery with official presets enabled and an unresolvable official source, then asserts a clear throw and no config/plugin writes.",
+      "whyBlocking": "R2 explicitly requires loud failure for unresolved official sources, and the coverage artifact marks R2 covered despite that acceptance behavior having no executable test."
+    },
+    {
+      "kind": "blocking",
+      "title": "R6 parity coverage misses several required behaviors",
+      "target": "specs/294-setup-preset-options/tests/setup-parity.test.js",
+      "issue": "The R6 test covers summary display and agent template lookup, but it does not cover defaults, non-interactive --type handling, or config type minimization through the project-root-aware resolver.",
+      "requiredChange": "Add focused R6 tests for default setup behavior, non-interactive --type selection, and generated config type minimization when project-root-aware preset resolution is involved.",
+      "whyBlocking": "R6 is a must requirement listing multiple existing behaviors. Current tests would allow regressions in several of those behaviors while still passing."
+    },
+    {
+      "kind": "blocking",
+      "title": "R8 config.local preservation is not asserted",
+      "target": "specs/294-setup-preset-options/tests/official-state.test.js",
+      "issue": "The R8 test checks that config.local private entries are not copied into public config, but it does not assert that .senti/config.local.json itself remains preserved and separated after official state writes.",
+      "requiredChange": "After ensureSetupOfficialPresetState, read .senti/config.local.json and assert the private local plugin entries remain intact and are not replaced or polluted by public official package state.",
+      "whyBlocking": "R8 requires preserving config.json and config.local.json separation. An implementation that deletes or rewrites config.local could pass the current test."
+    },
+    {
+      "kind": "blocking",
+      "title": "R9 bounded-resource coverage is incomplete",
+      "target": "specs/294-setup-preset-options/tests/preset-candidates.test.js",
+      "issue": "The R9 test only checks the enabled package count limit. It does not cover plugin registry size/path limits, official metadata read bounds, or preset chain depth limits.",
+      "requiredChange": "Add R9 tests that exercise existing path/size limit enforcement for plugin or official preset metadata reads and a preset chain depth limit failure.",
+      "whyBlocking": "R9 is a must requirement for bounded resource usage. Current tests would pass an implementation that enforces only package count while missing the other required limits."
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R7 source regex is brittle",
+      "target": "specs/294-setup-preset-options/tests/setup-parity.test.js",
+      "improvement": "Supplement or replace the source text regex with a behavior-oriented setup candidate/tree test showing setup uses shared candidate discovery for non-core presets.",
+      "whyNonBlocking": "R7 is a should requirement, and the current static check still guards the specific known PRESETS regression, but it can be bypassed without proving production behavior."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/294-setup-preset-options/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 4,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "f22c929da5970b28ca998149fc205063af14f154340fda8a5052fc7ce0b65930"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "test-001-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R2 fail-loud official source path is untested",
+      "body": "The R2 test only injects a valid officialPresetRoot and verifies read-only discovery. It does not cover the required loud failure when the official preset source cannot be resolved, so an implementation that silently falls back to base would pass.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R6 parity coverage misses several required behaviors",
+      "body": "The R6 test covers summary display and agent template lookup, but it does not cover defaults, non-interactive --type handling, or config type minimization through the project-root-aware resolver.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R8 config.local preservation is not asserted",
+      "body": "The R8 test checks that config.local private entries are not copied into public config, but it does not assert that .senti/config.local.json itself remains preserved and separated after official state writes.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R9 bounded-resource coverage is incomplete",
+      "body": "The R9 test only checks the enabled package count limit. It does not cover plugin registry size/path limits, official metadata read bounds, or preset chain depth limits.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-non-blocking-005",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "R7 source regex is brittle",
+      "body": "R7 source regex is brittle",
+      "category": "unknown"
+    }
+  ]
+}

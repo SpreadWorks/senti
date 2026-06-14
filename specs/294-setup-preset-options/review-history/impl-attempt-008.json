@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-14T01:49:33.520Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "title": "Official preset setup can persist unusable config on install failure",
+      "failureMode": "security_or_data_integrity_bug",
+      "file": "src/setup.js",
+      "issue": "main() writes .senti/config.json with the minimized official preset type before calling ensureSetupOfficialPresetState(). If ensureSetupOfficialPresetState() then fails while resolving, validating, or installing the official package, setup exits with config.type pointing at a preset that may not be installed in the project registry.",
+      "suggestion": "In main(), call ensureSetupOfficialPresetState() before the final config write when selectedTypes require official presets, or otherwise roll back/defer the pending config write until official package state has been successfully prepared. Keep validate(config) and validatePresetCandidateChain() before any persisted setup config mutation.",
+      "rationale": "This is a data integrity failure because a failed setup can leave the project configured to use an unavailable plugin preset, producing a partially applied setup state instead of an unchanged or fully usable project."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/294-setup-preset-options/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "760bc61336edacfc7a73c41cc0db33eb2fec99cfb5e0990a5f3c745718c45e94"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 8,
+  "findings": [
+    {
+      "id": "impl-008-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 8,
+      "severity": "blocking",
+      "title": "Official preset setup can persist unusable config on install failure",
+      "body": "main() writes .senti/config.json with the minimized official preset type before calling ensureSetupOfficialPresetState(). If ensureSetupOfficialPresetState() then fails while resolving, validating, or installing the official package, setup exits with config.type pointing at a preset that may not be installed in the project registry.",
+      "category": "security_or_data_integrity_bug"
+    }
+  ]
+}

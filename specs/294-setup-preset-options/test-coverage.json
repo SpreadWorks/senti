@@ -1,0 +1,146 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Interactive setup preset candidates must be generated from core presets plus available project plugin preset contributions.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/preset-candidates.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "Fresh setup must discover bundled official presets through a read-only pre-prompt path that does not require `.senti/config.json`, and must fail loudly if that official source cannot be resolved.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/preset-candidates.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "When setup saves a non-base official preset selection, the generated config and local plugin state must allow later project-root-aware preset resolution to find that preset.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/official-state.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "When setup saves only `base`, it must not persist unnecessary official preset plugin package state.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/official-state.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "Setup must use installed non-official plugin manifests as candidates without attempting to fetch or update missing non-official plugin sources.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/preset-candidates.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "Existing behavior for defaults, non-interactive `--type`, summary leaf display, config type minimization, `validatePresetChain`, and agent template preset lookup must continue through the project-root-aware resolver.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/setup-parity.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "Related PRESETS-fixed display paths must be reviewed and either moved to the shared candidate helper or explicitly kept out of scope with tests protecting setup.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/setup-parity.test.js"
+      ]
+    },
+    {
+      "id": "R8",
+      "desc": "Setup's official plugin state writes must preserve `.senti/config.json` and `.senti/config.local.json` separation and must not publish local-only plugin sources or packages.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/official-state.test.js"
+      ]
+    },
+    {
+      "id": "R9",
+      "desc": "Preset candidate discovery and official metadata reads must enforce bounded resource usage through existing plugin registry count/size/path limits and preset chain depth limits.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/preset-candidates.test.js"
+      ]
+    },
+    {
+      "id": "R10",
+      "desc": "Spec-local tests under `specs/294-setup-preset-options/tests/` must include `// spec: R<N>` headers and collectively cover every testable requirement.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/setup-parity.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/official-state.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R3",
+        "R4",
+        "R8"
+      ],
+      "testNameIds": [
+        "R3",
+        "R4",
+        "R8"
+      ]
+    },
+    {
+      "file": "tests/preset-candidates.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R5",
+        "R9"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R5",
+        "R9"
+      ]
+    },
+    {
+      "file": "tests/setup-parity.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R6",
+        "R7",
+        "R10"
+      ],
+      "testNameIds": [
+        "R6",
+        "R7",
+        "R10"
+      ]
+    }
+  ]
+}

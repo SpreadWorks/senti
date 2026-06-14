@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied both triaged spec review findings by specifying read-only pre-prompt official discovery and public/local config separation for official state writes.",
+  "items": [
+    {
+      "title": "Fresh bootstrap path lacks a pre-config integration contract",
+      "target": "R2 / T-2 / Data Flow",
+      "decision": "applied",
+      "rationale": "Specified that fresh setup discovers official preset metadata through a read-only pre-prompt path that does not create target config or installed package state, and that persistence only happens after confirmation for non-base official selections.",
+      "evidence": "spec.json scope.in[1], constraints[7], overview.data_flow[1], overview.data_flow[3], requirements[R2], acceptance_criteria[A1], tasks[T-2] now define pre-prompt read-only discovery and post-confirm persistence semantics.",
+      "changedFields": [
+        "scope.in[1]",
+        "constraints[7]",
+        "overview.data_flow[1]",
+        "overview.data_flow[3]",
+        "requirements[R2].desc",
+        "acceptance_criteria[0]",
+        "tasks[T-2].acceptance",
+        "tasks[T-2].implementation_notes"
+      ]
+    },
+    {
+      "title": "Official state writes must preserve config.local overlay privacy",
+      "target": "R3 / T-3 / src/lib/plugin-registry.js:ensureOfficialPackage",
+      "decision": "applied",
+      "rationale": "Added an explicit requirement and acceptance criterion that official state mutation must preserve public/local config separation and must not publish local-only plugin sources or packages.",
+      "evidence": "spec.json constraints[8], requirements[R8], acceptance_criteria[A8], tasks[T-3].acceptance, and tasks[T-3].implementation_notes now require public-config-only mutation semantics.",
+      "changedFields": [
+        "constraints[8]",
+        "requirements[R8]",
+        "acceptance_criteria[7]",
+        "tasks[T-3].acceptance",
+        "tasks[T-3].implementation_notes"
+      ]
+    }
+  ]
+}

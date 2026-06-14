@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "3 repair targets are valid and should remove priority labels from pending question text.",
+  "items": [
+    {
+      "title": "1. Priority label included in question text",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "The pending question can keep its meaning without embedding the priority marker in the user-facing question text.",
+      "evidence": "draft-review-questions.json reports q1 includes `must:` instead of only the question text."
+    },
+    {
+      "title": "2. Priority label included in question text",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "The pending question can keep its dependency-boundary decision while removing the priority marker from the user-facing question text.",
+      "evidence": "draft-review-questions.json reports q2 includes `must:` instead of only the question text."
+    },
+    {
+      "title": "3. Priority label included in question text",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "The pending question can keep its setup persistence decision while removing the priority marker from the user-facing question text.",
+      "evidence": "draft-review-questions.json reports q3 includes `should:` instead of only the question text."
+    }
+  ]
+}

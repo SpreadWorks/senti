@@ -1,0 +1,390 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The draft changes the setup preset-resolution path but does not provide an inventory of all existing public behavior being replaced (commands/APIs/paths), such as all user-visible setup preset presentation surfaces and related behaviors.; The draft does not map each retained public behavior to a new owner or explicitly state removal decisions for moved surfaces (e.g., existing setup candidate rendering, validation path behavior, and related command output behavior).; No behavior-level acceptance criteria are defined for each retained public surface through the new plugin-aware path; only a single regression case (base-only remains detectable) is stated.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-13T22:46:16.958Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "scopeVerification.in"
+          },
+          "observed": "The draft changes the setup preset-resolution path but does not provide an inventory of all existing public behavior being replaced (commands/APIs/paths), such as all user-visible setup preset presentation surfaces and related behaviors.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "impactOnExisting"
+          },
+          "observed": "The draft does not map each retained public behavior to a new owner or explicitly state removal decisions for moved surfaces (e.g., existing setup candidate rendering, validation path behavior, and related command output behavior).",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "scopeVerification.in"
+          },
+          "observed": "No behavior-level acceptance criteria are defined for each retained public surface through the new plugin-aware path; only a single regression case (base-only remains detectable) is stated.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft changes the setup preset-resolution path but does not provide an inventory of all existing public behavior being replaced (commands/APIs/paths), such as all user-visible setup preset presentation surfaces and related behaviors."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft does not map each retained public behavior to a new owner or explicitly state removal decisions for moved surfaces (e.g., existing setup candidate rendering, validation path behavior, and related command output behavior)."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "No behavior-level acceptance criteria are defined for each retained public surface through the new plugin-aware path; only a single regression case (base-only remains detectable) is stated."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate failed because migration parity inventory and retained behavior acceptance criteria were missing",
+      "trigger": "senti flow run gate --phase draft reported migration-parity guardrail violations",
+      "resolution": "added public behavior inventory, retained behavior owner mapping, and behavior-level acceptance criteria to draft.json",
+      "guardrailCandidate": "when changing a resolver path, draft must inventory retained public behavior before running gate",
+      "taskId": null,
+      "timestamp": "2026-06-13T22:46:56.524Z"
+    },
+    {
+      "step": "draft-gate",
+      "phase": "draft",
+      "reason": "invalid failureMode: missing-migration-parity-verification",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-13T22:47:17.599Z"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "gate FAIL (no details)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-13T22:47:17.615Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "draft-gate",
+      "phase": "draft",
+      "reason": "gate retry limit exhausted: 6/5 FAIL attempts recorded for phase \"draft\".\nCounter breakdown: AI-FAIL=6\nPrevious FAIL reasons:\n  attempt 1: The draft changes the setup preset-resolution path but does not provide an inventory of all existing public behavior being replaced (commands/APIs/paths), such as all user-visible setup preset presentation surfaces and related behaviors.; The draft does not map each retained public behavior to a new owner or explicitly state removal decisions for moved surfaces (e.g., existing setup candidate rendering, validation path behavior, and related command output behavior).; No behavior-level acceptance criteria are defined for each retained public surface through the new plugin-aware path; only a single regression case (base-only remains detectable) is stated.\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-13T22:47:31.796Z"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "manual retry reset was needed because draft gate retry recovery does not support draft phase",
+      "trigger": "senti flow set retry reset gate draft failed with invalid phase for gate: draft",
+      "resolution": "added a gateRetry reset metric to flow.json after expanding migration parity verification in draft.json",
+      "guardrailCandidate": "draft gate retry recovery should either support draft phase or avoid surfacing unsupported reset guidance",
+      "taskId": null,
+      "timestamp": "2026-06-13T23:08:47.458Z"
+    },
+    {
+      "step": "spec-gate",
+      "phase": "spec",
+      "reason": "invalid failureMode: missing-migration-parity",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-13T23:20:06.940Z"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "gate FAIL (no details)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-13T23:20:06.958Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec gate failed with invalid failureMode: missing-migration-parity and exhausted retries before returning structured rows",
+      "trigger": "senti flow run gate --phase spec",
+      "resolution": "expanded spec.json with explicit migration-parity inventory/owner mapping, bounded-resource-usage constraints, and required spec-local tests before manual retry reset",
+      "guardrailCandidate": "spec gate should accept or normalize missing-migration-parity failureMode instead of exhausting retries on schema validation",
+      "taskId": null,
+      "timestamp": "2026-06-13T23:21:43.602Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "`deterministic ordering suitable for the existing tree UI` is not expressed as a verifiable condition; the required ordering rule is ambiguous.; `suitable for the existing tree UI` does not give enough concrete criteria for independent reviewers to agree on pass/fail for this acceptance item.; `summary leaf display` is listed as a retained behavior, but no explicit acceptance criterion or task test requirement verifies this behavior in the new flow.; `agent template preset lookup` is listed as a retained behavior, but the acceptance criteria/spec tasks do not define a concrete verification for it.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-13T23:22:44.354Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[0].acceptance[2]"
+          },
+          "observed": "`deterministic ordering suitable for the existing tree UI` is not expressed as a verifiable condition; the required ordering rule is ambiguous.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[0].acceptance[2]"
+          },
+          "observed": "`suitable for the existing tree UI` does not give enough concrete criteria for independent reviewers to agree on pass/fail for this acceptance item.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[5].desc"
+          },
+          "observed": "`summary leaf display` is listed as a retained behavior, but no explicit acceptance criterion or task test requirement verifies this behavior in the new flow.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[5].desc"
+          },
+          "observed": "`agent template preset lookup` is listed as a retained behavior, but the acceptance criteria/spec tasks do not define a concrete verification for it.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "`deterministic ordering suitable for the existing tree UI` is not expressed as a verifiable condition; the required ordering rule is ambiguous."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "`suitable for the existing tree UI` does not give enough concrete criteria for independent reviewers to agree on pass/fail for this acceptance item."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "`summary leaf display` is listed as a retained behavior, but no explicit acceptance criterion or task test requirement verifies this behavior in the new flow."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "`agent template preset lookup` is listed as a retained behavior, but the acceptance criteria/spec tasks do not define a concrete verification for it."
+        }
+      ]
+    },
+    {
+      "step": "implement",
+      "reason": "parallel flow set req commands caused a transient spec.json parse error during status updates",
+      "trigger": "senti flow set req R8 done failed while other req status writes were running",
+      "resolution": "verified spec.json schema after subsequent write repaired the file, then reran R8 status update serially",
+      "guardrailCandidate": "do not run flow state mutation commands in parallel; serialize flow set commands that write spec.json or flow.json",
+      "taskId": null,
+      "timestamp": "2026-06-14T00:55:56.674Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "Changed implementation evidence: dry-run now exits before project-root preset validation and setup candidate discovery validates bounded preset chains before returning candidates.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "994d8868af6eef431596f5fd09202423d6f5215417d5e87d7bd918b0f894b29c",
+        "currentHash": "4300895124fbe1e511c5c5f4ea043b1070deb277b21c9e8fb1b85663190e2de6",
+        "changedPaths": [
+          "specs/294-setup-preset-options/spec.json",
+          "src/lib/plugin-registry.js",
+          "src/lib/presets.js",
+          "src/setup.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"Changed implementation evidence: dry-run now exits before project-root preset validation and setup candidate discovery validates bounded preset chains before returning candidates.\" --yes",
+      "createdAt": "2026-06-14T01:34:27.649Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-002",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "Changed implementation evidence after latest impl-review: setup now uses target root for defaults/candidates/summary, plugin metadata reads enforce source and JSON bounds, and stdin unref is guarded.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "4300895124fbe1e511c5c5f4ea043b1070deb277b21c9e8fb1b85663190e2de6",
+        "currentHash": "0f8aeee435602ae01d7d8969fdf326704e31b650fd7e89e7196049e34a9c6713",
+        "changedPaths": [
+          "specs/294-setup-preset-options/spec.json",
+          "src/lib/plugin-registry.js",
+          "src/lib/presets.js",
+          "src/setup.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"Changed implementation evidence after latest impl-review: setup now uses target root for defaults/candidates/summary, plugin metadata reads enforce source and JSON bounds, and stdin unref is guarded.\" --yes",
+      "createdAt": "2026-06-14T01:40:36.905Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-003",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "Changed implementation evidence after latest impl-review: official setup now rejects source-limit overflow before adding a source, and plugin metadata paths are resolved and contained under the plugin root before bounded JSON reads.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "0f8aeee435602ae01d7d8969fdf326704e31b650fd7e89e7196049e34a9c6713",
+        "currentHash": "b50bf4ebebf86b5ba3ae0017e737b2ad63f193dd54abb05451dc5a347b95613c",
+        "changedPaths": [
+          "specs/294-setup-preset-options/spec.json",
+          "src/lib/plugin-registry.js",
+          "src/lib/presets.js",
+          "src/setup.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"Changed implementation evidence after latest impl-review: official setup now rejects source-limit overflow before adding a source, and plugin metadata paths are resolved and contained under the plugin root before bounded JSON reads.\" --yes",
+      "createdAt": "2026-06-14T01:43:47.257Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-004",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "Changed implementation evidence after latest impl-review: setup validates transient preset candidates before first config write, and plugin metadata reads reject symlinks or real paths outside the plugin root.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "b50bf4ebebf86b5ba3ae0017e737b2ad63f193dd54abb05451dc5a347b95613c",
+        "currentHash": "6d91eaca62ceef6b1fa5ded2a2f1acd4507d970fa5226d1232e37c3ad07b1001",
+        "changedPaths": [
+          "specs/294-setup-preset-options/spec.json",
+          "src/lib/plugin-registry.js",
+          "src/lib/presets.js",
+          "src/setup.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"Changed implementation evidence after latest impl-review: setup validates transient preset candidates before first config write, and plugin metadata reads reject symlinks or real paths outside the plugin root.\" --yes",
+      "createdAt": "2026-06-14T01:49:09.254Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-005",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "Changed implementation evidence after latest impl-review: setup prepares official plugin state before final config write and restores the original config if preparation fails.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "6d91eaca62ceef6b1fa5ded2a2f1acd4507d970fa5226d1232e37c3ad07b1001",
+        "currentHash": "e5202ab92514f71a436df3d8dde5c6faf9c373f5cf808de1b44ebef4e87d8013",
+        "changedPaths": [
+          "specs/294-setup-preset-options/spec.json",
+          "src/lib/plugin-registry.js",
+          "src/lib/presets.js",
+          "src/setup.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"Changed implementation evidence after latest impl-review: setup prepares official plugin state before final config write and restores the original config if preparation fails.\" --yes",
+      "createdAt": "2026-06-14T01:51:47.549Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: generated missing upgrade-result.json with senti upgrade",
+      "resolution": "The integration gate failed before AI validation because upgrade-result.json was missing. Running senti upgrade created the required active-flow upgrade evidence artifact; unrelated migration diffs produced by upgrade were reverted from the working tree.",
+      "taskId": null,
+      "timestamp": "2026-06-14T01:56:28.642Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: regenerated stale test artifacts",
+      "resolution": "The integration gate failed because test-execute-result.json still contained the earlier spec-local failures. Re-running test-execute regenerated v2 test evidence with regression pass, and test-result-review now passes against the new artifact.",
+      "taskId": null,
+      "timestamp": "2026-06-14T02:00:03.405Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: regenerated upgrade artifact after test execution",
+      "resolution": "test-execute removed the prior upgrade-result.json. Running senti upgrade after the fresh test artifacts recreated upgrade-result.json; unrelated generated migration diffs were reverted again before gate rerun.",
+      "taskId": null,
+      "timestamp": "2026-06-14T02:01:21.186Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: corrected package-bound scenario and regenerated artifacts",
+      "resolution": "The spec-local failure came from the R9 enabled-package-bound test using distinct sources, which triggered source bounds first. The scenario now uses one shared source for 101 packages, test-execute and test-result-review pass, and upgrade-result.json was regenerated after test execution.",
+      "taskId": null,
+      "timestamp": "2026-06-14T02:05:55.869Z"
+    }
+  ]
+}

@@ -1,0 +1,135 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "Changed implementation evidence: dry-run now exits before project-root preset validation and setup candidate discovery validates bounded preset chains before returning candidates.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "994d8868af6eef431596f5fd09202423d6f5215417d5e87d7bd918b0f894b29c",
+        "currentHash": "4300895124fbe1e511c5c5f4ea043b1070deb277b21c9e8fb1b85663190e2de6",
+        "changedPaths": [
+          "specs/294-setup-preset-options/spec.json",
+          "src/lib/plugin-registry.js",
+          "src/lib/presets.js",
+          "src/setup.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"Changed implementation evidence: dry-run now exits before project-root preset validation and setup candidate discovery validates bounded preset chains before returning candidates.\" --yes",
+      "createdAt": "2026-06-14T01:34:27.649Z"
+    },
+    {
+      "id": "recovery-002",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "Changed implementation evidence after latest impl-review: setup now uses target root for defaults/candidates/summary, plugin metadata reads enforce source and JSON bounds, and stdin unref is guarded.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "4300895124fbe1e511c5c5f4ea043b1070deb277b21c9e8fb1b85663190e2de6",
+        "currentHash": "0f8aeee435602ae01d7d8969fdf326704e31b650fd7e89e7196049e34a9c6713",
+        "changedPaths": [
+          "specs/294-setup-preset-options/spec.json",
+          "src/lib/plugin-registry.js",
+          "src/lib/presets.js",
+          "src/setup.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"Changed implementation evidence after latest impl-review: setup now uses target root for defaults/candidates/summary, plugin metadata reads enforce source and JSON bounds, and stdin unref is guarded.\" --yes",
+      "createdAt": "2026-06-14T01:40:36.905Z"
+    },
+    {
+      "id": "recovery-003",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "Changed implementation evidence after latest impl-review: official setup now rejects source-limit overflow before adding a source, and plugin metadata paths are resolved and contained under the plugin root before bounded JSON reads.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "0f8aeee435602ae01d7d8969fdf326704e31b650fd7e89e7196049e34a9c6713",
+        "currentHash": "b50bf4ebebf86b5ba3ae0017e737b2ad63f193dd54abb05451dc5a347b95613c",
+        "changedPaths": [
+          "specs/294-setup-preset-options/spec.json",
+          "src/lib/plugin-registry.js",
+          "src/lib/presets.js",
+          "src/setup.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"Changed implementation evidence after latest impl-review: official setup now rejects source-limit overflow before adding a source, and plugin metadata paths are resolved and contained under the plugin root before bounded JSON reads.\" --yes",
+      "createdAt": "2026-06-14T01:43:47.257Z"
+    },
+    {
+      "id": "recovery-004",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "Changed implementation evidence after latest impl-review: setup validates transient preset candidates before first config write, and plugin metadata reads reject symlinks or real paths outside the plugin root.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "b50bf4ebebf86b5ba3ae0017e737b2ad63f193dd54abb05451dc5a347b95613c",
+        "currentHash": "6d91eaca62ceef6b1fa5ded2a2f1acd4507d970fa5226d1232e37c3ad07b1001",
+        "changedPaths": [
+          "specs/294-setup-preset-options/spec.json",
+          "src/lib/plugin-registry.js",
+          "src/lib/presets.js",
+          "src/setup.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"Changed implementation evidence after latest impl-review: setup validates transient preset candidates before first config write, and plugin metadata reads reject symlinks or real paths outside the plugin root.\" --yes",
+      "createdAt": "2026-06-14T01:49:09.254Z"
+    },
+    {
+      "id": "recovery-005",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "Changed implementation evidence after latest impl-review: setup prepares official plugin state before final config write and restores the original config if preparation fails.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "6d91eaca62ceef6b1fa5ded2a2f1acd4507d970fa5226d1232e37c3ad07b1001",
+        "currentHash": "e5202ab92514f71a436df3d8dde5c6faf9c373f5cf808de1b44ebef4e87d8013",
+        "changedPaths": [
+          "specs/294-setup-preset-options/spec.json",
+          "src/lib/plugin-registry.js",
+          "src/lib/presets.js",
+          "src/setup.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"Changed implementation evidence after latest impl-review: setup prepares official plugin state before final config write and restores the original config if preparation fails.\" --yes",
+      "createdAt": "2026-06-14T01:51:47.549Z"
+    }
+  ]
+}

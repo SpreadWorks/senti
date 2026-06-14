@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "Both blocking findings are valid and should be repaired in spec.json with narrowly scoped implementation contracts.",
+  "items": [
+    {
+      "title": "Fresh bootstrap path lacks a pre-config integration contract",
+      "target": "R2 / T-2 / Data Flow",
+      "decision": "apply",
+      "rationale": "The spec requires official preset availability before the prompt but does not define how setup may discover or materialize official presets before `registerProject()` creates the project config. This is a concrete implementation and testing blocker.",
+      "evidence": "spec.json data_flow mentions materializing official presets before candidate rendering, while source verification shows `ensureOfficialPackage()` currently depends on `.senti/config.json` through plugin config loading. R4 also requires base-only setup to avoid unnecessary official state."
+    },
+    {
+      "title": "Official state writes must preserve config.local overlay privacy",
+      "target": "R3 / T-3 / src/lib/plugin-registry.js:ensureOfficialPackage",
+      "decision": "apply",
+      "rationale": "The spec allows setup to mutate official plugin state, and the current helper path can write merged raw config. The privacy boundary for `config.local.json` must be specified before implementation.",
+      "evidence": "spec.json R3 and T-3 require writing official plugin state but do not state that public/local config separation must be preserved when adding official source/package entries."
+    }
+  ]
+}

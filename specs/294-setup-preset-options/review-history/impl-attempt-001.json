@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-14T01:01:36.195Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 2,
+    "nonBlocking": 0,
+    "total": 2
+  },
+  "blockingFindings": [
+    {
+      "title": "Official preset selections are resolved before the official package is installed",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/setup.js",
+      "requirementId": "R6",
+      "issue": "The wizard now lists official preset candidates, but the confirmation summary still calls buildSummaryLines(), which resolves selected types through resolveMultiChains() against only core and already-installed registry presets. ensureSetupOfficialPresetState() runs later, so a fresh project selecting an official-only preset can fail during summary generation before the official package is installed.",
+      "suggestion": "Update resolveLeafTypes()/buildSummaryLines() to resolve against the same setup candidate set used by runWizard(), or move official package state preparation before any summary/chain resolution for selected official preset keys.",
+      "rationale": "Setup must be able to proceed after the user selects an offered preset. Offering official presets that cannot be resolved until a later step blocks the main acceptance path."
+    },
+    {
+      "title": "Existing disabled official package is not re-enabled",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/lib/plugin-registry.js",
+      "requirementId": "R3",
+      "issue": "ensureSetupOfficialPresetState() treats an existing official-presets package with the same commit and plugin.json as installed, but it never clears enabled:false. loadPluginRegistry() filters disabled packages, so the selected official preset remains unavailable and later validation can still fail.",
+      "suggestion": "In ensureSetupOfficialPresetState(), when the existing package is found and an official preset is selected, set existing.enabled = true before writing the project config, and include that change in the returned changed value.",
+      "rationale": "Selecting an official preset during setup must leave the project registry in a state where that preset is loadable. A disabled package entry with the right files is not sufficient because registry loading intentionally ignores it."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/294-setup-preset-options/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "fdb529fe37f91f8137eb600a16402b1bb5d3d958d19ca466776b59af60c5c3f7"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "impl-001-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Official preset selections are resolved before the official package is installed",
+      "body": "The wizard now lists official preset candidates, but the confirmation summary still calls buildSummaryLines(), which resolves selected types through resolveMultiChains() against only core and already-installed registry presets. ensureSetupOfficialPresetState() runs later, so a fresh project selecting an official-only preset can fail during summary generation before the official package is installed.",
+      "category": "missing_acceptance_requirement"
+    },
+    {
+      "id": "impl-001-blocking-002",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Existing disabled official package is not re-enabled",
+      "body": "ensureSetupOfficialPresetState() treats an existing official-presets package with the same commit and plugin.json as installed, but it never clears enabled:false. loadPluginRegistry() filters disabled packages, so the selected official preset remains unavailable and later validation can still fail.",
+      "category": "missing_acceptance_requirement"
+    }
+  ]
+}

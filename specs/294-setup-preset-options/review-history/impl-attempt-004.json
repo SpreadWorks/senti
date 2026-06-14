@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-14T01:10:14.290Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 2,
+    "nonBlocking": 0,
+    "total": 2
+  },
+  "blockingFindings": [
+    {
+      "title": "Dry-run official preset validation still resolves against unmodified project state",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/setup.js",
+      "requirementId": "R7",
+      "issue": "In main(), the dry-run path now uses transient setup candidates for final type minimization, but the following validatePresetChain(config.type, workRoot, ...) call still resolves only through the generated project root. Because dry-run skips ensureSetupOfficialPresetState(), an offered official preset is not installed in that root, so dry-run can still fail before printing the dry-run config.",
+      "suggestion": "In main(), make the cli.dryRun branch use the same transient setup candidate set for all preset-dependent validation, or return the dry-run config before the project-root validatePresetChain() call after schema validation. Do not call project-root validatePresetChain() for official dry-run selections unless the official package state has been materialized somewhere that resolver can see.",
+      "rationale": "Setup should be able to complete for preset options it offers. The current dry-run path remains inconsistent with the candidate source used by the wizard and can still reject official preset selections solely because dry-run intentionally avoids mutating plugin state."
+    },
+    {
+      "title": "Candidate discovery does not enforce preset chain depth",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/lib/presets.js",
+      "requirementId": "R9",
+      "issue": "listSetupPresetCandidates() assembles and returns core, installed plugin, and official candidates without invoking validatePresetCandidateChains(). The depth-limited helper exists, but setup callers do not use it, so candidate discovery itself does not enforce the required MAX_CHAIN_DEPTH bound.",
+      "suggestion": "Call validatePresetCandidateChains() inside listSetupPresetCandidates() on the assembled candidate list before returning it, or route setup candidate construction through a helper that performs that validation before runWizard(), buildSummaryLines(), and dry-run minimization consume the candidates.",
+      "rationale": "R9 requires preset candidate discovery to enforce existing bounded-resource limits, including preset chain depth. Leaving the check as an unused helper means setup can render or process candidates from an over-deep plugin chain instead of rejecting them at discovery time."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/294-setup-preset-options/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "af40fec2b4a1e41736ca2e8691d4286ac964bb3023424530dd73fb42a33b2190"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "impl-004-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Dry-run official preset validation still resolves against unmodified project state",
+      "body": "In main(), the dry-run path now uses transient setup candidates for final type minimization, but the following validatePresetChain(config.type, workRoot, ...) call still resolves only through the generated project root. Because dry-run skips ensureSetupOfficialPresetState(), an offered official preset is not installed in that root, so dry-run can still fail before printing the dry-run config.",
+      "category": "missing_acceptance_requirement"
+    },
+    {
+      "id": "impl-004-blocking-002",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Candidate discovery does not enforce preset chain depth",
+      "body": "listSetupPresetCandidates() assembles and returns core, installed plugin, and official candidates without invoking validatePresetCandidateChains(). The depth-limited helper exists, but setup callers do not use it, so candidate discovery itself does not enforce the required MAX_CHAIN_DEPTH bound.",
+      "category": "missing_acceptance_requirement"
+    }
+  ]
+}

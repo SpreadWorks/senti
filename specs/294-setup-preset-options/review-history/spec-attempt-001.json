@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "generatedAt": "2026-06-13T23:18:01.073Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "nonBlocking": 2,
+    "total": 4
+  },
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Fresh bootstrap path lacks a pre-config integration contract",
+      "target": "R2 / T-2 / Data Flow",
+      "body": "**Target:** R2 / T-2 / Data Flow\n**Issue:** The named implementation precedent, ensureOfficialPackage(), requires an existing .senti/config.json through loadRawConfig() and readStoredProjectConfig(), but current setup reaches the preset prompt before registerProject() and before config generation. The spec requires fresh setup to materialize official presets before the prompt without defining whether setup may create temporary project state, use a manifest-only discovery path, or how that state is cleaned up when base is selected.\n**Required change:** Specify the fresh pre-prompt bootstrap mechanism and its cleanup/persistence semantics: either a transient official preset discovery path that does not require config.json, or an allowed temporary minimal config/state flow with exact cleanup rules.\n**Why blocking:** Without this, R2 cannot be implemented safely: a direct helper call fails on missing config, while creating config/plugin state before confirmation risks unapproved filesystem side effects and conflicts with R4. Tests also cannot know what state should exist before and after base selection.",
+      "issue": "The named implementation precedent, ensureOfficialPackage(), requires an existing .senti/config.json through loadRawConfig() and readStoredProjectConfig(), but current setup reaches the preset prompt before registerProject() and before config generation. The spec requires fresh setup to materialize official presets before the prompt without defining whether setup may create temporary project state, use a manifest-only discovery path, or how that state is cleaned up when base is selected.",
+      "requiredChange": "Specify the fresh pre-prompt bootstrap mechanism and its cleanup/persistence semantics: either a transient official preset discovery path that does not require config.json, or an allowed temporary minimal config/state flow with exact cleanup rules.",
+      "whyBlocking": "Without this, R2 cannot be implemented safely: a direct helper call fails on missing config, while creating config/plugin state before confirmation risks unapproved filesystem side effects and conflicts with R4. Tests also cannot know what state should exist before and after base selection."
+    },
+    {
+      "kind": "blocking",
+      "title": "Official state writes must preserve config.local overlay privacy",
+      "target": "R3 / T-3 / src/lib/plugin-registry.js:ensureOfficialPackage",
+      "body": "**Target:** R3 / T-3 / src/lib/plugin-registry.js:ensureOfficialPackage\n**Issue:** The codebase supports private plugin sources and packages via .senti/config.local.json overlays. loadRawConfig() merges that overlay, and ensureOfficialPackage() currently writes the merged object back to public .senti/config.json. If setup uses this helper while adding official plugin state in an existing project, private non-official plugin source/package entries can be copied into public config.\n**Required change:** Add a spec requirement that setup's official plugin state mutation must preserve public/local config separation and must not copy config.local.json plugin sources or packages into .senti/config.json.\n**Why blocking:** Leaving this unspecified makes the implementation unsafe for existing projects with local plugin overlays: selecting an official preset can accidentally persist private local plugin state publicly and alter plugin configuration beyond the setup change.",
+      "issue": "The codebase supports private plugin sources and packages via .senti/config.local.json overlays. loadRawConfig() merges that overlay, and ensureOfficialPackage() currently writes the merged object back to public .senti/config.json. If setup uses this helper while adding official plugin state in an existing project, private non-official plugin source/package entries can be copied into public config.",
+      "requiredChange": "Add a spec requirement that setup's official plugin state mutation must preserve public/local config separation and must not copy config.local.json plugin sources or packages into .senti/config.json.",
+      "whyBlocking": "Leaving this unspecified makes the implementation unsafe for existing projects with local plugin overlays: selecting an official preset can accidentally persist private local plugin state publicly and alter plugin configuration beyond the setup change."
+    }
+  ],
+  "nonBlockingImprovements": [
+    {
+      "kind": "improvement",
+      "title": "Clarify official source resolution wording",
+      "target": "Background / R2 / T-2",
+      "body": "**Target:** Background / R2 / T-2\n**Improvement:** The spec calls official presets bundled, but the current package.json only publishes src/ and officialPresetPluginRoot() is environment-based while ensureOfficialPackage() otherwise falls back to the official git remote. Clarifying whether production setup should use an env/sibling source, a shipped package asset, or the default remote would reduce implementation ambiguity.\n**Why non-blocking:** The existing helper provides an implementation path and the spec already says bootstrap failure is fatal, so implementation can proceed, but the wording may lead to different assumptions about offline behavior.",
+      "improvement": "The spec calls official presets bundled, but the current package.json only publishes src/ and officialPresetPluginRoot() is environment-based while ensureOfficialPackage() otherwise falls back to the official git remote. Clarifying whether production setup should use an env/sibling source, a shipped package asset, or the default remote would reduce implementation ambiguity.",
+      "whyNonBlocking": "The existing helper provides an implementation path and the spec already says bootstrap failure is fatal, so implementation can proceed, but the wording may lead to different assumptions about offline behavior."
+    },
+    {
+      "kind": "improvement",
+      "title": "Name PRESETS-fixed follow-up surfaces explicitly",
+      "target": "R7 / Codebase Context",
+      "body": "**Target:** R7 / Codebase Context\n**Improvement:** R7 could explicitly mention known PRESETS-fixed consumers such as src/check/commands/config.js and src/presets-cmd.js as review targets, because they currently remain core-only even after setup can save plugin preset types.\n**Why non-blocking:** R7 already requires reviewing related display paths or keeping them out of scope with tests, so this does not block setup implementation; it only makes the intended review surface easier to find.",
+      "improvement": "R7 could explicitly mention known PRESETS-fixed consumers such as src/check/commands/config.js and src/presets-cmd.js as review targets, because they currently remain core-only even after setup can save plugin preset types.",
+      "whyNonBlocking": "R7 already requires reviewing related display paths or keeping them out of scope with tests, so this does not block setup implementation; it only makes the intended review surface easier to find."
+    }
+  ],
+  "sourceArtifact": "spec-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "spec-001-blocking-001",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Fresh bootstrap path lacks a pre-config integration contract",
+      "body": "**Target:** R2 / T-2 / Data Flow\n**Issue:** The named implementation precedent, ensureOfficialPackage(), requires an existing .senti/config.json through loadRawConfig() and readStoredProjectConfig(), but current setup reaches the preset prompt before registerProject() and before config generation. The spec requires fresh setup to materialize official presets before the prompt without defining whether setup may create temporary project state, use a manifest-only discovery path, or how that state is cleaned up when base is selected.\n**Required change:** Specify the fresh pre-prompt bootstrap mechanism and its cleanup/persistence semantics: either a transient official preset discovery path that does not require config.json, or an allowed temporary minimal config/state flow with exact cleanup rules.\n**Why blocking:** Without this, R2 cannot be implemented safely: a direct helper call fails on missing config, while creating config/plugin state before confirmation risks unapproved filesystem side effects and conflicts with R4. Tests also cannot know what state should exist before and after base selection.",
+      "category": "unknown"
+    },
+    {
+      "id": "spec-001-blocking-002",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Official state writes must preserve config.local overlay privacy",
+      "body": "**Target:** R3 / T-3 / src/lib/plugin-registry.js:ensureOfficialPackage\n**Issue:** The codebase supports private plugin sources and packages via .senti/config.local.json overlays. loadRawConfig() merges that overlay, and ensureOfficialPackage() currently writes the merged object back to public .senti/config.json. If setup uses this helper while adding official plugin state in an existing project, private non-official plugin source/package entries can be copied into public config.\n**Required change:** Add a spec requirement that setup's official plugin state mutation must preserve public/local config separation and must not copy config.local.json plugin sources or packages into .senti/config.json.\n**Why blocking:** Leaving this unspecified makes the implementation unsafe for existing projects with local plugin overlays: selecting an official preset can accidentally persist private local plugin state publicly and alter plugin configuration beyond the setup change.",
+      "category": "unknown"
+    },
+    {
+      "id": "spec-001-non-blocking-003",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "Clarify official source resolution wording",
+      "body": "**Target:** Background / R2 / T-2\n**Improvement:** The spec calls official presets bundled, but the current package.json only publishes src/ and officialPresetPluginRoot() is environment-based while ensureOfficialPackage() otherwise falls back to the official git remote. Clarifying whether production setup should use an env/sibling source, a shipped package asset, or the default remote would reduce implementation ambiguity.\n**Why non-blocking:** The existing helper provides an implementation path and the spec already says bootstrap failure is fatal, so implementation can proceed, but the wording may lead to different assumptions about offline behavior.",
+      "category": "unknown"
+    },
+    {
+      "id": "spec-001-non-blocking-004",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "Name PRESETS-fixed follow-up surfaces explicitly",
+      "body": "**Target:** R7 / Codebase Context\n**Improvement:** R7 could explicitly mention known PRESETS-fixed consumers such as src/check/commands/config.js and src/presets-cmd.js as review targets, because they currently remain core-only even after setup can save plugin preset types.\n**Why non-blocking:** R7 already requires reviewing related display paths or keeping them out of scope with tests, so this does not block setup implementation; it only makes the intended review surface easier to find.",
+      "category": "unknown"
+    }
+  ]
+}

@@ -34,6 +34,32 @@ function readJson(file) {
   return JSON.parse(fs.readFileSync(file, "utf8"));
 }
 
+function readPluginJson(file, root) {
+  const lstat = fs.lstatSync(file);
+  if (lstat.isSymbolicLink()) throw new Error(`unsafe package metadata: symlink not allowed: ${file}`);
+  const stat = fs.statSync(file);
+  if (!stat.isFile()) throw new Error(`unsafe package metadata: not a file: ${file}`);
+  if (stat.size > MAX_PLUGIN_JSON_BYTES) {
+    throw new Error(`unsafe package metadata: JSON file exceeds ${MAX_PLUGIN_JSON_BYTES} bytes: ${file}`);
+  }
+  if (root) {
+    const rootRealPath = fs.realpathSync(root);
+    const fileRealPath = fs.realpathSync(file);
+    if (!isUnderPath(fileRealPath, rootRealPath)) {
+      throw new Error(`unsafe package metadata: path escapes plugin root: ${file}`);
+    }
+  }
+  return readJson(file);
+}
+
+function pluginMetadataPath(root, rel, label = "plugin metadata") {
+  const normalized = normalizeRel(rel, label);
+  const resolved = path.resolve(root, normalized);
+  const rootPath = path.resolve(root);
+  if (!isUnderPath(resolved, rootPath)) throw new Error(`unsafe ${label}: path escapes plugin root`);
+  return resolved;
+}
+
 function writeJson(file, value) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, JSON.stringify(value, null, 2) + "\n", "utf8");
@@ -53,7 +79,12 @@ export function readProjectConfig(root = repoRoot()) {
   return config;
 }
 
-function readStoredProjectConfig(root = repoRoot()) {
+function readStoredProjectConfig(root = repoRoot(), { missingAsEmpty = false } = {}) {
+  if (missingAsEmpty && !fs.existsSync(sentiConfigPath(root))) {
+    const config = {};
+    ensurePluginConfig(config);
+    return config;
+  }
   const config = readJson(sentiConfigPath(root));
   ensurePluginConfig(config);
   return config;
@@ -232,13 +263,13 @@ export class PluginManifest {
   }
 
   static fromRoot(root, providerId) {
-    return new PluginManifest(root, readJson(path.join(root, "plugin.json")), providerId);
+    return new PluginManifest(root, readPluginJson(path.join(root, "plugin.json"), root), providerId);
   }
 
   presetEntries() {
     return (this.contributions.presets || []).map((entry) => {
-      const manifestPath = path.join(this.root, entry.path, "preset.json");
-      const presetManifest = fs.existsSync(manifestPath) ? readJson(manifestPath) : {};
+      const manifestPath = pluginMetadataPath(this.root, `${entry.path}/preset.json`, "preset metadata");
+      const presetManifest = fs.existsSync(manifestPath) ? readPluginJson(manifestPath, this.root) : {};
       return {
         key: entry.key,
         dir: path.join(this.root, entry.path),
@@ -358,9 +389,13 @@ export function loadPluginRegistry(root = repoRoot()) {
   } catch (_) {
     return new PluginRegistry(root, []);
   }
+  if (config.plugin.sources.length > MAX_PLUGIN_SOURCES) {
+    throw new Error(`plugin source search exceeds ${MAX_PLUGIN_SOURCES} sources`);
+  }
+  const enabledPackages = config.plugin.packages.filter((pkg) => pkg.enabled !== false);
+  if (enabledPackages.length > MAX_ENABLED_PLUGIN_PACKAGES) throw new Error(`enabled plugin packages exceed ${MAX_ENABLED_PLUGIN_PACKAGES}`);
   const manifests = [];
-  for (const pkg of config.plugin.packages) {
-    if (pkg.enabled === false) continue;
+  for (const pkg of enabledPackages) {
     const pluginRoot = path.join(sentiDir(root), "plugins", pkg.id);
     const manifestPath = path.join(pluginRoot, "plugin.json");
     if (!fs.existsSync(manifestPath)) continue;
@@ -376,8 +411,8 @@ export function loadPluginConfigDefaults(root = repoRoot()) {
   for (const manifest of registry.manifests) {
     const config = manifest.contributions.config;
     if (!config) continue;
-    if (config.schema) schemas.push(readJson(path.join(manifest.root, config.schema)));
-    if (config.defaults) defaults.push(readJson(path.join(manifest.root, config.defaults)));
+    if (config.schema) schemas.push(readPluginJson(pluginMetadataPath(manifest.root, config.schema, "config schema"), manifest.root));
+    if (config.defaults) defaults.push(readPluginJson(pluginMetadataPath(manifest.root, config.defaults, "config defaults"), manifest.root));
   }
   return { schemas, defaults };
 }
@@ -465,7 +500,7 @@ export function addPluginRepo(root, source, ref) {
   const entry = isGitUrl(source) ? { id, type: "git", url: source } : { id, type: "local", path: source };
   if (ref) entry.ref = ref;
   const resolved = resolveSource(root, entry);
-  readJson(path.join(resolved.root, "plugin.json"));
+  readPluginJson(path.join(resolved.root, "plugin.json"), resolved.root);
   config.plugin.sources.push(entry);
   writeProjectConfig(root, config);
   return { id, source: maskPluginSource(source), commit: resolved.commit };
@@ -560,7 +595,7 @@ function installFromSource(root, source, sourceRoot, commit, { updateExisting = 
   copyAllowlistedFiles(packageRoot, dest, existingKnownPluginPaths(packageRoot));
   if (materialized) fs.rmSync(materialized.tmp, { recursive: true, force: true });
   const installedManifest = PluginManifest.fromRoot(dest, manifest.name);
-  const config = readStoredProjectConfig(root);
+  const config = readStoredProjectConfig(root, { missingAsEmpty: true });
   const plugin = ensurePluginConfig(config);
   const publicSources = new Set(plugin.sources.map((entry) => entry.id));
   const existing = plugin.packages.find((pkg) => pkg.id === manifest.name);
@@ -904,6 +939,16 @@ const DEFAULT_OFFICIAL_PRESET_SOURCE = Object.freeze({
   remote: "git@github.com:SpreadWorks/senti-presets.git",
 });
 
+export function officialPresetContributionKeys(sourceRoot) {
+  if (!sourceRoot) throw new Error("official preset source cannot be resolved");
+  if (!fs.existsSync(sourceRoot)) throw new Error(`official preset source not found: ${sourceRoot}`);
+  const manifest = PluginManifest.fromRoot(sourceRoot, DEFAULT_OFFICIAL_PRESET_SOURCE.id);
+  if (manifest.name !== DEFAULT_OFFICIAL_PRESET_SOURCE.id) {
+    throw new Error(`official package mismatch: expected ${DEFAULT_OFFICIAL_PRESET_SOURCE.id}, got ${manifest.name}`);
+  }
+  return new Set(manifest.presetEntries().map((preset) => preset.key));
+}
+
 function materializationSource(source, sourceRoot) {
   if (!sourceRoot) return source;
   if (!fs.existsSync(sourceRoot)) throw new Error(`plugin source not found: ${sourceRoot}`);
@@ -925,6 +970,9 @@ export function ensureOfficialPackage(root, { id, sourceRoot, ref } = {}) {
   let source = plugin.sources.find((entry) => sourceLocation(entry) === sourceRoot || entry.id === id || entry.id === `official-${id}`);
   let addedSource = false;
   if (!source) {
+    if (plugin.sources.length >= MAX_PLUGIN_SOURCES) {
+      throw new Error(`plugin source search exceeds ${MAX_PLUGIN_SOURCES} sources`);
+    }
     source = id === DEFAULT_OFFICIAL_PRESET_SOURCE.id
       ? { ...DEFAULT_OFFICIAL_PRESET_SOURCE }
       : { id: `official-${id}`, type: "local", path: sourceRoot };
@@ -942,4 +990,56 @@ export function ensureOfficialPackage(root, { id, sourceRoot, ref } = {}) {
   if (!existing || existing.commit !== resolved.commit || !fs.existsSync(installedManifest)) {
     installFromSource(root, source, resolved.root, resolved.commit, { updateExisting: true, sourceMaterialized: resolved.materialized });
   }
+}
+
+export function ensureSetupOfficialPresetState(root, { selectedTypes = [], officialPresetRoot } = {}) {
+  const typeList = (Array.isArray(selectedTypes) ? selectedTypes : [selectedTypes]).filter(Boolean);
+  const nonBaseTypes = typeList.filter((type) => type !== "base");
+  if (nonBaseTypes.length === 0) return { changed: false, installed: false };
+  if (!officialPresetRoot) return { changed: false, installed: false };
+
+  const officialKeys = officialPresetContributionKeys(officialPresetRoot);
+  const selectedOfficialTypes = nonBaseTypes.filter((type) => officialKeys.has(type));
+  if (selectedOfficialTypes.length === 0) return { changed: false, installed: false };
+
+  const config = readStoredProjectConfig(root, { missingAsEmpty: true });
+  const plugin = ensurePluginConfig(config);
+  if (plugin.sources.length > MAX_PLUGIN_SOURCES) {
+    throw new Error(`plugin source search exceeds ${MAX_PLUGIN_SOURCES} sources`);
+  }
+
+  let source = plugin.sources.find((entry) => sourceLocation(entry) === officialPresetRoot || entry.id === DEFAULT_OFFICIAL_PRESET_SOURCE.id);
+  let addedSource = false;
+  if (!source) {
+    if (plugin.sources.length >= MAX_PLUGIN_SOURCES) {
+      throw new Error(`plugin source search exceeds ${MAX_PLUGIN_SOURCES} sources`);
+    }
+    source = { id: DEFAULT_OFFICIAL_PRESET_SOURCE.id, type: isGitUrl(officialPresetRoot) ? "git" : "local" };
+    if (source.type === "git") source.url = officialPresetRoot;
+    else source.path = officialPresetRoot;
+    plugin.sources.push(source);
+    addedSource = true;
+  }
+
+  const materializedSource = materializationSource(source, officialPresetRoot);
+  const resolved = resolveSource(root, materializedSource);
+  const sourceManifest = PluginManifest.fromRoot(resolved.root);
+  if (sourceManifest.name !== DEFAULT_OFFICIAL_PRESET_SOURCE.id) {
+    throw new Error(`official package mismatch: expected ${DEFAULT_OFFICIAL_PRESET_SOURCE.id}, got ${sourceManifest.name}`);
+  }
+
+  const existing = plugin.packages.find((pkg) => pkg.id === DEFAULT_OFFICIAL_PRESET_SOURCE.id);
+  let reenabled = false;
+  if (existing?.enabled === false) {
+    delete existing.enabled;
+    reenabled = true;
+  }
+
+  writeProjectConfig(root, config);
+  const installedManifest = path.join(installedPluginsDir(root), DEFAULT_OFFICIAL_PRESET_SOURCE.id, "plugin.json");
+  const needsInstall = !existing || existing.commit !== resolved.commit || !fs.existsSync(installedManifest);
+  if (needsInstall) {
+    installFromSource(root, source, resolved.root, resolved.commit, { updateExisting: true, sourceMaterialized: resolved.materialized });
+  }
+  return { changed: addedSource || reenabled || needsInstall, installed: true, selectedTypes: selectedOfficialTypes };
 }
