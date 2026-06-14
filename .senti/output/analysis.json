@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-14T02:52:08.578Z",
+  "analyzedAt": "2026-06-14T08:45:51.060Z",
   "package": {
     "entries": [
       {
@@ -2950,7 +2950,7 @@
         ],
         "id": "2cb27b93",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -3026,7 +3026,7 @@
         ],
         "id": "aa8dda77",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -3073,6 +3073,54 @@
           "text truncation",
           "parent spec"
         ]
+      },
+      {
+        "file": "src/flow/lib/artifact-completion.js",
+        "hash": "52abb489a64057c873b20a8e5d800f2c",
+        "lines": 243,
+        "mtime": "2026-06-14T08:44:32.742Z",
+        "className": "artifact-completion",
+        "methods": [
+          "ArtifactCompletionSuccess",
+          "ArtifactCompletionMechanicalFailure",
+          "completeArtifactChange",
+          "completeDraftArtifactChange",
+          "completeSpecArtifactChange",
+          "listProducerCompletionSurfaces",
+          "getProducerCompletionAdapter",
+          "specDirFromInput",
+          "fileExists",
+          "normalizeValidation",
+          "parseArtifact",
+          "textOf",
+          "failureOrSuccess",
+          "taskNumber",
+          "reviewSurfaceAdapter"
+        ],
+        "imports": [
+          "node:fs",
+          "node:path"
+        ],
+        "exports": [
+          "ArtifactCompletionSuccess",
+          "ArtifactCompletionMechanicalFailure",
+          "completeArtifactChange",
+          "completeDraftArtifactChange",
+          "completeSpecArtifactChange",
+          "listProducerCompletionSurfaces",
+          "getProducerCompletionAdapter",
+          "specDirFromInput",
+          "fileExists"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/test-artifacts.js"
+        ],
+        "id": "0edee8a5",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/auto-check-static.js",
@@ -3427,9 +3475,9 @@
       },
       {
         "file": "src/flow/lib/flow-findings.js",
-        "hash": "154b524126521cdab81eb62a506e2b23",
-        "lines": 256,
-        "mtime": "2026-06-13T17:36:17.991Z",
+        "hash": "5f250fe72231d07776b814b06031e434",
+        "lines": 335,
+        "mtime": "2026-06-14T08:44:32.742Z",
         "className": "flow-findings",
         "methods": [
           "normalizeSourceArtifactPath",
@@ -3444,6 +3492,8 @@
           "sourceArtifactExists",
           "readBoundedSourceArtifact",
           "buildDeferredFindingsSummary",
+          "deferExhaustedSemanticFindings",
+          "resolveRetryExhaustionForFlowStep",
           "mirrorFinalDispositions",
           "requireString",
           "isInsideDirectory",
@@ -3455,7 +3505,12 @@
           "readJson",
           "writeJson",
           "nextFindingId",
-          "nextRound"
+          "nextRound",
+          "failedEvaluations",
+          "blockingObservations",
+          "reviewBlockingFindings",
+          "sourceFindingsForArtifact",
+          "stableSourceFindingId"
         ],
         "imports": [
           "node:fs",
@@ -3475,6 +3530,8 @@
           "sourceArtifactExists",
           "readBoundedSourceArtifact",
           "buildDeferredFindingsSummary",
+          "deferExhaustedSemanticFindings",
+          "resolveRetryExhaustionForFlowStep",
           "mirrorFinalDispositions",
           "FLOW_FINDINGS_FILE",
           "MAX_FLOW_FINDINGS",
@@ -3493,7 +3550,7 @@
         ],
         "id": "1c664aa8",
         "enrich": {
-          "attempts": 2
+          "attempts": 1
         }
       },
       {
@@ -3587,7 +3644,7 @@
         ],
         "id": "f336678e",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -4134,7 +4191,7 @@
         ],
         "id": "9aca938f",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -4598,6 +4655,35 @@
         ]
       },
       {
+        "file": "src/flow/lib/retry-accounting.js",
+        "hash": "eafab46bed986b3288c93cc8390baa20",
+        "lines": 62,
+        "mtime": "2026-06-14T08:44:32.742Z",
+        "className": "retry-accounting",
+        "methods": [
+          "recordReviewRetryOutcome",
+          "recordGateRetryOutcome",
+          "readRetryCount",
+          "classifyPublicFlowFailure",
+          "counterFor",
+          "recordRetryOutcome"
+        ],
+        "imports": [],
+        "exports": [
+          "recordReviewRetryOutcome",
+          "recordGateRetryOutcome",
+          "readRetryCount",
+          "classifyPublicFlowFailure",
+          "FailureKind"
+        ],
+        "extends": null,
+        "usedBy": null,
+        "id": "45f8cc74",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
         "file": "src/flow/lib/retry-recovery.js",
         "hash": "4f23a2584ad36295e7a2925b4d9afe38",
         "lines": 774,
@@ -4790,7 +4876,7 @@
         "usedBy": null,
         "id": "2d93c301",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -5237,11 +5323,12 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "755f53b77e191ffa8fe1ced1700bb4ae",
-        "lines": 3755,
-        "mtime": "2026-06-13T17:36:17.994Z",
+        "hash": "cbf9d84c9cbd04af55c0342c26b17e96",
+        "lines": 3768,
+        "mtime": "2026-06-14T08:44:32.744Z",
         "className": "run-gate",
         "methods": [
+          "completeGateArtifactBeforeSemanticEvaluation",
           "executeGateSideEffects",
           "validateLevelPhase",
           "collectUntrackedDiff",
@@ -5390,9 +5477,11 @@
           "./draft-review-routes.js",
           "./retry-recovery.js",
           "./flow-findings.js",
+          "./artifact-completion.js",
           "../definition.js"
         ],
         "exports": [
+          "completeGateArtifactBeforeSemanticEvaluation",
           "executeGateSideEffects",
           "validateLevelPhase",
           "collectUntrackedDiff",
@@ -5461,24 +5550,24 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "Implements the flow gate pipeline that validates specs, drafts, task implementation, and integration outputs before progression. It combines diff analysis, guardrail evaluation, artifact validation, and retry handling into a single command path.",
-        "detail": "This module orchestrates multiple gate phases and maps them to review levels, source artifacts, and result artifacts. It inspects repository state through Git diffs, untracked file collection, file-map reconciliation, and scoped per-file summaries to build prompts and enforce implementation requirements. The code validates structured artifacts such as spec review, triage, repair, and draft review files, then parses AI-produced JSON evaluations with strict schema checks and fallback handling. It also persists gate results, retry counters, recovery baselines, issue log entries, and implementation memory so repeated failures, no-progress states, and deferred escalation can be detected across runs. The exported command routes to phase-specific execution paths for spec, draft, task-spec, task-impl, and integration gates while returning normalized envelope-style pass or fail results.",
+        "summary": "Implements the flow gate pipeline that validates spec, draft, implementation, and integration phases before progress can continue. It combines artifact checks, diff analysis, AI guardrail evaluation, and retry/recovery handling into one command layer.",
+        "detail": "The module maps flow phases to gate levels, collects committed, uncommitted, and untracked diffs, and compacts them for prompt input under strict size limits. It validates multiple durable artifacts such as spec review files, draft review sets, integration outputs, and file maps before running semantic checks. For AI-backed evaluation, it builds structured prompts, enforces JSON-only response schemas, parses guardrail and requirement results, and converts them into normalized gate reports and next actions. It also tracks retry history, stores recovery baselines, detects repeated failures or no-progress states, persists source/result artifacts, and maintains implementation memory for later attempts.",
         "chapter": "internal_design",
-        "role": "Flow gate orchestrator and validation engine",
+        "role": "Flow gate orchestrator and semantic guardrail engine",
         "enrich": {
-          "processedAt": "2026-06-13T17:37:02.978Z",
+          "processedAt": "2026-06-14T08:46:19.562Z",
           "attempts": 1
         },
         "keywords": [
-          "gate workflow",
+          "flow gate",
           "guardrail evaluation",
+          "semantic validation",
           "diff analysis",
+          "retry recovery",
           "artifact validation",
-          "retry logic",
           "implementation gate",
           "integration check",
-          "JSON schema parsing",
-          "issue logging"
+          "JSON schema parsing"
         ]
       },
       {
@@ -5845,9 +5934,9 @@
       },
       {
         "file": "src/flow/lib/run-review.js",
-        "hash": "af956592e2237ed647264e20238907c3",
-        "lines": 709,
-        "mtime": "2026-06-13T17:36:17.994Z",
+        "hash": "5e4ad2af29abe8b5bfeba45765b0d7bf",
+        "lines": 705,
+        "mtime": "2026-06-14T08:44:32.744Z",
         "className": "run-review",
         "methods": [
           "countReviewRetry",
@@ -5929,24 +6018,24 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "d4e97204",
-        "summary": "Runs the flow review stages and interprets external review tool output for spec, draft, test, and implementation phases. It manages verdict parsing, retry budgets, recovery state, and downstream step control.",
-        "detail": "This module defines review phases, verdict values, retry limits, and phase-to-node mappings used by the flow engine. It executes the review subprocess with bounded retry behavior, parses stdout and stderr into structured results, and reads implementation review artifacts from disk when needed. The code distinguishes semantic findings from mechanical blockers, persists source finding identifiers, and supports deferred handling when retry exhaustion occurs. It updates review retry counters, recovery baselines, and issue logs, and can reset downstream implementation evidence when review proposals require rework. The command class acts as the phase-aware entry point that selects the correct parser and returns envelope-based failures for invalid phases or exhausted retries.",
+        "summary": "Runs review phases in the flow system and interprets the results from external review commands. It standardizes verdict parsing, retry limits, phase routing, and recovery behavior across spec, draft, test, and implementation reviews.",
+        "detail": "The module defines review phase constants, verdict enums, and mappings from phase to flow node so retry budgets and next-step routing stay consistent. It wraps subprocess execution with bounded retry and delay controls, then parses stdout, stderr, and generated JSON artifacts into normalized review results. For draft and implementation review paths, it resolves specialized retry phases, deferred outcomes, and downstream reset behavior when proposals require evidence changes. It also persists recovery baselines, updates retry counters, classifies failures, and converts tooling or verdict failures into flow envelopes and issue-log entries.",
         "chapter": "internal_design",
-        "role": "Review phase executor and verdict parser",
+        "role": "Review phase runner and verdict parser",
         "enrich": {
-          "processedAt": "2026-06-13T17:37:02.978Z",
+          "processedAt": "2026-06-14T08:46:19.562Z",
           "attempts": 1
         },
         "keywords": [
-          "review workflow",
+          "review pipeline",
           "verdict parsing",
           "subprocess retry",
+          "flow review",
           "implementation review",
-          "spec review",
           "draft review",
-          "test review",
-          "recovery state",
-          "failure classification"
+          "issue log",
+          "retry budget",
+          "phase routing"
         ]
       },
       {
@@ -6760,17 +6849,21 @@
       },
       {
         "file": "src/flow/lib/set-step.js",
-        "hash": "9a618c969ea191a7e5e31145db7be682",
-        "lines": 202,
-        "mtime": "2026-06-12T12:05:07.132Z",
+        "hash": "00076724b47a2c478a926ebee1f628fe",
+        "lines": 316,
+        "mtime": "2026-06-14T08:44:32.744Z",
         "className": "set-step",
         "methods": [
+          "preValidateImplementStepCompletion",
           "collectSideEffects",
           "preValidateTestStep",
-          "validatePostHookManagedStep"
+          "validatePostHookManagedStep",
+          "implementFailure",
+          "addImplementIssue"
         ],
         "imports": [
           "node:path",
+          "node:fs",
           "./base-command.js",
           "../../lib/constants.js",
           "../../lib/container.js",
@@ -6786,28 +6879,30 @@
           "./test-artifacts.js"
         ],
         "exports": [
+          "preValidateImplementStepCompletion",
           "default"
         ],
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "d4cb8d93",
-        "summary": "Updates flow step status with validation, managed-step safeguards, and side-effect support. It prevents invalid completions and coordinates follow-up checks tied to flow progression.",
-        "detail": "The command validates requested statuses against known constants and uses helper functions to pre-check test steps and post-hook-managed steps before allowing completion. It loads spec artifacts such as test execution results, retro data, and review outputs, then calls completion-contract validation to enforce policy-driven step transitions. The module integrates auto-check preparation, test header validation, side-effect lookup, and task synchronization so step updates remain consistent with the broader flow state. Failures are reported through structured envelopes rather than ad hoc exceptions for expected command misuse or validation problems.",
+        "summary": "Controls manual step status changes in the flow state and blocks invalid transitions when required artifacts are missing. It adds pre-validation for testing and implementation milestones before a step can be marked complete.",
+        "detail": "The module collects configured side effects for a step, checks whether the requested status is allowed, and integrates with the flow command framework and dependency container. Before completing test-related steps, it loads spec data and validates generated artifacts such as test headers, scenario validity results, and execute/review JSON files. For implementation completion, it verifies durable files like spec.json, file-map.json, and test outputs, and returns structured envelope failures when evidence is incomplete or inconsistent. It also supports syncing spec tasks to flow state, validating post-hook managed steps, and returning compact step status payloads for CLI consumers.",
         "chapter": "cli_commands",
-        "role": "step status update command",
+        "role": "Flow step transition validator and state updater",
         "enrich": {
-          "processedAt": "2026-06-12T12:06:26.544Z",
+          "processedAt": "2026-06-14T08:46:19.562Z",
           "attempts": 1
         },
         "keywords": [
-          "set step",
-          "status validation",
-          "completion policy",
-          "auto check",
-          "managed steps",
-          "artifact validation",
-          "workflow side effects",
-          "task sync"
+          "step status",
+          "flow transition",
+          "artifact precheck",
+          "implementation completion",
+          "test validation",
+          "CLI step command",
+          "state update",
+          "envelope failure",
+          "side effects"
         ]
       },
       {
@@ -7011,9 +7106,9 @@
       },
       {
         "file": "src/flow/lib/test-artifacts.js",
-        "hash": "a9d0bf9e83e0b2d1a66428ff0f1e787d",
-        "lines": 1120,
-        "mtime": "2026-06-12T16:16:56.613Z",
+        "hash": "9ea4b96d428fc40c96ca1cc5d279ab45",
+        "lines": 1328,
+        "mtime": "2026-06-14T08:44:32.745Z",
         "className": "test-artifacts",
         "methods": [
           "matchUpgradeRequiredSourcePaths",
@@ -7043,6 +7138,9 @@
           "validateTestResultReview",
           "loadValidatedTestArtifacts",
           "buildTestResultsFromArtifacts",
+          "completeScenarioValidityArtifactChange",
+          "completeTestExecuteArtifactChange",
+          "completeTestResultReviewArtifactChange",
           "assertIntegrationRegressionEvidence",
           "validateIntegrationArtifactTrust",
           "testArtifactPathspecs",
@@ -7070,6 +7168,17 @@
           "assertScenarioValiditySummaryEntry",
           "validateRegression",
           "validateFinalRegressionFailureKind",
+          "completionFailure",
+          "completionSuccess",
+          "addCompletionIssue",
+          "addMappedValidationIssue",
+          "rawLineCount",
+          "resolveRawFile",
+          "loadSpecTestableRequirements",
+          "hasMissingRequirementEvidence",
+          "testExecuteEntries",
+          "testExecuteEvidenceRange",
+          "canonicalTestExecuteArtifact",
           "nonEmptyString",
           "escapeRegExp",
           "configuredPlaceholderSentinels",
@@ -7092,7 +7201,8 @@
           "../../lib/config.js",
           "../../lib/glob.js",
           "../../lib/git-helpers.js",
-          "./test-regression.js"
+          "./test-regression.js",
+          "./artifact-completion.js"
         ],
         "exports": [
           "matchUpgradeRequiredSourcePaths",
@@ -7122,6 +7232,9 @@
           "validateTestResultReview",
           "loadValidatedTestArtifacts",
           "buildTestResultsFromArtifacts",
+          "completeScenarioValidityArtifactChange",
+          "completeTestExecuteArtifactChange",
+          "completeTestResultReviewArtifactChange",
           "assertIntegrationRegressionEvidence",
           "validateIntegrationArtifactTrust",
           "TEST_EXECUTE_RESULT_FILE",
@@ -7160,25 +7273,24 @@
           "src/upgrade.js"
         ],
         "id": "0b1b96b3",
-        "summary": "Defines the test artifact model for flow execution, including artifact paths, bounded reads, validation rules, and trust checks used by gates. It is the central module for persisting and verifying test, regression, upgrade, and scenario-validity outputs.",
-        "detail": "The file establishes a large set of artifact filenames, raw-log locations, size limits, line-count caps, and schema-style validators for multiple result types. It uses strict bounded JSON and text readers to prevent oversized or malformed artifacts from entering the pipeline, then validates semantic constraints such as sorted paths, membership consistency, evidence ranges, and required regression markers. Additional logic detects placeholder or synthetic evidence through sentinels, known hashes, explicit permission files, and required trust-input checks before allowing gate decisions to trust artifacts. The module also collects existing artifacts through controlled globbing, removes rebuildable outputs, and derives integration regression evidence from stored analysis snapshots and git-changed files. Overall it acts as the enforcement layer for durable test evidence and reproducible gate inputs.",
+        "summary": "This module manages test-related artifact files for spec runs and enforces strict validation before those artifacts are trusted. It centralizes artifact paths, bounded file reading, evidence checks, placeholder detection, and regression trust rules.",
+        "detail": "The file defines a large set of artifact filenames, raw log locations, glob patterns, and hard limits for JSON size, text size, line counts, and collection counts. It validates multiple artifact types such as upgrade results, scenario validity output, test execution results, reviews, and final regression results, with detailed structural and semantic checks on fields, ordering, membership, and evidence ranges. The implementation uses path normalization and containment checks to prevent path traversal, and it reads files with explicit byte and line limits to avoid oversized or malformed inputs. It also implements a trust contract layer that detects placeholder content, stale snapshots, missing permissions, and inconsistent regression metadata before downstream integration steps can rely on the artifacts.",
         "chapter": "internal_design",
-        "role": "Test artifact validation and trust enforcement layer",
+        "role": "Test artifact validation and trust enforcement",
         "enrich": {
-          "processedAt": "2026-06-12T16:17:40.795Z",
+          "processedAt": "2026-06-14T08:46:18.627Z",
           "attempts": 1
         },
         "keywords": [
           "test artifacts",
           "artifact validation",
           "regression evidence",
-          "upgrade result",
-          "scenario validity",
-          "gate trust",
+          "trust contract",
           "placeholder detection",
           "raw log parsing",
-          "bounded JSON",
-          "requirement evidence"
+          "path safety",
+          "spec testing",
+          "integration gate"
         ]
       },
       {
@@ -9950,14 +10062,15 @@
       },
       {
         "file": "src/lib/spec-json.js",
-        "hash": "7ad54419523af82c161981408afd1c39",
-        "lines": 262,
-        "mtime": "2026-06-09T08:02:50.463Z",
+        "hash": "a9e8972e62c50542b68a58c077e10ff8",
+        "lines": 264,
+        "mtime": "2026-06-14T08:44:32.745Z",
         "className": "spec-json",
         "methods": [
           "resolveSpecJsonPath",
           "resolveSpecDir",
           "loadSpecJson",
+          "validateSpecJsonObject",
           "tryLoadSpecJson",
           "saveSpecJson",
           "normalizeRequirements",
@@ -9978,6 +10091,7 @@
           "resolveSpecJsonPath",
           "resolveSpecDir",
           "loadSpecJson",
+          "validateSpecJsonObject",
           "tryLoadSpecJson",
           "saveSpecJson",
           "normalizeRequirements",
@@ -9990,22 +10104,24 @@
         "extends": null,
         "usedBy": null,
         "id": "e288cfbd",
+        "summary": "This module provides the core utilities for locating, loading, validating, normalizing, and saving `spec.json` files. It also exposes helpers for requirement enumeration, status updates, and prompt-friendly text rendering.",
+        "detail": "The implementation resolves whether an input refers to a spec directory or a concrete `spec.json` file and normalizes both cases into predictable paths. It loads the shared JSON schema lazily, parses spec files, and routes objects through schema validation so malformed specs fail with explicit error messages. Several helpers then normalize requirement entries by defaulting missing status fields, collect usable requirement IDs, and update a specific requirement status in place before writing the file back. The module also includes convenience functions for generating an empty stub spec and flattening spec data into a simple prompt text format for other tooling.",
+        "chapter": "configuration",
+        "role": "spec.json loading, schema validation, and requirement utilities",
         "enrich": {
-          "processedAt": "2026-06-11T04:00:32.862Z",
-          "attempts": 4
+          "processedAt": "2026-06-14T08:46:18.627Z",
+          "attempts": 1
         },
-        "summary": "Helpers for locating, loading, validating, and saving `spec.json` files. It also provides requirement normalization and prompt-oriented rendering of spec data.",
-        "detail": "The module caches the spec schema, then resolves a spec path from either a directory, a file path, or a direct `spec.json` reference. Loading validates both file existence and JSON parseability, and can optionally run schema validation before returning the parsed object. It includes convenience helpers for normalizing requirement status, enumerating usable requirement IDs, updating a single requirement state, and building an empty stub. `specJsonToPromptText` converts a structured spec object into line-oriented text suitable for downstream prompt generation or reporting.",
-        "chapter": "cli_commands",
-        "role": "Spec file persistence and validation helper",
         "keywords": [
           "spec.json",
           "schema validation",
-          "requirements status",
-          "spec loader",
-          "spec saver",
-          "prompt rendering",
-          "project specification"
+          "requirement status",
+          "config loading",
+          "spec parser",
+          "JSON schema",
+          "spec normalization",
+          "requirement IDs",
+          "prompt serialization"
         ]
       },
       {
@@ -10728,7 +10844,26 @@
         ],
         "extends": null,
         "usedBy": null,
-        "id": "9820c9db"
+        "id": "9820c9db",
+        "summary": "This module implements the `setup` workflow that initializes a senti project, prepares config files, and guides the user through interactive defaults. It combines CLI argument parsing, filesystem bootstrapping, preset selection, and agent document generation.",
+        "detail": "The code parses setup command arguments, loads any existing `.senti/config.json`, and can snapshot or restore that file while applying new defaults. It creates the expected project directories, updates `.gitignore` and `.gitattributes`, and writes agent-facing markdown files such as `AGENTS.md` or `CLAUDE.md` with generated content and localized text. The interactive wizard resolves preset candidate chains, supports multi-type selection, and produces a summary before final configuration is written. The main entry point ties these steps together with config validation, skill deployment, official preset state setup, and explicit process exit handling for CLI failures.",
+        "chapter": "cli_commands",
+        "role": "Interactive project setup CLI and bootstrap orchestration",
+        "enrich": {
+          "processedAt": "2026-06-14T08:46:18.627Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "setup command",
+          "project bootstrap",
+          "interactive wizard",
+          "config initialization",
+          "preset selection",
+          "AGENTS.md generation",
+          "CLI arguments",
+          "gitignore update",
+          "skill deployment"
+        ]
       },
       {
         "file": "src/spec.js",
@@ -10893,10 +11028,10 @@
       }
     ],
     "summary": {
-      "total": 210,
-      "totalMethods": 1775
+      "total": 212,
+      "totalMethods": 1822
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-14T02:12:24.840Z"
+  "enrichedAt": "2026-06-14T08:47:00.298Z"
 }
