@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-14T03:36:24.515Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/295-producer-artifact-contract/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Undefined expectedIssueCodes makes R7 test non-executable",
+      "target": "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js: R7 loop",
+      "issue": "The loop destructures `expectedIssue` but calls `assertIssueCodes(result, expectedIssueCodes)`. `expectedIssueCodes` is not defined in that scope, so the test throws before it can verify any producer-completion surface behavior.",
+      "requiredChange": "Destructure `expectedIssueCodes` from each surface case, or pass the destructured variable consistently to `assertIssueCodes`.",
+      "whyBlocking": "A non-executable spec-local test blocks implementation because it cannot validate the R7 acceptance coverage it claims."
+    },
+    {
+      "kind": "blocking",
+      "title": "R4 readiness test expects incomplete requirements after marking all requirements done",
+      "target": "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js: R4 pending check",
+      "issue": "The test writes `baseSpec(\"done\")` before the `pending` validation, then expects `requirement-status-incomplete`. That contradicts the fixture state: both requirements are already marked done.",
+      "requiredChange": "Use a spec fixture with at least one non-done requirement for the `requirement-status-incomplete` assertion, then switch to `baseSpec(\"done\")` only for the final ready case.",
+      "whyBlocking": "The test encodes an incorrect implementation premise and would reject a correct implementation that treats all done requirements as complete."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/295-producer-artifact-contract/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "0aec1a17bea7cb657d6c07738df17ff8c48a3d7b45b490d6c26ec5d9a84c9aaa"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "test-004-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Undefined expectedIssueCodes makes R7 test non-executable",
+      "body": "The loop destructures `expectedIssue` but calls `assertIssueCodes(result, expectedIssueCodes)`. `expectedIssueCodes` is not defined in that scope, so the test throws before it can verify any producer-completion surface behavior.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-004-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "R4 readiness test expects incomplete requirements after marking all requirements done",
+      "body": "The test writes `baseSpec(\"done\")` before the `pending` validation, then expects `requirement-status-incomplete`. That contradicts the fixture state: both requirements are already marked done.",
+      "category": "unknown"
+    }
+  ]
+}

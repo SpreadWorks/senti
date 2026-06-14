@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-14T08:13:23.759Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 2,
+    "nonBlocking": 0,
+    "total": 2
+  },
+  "blockingFindings": [
+    {
+      "title": "Spec gate now rejects normal valid specs without repair audit metadata",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "src/flow/lib/run-gate.js",
+      "requirementId": "R7",
+      "issue": "The spec gate path now calls completeSpecArtifactChange before semantic evaluation, and that completion path treats a missing spec repair audit as a mechanical failure. Normal spec.json artifacts, including existing approved specs, do not carry a repairAudit field unless a spec-review repair flow occurred, so the retained spec gate surface can stop before semantic evaluation even when no repair audit is required.",
+      "suggestion": "In RunGateCommand.executeSpec, use a spec completion validation that preserves validateSpecRepairAudit's existing conditional behavior: require spec-triage/spec-repair audit evidence only when spec-review.json exists with verdict FAIL, and allow ordinary valid spec.json artifacts without repairAudit to proceed to the defensive textCheck and semantic gate.",
+      "rationale": "R7 requires migration parity for retained gate draft/spec surfaces. Making repair-audit metadata mandatory for every spec changes the public spec gate behavior and blocks valid specs that were not produced by a repair path."
+    },
+    {
+      "title": "Test artifact completion can accept missing requirement evidence",
+      "failureMode": "security_or_data_integrity_bug",
+      "file": "src/flow/lib/test-artifacts.js",
+      "requirementId": "R3",
+      "issue": "completeTestExecuteArtifactChange and completeScenarioValidityArtifactChange validate requirement membership against the artifact's own summary entries instead of the spec's testable requirements. A test-execute-result.json or scenario-validity-result.json that omits evidence for a testable requirement can therefore complete successfully when raw output, file-map, regression, and line ranges are otherwise valid.",
+      "suggestion": "In completeTestExecuteArtifactChange and completeScenarioValidityArtifactChange, load the current spec requirements from specDir/spec.json or accept them as an explicit input, then pass those testable requirements into validateTestExecuteResultEvidence and validateScenarioValidityResult. Also add a mechanical issue when the artifact summary is missing any testable requirement id.",
+      "rationale": "R3 requires the producer contract to preserve the existing trust checks before downstream decisions. Requirement coverage is part of the durable evidence trust boundary; accepting self-derived summaries lets incomplete test evidence be treated as complete."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/295-producer-artifact-contract/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "ef292f828a76aba6d7234e125858477011e39a4c632cb135ea15fafa95b66d12"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 5,
+  "findings": [
+    {
+      "id": "impl-005-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "Spec gate now rejects normal valid specs without repair audit metadata",
+      "body": "The spec gate path now calls completeSpecArtifactChange before semantic evaluation, and that completion path treats a missing spec repair audit as a mechanical failure. Normal spec.json artifacts, including existing approved specs, do not carry a repairAudit field unless a spec-review repair flow occurred, so the retained spec gate surface can stop before semantic evaluation even when no repair audit is required.",
+      "category": "spec_behavior_contradiction"
+    },
+    {
+      "id": "impl-005-blocking-002",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "Test artifact completion can accept missing requirement evidence",
+      "body": "completeTestExecuteArtifactChange and completeScenarioValidityArtifactChange validate requirement membership against the artifact's own summary entries instead of the spec's testable requirements. A test-execute-result.json or scenario-validity-result.json that omits evidence for a testable requirement can therefore complete successfully when raw output, file-map, regression, and line ranges are otherwise valid.",
+      "category": "security_or_data_integrity_bug"
+    }
+  ]
+}

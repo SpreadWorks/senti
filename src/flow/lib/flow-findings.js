@@ -244,6 +244,85 @@ export function buildDeferredFindingsSummary({ specDir }) {
   };
 }
 
+function failedEvaluations(artifact) {
+  return Array.isArray(artifact?.evaluations)
+    ? artifact.evaluations.filter((entry) => entry?.result === "fail")
+    : [];
+}
+
+function blockingObservations(artifact) {
+  const observations = artifact?.nextAction?.diagnosis?.observations || artifact?.observations || [];
+  return Array.isArray(observations)
+    ? observations.filter((entry) => entry?.severity === "blocking" || entry?.severity == null)
+    : [];
+}
+
+function reviewBlockingFindings(artifact, sourceStep) {
+  const candidates = [
+    ...(sourceStep === "spec-review" ? [artifact?.blocking] : []),
+    artifact?.blockingFindings,
+    artifact?.findings,
+    artifact?.comments,
+    artifact?.proposals,
+    artifact?.advisoryFindings,
+  ];
+  return candidates.find(Array.isArray) || [];
+}
+
+function sourceFindingsForArtifact(artifact, sourceStep) {
+  const evaluations = failedEvaluations(artifact);
+  if (evaluations.length > 0) return evaluations;
+  const review = reviewBlockingFindings(artifact, sourceStep);
+  if (review.length > 0) return review;
+  return blockingObservations(artifact);
+}
+
+function stableSourceFindingId(sourceStep, finding, index) {
+  return finding?.sourceFindingId
+    || finding?.findingId
+    || finding?.id
+    || finding?.proposalId
+    || finding?.guardrail_id
+    || `${sourceStep}:${index + 1}`;
+}
+
+export function deferExhaustedSemanticFindings({
+  root,
+  flowState,
+  sourceStep,
+  sourceArtifact,
+  attempts,
+} = {}) {
+  const specDir = specDirFromFlowState(root, flowState);
+  const artifact = readBoundedSourceArtifact(specDir, sourceArtifact);
+  const sourceFindings = sourceFindingsForArtifact(artifact, sourceStep);
+  const deferred = sourceFindings.map((finding, index) => appendDeferredFlowFinding({
+    root,
+    flowState,
+    sourceStep,
+    sourceArtifact,
+    sourceFindingId: stableSourceFindingId(sourceStep, finding, index),
+    attempts,
+    round: attempts,
+  }));
+  return {
+    completed: true,
+    blockedByRetryExhaustionOnly: false,
+    deferred,
+  };
+}
+
+export function resolveRetryExhaustionForFlowStep({
+  sourceArtifact,
+} = {}) {
+  return {
+    stepDisposition: "continue",
+    retryExhaustionOnlyStop: false,
+    deferredTo: FLOW_FINDINGS_FILE,
+    sourceArtifact,
+  };
+}
+
 export function mirrorFinalDispositions(specDir, deferredFindings) {
   const artifact = readFlowFindingsArtifact(specDir);
   const byId = new Map((deferredFindings || []).map((finding) => [finding.findingId, finding.finalDisposition]));

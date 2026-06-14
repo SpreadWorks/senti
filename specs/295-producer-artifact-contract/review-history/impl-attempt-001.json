@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-14T07:52:24.177Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 3,
+    "nonBlocking": 0,
+    "total": 3
+  },
+  "blockingFindings": [
+    {
+      "title": "Draft/spec completion is not applied before semantic gate evaluation",
+      "failureMode": "missing_acceptance_requirement",
+      "requirementId": "R2",
+      "issue": "The diff only adds completeGateArtifactBeforeSemanticEvaluation in src/flow/lib/run-gate.js, but does not wire it into the draft.json or spec.json producer/repair gate paths. As shown, invalid JSON, lifecycle/schema, repair-audit, unresolved marker, and task monotonic issues can still reach semantic guardrail evaluation without the producer completion contract running first.",
+      "suggestion": "Invoke the artifact completion contract from the draft-gate and spec-gate producer/repair branches before calling semantic guardrail evaluation, and route ArtifactCompletionMechanicalFailure results to the existing structural failure envelope path without consuming semantic retry.",
+      "rationale": "R2 requires the producer contract to run before semantic guardrail judgment for draft.json and spec.json paths. An exported helper alone does not change the gate behavior."
+    },
+    {
+      "title": "Test artifact completion drops existing trust checks",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/test-artifacts.js",
+      "requirementId": "R3",
+      "issue": "completeScenarioValidityArtifactChange, completeTestExecuteArtifactChange, and completeTestResultReviewArtifactChange reimplement only a small subset of artifact validation. For example, completeTestResultReviewArtifactChange does not require verdict: \"pass\", required checked_items completeness, result_file_path/raw_output_path consistency, or the existing reviewer trust checks; it can succeed for a nonempty checked_items array with only project_regression_verification pass.",
+      "suggestion": "Replace the partial checks in completeScenarioValidityArtifactChange, completeTestExecuteArtifactChange, and completeTestResultReviewArtifactChange with calls into the existing schema/trust validators, or factor those validators into shared functions and call them from the completion adapters.",
+      "rationale": "R3 requires the same producer contract or shared adapter to preserve existing schema, raw evidence range, file-map, placeholder, and regression trust checks before downstream trust decisions. Partial validation can let fabricated or incomplete artifacts become trusted."
+    },
+    {
+      "title": "Semantic retry exhaustion deferral is not connected to the required phases",
+      "failureMode": "missing_acceptance_requirement",
+      "requirementId": "R6",
+      "issue": "The diff adds deferExhaustedSemanticFindings and resolveRetryExhaustionForFlowStep, but does not connect them to the retry-exhaustion branches for draft-gate, spec-review, spec-gate, impl-review, impl-gate task-impl, or impl-gate integration. run-review.js is not touched, so the required review-phase deferral behavior is absent in the shown implementation.",
+      "suggestion": "Call deferExhaustedSemanticFindings from the AI semantic FAIL retry-exhaustion handling in run-gate.js and run-review.js for each required phase, then continue the current step using the returned disposition and include buildDeferredFindingsSummary output in later acceptance-review context.",
+      "rationale": "R6 requires exhausted semantic FAIL findings to be appended to flow-findings.json and for the current review/gate step not to stop solely due to retry exhaustion. Without wiring the helper into those branches, the observable flow behavior remains unchanged."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/295-producer-artifact-contract/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "a6f1926ea96f2e35d1b63f3154458ae41b13de073d216de5ae27403cea9cf228"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "impl-001-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Draft/spec completion is not applied before semantic gate evaluation",
+      "body": "The diff only adds completeGateArtifactBeforeSemanticEvaluation in src/flow/lib/run-gate.js, but does not wire it into the draft.json or spec.json producer/repair gate paths. As shown, invalid JSON, lifecycle/schema, repair-audit, unresolved marker, and task monotonic issues can still reach semantic guardrail evaluation without the producer completion contract running first.",
+      "category": "missing_acceptance_requirement"
+    },
+    {
+      "id": "impl-001-blocking-002",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Test artifact completion drops existing trust checks",
+      "body": "completeScenarioValidityArtifactChange, completeTestExecuteArtifactChange, and completeTestResultReviewArtifactChange reimplement only a small subset of artifact validation. For example, completeTestResultReviewArtifactChange does not require verdict: \"pass\", required checked_items completeness, result_file_path/raw_output_path consistency, or the existing reviewer trust checks; it can succeed for a nonempty checked_items array with only project_regression_verification pass.",
+      "category": "missing_acceptance_requirement"
+    },
+    {
+      "id": "impl-001-blocking-003",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Semantic retry exhaustion deferral is not connected to the required phases",
+      "body": "The diff adds deferExhaustedSemanticFindings and resolveRetryExhaustionForFlowStep, but does not connect them to the retry-exhaustion branches for draft-gate, spec-review, spec-gate, impl-review, impl-gate task-impl, or impl-gate integration. run-review.js is not touched, so the required review-phase deferral behavior is absent in the shown implementation.",
+      "category": "missing_acceptance_requirement"
+    }
+  ]
+}

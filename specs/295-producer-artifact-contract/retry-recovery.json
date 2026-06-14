@@ -1,0 +1,182 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "spec-local tests changed to cover the latest test-review findings",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "d79d2135dae019bae63a9dda107065ca645717c5db8e63cda81c4003a51c4924",
+        "currentHash": "62c8dc5f2e18caae68fe04779bd8f09c7ff54418ba778b633310ac55f6361ac4",
+        "changedPaths": [
+          "specs/295-producer-artifact-contract/tests/.raw/scenario-validity.log",
+          "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset review test --reason \"spec-local tests changed to cover the latest test-review findings\" --yes",
+      "createdAt": "2026-06-14T07:35:27.737Z"
+    },
+    {
+      "id": "recovery-002",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review blocking finding fixed by changing draft gate to evaluate the completed draft artifact",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "d1d38d20a82c32e17364c9ced49068b119af687dd8125472727435d16011552c",
+        "currentHash": "b2f7571c8104374403856b69bf5d906821e66c2a0ca9508b8fb2c849770c7c2d",
+        "changedPaths": [
+          "specs/295-producer-artifact-contract/spec.json",
+          "src/flow/lib/artifact-completion.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/retry-accounting.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js",
+          "src/flow/lib/set-step.js",
+          "src/flow/lib/test-artifacts.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review blocking finding fixed by changing draft gate to evaluate the completed draft artifact\" --yes",
+      "createdAt": "2026-06-14T08:10:09.538Z"
+    },
+    {
+      "id": "recovery-003",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review blocking findings fixed by preserving conditional spec repair audit behavior and validating test evidence against spec requirements",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "b2f7571c8104374403856b69bf5d906821e66c2a0ca9508b8fb2c849770c7c2d",
+        "currentHash": "a71c71035ebff5aaf06e0788cfdb3dac9325954462b1306bb8bcfa0564113bf1",
+        "changedPaths": [
+          "specs/295-producer-artifact-contract/spec.json",
+          "src/flow/lib/artifact-completion.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/retry-accounting.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js",
+          "src/flow/lib/set-step.js",
+          "src/flow/lib/test-artifacts.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review blocking findings fixed by preserving conditional spec repair audit behavior and validating test evidence against spec requirements\" --yes",
+      "createdAt": "2026-06-14T08:15:10.826Z"
+    },
+    {
+      "id": "recovery-004",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review schema parity finding fixed by validating completed spec artifacts through spec-json schema validation",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "a71c71035ebff5aaf06e0788cfdb3dac9325954462b1306bb8bcfa0564113bf1",
+        "currentHash": "6cfbc5ebe61a081d037b2e2d895ccb3833f8372cd8eca925783b2141fcb276a1",
+        "changedPaths": [
+          "specs/295-producer-artifact-contract/spec.json",
+          "src/flow/lib/artifact-completion.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/retry-accounting.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js",
+          "src/flow/lib/set-step.js",
+          "src/flow/lib/test-artifacts.js",
+          "src/lib/spec-json.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review schema parity finding fixed by validating completed spec artifacts through spec-json schema validation\" --yes",
+      "createdAt": "2026-06-14T08:16:51.197Z"
+    },
+    {
+      "id": "recovery-005",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review comment deferral finding fixed by including comments in deferred review source selection",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "6cfbc5ebe61a081d037b2e2d895ccb3833f8372cd8eca925783b2141fcb276a1",
+        "currentHash": "3987529fd74a7de1d02ff180ed0500be99cdc48b04657a24045a8bd8f83b279f",
+        "changedPaths": [
+          "specs/295-producer-artifact-contract/spec.json",
+          "src/flow/lib/artifact-completion.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/retry-accounting.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js",
+          "src/flow/lib/set-step.js",
+          "src/flow/lib/test-artifacts.js",
+          "src/lib/spec-json.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review comment deferral finding fixed by including comments in deferred review source selection\" --yes",
+      "createdAt": "2026-06-14T08:20:05.344Z"
+    },
+    {
+      "id": "recovery-006",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review gate retry accounting finding fixed by limiting gateRetry to ai_semantic_fail artifacts",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "3987529fd74a7de1d02ff180ed0500be99cdc48b04657a24045a8bd8f83b279f",
+        "currentHash": "b20d4c8b6568b94e3cb4134bd8dfbd5e0c4ff5ff90dd6c783f15a64224625409",
+        "changedPaths": [
+          "specs/295-producer-artifact-contract/spec.json",
+          "src/flow/lib/artifact-completion.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/retry-accounting.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js",
+          "src/flow/lib/set-step.js",
+          "src/flow/lib/test-artifacts.js",
+          "src/lib/spec-json.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review gate retry accounting finding fixed by limiting gateRetry to ai_semantic_fail artifacts\" --yes",
+      "createdAt": "2026-06-14T08:25:56.763Z"
+    }
+  ]
+}

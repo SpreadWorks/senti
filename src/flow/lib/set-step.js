@@ -7,6 +7,7 @@
  */
 
 import path from "node:path";
+import fs from "node:fs";
 import { FlowCommand } from "./base-command.js";
 import { VALID_STEP_STATUSES } from "../../lib/constants.js";
 import { container } from "../../lib/container.js";
@@ -21,6 +22,9 @@ import { validateStepCompletionTransition } from "./flow-judgment-contract.js";
 import { findStepById } from "./step-tree.js";
 import {
   assertIntegrationRegressionEvidence,
+  completeScenarioValidityArtifactChange,
+  completeTestExecuteArtifactChange,
+  completeTestResultReviewArtifactChange,
   readJsonStrict,
   validateTestExecuteResultV2,
 } from "./test-artifacts.js";
@@ -95,6 +99,112 @@ function validatePostHookManagedStep(ctx, id) {
   return null;
 }
 
+function implementFailure(issueCodes, messages = null) {
+  const unique = [...new Set(issueCodes)];
+  return Envelope.fail(
+    "set",
+    "step",
+    "IMPLEMENT_COMPLETION_VALIDATION_FAILED",
+    messages || unique.map((code) => `implement completion failed: ${code}`),
+    { issueCodes: unique },
+  );
+}
+
+function addImplementIssue(issueCodes, code) {
+  if (!issueCodes.includes(code)) issueCodes.push(code);
+}
+
+export async function preValidateImplementStepCompletion({ root, state, requestedStatus } = {}) {
+  if (requestedStatus !== "done") return null;
+  if (!state?.spec) return implementFailure(["durable-artifact-missing"], ["active flow spec is required"]);
+  const specPath = path.resolve(root, state.spec);
+  const specDir = resolveSpecDir(specPath);
+  let spec;
+  try {
+    spec = loadSpecJson(specPath, { validate: false });
+  } catch (err) {
+    return implementFailure(["durable-artifact-missing"], [`failed to load spec.json: ${err.message}`]);
+  }
+
+  const issueCodes = [];
+  const requirements = Array.isArray(spec.requirements) ? spec.requirements.filter((r) => r.testable !== false) : [];
+  if (requirements.some((requirement) => requirement.status !== "done")) {
+    addImplementIssue(issueCodes, "requirement-status-incomplete");
+  }
+
+  const fileMapPath = path.join(specDir, "file-map.json");
+  let fileMap = null;
+  if (!fs.existsSync(fileMapPath)) {
+    addImplementIssue(issueCodes, "file-map-missing");
+  } else {
+    try {
+      fileMap = JSON.parse(fs.readFileSync(fileMapPath, "utf8"));
+      const missing = requirements.filter((requirement) => !Array.isArray(fileMap?.[requirement.id]) || fileMap[requirement.id].length === 0);
+      if (missing.length > 0) addImplementIssue(issueCodes, "file-map-missing");
+    } catch (err) {
+      addImplementIssue(issueCodes, "file-map-missing");
+    }
+  }
+
+  const scenarioValidityPath = path.join(specDir, "scenario-validity-result.json");
+  const testExecutePath = path.join(specDir, "test-execute-result.json");
+  const testResultReviewPath = path.join(specDir, "test-result-review.json");
+  if (!fs.existsSync(testExecutePath) && !fs.existsSync(scenarioValidityPath)) {
+    addImplementIssue(issueCodes, "durable-artifact-missing");
+  }
+  if (issueCodes.includes("requirement-status-incomplete")) {
+    return implementFailure(issueCodes);
+  }
+  if (fs.existsSync(scenarioValidityPath)) {
+    try {
+      const completed = await completeScenarioValidityArtifactChange({
+        root,
+        specDir,
+        artifact: JSON.parse(fs.readFileSync(scenarioValidityPath, "utf8")),
+      });
+      if (completed.constructor.name === "ArtifactCompletionMechanicalFailure") {
+        for (const code of completed.issueCodes) addImplementIssue(issueCodes, code);
+      }
+    } catch (err) {
+      addImplementIssue(issueCodes, "durable-artifact-missing");
+    }
+  }
+  if (fs.existsSync(testExecutePath)) {
+    try {
+      const artifact = JSON.parse(fs.readFileSync(testExecutePath, "utf8"));
+      const completed = await completeTestExecuteArtifactChange({ root, specDir, artifact });
+      if (completed.constructor.name === "ArtifactCompletionMechanicalFailure") {
+        for (const code of completed.issueCodes) addImplementIssue(issueCodes, code);
+      }
+      const rawOutputPath = artifact.rawOutputPath || artifact.raw_output_path;
+      const rawPath = rawOutputPath?.startsWith("specs/")
+        ? path.resolve(root, rawOutputPath)
+        : path.resolve(specDir, rawOutputPath || "");
+      if (rawOutputPath && !fs.existsSync(rawPath)) {
+        addImplementIssue(issueCodes, "durable-artifact-missing");
+      }
+    } catch (err) {
+      addImplementIssue(issueCodes, "durable-artifact-missing");
+    }
+  }
+  if (fs.existsSync(testResultReviewPath)) {
+    try {
+      const completed = await completeTestResultReviewArtifactChange({
+        specDir,
+        artifact: JSON.parse(fs.readFileSync(testResultReviewPath, "utf8")),
+      });
+      if (completed.constructor.name === "ArtifactCompletionMechanicalFailure") {
+        for (const code of completed.issueCodes) addImplementIssue(issueCodes, code);
+      }
+    } catch (err) {
+      addImplementIssue(issueCodes, "durable-artifact-missing");
+    }
+  }
+
+  if (issueCodes.length > 0) return implementFailure(issueCodes);
+  return null;
+}
+
 export default class SetStepCommand extends FlowCommand {
   async execute(ctx) {
     const { id, status } = ctx;
@@ -119,6 +229,10 @@ export default class SetStepCommand extends FlowCommand {
     }
     if (status === "done") {
       const state = ctx.flowManager.load();
+      if (id === "implement") {
+        const fail = await preValidateImplementStepCompletion({ root: ctx.root, state, requestedStatus: status });
+        if (fail) return fail;
+      }
       const fail = validateStepCompletionTransition({ root: ctx.root, state, stepId: id, requestedStatus: status });
       if (fail) return fail;
     }

@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-14T08:00:50.678Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 2,
+    "nonBlocking": 0,
+    "total": 2
+  },
+  "blockingFindings": [
+    {
+      "title": "Completed spec artifact is not used for semantic gate evaluation",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/run-gate.js",
+      "requirementId": "R2",
+      "issue": "The spec gate path calls completeSpecArtifactChange and only checks for ArtifactCompletionMechanicalFailure, but then reparses targetText into spec and continues with the original targetText. Any normalized or deterministically repaired spec artifact returned by the completion contract is ignored before semantic guardrail judgment.",
+      "suggestion": "In RunGateCommand's spec path, use completedSpec.artifact as the spec object for the subsequent gate flow, and derive the semantic target text from that completed artifact rather than the original targetText.",
+      "rationale": "R2 requires draft.json and spec.json producer or repair paths to pass through artifact completion before semantic guardrail judgment. Ignoring the completed spec lets the semantic gate evaluate a stale artifact instead of the contract-validated artifact."
+    },
+    {
+      "title": "Scenario validity completion can trust artifacts without raw evidence validation",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/test-artifacts.js",
+      "requirementId": "R3",
+      "issue": "completeScenarioValidityArtifactChange only invokes validateScenarioValidityResult when raw_output_path resolves to an existing file and summary is an array. If raw_output_path is missing or points to a missing file, the function can still return ArtifactCompletionSuccess when version is \"1\" and entries are classified expected_fail.",
+      "suggestion": "In completeScenarioValidityArtifactChange, require raw_output_path to resolve to an existing bounded raw output file, run validateScenarioValidityResult unconditionally after loading that raw text, and convert missing raw output or validation errors into ArtifactCompletionMechanicalFailure issue codes.",
+      "rationale": "R3 requires scenario-validity-result.json to keep existing schema and raw evidence checks before downstream trust decisions. Accepting a scenario validity artifact without raw evidence lets fabricated or incomplete test evidence become trusted."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/295-producer-artifact-contract/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "3d7df7953874f7cc1845038e05d978111ca33ef91ecc94c604f98c68c04565ea"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "impl-003-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Completed spec artifact is not used for semantic gate evaluation",
+      "body": "The spec gate path calls completeSpecArtifactChange and only checks for ArtifactCompletionMechanicalFailure, but then reparses targetText into spec and continues with the original targetText. Any normalized or deterministically repaired spec artifact returned by the completion contract is ignored before semantic guardrail judgment.",
+      "category": "missing_acceptance_requirement"
+    },
+    {
+      "id": "impl-003-blocking-002",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Scenario validity completion can trust artifacts without raw evidence validation",
+      "body": "completeScenarioValidityArtifactChange only invokes validateScenarioValidityResult when raw_output_path resolves to an existing file and summary is an array. If raw_output_path is missing or points to a missing file, the function can still return ArtifactCompletionSuccess when version is \"1\" and entries are classified expected_fail.",
+      "category": "missing_acceptance_requirement"
+    }
+  ]
+}

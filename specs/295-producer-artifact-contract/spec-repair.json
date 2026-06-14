@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied three blocking spec-review repairs: task-impl parity, observable implement completion evidence, and spec-review source finding extraction.",
+  "items": [
+    {
+      "title": "Disambiguate impl-gate phases",
+      "target": "R6/R7",
+      "decision": "applied",
+      "rationale": "Added task-impl as an explicit retained impl-gate phase wherever R6/R7 describe retry exhaustion or migration parity.",
+      "evidence": "spec.json requirements R6/R7 and acceptance criteria now include both task-impl and integration gate phases.",
+      "changedFields": [
+        "scope.in",
+        "overview.modules",
+        "overview.decisions",
+        "requirements[5].desc",
+        "requirements[6].desc",
+        "acceptance_criteria[6]",
+        "tasks[4].acceptance[0]"
+      ]
+    },
+    {
+      "title": "Define lint readiness evidence for implement completion",
+      "target": "R4/T-3",
+      "decision": "applied",
+      "rationale": "Removed lint readiness from R4/T-3 completion requirements because no durable lint evidence path exists in the current flow artifacts.",
+      "evidence": "spec.json R4, R4 acceptance criteria, and T-3 now require only observable requirement status, file-map coverage, and durable artifact evidence.",
+      "changedFields": [
+        "requirements[3].desc",
+        "acceptance_criteria[3]",
+        "tasks[2].goal",
+        "tasks[2].acceptance[1]",
+        "tasks[2].implementation_notes"
+      ]
+    },
+    {
+      "title": "Specify spec-review source finding extraction",
+      "target": "R6",
+      "decision": "applied",
+      "rationale": "Specified that spec-review deferral reads semantic blocking records from actual spec-review.json source arrays and preserves or synthesizes stable sourceFindingId values.",
+      "evidence": "spec.json R6, R6 acceptance criteria, overview decisions, and T-4 acceptance now name spec-review.json source finding extraction.",
+      "changedFields": [
+        "overview.decisions",
+        "requirements[5].desc",
+        "acceptance_criteria[5]",
+        "tasks[3].acceptance"
+      ]
+    }
+  ]
+}

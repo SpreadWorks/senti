@@ -1,0 +1,595 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The draft defers key migration parity work (e.g., identifying exact modules/commands and behavior requirements) instead of defining the required inventory and migration mapping before implementation.; No explicit inventory of all existing public behavior being moved/replaced is defined, and retained behavior is not mapped per surface to a new owner or explicit removal decision.; Behavior-level verification is specified only for retry/failure scenarios, but no explicit retained-surface verification is defined for each migrated public feature/command/API path.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-14T03:01:20.444Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "decisionMap.deferredToSpec"
+          },
+          "observed": "The draft defers key migration parity work (e.g., identifying exact modules/commands and behavior requirements) instead of defining the required inventory and migration mapping before implementation.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "scopeVerification.in"
+          },
+          "observed": "No explicit inventory of all existing public behavior being moved/replaced is defined, and retained behavior is not mapped per surface to a new owner or explicit removal decision.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "qa"
+          },
+          "observed": "Behavior-level verification is specified only for retry/failure scenarios, but no explicit retained-surface verification is defined for each migrated public feature/command/API path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft defers key migration parity work (e.g., identifying exact modules/commands and behavior requirements) instead of defining the required inventory and migration mapping before implementation."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "No explicit inventory of all existing public behavior being moved/replaced is defined, and retained behavior is not mapped per surface to a new owner or explicit removal decision."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "Behavior-level verification is specified only for retry/failure scenarios, but no explicit retained-surface verification is defined for each migrated public feature/command/API path."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate failed migration parity because the draft lacked retained public surface inventory, owner mapping, and behavior-level verification",
+      "trigger": "senti flow run gate --phase draft returned migration-parity FAIL",
+      "resolution": "added migration inventory, retained behavior owner mapping, and behavior-level verification entries to draft.json",
+      "guardrailCandidate": "when moving validation responsibility, draft must list public surfaces, new owners, retained behavior, and verification before gate",
+      "taskId": null,
+      "timestamp": "2026-06-14T03:02:10.828Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "「behaviorally equivalent」は評価基準が曖昧な主観語で、既存振る舞いと一致していることの具体条件（例: 許容差分、テストケース、期待結果）が明示されていない。; 「behaviorally equivalent」としているだけで、二人のレビュアが合意できる実装合否判断基準が具体化されていないため、要件の可検証性が不足している。; 「clean artifact input」は主観的な表現で、どの条件を満たせば clean かの定量条件が定義されていない。; 「clean artifact input」の成立条件が定義されておらず、実装の成否について独立レビュア間で一致した判断を下しにくい。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-14T03:02:33.019Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "impactOnExisting",
+            "locator": "item 3"
+          },
+          "observed": "「behaviorally equivalent」は評価基準が曖昧な主観語で、既存振る舞いと一致していることの具体条件（例: 許容差分、テストケース、期待結果）が明示されていない。",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "impactOnExisting",
+            "locator": "item 3"
+          },
+          "observed": "「behaviorally equivalent」としているだけで、二人のレビュアが合意できる実装合否判断基準が具体化されていないため、要件の可検証性が不足している。",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "impactOnExisting",
+            "locator": "item 1"
+          },
+          "observed": "「clean artifact input」は主観的な表現で、どの条件を満たせば clean かの定量条件が定義されていない。",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "impactOnExisting",
+            "locator": "item 1"
+          },
+          "observed": "「clean artifact input」の成立条件が定義されておらず、実装の成否について独立レビュア間で一致した判断を下しにくい。",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "「behaviorally equivalent」は評価基準が曖昧な主観語で、既存振る舞いと一致していることの具体条件（例: 許容差分、テストケース、期待結果）が明示されていない。"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "「behaviorally equivalent」としているだけで、二人のレビュアが合意できる実装合否判断基準が具体化されていないため、要件の可検証性が不足している。"
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "「clean artifact input」は主観的な表現で、どの条件を満たせば clean かの定量条件が定義されていない。"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "「clean artifact input」の成立条件が定義されておらず、実装の成否について独立レビュア間で一致した判断を下しにくい。"
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate failed unambiguous requirements because impact entries used vague phrases clean artifact input and behaviorally equivalent",
+      "trigger": "second senti flow run gate --phase draft returned unambiguous-requirements and complete-context FAIL",
+      "resolution": "replaced vague impact entries with explicit parse, schema, lifecycle, evidence path, failure envelope, and guardrail reachability conditions",
+      "guardrailCandidate": "draft impact entries must define measurable retained behavior conditions instead of using clean or equivalent wording",
+      "taskId": null,
+      "timestamp": "2026-06-14T03:03:02.310Z"
+    },
+    {
+      "step": "spec-review",
+      "reason": "spec review failed because impl-gate phase scope, implement completion lint evidence, and spec-review source finding extraction were underspecified",
+      "trigger": "senti flow run review --phase spec returned three blocking findings",
+      "resolution": "updated spec.json to include task-impl parity, exclude lint readiness until durable evidence exists, and define spec-review source finding extraction",
+      "guardrailCandidate": "spec review repairs must name existing phase surfaces and observable artifact paths before implementation",
+      "taskId": null,
+      "timestamp": "2026-06-14T03:11:18.599Z"
+    },
+    {
+      "step": "spec-repair",
+      "reason": "local validation helper command failed because require was used inside an ESM node --input-type module script",
+      "trigger": "combined schema and repair artifact validation command exited with ReferenceError require is not defined",
+      "resolution": "reran validation as separate ESM schema load and CommonJS JSON parse commands",
+      "guardrailCandidate": "when validating mixed ESM and CommonJS helpers, keep schema import and fs require checks in separate node invocations",
+      "taskId": null,
+      "timestamp": "2026-06-14T03:11:39.557Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The migration-parity requirement lists retained command surfaces but does not provide a baseline inventory of existing public behavior being moved/externalized, nor a per-surface mapping to new owners or explicit removal decisions.; No behavior-level verification statement ties every retained public surface in `R7` to a specific retained behavior/new owner mapping; coverage is stated generally, but explicit retained-behavior parity mapping required by migration-parity is missing.; R1–R6 acceptance criteria/test strategies do not explicitly require that new spec-local coverage be located under `specs/295-producer-artifact-contract/tests/` with `// spec: R<N>` headers in each test file; only R7 adds an explicit header requirement.; The spec does not explicitly list impacts on existing features as a dedicated impact statement; it omits a clear declaration of what existing behavior changes versus remains unchanged.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-14T03:12:07.589Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec-content",
+            "locator": "requirements.R7"
+          },
+          "observed": "The migration-parity requirement lists retained command surfaces but does not provide a baseline inventory of existing public behavior being moved/externalized, nor a per-surface mapping to new owners or explicit removal decisions.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec-content",
+            "locator": "acceptance_criteria"
+          },
+          "observed": "No behavior-level verification statement ties every retained public surface in `R7` to a specific retained behavior/new owner mapping; coverage is stated generally, but explicit retained-behavior parity mapping required by migration-parity is missing.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "acceptance_criteria",
+            "locator": "R1-R6"
+          },
+          "observed": "R1–R6 acceptance criteria/test strategies do not explicitly require that new spec-local coverage be located under `specs/295-producer-artifact-contract/tests/` with `// spec: R<N>` headers in each test file; only R7 adds an explicit header requirement.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "impact-on-existing-features",
+          "where": {
+            "file": "overview/scope",
+            "locator": "absence of impact section"
+          },
+          "observed": "The spec does not explicitly list impacts on existing features as a dedicated impact statement; it omits a clear declaration of what existing behavior changes versus remains unchanged.",
+          "severity": "blocking",
+          "refs": [
+            "impact-on-existing-features"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The migration-parity requirement lists retained command surfaces but does not provide a baseline inventory of existing public behavior being moved/externalized, nor a per-surface mapping to new owners or explicit removal decisions."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "No behavior-level verification statement ties every retained public surface in `R7` to a specific retained behavior/new owner mapping; coverage is stated generally, but explicit retained-behavior parity mapping required by migration-parity is missing."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "R1–R6 acceptance criteria/test strategies do not explicitly require that new spec-local coverage be located under `specs/295-producer-artifact-contract/tests/` with `// spec: R<N>` headers in each test file; only R7 adds an explicit header requirement."
+        },
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "The spec does not explicitly list impacts on existing features as a dedicated impact statement; it omits a clear declaration of what existing behavior changes versus remains unchanged."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec gate failed because migration parity mapping, R1-R6 spec-local test header requirements, and explicit impact statements were incomplete",
+      "trigger": "senti flow run gate --phase spec returned migration-parity, spec-test-coverage, and impact-on-existing-features FAIL",
+      "resolution": "added per-surface migration mapping, explicit impact decisions, and spec-local tests path plus spec header requirements for R1 through R7",
+      "guardrailCandidate": "spec gate readiness requires per-surface migration owner mapping and explicit spec-local test header criteria for every testable requirement",
+      "taskId": null,
+      "timestamp": "2026-06-14T03:12:59.639Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review rejected static source-text assertions because they did not exercise producer artifact behavior",
+      "trigger": "senti flow run review --phase test reported four blocking static-test findings",
+      "resolution": "replaced source scanning tests with executable dynamic-import fixture tests for completion, retry accounting, deferred findings, and readiness behavior",
+      "guardrailCandidate": "spec-local tests for behavioral requirements must call production contracts or adapters instead of asserting source text tokens",
+      "taskId": null,
+      "timestamp": "2026-06-14T03:30:39.288Z"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "rewritten executable tests were classified invalid_test because missing modules and exports surfaced as loader or TypeError failures",
+      "trigger": "senti flow run scenario-validity blocked every requirement as invalid_test after test-review repair",
+      "resolution": "added explicit existence and export assertions so pre-implementation gaps fail as requirement assertions before behavioral checks run",
+      "guardrailCandidate": "scenario-validity tests should convert absent future contracts into assertion failures, not module-loader or TypeError failures",
+      "taskId": null,
+      "timestamp": "2026-06-14T03:31:34.677Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "second test-review found remaining coverage gaps for draft/spec adapters, retry-exhaustion surfaces, and retained surface behavior",
+      "trigger": "senti flow run review --phase test reported three blocking findings after initial executable rewrite",
+      "resolution": "expanded R2 to call draft and spec completion adapters, expanded R6 across gate and impl deferral sources, and changed R7 to execute representative surface adapters",
+      "guardrailCandidate": "test-review repairs should address all named surfaces behaviorally, not only replace one static assertion pattern",
+      "taskId": null,
+      "timestamp": "2026-06-14T03:33:43.569Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "third test-review found broad regex assertions and missing malformed-json, pending-requirement, public non-semantic failure, and step-continuation coverage",
+      "trigger": "senti flow run review --phase test reported five blocking findings after expanding adapter coverage",
+      "resolution": "changed assertions to exact issue-code sets and added malformed JSON, pending implement readiness, public protocol/schema failure, and retry-exhaustion step-resolution cases",
+      "guardrailCandidate": "behavioral tests should assert exact mechanical issue codes and public step disposition, not broad issue-text alternation",
+      "taskId": null,
+      "timestamp": "2026-06-14T03:35:52.731Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review found two spec-local test bugs: R7 used an undefined expectedIssueCodes variable and R4 marked requirements done before the pending-status assertion",
+      "trigger": "senti flow run review --phase test reported two blocking executable-test findings",
+      "resolution": "fixed the R7 destructuring name and changed the R4 initial fixture to pending before switching to done for the ready case",
+      "guardrailCandidate": "after broad test rewrites, run static review to catch contradictory fixtures and variable-name mistakes before implementation",
+      "taskId": null,
+      "timestamp": "2026-06-14T03:36:45.027Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review required four additional coverage cases: acceptance-review deferred context, spec-review blockingFindings fallback, review draft/test/impl parity, and raw evidence range validation",
+      "trigger": "user requested fixing the exhausted test-review findings and manually resetting the review retry counter",
+      "resolution": "added downstream acceptance-review artifact coverage, spec-review fallback fixture, review surface parity cases, and raw evidence range validation case",
+      "guardrailCandidate": "before resetting an exhausted review, change evidence to directly cover every latest blocking finding",
+      "taskId": null,
+      "timestamp": "2026-06-14T07:35:14.498Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "spec-local tests changed to cover the latest test-review findings",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "d79d2135dae019bae63a9dda107065ca645717c5db8e63cda81c4003a51c4924",
+        "currentHash": "62c8dc5f2e18caae68fe04779bd8f09c7ff54418ba778b633310ac55f6361ac4",
+        "changedPaths": [
+          "specs/295-producer-artifact-contract/tests/.raw/scenario-validity.log",
+          "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset review test --reason \"spec-local tests changed to cover the latest test-review findings\" --yes",
+      "createdAt": "2026-06-14T07:35:27.737Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl-review found missing runtime wiring for draft/spec completion, partial test artifact trust checks, and unconnected semantic retry deferral",
+      "trigger": "senti flow run review returned three blocking missing_acceptance_requirement findings",
+      "resolution": "wired draft/spec completion into run-gate, invoked existing test artifact validators from completion adapters, and routed review/gate retry exhaustion through deferExhaustedSemanticFindings",
+      "guardrailCandidate": "new contract helpers must be called from retained public flow paths, not only exported for tests",
+      "taskId": null,
+      "timestamp": "2026-06-14T07:53:56.282Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl-review found canonical test artifact validator failures being converted into trusted success artifacts and implement completion validating durable artifact presence without routing existing artifacts through completion adapters",
+      "resolution": "Mapped canonical validator failures to structural completion issue codes, resolved repo-relative raw evidence paths, and routed scenario-validity, test-execute, and test-result-review durable artifacts through their completion adapters before implement can be marked done.",
+      "taskId": null,
+      "timestamp": "2026-06-14T07:58:46.412Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl-review found the spec gate semantic path still reading the pre-completion spec text and scenario-validity completion accepting missing raw evidence",
+      "resolution": "Changed spec gate to evaluate the completed spec artifact, made scenario-validity completion require raw evidence and validator execution, stabilized completion result instanceof checks across cache-busted imports, and updated spec-local fixtures to match the stricter artifact contract.",
+      "taskId": null,
+      "timestamp": "2026-06-14T08:07:33.444Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl-review found draft gate semantic evaluation still using pre-completion draft text",
+      "resolution": "Changed draft gate to serialize completedDraft.artifact for semantic guardrail targetText so both draft and spec gates evaluate the completed artifact.",
+      "taskId": null,
+      "timestamp": "2026-06-14T08:09:58.716Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-002",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review blocking finding fixed by changing draft gate to evaluate the completed draft artifact",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "d1d38d20a82c32e17364c9ced49068b119af687dd8125472727435d16011552c",
+        "currentHash": "b2f7571c8104374403856b69bf5d906821e66c2a0ca9508b8fb2c849770c7c2d",
+        "changedPaths": [
+          "specs/295-producer-artifact-contract/spec.json",
+          "src/flow/lib/artifact-completion.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/retry-accounting.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js",
+          "src/flow/lib/set-step.js",
+          "src/flow/lib/test-artifacts.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review blocking finding fixed by changing draft gate to evaluate the completed draft artifact\" --yes",
+      "createdAt": "2026-06-14T08:10:09.538Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl-review found spec completion requiring repair audit for ordinary specs and test artifact completion deriving coverage from artifact summaries instead of spec requirements",
+      "resolution": "Made spec repair-audit completion conditional for the run-gate path while preserving the public completion surface, and changed scenario-validity/test-execute completion to load testable requirements from spec.json for membership validation.",
+      "taskId": null,
+      "timestamp": "2026-06-14T08:15:00.359Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-003",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review blocking findings fixed by preserving conditional spec repair audit behavior and validating test evidence against spec requirements",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "b2f7571c8104374403856b69bf5d906821e66c2a0ca9508b8fb2c849770c7c2d",
+        "currentHash": "a71c71035ebff5aaf06e0788cfdb3dac9325954462b1306bb8bcfa0564113bf1",
+        "changedPaths": [
+          "specs/295-producer-artifact-contract/spec.json",
+          "src/flow/lib/artifact-completion.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/retry-accounting.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js",
+          "src/flow/lib/set-step.js",
+          "src/flow/lib/test-artifacts.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review blocking findings fixed by preserving conditional spec repair audit behavior and validating test evidence against spec requirements\" --yes",
+      "createdAt": "2026-06-14T08:15:10.826Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl-review found spec gate schema validation parity lost after switching to completed spec artifacts",
+      "resolution": "Added validateSpecJsonObject to the spec-json module and made spec gate validate the completed spec artifact with the same schema validator before semantic evaluation.",
+      "taskId": null,
+      "timestamp": "2026-06-14T08:16:39.650Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-004",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review schema parity finding fixed by validating completed spec artifacts through spec-json schema validation",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "a71c71035ebff5aaf06e0788cfdb3dac9325954462b1306bb8bcfa0564113bf1",
+        "currentHash": "6cfbc5ebe61a081d037b2e2d895ccb3833f8372cd8eca925783b2141fcb276a1",
+        "changedPaths": [
+          "specs/295-producer-artifact-contract/spec.json",
+          "src/flow/lib/artifact-completion.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/retry-accounting.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js",
+          "src/flow/lib/set-step.js",
+          "src/flow/lib/test-artifacts.js",
+          "src/lib/spec-json.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review schema parity finding fixed by validating completed spec artifacts through spec-json schema validation\" --yes",
+      "createdAt": "2026-06-14T08:16:51.197Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl-review found retry exhaustion deferral could drop review findings stored in comments",
+      "resolution": "Aligned flow-findings review source selection with run-review finding precedence and added a comments-only deferral regression case.",
+      "taskId": null,
+      "timestamp": "2026-06-14T08:19:46.014Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-005",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review comment deferral finding fixed by including comments in deferred review source selection",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "6cfbc5ebe61a081d037b2e2d895ccb3833f8372cd8eca925783b2141fcb276a1",
+        "currentHash": "3987529fd74a7de1d02ff180ed0500be99cdc48b04657a24045a8bd8f83b279f",
+        "changedPaths": [
+          "specs/295-producer-artifact-contract/spec.json",
+          "src/flow/lib/artifact-completion.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/retry-accounting.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js",
+          "src/flow/lib/set-step.js",
+          "src/flow/lib/test-artifacts.js",
+          "src/lib/spec-json.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review comment deferral finding fixed by including comments in deferred review source selection\" --yes",
+      "createdAt": "2026-06-14T08:20:05.344Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl-review found gateRetry still incremented for mechanical and AI output schema failures",
+      "resolution": "Limited updateGateRetryCounter to pass resets and ai_semantic_fail increments, removed metric mutation from guardrail output parse failures and EvaluationSchemaError handling, and added a regression for mechanical gate failures.",
+      "taskId": null,
+      "timestamp": "2026-06-14T08:25:45.329Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-006",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "impl-review gate retry accounting finding fixed by limiting gateRetry to ai_semantic_fail artifacts",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "3987529fd74a7de1d02ff180ed0500be99cdc48b04657a24045a8bd8f83b279f",
+        "currentHash": "b20d4c8b6568b94e3cb4134bd8dfbd5e0c4ff5ff90dd6c783f15a64224625409",
+        "changedPaths": [
+          "specs/295-producer-artifact-contract/spec.json",
+          "src/flow/lib/artifact-completion.js",
+          "src/flow/lib/flow-findings.js",
+          "src/flow/lib/retry-accounting.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js",
+          "src/flow/lib/set-step.js",
+          "src/flow/lib/test-artifacts.js",
+          "src/lib/spec-json.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"impl-review gate retry accounting finding fixed by limiting gateRetry to ai_semantic_fail artifacts\" --yes",
+      "createdAt": "2026-06-14T08:25:56.763Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: impl-gate used stale test-execute-result.json with old R3/R6/R7 failures",
+      "resolution": "Re-ran test-execute and test-result-review so impl-gate validates current v2 test artifacts and raw output.",
+      "taskId": null,
+      "timestamp": "2026-06-14T08:29:54.541Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: impl-gate blocked on project regression result=fail after spec gate content sanity changed unresolved-marker reporting",
+      "resolution": "Restored run-gate spec path parity by letting checkSpecJson report content issues, verified gate CLI targeted test, reran test-execute, and test-result-review now validates a passing project regression artifact.",
+      "taskId": null,
+      "timestamp": "2026-06-14T08:34:08.755Z"
+    }
+  ]
+}

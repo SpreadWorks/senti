@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-14T02:11:36.461Z",
+  "analyzedAt": "2026-06-14T02:52:08.578Z",
   "package": {
     "entries": [
       {
@@ -10675,9 +10675,9 @@
       },
       {
         "file": "src/setup.js",
-        "hash": "ad354100cb18dd20fb8c8583c9fa3166",
-        "lines": 628,
-        "mtime": "2026-06-14T02:11:20.758Z",
+        "hash": "8bae4b83be7ea73f1cbef5e176235a55",
+        "lines": 634,
+        "mtime": "2026-06-14T02:52:04.481Z",
         "className": "setup",
         "methods": [
           "ask",
@@ -10694,6 +10694,7 @@
           "ensureAgentConfigFile",
           "fixClaudeMdSymlink",
           "officialPresetCandidateOptions",
+          "listInteractiveSetupPresetCandidates",
           "runWizard",
           "resolveLeafTypes",
           "buildSummaryLines",
@@ -10721,30 +10722,13 @@
         "exports": [
           "main",
           "loadSetupDefaults",
+          "listSetupWizardPresetCandidates",
           "resolveSetupLeafTypes",
           "buildSetupSummaryLines"
         ],
         "extends": null,
         "usedBy": null,
-        "id": "9820c9db",
-        "summary": "Implements the project setup command and interactive wizard. It creates the `.senti` workspace, writes initial configuration, and wires preset, agent, and ignore-file defaults.",
-        "detail": "The module parses setup CLI arguments, loads existing defaults, and uses readline-based prompts to collect project name, languages, preset types, and related options. It provisions required directories and repository files such as `.senti`, `docs`, `specs`, `.gitignore`, and `.gitattributes`, while preserving or restoring config snapshots when needed. Setup integrates preset candidate resolution, official preset package activation, agent document generation, skill deployment, and merged agent defaults so generated files match selected providers and templates. The main entrypoint validates configuration, writes `config.json`, updates agent guidance files, and exits with explicit error handling for CLI execution.",
-        "chapter": "cli_commands",
-        "role": "Interactive setup and project bootstrap command.",
-        "enrich": {
-          "processedAt": "2026-06-14T02:12:24.840Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "setup wizard",
-          "project bootstrap",
-          "config initialization",
-          "preset selection",
-          "agent file generation",
-          "gitignore management",
-          "CLI setup",
-          "workspace scaffolding"
-        ]
+        "id": "9820c9db"
       },
       {
         "file": "src/spec.js",
@@ -10910,7 +10894,7 @@
     ],
     "summary": {
       "total": 210,
-      "totalMethods": 1774
+      "totalMethods": 1775
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },

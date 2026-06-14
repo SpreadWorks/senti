@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-14T03:27:01.258Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 4,
+    "advisory": 1,
+    "total": 5
+  },
+  "coverageArtifact": "specs/295-producer-artifact-contract/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Static source-text assertions do not exercise the required behavior",
+      "target": "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js",
+      "issue": "Every test verifies implementation by reading source files and matching names, tokens, or ordering in text. These tests can pass if the expected strings are present while normalize/validate/repair/revalidate behavior, retry isolation, deferred findings, and implement readiness checks are not actually executed or correct.",
+      "requiredChange": "Replace or augment the source-text assertions with executable spec-local tests that import/call the artifact completion contract and relevant flow entry points or adapters using fixtures, then assert returned success/failure classes, retry counter preservation, deferred finding artifacts, and implement completion envelopes from actual behavior.",
+      "whyBlocking": "R1-R7 are behavioral requirements. The current tests have a static anti-pattern that would pass without exercising production behavior, so the acceptance requirements lack reliable regression coverage."
+    },
+    {
+      "kind": "blocking",
+      "title": "R2 ordering check encodes a brittle implementation premise",
+      "target": "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js R2 test",
+      "issue": "The R2 test uses string index ordering in src/flow/lib/run-gate.js to infer that draft/spec completion happens before semantic guardrail judgment. This can pass or fail based on helper definitions, imports, comments, or unrelated text order rather than runtime call order.",
+      "requiredChange": "Use an executable test with a fixture or stubbed guardrail path that observes artifact completion failure preventing semantic guardrail evaluation, and success allowing guardrail evaluation afterward.",
+      "whyBlocking": "R2 specifically requires mechanical checks before semantic judgment. The current test does not verify the runtime ordering that protects the semantic guardrail decision."
+    },
+    {
+      "kind": "blocking",
+      "title": "R5 retry isolation is not behaviorally verified",
+      "target": "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js R5 test",
+      "issue": "The R5 test only checks for words such as semantic, mechanical, protocol, tooling, and retry in run-gate.js. It does not verify that mechanical validation, deterministic repair, provider/tooling/protocol, or AI output schema failures preserve reviewRetry/gateRetry while AI semantic FAIL consumes them.",
+      "requiredChange": "Add executable cases for at least one semantic FAIL and one non-semantic failure path, asserting the persisted retry counters or returned envelope state after each path.",
+      "whyBlocking": "R5 is a critical retry-accounting requirement, and the current test could pass with misleading comments or dead code while retries are still consumed incorrectly."
+    },
+    {
+      "kind": "blocking",
+      "title": "R6 deferral behavior is not covered for exhausted semantic retries",
+      "target": "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js R6 test",
+      "issue": "The R6 test checks only for symbol names and string mentions. It does not execute exhausted retry scenarios for draft-gate, spec-review, spec-gate, impl-review, task-impl, or integration, nor does it verify flow-findings.json contents, continued step behavior, acceptance-review context, or blocking[] versus blockingFindings[] source handling.",
+      "requiredChange": "Add executable fixture tests that simulate exhausted semantic FAIL retries for representative review and gate phases, then assert deferred findings are appended with preserved or stable sourceFindingId values and that the phase does not stop solely due to exhaustion.",
+      "whyBlocking": "R6 requires durable cross-phase behavior and source-shape compatibility. Static string checks do not provide corresponding regression coverage."
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R7 surface test is overly coupled to literal text",
+      "target": "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js R7 test",
+      "improvement": "Prefer exercising the retained public surfaces through command-level fixtures or exported adapters instead of requiring literal phrases such as gate --phase draft to appear in selected source files.",
+      "whyNonBlocking": "This is already covered by the broader blocking issue about static-only tests, but making R7 command-oriented would reduce false failures from harmless refactors."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/295-producer-artifact-contract/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 4,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "0ac5c4bc77ae617d58c9ffdd6244776e1c639b85128e52401f2d476900fe9a27"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "test-001-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Static source-text assertions do not exercise the required behavior",
+      "body": "Every test verifies implementation by reading source files and matching names, tokens, or ordering in text. These tests can pass if the expected strings are present while normalize/validate/repair/revalidate behavior, retry isolation, deferred findings, and implement readiness checks are not actually executed or correct.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R2 ordering check encodes a brittle implementation premise",
+      "body": "The R2 test uses string index ordering in src/flow/lib/run-gate.js to infer that draft/spec completion happens before semantic guardrail judgment. This can pass or fail based on helper definitions, imports, comments, or unrelated text order rather than runtime call order.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R5 retry isolation is not behaviorally verified",
+      "body": "The R5 test only checks for words such as semantic, mechanical, protocol, tooling, and retry in run-gate.js. It does not verify that mechanical validation, deterministic repair, provider/tooling/protocol, or AI output schema failures preserve reviewRetry/gateRetry while AI semantic FAIL consumes them.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R6 deferral behavior is not covered for exhausted semantic retries",
+      "body": "The R6 test checks only for symbol names and string mentions. It does not execute exhausted retry scenarios for draft-gate, spec-review, spec-gate, impl-review, task-impl, or integration, nor does it verify flow-findings.json contents, continued step behavior, acceptance-review context, or blocking[] versus blockingFindings[] source handling.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-non-blocking-005",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "R7 surface test is overly coupled to literal text",
+      "body": "R7 surface test is overly coupled to literal text",
+      "category": "unknown"
+    }
+  ]
+}

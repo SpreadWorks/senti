@@ -33,6 +33,7 @@ import {
   resolveSpecJsonPath,
   resolveSpecDir,
   specJsonToPromptText,
+  validateSpecJsonObject,
 } from "../../lib/spec-json.js";
 import { loadFileMap, reconcileFileMap } from "./req-map.js";
 import { buildAcknowledgedRationaleSection } from "./acknowledged-rationale.js";
@@ -72,13 +73,28 @@ import {
 } from "./draft-review-routes.js";
 import { persistCurrentRecoveryBaseline } from "./retry-recovery.js";
 import {
-  appendDeferredFlowFinding,
+  deferExhaustedSemanticFindings,
   readBoundedSourceArtifact,
   sourceArtifactExists,
   specDirFromFlowState,
 } from "./flow-findings.js";
+import {
+  completeDraftArtifactChange,
+  completeSpecArtifactChange,
+} from "./artifact-completion.js";
 
 export { resolveGateStepId };
+
+export async function completeGateArtifactBeforeSemanticEvaluation({
+  completeArtifact,
+  evaluateSemanticGuardrail,
+} = {}) {
+  const completed = await completeArtifact();
+  if (completed?.constructor?.name === "ArtifactCompletionMechanicalFailure" || completed?.ok === false) {
+    return completed;
+  }
+  return evaluateSemanticGuardrail(completed);
+}
 
 /**
  * Execute gate PASS side effects driven by definition's sideEffects attribute.
@@ -1964,17 +1980,12 @@ function tryDeferGateRetryExhaustion(ctx, phase, attempts) {
   const classification = classifyGateRetryExhaustionSource({ sourceArtifact: source.artifact });
   if (!classification.deferAllowed) return null;
   const { findings } = persistGateSourceFindingIds(source.specDir, source.sourceArtifact, source.artifact);
-  const sourceFindingIds = findings.map(gateSourceFindingId);
-  findings.forEach((finding, index) => {
-    appendDeferredFlowFinding({
-      root: ctx.root,
-      flowState: ctx.flowState,
-      sourceStep: resolveGateStepId(phase),
-      sourceArtifact: source.sourceArtifact,
-      sourceFindingId: sourceFindingIds[index],
-      attempts,
-      round: attempts,
-    });
+  deferExhaustedSemanticFindings({
+    root: ctx.root,
+    flowState: ctx.flowState,
+    sourceStep: resolveGateStepId(phase),
+    sourceArtifact: source.sourceArtifact,
+    attempts,
   });
   ctx.flowManager.updateStepStatus(resolveGateStepId(phase), "done");
   return gateDeferredResult(phase, attempts, findings.length);
@@ -2055,9 +2066,6 @@ export async function evaluateGuardrailObservationsWithRetry({
       return { observations };
     } catch (err) {
       lastError = err;
-      if (retryContext?.flowManager && RETRY_TRACKED_PHASES.includes(phase)) {
-        retryContext.flowManager.appendMetric({ phase, counter: "gateRetry", delta: 1 });
-      }
     }
   }
   const envelope = buildGateRetryExhaustedEnvelope({
@@ -2091,7 +2099,8 @@ function appendGateEscalationIssueLog(ctx, phase, messages) {
 /**
  * Post-hook: update `state.metrics[phase].gateRetry`.
  *   - PASS → reset to 0
- *   - FAIL → increment by 1
+ *   - AI semantic FAIL → increment by 1
+ *   - structural/mechanical/schema/protocol FAIL → no retry mutation
  * No-op for non-tracked phases (draft / spec / task-spec).
  */
 export function updateGateRetryCounter(ctx, result) {
@@ -2100,11 +2109,10 @@ export function updateGateRetryCounter(ctx, result) {
   persistGateSourceFromResult(ctx, result, phase);
   const mgr = ctx.flowManager;
   if (!mgr) return;
-  const payload = result?.result === "pass"
-    ? { phase, counter: "gateRetry", delta: 0, reset: true }
-    : { phase, counter: "gateRetry", delta: 1 };
-  mgr.appendMetric(payload);
-  if (result?.result === "fail") {
+  if (result?.result === "pass") {
+    mgr.appendMetric({ phase, counter: "gateRetry", delta: 0, reset: true });
+  } else if (result?.artifacts?.failureKind === "ai_semantic_fail") {
+    mgr.appendMetric({ phase, counter: "gateRetry", delta: 1 });
     persistGateRecoveryBaseline(ctx, phase, GATE_RECOVERY_TRIGGER_RESULT_FAIL);
   } else if (ctx.gitState && (phase === "task-impl" || phase === "integration")) {
     mgr.mutate((state) => updateGateImplMemory({
@@ -2974,6 +2982,8 @@ function gatePass(level, phase, targetPath, evaluations, warnings) {
 }
 
 function gateFail(level, phase, targetPath, evaluations, issues) {
+  const failedSemanticEvaluations = Array.isArray(evaluations)
+    && evaluations.some((entry) => entry?.result === "fail");
   const observations = issues?.length
     ? issues.map((issue) => Observation.processEvidenceMissing({
         requirementRef: "process:gate-structure",
@@ -2998,6 +3008,7 @@ function gateFail(level, phase, targetPath, evaluations, issues) {
       evaluations: evaluations || [],
       reasons: reasonsFromEvaluations(evaluations),
       issues: issues || [],
+      failureKind: failedSemanticEvaluations ? "ai_semantic_fail" : "mechanical",
       nextAction,
     },
     next: FAIL_NEXT[phase],
@@ -3209,9 +3220,7 @@ export class RunGateCommand extends FlowCommand {
     const level = PHASE_TO_LEVEL[phase];
 
     // spec 255 R5: catch EvaluationSchemaError before returning to the dispatcher.
-    // For RETRY_TRACKED_PHASES, manually increment gateRetry and append issue-log
-    // (post-hooks skip on ok:false envelopes). For non-tracked phases (task-spec),
-    // return Envelope.fail without retry/log side-effects.
+    // AI output schema failures are non-semantic and must not consume gateRetry.
     try {
       if (phase === "draft") {
         return await this.executeDraft(ctx, root, level, skipGuardrail);
@@ -3227,7 +3236,6 @@ export class RunGateCommand extends FlowCommand {
     } catch (err) {
       if (err instanceof EvaluationSchemaError) {
         if (RETRY_TRACKED_PHASES.includes(phase)) {
-          updateGateRetryCounter({ ...ctx, phase }, "fail");
           appendIssueLogFromGateError({ ...ctx, phase }, { message: err.message });
         }
         return Envelope.fail(
@@ -3252,27 +3260,20 @@ export class RunGateCommand extends FlowCommand {
       throw new Error(`draft not found: ${draftPath}`);
     }
 
-    const text = fs.readFileSync(draftPath, "utf8");
+    const originalText = fs.readFileSync(draftPath, "utf8");
     const relPath = path.relative(root, draftPath);
 
-    let draftObj;
-    try {
-      draftObj = JSON.parse(text);
-    } catch (e) {
-      return runGateFlow({
-        root,
-        config: ctx.config,
-        level,
-        phase: "draft",
-        targetPath: relPath,
-        targetText: text,
-        textCheck: () => [`draft.json is not valid JSON: ${e.message}`],
-        checkerRole:
-          "You are a draft compliance checker. Check whether the draft satisfies each guardrail perspective.",
-        skipGuardrail: true,
-        ctx,
-      });
+    const completedDraft = await completeDraftArtifactChange({
+      root,
+      specDir,
+      state,
+      rawText: originalText,
+    });
+    if (completedDraft.constructor.name === "ArtifactCompletionMechanicalFailure") {
+      return gateFail(level, "draft", relPath, [], completedDraft.issues);
     }
+    const draftObj = completedDraft.artifact;
+    const targetText = JSON.stringify(draftObj, null, 2) + "\n";
 
     const gitState = computeGitState(root);
     ctx.gitState = gitState;
@@ -3284,7 +3285,7 @@ export class RunGateCommand extends FlowCommand {
       level,
       phase: "draft",
       targetPath: relPath,
-      targetText: text,
+      targetText,
       textCheck: () => [
         ...checkDraftJson(draftObj),
         ...validateDraftReviewArtifacts(root, state.spec, draftObj),
@@ -3315,17 +3316,29 @@ export class RunGateCommand extends FlowCommand {
     }
 
     const targetPath = path.relative(root, jsonPath);
-    const targetText = fs.readFileSync(jsonPath, "utf8");
+    const originalTargetText = fs.readFileSync(jsonPath, "utf8");
+
+    const completedSpec = await completeSpecArtifactChange({
+      root,
+      specDir: path.dirname(jsonPath),
+      state: ctx.flowState,
+      rawText: originalTargetText,
+      requireRepairAudit: false,
+      requireContent: false,
+    });
+    if (completedSpec.constructor.name === "ArtifactCompletionMechanicalFailure") {
+      return gateFail(level, "spec", targetPath, [], completedSpec.issues);
+    }
 
     let spec;
     let loadError = null;
     try {
-      // R1: spec.json is loaded through the single validated load path
-      // (loadSpecJson — performs JSON.parse + spec.schema.json validation).
-      spec = loadSpecJson(jsonPath);
+      spec = validateSpecJsonObject(completedSpec.artifact);
     } catch (err) {
       loadError = err.message;
+      spec = completedSpec.artifact;
     }
+    const targetText = JSON.stringify(spec, null, 2) + "\n";
 
     // REQ-3 (spec 215): tasks[] monotonic check applies to the parent-level
     // spec phase only.

@@ -1,0 +1,153 @@
+{
+  "verdict": "pass",
+  "issues": [],
+  "nextAction": {
+    "diagnosis": {
+      "summary": "No blocking observations.",
+      "observations": []
+    },
+    "prescription": "retro"
+  },
+  "level": "integration",
+  "phase": "integration",
+  "evaluations": [
+    {
+      "guardrail_id": "R1",
+      "result": "pass",
+      "reason": "`completeArtifactChange` implements the reusable completion flow (normalize, validate, optional single repair attempt, revalidate) and returns dedicated `ArtifactCompletionSuccess` / `ArtifactCompletionMechanicalFailure` outcomes; it does not alter retry counters or flow transitions.",
+      "title": "R1",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R2",
+      "result": "pass",
+      "reason": "The diff adds draft/spec completion routines that detect invalid JSON, structural/schema/lifecycle violations, unresolved markers, review-triage/repair-audit issues, task monotonic regressions, and spec repair-audit problems, and wires draft/spec handling to return mechanical failures before semantic evaluation/guardrail execution.",
+      "title": "R2",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R3",
+      "result": "pass",
+      "reason": "The diff adds producer adapters for `scenario-validity`, `test-execute`, and `test-result-review` in `artifact-completion.js` and implements completion functions in `test-artifacts.js` that validate schema/trust-relevant concerns (including raw evidence range, file-map presence, placeholder permission, and regression evidence) and return mechanical-failure results when those checks fail, preserving pre-trust gating behavior.",
+      "title": "R3",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R4",
+      "result": "pass",
+      "reason": "The diff adds pre-validation for implement→done in `set-step.js` that checks requirement completion, testable-requirement file-map coverage, and required durable artifacts (scenario/test execution evidence), and blocks transition via `Envelope.fail` carrying `issueCodes` as a structural failure envelope.",
+      "title": "R4",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R5",
+      "result": "pass",
+      "reason": "Diff adds explicit failure-kind gating in `retry-accounting` so only `ai-semantic-fail` records `reviewRetry`/`gateRetry`, while mechanical/protocol/deterministic/output-schema/provider/tooling failures are surfaced via completion/envelope paths and explicitly do not consume semantic retry counters in gate failure handling.",
+      "title": "R5",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R6",
+      "result": "pass",
+      "reason": "Diff introduces semantic retry-exhaustion deferral for review and gate flows (`deferExhaustedSemanticFindings` + usage in `run-review`/`run-gate`), marks continuation (`stepDisposition:'continue'`, `retryExhaustionOnlyStop:false`), preserves or synthesizes source IDs via stable fallback, and reads spec-review blocking findings preferring `blocking[]` over `blockingFindings[]`; deferred findings are written through flow findings and surfaced in acceptance-review evidence summary.",
+      "title": "R6",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R7",
+      "result": "pass",
+      "reason": "The diff shows producer-completion adapters for all listed public surfaces, moved gate draft/spec non-semantic checks into completion before semantic evaluation, preserved task-impl/integration and review surface behavior via maintained issue codes and non-semantic protocol/schema handling, retained scenario/test artifact checks (schema/raw evidence/file-map/regression), and added implement readiness validation on set-step:implement:done.",
+      "title": "R7",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": []
+    },
+    {
+      "guardrail_id": "no-overengineering",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "code-quality",
+      "title": "Avoid Overengineering",
+      "observations": []
+    }
+  ],
+  "reasons": [
+    {
+      "verdict": "PASS",
+      "detail": "R1 — `completeArtifactChange` implements the reusable completion flow (normalize, validate, optional single repair attempt, revalidate) and returns dedicated `ArtifactCompletionSuccess` / `ArtifactCompletionMechanicalFailure` outcomes; it does not alter retry counters or flow transitions.",
+      "guardrail_id": "R1",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R2 — The diff adds draft/spec completion routines that detect invalid JSON, structural/schema/lifecycle violations, unresolved markers, review-triage/repair-audit issues, task monotonic regressions, and spec repair-audit problems, and wires draft/spec handling to return mechanical failures before semantic evaluation/guardrail execution.",
+      "guardrail_id": "R2",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R3 — The diff adds producer adapters for `scenario-validity`, `test-execute`, and `test-result-review` in `artifact-completion.js` and implements completion functions in `test-artifacts.js` that validate schema/trust-relevant concerns (including raw evidence range, file-map presence, placeholder permission, and regression evidence) and return mechanical-failure results when those checks fail, preserving pre-trust gating behavior.",
+      "guardrail_id": "R3",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R4 — The diff adds pre-validation for implement→done in `set-step.js` that checks requirement completion, testable-requirement file-map coverage, and required durable artifacts (scenario/test execution evidence), and blocks transition via `Envelope.fail` carrying `issueCodes` as a structural failure envelope.",
+      "guardrail_id": "R4",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R5 — Diff adds explicit failure-kind gating in `retry-accounting` so only `ai-semantic-fail` records `reviewRetry`/`gateRetry`, while mechanical/protocol/deterministic/output-schema/provider/tooling failures are surfaced via completion/envelope paths and explicitly do not consume semantic retry counters in gate failure handling.",
+      "guardrail_id": "R5",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R6 — Diff introduces semantic retry-exhaustion deferral for review and gate flows (`deferExhaustedSemanticFindings` + usage in `run-review`/`run-gate`), marks continuation (`stepDisposition:'continue'`, `retryExhaustionOnlyStop:false`), preserves or synthesizes source IDs via stable fallback, and reads spec-review blocking findings preferring `blocking[]` over `blockingFindings[]`; deferred findings are written through flow findings and surfaced in acceptance-review evidence summary.",
+      "guardrail_id": "R6",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R7 — The diff shows producer-completion adapters for all listed public surfaces, moved gate draft/spec non-semantic checks into completion before semantic evaluation, preserved task-impl/integration and review surface behavior via maintained issue codes and non-semantic protocol/schema handling, retained scenario/test artifact checks (schema/raw evidence/file-map/regression), and added implement readiness validation on set-step:implement:done.",
+      "guardrail_id": "R7",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Spec Test Coverage — no observations emitted",
+      "guardrail_id": "spec-test-coverage",
+      "category": "testing"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Avoid Overengineering — no observations emitted",
+      "guardrail_id": "no-overengineering",
+      "category": "code-quality"
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "impl-gate",
+    "artifactPath": "specs/295-producer-artifact-contract/impl-gate-result.json",
+    "verdict": "pass",
+    "result": "pass",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": {
+      "diagnosis": {
+        "summary": "No blocking observations.",
+        "observations": []
+      },
+      "prescription": "retro"
+    },
+    "completionKind": "normal",
+    "progressSignature": "faba6a3d2d0493d00060057f9992d63ee676a4a7d1b9900b018739bd369b5561"
+  }
+}

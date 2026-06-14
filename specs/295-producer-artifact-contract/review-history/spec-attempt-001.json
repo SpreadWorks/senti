@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "generatedAt": "2026-06-14T03:09:34.740Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 3,
+    "nonBlocking": 1,
+    "total": 4
+  },
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Disambiguate impl-gate phases",
+      "target": "R6/R7",
+      "body": "**Target:** R6/R7\n**Issue:** The spec names impl-gate as a retry-exhaustion deferral target, but existing code maps the impl-gate flow node to both gate phases `integration` and `task-impl`, and retry counters/artifacts are keyed by phase. R7 lists migration parity for `senti flow run gate --phase integration` but omits the existing public `--phase task-impl` surface from `VALID_GATE_PHASES`.\n**Required change:** Specify whether R6/R7 apply to both `task-impl` and `integration`, or explicitly exclude `task-impl` while requiring its existing retry/artifact behavior to be preserved.\n**Why blocking:** Without this, implementation and tests can update only integration while regressing task-level impl gate retry handling, deferred findings, artifact paths, or public command behavior.",
+      "issue": "The spec names impl-gate as a retry-exhaustion deferral target, but existing code maps the impl-gate flow node to both gate phases `integration` and `task-impl`, and retry counters/artifacts are keyed by phase. R7 lists migration parity for `senti flow run gate --phase integration` but omits the existing public `--phase task-impl` surface from `VALID_GATE_PHASES`.",
+      "requiredChange": "Specify whether R6/R7 apply to both `task-impl` and `integration`, or explicitly exclude `task-impl` while requiring its existing retry/artifact behavior to be preserved.",
+      "whyBlocking": "Without this, implementation and tests can update only integration while regressing task-level impl gate retry handling, deferred findings, artifact paths, or public command behavior."
+    },
+    {
+      "kind": "blocking",
+      "title": "Define lint readiness evidence for implement completion",
+      "target": "R4/T-3",
+      "body": "**Target:** R4/T-3\n**Issue:** R4 requires implement completion to verify guardrail or lint readiness, but existing lint is a `flow run lint` sub-task with no durable artifact and registry comments state that lint does not own a step and is managed by the skill, not hooks. The spec does not say whether set-step should run lint synchronously, read a persisted artifact, inspect issue-log evidence, or use some other state.\n**Required change:** Add the exact observable data path for guardrail/lint readiness in implement completion, or remove that condition from R4 if it is out of scope.\n**Why blocking:** Tests cannot construct a valid or invalid implement-completion fixture for lint readiness, and an implementation could either block all completions due to missing evidence or silently accept stale/no lint evidence.",
+      "issue": "R4 requires implement completion to verify guardrail or lint readiness, but existing lint is a `flow run lint` sub-task with no durable artifact and registry comments state that lint does not own a step and is managed by the skill, not hooks. The spec does not say whether set-step should run lint synchronously, read a persisted artifact, inspect issue-log evidence, or use some other state.",
+      "requiredChange": "Add the exact observable data path for guardrail/lint readiness in implement completion, or remove that condition from R4 if it is out of scope.",
+      "whyBlocking": "Tests cannot construct a valid or invalid implement-completion fixture for lint readiness, and an implementation could either block all completions due to missing evidence or silently accept stale/no lint evidence."
+    },
+    {
+      "kind": "blocking",
+      "title": "Specify spec-review source finding extraction",
+      "target": "R6",
+      "body": "**Target:** R6\n**Issue:** R6 requires spec-review retry exhaustion to mirror unresolved findings into `flow-findings.json`, but existing spec-review artifacts are written with blockers under `blocking[]` and improvements under `improvements[]`, not the `blockingFindings[]` shape used by other review artifacts. The spec does not identify this artifact-specific source data path.\n**Required change:** State that spec-review deferral must source unresolved semantic findings from the current `spec-review.json` `blocking[]` records and preserve their ids or synthesize stable sourceFindingId values.\n**Why blocking:** A generic implementation can pass tests against a normalized `blockingFindings[]` fixture while failing to defer real spec-review FAIL artifacts, leaving acceptance-review without the required deferred findings.",
+      "issue": "R6 requires spec-review retry exhaustion to mirror unresolved findings into `flow-findings.json`, but existing spec-review artifacts are written with blockers under `blocking[]` and improvements under `improvements[]`, not the `blockingFindings[]` shape used by other review artifacts. The spec does not identify this artifact-specific source data path.",
+      "requiredChange": "State that spec-review deferral must source unresolved semantic findings from the current `spec-review.json` `blocking[]` records and preserve their ids or synthesize stable sourceFindingId values.",
+      "whyBlocking": "A generic implementation can pass tests against a normalized `blockingFindings[]` fixture while failing to defer real spec-review FAIL artifacts, leaving acceptance-review without the required deferred findings."
+    }
+  ],
+  "nonBlockingImprovements": [
+    {
+      "kind": "improvement",
+      "title": "List task-impl parity explicitly",
+      "target": "R7",
+      "body": "**Target:** R7\n**Improvement:** If `task-impl` is intentionally retained, include `senti flow run gate --phase task-impl` in the retained public surfaces list alongside integration.\n**Why non-blocking:** The blocking issue is the ambiguous behavior target; once resolved, this is a straightforward parity-list completeness improvement.",
+      "improvement": "If `task-impl` is intentionally retained, include `senti flow run gate --phase task-impl` in the retained public surfaces list alongside integration.",
+      "whyNonBlocking": "The blocking issue is the ambiguous behavior target; once resolved, this is a straightforward parity-list completeness improvement."
+    }
+  ],
+  "sourceArtifact": "spec-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "spec-001-blocking-001",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Disambiguate impl-gate phases",
+      "body": "**Target:** R6/R7\n**Issue:** The spec names impl-gate as a retry-exhaustion deferral target, but existing code maps the impl-gate flow node to both gate phases `integration` and `task-impl`, and retry counters/artifacts are keyed by phase. R7 lists migration parity for `senti flow run gate --phase integration` but omits the existing public `--phase task-impl` surface from `VALID_GATE_PHASES`.\n**Required change:** Specify whether R6/R7 apply to both `task-impl` and `integration`, or explicitly exclude `task-impl` while requiring its existing retry/artifact behavior to be preserved.\n**Why blocking:** Without this, implementation and tests can update only integration while regressing task-level impl gate retry handling, deferred findings, artifact paths, or public command behavior.",
+      "category": "unknown"
+    },
+    {
+      "id": "spec-001-blocking-002",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Define lint readiness evidence for implement completion",
+      "body": "**Target:** R4/T-3\n**Issue:** R4 requires implement completion to verify guardrail or lint readiness, but existing lint is a `flow run lint` sub-task with no durable artifact and registry comments state that lint does not own a step and is managed by the skill, not hooks. The spec does not say whether set-step should run lint synchronously, read a persisted artifact, inspect issue-log evidence, or use some other state.\n**Required change:** Add the exact observable data path for guardrail/lint readiness in implement completion, or remove that condition from R4 if it is out of scope.\n**Why blocking:** Tests cannot construct a valid or invalid implement-completion fixture for lint readiness, and an implementation could either block all completions due to missing evidence or silently accept stale/no lint evidence.",
+      "category": "unknown"
+    },
+    {
+      "id": "spec-001-blocking-003",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Specify spec-review source finding extraction",
+      "body": "**Target:** R6\n**Issue:** R6 requires spec-review retry exhaustion to mirror unresolved findings into `flow-findings.json`, but existing spec-review artifacts are written with blockers under `blocking[]` and improvements under `improvements[]`, not the `blockingFindings[]` shape used by other review artifacts. The spec does not identify this artifact-specific source data path.\n**Required change:** State that spec-review deferral must source unresolved semantic findings from the current `spec-review.json` `blocking[]` records and preserve their ids or synthesize stable sourceFindingId values.\n**Why blocking:** A generic implementation can pass tests against a normalized `blockingFindings[]` fixture while failing to defer real spec-review FAIL artifacts, leaving acceptance-review without the required deferred findings.",
+      "category": "unknown"
+    },
+    {
+      "id": "spec-001-non-blocking-004",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "List task-impl parity explicitly",
+      "body": "**Target:** R7\n**Improvement:** If `task-impl` is intentionally retained, include `senti flow run gate --phase task-impl` in the retained public surfaces list alongside integration.\n**Why non-blocking:** The blocking issue is the ambiguous behavior target; once resolved, this is a straightforward parity-list completeness improvement.",
+      "category": "unknown"
+    }
+  ]
+}

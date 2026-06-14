@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "All three blocking findings are valid and can be repaired by small spec.json changes.",
+  "items": [
+    {
+      "title": "Disambiguate impl-gate phases",
+      "target": "R6/R7",
+      "decision": "apply",
+      "rationale": "The spec must explicitly include both `task-impl` and `integration` because the existing gate phase surface and retry/artifact behavior are phase keyed.",
+      "evidence": "spec-review.json blockingFindings[0] identifies `task-impl` as an existing public gate phase omitted from R7 and ambiguous in R6."
+    },
+    {
+      "title": "Define lint readiness evidence for implement completion",
+      "target": "R4/T-3",
+      "decision": "apply",
+      "rationale": "The spec must use an observable completion fixture. Since existing lint readiness has no durable artifact, implement completion should require current flow-visible data only and exclude lint readiness until a durable evidence path exists.",
+      "evidence": "spec-review.json blockingFindings[1] states that tests cannot construct lint readiness fixtures without an observable data path."
+    },
+    {
+      "title": "Specify spec-review source finding extraction",
+      "target": "R6",
+      "decision": "apply",
+      "rationale": "The spec-review deferral path must name the real source artifact shape so implementation and tests do not rely on a normalized fixture that production does not write.",
+      "evidence": "spec-review.json blockingFindings[2] states that spec-review writes current findings under `blocking[]` or needs stable ids synthesized from current artifact records."
+    }
+  ]
+}

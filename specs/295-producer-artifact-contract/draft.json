@@ -1,0 +1,157 @@
+{
+  "devType": "feature",
+  "goal": "must: artifact producer が artifact 作成または変更直後に機械検証を完了し、review / gate の retry counter を AI semantic verdict の意味に保つ。",
+  "analysis": {
+    "problem": "review / gate が artifact schema、lifecycle、audit、test evidence などの機械検証と AI semantic 判定を同時に扱っているため、reviewRetry / gateRetry が AI 判断の失敗回数を表さなくなる。",
+    "proposedApproach": "artifact を作成または変更する producer / repairer 側で normalize、validate、deterministic repair once、revalidate を明示的に呼ぶ共通 contract を導入し、review / gate は形式的に成立した artifact を入力に semantic 判定を行う。",
+    "validation": "draft/spec/test/repair artifact と implement completion state の完了条件を検証し、mechanical / protocol / tooling failure が retry を消費しないこと、AI semantic FAIL だけが retry を消費すること、retry exhausted finding が flow-findings.json 経由で acceptance-review に渡ることをテストで確認する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #385 defines mechanical validation as producer responsibility, not primary review / gate responsibility.",
+      "must: run-gate.js currently performs draft.json and spec.json mechanical checks before AI guardrail judgment.",
+      "must: test-artifacts.js already contains deterministic validation for scenario-validity, test-execute, test-result-review, integration trust, file-map, and placeholder evidence.",
+      "must: set-step.js already blocks some managed step completion when required artifacts are invalid.",
+      "must: flow-findings.js already defines flow-findings.json and appendDeferredFlowFinding for retry-exhausted deferred findings.",
+      "must: Draft intent was approved in conversation for Issue #385 with scope covering producer artifact validation, retry separation, and flow-findings propagation.",
+      "must: implement completion verification should be prioritized at the completion boundary, with exact command placement deferred to spec after source inspection.",
+      "must: Migration inventory covers draft-gate, spec-gate, spec-review, draft review artifacts, scenario-validity, test-execute, test-result-review, integration gate trust validation, implement completion, retry counters, and flow-findings propagation."
+    ],
+    "decisionPoints": [
+      "must: decide which artifact producers are required to call the common completion contract in this spec.",
+      "must: decide whether semantic retry exhausted applies to all listed review / gate phases immediately or only to phases with existing flow-findings support.",
+      "must: decide where implement completion should mechanically verify req status, file-map, lint, and required artifacts because implementation itself is not a dedicated run command.",
+      "should: decide how much defensive gate-side validation remains after producer-side validation is added."
+    ],
+    "resolvedByProjectRules": [
+      "must: do not add external dependencies; use only Node.js built-in modules.",
+      "must: represent meaningful structured return values with classes when adding new value types.",
+      "must: do not add a new top-level phase because Issue #385 explicitly excludes it.",
+      "must: do not introduce generic FlowNode preHooks / postHooks attributes for this concern because Issue #385 prefers explicit producer calls."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: write exact requirements from the migration inventory without changing the listed public command surfaces.",
+      "must: decompose tests by retained surface so every migrated public behavior has behavior-level verification.",
+      "must: choose internal helper names and module boundaries during spec writing while preserving the owner mapping recorded in this draft."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: common producer-side artifact completion contract for normalize / validate / deterministic repair once / revalidate.",
+      "must: draft.json and spec.json producer or repair completion validation before draft-gate / spec-gate semantic guardrail judgment.",
+      "must: test artifact producer validation for scenario-validity-result.json, test-execute-result.json v2, and test-result-review artifacts under the same contract or function group.",
+      "must: implement completion mechanical verification for req status, file-map, lint, and required artifact readiness.",
+      "must: retry accounting that separates AI semantic FAIL from mechanical, protocol, tooling, and AI output schema failures.",
+      "must: flow-findings.json propagation for AI semantic retry exhausted and later acceptance-review input.",
+      "must: draft-gate retained surface maps draft structure and guardrail readiness checks to producer-side draft completion first, while draft-gate keeps defensive validation and semantic guardrail judgment.",
+      "must: spec-gate retained surface maps spec schema, unresolved marker, task monotonic, and repair audit checks to spec producer or repair completion first, while spec-gate keeps defensive validation and semantic guardrail judgment.",
+      "must: spec-review retained surface keeps semantic review artifact generation and maps AI output schema/protocol failure outside semantic retry consumption.",
+      "must: draft review retained surface keeps draft-review-questions.json and draft-review-coverage.json artifact generation and maps review artifact shape validation to producer completion.",
+      "must: scenario-validity retained surface keeps scenario-validity-result.json and raw log evidence, with artifact validation owned by the producing command.",
+      "must: test-execute retained surface keeps test-execute-result.json v2 and raw test evidence, with artifact validation owned by the producing command and post-hook contract.",
+      "must: test-result-review retained surface keeps test-result-review.json and markdown evidence, with artifact validation owned by the producing command and post-hook contract.",
+      "must: integration gate retained surface keeps test artifact trust validation as a defensive precondition while producer-side completion owns current evidence validity first.",
+      "must: implement completion retained surface keeps flow requirement status, file-map, lint readiness, and required artifact checks before allowing implement completion.",
+      "must: retry counter retained surface keeps AI semantic FAIL as the only reviewRetry or gateRetry consumer and maps mechanical/protocol/tooling/schema failure to non-consuming envelopes.",
+      "must: flow-findings retained surface keeps flow-findings.json as the deferred semantic finding artifact and maps exhausted semantic failures to acceptance-review context."
+    ],
+    "out": [
+      "must: no new top-level flow phase.",
+      "must: no generic FlowNode preHooks / postHooks attributes in definition.js.",
+      "must: no inheritance-based step hierarchy.",
+      "should: no broad rewrite of unrelated review / gate behavior that is not needed for producer contract boundaries."
+    ]
+  },
+    "impactOnExisting": [
+      "must: draft-gate and spec-gate behavior keeps semantic guardrail judgment and receives artifact input only after JSON parse, schema or lifecycle checks, deterministic repair attempt when available, and revalidation have succeeded.",
+      "must: reviewRetry and gateRetry behavior changes so non-semantic mechanical, protocol, tooling, and AI output schema failures do not consume semantic retry budget.",
+      "must: test artifact validation keeps the current public artifact schema, required field checks, raw evidence path checks, and structural failure envelopes for scenario-validity, test-execute, and test-result-review artifacts while sharing the producer contract.",
+      "should: integration gate trust validation remains as a defensive precondition until producer-side completion checks fully cover the same surfaces.",
+      "must: behavior verification for draft-gate proves invalid draft producer output fails mechanically before AI guardrail and draft output that passes parse, lifecycle, review artifact, and priority marker checks reaches semantic guardrail judgment.",
+      "must: behavior verification for spec-gate proves invalid spec producer output fails mechanically before AI guardrail and spec output that passes schema, unresolved marker, task monotonic, and repair audit checks reaches semantic guardrail judgment.",
+      "must: behavior verification for spec-review proves protocol/schema failure is distinguishable from semantic FAIL and does not consume semantic retry.",
+      "must: behavior verification for draft review artifacts proves malformed review artifacts are detected by producer completion or repair audit checks without adding follow-up questions.",
+      "must: behavior verification for scenario-validity proves the produced scenario-validity-result.json is validated before step completion.",
+      "must: behavior verification for test-execute proves v2 test artifact and raw evidence validation happen before the step can be trusted by integration gate.",
+      "must: behavior verification for test-result-review proves review artifact validation happens before downstream trust checks accept it.",
+      "must: behavior verification for integration gate proves existing trust validation remains as a defensive precondition and reports structural failure without semantic retry consumption.",
+      "must: behavior verification for implement completion proves req status, file-map, lint readiness, and required artifacts are checked before implement can be marked done.",
+      "must: behavior verification for retry counters proves AI semantic FAIL consumes retry and mechanical/protocol/tooling/schema failures do not.",
+      "must: behavior verification for flow-findings proves exhausted semantic findings are written to flow-findings.json and included in acceptance-review context."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "must: Issue #385 の目的は、artifact 作成・変更直後に producer 側で機械検証を完了し、review / gate retry を AI semantic FAIL のみの回数として保つ、という理解で進めてよいですか。",
+      "answer": "はい。must: この spec は producer 側で artifact 機械検証を閉じ、review / gate retry を AI semantic FAIL の意味に保つことを目的にします。",
+      "evidence": "Issue #385 Decisions: mechanical judgment and repair are producer contract; review / gate performs semantic judgment using a formally valid artifact; AI semantic FAIL consumes retry.",
+      "why": "must: Issue の背景は、機械 failure と AI semantic failure が同じ gate/review 実行で混ざると retry counter の意味が壊れることです。",
+      "considered": "review / gate に機械検証を残すだけの案は、producer contract 違反を artifact 変更直後に閉じられないため採用しません。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "最初の実装範囲は、draft/spec/test/repair artifact producer と implement completion state を must 対象に含める、という理解でよいですか。",
+      "answer": "はい。must: draft/spec/test/repair artifact producer と implement completion state を最初の実装範囲に含めます。",
+      "evidence": "Issue #385 Completion Criteria: major steps that create or change artifacts call the common function; before implement completion, req status / file-map / lint / required artifacts are mechanically verified.",
+      "why": "must: Issue は producer contract を主要 artifact 作成・変更箇所へ適用することを完了条件にしており、implement 完了前検証も明示しています。",
+      "considered": "draft/spec のみに絞る案は、test artifact と implement completion の完了条件が残り、retry separation の対象が不足するため採用しません。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "should: implement completion の機械検証は、`senti flow set step implement done` の完了条件で req status / file-map / lint / required artifacts をブロックする方向を優先してよいですか。",
+      "answer": "はい。should: implement completion は完了遷移の境界で producer contract を閉じる方針を優先します。厳密な配置は spec 作成時に `set-step`、`flow set req/files`、または `impl-confirm` の既存責務を比較して決めます。",
+      "evidence": "Issue #385 notes implement has no independent run-impl command and completion proceeds through `senti flow set step implement done`; src/flow/lib/set-step.js already performs completion-time validations for test and managed artifacts.",
+      "why": "should: implementation body が dedicated producer command を持たないため、完了遷移や関連 set command が artifact/state の producer contract を閉じる実用的な境界です。",
+      "considered": "新しい run-impl command を作る案は Issue の主要目的ではなく、既存 flow 境界の変更が大きいため最初の優先案にしません。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "AI semantic retry exhausted は draft-gate / spec-review / spec-gate / impl-review / impl-gate の must 共通動作として、flow-findings.json に記録し、その step では停止せず acceptance-review に判断を委ねる扱いでよいですか。",
+      "answer": "はい。must: listed AI semantic phases の retry exhausted は flow-findings.json に記録し、その review / gate では停止せず、後続 context と acceptance-review に渡します。",
+      "evidence": "Issue #385 Handling semantic retry exhausted lists draft-gate / spec-review / spec-gate / impl-review / impl-gate and says to record in flow-findings.json, continue, and let acceptance-review make the final judgment.",
+      "why": "must: retry exhausted をその場で停止すると、AI semantic finding の最終判断を acceptance-review に集約する Issue の方針と矛盾します。",
+      "considered": "gate/review ごとの個別扱いは、共通 retry model を崩すため採用しません。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "must: 既存 gate 側の static validation は、防御的 precondition として当面残しつつ、主責務を producer contract に移す migration parity 方針でよいですか。",
+      "answer": "はい。must: 既存 gate 側 static validation は当面 defensive precondition として保持し、主責務を producer contract に移します。",
+      "evidence": "Issue #385 Improvement Policy says static validation remaining inside gates may remain temporarily as defensive preconditions, but primary responsibility should move to producer contract; draft guardrail migration-parity requires retained behavior verification when moving behavior.",
+      "why": "must: 既存の公開挙動を急に削ると migration parity を壊すため、挙動を保ちながら責務の主位置を移す必要があります。",
+      "considered": "gate-side static validation を即時削除する案は、既存 behavior-level parity を証明しにくくリスクが高いため採用しません。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q6",
+      "status": "answered",
+      "category": "follow-up-coverage",
+      "question": "この spec のテストは、producer artifact invalid が mechanical/protocol failure として止まり retry を消費しないこと、AI semantic FAIL は retry を消費すること、retry exhausted finding が acceptance-review context に渡ることを must 検証対象にしてよいですか。",
+      "answer": "はい。must: テストは producer artifact invalid、retry counter separation、retry exhausted finding propagation を検証対象にします。",
+      "evidence": "Issue #385 Completion Criteria requires validation failure / deterministic repair failure not to consume retry, AI semantic FAIL and protocol/tooling/mechanical failure to be distinguishable, and semantic retry exhausted to pass through flow-findings.json and subsequent context.",
+      "why": "must: これらを直接検証しないと、producer contract と retry model の意味が実装後に保証できません。",
+      "considered": "正常系だけを検証する案は、retry counter の意味崩れという Issue の根本問題を捕捉できないため採用しません。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-14T02:59:49Z",
+    "notes": "No unresolved user decisions remain after draft-refine; Issue #385 and prior intent approval resolved the initial QA set."
+  }
+}

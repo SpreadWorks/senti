@@ -91,12 +91,17 @@ export function loadSpecJson(input, { validate = true } = {}) {
     throw new Error(`failed to parse spec.json at ${jsonPath}: ${err.message}`);
   }
   if (validate) {
-    const errors = validateSchema(data, loadSchema());
-    if (errors.length > 0) {
-      throw new Error(`spec.json failed schema validation: ${errors.join("; ")}`);
-    }
+    validateSpecJsonObject(data);
   }
   return data;
+}
+
+export function validateSpecJsonObject(spec) {
+  const errors = validateSchema(spec, loadSchema());
+  if (errors.length > 0) {
+    throw new Error(`spec.json failed schema validation: ${errors.join("; ")}`);
+  }
+  return spec;
 }
 
 /**
@@ -116,10 +121,7 @@ export function tryLoadSpecJson(input, options) {
 export function saveSpecJson(input, spec, { validate = true } = {}) {
   const jsonPath = resolveSpecJsonPath(input);
   if (validate) {
-    const errors = validateSchema(spec, loadSchema());
-    if (errors.length > 0) {
-      throw new Error(`spec.json failed schema validation: ${errors.join("; ")}`);
-    }
+    validateSpecJsonObject(spec);
   }
   fs.writeFileSync(jsonPath, JSON.stringify(spec, null, 2) + "\n", "utf8");
 }

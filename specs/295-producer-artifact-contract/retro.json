@@ -1,0 +1,53 @@
+{
+  "spec": "specs/295-producer-artifact-contract/spec.json",
+  "date": "2026-06-14T08:36:18.675Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Introduce a reusable artifact completion contract that runs normalize, validate, one deterministic repair attempt when configured, and revalidate; it must return dedicated success or unresolved mechanical failure classes and must not decide flow transitions or retry counters.",
+      "status": "done",
+      "note": "R1: shared artifact completion executes normalize, validate, one repair, and revalidate"
+    },
+    {
+      "desc": "Apply the artifact completion contract to draft.json and spec.json producer or repair paths so invalid JSON, schema/lifecycle issues, review-triage-repair audit issues, unresolved markers, task monotonic issues, and spec repair audit issues are detected before semantic guardrail judgment.",
+      "status": "done",
+      "note": "R2: draft and spec producers block semantic guardrails until completion succeeds"
+    },
+    {
+      "desc": "Apply the same producer contract or a shared adapter to scenario-validity-result.json, test-execute-result.json v2, and test-result-review.json so their existing schema, raw evidence range, file-map, placeholder, and regression trust checks still run before downstream trust decisions.",
+      "status": "done",
+      "note": "R3: durable test artifact producers reuse completion while preserving trust checks"
+    },
+    {
+      "desc": "Before implement can be marked done, mechanically verify requirement status completion, file-map coverage for testable requirements, and required durable artifacts; a failed check must block completion with a structural failure envelope. Lint readiness is excluded until a durable lint evidence artifact exists.",
+      "status": "done",
+      "note": "R4: implement completion rejects missing observable readiness data"
+    },
+    {
+      "desc": "Ensure reviewRetry and gateRetry are consumed only by AI semantic FAIL verdicts; mechanical validation failure, deterministic repair failure, provider/tooling/protocol failure, and AI output schema failure must be represented in artifacts or envelopes without semantic retry consumption.",
+      "status": "done",
+      "note": "R5: retry counters are consumed only by AI semantic FAIL outcomes"
+    },
+    {
+      "desc": "When AI semantic FAIL retry is exhausted in draft-gate, spec-review, spec-gate, impl-review, impl-gate task-impl, or impl-gate integration, append unresolved findings to flow-findings.json, keep the current review/gate step from stopping solely because of that exhaustion, and include the deferred finding summary in subsequent context for acceptance-review. Spec-review deferral must read semantic blocking records from the current spec-review.json source arrays (`blocking[]` when present, otherwise `blockingFindings[]`) and preserve existing ids or synthesize stable sourceFindingId values.",
+      "status": "done",
+      "note": "R6: exhausted semantic findings are deferred with stable source ids and later summaries"
+    },
+    {
+      "desc": "Preserve migration parity for retained public surfaces with no removals: gate draft/spec map parse, schema, lifecycle, static, and repair-audit checks to producer completion first while run-gate remains semantic and defensive owner; gate task-impl/integration keep phase-keyed retry, artifact, failure envelope, and progression behavior; review draft/spec/test/impl keep artifact generation while protocol/schema failure remains non-semantic; scenario-validity/test-execute/test-result-review keep existing schema, raw evidence, placeholder, file-map, and regression checks; implement completion keeps the set-step surface and adds observable readiness checks.",
+      "status": "done",
+      "note": "R7: retained public surfaces execute producer-completion adapters without dropping legacy checks"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 7,
+    "done": 7,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

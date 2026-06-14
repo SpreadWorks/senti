@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-14T08:17:52.117Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "title": "Review comment findings are dropped during retry exhaustion deferral",
+      "failureMode": "security_or_data_integrity_bug",
+      "file": "src/flow/lib/flow-findings.js",
+      "issue": "sourceFindingsForArtifact does not read artifact.comments, but tryDeferReviewRetryExhaustion in src/flow/lib/run-review.js still treats comments as a valid source of content-alignment findings before calling deferExhaustedSemanticFindings. A retry-exhausted review artifact whose findings are stored in comments will be marked done and reported as deferred, while no deferred flow finding is actually appended.",
+      "suggestion": "Update sourceFindingsForArtifact or reviewBlockingFindings to include artifact.comments with the same precedence used by reviewFindingsFromArtifact, or pass the already-selected persisted findings into deferExhaustedSemanticFindings instead of rereading a narrower set of fields.",
+      "rationale": "The previous implementation deferred the exact findings selected by reviewFindingsFromArtifact, including comments. The new implementation can silently lose blocking semantic review findings while allowing the flow to continue, which is a durable finding data integrity failure."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/295-producer-artifact-contract/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "3b5075d5dcecd5c3344f81fda4d38aeaacef759107ee4eb7794c854f4928b875"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 7,
+  "findings": [
+    {
+      "id": "impl-007-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 7,
+      "severity": "blocking",
+      "title": "Review comment findings are dropped during retry exhaustion deferral",
+      "body": "sourceFindingsForArtifact does not read artifact.comments, but tryDeferReviewRetryExhaustion in src/flow/lib/run-review.js still treats comments as a valid source of content-alignment findings before calling deferExhaustedSemanticFindings. A retry-exhausted review artifact whose findings are stored in comments will be marked done and reported as deferred, while no deferred flow finding is actually appended.",
+      "category": "security_or_data_integrity_bug"
+    }
+  ]
+}

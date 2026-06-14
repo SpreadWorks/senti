@@ -6,6 +6,10 @@ import { sentiOutputDir } from "../../lib/config.js";
 import { globToRegex } from "../../lib/glob.js";
 import { listChangedFilesDetailed } from "../../lib/git-helpers.js";
 import { classifyRegression, listRegressionChangedFiles } from "./test-regression.js";
+import {
+  ArtifactCompletionMechanicalFailure,
+  ArtifactCompletionSuccess,
+} from "./artifact-completion.js";
 
 export const TEST_EXECUTE_RESULT_FILE = "test-execute-result.json";
 export const TEST_RESULT_REVIEW_FILE = "test-result-review.json";
@@ -854,6 +858,210 @@ export function buildTestResultsFromArtifacts(specDir) {
         }
       : {}),
   };
+}
+
+function completionFailure(artifactName, issueCodes, artifact = null) {
+  return new ArtifactCompletionMechanicalFailure({
+    artifactName,
+    artifact,
+    issueCodes,
+    issues: issueCodes.map((code) => `${artifactName}: ${code}`),
+  });
+}
+
+function completionSuccess(artifactName, artifact) {
+  return new ArtifactCompletionSuccess({ artifactName, artifact });
+}
+
+function addCompletionIssue(issueCodes, code) {
+  if (!issueCodes.includes(code)) issueCodes.push(code);
+}
+
+function addMappedValidationIssue(issueCodes, err, fallbackCode) {
+  const message = String(err?.message || err || "");
+  if (/raw_output_lines|raw output|range/i.test(message)) addCompletionIssue(issueCodes, "raw-evidence-range-invalid");
+  else if (/file-map/i.test(message)) addCompletionIssue(issueCodes, "file-map-missing");
+  else if (/regression/i.test(message)) addCompletionIssue(issueCodes, "regression-evidence-missing");
+  else if (/checked_items|verdict|test-result-review/i.test(message)) addCompletionIssue(issueCodes, "test-result-review-schema-invalid");
+  else addCompletionIssue(issueCodes, fallbackCode);
+}
+
+function rawLineCount(file) {
+  if (!fs.existsSync(file)) return null;
+  const text = fs.readFileSync(file, "utf8");
+  return text.split(/\r?\n/).length;
+}
+
+function resolveRawFile(root, specDir, rawOutputPath) {
+  if (!rawOutputPath) return null;
+  if (path.isAbsolute(rawOutputPath)) return rawOutputPath;
+  if (rawOutputPath.startsWith("specs/")) return path.resolve(root || process.cwd(), rawOutputPath);
+  return path.resolve(specDir || root || process.cwd(), rawOutputPath);
+}
+
+function loadSpecTestableRequirements(specDir, fallbackEntries = []) {
+  try {
+    const spec = JSON.parse(fs.readFileSync(path.join(specDir, "spec.json"), "utf8"));
+    if (Array.isArray(spec.requirements)) {
+      return spec.requirements
+        .filter((requirement) => requirement.testable !== false)
+        .map((requirement) => ({ id: requirement.id }));
+    }
+  } catch (_) {
+    // Completion adapters can be exercised as public surfaces without a spec.
+  }
+  return fallbackEntries
+    .filter((entry) => typeof entry?.id === "string" && entry.id.length > 0)
+    .map((entry) => ({ id: entry.id }));
+}
+
+function hasMissingRequirementEvidence(requirements, entries) {
+  if (!Array.isArray(requirements) || requirements.length === 0) return false;
+  const actual = new Set(entries.map((entry) => entry?.id).filter(Boolean));
+  return requirements.some((requirement) => !actual.has(requirement.id));
+}
+
+export async function completeScenarioValidityArtifactChange({ root, specDir, artifact } = {}) {
+  const issueCodes = [];
+  const rawFile = resolveRawFile(root, specDir, artifact?.raw_output_path);
+  const entries = Array.isArray(artifact?.summary) ? artifact.summary : (Array.isArray(artifact?.requirements) ? artifact.requirements : []);
+  const requirements = loadSpecTestableRequirements(specDir, entries);
+  if (!rawFile || !fs.existsSync(rawFile)) {
+    addCompletionIssue(issueCodes, "scenario-validity-schema-invalid");
+  } else {
+    try {
+      const rawText = fs.readFileSync(rawFile, "utf8");
+      validateScenarioValidityResult(artifact, {
+        root,
+        specDir,
+        requirements,
+        rawText,
+      });
+    } catch (err) {
+      addMappedValidationIssue(issueCodes, err, "scenario-validity-schema-invalid");
+    }
+  }
+  if (hasMissingRequirementEvidence(requirements, entries)) addCompletionIssue(issueCodes, "scenario-validity-schema-invalid");
+  if (artifact?.version !== "1") addCompletionIssue(issueCodes, "scenario-validity-schema-invalid");
+  if (entries.length === 0 || entries.some((entry) => entry.classification !== "expected_fail")) {
+    addCompletionIssue(issueCodes, "scenario-validity-classification-not-expected-fail");
+  }
+  return issueCodes.length
+    ? completionFailure(SCENARIO_VALIDITY_RESULT_FILE, issueCodes, artifact)
+    : completionSuccess(SCENARIO_VALIDITY_RESULT_FILE, artifact);
+}
+
+function testExecuteEntries(artifact) {
+  return Array.isArray(artifact?.summary) ? artifact.summary : (Array.isArray(artifact?.requirements) ? artifact.requirements : []);
+}
+
+function testExecuteEvidenceRange(entry) {
+  return entry?.evidence?.raw_output_lines || entry?.rawOutputLines || entry?.rawOutputLines || entry?.raw_output_lines;
+}
+
+function canonicalTestExecuteArtifact(artifact) {
+  if (Array.isArray(artifact?.summary)) return artifact;
+  const entries = Array.isArray(artifact?.requirements) ? artifact.requirements : [];
+  return {
+    ...artifact,
+    raw_output_path: artifact?.raw_output_path || artifact?.rawOutputPath,
+    summary: entries.map((entry) => ({
+      id: entry.id,
+      result: entry.result || entry.status || "fail",
+      evidence: {
+        command: entry.command || "node --test",
+        test_file: entry.test_file || entry.testFile || "specs/fixture/tests/fixture.test.js",
+        test_name: entry.test_name || entry.testName || `${entry.id}: fixture`,
+        raw_output_lines: testExecuteEvidenceRange(entry),
+      },
+    })),
+    regression: artifact?.regression?.required == null
+      ? {
+        required: false,
+        category: "full-regression-deferred",
+        reason: "full project regression deferred to final-regression",
+        classified_paths: [],
+        ...artifact?.regression,
+      }
+      : artifact.regression,
+  };
+}
+
+export async function completeTestExecuteArtifactChange({ root, specDir, artifact } = {}) {
+  const issueCodes = [];
+  const rawOutputPath = artifact?.rawOutputPath || artifact?.raw_output_path;
+  const rawFile = resolveRawFile(root, specDir, rawOutputPath);
+  const entries = testExecuteEntries(artifact);
+  const requirements = loadSpecTestableRequirements(specDir, entries);
+  const hasSummaryArray = Array.isArray(artifact?.summary) || Array.isArray(artifact?.requirements);
+  const lineCount = rawFile ? rawLineCount(rawFile) : null;
+  if (hasSummaryArray && artifact?.regression) {
+    const canonical = canonicalTestExecuteArtifact(artifact);
+    try {
+      validateTestExecuteResultV2(canonical);
+      if (rawFile && lineCount != null && canonical.summary.every((entry) => entry?.evidence?.test_file && entry?.evidence?.test_name)) {
+        const rawText = fs.readFileSync(rawFile, "utf8");
+        validateTestExecuteResultEvidence(canonical, {
+          root: root || path.dirname(specDir || process.cwd()),
+          specDir,
+          rawOutputText: rawText,
+          rawLines: rawText.split(/\r?\n/),
+          requirements,
+        });
+      }
+    } catch (err) {
+      addMappedValidationIssue(issueCodes, err, "requirement-summary-missing");
+    }
+  }
+
+  if (hasMissingRequirementEvidence(requirements, entries)) addCompletionIssue(issueCodes, "requirement-summary-missing");
+  if (!rawFile || lineCount == null) addCompletionIssue(issueCodes, "raw-output-missing");
+  if (!specDir || !fs.existsSync(path.join(specDir, FILE_MAP_RELATIVE))) addCompletionIssue(issueCodes, "file-map-missing");
+  if (!hasSummaryArray || entries.length === 0) addCompletionIssue(issueCodes, "requirement-summary-missing");
+  if (!artifact?.regression) addCompletionIssue(issueCodes, "regression-evidence-missing");
+  if (rawOutputPath
+    && !rawOutputPath.startsWith(`${TESTS_RAW_DIR_RELATIVE}/`)
+    && !rawOutputPath.startsWith("specs/")) {
+    addCompletionIssue(issueCodes, "placeholder-permission-missing");
+  }
+
+  if (lineCount != null && entries.length > 0) {
+    const invalidRange = entries.some((entry) => {
+      const range = testExecuteEvidenceRange(entry);
+      return !range
+        || !Number.isInteger(range.start_line)
+        || !Number.isInteger(range.end_line)
+        || range.start_line < 1
+        || range.end_line < range.start_line
+        || range.end_line > lineCount;
+    });
+    if (invalidRange) addCompletionIssue(issueCodes, "raw-evidence-range-invalid");
+  }
+
+  return issueCodes.length
+    ? completionFailure(TEST_EXECUTE_RESULT_FILE, issueCodes, artifact)
+    : completionSuccess(TEST_EXECUTE_RESULT_FILE, artifact);
+}
+
+export async function completeTestResultReviewArtifactChange({ specDir, artifact } = {}) {
+  const issueCodes = [];
+  if (Array.isArray(artifact?.checked_items)) {
+    try {
+      validateTestResultReview(artifact);
+    } catch (err) {
+      addMappedValidationIssue(issueCodes, err, "test-result-review-schema-invalid");
+    }
+  }
+  const checked = Array.isArray(artifact?.checked_items) ? artifact.checked_items : artifact?.checkedItems;
+  if (!Array.isArray(artifact?.checked_items) || artifact?.verdict !== "pass") addCompletionIssue(issueCodes, "test-result-review-schema-invalid");
+  if (!Array.isArray(checked) || checked.length === 0) addCompletionIssue(issueCodes, "checked-items-empty");
+  if (!specDir || !fs.existsSync(path.join(specDir, FILE_MAP_RELATIVE))) addCompletionIssue(issueCodes, "file-map-missing");
+  const regressionPass = Array.isArray(checked)
+    && checked.some((item) => item?.check === "project_regression_verification" && item?.result === "pass");
+  if (!regressionPass) addCompletionIssue(issueCodes, "regression-evidence-missing");
+  return issueCodes.length
+    ? completionFailure(TEST_RESULT_REVIEW_FILE, issueCodes, artifact)
+    : completionSuccess(TEST_RESULT_REVIEW_FILE, artifact);
 }
 
 export function assertIntegrationRegressionEvidence({ root, state, specDir, config = {}, artifacts = null }) {

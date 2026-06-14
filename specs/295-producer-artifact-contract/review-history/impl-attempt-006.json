@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-14T08:15:34.977Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "title": "Spec gate bypasses schema validation errors",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "src/flow/lib/run-gate.js",
+      "requirementId": "R7",
+      "issue": "The spec gate path replaced loadSpecJson(jsonPath) with completeSpecArtifactChange(...).artifact and then forces loadError = null. If completeSpecArtifactChange succeeds without performing the same spec.schema.json validation as loadSpecJson, executeSpec can proceed into the semantic gate with a spec artifact that the retained gate surface previously rejected through the single validated load path.",
+      "suggestion": "In RunGateCommand.executeSpec, keep loadSpecJson(jsonPath) as the source of the spec object after mechanical completion, or run the completed spec through the same loadSpecJson/schema validation path before setting loadError to null and building targetText.",
+      "rationale": "R7 requires migration parity for retained gate draft/spec surfaces, and the existing comment explicitly states that spec.json is loaded through the single validated load path. Bypassing that path changes gate behavior and can let malformed spec data reach downstream semantic decisions."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/295-producer-artifact-contract/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "469db50b5ef2cd3471271c22dc04106843b1dbe11ffa8efaa74def305999b8d8"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 6,
+  "findings": [
+    {
+      "id": "impl-006-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 6,
+      "severity": "blocking",
+      "title": "Spec gate bypasses schema validation errors",
+      "body": "The spec gate path replaced loadSpecJson(jsonPath) with completeSpecArtifactChange(...).artifact and then forces loadError = null. If completeSpecArtifactChange succeeds without performing the same spec.schema.json validation as loadSpecJson, executeSpec can proceed into the semantic gate with a spec artifact that the retained gate surface previously rejected through the single validated load path.",
+      "category": "spec_behavior_contradiction"
+    }
+  ]
+}

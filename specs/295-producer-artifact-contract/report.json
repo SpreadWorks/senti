@@ -1,0 +1,331 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".senti/output/analysis.json                        |   32 +-\n .../acceptance-review.json                         |   21 +\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-questions-repair.json                    |   62 +\n .../draft-questions-triage.json                    |   50 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   54 +\n specs/295-producer-artifact-contract/draft.json    |  157 ++\n specs/295-producer-artifact-contract/file-map.json |   42 +\n specs/295-producer-artifact-contract/flow.json     | 1787 ++++++++++++++++++++\n .../impl-review.json                               |   28 +\n .../295-producer-artifact-contract/issue-log.json  |  595 +++++++\n specs/295-producer-artifact-contract/issue.md      |  276 +++\n .../plugin-artifacts/workflow/prepare.json         |   10 +\n .../retry-recovery.json                            |  182 ++\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |  118 ++\n .../review-history/impl-attempt-001.json           |   88 +\n .../review-history/impl-attempt-001.md             |   37 +\n .../review-history/impl-attempt-002.json           |   71 +\n .../review-history/impl-attempt-002.md             |   31 +\n .../review-history/impl-attempt-003.json           |   71 +\n .../review-history/impl-attempt-003.md             |   31 +\n .../review-history/impl-attempt-004.json           |   52 +\n .../review-history/impl-attempt-004.md             |   23 +\n .../review-history/impl-attempt-005.json           |   71 +\n .../review-history/impl-attempt-005.md             |   31 +\n .../review-history/impl-attempt-006.json           |   52 +\n .../review-history/impl-attempt-006.md             |   23 +\n .../review-history/impl-attempt-007.json           |   51 +\n .../review-history/impl-attempt-007.md             |   22 +\n .../review-history/impl-attempt-008.json           |   52 +\n .../review-history/impl-attempt-008.md             |   23 +\n .../review-history/impl-attempt-009.json           |   31 +\n .../review-history/impl-attempt-009.md             |   16 +\n .../review-history/spec-attempt-001.json           |   94 +\n .../review-history/spec-attempt-001.md             |   31 +\n .../review-history/test-attempt-001.json           |  120 ++\n .../review-history/test-attempt-001.md             |   39 +\n .../review-history/test-attempt-002.json           |  102 ++\n .../review-history/test-attempt-002.md             |   33 +\n .../review-history/test-attempt-003.json           |  138 ++\n .../review-history/test-attempt-003.md             |   45 +\n .../review-history/test-attempt-004.json           |   66 +\n .../review-history/test-attempt-004.md             |   24 +\n .../review-history/test-attempt-005.json           |  120 ++\n .../review-history/test-attempt-005.md             |   39 +\n .../review-history/test-attempt-006.json           |   28 +\n .../review-history/test-attempt-006.md             |   13 +\n specs/295-producer-artifact-contract/review.md     |   16 +\n .../spec-repair.json                               |   51 +\n .../spec-review.json                               |   50 +\n .../295-producer-artifact-contract/spec-review.md  |   31 +\n .../spec-triage.json                               |   29 +\n specs/295-producer-artifact-contract/spec.json     |  324 ++++\n specs/295-producer-artifact-contract/spec.md       |  137 ++\n specs/295-producer-artifact-contract/tasks/T-1.md  |   20 +\n specs/295-producer-artifact-contract/tasks/T-2.md  |   20 +\n specs/295-producer-artifact-contract/tasks/T-3.md  |   20 +\n specs/295-producer-artifact-contract/tasks/T-4.md  |   21 +\n specs/295-producer-artifact-contract/tasks/T-5.md  |   20 +\n .../test-coverage.json                             |   97 ++\n .../test-review.json                               |   25 +\n .../295-producer-artifact-contract/test-review.md  |   13 +\n .../tests/producer-artifact-contract.test.js       |  767 +++++++++\n src/flow/lib/artifact-completion.js                |  242 +++\n src/flow/lib/flow-findings.js                      |   79 +\n src/flow/lib/retry-accounting.js                   |   61 +\n src/flow/lib/run-gate.js                           |  109 +-\n src/flow/lib/run-review.js                         |   20 +-\n src/flow/lib/set-step.js                           |  114 ++\n src/flow/lib/test-artifacts.js                     |  208 +++\n src/lib/spec-json.js                               |   18 +-\n 74 files changed, 7523 insertions(+), 92 deletions(-)",
+      "commits": [
+        "feat: feature/295-producer-artifact-contract"
+      ]
+    },
+    "retro": {
+      "total": 7,
+      "done": 7,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "Introduce a reusable artifact completion contract that runs normalize, validate, one deterministic repair attempt when configured, and revalidate; it must return dedicated success or unresolved mechanical failure classes and must not decide flow transitions or retry counters.",
+          "status": "done",
+          "note": "R1: shared artifact completion executes normalize, validate, one repair, and revalidate"
+        },
+        {
+          "desc": "Apply the artifact completion contract to draft.json and spec.json producer or repair paths so invalid JSON, schema/lifecycle issues, review-triage-repair audit issues, unresolved markers, task monotonic issues, and spec repair audit issues are detected before semantic guardrail judgment.",
+          "status": "done",
+          "note": "R2: draft and spec producers block semantic guardrails until completion succeeds"
+        },
+        {
+          "desc": "Apply the same producer contract or a shared adapter to scenario-validity-result.json, test-execute-result.json v2, and test-result-review.json so their existing schema, raw evidence range, file-map, placeholder, and regression trust checks still run before downstream trust decisions.",
+          "status": "done",
+          "note": "R3: durable test artifact producers reuse completion while preserving trust checks"
+        },
+        {
+          "desc": "Before implement can be marked done, mechanically verify requirement status completion, file-map coverage for testable requirements, and required durable artifacts; a failed check must block completion with a structural failure envelope. Lint readiness is excluded until a durable lint evidence artifact exists.",
+          "status": "done",
+          "note": "R4: implement completion rejects missing observable readiness data"
+        },
+        {
+          "desc": "Ensure reviewRetry and gateRetry are consumed only by AI semantic FAIL verdicts; mechanical validation failure, deterministic repair failure, provider/tooling/protocol failure, and AI output schema failure must be represented in artifacts or envelopes without semantic retry consumption.",
+          "status": "done",
+          "note": "R5: retry counters are consumed only by AI semantic FAIL outcomes"
+        },
+        {
+          "desc": "When AI semantic FAIL retry is exhausted in draft-gate, spec-review, spec-gate, impl-review, impl-gate task-impl, or impl-gate integration, append unresolved findings to flow-findings.json, keep the current review/gate step from stopping solely because of that exhaustion, and include the deferred finding summary in subsequent context for acceptance-review. Spec-review deferral must read semantic blocking records from the current spec-review.json source arrays (`blocking[]` when present, otherwise `blockingFindings[]`) and preserve existing ids or synthesize stable sourceFindingId values.",
+          "status": "done",
+          "note": "R6: exhausted semantic findings are deferred with stable source ids and later summaries"
+        },
+        {
+          "desc": "Preserve migration parity for retained public surfaces with no removals: gate draft/spec map parse, schema, lifecycle, static, and repair-audit checks to producer completion first while run-gate remains semantic and defensive owner; gate task-impl/integration keep phase-keyed retry, artifact, failure envelope, and progression behavior; review draft/spec/test/impl keep artifact generation while protocol/schema failure remains non-semantic; scenario-validity/test-execute/test-result-review keep existing schema, raw evidence, placeholder, file-map, and regression checks; implement completion keeps the set-step surface and adds observable readiness checks.",
+          "status": "done",
+          "note": "R7: retained public surfaces execute producer-completion adapters without dropping legacy checks"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 30,
+      "fullLogPath": "specs/295-producer-artifact-contract/issue-log.json",
+      "importantTotal": 18,
+      "importantShown": 10,
+      "importantOmitted": 8,
+      "recentOtherTotal": 12,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 7,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "The draft defers key migration parity work (e.g., identifying exact modules/commands and behavior requirements) instead of defining the required inventory and migration mapping before implementation.; No explicit inventory of all existin...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "draft gate failed migration parity because the draft lacked retained public surface inventory, owner mapping, and behavior-level verification",
+          "resolution": "added migration inventory, retained behavior owner mapping, and behavior-level verification entries to draft.json"
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "draft gate failed unambiguous requirements because impact entries used vague phrases clean artifact input and behaviorally equivalent",
+          "resolution": "replaced vague impact entries with explicit parse, schema, lifecycle, evidence path, failure envelope, and guardrail reachability conditions"
+        },
+        {
+          "classification": "important",
+          "step": "spec-review",
+          "reason": "spec review failed because impl-gate phase scope, implement completion lint evidence, and spec-review source finding extraction were underspecified",
+          "resolution": "updated spec.json to include task-impl parity, exclude lint readiness until durable evidence exists, and define spec-review source finding extraction"
+        },
+        {
+          "classification": "important",
+          "step": "spec-repair",
+          "reason": "local validation helper command failed because require was used inside an ESM node --input-type module script",
+          "resolution": "reran validation as separate ESM schema load and CommonJS JSON parse commands"
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "spec gate failed because migration parity mapping, R1-R6 spec-local test header requirements, and explicit impact statements were incomplete",
+          "resolution": "added per-surface migration mapping, explicit impact decisions, and spec-local tests path plus spec header requirements for R1 through R7"
+        },
+        {
+          "classification": "important",
+          "step": "scenario-validity",
+          "reason": "rewritten executable tests were classified invalid_test because missing modules and exports surfaced as loader or TypeError failures",
+          "resolution": "added explicit existence and export assertions so pre-implementation gaps fail as requirement assertions before behavioral checks run"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "third test-review found broad regex assertions and missing malformed-json, pending-requirement, public non-semantic failure, and step-continuation coverage",
+          "resolution": "changed assertions to exact issue-code sets and added malformed JSON, pending implement readiness, public protocol/schema failure, and retry-exhaustion step-resolution cases"
+        },
+        {
+          "classification": "important",
+          "step": "retry-recovery",
+          "reason": "spec-local tests changed to cover the latest test-review findings",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "impl-review",
+          "reason": "impl-review found canonical test artifact validator failures being converted into trusted success artifacts and implement completion validating durable artifact presence without routing existing artifacts through completion adapters",
+          "resolution": "Mapped canonical validator failures to structural completion issue codes, resolved repo-relative raw evidence paths, and routed scenario-validity, test-execute, and test-result-review durable artifacts through their completion adapters b..."
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-review",
+          "reason": "impl-review found the spec gate semantic path still reading the pre-completion spec text and scenario-validity completion accepting missing raw evidence",
+          "resolution": "Changed spec gate to evaluate the completed spec artifact, made scenario-validity completion require raw evidence and validator execution, stabilized completion result instanceof checks across cache-busted imports, and updated spec-local..."
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-review",
+          "reason": "impl-review found draft gate semantic evaluation still using pre-completion draft text",
+          "resolution": "Changed draft gate to serialize completedDraft.artifact for semantic guardrail targetText so both draft and spec gates evaluate the completed artifact."
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-review",
+          "reason": "impl-review found spec completion requiring repair audit for ordinary specs and test artifact completion deriving coverage from artifact summaries instead of spec requirements",
+          "resolution": "Made spec repair-audit completion conditional for the run-gate path while preserving the public completion surface, and changed scenario-validity/test-execute completion to load testable requirements from spec.json for membership validat..."
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-review",
+          "reason": "impl-review found spec gate schema validation parity lost after switching to completed spec artifacts",
+          "resolution": "Added validateSpecJsonObject to the spec-json module and made spec gate validate the completed spec artifact with the same schema validator before semantic evaluation."
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-review",
+          "reason": "impl-review found retry exhaustion deferral could drop review findings stored in comments",
+          "resolution": "Aligned flow-findings review source selection with run-review finding precedence and added a comments-only deferral regression case."
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 6,
+      "question": 0,
+      "issueLog": 21
+    },
+    "tokenMetrics": {
+      "input": 969079,
+      "output": 138241,
+      "cacheRead": 3923456,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 31,
+      "durationMs": 1550722,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 56752
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 8212
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 40386
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 237714
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 23016
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 181398
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 885329
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 117915
+        }
+      ]
+    },
+    "tests": {
+      "total": 7,
+      "passed": 7,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/295-producer-artifact-contract/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 64,
+          "end_line": 18567
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/295-producer-artifact-contract/"
+          },
+          {
+            "status": "untracked",
+            "path": "src/flow/lib/artifact-completion.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/flow-findings.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/flow/lib/retry-accounting.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-review.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-step.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-artifacts.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/spec-json.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/295-producer-artifact-contract/"
+          },
+          {
+            "status": "untracked",
+            "path": "src/flow/lib/artifact-completion.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/flow-findings.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/flow/lib/retry-accounting.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-review.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-step.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-artifacts.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/spec-json.js"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/295-producer-artifact-contract/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/295-producer-artifact-contract\n    74 files changed, 7523 insertions(+), 92 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (7 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 6\n    Q&A ......................... 0\n    issue-log ................... 21\n    agent calls ................. 31\n    input tokens ................ 969,079\n    output tokens ............... 138,241\n    cache-read tokens ........... 3,923,456\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 1550.7s\n      draft-questions-review .... 56.8s\n      draft-coverage-review ..... 8.2s\n      draft-gate ................ 40.4s\n      spec-review ............... 237.7s\n      spec-gate ................. 23.0s\n      test-review ............... 181.4s\n      impl-review ............... 885.3s\n      impl-gate ................. 117.9s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 7  passed 7  failed 0 verdict=pass\n    raw_output: specs/295-producer-artifact-contract/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (30 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/295-producer-artifact-contract/issue-log.json\n\n    Important (10 of 18)\n    - [draft-gate] The draft defers key migration parity work (e.g., identifying exact modules/commands and behavior requirements) instead of defining the required inventory and migration mapping before implementation.; No explicit inventory of all existin...\n    - [draft-gate] draft gate failed migration parity because the draft lacked retained public surface inventory, owner mapping, and behavior-level verification\n    - [draft-gate] draft gate failed unambiguous requirements because impact entries used vague phrases clean artifact input and behaviorally equivalent\n    - [spec-review] spec review failed because impl-gate phase scope, implement completion lint evidence, and spec-review source finding extraction were underspecified\n    - [spec-repair] local validation helper command failed because require was used inside an ESM node --input-type module script\n    - [spec-gate] spec gate failed because migration parity mapping, R1-R6 spec-local test header requirements, and explicit impact statements were incomplete\n    - [scenario-validity] rewritten executable tests were classified invalid_test because missing modules and exports surfaced as loader or TypeError failures\n    - [test-review] third test-review found broad regex assertions and missing malformed-json, pending-requirement, public non-semantic failure, and step-continuation coverage\n    - [retry-recovery] spec-local tests changed to cover the latest test-review findings\n    - [impl-review] impl-review found canonical test artifact validator failures being converted into trusted success artifacts and implement completion validating durable artifact presence without routing existing artifacts through completion adapters\n    ... 8 important issue-log entries omitted\n\n    Recent Other (5 of 12)\n    - [impl-review] impl-review found the spec gate semantic path still reading the pre-completion spec text and scenario-validity completion accepting missing raw evidence\n    - [impl-review] impl-review found draft gate semantic evaluation still using pre-completion draft text\n    - [impl-review] impl-review found spec completion requiring repair audit for ordinary specs and test artifact completion deriving coverage from artifact summaries instead of spec requirements\n    - [impl-review] impl-review found spec gate schema validation parity lost after switching to completed spec artifacts\n    - [impl-review] impl-review found retry exhaustion deferral could drop review findings stored in comments\n    ... 7 other issue-log entries omitted"
+}

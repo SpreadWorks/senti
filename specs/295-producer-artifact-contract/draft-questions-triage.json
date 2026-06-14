@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "All six repair targets are valid: pending draft questions must contain only the question text, without recommended answers or rationale.",
+  "items": [
+    {
+      "title": "1. q1 includes an answer and rationale",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "The pending question should ask only for goal confirmation; recommendation and evidence belong to the later user-facing prompt, not draft.json.qa[].question.",
+      "evidence": "draft.json qa[0].question contains a recommendation and Issue-based rationale after the question text."
+    },
+    {
+      "title": "2. q2 includes an answer and rationale",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "The pending question should ask only for scope confirmation; answer and rationale fields must remain empty while status is pending.",
+      "evidence": "draft.json qa[1].question contains a recommendation and Issue-based rationale after the question text."
+    },
+    {
+      "title": "3. q3 includes an answer and implementation rationale",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "The pending question may name the policy choice but must not include a recommended answer or implementation rationale in the question field.",
+      "evidence": "draft.json qa[2].question contains a recommendation and implementation rationale after the question text."
+    },
+    {
+      "title": "4. q4 includes an answer and rationale",
+      "target": "q4",
+      "decision": "apply",
+      "rationale": "The pending question should ask whether the common retry-exhausted behavior is accepted without embedding the proposed answer.",
+      "evidence": "draft.json qa[3].question contains a recommendation and Issue-based rationale after the question text."
+    },
+    {
+      "title": "5. q5 includes an answer and evidence",
+      "target": "q5",
+      "decision": "apply",
+      "rationale": "The pending question should ask for migration parity policy confirmation without embedding evidence in the question field.",
+      "evidence": "draft.json qa[4].question contains a recommendation and guardrail/Issue rationale after the question text."
+    },
+    {
+      "title": "6. q6 includes an answer and rationale",
+      "target": "q6",
+      "decision": "apply",
+      "rationale": "The pending question should ask for test coverage confirmation without including the recommended answer.",
+      "evidence": "draft.json qa[5].question contains a recommendation and completion-criteria rationale after the question text."
+    }
+  ]
+}

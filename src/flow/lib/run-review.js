@@ -33,7 +33,7 @@ import {
 } from "./task-scope.js";
 import { draftReviewRouteForRetryPhase } from "./draft-review-routes.js";
 import {
-  appendDeferredFlowFinding,
+  deferExhaustedSemanticFindings,
   readBoundedSourceArtifact,
   specDirFromFlowState,
 } from "./flow-findings.js";
@@ -221,6 +221,7 @@ function isContentAlignmentFinding(finding) {
 
 function reviewFindingsFromArtifact(artifact) {
   const candidates = [
+    artifact?.blocking,
     artifact?.blockingFindings,
     artifact?.findings,
     artifact?.comments,
@@ -274,17 +275,12 @@ function tryDeferReviewRetryExhaustion(ctx, phase, attempts) {
   let findings = reviewFindingsFromArtifact(artifact);
   if (findings.length === 0 || !findings.every(isContentAlignmentFinding)) return null;
   ({ artifact, findings } = persistReviewSourceFindingIds(specDir, sourceArtifact, artifact));
-  const sourceFindingIds = findings.map(reviewFindingId);
-  findings.forEach((finding, index) => {
-    appendDeferredFlowFinding({
-      root: ctx.root,
-      flowState: ctx.flowState,
-      sourceStep: REVIEW_NODE_ID_BY_PHASE[phase],
-      sourceArtifact,
-      sourceFindingId: sourceFindingIds[index],
-      attempts,
-      round: attempts,
-    });
+  deferExhaustedSemanticFindings({
+    root: ctx.root,
+    flowState: ctx.flowState,
+    sourceStep: REVIEW_NODE_ID_BY_PHASE[phase],
+    sourceArtifact,
+    attempts,
   });
   ctx.flowManager.updateStepStatus(REVIEW_NODE_ID_BY_PHASE[phase], "done");
   return reviewDeferredResult(phase, attempts, findings.length);
