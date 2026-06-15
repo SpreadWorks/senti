@@ -1,12 +1,12 @@
 {
-  "analyzedAt": "2026-06-15T02:49:46.420Z",
+  "analyzedAt": "2026-06-15T03:36:30.227Z",
   "package": {
     "entries": [
       {
         "file": "package.json",
-        "hash": "95d6f2b85228eae25f6732089abb1e14",
+        "hash": "d5bd239a20db9150a83fa246a53a29a5",
         "lines": 41,
-        "mtime": "2026-06-14T14:37:49.902Z",
+        "mtime": "2026-06-15T03:11:49.950Z",
         "packageDeps": {
           "dependencies": {},
           "devDependencies": {}
@@ -23,23 +23,23 @@
         "composerScripts": null,
         "makefileTest": null,
         "id": "451a9f25",
-        "summary": "This package manifest defines Senti as a Node.js ESM CLI for spec-driven documentation and source analysis. It exposes the `senti` executable, sets the runtime floor, and declares the test entrypoints used during development.",
-        "detail": "The manifest configures the package as an ES module and exports the same entry file for both library and CLI usage through `src/senti.js`. It limits published contents to `src/` while excluding preset test fixtures from distribution, which keeps the package footprint focused on runtime code. The `engines` field requires Node.js 18.19.0 or newer, showing an explicit runtime compatibility policy. Its script set separates unit, end-to-end, acceptance, agent, and aggregate test runs, which reflects a multi-scope validation workflow for the toolchain.",
+        "summary": "Defines the Senti package as an ESM-based CLI tool and library entry point. It also declares runtime requirements, publish scope, and test commands.",
+        "detail": "The manifest identifies the project as `@spreadworks/senti`, a spec-driven development tool focused on automated documentation generation. It exposes `src/senti.js` both as the `senti` executable and the package export, which makes the same module serve CLI and import use cases. The package is published with only the `src/` tree while explicitly excluding preset test fixtures from the package payload. It requires Node.js 18.19.0 or newer, pins `pnpm` as the package manager, and defines multiple test scopes for unit, end-to-end, acceptance, agent, and full test runs.",
         "chapter": "stack_and_ops",
         "role": "Package manifest and CLI distribution definition",
         "enrich": {
-          "processedAt": "2026-06-14T23:04:56.145Z",
+          "processedAt": "2026-06-15T03:37:22.960Z",
           "attempts": 1
         },
         "keywords": [
           "package manifest",
-          "Node.js ESM",
-          "CLI entrypoint",
-          "npm bin",
+          "Node.js CLI",
+          "ES module",
+          "npm package",
+          "pnpm",
           "runtime requirements",
           "test scripts",
-          "spec-driven development",
-          "documentation tooling"
+          "distribution config"
         ]
       }
     ],
@@ -3047,8 +3047,23 @@
         ],
         "id": "aa8dda77",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-06-15T03:37:22.960Z",
+          "attempts": 4
+        },
+        "summary": "Manages acceptance review artifacts, validation, evidence synthesis, and flow-state transitions after acceptance review. It also applies user decisions and mechanical blocker handling to the workflow.",
+        "detail": "This module centralizes reading, writing, normalizing, and schema-validating `acceptance-review.json` artifacts, including verdicts, next actions, deferred findings, and final dispositions. It derives review verdicts from evidence, checks that deferred findings match flow findings, and classifies mechanical blockers based on missing or invalid prerequisite artifacts. The implementation also updates flow steps by resetting or advancing ranges of steps depending on review outcomes such as pass, amend, repair, or user decision. In addition, it records issue-log entries, builds evidence-based acceptance artifacts from test and review outputs, and enforces safety rules such as blocking risk acceptance when unresolved mechanical blockers remain.",
+        "chapter": "internal_design",
+        "role": "Acceptance review artifact orchestration and decision engine",
+        "keywords": [
+          "acceptance review",
+          "artifact validation",
+          "workflow transition",
+          "mechanical blocker",
+          "deferred findings",
+          "verdict derivation",
+          "flow state",
+          "review evidence"
+        ]
       },
       {
         "file": "src/flow/lib/acknowledged-rationale.js",
@@ -3140,8 +3155,23 @@
         ],
         "id": "0edee8a5",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-06-15T03:37:22.960Z",
+          "attempts": 4
+        },
+        "summary": "Provides reusable completion adapters that turn artifact edits into normalized success or mechanical-failure results. It standardizes parsing and validation outcomes across multiple producer surfaces.",
+        "detail": "The file defines result classes for successful artifact completion and mechanical completion failure, giving downstream flow logic a consistent shape for handling producer output. It parses raw JSON text when needed, normalizes validator responses into issue lists and issue codes, and converts malformed or missing content into structured failures instead of throwing uncontrolled errors. Surface-specific helpers map artifacts such as drafts, specs, reviews, and execution outputs onto common completion behavior through adapter functions. The module also exposes lookup utilities for available completion surfaces, adapter retrieval, spec directory resolution, and simple file existence checks.",
+        "chapter": "internal_design",
+        "role": "Artifact completion normalization layer",
+        "keywords": [
+          "artifact completion",
+          "adapter pattern",
+          "validation result",
+          "JSON parsing",
+          "producer surface",
+          "mechanical failure",
+          "spec artifact",
+          "completion status"
+        ]
       },
       {
         "file": "src/flow/lib/auto-check-static.js",
@@ -3571,8 +3601,23 @@
         ],
         "id": "1c664aa8",
         "enrich": {
-          "attempts": 4
-        }
+          "processedAt": "2026-06-15T03:37:22.960Z",
+          "attempts": 5
+        },
+        "summary": "Implements the persistent flow-findings model used to record, defer, mirror, and summarize workflow findings. It also enforces strict validation around source artifact references and acceptance dispositions.",
+        "detail": "This module defines the `flow-findings.json` artifact, limits for entry counts and field sizes, and normalization rules for finding metadata such as source artifact paths and final dispositions. It protects integrity by requiring relative paths inside the spec directory, rejecting copied long-form detail fields, and bounding readable artifact size before loading source evidence. The implementation supports appending deferred findings, generating summaries, extracting blocking observations from review artifacts, and resolving retry-exhaustion outcomes into deferred semantic findings. It also mirrors final acceptance dispositions back into stored deferred findings so later flow stages can track closure or risk decisions consistently.",
+        "chapter": "internal_design",
+        "role": "Deferred finding registry and evidence linkage layer",
+        "keywords": [
+          "flow findings",
+          "deferred issue",
+          "acceptance disposition",
+          "artifact reference",
+          "spec directory",
+          "review evidence",
+          "retry exhaustion",
+          "finding summary"
+        ]
       },
       {
         "file": "src/flow/lib/flow-judgment-contract.js",
@@ -3665,8 +3710,23 @@
         ],
         "id": "f336678e",
         "enrich": {
-          "attempts": 6
-        }
+          "processedAt": "2026-06-15T03:37:22.960Z",
+          "attempts": 7
+        },
+        "summary": "Defines the completion judgment contract used to decide whether a flow step may be marked complete. It combines artifact-derived findings, policy rules, overrides, and deferred-finding evidence into one validation system.",
+        "detail": "The module models step-completion requirements through contract objects, summary objects, per-step policies, and explicit finding dispositions stored as override evidence. It fingerprints normalized contract state for stable progress signatures, builds envelopes for validation failures, and maps individual review artifacts into step-specific completion contracts. Validation logic distinguishes normal completion, override-based completion, deferred-evidence completion, and blocked completion, depending on policy and available evidence. It also persists override files, loads them per step, and exposes helpers that validate or assert completion transitions directly from flow state and spec artifacts.",
+        "chapter": "internal_design",
+        "role": "Step completion policy and judgment contract framework",
+        "keywords": [
+          "completion contract",
+          "workflow policy",
+          "override evidence",
+          "blocking findings",
+          "step validation",
+          "artifact contract",
+          "progress signature",
+          "flow judgment"
+        ]
       },
       {
         "file": "src/flow/lib/gate-recovery-display.js",
@@ -4212,8 +4272,23 @@
         ],
         "id": "9aca938f",
         "enrich": {
-          "attempts": 6
-        }
+          "processedAt": "2026-06-15T03:37:22.960Z",
+          "attempts": 7
+        },
+        "summary": "Builds the flow status view by aggregating metrics, retries, review state, gate state, and deferred findings. It is the main formatter behind status command output for active or historical runs.",
+        "detail": "The module computes token and activity summaries from agent metric entries, grouping them by phase and provider while preserving total counters for reporting. It derives higher-level status views for review stops, gate stops, retry recovery, and bounded broad-mode history, then merges them with flow-state metadata into a single status payload. Validation ensures requested run identifiers are well-formed and that historical run lookups fail with explicit errors when missing. The exported command class uses these helpers to return consistent status objects whether the caller targets the current flow state or a specific recorded run.",
+        "chapter": "cli_commands",
+        "role": "Flow status aggregation and reporting command logic",
+        "keywords": [
+          "status command",
+          "metrics summary",
+          "retry recovery",
+          "review state",
+          "gate state",
+          "run history",
+          "token usage",
+          "flow reporting"
+        ]
       },
       {
         "file": "src/flow/lib/get-step-instructions.js",
@@ -4338,8 +4413,23 @@
         ],
         "id": "1dd5bb71",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-06-15T03:37:22.960Z",
+          "attempts": 4
+        },
+        "summary": "Defines structured observation, diagnosis, and next-action models for review and analysis outputs. It also includes compatibility logic to transform legacy evaluation formats into the newer observation schema.",
+        "detail": "This module validates strongly typed observation objects with controlled keys, normalized location metadata, known failure modes, and severity rules that depend on evidence characteristics such as diff verifiability. It provides immutable-style constructors and serialization helpers for `Observation`, `Diagnosis`, and `NextAction`, including markdown rendering and content hashing for stable identifiers. Special validation enforces that some process-evidence failures must be blocking when they relate to diff-verifiable outputs. To support older producers, the file also maps legacy evaluation entries into modern observations and builds a corresponding next-action structure from them.",
+        "chapter": "internal_design",
+        "role": "Observation schema and remediation model",
+        "keywords": [
+          "observation model",
+          "diagnosis",
+          "next action",
+          "failure mode",
+          "severity policy",
+          "legacy conversion",
+          "review finding",
+          "evidence validation"
+        ]
       },
       {
         "file": "src/flow/lib/overview-merge.js",
@@ -4685,8 +4775,23 @@
         "usedBy": null,
         "id": "45f8cc74",
         "enrich": {
-          "attempts": 4
-        }
+          "processedAt": "2026-06-15T03:37:22.960Z",
+          "attempts": 5
+        },
+        "summary": "Tracks retry counts for review and gate phases and classifies public-facing flow failures. It is a small accounting layer for retry-related state.",
+        "detail": "The module defines retry failure categories and maps them onto internal counters so the flow state can increment review and gate retry statistics consistently. Shared helper logic records outcomes by phase and failure kind, while lightweight wrappers expose dedicated entry points for review retries and gate retries. It also reads current retry counts back from state, making the counters available to status and recovery logic. A final classifier converts internal failure state into a public summary object suitable for external reporting surfaces.",
+        "chapter": "internal_design",
+        "role": "Retry counter and failure classification utility",
+        "keywords": [
+          "retry accounting",
+          "failure kind",
+          "review retry",
+          "gate retry",
+          "state counters",
+          "workflow failure",
+          "attempt tracking",
+          "public classification"
+        ]
       },
       {
         "file": "src/flow/lib/retry-recovery.js",
@@ -4881,8 +4986,23 @@
         "usedBy": null,
         "id": "2d93c301",
         "enrich": {
-          "attempts": 6
-        }
+          "processedAt": "2026-06-15T03:37:22.960Z",
+          "attempts": 7
+        },
+        "summary": "Implements the acceptance-review command entry point that runs or injects an acceptance review artifact. It bridges command execution with spec-directory resolution and artifact application.",
+        "detail": "The command reads an optional fixture artifact from the `SENTI_ACCEPTANCE_REVIEW_ARTIFACT` environment variable, which allows tests or controlled runs to bypass normal generation. It resolves the active spec directory from flow state and delegates the actual review result processing to shared acceptance-review artifact logic. The implementation is intentionally thin, acting mainly as a command wrapper around reusable library functions. Its returned payload exposes the processed verdict and artifact-related result data back to the caller.",
+        "chapter": "cli_commands",
+        "role": "Acceptance review command wrapper",
+        "keywords": [
+          "acceptance review command",
+          "command handler",
+          "fixture artifact",
+          "spec resolution",
+          "flow command",
+          "artifact application",
+          "test injection",
+          "CLI review"
+        ]
       },
       {
         "file": "src/flow/lib/run-auto-check.js",
@@ -5655,9 +5775,9 @@
       },
       {
         "file": "src/flow/lib/run-prepare-spec.js",
-        "hash": "a83187b83a09a6f9120a1949e6de372a",
-        "lines": 441,
-        "mtime": "2026-06-13T11:23:32.141Z",
+        "hash": "c2cb9691b44685cef18567da4761abd0",
+        "lines": 536,
+        "mtime": "2026-06-15T03:36:18.164Z",
         "className": "run-prepare-spec",
         "methods": [
           "buildDraftTemplate",
@@ -5671,7 +5791,13 @@
           "runDocsScanAndValidate",
           "hookSnapshotFor",
           "copyPluginRuntimeDirectory",
-          "syncPluginRuntimeToWorktree"
+          "syncPluginRuntimeToWorktree",
+          "gitPathspecStatus",
+          "branchHasPath",
+          "gitBlobId",
+          "classifyRequiredBranchFile",
+          "checkRequiredWorktreeBranchFiles",
+          "requiredWorktreeFilesEnvelope"
         ],
         "imports": [
           "fs",
@@ -5687,7 +5813,8 @@
           "../../lib/hooks.js",
           "./base-command.js",
           "./issue-body-cache.js",
-          "../../lib/plugin-registry.js"
+          "../../lib/plugin-registry.js",
+          "../../lib/flow-envelope.js"
         ],
         "exports": [
           "buildDraftTemplate",
@@ -5698,22 +5825,23 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "59eeacc6",
-        "summary": "Prepares a new spec workspace, initializes flow state, and optionally creates an isolated worktree. It also syncs plugin runtime files and records plugin hook snapshots for later flow execution.",
-        "detail": "The file ties together git helpers, config loading, docs analysis, step bootstrapping, and plugin lifecycle support into one preparation pipeline. Utility functions create safe spec IDs, choose the next numeric directory index, detect base branches, and verify analysis output from a docs scan. Plugin runtime synchronization copies selected `.senti` files into a worktree with explicit file-count limits to reduce risk and cost. The main prepare flow creates `flow.json`, `spec.json`, `draft.json`, and related files, runs hook callbacks, and blocks dirty worktrees unless isolation is enabled.",
+        "summary": "Implements the prepare-spec workflow that creates a new spec workspace, validates repository state, and coordinates optional worktree and plugin hook behavior. It is the main bootstrap command for starting a new flow.",
+        "detail": "This module contains the orchestration for generating a new numbered spec directory, draft/spec stubs, issue content, and initial flow state while enforcing repository preconditions such as config presence and acceptable worktree cleanliness. It includes Git-aware helpers for branch detection, required branch-file checks, worktree setup, and plugin runtime synchronization into isolated worktree environments. The command can trigger documentation scanning, invoke plugin lifecycle hooks, and persist flow metadata with or without worktree mode depending on configuration. Overall, it acts as the entry point that turns a title and request into a fully initialized spec workflow skeleton with guardrails around repository consistency.",
         "chapter": "cli_commands",
-        "role": "Initialize spec state and worktree context for flow commands.",
+        "role": "Spec preparation and workflow bootstrap command",
         "enrich": {
-          "processedAt": "2026-06-13T13:40:08.618Z",
+          "processedAt": "2026-06-15T03:37:22.960Z",
           "attempts": 1
         },
         "keywords": [
-          "spec preparation",
-          "worktree setup",
+          "prepare spec",
+          "workflow bootstrap",
+          "git worktree",
           "plugin hooks",
-          "flow initialization",
-          "git base branch",
-          "draft scaffold",
-          "dirty worktree"
+          "spec initialization",
+          "repository validation",
+          "draft template",
+          "flow setup"
         ]
       },
       {
@@ -11051,9 +11179,9 @@
     ],
     "summary": {
       "total": 212,
-      "totalMethods": 1827
+      "totalMethods": 1833
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-15T02:23:17.910Z"
+  "enrichedAt": "2026-06-15T03:37:22.960Z"
 }
