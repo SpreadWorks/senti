@@ -415,16 +415,39 @@
             },
             {
               "id": "finalize-merge",
-              "status": "in_progress",
-              "startedAt": "2026-06-15T04:14:18.620Z"
+              "status": "done",
+              "startedAt": "2026-06-15T04:14:18.620Z",
+              "finishedAt": "2026-06-15T04:14:36.059Z",
+              "runtimeLog": {
+                "runId": "7a8c8304-3d91-48d4-8f2a-1c5f4334fc76",
+                "sequence": 118,
+                "attempt": 1,
+                "command": "flow run finalize-merge",
+                "startedAt": "2026-06-15T04:14:33.801Z",
+                "endedAt": "2026-06-15T04:14:36.064Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-sync",
-              "status": "pending"
+              "status": "done",
+              "startedAt": "2026-06-15T04:14:36.059Z",
+              "finishedAt": "2026-06-15T04:16:18.008Z",
+              "runtimeLog": {
+                "runId": "7a8c8304-3d91-48d4-8f2a-1c5f4334fc76",
+                "sequence": 121,
+                "attempt": 1,
+                "command": "flow run finalize-sync",
+                "startedAt": "2026-06-15T04:14:50.615Z",
+                "endedAt": "2026-06-15T04:16:18.011Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-cleanup",
-              "status": "pending"
+              "status": "done",
+              "startedAt": "2026-06-15T04:16:18.008Z",
+              "finishedAt": "2026-06-15T04:19:00.337Z"
             }
           ]
         }
@@ -990,6 +1013,23 @@
       "reset": true,
       "taskId": null,
       "ts": "2026-06-15T04:09:39.504Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.4",
+      "callCount": 1,
+      "responseChars": 8076,
+      "durationMs": 83715,
+      "tokens": {
+        "input": 61699,
+        "output": 3563,
+        "cacheRead": 145152,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-06-15T04:16:16.373Z"
     }
   ],
   "acceptanceReview": {
@@ -1006,6 +1046,8 @@
     "updatedAt": "2026-06-15T04:10:08.642Z"
   },
   "state": {
-    "finalizedAt": "2026-06-15T04:14:18.458Z"
+    "finalizedAt": "2026-06-15T04:14:18.458Z",
+    "mergeStrategy": "squash",
+    "featureBranchSquashedSha": "5aa6cc2bb6304f4a2237ab2d89ea2b0e96fd6a09"
   }
 }
