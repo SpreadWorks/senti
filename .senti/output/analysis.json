@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-15T00:12:30.826Z",
+  "analyzedAt": "2026-06-15T00:51:26.892Z",
   "package": {
     "entries": [
       {
@@ -3047,7 +3047,7 @@
         ],
         "id": "aa8dda77",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -3140,7 +3140,7 @@
         ],
         "id": "0edee8a5",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -3571,7 +3571,7 @@
         ],
         "id": "1c664aa8",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -3665,7 +3665,7 @@
         ],
         "id": "f336678e",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -4212,7 +4212,7 @@
         ],
         "id": "9aca938f",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -4338,7 +4338,7 @@
         ],
         "id": "1dd5bb71",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4685,7 +4685,7 @@
         "usedBy": null,
         "id": "45f8cc74",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -4881,7 +4881,7 @@
         "usedBy": null,
         "id": "2d93c301",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -9326,7 +9326,8 @@
         "extends": null,
         "usedBy": [
           "src/upgrade.js",
-          "src/setup.js"
+          "src/setup.js",
+          "src/lib/plugin-registry.js"
         ],
         "id": "d79c8794",
         "summary": "Exposes a tiny helper for locating the official preset plugin repository from environment variables. Its purpose is to isolate environment-based plugin root resolution behind a stable API.",
@@ -9392,9 +9393,9 @@
       },
       {
         "file": "src/lib/plugin-registry.js",
-        "hash": "e5775e3db005ef48d30b7dbd030693ea",
-        "lines": 1046,
-        "mtime": "2026-06-14T02:11:20.757Z",
+        "hash": "b84e27baa053aa01e67d24b8c0368d8b",
+        "lines": 1087,
+        "mtime": "2026-06-15T00:51:14.564Z",
         "className": "plugin-registry",
         "methods": [
           "readProjectConfig",
@@ -9421,6 +9422,7 @@
           "dispatchPluginCommand",
           "runFlowCommandHooks",
           "runFlowCommandWithPluginLifecycle",
+          "resolveSetupOfficialPresetSource",
           "officialPresetContributionKeys",
           "ensureOfficialPackage",
           "ensureSetupOfficialPresetState",
@@ -9464,6 +9466,9 @@
           "snapshotPluginRoot",
           "assertSnapshotMetadata",
           "loadHookClass",
+          "cloneOfficialPresetSource",
+          "officialPresetSourceFromRoot",
+          "assertOfficialPresetManifest",
           "materializationSource"
         ],
         "imports": [
@@ -9474,6 +9479,7 @@
           "./cli.js",
           "./config.js",
           "./flow-envelope.js",
+          "./official-plugins.js",
           "./process.js"
         ],
         "exports": [
@@ -9501,6 +9507,7 @@
           "dispatchPluginCommand",
           "runFlowCommandHooks",
           "runFlowCommandWithPluginLifecycle",
+          "resolveSetupOfficialPresetSource",
           "officialPresetContributionKeys",
           "ensureOfficialPackage",
           "ensureSetupOfficialPresetState",
@@ -9515,23 +9522,24 @@
           "src/upgrade.js"
         ],
         "id": "bfaf1dcd",
-        "summary": "Central registry for plugin packages, sources, and lifecycle hooks. It validates plugin contents, installs and syncs packages, and dispatches plugin commands into the flow runtime.",
-        "detail": "The module applies strict filesystem and metadata checks, including path normalization, JSON size limits, allowlisted file copying, and import scanning that blocks plugins from reaching core internal source paths. It models installed packages through `PluginManifest` and `PluginRegistry`, exposing presets, data sources, and commands discovered from `.senti/plugins` and project config. Source resolution supports local directories and Git repositories, with update and install flows that pin commits, materialize archived snapshots, and hash non-Git trees for reproducibility. It also builds execution context for commands and flow hooks, persists hook snapshots, manages plugin artifacts, and includes helpers to ensure the official preset package is installed and enabled.",
+        "summary": "Implements the plugin registry, covering plugin discovery, validation, installation, configuration defaults, and runtime hook execution. It is the central integration layer for external plugin packages and official preset bundles.",
+        "detail": "The module enforces strict safety checks on plugin metadata, file paths, JSON size, import boundaries, and copied files before a package can be installed or loaded. It resolves plugin sources from local paths or Git URLs, tracks commits or content hashes, materializes package snapshots, and syncs installed plugins under the project’s `.senti` directory. The registry builds structured views of plugin contributions such as presets, data sources, and commands, then exposes lookup and dispatch helpers for runtime use. It also manages flow command hooks with snapshot validation, artifact storage helpers, lifecycle execution, and special handling for the official preset package used during setup.",
         "chapter": "internal_design",
-        "role": "Plugin registry and lifecycle management for manifests, sources, commands, and flow hooks.",
+        "role": "Plugin registry and lifecycle manager",
         "enrich": {
-          "processedAt": "2026-06-14T02:12:24.840Z",
+          "processedAt": "2026-06-15T00:51:50.143Z",
           "attempts": 1
         },
         "keywords": [
           "plugin registry",
-          "plugin manifest",
           "plugin installation",
-          "hook lifecycle",
+          "plugin discovery",
+          "manifest validation",
           "Git source sync",
+          "flow hooks",
+          "preset package",
           "command dispatch",
-          "artifact storage",
-          "preset package"
+          "artifact storage"
         ]
       },
       {
@@ -10795,9 +10803,9 @@
       },
       {
         "file": "src/setup.js",
-        "hash": "8bae4b83be7ea73f1cbef5e176235a55",
-        "lines": 634,
-        "mtime": "2026-06-14T02:52:04.481Z",
+        "hash": "cf48b5ab04c5ede30f61aa01167e1521",
+        "lines": 645,
+        "mtime": "2026-06-15T00:51:14.564Z",
         "className": "setup",
         "methods": [
           "ask",
@@ -10836,7 +10844,6 @@
           "./lib/agent-defaults.js",
           "./lib/skills.js",
           "./lib/gitignore.js",
-          "./lib/official-plugins.js",
           "./lib/plugin-registry.js"
         ],
         "exports": [
@@ -10849,24 +10856,24 @@
         "extends": null,
         "usedBy": null,
         "id": "9820c9db",
-        "summary": "This module implements the `setup` workflow that initializes a senti project, prepares config files, and guides the user through interactive defaults. It combines CLI argument parsing, filesystem bootstrapping, preset selection, and agent document generation.",
-        "detail": "The code parses setup command arguments, loads any existing `.senti/config.json`, and can snapshot or restore that file while applying new defaults. It creates the expected project directories, updates `.gitignore` and `.gitattributes`, and writes agent-facing markdown files such as `AGENTS.md` or `CLAUDE.md` with generated content and localized text. The interactive wizard resolves preset candidate chains, supports multi-type selection, and produces a summary before final configuration is written. The main entry point ties these steps together with config validation, skill deployment, official preset state setup, and explicit process exit handling for CLI failures.",
+        "summary": "Defines the `setup` command that initializes a Senti project, gathers configuration inputs, and writes the initial workspace files. It combines interactive setup behavior with filesystem bootstrapping and preset selection.",
+        "detail": "The module parses CLI arguments, loads existing defaults, and optionally runs an interactive wizard to collect project metadata, language, agent settings, and preset choices. It creates required directories, writes `.senti/config.json`, and updates supporting files such as `.gitignore`, `.gitattributes`, and agent instruction documents like `AGENTS.md` or `CLAUDE.md`. Setup logic also validates and restores config snapshots when needed, merges agent defaults, deploys skills, and resolves preset chains including official preset sources. The command acts as the entry point for first-time project initialization and normalizes the repository into the structure expected by later Senti workflows.",
         "chapter": "cli_commands",
-        "role": "Interactive project setup CLI and bootstrap orchestration",
+        "role": "Project setup command and bootstrap workflow",
         "enrich": {
-          "processedAt": "2026-06-14T08:46:18.627Z",
+          "processedAt": "2026-06-15T00:51:50.143Z",
           "attempts": 1
         },
         "keywords": [
           "setup command",
-          "project bootstrap",
+          "project initialization",
           "interactive wizard",
-          "config initialization",
+          "config generation",
           "preset selection",
-          "AGENTS.md generation",
-          "CLI arguments",
+          "workspace bootstrap",
+          "agent config",
           "gitignore update",
-          "skill deployment"
+          "official presets"
         ]
       },
       {
@@ -11033,9 +11040,9 @@
     ],
     "summary": {
       "total": 212,
-      "totalMethods": 1821
+      "totalMethods": 1825
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-14T23:05:16.875Z"
+  "enrichedAt": "2026-06-15T00:52:52.977Z"
 }
