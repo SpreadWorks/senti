@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-15T15:22:09.532Z",
+  "analyzedAt": "2026-06-15T16:20:55.727Z",
   "package": {
     "entries": [
       {
@@ -2567,7 +2567,7 @@
         "usedBy": null,
         "id": "5f80ffd2",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -3695,7 +3695,7 @@
         ],
         "id": "f336678e",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -5074,9 +5074,9 @@
       },
       {
         "file": "src/flow/lib/run-final-regression.js",
-        "hash": "3f371b3e51fc5942df800964d03e52fe",
-        "lines": 835,
-        "mtime": "2026-06-15T13:47:44.729Z",
+        "hash": "70aebd63836704b5330d9ef2f8ef64c1",
+        "lines": 873,
+        "mtime": "2026-06-15T16:20:37.614Z",
         "className": "run-final-regression",
         "methods": [
           "repoRelative",
@@ -5102,6 +5102,7 @@
           "hasTestExecuteCoverage",
           "riskCategoryForPath",
           "riskBasedSkipDecision",
+          "projectPolicySkipDecision",
           "finalRegressionSkipDecision",
           "classifyChangeScope",
           "boundedText",
@@ -5999,9 +6000,9 @@
       },
       {
         "file": "src/flow/lib/run-retro.js",
-        "hash": "a24f6d665282cb1bfeca79ed5df8476a",
-        "lines": 163,
-        "mtime": "2026-05-16T08:19:57.846Z",
+        "hash": "5aa86b09515b0596aa1f3f8c95551d5a",
+        "lines": 173,
+        "mtime": "2026-06-15T16:20:37.614Z",
         "className": "run-retro",
         "methods": [
           "RunRetroCommand",
@@ -6024,21 +6025,8 @@
         "usedBy": null,
         "id": "862e7d08",
         "enrich": {
-          "processedAt": "2026-05-18T13:31:12.050Z",
-          "attempts": 5
-        },
-        "summary": "Generates `retro.json` by mapping requirement outcomes from test execution and test-result review artifacts.",
-        "detail": "The command validates existence and schema of `test-execute-result.json` and `test-result-review.json` before aggregation. It loads normalized spec requirements and produces done/not-done entries with notes derived from test evidence or errors. Missing requirements and artifact validation failures return explicit envelope errors with actionable messages. Successful execution writes the retrospective file and returns artifact/location metadata.",
-        "chapter": "cli_commands",
-        "role": "retrospective synthesis command",
-        "keywords": [
-          "retrospective summary",
-          "requirement coverage",
-          "test review validation",
-          "retro.json",
-          "evidence mapping",
-          "artifact checks"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/run-review.js",
@@ -6293,9 +6281,9 @@
       },
       {
         "file": "src/flow/lib/run-test-execute.js",
-        "hash": "a6c3901429c97715fdaadbd143db60b1",
-        "lines": 337,
-        "mtime": "2026-06-15T13:47:44.730Z",
+        "hash": "298be20b686f87d43ee3631aeb0d9c29",
+        "lines": 362,
+        "mtime": "2026-06-15T16:20:37.614Z",
         "className": "run-test-execute",
         "methods": [
           "failedRequirementIdsFromSpecLocal",
@@ -6308,6 +6296,8 @@
           "testableRequirementsForSummary",
           "extractRequirementIds",
           "requirementResult",
+          "requirementSummaryResult",
+          "requirementRawResultLine",
           "buildSummary",
           "specLocalPassed",
           "buildSkippedRegression",
@@ -6338,9 +6328,9 @@
       },
       {
         "file": "src/flow/lib/run-test-result-review.js",
-        "hash": "27e56c2fad61d33f1fe3ebcee323b577",
-        "lines": 133,
-        "mtime": "2026-06-02T11:45:07.597Z",
+        "hash": "d011a4ffa6d30f5e8d404bb664f89868",
+        "lines": 168,
+        "mtime": "2026-06-15T16:20:37.614Z",
         "className": "run-test-result-review",
         "methods": [
           "pass",
@@ -6349,7 +6339,8 @@
           "validateRegressionRawRange",
           "validateProjectRegression",
           "readRawOutputText",
-          "writeMarkdown"
+          "writeMarkdown",
+          "writeReviewArtifacts"
         ],
         "imports": [
           "fs",
@@ -6366,22 +6357,8 @@
         "usedBy": null,
         "id": "c1fba537",
         "enrich": {
-          "processedAt": "2026-06-04T10:48:25.705Z",
-          "attempts": 6
-        },
-        "summary": "Implements the flow step that reviews `test-execute` artifacts and persists a validated review report. It checks summary evidence, regression evidence, and raw log bounds before writing JSON and Markdown outputs.",
-        "detail": "The command resolves the spec directory from flow state, then requires both `test-execute-result.json` and the raw execution log to exist before proceeding. It loads the spec and raw output, validates summary evidence and project regression evidence through dedicated helper functions, and converts failures into structured pass/fail check items. Raw output reading is bounded by artifact size limits to avoid oversized logs. After validation, it writes the review artifact JSON and a Markdown rendering into the spec directory, and returns repo-relative paths for downstream flow steps.",
-        "chapter": "cli_commands",
-        "role": "test artifact review command",
-        "keywords": [
-          "test review",
-          "artifact validation",
-          "raw output log",
-          "regression evidence",
-          "flow command",
-          "markdown report",
-          "test-execute result"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/run-update-overview.js",
@@ -7199,9 +7176,9 @@
       },
       {
         "file": "src/flow/lib/test-artifacts.js",
-        "hash": "94f16d5b6a89318817bdcca78809d09b",
-        "lines": 1400,
-        "mtime": "2026-06-15T13:47:44.731Z",
+        "hash": "f637b721fb697de919743af309efa10d",
+        "lines": 1465,
+        "mtime": "2026-06-15T16:20:37.615Z",
         "className": "test-artifacts",
         "methods": [
           "matchUpgradeRequiredSourcePaths",
@@ -7368,9 +7345,26 @@
           "src/upgrade.js"
         ],
         "id": "0b1b96b3",
+        "summary": "This module manages flow test artifacts, including file paths, schema checks, evidence validation, and trust gating. It centralizes how execution, review, regression, upgrade, and scenario-validity artifacts are read, written, completed, and verified.",
+        "detail": "The file defines a large set of artifact constants, size limits, line-count limits, and path patterns used to keep test outputs bounded and predictable. It validates multiple JSON artifacts such as test execution results, test reviews, upgrade results, scenario-validity results, and final regression outputs, with strict checks for membership, ranges, stale data, and required evidence. It also contains artifact collection and cleanup helpers for durable, temporary, excluded, and rebuildable files, plus file-map and requirement-summary utilities. A major responsibility is trust enforcement: it scans for placeholders, checks explicit permission files, verifies required trust inputs, and fails closed when artifact evidence is incomplete, stale, or suspicious.",
+        "chapter": "internal_design",
+        "role": "Artifact validation and trust enforcement layer for the flow system",
         "enrich": {
+          "processedAt": "2026-06-15T16:21:20.972Z",
           "attempts": 1
-        }
+        },
+        "keywords": [
+          "test artifacts",
+          "artifact validation",
+          "evidence verification",
+          "trust gate",
+          "placeholder detection",
+          "regression evidence",
+          "scenario validity",
+          "upgrade result",
+          "file map",
+          "raw log parsing"
+        ]
       },
       {
         "file": "src/flow/lib/test-headers.js",
@@ -7429,9 +7423,9 @@
       },
       {
         "file": "src/flow/lib/test-regression.js",
-        "hash": "e1f9ba63bbf22625e60bb9cf6e8ca99c",
-        "lines": 523,
-        "mtime": "2026-06-15T13:47:44.731Z",
+        "hash": "0eb0701270b5872c6436afbd0a975a8d",
+        "lines": 546,
+        "mtime": "2026-06-15T16:20:37.615Z",
         "className": "test-regression",
         "methods": [
           "formatElapsedMs",
@@ -7495,9 +7489,11 @@
           "DEFAULT_TEST_TIMEOUT_SECONDS",
           "DEFAULT_PROCESS_HEARTBEAT_MS",
           "MIN_PROCESS_HEARTBEAT_MS",
-          "TEST_EXECUTE_REGRESSION_POLICIES"
+          "TEST_EXECUTE_REGRESSION_POLICIES",
+          "NO_SUPPORTED_REGRESSION_COMMAND",
+          "REGRESSION_COMMAND_CHECKED_SOURCES"
         ],
-        "extends": null,
+        "extends": "Error",
         "usedBy": [
           "src/flow/lib/run-final-regression.js",
           "src/flow/lib/run-scenario-validity.js",
@@ -7505,9 +7501,26 @@
           "src/flow/lib/test-artifacts.js"
         ],
         "id": "2980d983",
+        "summary": "This module plans and executes project regression testing based on changed files and repository configuration. It discovers a safe test command, classifies change scope, and provides process-level execution helpers.",
+        "detail": "The code models parsed commands, command identity, regression classification, and execution plans with small dedicated classes. It discovers supported regression commands from config and common project files, rejects shell-heavy command strings, and normalizes them into argv plus environment variables for safe execution. It classifies changed files into trigger-relevant and non-trigger categories using repository analysis, spec-driven artifact paths, documentation paths, and project test paths, then derives targeted, full, or skipped regression behavior from policy. It also fingerprints changed files, formats elapsed time, captures detailed child-process results, and exposes timeout and heartbeat defaults for long-running test commands.",
+        "chapter": "internal_design",
+        "role": "Regression command discovery, change classification, and process execution helper",
         "enrich": {
+          "processedAt": "2026-06-15T16:21:20.972Z",
           "attempts": 1
-        }
+        },
+        "keywords": [
+          "regression testing",
+          "changed files",
+          "test command discovery",
+          "command parsing",
+          "targeted regression",
+          "full regression",
+          "process execution",
+          "file fingerprinting",
+          "test timeout",
+          "change classification"
+        ]
       },
       {
         "file": "src/flow/registry.js",
@@ -7553,8 +7566,25 @@
         "usedBy": null,
         "id": "d64f4095",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-06-15T16:21:20.972Z",
+          "attempts": 2
+        },
+        "summary": "This module is the central registry for flow commands and lifecycle hooks. It coordinates command execution, step-state updates, retry handling, issue logging, and artifact validation across flow phases.",
+        "detail": "The file wires together flow commands with registry-level lifecycle behavior, including draft review, gate, finalize, and retry-related transitions. It derives active phases and runtime step IDs, updates step status defensively, and applies lifecycle actions through an adapter that can invoke side effects and plugin hooks. The exported command registry includes operational commands for flow management as well as validation-oriented commands that load and verify test-execute, test-review, and final-regression artifacts from the active spec directory. Overall, this module acts as the orchestration layer that connects CLI-style entrypoints to lower-level flow, judgment, and artifact subsystems.",
+        "chapter": "cli_commands",
+        "role": "Top-level flow command registry and lifecycle orchestration",
+        "keywords": [
+          "command registry",
+          "CLI flow commands",
+          "lifecycle hooks",
+          "step status",
+          "retry handling",
+          "issue log",
+          "flow orchestration",
+          "artifact checks",
+          "phase routing",
+          "plugin hooks"
+        ]
       },
       {
         "file": "src/help.js",
@@ -11134,9 +11164,9 @@
     ],
     "summary": {
       "total": 212,
-      "totalMethods": 1876
+      "totalMethods": 1880
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-15T13:48:29.801Z"
+  "enrichedAt": "2026-06-15T16:21:45.944Z"
 }
