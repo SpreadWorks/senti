@@ -1012,11 +1012,12 @@
     },
     {
       "step": "finalize-cleanup",
-      "reason": "cherry-pick conflict during auto-rescue (worktree retained for manual recovery)",
-      "trigger": "senti flow run finalize-cleanup --auto-rescue",
-      "resolution": "cherry-pick aborted; user must resolve manually via archive + individual cherry-pick",
+      "reason": "finalize-cleanup failed to remove the worktree because cleanup-time flow metrics and workflow warning artifacts remained dirty",
+      "trigger": "git worktree remove reported modified flow.json and untracked plugin-artifacts/workflow/ideas-warning.json",
+      "resolution": "Record the leftover cleanup artifacts in the feature branch and rerun finalize-cleanup so worktree removal can proceed without losing audit data",
+      "guardrailCandidate": "cleanup hooks that write post-cleanup artifacts should commit or ignore those artifacts before attempting worktree removal",
       "taskId": null,
-      "timestamp": "2026-06-15T13:57:14.576Z"
+      "timestamp": "2026-06-15T13:52:02.877Z"
     }
   ]
 }
