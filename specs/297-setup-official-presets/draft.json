@@ -1,0 +1,101 @@
+{
+  "devType": "bugfix",
+  "goal": "`SENTI_OFFICIAL_PRESETS_REPO` が未設定の fresh project でも、`senti setup` の preset 選択で official presets を候補表示できるようにする。",
+  "analysis": {
+    "problem": "`senti setup` の候補表示は env 由来の `officialPresetRoot` がある場合だけ official presets を追加する。一方で official preset の default remote は `plugin-registry.js` に定義済みで、`upgrade` 側では利用できる。結果として fresh setup では default remote が使われず、`base` だけが表示される。",
+    "proposedApproach": "setup の候補表示で使う official source discovery を `plugin-registry.js` 側へ寄せ、env override が無い場合は default official remote から manifest を読める状態にする。base-only 選択では official plugin state を保存せず、official preset 選択時だけ source/package state を保存する。",
+    "validation": "Issue #387 の再現条件は、`src/setup.js` の `officialPresetCandidateOptions()` と `src/lib/presets.js` の `listSetupPresetCandidates()` の現行実装に一致する。`src/lib/plugin-registry.js` には `DEFAULT_OFFICIAL_PRESET_SOURCE` と `ensureOfficialPackage()` があり、default remote を使う既存 precedent がある。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: `src/setup.js` の `officialPresetCandidateOptions()` は `officialPresetPluginRoot()` を呼び、root が truthy の場合だけ `includeOfficialPresets` を有効にする。",
+      "must: `src/lib/presets.js` の `listSetupPresetCandidates()` は `includeOfficialPresets` が true の場合、`PluginManifest.fromRoot(officialPresetRoot)` でローカル root の manifest を読む。",
+      "must: `src/lib/plugin-registry.js` には `DEFAULT_OFFICIAL_PRESET_SOURCE` として `git@github.com:SpreadWorks/senti-presets.git` が定義されている。",
+      "must: `upgrade` 側は `ensureOfficialPackage()` 経由で default official source を materialize できる。",
+      "must: migration inventory: 既存の `senti setup` は core presets と有効化済み plugin presets を候補表示し、`SENTI_OFFICIAL_PRESETS_REPO` がある場合だけ official presets を追加表示する。",
+      "must: migration inventory: 既存の `senti setup` は base-only 選択時に official plugin source/package state を保存しない。",
+      "must: migration inventory: 既存の `senti setup` は official preset 選択時に `ensureSetupOfficialPresetState()` で official source/package state を保存し、その後の preset chain validation に使う。",
+      "must: migration inventory: 既存の `SENTI_OFFICIAL_PRESETS_REPO` override は local repository manifest を読む検証用経路として機能する。",
+      "must: active flow の作業は worktree 内で行う。main repository の git state を変更しない。"
+    ],
+    "decisionPoints": [
+      "must: setup の候補表示は env override が無くても default official remote から official presets を取得できる必要がある。",
+      "must: base-only 選択では official plugin source/package state を `.senti/config.json` に残さない必要がある。",
+      "must: official preset 選択時は source/package state を保存し、以後の preset chain validation と docs generation が同じ registry 経路で解決できる必要がある。",
+      "must: migration mapping: core presets と有効化済み plugin presets の候補表示は既存の `listSetupPresetCandidates()` / plugin registry 経路で保持する。",
+      "must: migration mapping: official preset manifest 解決は env-only の setup local-root 経路から、default official source resolution を再利用する setup discovery 経路へ移す。",
+      "must: migration mapping: `SENTI_OFFICIAL_PRESETS_REPO` override は default remote より優先される local source override として保持する。",
+      "must: migration mapping: base-only 選択時の no-persistence behavior は保持し、official preset 選択時の persistence behavior は `ensureSetupOfficialPresetState()` 相当の保存経路へ接続する。",
+      "should: official source 解決に失敗した場合、`base` だけを黙って表示せず、原因が分かる失敗または警告を返す必要がある。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 外部依存は追加しない。Git clone/fetch や manifest 読み取りは既存の Node.js built-in と既存 process helper を使う。",
+      "must: `config.local.json` の private plugin source/package を public `.senti/config.json` に漏らさない。",
+      "must: Issue #387 は単一 concern として扱い、別 spec に分割しない。",
+      "must: setup/upgrade/preset source を変更した場合は関連テストに加え、必要に応じて `senti upgrade` artifact を作成する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: setup 用 helper の具体的な関数名、戻り値、保存タイミングは spec で existing helper との責務境界として定義する。",
+      "must: fresh setup を非対話または helper 単位で検証する regression test の形は spec で定義する。",
+      "must: migration verification: fresh setup candidate discovery は env 未設定かつ official plugin 未導入でも official presets を候補に含むことを behavior-level test で確認する。",
+      "must: migration verification: base-only 選択では `.senti/config.json` に official source/package state が保存されないことを behavior-level test で確認する。",
+      "must: migration verification: official preset 選択では `.senti/config.json` に official source/package state が保存され、preset chain validation が新経路で通ることを behavior-level test で確認する。",
+      "must: migration verification: `SENTI_OFFICIAL_PRESETS_REPO` override は保持され、local official source を候補表示に使えることを behavior-level test で確認する。",
+      "must: migration verification: official source 解決失敗時は silent base-only fallback にならず、原因付き failure になることを behavior-level test で確認する。",
+      "should: default remote clone/fetch の保存場所と cleanup 方針は、既存 plugin source directory の利用有無を含めて spec で定義する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: `senti setup` の interactive preset candidate discovery を修正対象に含める。",
+      "must: official preset source resolution の default remote 利用を修正対象に含める。",
+      "must: official preset 選択後の `.senti/config.json` source/package persistence を修正対象に含める。",
+      "must: base-only 選択時に official plugin state が残らないことを修正対象に含める。",
+      "must: setup/official preset 関連の regression tests を修正対象に含める。"
+    ],
+    "out": [
+      "must: official preset repository の preset 内容変更は対象外。",
+      "must: workflow plugin の board / hook / command behavior 変更は対象外。",
+      "must: setup と無関係な plugin registry redesign は対象外。",
+      "must: npm publish / dist-tag 操作は対象外。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: fresh `senti setup` の preset 候補表示が変わる。env 未設定でも official presets が候補に出る。",
+    "must: `SENTI_OFFICIAL_PRESETS_REPO` は local verification override として保持する。",
+    "must: 既存の `upgrade` 経路は保持し、default official source resolution の重複を減らす。",
+    "must: migration parity: core preset 表示、有効化済み plugin preset 表示、base-only no-persistence、official preset persistence、preset chain validation の公開挙動を保持する。",
+    "should: official remote へアクセスできない環境では、失敗理由が従来より明確になる。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "official source 解決に失敗した場合、`senti setup` はどのようにユーザーへ通知して候補表示を扱うべきですか。",
+      "answer": "must: `senti setup` は official source 解決失敗を原因付きで失敗させる。`base` だけを黙って表示する fallback はしない。",
+      "evidence": "Issue #387 の Test Points は「official source 解決失敗時に `base` だけを黙って出さず、原因が分かる失敗または警告」としている。直前の会話では「聞かずに進める」前提として、失敗時は原因が分かるエラーにする方針を提示済み。",
+      "why": "silent fallback は今回の bug を再発させ、fresh setup で official presets を選べない理由を隠す。原因付き failure は complete-context guardrail と検証可能性に合う。",
+      "considered": "warning + base fallback も検討対象だが、候補表示の欠落を許容するため今回の expected behavior を弱める。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "公式 preset 候補の取得にネットワークアクセスが必要な場合、`senti setup` は候補表示前に自動で取得してよいですか。",
+      "answer": "must: `SENTI_OFFICIAL_PRESETS_REPO` が未設定で local official preset source が未利用の場合、`senti setup` は default official remote から候補表示に必要な manifest を取得してよい。",
+      "evidence": "Issue #387 は `DEFAULT_OFFICIAL_PRESET_SOURCE` (`git@github.com:SpreadWorks/senti-presets.git`) を setup candidate display に使うことを期待動作としている。直前の会話でも「URL から参照しないのか」「setup で preset が選択できるように」と確認済み。",
+      "why": "候補表示前に manifest が無いと official presets を表示できない。default remote を使うことで、手動 env 設定なしに fresh setup の選択肢を回復できる。",
+      "considered": "既存 local cache が無い場合に `base` だけ表示する案は、今回の bug の再現条件を残すため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-15T00:17:04.866Z",
+    "notes": "autoApprove: issue #387 intent and resolved QA accepted for draft gate"
+  }
+}

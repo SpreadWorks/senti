@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Applied 2 repairs by simplifying pending question text and leaving constraints in decisionMap/openQuestions.",
+  "items": [
+    {
+      "title": "1. q1 includes instruction text",
+      "target": "q1",
+      "rationale": "Removed the embedded `must` constraint from the pending question so it asks only the user-visible failure behavior.",
+      "evidence": "draft.json qa[0].question now asks only how `senti setup` should notify the user and handle candidate display.",
+      "changedFieldPaths": [
+        "qa[0].question"
+      ]
+    },
+    {
+      "title": "2. q2 includes rationale and internal detail",
+      "target": "q2",
+      "rationale": "Removed clone/fetch wording and the embedded rationale from the pending question while preserving the network-access decision.",
+      "evidence": "draft.json qa[1].question now asks whether automatic pre-display retrieval is allowed when network access is needed.",
+      "changedFieldPaths": [
+        "qa[1].question"
+      ]
+    }
+  ]
+}

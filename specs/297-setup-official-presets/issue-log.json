@@ -1,0 +1,196 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "既存の公開振る舞いの inventory が不足している。`senti setup` の候補表示フローを env ベースから default remote 経路へ移す変更が、既存の公開挙動（setup 候補表示・参照元・副作用）としてどれを保持/変更するのか、明示的な一覧として列挙されていない。; 移行後の維持対象振る舞いに対する移譲先が欠如している。変更対象の既存機能（候補探索、manifest 解決、`.senti/config.json` 保存経路）について新所有者へのマッピングか明示的削除判断が記載されていない。; 保持する公開サーフェスの parity 検証条件が不足している。既存パスと同等の動作確認（ベース選択・公式 preset 選択、chain validation、docs generation の各 public な振る舞い）を新経路で担保する behavior-level verification が明示されていない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-15T00:17:29.016Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft",
+            "locator": "analysis.proposedApproach"
+          },
+          "observed": "既存の公開振る舞いの inventory が不足している。`senti setup` の候補表示フローを env ベースから default remote 経路へ移す変更が、既存の公開挙動（setup 候補表示・参照元・副作用）としてどれを保持/変更するのか、明示的な一覧として列挙されていない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft",
+            "locator": "decisionMap"
+          },
+          "observed": "移行後の維持対象振る舞いに対する移譲先が欠如している。変更対象の既存機能（候補探索、manifest 解決、`.senti/config.json` 保存経路）について新所有者へのマッピングか明示的削除判断が記載されていない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft",
+            "locator": "qa"
+          },
+          "observed": "保持する公開サーフェスの parity 検証条件が不足している。既存パスと同等の動作確認（ベース選択・公式 preset 選択、chain validation、docs generation の各 public な振る舞い）を新経路で担保する behavior-level verification が明示されていない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "既存の公開振る舞いの inventory が不足している。`senti setup` の候補表示フローを env ベースから default remote 経路へ移す変更が、既存の公開挙動（setup 候補表示・参照元・副作用）としてどれを保持/変更するのか、明示的な一覧として列挙されていない。"
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "移行後の維持対象振る舞いに対する移譲先が欠如している。変更対象の既存機能（候補探索、manifest 解決、`.senti/config.json` 保存経路）について新所有者へのマッピングか明示的削除判断が記載されていない。"
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "保持する公開サーフェスの parity 検証条件が不足している。既存パスと同等の動作確認（ベース選択・公式 preset 選択、chain validation、docs generation の各 public な振る舞い）を新経路で担保する behavior-level verification が明示されていない。"
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate failed because migration parity inventory mapping and behavior verification were missing from the draft",
+      "trigger": "draft gate migration-parity guardrail returned three blocking observations",
+      "resolution": "added migration inventory mapping and behavior-level verification entries to draft decisionMap and impact sections",
+      "guardrailCandidate": "when setup discovery behavior is moved or externalized, record migration inventory mapping and parity tests before running draft gate",
+      "taskId": null,
+      "timestamp": "2026-06-15T00:18:10.933Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "spec-repair: spec-repair.json sourceReview must be \"spec-triage.json\"; spec-repair: spec-repair.json items must be an array",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-15T00:25:34.614Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "spec-repair: spec-repair.json sourceReview must be \"spec-triage.json\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "spec-repair: spec-repair.json items must be an array",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "spec-repair: items[0].target must be non-empty; spec-repair: items[0].target must match spec-triage apply item 0.target; spec-repair: items[0].rationale must be non-empty; spec-repair: items[0].evidence must be non-empty",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-15T00:25:45.751Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "spec-repair: items[0].target must be non-empty",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "spec-repair: items[0].target must match spec-triage apply item 0.target",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "spec-repair: items[0].rationale must be non-empty",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "spec-repair: items[0].evidence must be non-empty",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "spec-gate",
+      "phase": "spec",
+      "reason": "AI evaluation response is not valid JSON: Expected double-quoted property name in JSON at position 194 (line 1 column 195)",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-15T00:26:10.610Z"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "gate FAIL (no details)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-15T00:26:10.619Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "spec-gate",
+      "phase": "spec",
+      "reason": "AI evaluation response is not valid JSON: Expected double-quoted property name in JSON at position 194 (line 1 column 195)",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-15T00:26:22.931Z"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "gate FAIL (no details)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-15T00:26:22.940Z",
+      "passedGuardrails": []
+    }
+  ]
+}

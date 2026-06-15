@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "One blocking finding is valid and should be repaired by specifying deterministic test control for the default official source path.",
+  "items": [
+    {
+      "title": "Default-source tests lack a controllable target",
+      "target": "T-1 / R1 / R5",
+      "decision": "apply",
+      "rationale": "The spec requires no-env default-source behavior and source failure behavior while avoiding network-dependent tests. A test-controllable default source descriptor is required to make those requirements verifiable.",
+      "evidence": "spec.json R1 and R5 require unset-env default source behavior; T-1 test_strategy currently says to use fixture repositories but does not say how the private default source is substituted without SENTI_OFFICIAL_PRESETS_REPO."
+    }
+  ]
+}

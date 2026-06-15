@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "既存の公開振る舞いの inventory が不足している。`senti setup` の候補表示フローを env ベースから default remote 経路へ移す変更が、既存の公開挙動（setup 候補表示・参照元・副作用）としてどれを保持/変更するのか、明示的な一覧として列挙されていない。",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft",
+            "locator": "analysis.proposedApproach"
+          },
+          "observed": "既存の公開振る舞いの inventory が不足している。`senti setup` の候補表示フローを env ベースから default remote 経路へ移す変更が、既存の公開挙動（setup 候補表示・参照元・副作用）としてどれを保持/変更するのか、明示的な一覧として列挙されていない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "移行後の維持対象振る舞いに対する移譲先が欠如している。変更対象の既存機能（候補探索、manifest 解決、`.senti/config.json` 保存経路）について新所有者へのマッピングか明示的削除判断が記載されていない。",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft",
+            "locator": "decisionMap"
+          },
+          "observed": "移行後の維持対象振る舞いに対する移譲先が欠如している。変更対象の既存機能（候補探索、manifest 解決、`.senti/config.json` 保存経路）について新所有者へのマッピングか明示的削除判断が記載されていない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "保持する公開サーフェスの parity 検証条件が不足している。既存パスと同等の動作確認（ベース選択・公式 preset 選択、chain validation、docs generation の各 public な振る舞い）を新経路で担保する behavior-level verification が明示されていない。",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft",
+            "locator": "qa"
+          },
+          "observed": "保持する公開サーフェスの parity 検証条件が不足している。既存パスと同等の動作確認（ベース選択・公式 preset 選択、chain validation、docs generation の各 public な振る舞い）を新経路で担保する behavior-level verification が明示されていない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft",
+        "locator": "analysis.proposedApproach"
+      },
+      "observed": "既存の公開振る舞いの inventory が不足している。`senti setup` の候補表示フローを env ベースから default remote 経路へ移す変更が、既存の公開挙動（setup 候補表示・参照元・副作用）としてどれを保持/変更するのか、明示的な一覧として列挙されていない。",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft",
+        "locator": "decisionMap"
+      },
+      "observed": "移行後の維持対象振る舞いに対する移譲先が欠如している。変更対象の既存機能（候補探索、manifest 解決、`.senti/config.json` 保存経路）について新所有者へのマッピングか明示的削除判断が記載されていない。",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft",
+        "locator": "qa"
+      },
+      "observed": "保持する公開サーフェスの parity 検証条件が不足している。既存パスと同等の動作確認（ベース選択・公式 preset 選択、chain validation、docs generation の各 public な振る舞い）を新経路で担保する behavior-level verification が明示されていない。",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    }
+  ]
+}

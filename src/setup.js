@@ -25,8 +25,7 @@ import { resolveWorkDir } from "./lib/config.js";
 import { mergeAgentDefaults } from "./lib/agent-defaults.js";
 import { deploySkills } from "./lib/skills.js";
 import { SENTI_GITIGNORE_LINES, hasSentiGitignore, normalizeSentiGitignore } from "./lib/gitignore.js";
-import { officialPresetPluginRoot } from "./lib/official-plugins.js";
-import { ensureSetupOfficialPresetState } from "./lib/plugin-registry.js";
+import { ensureSetupOfficialPresetState, resolveSetupOfficialPresetSource } from "./lib/plugin-registry.js";
 
 // ---------------------------------------------------------------------------
 // readline helpers
@@ -254,13 +253,17 @@ function fixClaudeMdSymlink(sourceDir) {
   } catch (err) { if (err.code !== "ENOENT") console.error(err); }
 }
 
-function officialPresetCandidateOptions({ required = false } = {}) {
-  const root = officialPresetPluginRoot();
-  return { includeOfficialPresets: required || Boolean(root), officialPresetRoot: root };
+function officialPresetCandidateOptions(projectRoot, { defaultOfficialPresetSource } = {}) {
+  const official = resolveSetupOfficialPresetSource(projectRoot, { defaultOfficialPresetSource });
+  return {
+    includeOfficialPresets: true,
+    officialPresetRoot: official.root,
+    officialPresetSource: official.source,
+  };
 }
 
-function listInteractiveSetupPresetCandidates(projectRoot) {
-  return listSetupPresetCandidates(projectRoot, officialPresetCandidateOptions());
+function listInteractiveSetupPresetCandidates(projectRoot, options = {}) {
+  return listSetupPresetCandidates(projectRoot, officialPresetCandidateOptions(projectRoot, options));
 }
 
 export const listSetupWizardPresetCandidates = listInteractiveSetupPresetCandidates;
@@ -387,7 +390,7 @@ function resolveLeafTypes(primaryType, additionalTypes, projectRoot, candidates 
 export const resolveSetupLeafTypes = resolveLeafTypes;
 
 function buildSummaryLines(s, t, projectRoot) {
-  const candidates = listSetupPresetCandidates(projectRoot, officialPresetCandidateOptions());
+  const candidates = listSetupPresetCandidates(projectRoot, officialPresetCandidateOptions(projectRoot));
   const leafTypes = resolveLeafTypes(s.type, s.additionalTypes, projectRoot, candidates);
   const agentFile = s.agent === "claude" ? "CLAUDE.md" : "AGENTS.md";
 
@@ -556,7 +559,14 @@ async function main() {
 
   validate(config);
 
-  const setupCandidates = listSetupPresetCandidates(workRoot, officialPresetCandidateOptions());
+  let officialPresetOptions = {};
+  let setupCandidates = listSetupPresetCandidates(workRoot);
+  const candidateKeys = new Set(setupCandidates.map((candidate) => candidate.key));
+  const needsOfficialPresetState = selectedTypes.some((type) => type !== "base" && !candidateKeys.has(type));
+  if (needsOfficialPresetState) {
+    officialPresetOptions = officialPresetCandidateOptions(workRoot);
+    setupCandidates = listSetupPresetCandidates(workRoot, officialPresetOptions);
+  }
   const leafTypes = resolveLeafTypes(
     settings.type,
     settings.additionalTypes,
@@ -581,7 +591,8 @@ async function main() {
   try {
     ensureSetupOfficialPresetState(workRoot, {
       selectedTypes,
-      officialPresetRoot: officialPresetPluginRoot(),
+      officialPresetRoot: officialPresetOptions.officialPresetRoot,
+      officialPresetSource: officialPresetOptions.officialPresetSource,
     });
   } catch (err) {
     restoreConfigFile(configPath, configSnapshot);

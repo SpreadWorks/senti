@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "2 repair targets are valid and should be applied by simplifying pending question text.",
+  "items": [
+    {
+      "title": "1. q1 includes instruction text",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "The pending question should ask only the user-visible behavior choice. The priority-marked constraint belongs in decisionMap/openQuestions, where it is already covered.",
+      "evidence": "draft.json qa[0].question includes a `must` constraint; decisionMap.decisionPoints already records that silent base-only fallback should not remain."
+    },
+    {
+      "title": "2. q2 includes rationale and internal detail",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "The pending question should ask about allowing pre-prompt network retrieval without embedding implementation detail or rationale in the question itself.",
+      "evidence": "draft.json qa[1].question mentions clone/fetch and a `must` rationale; decisionMap.decisionPoints already records the requirement to make official presets available before selection."
+    }
+  ]
+}

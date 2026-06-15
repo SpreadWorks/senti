@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied the blocking review finding by specifying deterministic test control for default official source resolution without using SENTI_OFFICIAL_PRESETS_REPO.",
+  "items": [
+    {
+      "title": "Default-source tests lack a controllable target",
+      "target": "T-1 / R1 / R5",
+      "decision": "applied",
+      "rationale": "The spec requires no-env default-source behavior and source failure behavior while avoiding network-dependent tests. A test-controllable default source descriptor is required to make those requirements verifiable.",
+      "evidence": "spec.json R1 and R5 require unset-env default source behavior; T-1 test_strategy now specifies the resolver test-control path without using SENTI_OFFICIAL_PRESETS_REPO.",
+      "changedFields": [
+        "constraints",
+        "overview.decisions",
+        "acceptance_criteria",
+        "tasks[T-1].acceptance",
+        "tasks[T-1].implementation_notes",
+        "tasks[T-1].test_strategy"
+      ],
+      "notes": "The spec now requires an internal helper/options or test hook that can substitute the default source descriptor/root while production callers keep DEFAULT_OFFICIAL_PRESET_SOURCE and SENTI_OFFICIAL_PRESETS_REPO remains unset in default-source tests."
+    }
+  ]
+}

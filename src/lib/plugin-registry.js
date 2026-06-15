@@ -5,6 +5,7 @@ import { fileURLToPath, pathToFileURL } from "url";
 import { repoRoot } from "./cli.js";
 import { loadConfig, loadRawConfig, sentiConfigPath, sentiDir } from "./config.js";
 import { Envelope } from "./flow-envelope.js";
+import { officialPresetPluginRoot } from "./official-plugins.js";
 import { runCmd, assertOk } from "./process.js";
 
 const ID_RE = /^[a-z0-9][a-z0-9._-]*$/;
@@ -939,13 +940,49 @@ const DEFAULT_OFFICIAL_PRESET_SOURCE = Object.freeze({
   remote: "git@github.com:SpreadWorks/senti-presets.git",
 });
 
-export function officialPresetContributionKeys(sourceRoot) {
-  if (!sourceRoot) throw new Error("official preset source cannot be resolved");
-  if (!fs.existsSync(sourceRoot)) throw new Error(`official preset source not found: ${sourceRoot}`);
+function cloneOfficialPresetSource(source = DEFAULT_OFFICIAL_PRESET_SOURCE) {
+  const value = source || DEFAULT_OFFICIAL_PRESET_SOURCE;
+  return { ...value, id: value.id || DEFAULT_OFFICIAL_PRESET_SOURCE.id };
+}
+
+function officialPresetSourceFromRoot(sourceRoot) {
+  if (!sourceRoot) return null;
+  const source = {
+    id: DEFAULT_OFFICIAL_PRESET_SOURCE.id,
+    type: isGitUrl(sourceRoot) ? "git" : "local",
+  };
+  if (source.type === "git") source.url = sourceRoot;
+  else source.path = sourceRoot;
+  return source;
+}
+
+function assertOfficialPresetManifest(sourceRoot) {
   const manifest = PluginManifest.fromRoot(sourceRoot, DEFAULT_OFFICIAL_PRESET_SOURCE.id);
   if (manifest.name !== DEFAULT_OFFICIAL_PRESET_SOURCE.id) {
     throw new Error(`official package mismatch: expected ${DEFAULT_OFFICIAL_PRESET_SOURCE.id}, got ${manifest.name}`);
   }
+  return manifest;
+}
+
+export function resolveSetupOfficialPresetSource(root, { defaultOfficialPresetSource } = {}) {
+  const overrideRoot = officialPresetPluginRoot();
+  const source = overrideRoot
+    ? officialPresetSourceFromRoot(overrideRoot)
+    : cloneOfficialPresetSource(defaultOfficialPresetSource);
+  try {
+    const resolved = resolveSource(root, source);
+    assertOfficialPresetManifest(resolved.root);
+    return { source, root: resolved.root, commit: resolved.commit, materialized: resolved.materialized };
+  } catch (cause) {
+    const location = sourceLocation(source) || source.id;
+    throw new Error(`official preset source cannot be resolved: ${maskPluginSource(location)}`, { cause });
+  }
+}
+
+export function officialPresetContributionKeys(sourceRoot) {
+  if (!sourceRoot) throw new Error("official preset source cannot be resolved");
+  if (!fs.existsSync(sourceRoot)) throw new Error(`official preset source not found: ${sourceRoot}`);
+  const manifest = assertOfficialPresetManifest(sourceRoot);
   return new Set(manifest.presetEntries().map((preset) => preset.key));
 }
 
@@ -992,11 +1029,18 @@ export function ensureOfficialPackage(root, { id, sourceRoot, ref } = {}) {
   }
 }
 
-export function ensureSetupOfficialPresetState(root, { selectedTypes = [], officialPresetRoot } = {}) {
+export function ensureSetupOfficialPresetState(root, { selectedTypes = [], officialPresetRoot, officialPresetSource } = {}) {
   const typeList = (Array.isArray(selectedTypes) ? selectedTypes : [selectedTypes]).filter(Boolean);
   const nonBaseTypes = typeList.filter((type) => type !== "base");
   if (nonBaseTypes.length === 0) return { changed: false, installed: false };
-  if (!officialPresetRoot) return { changed: false, installed: false };
+
+  let resolvedOfficial = null;
+  let sourceForOfficial = officialPresetSource ? cloneOfficialPresetSource(officialPresetSource) : null;
+  if (!officialPresetRoot) {
+    resolvedOfficial = resolveSetupOfficialPresetSource(root, { defaultOfficialPresetSource: sourceForOfficial || undefined });
+    officialPresetRoot = resolvedOfficial.root;
+    sourceForOfficial = resolvedOfficial.source;
+  }
 
   const officialKeys = officialPresetContributionKeys(officialPresetRoot);
   const selectedOfficialTypes = nonBaseTypes.filter((type) => officialKeys.has(type));
@@ -1014,19 +1058,16 @@ export function ensureSetupOfficialPresetState(root, { selectedTypes = [], offic
     if (plugin.sources.length >= MAX_PLUGIN_SOURCES) {
       throw new Error(`plugin source search exceeds ${MAX_PLUGIN_SOURCES} sources`);
     }
-    source = { id: DEFAULT_OFFICIAL_PRESET_SOURCE.id, type: isGitUrl(officialPresetRoot) ? "git" : "local" };
-    if (source.type === "git") source.url = officialPresetRoot;
-    else source.path = officialPresetRoot;
+    source = sourceForOfficial || officialPresetSourceFromRoot(officialPresetRoot);
     plugin.sources.push(source);
     addedSource = true;
   }
 
-  const materializedSource = materializationSource(source, officialPresetRoot);
-  const resolved = resolveSource(root, materializedSource);
-  const sourceManifest = PluginManifest.fromRoot(resolved.root);
-  if (sourceManifest.name !== DEFAULT_OFFICIAL_PRESET_SOURCE.id) {
-    throw new Error(`official package mismatch: expected ${DEFAULT_OFFICIAL_PRESET_SOURCE.id}, got ${sourceManifest.name}`);
-  }
+  const sourceLocationValue = sourceLocation(source);
+  const resolved = resolvedOfficial && sourceLocationValue === sourceLocation(sourceForOfficial)
+    ? resolvedOfficial
+    : resolveSource(root, materializationSource(source, officialPresetRoot));
+  assertOfficialPresetManifest(resolved.root);
 
   const existing = plugin.packages.find((pkg) => pkg.id === DEFAULT_OFFICIAL_PRESET_SOURCE.id);
   let reenabled = false;

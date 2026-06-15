@@ -1,0 +1,106 @@
+{
+  "version": "1",
+  "raw_output_path": "specs/297-setup-official-presets/tests/.raw/scenario-validity.log",
+  "command": "node --test specs/297-setup-official-presets/tests/setup-default-official-candidates.test.js specs/297-setup-official-presets/tests/setup-default-official-state.test.js",
+  "process": {
+    "started": true,
+    "exitCode": 1,
+    "signal": null,
+    "timedOut": false,
+    "spawnError": null
+  },
+  "result": "pass",
+  "summary": [
+    {
+      "id": "R1",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/297-setup-official-presets/tests/setup-default-official-candidates.test.js",
+        "test_name": "R1: fresh setup uses the default official source when the env override is unset",
+        "command": "node --test specs/297-setup-official-presets/tests/setup-default-official-candidates.test.js specs/297-setup-official-presets/tests/setup-default-official-state.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 259
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/297-setup-official-presets/tests/setup-default-official-candidates.test.js",
+        "test_name": "R2: SENTI_OFFICIAL_PRESETS_REPO takes precedence over the default official source",
+        "command": "node --test specs/297-setup-official-presets/tests/setup-default-official-candidates.test.js specs/297-setup-official-presets/tests/setup-default-official-state.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 259
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/297-setup-official-presets/tests/setup-default-official-candidates.test.js",
+        "test_name": "R3: discovering default official candidates does not persist official plugin state",
+        "command": "node --test specs/297-setup-official-presets/tests/setup-default-official-candidates.test.js specs/297-setup-official-presets/tests/setup-default-official-state.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 259
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/297-setup-official-presets/tests/setup-default-official-state.test.js",
+        "test_name": "R4: selecting a default-source official preset persists installable official state",
+        "command": "node --test specs/297-setup-official-presets/tests/setup-default-official-candidates.test.js specs/297-setup-official-presets/tests/setup-default-official-state.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 259
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/297-setup-official-presets/tests/setup-default-official-candidates.test.js",
+        "test_name": "R5: unresolved default official source fails instead of returning only base",
+        "command": "node --test specs/297-setup-official-presets/tests/setup-default-official-candidates.test.js specs/297-setup-official-presets/tests/setup-default-official-state.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 259
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/297-setup-official-presets/tests/setup-default-official-state.test.js",
+        "test_name": "R6: default-source official state does not copy private local plugin entries into public config",
+        "command": "node --test specs/297-setup-official-presets/tests/setup-default-official-candidates.test.js specs/297-setup-official-presets/tests/setup-default-official-state.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 259
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/297-setup-official-presets/tests/setup-default-official-candidates.test.js",
+        "test_name": "R7: installed plugin preset candidates remain present with default official candidates",
+        "command": "node --test specs/297-setup-official-presets/tests/setup-default-official-candidates.test.js specs/297-setup-official-presets/tests/setup-default-official-state.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 259
+        }
+      }
+    }
+  ]
+}
