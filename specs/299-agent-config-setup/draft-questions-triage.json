@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "4 repair targets apply. All findings are priority markers embedded in pending question text; repair should remove the markers from question wording without changing the decision topics.",
+  "items": [
+    {
+      "title": "1. Policy label and extra instruction in question",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "The decision topic is valid, but the pending question should not include priority labels or extra policy text.",
+      "evidence": "draft-review-questions.json repairTargets[0] points to draft.json qa q2 question text containing must: and a second instruction sentence."
+    },
+    {
+      "title": "2. Priority label in question",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "The non-interactive --agent decision is valid, but the question text should not include a priority label.",
+      "evidence": "draft-review-questions.json repairTargets[1] points to draft.json qa q3 question text containing should:."
+    },
+    {
+      "title": "3. Priority label in question",
+      "target": "q4",
+      "decision": "apply",
+      "rationale": "The agent file generation target decision is valid, but the question text should not include a priority label.",
+      "evidence": "draft-review-questions.json repairTargets[2] points to draft.json qa q4 question text containing should:."
+    },
+    {
+      "title": "4. Priority labels in question",
+      "target": "q5",
+      "decision": "apply",
+      "rationale": "The discoverability decision is valid, but the question text should not include priority labels.",
+      "evidence": "draft-review-questions.json repairTargets[3] points to draft.json qa q5 question text containing must: and nice-to-have:."
+    }
+  ]
+}

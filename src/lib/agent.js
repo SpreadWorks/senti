@@ -22,6 +22,7 @@ import { spawn } from "child_process";
 import { generateRequestId } from "./log.js";
 import { ProviderRegistry } from "./provider.js";
 import { formatPreview } from "./error-preview.js";
+import { defaultAgentProfiles } from "./agent-defaults.js";
 
 const DEFAULT_AGENT_TIMEOUT_MS = 300_000;
 const DEFAULT_STDIN_FALLBACK_THRESHOLD = 100_000;
@@ -617,9 +618,9 @@ function resolveProfileSelection(agentSection, commandId, options = {}) {
     return new ProfileSelection({ profileSource, profileName, keySource: "default", key: defaultKey });
   }
 
-  const profiles = agentSection.profiles;
+  const profiles = resolveAgentProfiles(agentSection);
   if (!profiles || !profiles[profileName]) {
-    throw new Error(`Profile "${profileName}" is not defined in agent.profiles.`);
+    throw new Error(`Profile "${profileName}" is not defined in built-in profiles or agent.profiles.`);
   }
 
   const activeMatch = matchProfilePrefix(profiles[profileName], commandId);
@@ -633,6 +634,13 @@ function resolveProfileSelection(agentSection, commandId, options = {}) {
   }
 
   return new ProfileSelection({ profileSource, profileName, keySource: "default", key: defaultKey });
+}
+
+function resolveAgentProfiles(agentSection) {
+  return {
+    ...defaultAgentProfiles(),
+    ...(agentSection.profiles || {}),
+  };
 }
 
 function resolveProfileKey(agentSection, commandId, options = {}) {

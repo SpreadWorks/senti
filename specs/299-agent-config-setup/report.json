@@ -1,0 +1,263 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "docs/configuration.md                              |   26 +\n docs/ja/configuration.md                           |   26 +\n .../299-agent-config-setup/acceptance-review.json  |   21 +\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-questions-repair.json                    |   44 +\n .../draft-questions-triage.json                    |   36 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   40 +\n specs/299-agent-config-setup/draft.json            |  162 ++++\n specs/299-agent-config-setup/file-map.json         |   52 +\n specs/299-agent-config-setup/flow.json             | 1000 ++++++++++++++++++++\n specs/299-agent-config-setup/impl-review.json      |  189 ++++\n specs/299-agent-config-setup/issue-log.json        |   11 +\n specs/299-agent-config-setup/issue.md              |  116 +++\n .../plugin-artifacts/workflow/prepare.json         |   10 +\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |   84 ++\n .../review-history/impl-attempt-001.json           |  393 ++++++++\n .../review-history/impl-attempt-001.md             |  235 +++++\n .../review-history/spec-attempt-001.json           |   94 ++\n .../review-history/spec-attempt-001.md             |   31 +\n .../review-history/test-attempt-001.json           |  156 +++\n .../review-history/test-attempt-001.md             |   51 +\n .../review-history/test-attempt-002.json           |   67 ++\n .../review-history/test-attempt-002.md             |   24 +\n .../review-history/test-attempt-003.json           |   28 +\n .../review-history/test-attempt-003.md             |   13 +\n specs/299-agent-config-setup/review.md             |  235 +++++\n specs/299-agent-config-setup/spec-repair.json      |   54 ++\n specs/299-agent-config-setup/spec-review.json      |   50 +\n specs/299-agent-config-setup/spec-review.md        |   31 +\n specs/299-agent-config-setup/spec-triage.json      |   29 +\n specs/299-agent-config-setup/spec.json             |  365 +++++++\n specs/299-agent-config-setup/spec.md               |  153 +++\n specs/299-agent-config-setup/tasks/T-1.md          |   20 +\n specs/299-agent-config-setup/tasks/T-2.md          |   22 +\n specs/299-agent-config-setup/tasks/T-3.md          |   20 +\n specs/299-agent-config-setup/tasks/T-4.md          |   20 +\n specs/299-agent-config-setup/tasks/T-5.md          |   20 +\n specs/299-agent-config-setup/test-coverage.json    |  119 +++\n specs/299-agent-config-setup/test-review.json      |   25 +\n specs/299-agent-config-setup/test-review.md        |   13 +\n .../tests/agent-config-setup.test.js               |  385 ++++++++\n src/lib/agent-defaults.js                          |   22 +-\n src/lib/agent.js                                   |   12 +-\n src/lib/config.js                                  |   13 +-\n src/lib/provider.js                                |    3 +\n src/locale/en/ui.json                              |    4 +-\n src/locale/ja/ui.json                              |    4 +-\n src/setup.js                                       |  350 +++++--\n src/upgrade.js                                     |   53 +-\n 52 files changed, 4873 insertions(+), 99 deletions(-)",
+      "commits": [
+        "Improve setup agent config generation"
+      ]
+    },
+    "retro": {
+      "total": 9,
+      "done": 9,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "Interactive `senti setup` lets the user select claude only, codex only, or claude + codex as available agents, and asks for a main/default agent only when both families are selected.",
+          "status": "done",
+          "note": "R1: interactive setup prompt plan asks main agent only for dual-family selections"
+        },
+        {
+          "desc": "Setup writes `agent.default` as `claude` or `codex` and writes `agent.useProfile` as `claude-only`, `codex-only`, `claude-main`, or `codex-main` according to selected availability and main agent.",
+          "status": "done",
+          "note": "R2: generated setup agent config stores aliases and useProfile without built-in profiles/providers"
+        },
+        {
+          "desc": "Non-interactive `senti setup --agent` accepts single values `claude` / `codex` and comma-separated multi-agent values; for multi-agent values, the first listed family is the main/default agent.",
+          "status": "done",
+          "note": "R3: non-interactive --agent uses first-listed main semantics"
+        },
+        {
+          "desc": "Runtime agent resolution and config validation resolve package built-in profiles/providers without requiring them to be copied into `.senti/config.json`, while user-defined `agent.profiles` and `agent.providers` override built-ins by key.",
+          "status": "done",
+          "note": "R4: validation and runtime resolution accept built-in profiles without config-local copies"
+        },
+        {
+          "desc": "Normal setup and upgrade do not add package built-in `agent.profiles` or `agent.providers` entries to config; existing unknown entries remain preserved as user overrides.",
+          "status": "done",
+          "note": "R5: setup config generation does not seed built-ins and preserves unknown user entries"
+        },
+        {
+          "desc": "When both claude and codex are selected interactively, setup lets the user choose AGENTS.md and/or CLAUDE.md generation targets; when both are selected non-interactively, setup generates both files by default.",
+          "status": "done",
+          "note": "R6: multi-agent setup resolves interactive and non-interactive file targets"
+        },
+        {
+          "desc": "Setup completion output and help/docs explain selected `agent.default`, selected `agent.useProfile`, available built-in profile names, and override examples for `agent.profiles` and `agent.providers`.",
+          "status": "done",
+          "note": "R7: setup summary exposes selected aliases, useProfile, and built-in profile names"
+        },
+        {
+          "desc": "Existing concrete provider key defaults such as `claude/sonnet` or `codex/gpt-5.4` remain resolvable until setup or an explicit user edit rewrites them to family aliases.",
+          "status": "done",
+          "note": "R8: existing concrete provider key defaults remain resolvable"
+        },
+        {
+          "desc": "Rerunning setup normalizes existing `agent.default` family aliases, concrete provider keys, and built-in `agent.useProfile` names into wizard availability and main/default defaults before prompting or rewriting config.",
+          "status": "done",
+          "note": "R9: existing agent config normalizes into setup wizard defaults"
+        }
+      ]
+    },
+    "upgrade": {
+      "result": "success-updated",
+      "summary": {
+        "skills": {
+          "updated": 6,
+          "unchanged": 0,
+          "removed": 0
+        },
+        "presets": {
+          "copied": 4
+        },
+        "plugins": {
+          "changed": true
+        },
+        "config": {
+          "changed": false
+        },
+        "rename": {
+          "changed": 2
+        }
+      },
+      "rawLogPath": "tests/.raw/upgrade.log"
+    },
+    "issueLog": {
+      "count": 1,
+      "fullLogPath": "specs/299-agent-config-setup/issue-log.json",
+      "importantTotal": 1,
+      "importantShown": 1,
+      "importantOmitted": 0,
+      "recentOtherTotal": 0,
+      "recentOtherShown": 0,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "fix: generated missing upgrade-result.json by running senti upgrade",
+          "resolution": "Gate failed before AI validation because upgrade-result.json was missing; the upgrade artifact now exists, while unrelated README/config/test changes produced by upgrade were restored out of the implementation diff."
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 354492,
+      "output": 46871,
+      "cacheRead": 1036032,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 24,
+      "durationMs": 753533,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 23106
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 13710
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 9811
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 249079
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 11198
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 76321
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 311709
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 58599
+        }
+      ]
+    },
+    "tests": {
+      "total": 9,
+      "passed": 9,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/299-agent-config-setup/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 105,
+          "end_line": 18626
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/299-agent-config-setup/"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/agent-defaults.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/agent.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/config.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/provider.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/setup.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/upgrade.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/299-agent-config-setup/"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/agent-defaults.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/agent.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/config.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/provider.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/setup.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/upgrade.js"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/299-agent-config-setup/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    Improve setup agent config generation\n    52 files changed, 4873 insertions(+), 99 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (9 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 1\n    agent calls ................. 24\n    input tokens ................ 354,492\n    output tokens ............... 46,871\n    cache-read tokens ........... 1,036,032\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 753.5s\n      draft-questions-review .... 23.1s\n      draft-coverage-review ..... 13.7s\n      draft-gate ................ 9.8s\n      spec-review ............... 249.1s\n      spec-gate ................. 11.2s\n      test-review ............... 76.3s\n      impl-review ............... 311.7s\n      impl-gate ................. 58.6s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 9  passed 9  failed 0 verdict=pass\n    raw_output: specs/299-agent-config-setup/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (1 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/299-agent-config-setup/issue-log.json\n\n    Important (1)\n    - [impl-gate] fix: generated missing upgrade-result.json by running senti upgrade"
+}

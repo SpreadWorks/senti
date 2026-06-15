@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied three spec-review repairs for non-interactive setup main selection, non-interactive agent file target defaults, and existing config wizard default normalization.",
+  "items": [
+    {
+      "title": "Non-interactive multi-agent main selection is ambiguous",
+      "target": "R3 / R2",
+      "decision": "applied",
+      "rationale": "Defined first-listed family semantics for comma-separated --agent values and updated requirement, acceptance criteria, data flow, overview decision, and setup task acceptance.",
+      "evidence": "spec.json requirements R3 now states first-listed family is main/default; acceptance_criteria includes --agent claude,codex and --agent codex,claude.",
+      "changedFields": [
+        "overview.data_flow",
+        "overview.decisions",
+        "requirements[R3].desc",
+        "acceptance_criteria",
+        "tasks[T-2].acceptance",
+        "tasks[T-2].test_strategy"
+      ]
+    },
+    {
+      "title": "Non-interactive instruction-file targets are undefined for multi-agent setup",
+      "target": "R6 / setup --agent contract",
+      "decision": "applied",
+      "rationale": "Specified that non-interactive multi-agent setup generates both AGENTS.md and CLAUDE.md by default, while interactive setup still lets users choose targets.",
+      "evidence": "spec.json requirements R6 and acceptance_criteria now define interactive target selection and non-interactive both-file default.",
+      "changedFields": [
+        "overview.data_flow",
+        "overview.decisions",
+        "requirements[R6].desc",
+        "acceptance_criteria",
+        "tasks[T-2].acceptance"
+      ]
+    },
+    {
+      "title": "Existing config setup defaults are not specified",
+      "target": "R1 / R2 / R8",
+      "decision": "applied",
+      "rationale": "Added R9 to require rerunning setup to normalize existing family aliases, concrete provider keys, and built-in useProfile names into wizard availability/main defaults.",
+      "evidence": "spec.json requirements R9 and acceptance_criteria now cover existing config setup default normalization.",
+      "changedFields": [
+        "scope.in",
+        "overview.data_flow",
+        "overview.decisions",
+        "requirements[R9]",
+        "acceptance_criteria",
+        "tasks[T-2].acceptance",
+        "tasks[T-2].test_strategy",
+        "tasks[T-5].acceptance"
+      ]
+    }
+  ]
+}

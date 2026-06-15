@@ -6,9 +6,9 @@
  * the currently installed senti version.
  *
  * Safe to run repeatedly — only overwrites skill-managed content. config.json
- * is migrated in place additively (chapters format; agent default profiles +
- * their referenced providers, add-only with existing user values preserved);
- * agent `default` / `useProfile` are never touched. context.json is untouched.
+ * is migrated in place for supported legacy shapes while preserving user agent
+ * profiles/providers; package built-ins are resolved at runtime instead of
+ * being copied during normal upgrade. context.json is untouched.
  *
  * Usage:
  *   senti upgrade [--dry-run]
@@ -20,7 +20,6 @@ import { repoRoot, parseArgs } from "./lib/cli.js";
 import { EXIT_ERROR } from "./lib/constants.js";
 import { loadConfig, sentiConfigPath, sentiDir } from "./lib/config.js";
 import { container } from "./lib/container.js";
-import { mergeAgentDefaults } from "./lib/agent-defaults.js";
 import { translate } from "./lib/i18n.js";
 import { validatePresetChain } from "./lib/presets.js";
 import { officialPresetPluginRoot } from "./lib/official-plugins.js";
@@ -262,6 +261,24 @@ export function parseUpgradeArgs(argv) {
     options: [],
     defaults: { dryRun: false },
   });
+}
+
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+export function migrateConfigForUpgrade(raw) {
+  const next = clone(raw || {});
+  let changed = false;
+  let migratedChapters = 0;
+
+  if (Array.isArray(next.chapters) && next.chapters.length > 0 && typeof next.chapters[0] === "string") {
+    next.chapters = next.chapters.map((name) => ({ chapter: name }));
+    changed = true;
+    migratedChapters = next.chapters.length;
+  }
+
+  return { config: next, changed, migratedChapters };
 }
 
 function resolveActiveUpgradeFlow(root) {
@@ -661,35 +678,19 @@ async function main() {
     summary.presets.copied = presetCopies.length;
   }
 
-  // Migrate config.json in place (chapters format + agent defaults). Single read/write.
+  // Migrate config.json in place. Single read/write.
   let configChanged = preConfigChanged;
   try {
     const raw = JSON.parse(fs.readFileSync(configPath, "utf8"));
-
-    // Migrate chapters format (string[] → object[])
-    if (Array.isArray(raw.chapters) && raw.chapters.length > 0 && typeof raw.chapters[0] === "string") {
-      raw.chapters = raw.chapters.map((name) => ({ chapter: name }));
+    const migrated = migrateConfigForUpgrade(raw);
+    if (migrated.migratedChapters > 0) {
       configChanged = true;
-      logger.log(`[upgrade] migrated chapters to new format (${raw.chapters.length} entries)`);
+      logger.log(`[upgrade] migrated chapters to new format (${migrated.migratedChapters} entries)`);
     }
-
-    // Seed default agent profiles + their referenced providers (add-only; existing
-    // user values win). Only when an agent section already exists — never impose
-    // agent config on projects that don't use it. default/useProfile untouched.
-    if (raw.agent && typeof raw.agent === "object") {
-      const merged = mergeAgentDefaults(raw.agent);
-      if (merged.changed) {
-        configChanged = true;
-        const parts = [];
-        if (merged.addedProfiles.length) parts.push(`profiles: ${merged.addedProfiles.join(", ")}`);
-        if (merged.addedSlots.length) parts.push(`slots: ${merged.addedSlots.length}`);
-        if (merged.addedProviders.length) parts.push(`providers: ${merged.addedProviders.join(", ")}`);
-        logger.log(`[upgrade] added agent defaults (${parts.join("; ")})`);
-      }
-    }
+    if (migrated.changed) configChanged = true;
 
     if (configChanged && !dryRun) {
-      fs.writeFileSync(configPath, JSON.stringify(raw, null, 2) + "\n", "utf8");
+      fs.writeFileSync(configPath, JSON.stringify(migrated.config, null, 2) + "\n", "utf8");
     }
   } catch (_) {
     // config.json missing or unreadable — skip

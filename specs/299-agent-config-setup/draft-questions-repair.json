@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Removed priority labels from q2-q5 pending question text while preserving the same decision topics.",
+  "items": [
+    {
+      "title": "1. Policy label and extra instruction in question",
+      "target": "q2",
+      "rationale": "Removed the embedded must: label and the extra compaction instruction sentence from the question text.",
+      "evidence": "draft.json qa[1].question now asks only the migration policy question.",
+      "changedFieldPaths": [
+        "qa[1].question"
+      ]
+    },
+    {
+      "title": "2. Priority label in question",
+      "target": "q3",
+      "rationale": "Removed the embedded should: label from the non-interactive --agent question.",
+      "evidence": "draft.json qa[2].question now contains no priority label.",
+      "changedFieldPaths": [
+        "qa[2].question"
+      ]
+    },
+    {
+      "title": "3. Priority label in question",
+      "target": "q4",
+      "rationale": "Removed the embedded should: label from the agent file generation target question.",
+      "evidence": "draft.json qa[3].question now contains no priority label.",
+      "changedFieldPaths": [
+        "qa[3].question"
+      ]
+    },
+    {
+      "title": "4. Priority labels in question",
+      "target": "q5",
+      "rationale": "Removed the embedded must: and nice-to-have: labels from the discoverability question.",
+      "evidence": "draft.json qa[4].question now contains no priority labels.",
+      "changedFieldPaths": [
+        "qa[4].question"
+      ]
+    }
+  ]
+}

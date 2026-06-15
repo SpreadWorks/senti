@@ -22,7 +22,7 @@ import { listSetupPresetCandidates, resolveMultiChains, resolvePresetCandidateCh
 import { buildTreeItems, select } from "./lib/multi-select.js";
 import { loadSpecDrivenDevelopmentTemplate } from "./lib/agents-md.js";
 import { resolveWorkDir } from "./lib/config.js";
-import { mergeAgentDefaults } from "./lib/agent-defaults.js";
+import { defaultAgentProfiles } from "./lib/agent-defaults.js";
 import { deploySkills } from "./lib/skills.js";
 import { SENTI_GITIGNORE_LINES, hasSentiGitignore, normalizeSentiGitignore } from "./lib/gitignore.js";
 import { ensureSetupOfficialPresetState, resolveSetupOfficialPresetSource } from "./lib/plugin-registry.js";
@@ -73,6 +73,169 @@ function parseSetupArgs(argv) {
 }
 
 // ---------------------------------------------------------------------------
+// Agent setup intent
+// ---------------------------------------------------------------------------
+
+const SETUP_AGENT_FAMILIES = ["claude", "codex"];
+const SETUP_AGENT_FILE_BY_FAMILY = {
+  claude: "CLAUDE.md",
+  codex: "AGENTS.md",
+};
+const SETUP_PROFILE_BY_INTENT = {
+  "claude": "claude-only",
+  "codex": "codex-only",
+  "claude,codex:claude": "claude-main",
+  "claude,codex:codex": "codex-main",
+};
+const SETUP_INTENT_BY_PROFILE = {
+  "claude-only": { selectedAgents: ["claude"], mainAgent: "claude" },
+  "codex-only": { selectedAgents: ["codex"], mainAgent: "codex" },
+  "claude-main": { selectedAgents: ["claude", "codex"], mainAgent: "claude" },
+  "codex-main": { selectedAgents: ["claude", "codex"], mainAgent: "codex" },
+};
+const SETUP_BUILT_IN_PROFILE_ORDER = [
+  "claude-only",
+  "codex-only",
+  "claude-main",
+  "codex-main",
+];
+
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function normalizeSetupAgentFamily(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (raw === "claude" || raw.startsWith("claude/")) return "claude";
+  if (raw === "codex" || raw.startsWith("codex/")) return "codex";
+  return "";
+}
+
+function normalizeSelectedAgents(values) {
+  const selected = [];
+  for (const value of values || []) {
+    const family = normalizeSetupAgentFamily(value);
+    if (family && !selected.includes(family)) selected.push(family);
+  }
+  return selected;
+}
+
+function setupIntentFromProfile(profileName) {
+  const intent = SETUP_INTENT_BY_PROFILE[profileName];
+  return intent ? clone(intent) : null;
+}
+
+export function resolveSetupAgentDefaults(agent = {}) {
+  const fromProfile = setupIntentFromProfile(agent.useProfile);
+  if (fromProfile) return fromProfile;
+
+  const family = normalizeSetupAgentFamily(agent.default);
+  if (family) return { selectedAgents: [family], mainAgent: family };
+
+  return { selectedAgents: [], mainAgent: "" };
+}
+
+export function parseSetupAgentOption(value) {
+  const selectedAgents = normalizeSelectedAgents(String(value || "").split(","));
+  const mainAgent = selectedAgents[0] || "";
+  return { selectedAgents, mainAgent };
+}
+
+export function buildSetupAgentConfig({ selectedAgents, mainAgent }) {
+  const agents = normalizeSelectedAgents(selectedAgents);
+  if (agents.length === 0) return null;
+
+  const main = normalizeSetupAgentFamily(mainAgent) || agents[0];
+  const profileKey = agents.length === 1
+    ? agents[0]
+    : `${[...SETUP_AGENT_FAMILIES].sort().join(",")}:${main}`;
+  const useProfile = SETUP_PROFILE_BY_INTENT[profileKey];
+  if (!useProfile) {
+    throw new Error(`unsupported setup agent intent: ${agents.join(",")} main=${main}`);
+  }
+
+  return { default: main, useProfile, workDir: ".tmp" };
+}
+
+export function resolveSetupAgentFileTargets({ selectedAgents, mode, selectedTargets = [] } = {}) {
+  const agents = normalizeSelectedAgents(selectedAgents);
+  if (agents.length === 0) return [];
+  if (agents.length === 1) return [SETUP_AGENT_FILE_BY_FAMILY[agents[0]]];
+  if (mode === "interactive" && selectedTargets.length > 0) {
+    return selectedTargets.filter((target) => target === "AGENTS.md" || target === "CLAUDE.md");
+  }
+  return ["AGENTS.md", "CLAUDE.md"];
+}
+
+export function buildSetupAgentPromptPlan({ selectedAgents = [], mainAgent = "", selectedTargets = [] } = {}) {
+  const agents = normalizeSelectedAgents(selectedAgents);
+  const prompts = [
+    {
+      id: "availableAgents",
+      mode: "multi",
+      options: SETUP_AGENT_FAMILIES.map((key) => ({ key })),
+    },
+  ];
+
+  const result = { selectedAgents: agents, mainAgent, agentFileTargets: [] };
+  if (agents.length > 1) {
+    prompts.push({
+      id: "mainAgent",
+      mode: "single",
+      options: agents.map((key) => ({ key })),
+    });
+    prompts.push({
+      id: "agentFileTargets",
+      mode: "multi",
+      options: [
+        { key: "AGENTS.md" },
+        { key: "CLAUDE.md" },
+      ],
+    });
+    result.mainAgent = normalizeSetupAgentFamily(mainAgent) || agents[0];
+    result.agentFileTargets = resolveSetupAgentFileTargets({
+      selectedAgents: agents,
+      mode: "interactive",
+      selectedTargets,
+    });
+  } else if (agents.length === 1) {
+    prompts.push({
+      id: "agentFileMode",
+      mode: "single",
+      options: [
+        { key: "generate" },
+        { key: "skip" },
+      ],
+    });
+    result.mainAgent = agents[0];
+    result.agentFileTargets = resolveSetupAgentFileTargets({ selectedAgents: agents });
+  }
+
+  return { ...result, prompts };
+}
+
+export function buildSetupAgentHelpText() {
+  const profileNames = setupBuiltInProfileNames().join(", ");
+  return [
+    "agent.default stores the selected family alias: claude or codex.",
+    `agent.useProfile stores one built-in profile name: ${profileNames}.`,
+    "Built-in agent.profiles and agent.providers are resolved by senti at runtime.",
+    "Override a built-in profile/provider by defining the same key in config.json.",
+    'Example "agent.profiles": { "codex-main": { "docs.readme": "my-codex" } }',
+    'Example "agent.providers": { "my-codex": { "command": "codex", "args": ["exec", "{{PROMPT}}"] } }',
+  ].join("\n");
+}
+
+function setupBuiltInProfileNames() {
+  const names = Object.keys(defaultAgentProfiles());
+  return [
+    ...SETUP_BUILT_IN_PROFILE_ORDER.filter((name) => names.includes(name)),
+    ...names.filter((name) => !SETUP_BUILT_IN_PROFILE_ORDER.includes(name)),
+  ];
+}
+
+// ---------------------------------------------------------------------------
 // Config file I/O
 // ---------------------------------------------------------------------------
 
@@ -108,6 +271,7 @@ function loadExistingDefaults(workRoot) {
   const cfg = readConfigFile(configPath);
   if (!cfg) return null;
   const types = Array.isArray(cfg.type) ? cfg.type : cfg.type ? [cfg.type] : [];
+  const agentDefaults = resolveSetupAgentDefaults(cfg.agent || {});
   return {
     projectName: cfg.name || "",
     lang: cfg.lang || DEFAULT_LANG,
@@ -117,7 +281,13 @@ function loadExistingDefaults(workRoot) {
     outputDefault: cfg.docs?.defaultLanguage || "",
     purpose: cfg.docs?.style?.purpose || "",
     tone: cfg.docs?.style?.tone || "",
-    agent: cfg.agent?.default || "",
+    agent: agentDefaults.mainAgent,
+    selectedAgents: agentDefaults.selectedAgents,
+    mainAgent: agentDefaults.mainAgent,
+    agentFileTargets: resolveSetupAgentFileTargets({
+      selectedAgents: agentDefaults.selectedAgents,
+      mode: "interactive",
+    }),
   };
 }
 
@@ -253,6 +423,17 @@ function fixClaudeMdSymlink(sourceDir) {
   } catch (err) { if (err.code !== "ENOENT") console.error(err); }
 }
 
+export function writeSetupAgentFiles({ workRoot, lang, agentFileTargets, presetTypes, t }) {
+  const targets = Array.isArray(agentFileTargets) ? agentFileTargets : [];
+  if (targets.includes("CLAUDE.md")) fixClaudeMdSymlink(workRoot);
+  for (const target of targets) {
+    ensureAgentConfigFile(path.join(workRoot, target), lang, t, {
+      projectRoot: workRoot,
+      presetTypes,
+    });
+  }
+}
+
 function officialPresetCandidateOptions(projectRoot, { defaultOfficialPresetSource } = {}) {
   const official = resolveSetupOfficialPresetSource(projectRoot, { defaultOfficialPresetSource });
   return {
@@ -357,19 +538,43 @@ async function runWizard(defaults, t, { projectRoot } = {}) {
   // --- Agent ---
   const agentChoices = t.raw("setup.choices.agent");
   console.log(`\n${t("setup.questions.agent")}`);
-  s.agent = await select([
+  s.selectedAgents = await select([
     { key: "claude", label: agentChoices.claude },
     { key: "codex", label: agentChoices.codex },
-  ], { mode: "single", default: s.agent });
+  ], { mode: "multi", default: s.selectedAgents || (s.agent ? [s.agent] : ["codex"]) });
+  if (s.selectedAgents.length === 0) s.selectedAgents = ["codex"];
+
+  if (s.selectedAgents.length === 1) {
+    s.mainAgent = s.selectedAgents[0];
+    s.agent = s.mainAgent;
+  } else {
+    console.log(`\n${t("setup.questions.mainAgent") || "Main/default AI agent:"}`);
+    s.mainAgent = await select(
+      s.selectedAgents.map((key) => ({ key, label: agentChoices[key] || key })),
+      { mode: "single", default: s.mainAgent || s.agent || s.selectedAgents[0] },
+    );
+    s.agent = s.mainAgent;
+  }
 
   // --- Agent config file ---
-  const agentFileName = s.agent === "claude" ? "CLAUDE.md" : "AGENTS.md";
   const agentsChoices = t.raw("setup.choices_agents");
-  console.log(`\n${agentFileName}:`);
-  s.agentFileMode = await select([
-    { key: "generate", label: agentsChoices.rewrite },
-    { key: "skip", label: agentsChoices.skip },
-  ], { mode: "single", default: s.agentFileMode });
+  if (s.selectedAgents.length === 1) {
+    const agentFileName = SETUP_AGENT_FILE_BY_FAMILY[s.selectedAgents[0]];
+    console.log(`\n${agentFileName}:`);
+    s.agentFileMode = await select([
+      { key: "generate", label: agentsChoices.rewrite },
+      { key: "skip", label: agentsChoices.skip },
+    ], { mode: "single", default: s.agentFileMode });
+    s.agentFileTargets = s.agentFileMode === "generate" ? [agentFileName] : [];
+  } else {
+    console.log(`\n${t("setup.questions.agentFiles") || "Agent instruction files:"}`);
+    s.agentFileTargets = await select([
+      { key: "AGENTS.md", label: "AGENTS.md" },
+      { key: "CLAUDE.md", label: "CLAUDE.md" },
+    ], { mode: "multi", default: s.agentFileTargets || ["AGENTS.md", "CLAUDE.md"] });
+    if (s.agentFileTargets.length === 0) s.agentFileTargets = ["AGENTS.md", "CLAUDE.md"];
+    s.agentFileMode = s.agentFileTargets.length > 0 ? "generate" : "skip";
+  }
 
   return s;
 }
@@ -392,7 +597,15 @@ export const resolveSetupLeafTypes = resolveLeafTypes;
 function buildSummaryLines(s, t, projectRoot) {
   const candidates = listSetupPresetCandidates(projectRoot, officialPresetCandidateOptions(projectRoot));
   const leafTypes = resolveLeafTypes(s.type, s.additionalTypes, projectRoot, candidates);
-  const agentFile = s.agent === "claude" ? "CLAUDE.md" : "AGENTS.md";
+  const agentConfig = buildSetupAgentConfig({
+    selectedAgents: s.selectedAgents || (s.agent ? [s.agent] : []),
+    mainAgent: s.mainAgent || s.agent,
+  });
+  const agentFileTargets = s.agentFileTargets || resolveSetupAgentFileTargets({
+    selectedAgents: s.selectedAgents || (s.agent ? [s.agent] : []),
+    mode: "interactive",
+  });
+  const builtInProfiles = setupBuiltInProfileNames().join(", ");
 
   return [
     `  ${t("setup.messages.summary")}`,
@@ -402,12 +615,50 @@ function buildSummaryLines(s, t, projectRoot) {
     `    type:       ${leafTypes.join(", ")}`,
     `    purpose:    ${s.purpose}`,
     `    tone:       ${s.tone}`,
-    `    agent:      ${s.agent}`,
-    `    ${agentFile}: ${s.agentFileMode === "generate" ? "✓" : "skip"}`,
+    `    agent.default:    ${agentConfig?.default || "-"}`,
+    `    agent.useProfile: ${agentConfig?.useProfile || "-"}`,
+    `    built-in profiles: ${builtInProfiles}`,
+    `    agent files: ${agentFileTargets.length > 0 ? agentFileTargets.join(", ") : "skip"}`,
   ];
 }
 
 export const buildSetupSummaryLines = buildSummaryLines;
+
+export function buildSetupConfig({ existingConfig = {}, settings }) {
+  const config = clone(existingConfig || {});
+  const selectedTypes = settings.additionalTypes.length > 0
+    ? [settings.type, ...settings.additionalTypes]
+    : [settings.type];
+
+  config.name = settings.projectName;
+  config.lang = settings.lang;
+  config.type = selectedTypes.length === 1 ? selectedTypes[0] : selectedTypes;
+  config.docs = {
+    ...config.docs,
+    languages: settings.outputLangs,
+    defaultLanguage: settings.outputDefault,
+    style: { ...config.docs?.style, purpose: settings.purpose, tone: settings.tone },
+  };
+  if (!config.flow) config.flow = { merge: "squash" };
+
+  const selectedAgents = settings.selectedAgents
+    || (settings.agent ? parseSetupAgentOption(settings.agent).selectedAgents : []);
+  const mainAgent = settings.mainAgent
+    || parseSetupAgentOption(settings.agent || "").mainAgent
+    || selectedAgents[0]
+    || "";
+  const agentConfig = buildSetupAgentConfig({ selectedAgents, mainAgent });
+  if (agentConfig) {
+    config.agent = {
+      ...(config.agent || {}),
+      default: agentConfig.default,
+      useProfile: agentConfig.useProfile,
+      workDir: config.agent?.workDir || agentConfig.workDir,
+    };
+  }
+
+  return config;
+}
 
 // ---------------------------------------------------------------------------
 // Main
@@ -425,6 +676,8 @@ async function main() {
       `  ${o.name}`, `  ${o.path}`, `  ${o.workRoot}`, `  ${o.type}`,
       `  ${o.purpose}`, `  ${o.tone}`, `  ${o.agent}`,
       `  ${o.lang}`, `  ${o.dryRun}`, `  ${o.help}`,
+      "",
+      buildSetupAgentHelpText(tu),
     ].join("\n"));
     return;
   }
@@ -443,6 +696,7 @@ async function main() {
   if (hasAllRequired) {
     const operatingLang = cli.lang || DEFAULT_LANG;
     const types = cli.type.includes(",") ? cli.type.split(",") : [cli.type];
+    const agentIntent = parseSetupAgentOption(cli.agent || "");
     settings = {
       projectName: cli.name || defaultName,
       lang: operatingLang,
@@ -452,8 +706,14 @@ async function main() {
       additionalTypes: types.slice(1),
       purpose: cli.purpose,
       tone: cli.tone,
-      agent: cli.agent || "",
-      agentFileMode: "generate",
+      agent: agentIntent.mainAgent,
+      selectedAgents: agentIntent.selectedAgents,
+      mainAgent: agentIntent.mainAgent,
+      agentFileTargets: resolveSetupAgentFileTargets({
+        selectedAgents: agentIntent.selectedAgents,
+        mode: "non-interactive",
+      }),
+      agentFileMode: agentIntent.selectedAgents.length > 0 ? "generate" : "skip",
     };
   } else {
     // Load existing config as defaults
@@ -469,6 +729,13 @@ async function main() {
       purpose: cli.purpose || existing?.purpose || "",
       tone: cli.tone || existing?.tone || "",
       agent: cli.agent || existing?.agent || "",
+      selectedAgents: cli.agent
+        ? parseSetupAgentOption(cli.agent).selectedAgents
+        : existing?.selectedAgents || [],
+      mainAgent: cli.agent
+        ? parseSetupAgentOption(cli.agent).mainAgent
+        : existing?.mainAgent || "",
+      agentFileTargets: existing?.agentFileTargets || [],
       agentFileMode: "generate",
     };
 
@@ -520,42 +787,13 @@ async function main() {
 
   // Build config: merge wizard values into existing config to preserve customizations
   const configPath = path.join(workRoot, ".senti", "config.json");
-  let config = readConfigFile(configPath) || {};
   const selectedTypes = settings.additionalTypes.length > 0
     ? [settings.type, ...settings.additionalTypes]
     : [settings.type];
-
-  // Wizard-managed fields (overwrite)
-  config.name = settings.projectName;
-  config.lang = settings.lang;
-  config.type = selectedTypes.length === 1 ? selectedTypes[0] : selectedTypes;
-  config.docs = {
-    ...config.docs,
-    languages: settings.outputLangs,
-    defaultLanguage: settings.outputDefault,
-    style: { ...config.docs?.style, purpose: settings.purpose, tone: settings.tone },
-  };
-  if (!config.flow) config.flow = { merge: "squash" };
-
-  if (settings.agent) {
-    // Normalize short names to namespaced provider keys
-    const AGENT_PROVIDER_DEFAULT = { claude: "claude/sonnet", codex: "codex/gpt-5.4" };
-    const resolvedDefault = AGENT_PROVIDER_DEFAULT[settings.agent] || settings.agent;
-    const defaultAgent = { default: resolvedDefault, workDir: ".tmp" };
-
-    if (config.agent) {
-      // Preserve existing customizations, only update wizard-managed fields
-      config.agent.default = resolvedDefault;
-      if (!config.agent.workDir) config.agent.workDir = defaultAgent.workDir;
-    } else {
-      config.agent = defaultAgent;
-    }
-
-    // Seed default agent profiles + their referenced providers (add-only;
-    // existing user values win). `useProfile` is intentionally left unset —
-    // which profile to use is the user's choice.
-    mergeAgentDefaults(config.agent);
-  }
+  let config = buildSetupConfig({
+    existingConfig: readConfigFile(configPath) || {},
+    settings,
+  });
 
   validate(config);
 
@@ -610,15 +848,17 @@ async function main() {
     fs.mkdirSync(workDir, { recursive: true });
   }
 
-  // Agent config file
+  // Agent config files
   if (settings.agentFileMode === "generate") {
-    fixClaudeMdSymlink(workRoot);
-    const agentConfigFile = settings.agent === "claude"
-      ? path.join(workRoot, "CLAUDE.md")
-      : path.join(workRoot, "AGENTS.md");
-    ensureAgentConfigFile(agentConfigFile, settings.lang, t, {
-      projectRoot: workRoot,
+    writeSetupAgentFiles({
+      workRoot,
+      lang: settings.lang,
+      agentFileTargets: settings.agentFileTargets || resolveSetupAgentFileTargets({
+        selectedAgents: settings.selectedAgents || (settings.agent ? [settings.agent] : []),
+        mode: "non-interactive",
+      }),
       presetTypes: config.type,
+      t,
     });
   }
 

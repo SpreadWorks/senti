@@ -199,6 +199,32 @@ Flow runtime command logs are separate human-readable files. Use `sdd-forge flow
 ```
 <!-- {{/text}} -->
 
+### Built-In Agent Profiles
+
+`senti setup` stores the selected agent family in `agent.default` as `claude` or `codex`, and stores the routing intent in `agent.useProfile`. Built-in profile names are `claude-only`, `codex-only`, `claude-main`, and `codex-main`.
+
+Built-in `agent.profiles` and `agent.providers` are resolved from the package at runtime. They do not need to be copied into `.senti/config.json`. Define the same key locally only when you want to override the package default.
+
+```json
+{
+  "agent": {
+    "default": "codex",
+    "useProfile": "codex-main",
+    "profiles": {
+      "codex-main": {
+        "docs.readme": "my-codex"
+      }
+    },
+    "providers": {
+      "my-codex": {
+        "command": "codex",
+        "args": ["exec", "{{PROMPT}}"]
+      }
+    }
+  }
+}
+```
+
 ### Environment Variables
 
 <!-- {{text({prompt: "List all environment variables referenced by the tool and their purposes in table format. Extract from process.env references in the source code.", mode: "deep"})}} -->

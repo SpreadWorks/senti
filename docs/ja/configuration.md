@@ -161,6 +161,32 @@ sdd-forge は `.sdd-forge/config.json` を唯一の設定ファイルとして�
 ```
 <!-- {{/text}} -->
 
+### built-in エージェント profile
+
+`senti setup` は選択した agent family を `agent.default` に `claude` または `codex` として保存し、routing intent を `agent.useProfile` に保存します。built-in profile 名は `claude-only`, `codex-only`, `claude-main`, `codex-main` です。
+
+built-in の `agent.profiles` と `agent.providers` は package から実行時に解決されます。`.senti/config.json` へコピーする必要はありません。package default を上書きしたい場合だけ、同じ key を local config に定義します。
+
+```json
+{
+  "agent": {
+    "default": "codex",
+    "useProfile": "codex-main",
+    "profiles": {
+      "codex-main": {
+        "docs.readme": "my-codex"
+      }
+    },
+    "providers": {
+      "my-codex": {
+        "command": "codex",
+        "args": ["exec", "{{PROMPT}}"]
+      }
+    }
+  }
+}
+```
+
 ### 環境変数
 
 <!-- {{text({prompt: "ツールが参照する環境変数の一覧と用途を表形式で記述してください。ソースコードの process.env 参照から抽出すること。", mode: "deep"})}} -->

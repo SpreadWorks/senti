@@ -1,0 +1,162 @@
+{
+  "devType": "feature",
+  "goal": "senti setup の agent 選択を複数選択化し、config には選択 intent と明示 override だけを保存する。",
+  "analysis": {
+    "problem": "senti setup は must で claude / codex の複数選択を扱う必要があるが、現在は単一選択だけで agent.default に具体 provider key を保存し、setup と upgrade が built-in profiles/providers を config に seed するため既存 config が package 側の推奨モデル更新に追従しにくい。",
+    "proposedApproach": "setup は利用可能 agent と main/default agent を分けて保存し、agent.default は claude または codex の family alias、agent.useProfile は選択構成に対応する built-in profile 名にする。built-in profiles/providers は runtime resolver と validate が解決し、通常 setup/upgrade では config に大量コピーしない。",
+    "validation": "Issue #390 は agent.default alias、agent.useProfile の 4 パターン、setup/upgrade seed 停止、built-in resolver、help/docs での discoverability を列挙している。src/setup.js は単一 agent 選択と mergeAgentDefaults(config.agent) を持ち、src/upgrade.js も raw.agent が存在すれば mergeAgentDefaults(raw.agent) を呼ぶ。src/lib/agent.js と src/lib/config.js は useProfile を agent.profiles 内の定義として扱うため、built-in を config から外すには resolver/validation 側の対応が必要である。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #390 は setup で claude only、codex only、claude + codex を選べることを要求している。",
+      "must: Issue #390 は agent.default を concrete provider key ではなく claude または codex の family alias として保存することを要求している。",
+      "must: Issue #390 は selected availability と main agent から agent.useProfile を codex-only、claude-only、codex-main、claude-main のいずれかに設定することを要求している。",
+      "must: src/setup.js は現在 setup.choices.agent から claude/codex を mode single で選び、agent.default を claude/sonnet または codex/gpt-5.4 に正規化して保存している。",
+      "must: src/setup.js は config.agent に mergeAgentDefaults(config.agent) を呼び、default profiles/providers を add-only seed している。",
+      "must: src/upgrade.js は raw.agent が object なら mergeAgentDefaults(raw.agent) を呼び、agent profiles/providers を add-only seed している。",
+      "must: src/lib/config.js validate() は config 内の agent.profiles を ProviderRegistry(raw.agent.providers) で検証し、useProfile は agent.profiles 内にある場合だけ検証する。",
+      "must: src/lib/agent.js resolveProfileSelection() は agent.useProfile または SENTI_PROFILE がある場合に agent.profiles 内の profile を要求する。",
+      "must: src/lib/provider.js ProviderRegistry は built-in provider family と user providers を merge し、provider key の family alias fallback を持つ。",
+      "must: src/lib/agent-defaults.js には claude-main、codex-main、claude-only、codex-only の built-in profile 相当の定義がすでに存在するが、コメントと merge API は seed 用になっている。",
+      "must: docs/ より src/ の更新日時が新しいため、矛盾時は source を正とする。",
+      "must: preflight summary はユーザーにより auto mode entry で承認済みである。",
+      "must: 既存 config の判定不能な profiles/providers は user-authored override として保持し、通常 setup/upgrade では削除や縮約をしない。",
+      "should: non-interactive setup --agent は claude,codex の複数指定を受け付け、単一値 claude / codex は既存通り扱う。",
+      "should: claude + codex 選択時は AGENTS.md と CLAUDE.md の生成対象を選べるようにする。",
+      "nice-to-have: built-in profiles/providers の一覧コマンドは今回追加せず、setup completion output と help/docs で discoverability を満たす。"
+    ],
+    "decisionPoints": [
+      "must: setup の interactive agent selection を複数選択に変更し、複数選択時だけ main/default agent を追加で聞く。",
+      "must: setup が保存する agent.default / agent.useProfile / workDir / explicit overrides の責務境界を定義する。",
+      "must: runtime と validate が built-in profiles/providers を config へ seed しなくても解決できるようにする。",
+      "must: upgrade は通常経路で built-in profiles/providers を config に再 seed しない。",
+      "must: 既存 config にすでに seed 済みの profiles/providers がある場合の移行または保存方針を定義する。",
+      "must: help/docs/setup completion output で built-in profiles/providers の discoverability を担保する。",
+      "should: non-interactive setup の --agent が複数 agent intent を表せるかを決める。",
+      "should: 複数 agent 選択時の AGENTS.md / CLAUDE.md 生成対象を決める。",
+      "nice-to-have: built-in profiles/providers の一覧コマンドは help/docs/setup completion output で不足する場合だけ検討する。"
+    ],
+    "resolvedByProjectRules": [
+      "must: Issue #390 は 1 つの concern として扱い、spec を分割しない。",
+      "must: src/ 以下にプロジェクト固有情報を含めない。built-in provider/profile は全ユーザー向けの package-managed defaults として扱う。",
+      "must: 外部依存は追加せず、Node.js 組み込みモジュールと既存 helper だけを使う。",
+      "must: alpha policy により旧 format を維持するためだけの互換コードは書かない。ただし既存 config の user-authored providers/profiles は明示 override として尊重する。",
+      "must: migration parity として setup, upgrade, validate, runtime agent resolution, generated config, agent file generation, help/docs の user-visible behavior を inventory し、保持または意図的変更を spec に書く。",
+      "must: src/skills または src/presets を変更した場合は senti upgrade を実行する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: agent selection matrix を requirements に展開する。claude only、codex only、claude + codex with claude main、claude + codex with codex main の config output を明文化する。",
+      "must: built-in profiles/providers resolver の public contract を定義する。config overrides が built-in より優先され、ユーザーが custom provider/profile を書いた場合は明示 pin として package updates に追従しない。",
+      "must: validate() と runtime resolution が同じ built-in profile/provider source を参照することを acceptance criteria にする。",
+      "must: upgrade が profiles/providers を通常 seed しないことと、既存 user-authored overrides を保持することを acceptance criteria にする。",
+      "must: setup completion output と help/docs の discoverability 文言を acceptance criteria にする。",
+      "must: migration parity verification として、既存の config generation、workDir creation、agent file generation、validate, agent runtime resolution, upgrade logging/dry-run の retained behavior を behavior-level tests に落とす。",
+      "must: tests は setup config generation、upgrade migration、config validation、agent profile resolution、help/docs wording を含める。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: src/setup.js の interactive agent selection を複数選択化する。",
+      "must: 複数 agent 選択時に main/default agent を選ぶ追加質問を出す。",
+      "must: setup が agent.default に claude または codex の family alias を保存する。",
+      "must: setup が selected availability と main agent に応じて agent.useProfile を codex-only、claude-only、codex-main、claude-main のいずれかに設定する。",
+      "must: 通常 setup は built-in profiles/providers を config に大量コピーしない。",
+      "must: 通常 upgrade は raw.agent があるだけで built-in profiles/providers を config に追加しない。",
+      "must: validate と runtime agent resolution は config に built-in profiles/providers が無くても built-in profile names を解決できる。",
+      "must: config.agent.providers / config.agent.profiles に明示された user override は built-in より優先し、自動上書きしない。",
+      "must: 既存 config にある判定不能な profiles/providers は user changes として保持する。",
+      "must: setup 完了時に selected main/default、useProfile、利用可能な built-in profile 名を短く表示する。",
+      "must: help/docs に agent.default、agent.useProfile、agent.profiles、agent.providers の説明と override 例を追加する。",
+      "must: setup / upgrade / config validation / runtime profile resolution / help wording の回帰テストを追加または更新する。",
+      "should: CLI --agent の既存 user-facing contract を migration parity inventory に含める。",
+      "should: AGENTS.md / CLAUDE.md generation target の既存 user-facing contract を migration parity inventory に含める。"
+    ],
+    "out": [
+      "must: senti config example agent のような sample generation command は追加しない。",
+      "must: npm publish / npm dist-tag は実行しない。",
+      "must: 新しい外部依存は追加しない。",
+      "should: built-in provider/model の全面的な見直しは、resolver に必要な範囲を超えて行わない。",
+      "should: docs/ 全体の自動再生成は、この spec の実装完了に必要な範囲を超えて行わない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: senti setup の agent 選択 UI が単一選択から複数選択に変わる。",
+    "must: .senti/config.json の agent.default は claude/sonnet や codex/gpt-5.4 ではなく claude または codex になる。",
+    "must: .senti/config.json に agent.useProfile が設定され、built-in profile 名で command-specific provider selection が行われる。",
+    "must: 新規 setup 後の config から built-in profiles/providers の大量展開が消える。",
+    "must: 既存 config に明示 profiles/providers がある場合は override として尊重され、runtime で built-in より優先される。",
+    "must: upgrade 実行時に agent defaults added という seed 挙動は通常発生しなくなる。",
+    "must: validate() は config に built-in profile body が無い useProfile を reject しないように変わる。",
+    "must: Agent runtime は SENTI_PROFILE / agent.useProfile / default fallback の既存優先順位を維持しつつ、built-in profile source を参照できるようになる。",
+    "should: existing config with concrete provider key default should remain resolvable until setup or explicit user edit changes it, unless spec defines an intentional migration.",
+    "should: setup summary and final output gain agent.default/useProfile/built-in profile discoverability lines.",
+    "must: retained public behavior mapping として、agent workDir creation は setup の write phase に残す。",
+    "must: retained public behavior mapping として、AGENTS.md/CLAUDE.md generation は setup の agent file path decision に残すが、複数 agent 選択時の target policy を spec で定義する。",
+    "must: retained public behavior verification として、existing explicit providers/profiles が runtime resolution で built-in より優先されることをテストする。",
+    "must: retained public behavior verification として、upgrade が non-agent config migration と skill/preset deployment behavior を維持しつつ agent defaults を再 seed しないことをテストする。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "この spec のゴールは、senti setup の agent 選択を複数選択化し、agent.default/useProfile を family alias と built-in profile 名で保存し、built-in profiles/providers を通常 config に seed しない設計へ移すことでよいですか？",
+      "answer": "はい。must: この spec は senti setup の agent 選択を複数選択化し、agent.default/useProfile を family alias と built-in profile 名で保存し、built-in profiles/providers を通常 config に seed しない設計へ移します。",
+      "evidence": "Issue #390 expected behavior lists multi-agent setup selection, agent.default = \"codex\" / \"claude\", agent.useProfile = codex-only / claude-only / codex-main / claude-main, and avoiding bulk-copying built-in profiles/providers during normal setup. The user approved the preflight summary when enabling auto mode.",
+      "why": "単一選択と provider key 保存だけを直しても、setup/upgrade seed による model update 追従問題が残るため、Issue #390 の root problem に対応するには config intent と runtime built-in resolution を一体で扱う必要があります。",
+      "considered": "agent.default だけを alias にする案は、agent.useProfile と setup/upgrade seed 問題を解消しないため採用しません。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "既存 config に seed 済みの agent.profiles / agent.providers がある場合、今回は判定不能な entries を user override として保持し、通常 upgrade/setup では削除や縮約をしない方針でよいですか？",
+      "answer": "はい。must: 既存 config に seed 済みの agent.profiles / agent.providers がある場合、判定不能な entries は user override として保持し、通常 setup/upgrade では削除や縮約をしません。must: 確実に managed 由来と識別できる migration が仕様化されない限り、自動 compaction は行いません。",
+      "evidence": "Issue #390 migration notes state that entries that cannot be identified are safest to preserve as user changes. src/upgrade.js currently performs add-only merge and never records provenance that would identify which entries were managed by senti.",
+      "why": "provenance が無い entries を削除すると、ユーザーが明示的に pin した provider/profile を破壊する可能性があります。Issue #390 は user-written providers/profiles を explicit pin として扱う方針も示しています。",
+      "considered": "既存 seed 相当を値一致で削除する案は、ユーザーが同じ値を明示 override として保存した場合に区別できないため採用しません。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "non-interactive setup の --agent は、claude,codex のような複数 agent intent を表せるようにし、単一値 claude / codex は既存通り受け付ける方針でよいですか？",
+      "answer": "はい。should: non-interactive setup の --agent は claude,codex のような複数 agent intent を表せるようにし、単一値 claude / codex は既存通り受け付けます。",
+      "evidence": "src/setup.js parseSetupArgs() exposes --agent, and non-interactive setup currently passes cli.agent into settings.agent. src/setup.js already accepts comma-separated --type and converts it into an array, so comma-separated CLI input is an established setup pattern.",
+      "why": "setup の agent 選択を複数選択化するなら、interactive と non-interactive の config generation contract を揃える方が migration parity を保ちます。単一値を維持すれば既存 CLI 利用も壊しません。",
+      "considered": "interactive のみ複数選択にする案は、--agent を使う automation が同じ config intent を表せないため採用しません。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "claude + codex を選んだ場合、AGENTS.md と CLAUDE.md の生成対象を main agent だけに限定せず、どちらを生成するか選べるようにする方針でよいですか？",
+      "answer": "はい。should: claude + codex を選んだ場合、AGENTS.md と CLAUDE.md の生成対象を main agent だけに限定せず、どちらを生成するか選べるようにします。",
+      "evidence": "Issue #390 design notes propose setup question order: select multiple available agents, select main/default agent, then choose AGENTS.md / CLAUDE.md generation targets. src/setup.js currently derives a single agent file from settings.agent, so multi-agent selection needs an explicit target policy.",
+      "why": "available agents と main/default agent は runtime selection の intent であり、agent instruction file generation の intent とは別です。複数 agent を使える project で片方の file だけを暗黙生成すると user-visible behavior が不透明になります。",
+      "considered": "main agent 側だけを生成する案は単純ですが、claude + codex を選んだ利用者が両方の agent file を期待する場合に再実行や手作業が必要になるため採用しません。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "follow-up-coverage",
+      "question": "built-in profiles/providers の discoverability は、setup completion output と help/docs の説明で満たし、一覧コマンドは今回追加しない方針でよいですか？",
+      "answer": "はい。must: built-in profiles/providers の discoverability は setup completion output と help/docs の説明で満たします。nice-to-have: 一覧コマンドは今回追加しません。",
+      "evidence": "Issue #390 setting discoverability section requests docs/help explanations and setup completion output, says a list command is only to consider if necessary, and explicitly says a sample generation command is unnecessary.",
+      "why": "今回の root problem は config への seed と setup selection であり、新しい list command は必須要件ではありません。help/docs と setup completion output で設定可能性を示せば、config への bulk-copy なしで discoverability を満たせます。",
+      "considered": "senti config example agent の追加は Issue #390 で不要とされているため採用しません。built-in list command は将来追加可能ですが、今回の必須 scope には含めません。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-15T03:22:06Z",
+    "notes": "All draft QA entries are answered from Issue #390, project rules, existing source context, and the user-approved preflight summary."
+  }
+}

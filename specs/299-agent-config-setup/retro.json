@@ -1,0 +1,63 @@
+{
+  "spec": "specs/299-agent-config-setup/spec.json",
+  "date": "2026-06-15T04:09:56.426Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Interactive `senti setup` lets the user select claude only, codex only, or claude + codex as available agents, and asks for a main/default agent only when both families are selected.",
+      "status": "done",
+      "note": "R1: interactive setup prompt plan asks main agent only for dual-family selections"
+    },
+    {
+      "desc": "Setup writes `agent.default` as `claude` or `codex` and writes `agent.useProfile` as `claude-only`, `codex-only`, `claude-main`, or `codex-main` according to selected availability and main agent.",
+      "status": "done",
+      "note": "R2: generated setup agent config stores aliases and useProfile without built-in profiles/providers"
+    },
+    {
+      "desc": "Non-interactive `senti setup --agent` accepts single values `claude` / `codex` and comma-separated multi-agent values; for multi-agent values, the first listed family is the main/default agent.",
+      "status": "done",
+      "note": "R3: non-interactive --agent uses first-listed main semantics"
+    },
+    {
+      "desc": "Runtime agent resolution and config validation resolve package built-in profiles/providers without requiring them to be copied into `.senti/config.json`, while user-defined `agent.profiles` and `agent.providers` override built-ins by key.",
+      "status": "done",
+      "note": "R4: validation and runtime resolution accept built-in profiles without config-local copies"
+    },
+    {
+      "desc": "Normal setup and upgrade do not add package built-in `agent.profiles` or `agent.providers` entries to config; existing unknown entries remain preserved as user overrides.",
+      "status": "done",
+      "note": "R5: setup config generation does not seed built-ins and preserves unknown user entries"
+    },
+    {
+      "desc": "When both claude and codex are selected interactively, setup lets the user choose AGENTS.md and/or CLAUDE.md generation targets; when both are selected non-interactively, setup generates both files by default.",
+      "status": "done",
+      "note": "R6: multi-agent setup resolves interactive and non-interactive file targets"
+    },
+    {
+      "desc": "Setup completion output and help/docs explain selected `agent.default`, selected `agent.useProfile`, available built-in profile names, and override examples for `agent.profiles` and `agent.providers`.",
+      "status": "done",
+      "note": "R7: setup summary exposes selected aliases, useProfile, and built-in profile names"
+    },
+    {
+      "desc": "Existing concrete provider key defaults such as `claude/sonnet` or `codex/gpt-5.4` remain resolvable until setup or an explicit user edit rewrites them to family aliases.",
+      "status": "done",
+      "note": "R8: existing concrete provider key defaults remain resolvable"
+    },
+    {
+      "desc": "Rerunning setup normalizes existing `agent.default` family aliases, concrete provider keys, and built-in `agent.useProfile` names into wizard availability and main/default defaults before prompting or rewriting config.",
+      "status": "done",
+      "note": "R9: existing agent config normalizes into setup wizard defaults"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 9,
+    "done": 9,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

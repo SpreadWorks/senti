@@ -1,15 +1,15 @@
 /**
  * src/lib/agent-defaults.js
  *
- * Default agent providers and profiles seeded by `setup` and merged (add-only)
- * by `upgrade`. The content is generic: model tiers plus senti command ids
- * only — no project/environment-specific values (no hostnames, ports, etc.), so
- * it is safe to ship in the package per the src/ project-info rule.
+ * Built-in agent providers and profiles resolved at runtime. The content is
+ * generic: model tiers plus senti command ids only — no project/environment-
+ * specific values (no hostnames, ports, etc.), so it is safe to ship in the
+ * package per the src/ project-info rule.
  *
- * Single source of truth: callers do not import the raw constants. They call
- * `mergeAgentDefaults(agent)`, which adds only what is missing and never
- * overwrites existing user values. Providers are derived from the profiles —
- * only providers actually referenced by the resulting profiles are added.
+ * Single source of truth: callers do not import the raw constants. Runtime
+ * resolvers call `defaultAgentProfiles()` and `defaultAgentProviders()` and
+ * layer user config on top. Providers are derived from the profiles — only
+ * providers actually referenced by the built-in profiles are exposed here.
  */
 
 // Provider pool: only providers referenced by the default profiles below.
@@ -163,8 +163,10 @@ function referencedProviderKeys(profiles) {
 }
 
 /**
- * Add-only merge of default profiles and their referenced providers into an
- * agent config object. Existing user values always win:
+ * Add-only merge of built-in profiles and their referenced providers into an
+ * agent config object. Existing user values always win. This is retained as a
+ * direct utility for callers that explicitly request materialized defaults;
+ * setup and normal upgrade do not call it.
  *   - existing profile names keep their slots; only missing slots are added.
  *   - existing provider entries are never overwritten.
  *   - only providers referenced by the resulting profiles (and known in the

@@ -14,6 +14,8 @@
  * profiles and exposes lookup APIs for the Agent service.
  */
 
+import { defaultAgentProviders } from "./agent-defaults.js";
+
 class Provider {
   static key = null;
 
@@ -183,6 +185,7 @@ class ProviderRegistry {
     for (const provider of this._providers) {
       Object.assign(merged, provider.builtinProfiles());
     }
+    Object.assign(merged, defaultAgentProviders());
     Object.assign(merged, userProviders);
     return merged;
   }

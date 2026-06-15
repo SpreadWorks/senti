@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "Three blocking findings are valid and should be repaired in spec.json. All are small spec-level clarifications for non-interactive setup and existing setup defaults.",
+  "items": [
+    {
+      "title": "Non-interactive multi-agent main selection is ambiguous",
+      "target": "R3 / R2",
+      "decision": "apply",
+      "rationale": "The current spec does not define which family is main when --agent supplies multiple families, so R2/R3 acceptance cannot be implemented or tested deterministically.",
+      "evidence": "spec-review.json blockingFindings[0]; spec.json R3 mentions --agent claude,codex but no main/default selection rule."
+    },
+    {
+      "title": "Non-interactive instruction-file targets are undefined for multi-agent setup",
+      "target": "R6 / setup --agent contract",
+      "decision": "apply",
+      "rationale": "The current spec decouples generation targets in interactive setup but leaves non-interactive multi-agent generation behavior undefined.",
+      "evidence": "spec-review.json blockingFindings[1]; spec.json R6 and T-2 mention target selection but no --agent default target behavior."
+    },
+    {
+      "title": "Existing config setup defaults are not specified",
+      "target": "R1 / R2 / R8",
+      "decision": "apply",
+      "rationale": "Rerunning setup is a retained public behavior, and the spec must define how existing concrete keys and useProfile values become wizard defaults.",
+      "evidence": "spec-review.json blockingFindings[2]; src/setup.js loadExistingDefaults currently reads cfg.agent.default literally."
+    }
+  ]
+}

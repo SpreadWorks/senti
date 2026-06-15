@@ -8,6 +8,7 @@ import fs from "fs";
 import path from "path";
 import { ProviderRegistry } from "./provider.js";
 import { validateSchema } from "./schema-validate.js";
+import { defaultAgentProfiles } from "./agent-defaults.js";
 
 /** Default concurrency for parallel file processing. */
 export const DEFAULT_CONCURRENCY = 5;
@@ -356,8 +357,12 @@ export function validate(raw, options = {}) {
   }
 
   // Cross-field validation: profile provider references must be valid
+  const agentProfiles = raw.agent
+    ? { ...defaultAgentProfiles(), ...(raw.agent.profiles || {}) }
+    : {};
+  const registry = raw.agent ? new ProviderRegistry(raw.agent?.providers || {}) : null;
+
   if (raw.agent?.profiles) {
-    const registry = new ProviderRegistry(raw.agent?.providers || {});
     for (const [profileName, profile] of Object.entries(raw.agent.profiles)) {
       if (typeof profile !== "object" || profile == null) continue;
       for (const [commandId, providerKey] of Object.entries(profile)) {
@@ -369,9 +374,9 @@ export function validate(raw, options = {}) {
   }
 
   // Cross-field validation: useProfile must reference a defined profile
-  if (typeof raw.agent?.useProfile === "string" && raw.agent.profiles) {
-    if (!raw.agent.profiles[raw.agent.useProfile]) {
-      errors.push(`'agent.useProfile': profile "${raw.agent.useProfile}" is not defined in agent.profiles`);
+  if (typeof raw.agent?.useProfile === "string") {
+    if (!agentProfiles[raw.agent.useProfile]) {
+      errors.push(`'agent.useProfile': profile "${raw.agent.useProfile}" is not defined in built-in profiles or agent.profiles`);
     }
   }
 
