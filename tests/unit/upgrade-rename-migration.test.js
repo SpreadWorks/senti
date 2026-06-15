@@ -9,24 +9,27 @@ describe("RenameMigration", () => {
   it("skips nested node_modules directories", () => {
     const tmp = createTmpDir("senti-upgrade-rename-");
     try {
-      const dependencyFile = "src/frontend/node_modules/pkg/sdd-forge-note.js";
-      const projectFile = "src/app/sdd-forge-note.js";
-      writeFile(tmp, dependencyFile, "const name = 'sdd-forge';\n");
-      writeFile(tmp, projectFile, "const name = 'sdd-forge';\n");
+      const legacyName = ["sdd", "forge"].join("-");
+      const currentName = "senti";
+      const dependencyFile = `src/frontend/node_modules/pkg/${legacyName}-note.js`;
+      const projectFile = `src/app/${legacyName}-note.js`;
+      const migratedProjectFile = `src/app/${currentName}-note.js`;
+      writeFile(tmp, dependencyFile, `const name = '${legacyName}';\n`);
+      writeFile(tmp, projectFile, `const name = '${legacyName}';\n`);
 
       const changed = new RenameMigration(tmp).run();
 
       assert.equal(fs.existsSync(path.join(tmp, dependencyFile)), true);
       assert.equal(
         fs.readFileSync(path.join(tmp, dependencyFile), "utf8"),
-        "const name = 'sdd-forge';\n",
+        `const name = '${legacyName}';\n`,
       );
-      assert.equal(fs.existsSync(path.join(tmp, "src/app/senti-note.js")), true);
+      assert.equal(fs.existsSync(path.join(tmp, migratedProjectFile)), true);
       assert.equal(
-        fs.readFileSync(path.join(tmp, "src/app/senti-note.js"), "utf8"),
-        "const name = 'senti';\n",
+        fs.readFileSync(path.join(tmp, migratedProjectFile), "utf8"),
+        `const name = '${currentName}';\n`,
       );
-      assert.equal(changed.includes("src/app/senti-note.js"), true);
+      assert.equal(changed.includes(migratedProjectFile), true);
       assert.equal(changed.some((rel) => rel.includes("node_modules")), false);
     } finally {
       removeTmpDir(tmp);

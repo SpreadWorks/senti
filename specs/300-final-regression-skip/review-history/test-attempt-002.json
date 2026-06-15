@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-15T10:02:22.273Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 4,
+    "advisory": 1,
+    "total": 5
+  },
+  "coverageArtifact": "specs/300-final-regression-skip/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R2 allowlist coverage is incomplete",
+      "target": "specs/300-final-regression-skip/tests/final-regression-skip.test.js",
+      "issue": "The R2 tests only exercise a docs-only skip, unknown/runtime/package/test-without-evidence fallback, and one covered generic test-only skip. They do not cover spec-directory path eligibility and traversal rejection, docs mdx/top-level patterns, flow prompt paths, skill/template/preset paths requiring upgrade evidence, or sensitive classifications such as config/test-runner/dependency/external-integration exclusions.",
+      "requiredChange": "Add spec-local tests for each explicit R2 allowlist family and for fail-closed sensitive/excluded path classes, including at least one traversal/outside-spec rejection and one skill/template/preset change without required upgrade evidence.",
+      "whyBlocking": "R2 is a broad acceptance gate for when final-regression may be skipped. Missing coverage for several allowed and forbidden path classes could let implementation skip full regression for runtime-sensitive changes or fail to skip valid non-runtime-only changes."
+    },
+    {
+      "kind": "blocking",
+      "title": "R1 exact changed-file fingerprint set is under-tested",
+      "target": "specs/300-final-regression-skip/tests/final-regression-skip.test.js",
+      "issue": "The stale-evidence test mutates a single fingerprint value but does not verify exact set equality for changed-file fingerprints. An implementation could compare only the first path, accept subsets, ignore extra evidence entries, or ignore missing current changed files and still pass these tests.",
+      "requiredChange": "Extend R1 stale cases to cover missing evidence entries, extra evidence entries, path mismatch, and current changed-file set changes that are not exactly represented in the stored full-regression evidence.",
+      "whyBlocking": "R1 explicitly requires exact current trigger-relevant changed-file fingerprint set equality. Subset or partial matching is forbidden, and the current tests would not catch that static anti-pattern."
+    },
+    {
+      "kind": "blocking",
+      "title": "R3 risk-based proof shape is not validated by schema-level test",
+      "target": "specs/300-final-regression-skip/tests/final-regression-skip.test.js",
+      "issue": "The R3 validation test calls validateFinalRegressionResult() only with the covered_by_test_execute_full_regression proof fixture. The risk_based_static_proof helper assertions inspect artifacts produced by command execution, but there is no direct validator test proving skipped artifacts with the required risk-based proof shape are accepted and malformed covered-by proof fields are not mistakenly required.",
+      "requiredChange": "Add a validateFinalRegressionResult() fixture for skipKind risk_based_static_proof containing allowlistClassifications, checkedSensitivePathClasses, failClosedDecision, upgradeEvidencePath, and testExecuteEvidencePath, and assert it validates without covered-by-only fields.",
+      "whyBlocking": "R3 requires two distinct skipped proof schemas. Without validator coverage for the risk-based shape, implementation could incorrectly reject or mis-shape risk-based skipped artifacts while these tests still pass through narrower execution assertions."
+    },
+    {
+      "kind": "blocking",
+      "title": "R7 does not exercise prior-flow or prior-invocation reuse",
+      "target": "specs/300-final-regression-skip/tests/final-regression-skip.test.js",
+      "issue": "The R7 test mutates command identity inside the current same-flow test-execute artifact. It does not create reusable full-regression evidence in a different flow or prior invocation location and prove final-regression refuses to reuse it.",
+      "requiredChange": "Add a test where valid full/pass evidence exists only for a different flow or prior invocation while the current flow lacks matching same-flow evidence, then assert full regression runs.",
+      "whyBlocking": "R7 specifically keeps cross-flow last-known-green reuse out of scope. The current test only covers stale same-flow identity, so the requirement coverage artifact overstates actual coverage."
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Prompt test is mostly keyword based",
+      "target": "specs/300-final-regression-skip/tests/final-regression-skip.test.js",
+      "improvement": "The R6 test could assert short required phrases or headings around each responsibility/outcome instead of isolated terms such as process, proof, and executed.",
+      "whyNonBlocking": "The test still gives useful static coverage that the prompt files mention the required concepts, but tighter assertions would reduce false positives from incidental wording."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/300-final-regression-skip/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 4,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "e67d64a9ded4f19207588914bc3bf155f181fa4eab615b67ec9da9c4c7e5809b"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "test-002-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R2 allowlist coverage is incomplete",
+      "body": "The R2 tests only exercise a docs-only skip, unknown/runtime/package/test-without-evidence fallback, and one covered generic test-only skip. They do not cover spec-directory path eligibility and traversal rejection, docs mdx/top-level patterns, flow prompt paths, skill/template/preset paths requiring upgrade evidence, or sensitive classifications such as config/test-runner/dependency/external-integration exclusions.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R1 exact changed-file fingerprint set is under-tested",
+      "body": "The stale-evidence test mutates a single fingerprint value but does not verify exact set equality for changed-file fingerprints. An implementation could compare only the first path, accept subsets, ignore extra evidence entries, or ignore missing current changed files and still pass these tests.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R3 risk-based proof shape is not validated by schema-level test",
+      "body": "The R3 validation test calls validateFinalRegressionResult() only with the covered_by_test_execute_full_regression proof fixture. The risk_based_static_proof helper assertions inspect artifacts produced by command execution, but there is no direct validator test proving skipped artifacts with the required risk-based proof shape are accepted and malformed covered-by proof fields are not mistakenly required.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R7 does not exercise prior-flow or prior-invocation reuse",
+      "body": "The R7 test mutates command identity inside the current same-flow test-execute artifact. It does not create reusable full-regression evidence in a different flow or prior invocation location and prove final-regression refuses to reuse it.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-non-blocking-005",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "Prompt test is mostly keyword based",
+      "body": "Prompt test is mostly keyword based",
+      "category": "unknown"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "2 repair targets remain valid. Both should be applied by narrowing pending questions away from implementation mechanics and toward product-scope or acceptance-coverage decisions.",
+  "items": [
+    {
+      "title": "1. Implementation details in scope question",
+      "target": "q4",
+      "decision": "apply",
+      "rationale": "q4 mixes scope confirmation with project config design details. The user decision needed at draft level is whether cross-flow last-known-green reuse is outside this spec and same-flow evidence reuse is the initial scope.",
+      "evidence": "draft.json qa[3].question asks about `test.finalRegression` config design; draft-review-questions.json identifies q4 as an implementation detail repair target."
+    },
+    {
+      "title": "2. Test implementation strategy question",
+      "target": "q5",
+      "decision": "apply",
+      "rationale": "q5 should confirm required acceptance behavior coverage without prescribing the exact test implementation split between unit and spec-local tests.",
+      "evidence": "draft.json qa[4].question mentions unit tests and spec-local tests as implementation strategy; draft-review-questions.json identifies q5 as a test implementation strategy repair target."
+    }
+  ]
+}

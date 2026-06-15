@@ -201,7 +201,7 @@ export class StepCompletionPolicy {
       })],
       ["final-regression", new StepCompletionPolicy({
         stepId: "final-regression",
-        allowedVerdicts: ["pass"],
+        allowedVerdicts: ["pass", "skipped"],
         requireNoBlocking: false,
         failureKind: null,
         nextAction: "finalize-commit",
@@ -487,10 +487,13 @@ export function contractFromTestResultReviewArtifact(artifact, opts = {}) {
 }
 
 export function contractFromFinalRegressionArtifact(artifact, opts = {}) {
+  const blockingFindings = artifact.result === "pass" || artifact.result === "skipped"
+    ? []
+    : [{ failureKind: artifact.failureKind, nextAction: artifact.nextAction }];
   return new FlowJudgmentContract({
     ...contractInput("final-regression", artifact, opts),
     verdict: artifact.result,
-    blockingFindings: artifact.result === "pass" ? [] : [{ failureKind: artifact.failureKind, nextAction: artifact.nextAction }],
+    blockingFindings,
     failureKind: artifact.failureKind,
     nextAction: artifact.nextAction,
     rawArtifactPath: opts.rawArtifactPath || artifact.rawOutputPath,

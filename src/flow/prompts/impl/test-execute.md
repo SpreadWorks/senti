@@ -1,5 +1,9 @@
    - **Post-implementation execution point:** `impl/test-execute` verifies spec-local tests against implemented code. Earlier, `plan/test` writes tests only, `plan/scenario-validity` performs the pre-implementation runtime check, and `plan/test-review` performs static anti-pattern review.
-   - **Project regression policy:** normal `test-execute` does not run full project regression by default. It runs targeted project regression only when the changed files are configured by `test.projectPaths`, or full regression only when `.senti/config.json` explicitly sets `test.testExecuteRegression: "full"`. Otherwise full project regression is recorded as deferred and runs in `impl/final-regression`.
+   - **Project regression responsibilities:** `test-execute` owns four cases:
+     - `spec-local`: always run spec-local requirement tests and write per-requirement evidence.
+     - `targeted`: run targeted project regression only when changed files are configured by `test.projectPaths`.
+     - `explicit-full`: run full project regression only when `.senti/config.json` explicitly sets `test.testExecuteRegression: "full"`.
+     - `deferred final-regression`: record deferred full regression evidence when full regression is not explicitly enabled here; `impl/final-regression` owns the default full project regression point.
    - **Downstream artifact use:** `test-result-review`, `impl-review`, `impl-gate`, and `retro` read `specs/<spec>/test-execute-result.json` and `specs/<spec>/tests/.raw/test-execution.log`; they MUST NOT re-run tests.
    - **Test command discovery:** Determine the test runner from the project's declarative configuration in this priority order:
      1. `.senti/config.json` top-level `test.command`
@@ -36,10 +40,17 @@
          "root_test_command": "npm test --",
          "root_test_command_source": "package.json:scripts.test",
          "command": "npm test --",
+         "commandSource": "package.json:scripts.test",
+         "argv": ["npm", "test", "--"],
+         "env": {},
+         "source": "package.json:scripts.test",
+         "metadata": { "script": "node --test" },
+         "resolvedScriptDigest": null,
+         "resolvedConfigDigest": null,
          "result": "pass",
          "raw_output_lines": { "start_line": 19, "end_line": 42 },
-         "changed_files": [{ "status": "modified", "path": "lib/example.js" }],
-         "trigger_relevant_changed_files": [{ "status": "modified", "path": "lib/example.js" }]
+         "changed_files": [{ "status": "modified", "path": "lib/example.js", "fingerprint": "<sha256>" }],
+         "trigger_relevant_changed_files": [{ "status": "modified", "path": "lib/example.js", "fingerprint": "<sha256>" }]
        }
      }
      ```

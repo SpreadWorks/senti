@@ -40,6 +40,7 @@ import {
 } from "./test-artifacts.js";
 import {
   classifyRegression,
+  commandIdentityFor,
   discoverRegressionCommand,
   listRegressionChangedFiles,
   planTestExecuteRegression,
@@ -47,6 +48,7 @@ import {
   processPassed,
   resolveTestTimeoutSeconds,
   runProcessDetailed,
+  withChangedFileFingerprints,
 } from "./test-regression.js";
 
 const MAX_TEST_EXECUTE_REQUIREMENTS = 500;
@@ -184,18 +186,22 @@ function buildSkippedRegression(classification) {
   };
 }
 
-function buildRequiredRegression({ classification, rootCommand, command, result, range }) {
+function buildRequiredRegression({ root, classification, rootCommand, command, result, range }) {
   const pass = processPassed(result);
+  const commandIdentity = commandIdentityFor(command).toJSON();
+  const changedFiles = withChangedFileFingerprints(root, classification.changedFiles);
+  const triggerRelevantChangedFiles = withChangedFileFingerprints(root, classification.triggerRelevantChangedFiles);
   return {
     required: true,
     mode: classification.mode,
     root_test_command: rootCommand.toString(),
-    root_test_command_source: rootCommand.source,
+    root_test_command_source: commandIdentity.commandSource,
     command: command.toString(),
+    ...commandIdentity,
     result: pass ? "pass" : "fail",
     raw_output_lines: range,
-    trigger_relevant_changed_files: classification.triggerRelevantChangedFiles,
-    changed_files: classification.changedFiles,
+    trigger_relevant_changed_files: triggerRelevantChangedFiles,
+    changed_files: changedFiles,
     ...(classification.mode === "targeted" ? { target_paths: [...classification.targetPaths] } : {}),
     process: {
       started: result.started,
@@ -287,7 +293,7 @@ export default class RunTestExecuteCommand extends FlowCommand {
           `result: ${regressionResult}`,
           `[senti] project regression end result=${regressionResult}`,
         ]);
-        regression = buildRequiredRegression({ classification: regressionPlan.classification, rootCommand, command, result, range });
+        regression = buildRequiredRegression({ root, classification: regressionPlan.classification, rootCommand, command, result, range });
       }
 
       fs.writeFileSync(rawOutputPath, rawLines.join("\n") + "\n");

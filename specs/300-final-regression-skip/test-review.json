@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-15T10:08:20.346Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 3,
+    "advisory": 1,
+    "total": 4
+  },
+  "coverageArtifact": "specs/300-final-regression-skip/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R2 coverage omits required allowlist variants",
+      "target": "specs/300-final-regression-skip/tests/final-regression-skip.test.js",
+      "issue": "The R2 tests do not cover several explicit requirement branches: upgrade-backed template source paths, top-level *.mdx documentation, generic test-only paths under test/**, nested **/*.test.js, and **/*.spec.js. The coverage artifact marks R2 covered, but an implementation could fail these accepted path families while passing the current tests.",
+      "requiredChange": "Add spec-local R2 cases for the missing allowlist/pattern variants, reusing the existing table-driven allowlist and generic test-only evidence tests where possible.",
+      "whyBlocking": "R2 is a must requirement and the coverage artifact overstates actual executable coverage for concrete acceptance branches.",
+      "findingId": "review-finding-1"
+    },
+    {
+      "kind": "blocking",
+      "title": "Skipped raw decision log is not exercised",
+      "target": "specs/300-final-regression-skip/tests/final-regression-skip.test.js",
+      "issue": "The skipped artifact assertions only regex-match rawOutputPath and check rawOutputLines keys. They do not verify that the retained tests/.raw/final-regression-attempt-*.log file exists, nor that rawOutputLines is a valid numeric range covering decision lines written to that log.",
+      "requiredChange": "Extend skipped-output assertions to read the artifact rawOutputPath from disk and assert rawOutputLines.start/end are numeric, ordered, in bounds, and correspond to retained decision log content.",
+      "whyBlocking": "R3 and R5 require preserved skip evidence. The current test would pass if production emitted a plausible path without retaining or indexing any raw decision log.",
+      "findingId": "review-finding-2"
+    },
+    {
+      "kind": "blocking",
+      "title": "Emitted skipped artifact fields and proof values are under-asserted",
+      "target": "specs/300-final-regression-skip/tests/final-regression-skip.test.js",
+      "issue": "The production skip assertions do not check required emitted fields such as version, reason, command, commandSource, and changedFiles, and the covered-by-test-execute proof only checks commandIdentity keys and changed file paths, not exact identity values or fingerprints.",
+      "requiredChange": "Extend assertCoveredByTestExecuteProof and assertRiskBasedProof to assert all required skipped artifact fields and exact proof values, including commandIdentity values and changedFileFingerprints matching the current file fingerprints.",
+      "whyBlocking": "R3 is a must requirement for artifact shape and evidence. The current tests could pass with incomplete or misleading skipped artifacts.",
+      "findingId": "review-finding-3"
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Add primitive env and metadata boundary cases",
+      "target": "specs/300-final-regression-skip/tests/final-regression-skip.test.js",
+      "improvement": "Add non-string JSON primitive cases for env/metadata comparison, such as boolean, number, and null values, plus reordered keys to document sorting-for-comparison behavior.",
+      "whyNonBlocking": "R1 already has meaningful stale checks for env and metadata key/value mismatches, so this would improve boundary clarity rather than fill a total coverage gap."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/300-final-regression-skip/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "9b8bf60e378a9715330d2296ab7c3d24eee8abb9e815ea27f7e5aea66c65fae7"
+  }
+}

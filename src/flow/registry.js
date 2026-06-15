@@ -1152,8 +1152,10 @@ export const FLOW_COMMANDS = {
         const { readJsonStrict, validateFinalRegressionResult } = await import("./lib/test-artifacts.js");
         const specDir = path.dirname(path.resolve(ctx.root, ctx.flowState.spec));
         const artifact = validateFinalRegressionResult(readJsonStrict(path.join(specDir, "final-regression-result.json")));
-        if (artifact.result !== "pass" || result?.result !== "pass") {
-          throw new Error("final-regression result is not pass");
+        const completed = (artifact.result === "pass" && result?.result === "pass")
+          || (artifact.result === "skipped" && result?.result === "skipped");
+        if (!completed) {
+          throw new Error("final-regression result is not pass or skipped");
         }
         tryUpdateStepStatus(ctx, "final-regression", "done");
       },

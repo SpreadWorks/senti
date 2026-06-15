@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import { execFile } from "child_process";
 import { listChangedFilesDetailed } from "../../lib/git-helpers.js";
 import { extractMakeTestTarget, readMakefile } from "../../lib/makefile.js";
@@ -41,6 +42,77 @@ export class ParsedCommand {
   toString() {
     return this.argv.join(" ");
   }
+}
+
+export class RegressionCommandIdentity {
+  constructor({
+    command,
+    commandSource,
+    argv,
+    env,
+    source,
+    metadata,
+    resolvedScriptDigest = null,
+    resolvedConfigDigest = null,
+  }) {
+    if (typeof command !== "string" || command.length === 0) throw new Error("command identity command is required");
+    if (typeof commandSource !== "string" || commandSource.length === 0) throw new Error("command identity commandSource is required");
+    if (!Array.isArray(argv) || argv.some((entry) => typeof entry !== "string")) throw new Error("command identity argv must be strings");
+    this.command = command;
+    this.commandSource = commandSource;
+    this.argv = Object.freeze([...argv]);
+    this.env = Object.freeze({ ...(env || {}) });
+    this.source = source;
+    this.metadata = Object.freeze({ ...(metadata || {}) });
+    this.resolvedScriptDigest = resolvedScriptDigest;
+    this.resolvedConfigDigest = resolvedConfigDigest;
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      command: this.command,
+      commandSource: this.commandSource,
+      argv: [...this.argv],
+      env: { ...this.env },
+      source: this.source,
+      metadata: { ...this.metadata },
+      resolvedScriptDigest: this.resolvedScriptDigest,
+      resolvedConfigDigest: this.resolvedConfigDigest,
+    };
+  }
+}
+
+export function commandIdentityFor(command) {
+  if (!(command instanceof ParsedCommand)) throw new Error("command identity requires ParsedCommand");
+  const commandSource = command.source === "test.command" ? "config" : command.source;
+  return new RegressionCommandIdentity({
+    command: command.toString(),
+    commandSource,
+    argv: command.argv,
+    env: command.env,
+    source: commandSource,
+    metadata: command.metadata,
+    resolvedScriptDigest: null,
+    resolvedConfigDigest: null,
+  });
+}
+
+function fingerprintFile(root, relPath) {
+  const absolute = path.resolve(root, relPath);
+  if (!fs.existsSync(absolute) || !fs.statSync(absolute).isFile()) return null;
+  return crypto.createHash("sha256").update(fs.readFileSync(absolute)).digest("hex");
+}
+
+export function withChangedFileFingerprints(root, changedFiles = []) {
+  return changedFiles.map((entry) => {
+    const normalized = normalizePath(entry.path);
+    return {
+      ...entry,
+      path: normalized,
+      fingerprint: fingerprintFile(root, normalized),
+    };
+  });
 }
 
 export class RegressionClassification {

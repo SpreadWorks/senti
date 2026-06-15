@@ -442,7 +442,7 @@ function formatText(data) {
     }
     if (t.finalRegression) {
       const r = t.finalRegression;
-      lines.push(`    Final regression: result=${r.result}${r.failureKind ? ` failureKind=${r.failureKind}` : ""}`);
+      lines.push(`    Final regression: result=${r.result}${r.skipKind ? ` skipKind=${r.skipKind}` : ""}${r.failureKind ? ` failureKind=${r.failureKind}` : ""}`);
     }
   } else {
     lines.push("    No test data");

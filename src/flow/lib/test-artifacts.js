@@ -66,6 +66,7 @@ export const UPGRADE_REQUIRED_SOURCE_PATTERNS = Object.freeze([
   "src/upgrade.js",
   "src/skills/**",
   "src/presets/**",
+  "src/templates/**",
   "src/lib/skills.js",
   "src/lib/include.js",
   "src/lib/skill-rules.js",
@@ -486,6 +487,16 @@ function assertRange(range, label) {
   }
 }
 
+function assertCamelRange(range, label) {
+  if (!range || typeof range !== "object") throw new Error(`${label}.rawOutputLines must be an object`);
+  if (!Number.isInteger(range.start) || !Number.isInteger(range.end)) {
+    throw new Error(`${label}.rawOutputLines must contain integer start/end`);
+  }
+  if (range.start < 1 || range.end < range.start) {
+    throw new Error(`${label}.rawOutputLines must be 1-based inclusive range`);
+  }
+}
+
 function assertEvidenceRangeWithinLimit(range, label) {
   const lineCount = range.end_line - range.start_line + 1;
   if (lineCount > MAX_EVIDENCE_RAW_OUTPUT_LINES) {
@@ -681,6 +692,10 @@ function validateRegression(regression) {
 }
 
 function validateFinalRegressionFailureKind(result) {
+  if (result.result === "skipped") {
+    if (result.failureKind !== null) throw new Error("final-regression failureKind must be null on skipped");
+    return;
+  }
   if (result.result === "pass") {
     if (result.failureKind !== null) throw new Error("final-regression failureKind must be null on pass");
     return;
@@ -701,19 +716,75 @@ function validateFinalRegressionFailureKind(result) {
   }
 }
 
+function validateFinalRegressionSkipKind(result) {
+  if (result.result !== "skipped") {
+    if (Object.hasOwn(result, "skipKind")) throw new Error("final-regression skipKind is only valid on skipped");
+    if (Object.hasOwn(result, "proof")) throw new Error("final-regression proof is only valid on skipped");
+    return;
+  }
+  const allowed = ["covered_by_test_execute_full_regression", "risk_based_static_proof"];
+  if (!allowed.includes(result.skipKind)) throw new Error(`final-regression skipKind invalid: ${result.skipKind}`);
+  if (typeof result.reason !== "string" || result.reason.length === 0) throw new Error("final-regression skipped reason is required");
+  if (result.retryable !== false) throw new Error("final-regression skipped retryable must be false");
+  if (result.nextAction !== "finalize-commit") throw new Error("final-regression skipped nextAction must be finalize-commit");
+  if (result.completed !== true) throw new Error("final-regression skipped completed must be true");
+  if (!result.proof || typeof result.proof !== "object" || Array.isArray(result.proof)) {
+    throw new Error("final-regression skipped proof is required");
+  }
+  if (result.proof.kind !== result.skipKind) throw new Error("final-regression skipped proof.kind must match skipKind");
+  if (result.skipKind === "covered_by_test_execute_full_regression") {
+    for (const field of ["reusedArtifactPath", "commandIdentity", "changedFileFingerprints", "staleCheck"]) {
+      if (!Object.hasOwn(result.proof, field)) throw new Error(`final-regression covered proof missing ${field}`);
+    }
+    const identity = result.proof.commandIdentity;
+    for (const field of ["command", "commandSource", "argv", "env", "source", "metadata", "resolvedScriptDigest", "resolvedConfigDigest"]) {
+      if (!Object.hasOwn(identity, field)) throw new Error(`final-regression commandIdentity missing ${field}`);
+    }
+    if (!Array.isArray(identity.argv) || identity.argv.some((entry) => typeof entry !== "string")) {
+      throw new Error("final-regression commandIdentity.argv must be string array");
+    }
+    if (!Array.isArray(result.proof.changedFileFingerprints)) {
+      throw new Error("final-regression changedFileFingerprints must be array");
+    }
+    if (JSON.stringify(result.proof.staleCheck) !== JSON.stringify({
+      sameFlow: true,
+      commandIdentityMatched: true,
+      changedFileFingerprintsMatched: true,
+    })) {
+      throw new Error("final-regression staleCheck must prove same-flow matched evidence");
+    }
+  } else {
+    for (const field of ["allowlistClassifications", "checkedSensitivePathClasses", "failClosedDecision", "upgradeEvidencePath", "testExecuteEvidencePath"]) {
+      if (!Object.hasOwn(result.proof, field)) throw new Error(`final-regression risk proof missing ${field}`);
+    }
+    if (!Array.isArray(result.proof.allowlistClassifications)) {
+      throw new Error("final-regression allowlistClassifications must be array");
+    }
+    if (!Array.isArray(result.proof.checkedSensitivePathClasses)) {
+      throw new Error("final-regression checkedSensitivePathClasses must be array");
+    }
+    if (JSON.stringify(result.proof.failClosedDecision) !== JSON.stringify({ eligible: true, fallbackReasons: [] })) {
+      throw new Error("final-regression risk proof failClosedDecision must be eligible");
+    }
+  }
+}
+
 export function validateFinalRegressionResult(result) {
   if (!result || typeof result !== "object") throw new Error("final-regression-result.json must be an object");
   if (result.version !== "1") throw new Error(`final-regression-result.json version='${result.version}', expected '1'`);
-  if (result.result !== "pass" && result.result !== "fail") throw new Error("final-regression result must be pass or fail");
+  if (!["pass", "fail", "skipped"].includes(result.result)) throw new Error("final-regression result must be pass, fail, or skipped");
   if (typeof result.completed !== "boolean") throw new Error("final-regression completed must be boolean");
   if (typeof result.command !== "string" && result.command !== null) throw new Error("final-regression command must be string or null");
+  if (typeof result.commandSource !== "string" && result.commandSource !== null) throw new Error("final-regression commandSource must be string or null");
   if (typeof result.rawOutputPath !== "string" || result.rawOutputPath.length === 0) throw new Error("final-regression rawOutputPath is required");
   if (typeof result.retryable !== "boolean") throw new Error("final-regression retryable must be boolean");
   if (typeof result.nextAction !== "string" || result.nextAction.length === 0) throw new Error("final-regression nextAction is required");
   if (!Array.isArray(result.changedFiles)) throw new Error("final-regression changedFiles[] is required");
-  assertRange(result.rawOutputLines, "final-regression");
+  if (result.result === "skipped") assertCamelRange(result.rawOutputLines, "final-regression");
+  else assertRange(result.rawOutputLines, "final-regression");
   assertProcessMetadata(result.process, "final-regression.process");
   validateFinalRegressionFailureKind(result);
+  validateFinalRegressionSkipKind(result);
   return result;
 }
 
@@ -851,6 +922,7 @@ export function buildTestResultsFromArtifacts(specDir) {
             status: "done",
             result: finalRegression.result,
             failureKind: finalRegression.failureKind,
+            skipKind: finalRegression.skipKind || null,
             rawOutputPath: finalRegression.rawOutputPath,
             retryable: finalRegression.retryable,
             nextAction: finalRegression.nextAction,

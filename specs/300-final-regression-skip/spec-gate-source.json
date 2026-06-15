@@ -1,0 +1,123 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "R3 lists `rawOutputPath` as a required field in the skipped artifact but does not specify its value when no process was executed. The expected value (e.g., the skip decision log path matching `tests/.raw/final-regression-attempt-*.log`) is inferable only by cross-referencing R5; two independent reviewers would disagree on whether it should be null, the decision log path, or something else.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[R3].desc — rawOutputPath field"
+          },
+          "observed": "R3 lists `rawOutputPath` as a required field in the skipped artifact but does not specify its value when no process was executed. The expected value (e.g., the skip decision log path matching `tests/.raw/final-regression-attempt-*.log`) is inferable only by cross-referencing R5; two independent reviewers would disagree on whether it should be null, the decision log path, or something else.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "findingId": "gate-finding-1"
+    },
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "R3 lists `rawOutputLines` as a required field in the skipped artifact but does not specify its value or type when no process was executed. Two independent reviewers would disagree on whether it should be null, an empty array, or lines from the skip decision log.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[R3].desc — rawOutputLines field"
+          },
+          "observed": "R3 lists `rawOutputLines` as a required field in the skipped artifact but does not specify its value or type when no process was executed. Two independent reviewers would disagree on whether it should be null, an empty array, or lines from the skip decision log.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "findingId": "gate-finding-2"
+    },
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "R3 lists `process` as a required field in the skipped artifact but does not specify its value or structure when no process was executed. Two independent reviewers would disagree on whether it should be null, an empty object, or carry some sentinel exit-code structure.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[R3].desc — process field"
+          },
+          "observed": "R3 lists `process` as a required field in the skipped artifact but does not specify its value or structure when no process was executed. Two independent reviewers would disagree on whether it should be null, an empty object, or carry some sentinel exit-code structure.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "findingId": "gate-finding-3"
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements[R3].desc — rawOutputPath field"
+      },
+      "observed": "R3 lists `rawOutputPath` as a required field in the skipped artifact but does not specify its value when no process was executed. The expected value (e.g., the skip decision log path matching `tests/.raw/final-regression-attempt-*.log`) is inferable only by cross-referencing R5; two independent reviewers would disagree on whether it should be null, the decision log path, or something else.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements[R3].desc — rawOutputLines field"
+      },
+      "observed": "R3 lists `rawOutputLines` as a required field in the skipped artifact but does not specify its value or type when no process was executed. Two independent reviewers would disagree on whether it should be null, an empty array, or lines from the skip decision log.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements[R3].desc — process field"
+      },
+      "observed": "R3 lists `process` as a required field in the skipped artifact but does not specify its value or structure when no process was executed. Two independent reviewers would disagree on whether it should be null, an empty object, or carry some sentinel exit-code structure.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ]
+    }
+  ]
+}

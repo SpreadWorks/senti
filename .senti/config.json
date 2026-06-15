@@ -292,14 +292,46 @@
         "id": "official-presets",
         "commit": "31bdd70fecfcde33c32bd75909218b744561c24e",
         "source": "official-presets"
+      },
+      {
+        "id": "workflow",
+        "commit": "b8aafe72b430c6ca042be5bef7cd9bcd077cdade",
+        "source": "senti-workflow-plugin"
       }
     ],
-    "config": {},
+    "config": {
+      "workflow": {
+        "flowIntegration": "enable",
+        "agent": {
+          "publish": {
+            "provider": "codex/gpt-5.5"
+          },
+          "classify": {
+            "provider": "codex/gpt-5.5"
+          },
+          "similarity": {
+            "provider": "codex/gpt-5.5"
+          },
+          "compose": {
+            "provider": "codex/gpt-5.5"
+          }
+        },
+        "languages": {
+          "source": "ja",
+          "publish": "en"
+        }
+      }
+    },
     "sources": [
       {
         "id": "official-presets",
         "type": "git",
         "url": "git@github.com:SpreadWorks/senti-presets.git"
+      },
+      {
+        "id": "senti-workflow-plugin",
+        "type": "git",
+        "url": "git@github.com:SpreadWorks/senti-workflow-plugin.git"
       }
     ]
   }

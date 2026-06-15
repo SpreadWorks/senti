@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "unambiguous-requirements",
+      "result": "fail",
+      "reason": "\"prompt/docs 上の責務説明の更新\" does not state a verifiable condition: it does not specify which prompt or docs files must be updated, nor what content must appear in them. A reviewer cannot determine whether any given file edit satisfies this requirement.",
+      "category": "code-quality",
+      "title": "Unambiguous Requirements",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "draft",
+            "locator": "scopeVerification.in[0]"
+          },
+          "observed": "\"prompt/docs 上の責務説明の更新\" does not state a verifiable condition: it does not specify which prompt or docs files must be updated, nor what content must appear in them. A reviewer cannot determine whether any given file edit satisfies this requirement.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "\"report 表示は executed / covered-by-test-execute skip / risk-based skip を区別して表示する\" uses '区別して' (distinctly) without measurable criteria. Two independent reviewers would disagree on whether a given report output satisfies this—no output format, required fields, or visual/structural distinction is specified.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "draft",
+            "locator": "impactOnExisting[0]"
+          },
+          "observed": "\"report 表示は executed / covered-by-test-execute skip / risk-based skip を区別して表示する\" uses '区別して' (distinctly) without measurable criteria. Two independent reviewers would disagree on whether a given report output satisfies this—no output format, required fields, or visual/structural distinction is specified.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "\"finalize artifact handling\" is explicitly identified as a retained public surface in knownFacts, but it appears in neither the impactOnExisting impact descriptions nor the deferredToSpec unit-test coverage list. No behavior-level verification criterion exists for this surface, violating the requirement that at least one behavior-level verification be defined for each retained public surface.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft",
+            "locator": "knownFacts / impactOnExisting / deferredToSpec"
+          },
+          "observed": "\"finalize artifact handling\" is explicitly identified as a retained public surface in knownFacts, but it appears in neither the impactOnExisting impact descriptions nor the deferredToSpec unit-test coverage list. No behavior-level verification criterion exists for this surface, violating the requirement that at least one behavior-level verification be defined for each retained public surface.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "unambiguous-requirements",
+      "where": {
+        "file": "draft",
+        "locator": "scopeVerification.in[0]"
+      },
+      "observed": "\"prompt/docs 上の責務説明の更新\" does not state a verifiable condition: it does not specify which prompt or docs files must be updated, nor what content must appear in them. A reviewer cannot determine whether any given file edit satisfies this requirement.",
+      "severity": "blocking",
+      "refs": [
+        "unambiguous-requirements"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "draft",
+        "locator": "impactOnExisting[0]"
+      },
+      "observed": "\"report 表示は executed / covered-by-test-execute skip / risk-based skip を区別して表示する\" uses '区別して' (distinctly) without measurable criteria. Two independent reviewers would disagree on whether a given report output satisfies this—no output format, required fields, or visual/structural distinction is specified.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft",
+        "locator": "knownFacts / impactOnExisting / deferredToSpec"
+      },
+      "observed": "\"finalize artifact handling\" is explicitly identified as a retained public surface in knownFacts, but it appears in neither the impactOnExisting impact descriptions nor the deferredToSpec unit-test coverage list. No behavior-level verification criterion exists for this surface, violating the requirement that at least one behavior-level verification be defined for each retained public surface.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    }
+  ]
+}

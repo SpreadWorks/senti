@@ -1,0 +1,391 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".senti/config.json                                 |   34 +-\n .senti/output/analysis.json                        |    4 +-\n README.md                                          |    8 +-\n .../acceptance-review-evidence.json                |   54 +\n .../acceptance-review.json                         |   89 +\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-gate-source.json                         |  120 ++\n .../draft-questions-repair.json                    |   26 +\n .../draft-questions-triage.json                    |   22 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   26 +\n specs/300-final-regression-skip/draft.json         |  131 ++\n specs/300-final-regression-skip/file-map.json      |   43 +\n specs/300-final-regression-skip/flow-findings.json |   71 +\n specs/300-final-regression-skip/flow.json          | 2068 ++++++++++++++++++++\n specs/300-final-regression-skip/impl-review.json   |  293 +++\n specs/300-final-regression-skip/issue-log.json     | 1014 ++++++++++\n specs/300-final-regression-skip/issue.md           |  408 ++++\n .../plugin-artifacts/workflow/prepare.json         |   10 +\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |   50 +\n .../review-history/impl-attempt-001.json           |  537 +++++\n .../review-history/impl-attempt-001.md             |  343 ++++\n .../review-history/impl-attempt-002.json           |  627 ++++++\n .../review-history/impl-attempt-002.md             |  398 ++++\n .../review-history/spec-attempt-001.json           |   94 +\n .../review-history/spec-attempt-001.md             |   31 +\n .../review-history/test-attempt-001.json           |  147 ++\n .../review-history/test-attempt-001.md             |   45 +\n .../review-history/test-attempt-002.json           |  120 ++\n .../review-history/test-attempt-002.md             |   39 +\n .../review-history/test-attempt-003.json           |   66 +\n .../review-history/test-attempt-003.md             |   21 +\n .../review-history/test-attempt-004.json           |   84 +\n .../review-history/test-attempt-004.md             |   27 +\n .../review-history/test-attempt-005.json           |  102 +\n .../review-history/test-attempt-005.md             |   33 +\n specs/300-final-regression-skip/review.md          |  398 ++++\n .../spec-gate-source.json                          |  123 ++\n specs/300-final-regression-skip/spec-repair.json   |   45 +\n specs/300-final-regression-skip/spec-review.json   |   50 +\n specs/300-final-regression-skip/spec-review.md     |   31 +\n specs/300-final-regression-skip/spec-triage.json   |   29 +\n specs/300-final-regression-skip/spec.json          |  284 +++\n specs/300-final-regression-skip/spec.md            |  128 ++\n specs/300-final-regression-skip/tasks/T-1.md       |   20 +\n specs/300-final-regression-skip/tasks/T-2.md       |   21 +\n specs/300-final-regression-skip/tasks/T-3.md       |   20 +\n specs/300-final-regression-skip/tasks/T-4.md       |   20 +\n specs/300-final-regression-skip/test-coverage.json |   97 +\n specs/300-final-regression-skip/test-review.json   |   61 +\n specs/300-final-regression-skip/test-review.md     |   33 +\n .../tests/final-regression-skip.test.js            |  758 +++++++\n src/flow/commands/report.js                        |    2 +-\n src/flow/lib/flow-judgment-contract.js             |    7 +-\n src/flow/lib/run-final-regression.js               |  400 +++-\n src/flow/lib/run-test-execute.js                   |   16 +-\n src/flow/lib/test-artifacts.js                     |   76 +-\n src/flow/lib/test-regression.js                    |   72 +\n src/flow/prompts/impl/final-regression.md          |    9 +-\n src/flow/prompts/impl/test-execute.md              |   17 +-\n src/flow/registry.js                               |    6 +-\n .../next-action/final-regression.schema.json       |   23 +-\n tests/unit/upgrade-rename-migration.test.js        |   21 +-\n 65 files changed, 9928 insertions(+), 65 deletions(-)",
+      "commits": [
+        "feat: feature/300-final-regression-skip"
+      ]
+    },
+    "retro": {
+      "total": 7,
+      "done": 7,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "Final-regression must skip with `skipKind: \"covered_by_test_execute_full_regression\"` only when same-flow `test-execute-result.json` has `version: \"2\"`, `regression.required: true`, `regression.mode: \"full\"`, and `regression.result: \"pass\"`; the current full command identity exactly matches the stored identity on keys `command`, `commandSource`, `argv`, `env`, `source`, `metadata`, `resolvedScriptDigest`, and `resolvedConfigDigest`; string and null values compare by exact value, `argv` compares by same length and same string at each index, and `env`/`metadata` compare by exact key set plus exact JSON primitive value for each key after sorting keys for comparison only; and the current trigger-relevant changed-file fingerprint set exactly equals the fingerprint set captured with that full regression evidence. No subset of command identity keys is sufficient.",
+          "status": "done",
+          "note": "R1: skips when same-flow full/pass test-execute evidence matches command identity and changed-file fingerprints"
+        },
+        {
+          "desc": "Final-regression must skip with `skipKind: \"risk_based_static_proof\"` only when every current changed path is in the explicit non-runtime allowlist: spec artifacts whose relative path starts with the current flow spec directory prefix `specs/300-final-regression-skip/` and does not resolve outside that directory; documentation markdown files matching `docs/**/*.md`, `docs/**/*.mdx`, top-level `*.md`, or top-level `*.mdx`; flow prompt files under `src/flow/prompts/**`; skill/template/preset source paths with `senti upgrade` evidence when changed; or generic test-only files that `classifyRegression()` classifies as non-runtime test files by existing patterns `tests/**`, `test/**`, `**/*.test.js`, or `**/*.spec.js`, excluding package/config/test-runner/dependency/runtime-source/external-integration classifications. A targeted or full `test-execute` regression artifact covers a generic test-only changed file only when the same-flow `test-execute-result.json` has `version: \"2\"`, `regression.result: \"pass\"`, `regression.mode` of `\"targeted\"` or `\"full\"`, and `regression.changed_files` contains the exact current path plus fingerprint for that file. All non-allowlisted paths, package/config/test runner/runtime source/external integration paths, unknown paths, and changed test files without exact same-flow path-plus-fingerprint coverage must run full regression.",
+          "status": "done",
+          "note": "R2: writes a risk-based static proof skip for explicit non-runtime-only changes"
+        },
+        {
+          "desc": "Skipped `final-regression-result.json` must use `version: \"1\"`, `completed: true`, `result: \"skipped\"`, `failureKind: null`, `skipKind`, `reason`, `command`, `commandSource`, `rawOutputPath`, `rawOutputLines`, `process`, `changedFiles`, `retryable: false`, `nextAction: \"finalize-commit\"`, and `proof`. For skipped artifacts, `rawOutputPath` is the retained skip decision log path matching `tests/.raw/final-regression-attempt-*.log`, `rawOutputLines` is a `{ start, end }` range for the decision lines written to that log, and `process` is `{ started: false, exitCode: null, signal: null, timedOut: false, spawnError: null }`. For `covered_by_test_execute_full_regression`, `proof` must be `{ kind: \"covered_by_test_execute_full_regression\", reusedArtifactPath, commandIdentity, changedFileFingerprints, staleCheck }`, where `commandIdentity` contains the R1 identity keys, `changedFileFingerprints` is an array of `{ path, fingerprint }`, and `staleCheck` is `{ sameFlow: true, commandIdentityMatched: true, changedFileFingerprintsMatched: true }`. For `risk_based_static_proof`, `proof` must be `{ kind: \"risk_based_static_proof\", allowlistClassifications, checkedSensitivePathClasses, failClosedDecision, upgradeEvidencePath, testExecuteEvidencePath }`, where `allowlistClassifications` is an array of `{ path, category, fingerprint }`, `checkedSensitivePathClasses` is an array of class names that were ruled out, `failClosedDecision` is `{ eligible: true, fallbackReasons: [] }`, and evidence paths are string paths or null.",
+          "status": "done",
+          "note": "R3: validates skipped final-regression artifacts with required proof and non-started process metadata"
+        },
+        {
+          "desc": "`validateFinalRegressionResult()`, the final-regression next-action schema, `contractFromFinalRegressionArtifact()` / flow-judgment completion policy, and the registry post-hook must accept skipped artifacts and mark `final-regression` done when `completed: true`, `result: \"skipped\"`, `failureKind: null`, valid `skipKind`, and `nextAction: \"finalize-commit\"` are present.",
+          "status": "done",
+          "note": "R4: treats valid skipped final-regression artifacts as completed flow-judgment evidence"
+        },
+        {
+          "desc": "Report and finalize handling must preserve skipped final-regression evidence: report JSON/text exposes `result` and `skipKind`, and finalize durable artifact handling includes `final-regression-result.json` plus the retained raw skip decision log path under `tests/.raw/final-regression-attempt-*.log`.",
+          "status": "done",
+          "note": "R5: report and durable artifact handling preserve skipped final-regression result, skipKind, and raw log path"
+        },
+        {
+          "desc": "`src/flow/prompts/impl/test-execute.md` must list spec-local, targeted, explicit-full, and deferred final-regression responsibilities; `src/flow/prompts/impl/final-regression.md` must list executed, covered-by-test-execute skip, and risk-based skip outcomes with required artifact fields.",
+          "status": "done",
+          "note": "R6: prompts document test-execute responsibilities and final-regression skipped outcomes"
+        },
+        {
+          "desc": "The implementation must keep cross-flow last-known-green reuse out of scope; no code path may reuse full regression evidence from a prior flow or prior invocation outside the current flow.",
+          "status": "done",
+          "note": "R7: rejects stale or prior-flow full regression evidence instead of reusing it"
+        }
+      ]
+    },
+    "upgrade": {
+      "result": "success-updated",
+      "summary": {
+        "skills": {
+          "updated": 0,
+          "unchanged": 6,
+          "removed": 0
+        },
+        "presets": {
+          "copied": 4
+        },
+        "plugins": {
+          "changed": true
+        },
+        "config": {
+          "changed": false
+        },
+        "rename": {
+          "changed": 0
+        }
+      },
+      "rawLogPath": "tests/.raw/upgrade.log"
+    },
+    "issueLog": {
+      "count": 38,
+      "fullLogPath": "specs/300-final-regression-skip/issue-log.json",
+      "importantTotal": 24,
+      "importantShown": 10,
+      "importantOmitted": 14,
+      "recentOtherTotal": 14,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 9,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "AI evaluation response is not valid JSON: Expected ':' after property name in JSON at position 139 (line 1 column 140)",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "gate FAIL (no details)",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "AI evaluation response is not valid JSON: Expected ':' after property name in JSON at position 139 (line 1 column 140)",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "gate FAIL (no details)",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "draft gate semantic evaluator repeatedly returned invalid JSON with codex-only profile after mechanical draft fixes",
+          "resolution": "temporarily switched agent.useProfile to claude-main in the worktree to obtain valid gate JSON, then will restore codex-only after gate recovery"
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "「同等以上の full project regression evidence」の「同等以上の」は比較基準が明記されておらず、検証可能な条件を示していない。何をもって「同等以上」と判断するかが goal 単体では決定できない。; 「明確に runtime に影響しない変更の場合」の「明確に」は検証可能な条件ではなく主観的形容詞であり、goal 単体では判断基準を特定できない。; 「skip rationale が不足する場合は full regression を実行して...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "draft gate found ambiguous freshness wording and missing migration parity acceptance criteria for skipped final-regression artifacts",
+          "resolution": "rewrote goal, impact, decision map, and QA answers with root-command freshness conditions, skipped artifact fields, and validator/schema/post-hook/report acceptance behavior"
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "draft gate found remaining ambiguous prompt update, report rendering, and finalize artifact parity requirements",
+          "resolution": "specified exact prompt files and content, report result and skipKind output criteria, and finalize durable artifact coverage for skipped final-regression"
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "spec gate found missing impact section, missing spec-local test target, and ambiguous R1/R2 freshness and test-file coverage criteria",
+          "resolution": "added impact_on_existing_features, added specs/300-final-regression-skip/tests/final-regression-skip.test.js to implementationTargets, made R1 command identity an all-key exact match, and defined R2 generic test-only classification plus ..."
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "schema: spec.json failed schema validation: impact_on_existing_features: unknown field",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "New file is added under tests/unit/flow/ and contains spec behavior coverage (test 'skips when same-flow test-execute full/pass evidence exactly matches' targets R1; test 'validates and reports risk-based skipped artifacts with skipKind'...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: integration gate flagged new shared unit coverage without a spec requirement header",
+          "resolution": "Added a // spec: R1 R3 R5 header to the shared unit test file while keeping spec-local tests under the flow directory"
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "This is a newly added file (new file mode 100644) that carries a `// spec: R1 R3 R5` header, making it new spec behavior coverage. The guardrail requires new spec behavior coverage to be written under `specs/<specid>/tests/`, not under `...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: integration gate rejected the newly added shared unit test file as misplaced spec behavior coverage",
+          "resolution": "Deleted the new shared unit test file and removed its file-map references, relying on the existing spec-local tests for requirement coverage"
+        },
+        {
+          "classification": "recent-other",
+          "step": "acceptance-review",
+          "reason": "acceptance-review classified deferred findings as still_open because no disposition evidence artifact existed",
+          "resolution": "Added acceptance-review-evidence.json marking each deferred finding fixed with spec-local evidence references"
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 14
+    },
+    "tokenMetrics": {
+      "input": 550426,
+      "output": 196634,
+      "cacheRead": 2244670,
+      "cacheCreation": 466952,
+      "cost": 4.052566199999999,
+      "callCount": 52,
+      "durationMs": 3420239,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 24305
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 11035
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 528640
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 454639
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 720241
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 224193
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 381146
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 1076040
+        }
+      ]
+    },
+    "tests": {
+      "total": 7,
+      "passed": 7,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/300-final-regression-skip/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": ".senti/config.json",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "specs/300-final-regression-skip/",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/commands/report.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/flow-judgment-contract.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-final-regression.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-test-execute.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/test-artifacts.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/test-regression.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/registry.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/upgrade-rename-migration.test.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "modified",
+            "path": ".senti/config.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/300-final-regression-skip/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/report.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/flow-judgment-contract.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-final-regression.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-test-execute.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-artifacts.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-regression.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/upgrade-rename-migration.test.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "modified",
+            "path": ".senti/config.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/300-final-regression-skip/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/report.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/flow-judgment-contract.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-final-regression.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-test-execute.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-artifacts.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-regression.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/upgrade-rename-migration.test.js"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/300-final-regression-skip/tests/.raw/final-regression-attempt-002.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/300-final-regression-skip\n    65 files changed, 9928 insertions(+), 65 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (7 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 14\n    agent calls ................. 52\n    input tokens ................ 550,426\n    output tokens ............... 196,634\n    cache-read tokens ........... 2,244,670\n    cache-create tokens ......... 466,952\n    cost ........................ $4.0526\n    duration (total) ............ 3420.2s\n      draft-questions-review .... 24.3s\n      draft-coverage-review ..... 11.0s\n      draft-gate ................ 528.6s\n      spec-review ............... 454.6s\n      spec-gate ................. 720.2s\n      test-review ............... 224.2s\n      impl-review ............... 381.1s\n      impl-gate ................. 1076.0s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 7  passed 7  failed 0 verdict=pass\n    raw_output: specs/300-final-regression-skip/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=pass\n\n  Issue Log Summary (38 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/300-final-regression-skip/issue-log.json\n\n    Important (10 of 24)\n    - [draft-gate] AI evaluation response is not valid JSON: Expected ':' after property name in JSON at position 139 (line 1 column 140)\n    - [draft-gate] gate FAIL (no details)\n    - [draft-gate] AI evaluation response is not valid JSON: Expected ':' after property name in JSON at position 139 (line 1 column 140)\n    - [draft-gate] gate FAIL (no details)\n    - [draft-gate] draft gate semantic evaluator repeatedly returned invalid JSON with codex-only profile after mechanical draft fixes\n    - [draft-gate] 「同等以上の full project regression evidence」の「同等以上の」は比較基準が明記されておらず、検証可能な条件を示していない。何をもって「同等以上」と判断するかが goal 単体では決定できない。; 「明確に runtime に影響しない変更の場合」の「明確に」は検証可能な条件ではなく主観的形容詞であり、goal 単体では判断基準を特定できない。; 「skip rationale が不足する場合は full regression を実行して...\n    - [draft-gate] draft gate found ambiguous freshness wording and missing migration parity acceptance criteria for skipped final-regression artifacts\n    - [draft-gate] draft gate found remaining ambiguous prompt update, report rendering, and finalize artifact parity requirements\n    - [spec-gate] spec gate found missing impact section, missing spec-local test target, and ambiguous R1/R2 freshness and test-file coverage criteria\n    - [spec-gate] schema: spec.json failed schema validation: impact_on_existing_features: unknown field\n    ... 14 important issue-log entries omitted\n\n    Recent Other (5 of 14)\n    - [spec-gate] New file is added under tests/unit/flow/ and contains spec behavior coverage (test 'skips when same-flow test-execute full/pass evidence exactly matches' targets R1; test 'validates and reports risk-based skipped artifacts with skipKind'...\n    - [impl-gate] fix: integration gate flagged new shared unit coverage without a spec requirement header\n    - [spec-gate] This is a newly added file (new file mode 100644) that carries a `// spec: R1 R3 R5` header, making it new spec behavior coverage. The guardrail requires new spec behavior coverage to be written under `specs/<specid>/tests/`, not under `...\n    - [impl-gate] fix: integration gate rejected the newly added shared unit test file as misplaced spec behavior coverage\n    - [acceptance-review] acceptance-review classified deferred findings as still_open because no disposition evidence artifact existed\n    ... 9 other issue-log entries omitted"
+}

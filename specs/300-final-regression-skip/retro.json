@@ -1,0 +1,53 @@
+{
+  "spec": "specs/300-final-regression-skip/spec.json",
+  "date": "2026-06-15T10:58:06.143Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Final-regression must skip with `skipKind: \"covered_by_test_execute_full_regression\"` only when same-flow `test-execute-result.json` has `version: \"2\"`, `regression.required: true`, `regression.mode: \"full\"`, and `regression.result: \"pass\"`; the current full command identity exactly matches the stored identity on keys `command`, `commandSource`, `argv`, `env`, `source`, `metadata`, `resolvedScriptDigest`, and `resolvedConfigDigest`; string and null values compare by exact value, `argv` compares by same length and same string at each index, and `env`/`metadata` compare by exact key set plus exact JSON primitive value for each key after sorting keys for comparison only; and the current trigger-relevant changed-file fingerprint set exactly equals the fingerprint set captured with that full regression evidence. No subset of command identity keys is sufficient.",
+      "status": "done",
+      "note": "R1: skips when same-flow full/pass test-execute evidence matches command identity and changed-file fingerprints"
+    },
+    {
+      "desc": "Final-regression must skip with `skipKind: \"risk_based_static_proof\"` only when every current changed path is in the explicit non-runtime allowlist: spec artifacts whose relative path starts with the current flow spec directory prefix `specs/300-final-regression-skip/` and does not resolve outside that directory; documentation markdown files matching `docs/**/*.md`, `docs/**/*.mdx`, top-level `*.md`, or top-level `*.mdx`; flow prompt files under `src/flow/prompts/**`; skill/template/preset source paths with `senti upgrade` evidence when changed; or generic test-only files that `classifyRegression()` classifies as non-runtime test files by existing patterns `tests/**`, `test/**`, `**/*.test.js`, or `**/*.spec.js`, excluding package/config/test-runner/dependency/runtime-source/external-integration classifications. A targeted or full `test-execute` regression artifact covers a generic test-only changed file only when the same-flow `test-execute-result.json` has `version: \"2\"`, `regression.result: \"pass\"`, `regression.mode` of `\"targeted\"` or `\"full\"`, and `regression.changed_files` contains the exact current path plus fingerprint for that file. All non-allowlisted paths, package/config/test runner/runtime source/external integration paths, unknown paths, and changed test files without exact same-flow path-plus-fingerprint coverage must run full regression.",
+      "status": "done",
+      "note": "R2: writes a risk-based static proof skip for explicit non-runtime-only changes"
+    },
+    {
+      "desc": "Skipped `final-regression-result.json` must use `version: \"1\"`, `completed: true`, `result: \"skipped\"`, `failureKind: null`, `skipKind`, `reason`, `command`, `commandSource`, `rawOutputPath`, `rawOutputLines`, `process`, `changedFiles`, `retryable: false`, `nextAction: \"finalize-commit\"`, and `proof`. For skipped artifacts, `rawOutputPath` is the retained skip decision log path matching `tests/.raw/final-regression-attempt-*.log`, `rawOutputLines` is a `{ start, end }` range for the decision lines written to that log, and `process` is `{ started: false, exitCode: null, signal: null, timedOut: false, spawnError: null }`. For `covered_by_test_execute_full_regression`, `proof` must be `{ kind: \"covered_by_test_execute_full_regression\", reusedArtifactPath, commandIdentity, changedFileFingerprints, staleCheck }`, where `commandIdentity` contains the R1 identity keys, `changedFileFingerprints` is an array of `{ path, fingerprint }`, and `staleCheck` is `{ sameFlow: true, commandIdentityMatched: true, changedFileFingerprintsMatched: true }`. For `risk_based_static_proof`, `proof` must be `{ kind: \"risk_based_static_proof\", allowlistClassifications, checkedSensitivePathClasses, failClosedDecision, upgradeEvidencePath, testExecuteEvidencePath }`, where `allowlistClassifications` is an array of `{ path, category, fingerprint }`, `checkedSensitivePathClasses` is an array of class names that were ruled out, `failClosedDecision` is `{ eligible: true, fallbackReasons: [] }`, and evidence paths are string paths or null.",
+      "status": "done",
+      "note": "R3: validates skipped final-regression artifacts with required proof and non-started process metadata"
+    },
+    {
+      "desc": "`validateFinalRegressionResult()`, the final-regression next-action schema, `contractFromFinalRegressionArtifact()` / flow-judgment completion policy, and the registry post-hook must accept skipped artifacts and mark `final-regression` done when `completed: true`, `result: \"skipped\"`, `failureKind: null`, valid `skipKind`, and `nextAction: \"finalize-commit\"` are present.",
+      "status": "done",
+      "note": "R4: treats valid skipped final-regression artifacts as completed flow-judgment evidence"
+    },
+    {
+      "desc": "Report and finalize handling must preserve skipped final-regression evidence: report JSON/text exposes `result` and `skipKind`, and finalize durable artifact handling includes `final-regression-result.json` plus the retained raw skip decision log path under `tests/.raw/final-regression-attempt-*.log`.",
+      "status": "done",
+      "note": "R5: report and durable artifact handling preserve skipped final-regression result, skipKind, and raw log path"
+    },
+    {
+      "desc": "`src/flow/prompts/impl/test-execute.md` must list spec-local, targeted, explicit-full, and deferred final-regression responsibilities; `src/flow/prompts/impl/final-regression.md` must list executed, covered-by-test-execute skip, and risk-based skip outcomes with required artifact fields.",
+      "status": "done",
+      "note": "R6: prompts document test-execute responsibilities and final-regression skipped outcomes"
+    },
+    {
+      "desc": "The implementation must keep cross-flow last-known-green reuse out of scope; no code path may reuse full regression evidence from a prior flow or prior invocation outside the current flow.",
+      "status": "done",
+      "note": "R7: rejects stale or prior-flow full regression evidence instead of reusing it"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 7,
+    "done": 7,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

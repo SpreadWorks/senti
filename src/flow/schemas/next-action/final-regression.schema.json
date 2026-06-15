@@ -5,7 +5,14 @@
     "completed": { "type": "boolean" },
     "result_path": { "type": "string" },
     "raw_output_path": { "type": "string" },
-    "result": { "type": "string", "enum": ["pass", "fail"] },
+    "result": { "type": "string", "enum": ["pass", "fail", "skipped"] },
+    "skipKind": {
+      "type": "string",
+      "enum": [
+        "covered_by_test_execute_full_regression",
+        "risk_based_static_proof"
+      ]
+    },
     "failureKind": {
       "type": ["string", "null"],
       "enum": [
@@ -40,6 +47,20 @@
         "required": ["result"]
       },
       "then": {
+        "properties": {
+          "failureKind": { "const": null },
+          "retryable": { "const": false },
+          "nextAction": { "const": "finalize-commit" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "result": { "const": "skipped" } },
+        "required": ["result"]
+      },
+      "then": {
+        "required": ["skipKind"],
         "properties": {
           "failureKind": { "const": null },
           "retryable": { "const": false },

@@ -1,6 +1,13 @@
    - Run `senti flow run final-regression`.
    - This step is the only default full project regression point. Do not run full project regression from `test-execute`, `impl-review`, `impl-gate`, or `retro`.
-   - On PASS, the registry post-hook marks `final-regression` done and the flow proceeds to `finalize-commit`.
+   - Outcomes:
+     - `executed`: project regression command ran and `final-regression-result.json` has `result: "pass"` or `result: "fail"`.
+     - `covered_by_test_execute_full_regression`: command did not run because same-flow `test-execute-result.json` already has fresh full/pass evidence with exact command identity and changed-file fingerprints.
+     - `risk_based_static_proof`: command did not run because every changed path is explicitly non-runtime and required static/evidence checks passed.
+   - On PASS or SKIPPED, the registry post-hook marks `final-regression` done and the flow proceeds to `finalize-commit`.
+   - Skipped artifacts MUST include `version`, `completed`, `result`, `failureKind`, `skipKind`, `reason`, `command`, `commandSource`, `rawOutputPath`, `rawOutputLines`, `process`, `changedFiles`, `retryable`, `nextAction`, and `proof`.
+   - For skipped artifacts, `process.started` is `false`, `process.exitCode` / `signal` / `spawnError` are `null`, `process.timedOut` is `false`, and `rawOutputPath` points to a retained `tests/.raw/final-regression-attempt-*.log` decision log.
+   - `proof.kind` must equal `skipKind`. Covered-by-test-execute proof contains `reusedArtifactPath`, `commandIdentity`, `changedFileFingerprints`, and `staleCheck`. Risk-based proof contains `allowlistClassifications`, `checkedSensitivePathClasses`, `failClosedDecision`, `upgradeEvidencePath`, and `testExecuteEvidencePath`.
    - On FAIL, read `specs/<spec>/final-regression-result.json`, the attempt log at `rawOutputPath`, and the fields `result`, `failureKind`, `retryable`, and `nextAction` as independent signals; do not infer one from another. Attempt logs use durable retained path pattern `tests/.raw/final-regression-attempt-*.log`; do not delete or overwrite prior attempt logs.
    - Use `failureKind` to choose handling, and always honor `nextAction: "stop"` when present:
      - `caused_by_current_change` → repair the regression, run spec-local evidence as needed, then rerun `final-regression`.

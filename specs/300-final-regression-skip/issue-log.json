@@ -1,0 +1,1014 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "qa[2]: invalid category \"consumer-contract\"; qa[4]: invalid category \"test-strategy\"",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-15T08:43:49.504Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[2]: invalid category \"consumer-contract\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[4]: invalid category \"test-strategy\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate rejected draft QA categories because q3 and q5 used non-schema category names",
+      "trigger": "senti flow run gate --phase draft returned invalid category issues for consumer-contract and test-strategy",
+      "resolution": "changed q3 to dependency-integration-boundary and q5 to acceptance-criteria",
+      "guardrailCandidate": "draft QA categories must be selected only from the schema enum before running draft gate",
+      "taskId": null,
+      "timestamp": "2026-06-15T08:44:39.107Z"
+    },
+    {
+      "step": "draft-gate",
+      "phase": "draft",
+      "reason": "AI evaluation response is not valid JSON: Expected ':' after property name in JSON at position 139 (line 1 column 140)",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-15T08:45:23.214Z"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "gate FAIL (no details)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-15T08:45:23.225Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "draft-gate",
+      "phase": "draft",
+      "reason": "AI evaluation response is not valid JSON: Expected ':' after property name in JSON at position 139 (line 1 column 140)",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-15T08:47:20.393Z"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "gate FAIL (no details)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-15T08:47:20.404Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate semantic evaluator repeatedly returned invalid JSON with codex-only profile after mechanical draft fixes",
+      "trigger": "senti flow run gate --phase draft failed twice with ESCALATE_RETRY_EXHAUSTED JSON parse errors",
+      "resolution": "temporarily switched agent.useProfile to claude-main in the worktree to obtain valid gate JSON, then will restore codex-only after gate recovery",
+      "guardrailCandidate": "when a flow gate evaluator repeatedly returns invalid JSON, use a configured JSON-stable agent profile and restore the project config after recovery",
+      "taskId": null,
+      "timestamp": "2026-06-15T08:49:20.111Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "「同等以上の full project regression evidence」の「同等以上の」は比較基準が明記されておらず、検証可能な条件を示していない。何をもって「同等以上」と判断するかが goal 単体では決定できない。; 「明確に runtime に影響しない変更の場合」の「明確に」は検証可能な条件ではなく主観的形容詞であり、goal 単体では判断基準を特定できない。; 「skip rationale が不足する場合は full regression を実行して品質を維持する」の「不足する場合」は、何が揃えば rationale が十分かを示す検証可能な条件を欠く。; 「exact freshness algorithm は spec で定義する。候補は changed-files snapshot の一致、または test-execute 後の regression-sensitive changes 不在の証明」と記述され、二つの候補が並列で挙げられたまま選択が保留されている。どちらのアルゴリズムを採用するか、および各候補の具体的な判定手順が未定義のため、独立した二者が実装の合否を同一条件で判断できない。; 「exact artifact schema は spec で定義する」として、`final-regression-result.json` の正式スキーマ（フィールドの型・必須/任意の区別・validator/next-action schema/post-hook との整合条件）が本ドキュメント内で具体化されていない。`result: \"skipped\"` 追加後の schema が確定していないため、独立した二者が実装の合否を判断できない。; `validateFinalRegressionResult()` は既存の公開動作（`result: pass|fail` のみ許容）が変更される retained public surface として列挙されているが、`result: \"skipped\"` 追加後に validator が正しく動作することを証明する振る舞いレベルの受け入れ条件が定義されていない。; `src/flow/schemas/next-action/final-regression.schema.json` は既存の公開スキーマ（`result: pass|fail`）が変更される retained public surface として列挙されているが、新しいパス（`result: \"skipped\"`）を通じてスキーマが正しく機能することを証明する振る舞いレベルの受け入れ条件が定義されていない。; registry post-hook は「artifact と command result の両方が pass の場合だけ step を done にする」という既存動作が変更される retained public surface として列挙されているが、`result: \"skipped\"` かつ `completed: true` の場合に step を done にする新しいパスでの振る舞いレベルの受け入れ条件が定義されていない。; report 表示は `result: \"skipped\"` 追加により挙動が変化する retained public surface として列挙されているが、実行済み・covered-by-test-execute skip・risk-based skip をレポートが区別して表示することを証明する振る舞いレベルの受け入れ条件が定義されていない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-15T08:53:12.598Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "draft.json",
+            "locator": "goal"
+          },
+          "observed": "「同等以上の full project regression evidence」の「同等以上の」は比較基準が明記されておらず、検証可能な条件を示していない。何をもって「同等以上」と判断するかが goal 単体では決定できない。",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "draft.json",
+            "locator": "goal"
+          },
+          "observed": "「明確に runtime に影響しない変更の場合」の「明確に」は検証可能な条件ではなく主観的形容詞であり、goal 単体では判断基準を特定できない。",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "draft.json",
+            "locator": "impactOnExisting[3]"
+          },
+          "observed": "「skip rationale が不足する場合は full regression を実行して品質を維持する」の「不足する場合」は、何が揃えば rationale が十分かを示す検証可能な条件を欠く。",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "draft.json",
+            "locator": "decisionMap.deferredToSpec[0]"
+          },
+          "observed": "「exact freshness algorithm は spec で定義する。候補は changed-files snapshot の一致、または test-execute 後の regression-sensitive changes 不在の証明」と記述され、二つの候補が並列で挙げられたまま選択が保留されている。どちらのアルゴリズムを採用するか、および各候補の具体的な判定手順が未定義のため、独立した二者が実装の合否を同一条件で判断できない。",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "draft.json",
+            "locator": "decisionMap.deferredToSpec[1]"
+          },
+          "observed": "「exact artifact schema は spec で定義する」として、`final-regression-result.json` の正式スキーマ（フィールドの型・必須/任意の区別・validator/next-action schema/post-hook との整合条件）が本ドキュメント内で具体化されていない。`result: \"skipped\"` 追加後の schema が確定していないため、独立した二者が実装の合否を判断できない。",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft.json",
+            "locator": "impactOnExisting[0]"
+          },
+          "observed": "`validateFinalRegressionResult()` は既存の公開動作（`result: pass|fail` のみ許容）が変更される retained public surface として列挙されているが、`result: \"skipped\"` 追加後に validator が正しく動作することを証明する振る舞いレベルの受け入れ条件が定義されていない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft.json",
+            "locator": "impactOnExisting[0]"
+          },
+          "observed": "`src/flow/schemas/next-action/final-regression.schema.json` は既存の公開スキーマ（`result: pass|fail`）が変更される retained public surface として列挙されているが、新しいパス（`result: \"skipped\"`）を通じてスキーマが正しく機能することを証明する振る舞いレベルの受け入れ条件が定義されていない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft.json",
+            "locator": "impactOnExisting[0]"
+          },
+          "observed": "registry post-hook は「artifact と command result の両方が pass の場合だけ step を done にする」という既存動作が変更される retained public surface として列挙されているが、`result: \"skipped\"` かつ `completed: true` の場合に step を done にする新しいパスでの振る舞いレベルの受け入れ条件が定義されていない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft.json",
+            "locator": "impactOnExisting[0]"
+          },
+          "observed": "report 表示は `result: \"skipped\"` 追加により挙動が変化する retained public surface として列挙されているが、実行済み・covered-by-test-execute skip・risk-based skip をレポートが区別して表示することを証明する振る舞いレベルの受け入れ条件が定義されていない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "「同等以上の full project regression evidence」の「同等以上の」は比較基準が明記されておらず、検証可能な条件を示していない。何をもって「同等以上」と判断するかが goal 単体では決定できない。"
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "「明確に runtime に影響しない変更の場合」の「明確に」は検証可能な条件ではなく主観的形容詞であり、goal 単体では判断基準を特定できない。"
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "「skip rationale が不足する場合は full regression を実行して品質を維持する」の「不足する場合」は、何が揃えば rationale が十分かを示す検証可能な条件を欠く。"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "「exact freshness algorithm は spec で定義する。候補は changed-files snapshot の一致、または test-execute 後の regression-sensitive changes 不在の証明」と記述され、二つの候補が並列で挙げられたまま選択が保留されている。どちらのアルゴリズムを採用するか、および各候補の具体的な判定手順が未定義のため、独立した二者が実装の合否を同一条件で判断できない。"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "「exact artifact schema は spec で定義する」として、`final-regression-result.json` の正式スキーマ（フィールドの型・必須/任意の区別・validator/next-action schema/post-hook との整合条件）が本ドキュメント内で具体化されていない。`result: \"skipped\"` 追加後の schema が確定していないため、独立した二者が実装の合否を判断できない。"
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "`validateFinalRegressionResult()` は既存の公開動作（`result: pass|fail` のみ許容）が変更される retained public surface として列挙されているが、`result: \"skipped\"` 追加後に validator が正しく動作することを証明する振る舞いレベルの受け入れ条件が定義されていない。"
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "`src/flow/schemas/next-action/final-regression.schema.json` は既存の公開スキーマ（`result: pass|fail`）が変更される retained public surface として列挙されているが、新しいパス（`result: \"skipped\"`）を通じてスキーマが正しく機能することを証明する振る舞いレベルの受け入れ条件が定義されていない。"
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "registry post-hook は「artifact と command result の両方が pass の場合だけ step を done にする」という既存動作が変更される retained public surface として列挙されているが、`result: \"skipped\"` かつ `completed: true` の場合に step を done にする新しいパスでの振る舞いレベルの受け入れ条件が定義されていない。"
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "report 表示は `result: \"skipped\"` 追加により挙動が変化する retained public surface として列挙されているが、実行済み・covered-by-test-execute skip・risk-based skip をレポートが区別して表示することを証明する振る舞いレベルの受け入れ条件が定義されていない。"
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate found ambiguous freshness wording and missing migration parity acceptance criteria for skipped final-regression artifacts",
+      "trigger": "draft gate semantic FAIL reported unambiguous-requirements, complete-context, and migration-parity observations",
+      "resolution": "rewrote goal, impact, decision map, and QA answers with root-command freshness conditions, skipped artifact fields, and validator/schema/post-hook/report acceptance behavior",
+      "guardrailCandidate": "drafts that change a public artifact contract must define concrete freshness conditions, artifact fields, and behavior-level parity checks before draft gate",
+      "taskId": null,
+      "timestamp": "2026-06-15T08:54:44.494Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "\"prompt/docs 上の責務説明の更新\" does not state a verifiable condition: it does not specify which prompt or docs files must be updated, nor what content must appear in them. A reviewer cannot determine whether any given file edit satisfies this requirement.; \"report 表示は executed / covered-by-test-execute skip / risk-based skip を区別して表示する\" uses '区別して' (distinctly) without measurable criteria. Two independent reviewers would disagree on whether a given report output satisfies this—no output format, required fields, or visual/structural distinction is specified.; \"finalize artifact handling\" is explicitly identified as a retained public surface in knownFacts, but it appears in neither the impactOnExisting impact descriptions nor the deferredToSpec unit-test coverage list. No behavior-level verification criterion exists for this surface, violating the requirement that at least one behavior-level verification be defined for each retained public surface.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-15T08:57:57.419Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "draft",
+            "locator": "scopeVerification.in[0]"
+          },
+          "observed": "\"prompt/docs 上の責務説明の更新\" does not state a verifiable condition: it does not specify which prompt or docs files must be updated, nor what content must appear in them. A reviewer cannot determine whether any given file edit satisfies this requirement.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "draft",
+            "locator": "impactOnExisting[0]"
+          },
+          "observed": "\"report 表示は executed / covered-by-test-execute skip / risk-based skip を区別して表示する\" uses '区別して' (distinctly) without measurable criteria. Two independent reviewers would disagree on whether a given report output satisfies this—no output format, required fields, or visual/structural distinction is specified.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft",
+            "locator": "knownFacts / impactOnExisting / deferredToSpec"
+          },
+          "observed": "\"finalize artifact handling\" is explicitly identified as a retained public surface in knownFacts, but it appears in neither the impactOnExisting impact descriptions nor the deferredToSpec unit-test coverage list. No behavior-level verification criterion exists for this surface, violating the requirement that at least one behavior-level verification be defined for each retained public surface.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "\"prompt/docs 上の責務説明の更新\" does not state a verifiable condition: it does not specify which prompt or docs files must be updated, nor what content must appear in them. A reviewer cannot determine whether any given file edit satisfies this requirement."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "\"report 表示は executed / covered-by-test-execute skip / risk-based skip を区別して表示する\" uses '区別して' (distinctly) without measurable criteria. Two independent reviewers would disagree on whether a given report output satisfies this—no output format, required fields, or visual/structural distinction is specified."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "\"finalize artifact handling\" is explicitly identified as a retained public surface in knownFacts, but it appears in neither the impactOnExisting impact descriptions nor the deferredToSpec unit-test coverage list. No behavior-level verification criterion exists for this surface, violating the requirement that at least one behavior-level verification be defined for each retained public surface."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate found remaining ambiguous prompt update, report rendering, and finalize artifact parity requirements",
+      "trigger": "draft gate semantic FAIL reported three observations after the first semantic repair",
+      "resolution": "specified exact prompt files and content, report result and skipKind output criteria, and finalize durable artifact coverage for skipped final-regression",
+      "guardrailCandidate": "migration parity entries should name each retained public surface and one behavior-level verification criterion for that surface",
+      "taskId": null,
+      "timestamp": "2026-06-15T08:59:12.061Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The spec modifies at least six existing public surfaces (validateFinalRegressionResult(), final-regression next-action schema, registry post-hook, report.js output, finalize artifact handling, run-final-regression.js execution flow) but contains no section or statement that explicitly lists impact on existing features, nor a statement that no existing features are affected.; The implementationTargets list only test files under tests/unit/flow/ (tests/unit/flow/final-regression.test.js, tests/unit/flow/test-regression-policy.test.js). No path under specs/<specid>/tests/ is included, which the guardrail requires as mandatory for new spec behavior coverage with // spec: R<N> headers.; R1 states the command identity check as 'including argv/env/source/metadata or resolved script/config digest'. The 'or' is ambiguous: it is unclear whether argv/env/source/metadata and resolved script/config digest are two alternative identity-check methods (either suffices) or two descriptions of different command types requiring different field sets. Two independent reviewers would implement this differently.; R2 refers to 'configured project test files' without defining what configuration mechanism determines which files qualify. No configuration source, file, or convention is identified, leaving the boundary of this category non-verifiable.; R2 conditions allowlist eligibility on 'test-execute regression evidence covers the changed file fingerprints' without defining measurable coverage criteria. Two independent reviewers would disagree on what constitutes sufficient coverage of a changed-file fingerprint by regression evidence.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-15T09:19:23.562Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "impact-on-existing-features",
+          "where": {
+            "file": "spec.json",
+            "locator": "top-level object"
+          },
+          "observed": "The spec modifies at least six existing public surfaces (validateFinalRegressionResult(), final-regression next-action schema, registry post-hook, report.js output, finalize artifact handling, run-final-regression.js execution flow) but contains no section or statement that explicitly lists impact on existing features, nor a statement that no existing features are affected.",
+          "severity": "blocking",
+          "refs": [
+            "impact-on-existing-features"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "implementationTargets"
+          },
+          "observed": "The implementationTargets list only test files under tests/unit/flow/ (tests/unit/flow/final-regression.test.js, tests/unit/flow/test-regression-policy.test.js). No path under specs/<specid>/tests/ is included, which the guardrail requires as mandatory for new spec behavior coverage with // spec: R<N> headers.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[0] (R1)"
+          },
+          "observed": "R1 states the command identity check as 'including argv/env/source/metadata or resolved script/config digest'. The 'or' is ambiguous: it is unclear whether argv/env/source/metadata and resolved script/config digest are two alternative identity-check methods (either suffices) or two descriptions of different command types requiring different field sets. Two independent reviewers would implement this differently.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[1] (R2)"
+          },
+          "observed": "R2 refers to 'configured project test files' without defining what configuration mechanism determines which files qualify. No configuration source, file, or convention is identified, leaving the boundary of this category non-verifiable.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[1] (R2)"
+          },
+          "observed": "R2 conditions allowlist eligibility on 'test-execute regression evidence covers the changed file fingerprints' without defining measurable coverage criteria. Two independent reviewers would disagree on what constitutes sufficient coverage of a changed-file fingerprint by regression evidence.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "The spec modifies at least six existing public surfaces (validateFinalRegressionResult(), final-regression next-action schema, registry post-hook, report.js output, finalize artifact handling, run-final-regression.js execution flow) but contains no section or statement that explicitly lists impact on existing features, nor a statement that no existing features are affected."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "The implementationTargets list only test files under tests/unit/flow/ (tests/unit/flow/final-regression.test.js, tests/unit/flow/test-regression-policy.test.js). No path under specs/<specid>/tests/ is included, which the guardrail requires as mandatory for new spec behavior coverage with // spec: R<N> headers."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "R1 states the command identity check as 'including argv/env/source/metadata or resolved script/config digest'. The 'or' is ambiguous: it is unclear whether argv/env/source/metadata and resolved script/config digest are two alternative identity-check methods (either suffices) or two descriptions of different command types requiring different field sets. Two independent reviewers would implement this differently."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "R2 refers to 'configured project test files' without defining what configuration mechanism determines which files qualify. No configuration source, file, or convention is identified, leaving the boundary of this category non-verifiable."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "R2 conditions allowlist eligibility on 'test-execute regression evidence covers the changed file fingerprints' without defining measurable coverage criteria. Two independent reviewers would disagree on what constitutes sufficient coverage of a changed-file fingerprint by regression evidence."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec gate found missing impact section, missing spec-local test target, and ambiguous R1/R2 freshness and test-file coverage criteria",
+      "trigger": "spec gate semantic FAIL reported impact-on-existing-features, spec-test-coverage, unambiguous-requirements, and complete-context observations",
+      "resolution": "added impact_on_existing_features, added specs/300-final-regression-skip/tests/final-regression-skip.test.js to implementationTargets, made R1 command identity an all-key exact match, and defined R2 generic test-only classification plus exact same-flow path-plus-fingerprint coverage",
+      "guardrailCandidate": "specs that change artifact contracts should list impacted public surfaces, include spec-local tests, and define freshness checks as exact field comparisons",
+      "taskId": null,
+      "timestamp": "2026-06-15T09:23:00.000Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "schema: spec.json failed schema validation: impact_on_existing_features: unknown field",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-15T09:21:52.842Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "schema: spec.json failed schema validation: impact_on_existing_features: unknown field",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec gate schema rejected the top-level impact_on_existing_features field",
+      "trigger": "spec gate mechanical FAIL reported unknown field impact_on_existing_features",
+      "resolution": "moved the impact-on-existing-features inventory into schema-allowed overview.decisions entries and removed the unknown top-level field",
+      "guardrailCandidate": "schema-required impact inventories should be represented with existing spec schema fields rather than new top-level keys",
+      "taskId": null,
+      "timestamp": "2026-06-15T09:24:00.000Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "R5 states 'the retained raw skip decision log path under `tests/.raw/final-regression-attempt-*.log` or an equivalent retained pattern'. The term 'equivalent' is a vague adjective; no criteria define what makes an alternative pattern equivalent, so the condition is not verifiable.; The acceptance criterion reads 'Report output contains enough structured data to distinguish executed final regression from `covered_by_test_execute_full_regression` and `risk_based_static_proof` skips.' The adjective 'enough' is vague; no measurable threshold for what data fields or format constitutes sufficient distinguishability is stated.; R5's phrase 'or an equivalent retained pattern' is subjective: two independent reviewers could disagree on whether a specific log-file naming pattern qualifies as equivalent to `tests/.raw/final-regression-attempt-*.log`. No measurable equivalence criteria are provided.; 'Report output contains enough structured data to distinguish...' uses the subjective term 'enough' without measurable criteria. Two independent reviewers could disagree on whether a report exposing, say, only `result` without `skipKind` satisfies this criterion.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-15T09:25:56.709Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[id=R5]"
+          },
+          "observed": "R5 states 'the retained raw skip decision log path under `tests/.raw/final-regression-attempt-*.log` or an equivalent retained pattern'. The term 'equivalent' is a vague adjective; no criteria define what makes an alternative pattern equivalent, so the condition is not verifiable.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[6]"
+          },
+          "observed": "The acceptance criterion reads 'Report output contains enough structured data to distinguish executed final regression from `covered_by_test_execute_full_regression` and `risk_based_static_proof` skips.' The adjective 'enough' is vague; no measurable threshold for what data fields or format constitutes sufficient distinguishability is stated.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[id=R5]"
+          },
+          "observed": "R5's phrase 'or an equivalent retained pattern' is subjective: two independent reviewers could disagree on whether a specific log-file naming pattern qualifies as equivalent to `tests/.raw/final-regression-attempt-*.log`. No measurable equivalence criteria are provided.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[6]"
+          },
+          "observed": "'Report output contains enough structured data to distinguish...' uses the subjective term 'enough' without measurable criteria. Two independent reviewers could disagree on whether a report exposing, say, only `result` without `skipKind` satisfies this criterion.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "R5 states 'the retained raw skip decision log path under `tests/.raw/final-regression-attempt-*.log` or an equivalent retained pattern'. The term 'equivalent' is a vague adjective; no criteria define what makes an alternative pattern equivalent, so the condition is not verifiable."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The acceptance criterion reads 'Report output contains enough structured data to distinguish executed final regression from `covered_by_test_execute_full_regression` and `risk_based_static_proof` skips.' The adjective 'enough' is vague; no measurable threshold for what data fields or format constitutes sufficient distinguishability is stated."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "R5's phrase 'or an equivalent retained pattern' is subjective: two independent reviewers could disagree on whether a specific log-file naming pattern qualifies as equivalent to `tests/.raw/final-regression-attempt-*.log`. No measurable equivalence criteria are provided."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "'Report output contains enough structured data to distinguish...' uses the subjective term 'enough' without measurable criteria. Two independent reviewers could disagree on whether a report exposing, say, only `result` without `skipKind` satisfies this criterion."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec gate found ambiguous R5 raw log retention wording and vague report distinguishability acceptance",
+      "trigger": "spec gate semantic FAIL reported unambiguous-requirements and complete-context observations for R5 and acceptance_criteria[6]",
+      "resolution": "removed the alternative equivalent retained pattern from R5 and replaced the report acceptance criterion with explicit JSON/text result and skipKind output requirements",
+      "guardrailCandidate": "avoid subjective alternatives such as equivalent or enough in artifact retention and report output criteria",
+      "taskId": null,
+      "timestamp": "2026-06-15T09:29:00.000Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "R1 requires the command identity match on \"every normalized key\" but does not define what \"normalized\" means for composite value types such as `argv` (array) and `env` (object). Two independent reviewers could apply different comparison semantics (e.g., JSON stringification order, case-folding, key-sorted object equality) and reach different PASS/FAIL verdicts.; R2 permits skip for \"active spec artifacts under the current spec directory\" but does not define what makes an artifact \"active\" versus inactive. \"Active\" is a vague adjective with no verifiable boundary condition stated in the requirement.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-15T09:28:32.244Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[0] (R1)"
+          },
+          "observed": "R1 requires the command identity match on \"every normalized key\" but does not define what \"normalized\" means for composite value types such as `argv` (array) and `env` (object). Two independent reviewers could apply different comparison semantics (e.g., JSON stringification order, case-folding, key-sorted object equality) and reach different PASS/FAIL verdicts.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[1] (R2)"
+          },
+          "observed": "R2 permits skip for \"active spec artifacts under the current spec directory\" but does not define what makes an artifact \"active\" versus inactive. \"Active\" is a vague adjective with no verifiable boundary condition stated in the requirement.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "R1 requires the command identity match on \"every normalized key\" but does not define what \"normalized\" means for composite value types such as `argv` (array) and `env` (object). Two independent reviewers could apply different comparison semantics (e.g., JSON stringification order, case-folding, key-sorted object equality) and reach different PASS/FAIL verdicts."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "R2 permits skip for \"active spec artifacts under the current spec directory\" but does not define what makes an artifact \"active\" versus inactive. \"Active\" is a vague adjective with no verifiable boundary condition stated in the requirement."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec gate found ambiguous R1 normalized command identity comparison and undefined R2 active spec artifact boundary",
+      "trigger": "spec gate semantic FAIL reported unambiguous-requirements observations for R1 and R2",
+      "resolution": "defined command identity equality for strings, nulls, argv arrays, env objects, and metadata objects; replaced active spec artifacts with the current flow spec directory prefix boundary",
+      "guardrailCandidate": "freshness and allowlist requirements should define exact comparison semantics and path-boundary rules",
+      "taskId": null,
+      "timestamp": "2026-06-15T09:33:00.000Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The allowlist category 'docs/markdown text' specifies no file extension, glob pattern, or path prefix. Two independent reviewers could reasonably disagree on whether a `.md` file in `src/`, a `.txt` file in `docs/`, or a `.md` file at the repository root qualifies, making the boundary of this category unverifiable.; R3 describes the proof sub-object for `covered_by_test_execute_full_regression` only by concept ('reused artifact path, command identity, changed-file fingerprints, and stale-check result') without specifying the JSON field names or nesting structure. Two independent reviewers would implement different field layouts (e.g. `proof.artifactPath` vs `proof.reusedPath`, `proof.commandIdentity` vs `proof.identity`) and could not agree on whether a given artifact satisfies the requirement.; R3 describes the proof sub-object for `risk_based_static_proof` only by concept ('allowlist classifications, checked sensitive path classes, and fail-closed decision result') without specifying the JSON field names or nesting structure. Two independent reviewers would implement different field layouts and could not agree on whether a given artifact satisfies the requirement.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-15T09:32:04.396Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[id=R2]"
+          },
+          "observed": "The allowlist category 'docs/markdown text' specifies no file extension, glob pattern, or path prefix. Two independent reviewers could reasonably disagree on whether a `.md` file in `src/`, a `.txt` file in `docs/`, or a `.md` file at the repository root qualifies, making the boundary of this category unverifiable.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[id=R3] – covered_by_test_execute_full_regression proof"
+          },
+          "observed": "R3 describes the proof sub-object for `covered_by_test_execute_full_regression` only by concept ('reused artifact path, command identity, changed-file fingerprints, and stale-check result') without specifying the JSON field names or nesting structure. Two independent reviewers would implement different field layouts (e.g. `proof.artifactPath` vs `proof.reusedPath`, `proof.commandIdentity` vs `proof.identity`) and could not agree on whether a given artifact satisfies the requirement.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[id=R3] – risk_based_static_proof proof"
+          },
+          "observed": "R3 describes the proof sub-object for `risk_based_static_proof` only by concept ('allowlist classifications, checked sensitive path classes, and fail-closed decision result') without specifying the JSON field names or nesting structure. Two independent reviewers would implement different field layouts and could not agree on whether a given artifact satisfies the requirement.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The allowlist category 'docs/markdown text' specifies no file extension, glob pattern, or path prefix. Two independent reviewers could reasonably disagree on whether a `.md` file in `src/`, a `.txt` file in `docs/`, or a `.md` file at the repository root qualifies, making the boundary of this category unverifiable."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "R3 describes the proof sub-object for `covered_by_test_execute_full_regression` only by concept ('reused artifact path, command identity, changed-file fingerprints, and stale-check result') without specifying the JSON field names or nesting structure. Two independent reviewers would implement different field layouts (e.g. `proof.artifactPath` vs `proof.reusedPath`, `proof.commandIdentity` vs `proof.identity`) and could not agree on whether a given artifact satisfies the requirement."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "R3 describes the proof sub-object for `risk_based_static_proof` only by concept ('allowlist classifications, checked sensitive path classes, and fail-closed decision result') without specifying the JSON field names or nesting structure. Two independent reviewers would implement different field layouts and could not agree on whether a given artifact satisfies the requirement."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec gate found undefined docs/markdown allowlist boundaries and missing R3 proof JSON field layout",
+      "trigger": "spec gate semantic FAIL reported complete-context observations for R2 and R3 proof objects",
+      "resolution": "replaced docs/markdown text with explicit markdown globs and specified proof object field names and nesting for both skipKind values",
+      "guardrailCandidate": "artifact proof requirements should specify JSON field names and path allowlists should use explicit globs",
+      "taskId": null,
+      "timestamp": "2026-06-15T09:38:00.000Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "R3 lists `rawOutputPath` as a required field in the skipped artifact but does not specify its value when no process was executed. The expected value (e.g., the skip decision log path matching `tests/.raw/final-regression-attempt-*.log`) is inferable only by cross-referencing R5; two independent reviewers would disagree on whether it should be null, the decision log path, or something else.; R3 lists `rawOutputLines` as a required field in the skipped artifact but does not specify its value or type when no process was executed. Two independent reviewers would disagree on whether it should be null, an empty array, or lines from the skip decision log.; R3 lists `process` as a required field in the skipped artifact but does not specify its value or structure when no process was executed. Two independent reviewers would disagree on whether it should be null, an empty object, or carry some sentinel exit-code structure.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-15T09:37:01.238Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[R3].desc — rawOutputPath field"
+          },
+          "observed": "R3 lists `rawOutputPath` as a required field in the skipped artifact but does not specify its value when no process was executed. The expected value (e.g., the skip decision log path matching `tests/.raw/final-regression-attempt-*.log`) is inferable only by cross-referencing R5; two independent reviewers would disagree on whether it should be null, the decision log path, or something else.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[R3].desc — rawOutputLines field"
+          },
+          "observed": "R3 lists `rawOutputLines` as a required field in the skipped artifact but does not specify its value or type when no process was executed. Two independent reviewers would disagree on whether it should be null, an empty array, or lines from the skip decision log.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[R3].desc — process field"
+          },
+          "observed": "R3 lists `process` as a required field in the skipped artifact but does not specify its value or structure when no process was executed. Two independent reviewers would disagree on whether it should be null, an empty object, or carry some sentinel exit-code structure.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "R3 lists `rawOutputPath` as a required field in the skipped artifact but does not specify its value when no process was executed. The expected value (e.g., the skip decision log path matching `tests/.raw/final-regression-attempt-*.log`) is inferable only by cross-referencing R5; two independent reviewers would disagree on whether it should be null, the decision log path, or something else."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "R3 lists `rawOutputLines` as a required field in the skipped artifact but does not specify its value or type when no process was executed. Two independent reviewers would disagree on whether it should be null, an empty array, or lines from the skip decision log."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "R3 lists `process` as a required field in the skipped artifact but does not specify its value or structure when no process was executed. Two independent reviewers would disagree on whether it should be null, an empty object, or carry some sentinel exit-code structure."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec gate found missing skipped-artifact values for rawOutputPath, rawOutputLines, and process",
+      "trigger": "spec gate semantic FAIL reported complete-context observations for R3 skipped artifact fields",
+      "resolution": "specified rawOutputPath as the retained skip decision log, rawOutputLines as the decision line range, and process as a started:false sentinel metadata object",
+      "guardrailCandidate": "skipped execution artifacts should define sentinel values for execution-derived fields",
+      "taskId": null,
+      "timestamp": "2026-06-15T09:46:00.000Z"
+    },
+    {
+      "step": "test",
+      "reason": "Spec-local test file was accidentally created in the main repository instead of the active flow worktree",
+      "trigger": "apply_patch was invoked with a relative path while the active flow required worktree-local edits",
+      "resolution": "Deleted the main repository file and recreated the same test file under the active worktree path",
+      "guardrailCandidate": "During active worktree flows, use absolute worktree paths for apply_patch file edits",
+      "taskId": null,
+      "timestamp": "2026-06-15T09:58:06.396Z"
+    },
+    {
+      "step": "implement",
+      "reason": "Requirement status updates were executed in parallel instead of one foreground senti command at a time",
+      "trigger": "Used parallel tool execution for multiple senti flow set req commands during implementation bookkeeping",
+      "resolution": "All updates succeeded; recorded the protocol violation and will run subsequent senti commands sequentially",
+      "guardrailCandidate": "Never batch or parallelize senti commands inside active Spec-Driven Development flow",
+      "taskId": null,
+      "timestamp": "2026-06-15T10:18:02.766Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: impl-gate failed because test-execute removed upgrade-result.json that file-map referenced",
+      "trigger": "impl-gate ARTIFACT_PLACEHOLDER reported missing specs/300-final-regression-skip/upgrade-result.json",
+      "resolution": "Re-ran senti upgrade after test-execute to recreate upgrade-result.json and upgrade raw log evidence",
+      "guardrailCandidate": "When prompt or skill sources change, ensure upgrade evidence exists after test-execute artifact cleanup before impl-gate",
+      "taskId": null,
+      "timestamp": "2026-06-15T10:25:44.754Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: spec-local R2 sensitive-path fixture wrote invalid JSON and caused final-regression command discovery to fail before policy assertion",
+      "trigger": "impl-gate blocked because test-execute summary contained failing spec-local R2 evidence",
+      "resolution": "Updated the package and config path cases to preserve parseable JSON while still changing those sensitive files",
+      "guardrailCandidate": "when a test mutates files parsed by production code, keep fixtures syntactically valid unless parser failure is the behavior under test",
+      "taskId": null,
+      "timestamp": "2026-06-15T10:30:06.988Z"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "provider=codex | profile=codex/gpt-5.3-spark | exit=1 | Reading prompt from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019ecad7-4c85-7ba2-a990-4c4d6da88fd0\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"You've hit your usage limit for GPT-5.3-Codex-Spark. Switch to another m",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-15T10:32:51.785Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "provider quota on codex spark prevented integration gate evaluation after the test evidence was fixed",
+      "trigger": "senti flow run gate failed with a GPT-5.3-Codex-Spark usage limit error before producing gate observations",
+      "resolution": "Temporarily switched agent.useProfile to claude-main in the worktree so the integration gate can use the configured Claude gate provider",
+      "guardrailCandidate": "when an AI provider quota blocks a required gate, use an existing alternate configured profile and restore the project profile before finalizing",
+      "taskId": null,
+      "timestamp": "2026-06-15T10:33:36.881Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "appendSkipRaw has exactly one production call site (the resultStatus === 'skipped' ternary branch). Its body is byte-for-byte identical to the pre-existing appendRaw except for returning { start, end } instead of { start_line, end_line }. It hides no meaningful complexity and enforces no invariant; the only behavioral difference (return-key names) could be achieved by inlining the three-line body directly in the skipped branch, matching the diff-scope blocking condition: the indirection adds a new API surface with no shared behavior, invariant, or ownership boundary.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-15T10:40:53.716Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-final-regression.js",
+            "locator": "function appendSkipRaw"
+          },
+          "observed": "appendSkipRaw has exactly one production call site (the resultStatus === 'skipped' ternary branch). Its body is byte-for-byte identical to the pre-existing appendRaw except for returning { start, end } instead of { start_line, end_line }. It hides no meaningful complexity and enforces no invariant; the only behavioral difference (return-key names) could be achieved by inlining the three-line body directly in the skipped branch, matching the diff-scope blocking condition: the indirection adds a new API surface with no shared behavior, invariant, or ownership boundary.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "appendSkipRaw has exactly one production call site (the resultStatus === 'skipped' ternary branch). Its body is byte-for-byte identical to the pre-existing appendRaw except for returning { start, end } instead of { start_line, end_line }. It hides no meaningful complexity and enforces no invariant; the only behavioral difference (return-key names) could be achieved by inlining the three-line body directly in the skipped branch, matching the diff-scope blocking condition: the indirection adds a new API surface with no shared behavior, invariant, or ownership boundary."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: integration gate flagged appendSkipRaw as a single-use thin helper with no invariant",
+      "trigger": "impl-gate returned a blocking no-overengineering observation for src/flow/lib/run-final-regression.js",
+      "resolution": "Removed appendSkipRaw and inlined the skipped raw-output range construction in the skipped branch",
+      "guardrailCandidate": "avoid adding one-call helpers when the only behavior difference is a field-name shape at the call site",
+      "taskId": null,
+      "timestamp": "2026-06-15T10:41:49.080Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "New file is added under tests/unit/flow/ and contains spec behavior coverage (test 'skips when same-flow test-execute full/pass evidence exactly matches' targets R1; test 'validates and reports risk-based skipped artifacts with skipKind' targets R3/R5) but lacks the required `// spec: R<N> ...` header and is not placed under specs/300-final-regression-skip/tests/ as the guardrail requires for new spec behavior coverage.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-15T10:46:32.220Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "tests/unit/flow/final-regression-skip.test.js",
+            "locator": "line 1"
+          },
+          "observed": "New file is added under tests/unit/flow/ and contains spec behavior coverage (test 'skips when same-flow test-execute full/pass evidence exactly matches' targets R1; test 'validates and reports risk-based skipped artifacts with skipKind' targets R3/R5) but lacks the required `// spec: R<N> ...` header and is not placed under specs/300-final-regression-skip/tests/ as the guardrail requires for new spec behavior coverage.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "New file is added under tests/unit/flow/ and contains spec behavior coverage (test 'skips when same-flow test-execute full/pass evidence exactly matches' targets R1; test 'validates and reports risk-based skipped artifacts with skipKind' targets R3/R5) but lacks the required `// spec: R<N> ...` header and is not placed under specs/300-final-regression-skip/tests/ as the guardrail requires for new spec behavior coverage."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: integration gate flagged new shared unit coverage without a spec requirement header",
+      "trigger": "impl-gate reported spec-test-coverage violation for tests/unit/flow/final-regression-skip.test.js line 1",
+      "resolution": "Added a // spec: R1 R3 R5 header to the shared unit test file while keeping spec-local tests under the flow directory",
+      "guardrailCandidate": "new shared tests that cover spec behavior must declare the covered requirement ids at the file header",
+      "taskId": null,
+      "timestamp": "2026-06-15T10:46:59.567Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "This is a newly added file (new file mode 100644) that carries a `// spec: R1 R3 R5` header, making it new spec behavior coverage. The guardrail requires new spec behavior coverage to be written under `specs/<specid>/tests/`, not under `tests/unit/flow/`. The exception for existing shared regression tests (which MAY be updated) does not apply because this is a brand-new file, not an update to a pre-existing shared test.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-15T10:49:13.065Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "tests/unit/flow/final-regression-skip.test.js",
+            "locator": "// spec: R1 R3 R5"
+          },
+          "observed": "This is a newly added file (new file mode 100644) that carries a `// spec: R1 R3 R5` header, making it new spec behavior coverage. The guardrail requires new spec behavior coverage to be written under `specs/<specid>/tests/`, not under `tests/unit/flow/`. The exception for existing shared regression tests (which MAY be updated) does not apply because this is a brand-new file, not an update to a pre-existing shared test.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "This is a newly added file (new file mode 100644) that carries a `// spec: R1 R3 R5` header, making it new spec behavior coverage. The guardrail requires new spec behavior coverage to be written under `specs/<specid>/tests/`, not under `tests/unit/flow/`. The exception for existing shared regression tests (which MAY be updated) does not apply because this is a brand-new file, not an update to a pre-existing shared test."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: integration gate rejected the newly added shared unit test file as misplaced spec behavior coverage",
+      "trigger": "impl-gate reported that new spec behavior tests must live under specs/300-final-regression-skip/tests rather than tests/unit/flow",
+      "resolution": "Deleted the new shared unit test file and removed its file-map references, relying on the existing spec-local tests for requirement coverage",
+      "guardrailCandidate": "keep new spec behavior coverage in the active spec tests directory unless updating an existing shared regression test",
+      "taskId": null,
+      "timestamp": "2026-06-15T10:50:29.822Z"
+    },
+    {
+      "step": "acceptance-review",
+      "reason": "acceptance-review classified deferred findings as still_open because no disposition evidence artifact existed",
+      "trigger": "senti flow run acceptance-review returned amend_required with six deferred findings and no amendment proposals",
+      "resolution": "Added acceptance-review-evidence.json marking each deferred finding fixed with spec-local evidence references",
+      "guardrailCandidate": "when semantic findings are deferred, record explicit acceptance disposition evidence before rerunning acceptance-review",
+      "taskId": null,
+      "timestamp": "2026-06-15T10:55:44.881Z"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "dependency_failure",
+      "reason": "final-regression failed: dependency_failure",
+      "command": "node tests/run.js",
+      "rawOutputPath": "specs/300-final-regression-skip/tests/.raw/final-regression-attempt-001.log",
+      "retryable": false,
+      "nextAction": "stop",
+      "timestamp": "2026-06-15T11:01:08.008Z"
+    },
+    {
+      "step": "final-regression",
+      "reason": "final-regression stopped because senti upgrade rewrote the rename migration regression fixture from legacy sdd-forge values to current senti values",
+      "trigger": "node tests/run.js failed in tests/unit/upgrade-rename-migration.test.js because changed did not include the migrated project file",
+      "resolution": "Changed the regression fixture to construct legacy names from split string parts so future rename migration runs do not rewrite the test source",
+      "guardrailCandidate": "migration regression tests should avoid raw legacy tokens that the migration under test rewrites in its own fixture source",
+      "taskId": null,
+      "timestamp": "2026-06-15T13:44:05.211Z"
+    }
+  ]
+}

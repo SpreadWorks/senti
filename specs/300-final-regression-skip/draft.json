@@ -1,0 +1,131 @@
+{
+  "devType": "feature",
+  "goal": "must: `test-execute` と `final-regression` の責務を整理し、同一 flow 内の `test-execute-result.json` が full project regression pass と root command 一致を示し、かつ現在の trigger-relevant changed files がその artifact に記録済みの場合、または現在の changed files が docs/spec/prompt/skill/template/test-only の非 runtime 分類だけの場合は、`final-regression` の再実行を監査 artifact 付きで省略できるようにする。",
+  "analysis": {
+    "problem": "Issue #391 は、`test.testExecuteRegression=full` などで `test-execute` が full project regression を既に pass した後でも、`final-regression` が同じ full regression を再実行して flow 完了時間を二重に消費する問題を扱う。",
+    "proposedApproach": "`final-regression` 実行前または内部で、同一 flow 内の `test-execute-result.json` にある full regression pass evidence の再利用可否と、changed files の risk classification を判定する。省略する場合も `result: \"skipped\"` の `final-regression-result.json` を残し、実行・covered-by-test-execute skip・risk-based skip を downstream が区別できるようにする。",
+    "validation": "既存コードでは `test-regression.js` が changed files を full / targeted / non-trigger に分類し、`run-test-execute.js` が v2 artifact に regression evidence を保存している。一方で `run-final-regression.js` は毎回 regression command を discovery して実行し、`validateFinalRegressionResult()` と next-action schema は `pass|fail` のみを許容するため、skip を追加するには artifact contract、post-hook、prompt、report、unit tests の更新が必要になる。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: `run-test-execute.js` は spec-local tests を常に実行し、project regression の結果を `test-execute-result.json` version 2 の `regression` field に保存する。",
+      "must: `test-regression.js` は `test.testExecuteRegression` policy と changed-file classification により、full execution / targeted execution / skip / final-regression deferred を選ぶ。",
+      "must: `run-final-regression.js` は現在、changed files を取得した後に regression command を discovery し、root command を実行して `final-regression-result.json` を書く。",
+      "must: `validateFinalRegressionResult()` と `src/flow/schemas/next-action/final-regression.schema.json` は現在 `result: pass|fail` のみを許容する。",
+      "must: `final-regression` registry post-hook は artifact と command result の両方が pass の場合だけ step を done にする。",
+      "must: User approved same-flow `test-execute` full regression pass reuse when evidence is fresh.",
+      "must: User approved fail-closed risk-based skip only for clearly non-runtime changes.",
+      "must: User approved `final-regression-result.json` as the public skipped artifact contract with `result: \"skipped\"`, `skipKind`, and skip evidence.",
+      "should: User approved excluding cross-flow last-known-green reuse from this initial scope.",
+      "must: User approved acceptance coverage for covered-by-test-execute skip, risk-based skip, runtime-sensitive run, stale evidence run, unknown change fail-closed, and schema/report/post-hook handling.",
+      "must: Fresh same-flow full regression evidence requires `test-execute-result.json` `regression.required=true`, `regression.mode=\"full\"`, `regression.result=\"pass\"`, discovered final-regression root command/source matching `regression.root_test_command` and `regression.root_test_command_source`, and no current trigger-relevant changed file outside `regression.trigger_relevant_changed_files`.",
+      "must: `final-regression-result.json` skipped artifact requires `version: \"1\"`, `completed: true`, `result: \"skipped\"`, `failureKind: null`, `skipKind`, `reason`, `command`, `commandSource`, `rawOutputPath`, `rawOutputLines`, `process`, `changedFiles`, `retryable: false`, `nextAction: \"finalize-commit\"`, and evidence fields for reused regression or static risk proof.",
+      "must: Retained public surfaces are `validateFinalRegressionResult()`, `src/flow/schemas/next-action/final-regression.schema.json`, final-regression registry post-hook, report rendering, and finalize artifact handling."
+    ],
+    "decisionPoints": [
+      "must: covered-by-test-execute skip は、`test-execute-result.json` の `regression.required=true`, `mode=full`, `result=pass` と evidence freshness を満たす場合だけ許可するか決める。",
+      "must: risk-based skip は、docs/spec/prompt/skill/template/test-only など runtime 非影響が明確な変更に限定し、unknown / config / dependency / runner / runtime-sensitive changes は full regression required に倒すか決める。",
+      "must: skipped artifact の public fields、`result` value、`skipKind`、`nextAction`、raw output path の扱いを `final-regression-result.json` current-run contract として扱う。",
+      "must: 初期実装では same-flow evidence reuse と fail-closed classification を優先し、cross-flow last-known-green reuse は対象外にする。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 外部依存は追加しない。Node.js built-in modules と既存 helper のみを使う。",
+      "must: alpha policy により後方互換の旧 artifact format 維持コードは不要だが、既存 public artifact contract を変える場合は schema/prompt/report/tests を同時更新する。",
+      "must: value structure は object literal の ad hoc discriminated union ではなく、必要に応じて専用 class で invariant を表現する。",
+      "must: source files under `src/` にはこの repository 固有の path や運用値を直接埋め込まない。",
+      "must: flow prompt / skill source / preset を変更した場合は `senti upgrade` evidence が必要になる。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: spec は freshness algorithm を `test-execute` full/pass artifact、root command/source 一致、現在の trigger-relevant changed files が artifact 記録済みであること、の 3 条件として展開する。",
+      "must: spec は skipped artifact schema を current-run `final-regression-result.json` contract として展開し、validator、next-action schema、report、post-hook の pass/skipped 完了条件を揃える。",
+      "must: unit tests は covered-by-test-execute skip、risk-based skip、runtime-sensitive run、stale evidence run、fail-closed unknown change、validator skipped acceptance、next-action skipped acceptance、post-hook skipped completion、report skip-kind rendering、finalize durable artifact inclusion for skipped final-regression を少なくとも検証する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: `src/flow/prompts/impl/test-execute.md` は spec-local tests, targeted regression, explicit full regression, and deferred final-regression の責務を列挙し、`src/flow/prompts/impl/final-regression.md` は executed / covered-by-test-execute skip / risk-based skip の 3 outcomes と required artifact fields を列挙する。",
+      "must: `final-regression` が同一 flow 内の `test-execute` full regression pass evidence を再利用して skip できる条件の実装。",
+      "must: runtime-sensitive / config-sensitive / external integration / unknown changes では `final-regression` が従来通り full regression を実行する fail-closed behavior。",
+      "must: skip 時にも `final-regression-result.json` の監査 artifact を残し、report / finalize / flow status / next-action が実行済み、covered-by-test-execute skip、risk-based skip を区別できること。",
+      "must: unit tests と spec-local tests による covered-by-test-execute skip / risk-based skip / run / fail-closed / stale evidence の検証。"
+    ],
+    "out": [
+      "should: cross-flow last-known-green evidence reuse は今回の初期 scope から外す。",
+      "should: CI / nightly / release 前 full regression 運用の新規実装は今回の初期 scope から外し、artifact に外部 full regression requirement を記録する程度に留める。",
+      "should: project-specific runtime path list を `src/` に直接 hardcode しない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: `senti flow run final-regression` の public artifact contract が `skipped` を扱うように変わるため、validator は skipped artifact を受理し、next-action schema は `result: \"skipped\"` と `skipKind` を受理し、registry post-hook は `completed: true` と `nextAction: \"finalize-commit\"` の skipped artifact で step を done にし、report JSON/text は final-regression section に `result` と `skipKind` を出力して executed (`result: \"pass\"` or `\"fail\"`), covered-by-test-execute (`skipKind: \"covered_by_test_execute_full_regression\"`), risk-based (`skipKind: \"risk_based_static_proof\"`) を判別可能にする。",
+    "must: finalize artifact handling は `final-regression-result.json` と `tests/.raw/final-regression-attempt-*.log` の durable artifact pathspec を保持し、skipped artifact では raw output log を新規 attempt として保持するか、skip decision raw log path を durable pathspec 内に保存する。",
+    "must: `test-execute-result.json` の regression evidence が downstream decision input になるため、freshness 判定に必要な changed files / command / mode / result を安定して参照する必要がある。",
+    "must: `test.testExecuteRegression=full` を使う project では、同じ flow 内の duplicate full regression が省略される可能性がある。",
+    "should: docs/spec/prompt-only など runtime 非影響の変更では flow 完了時間が短くなるが、skip artifact に `skipKind`、changed files、classification、reused artifact または static proof のいずれかが欠ける場合は full regression を実行して品質を維持する。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "must: `final-regression` は、同一 flow 内の `test-execute-result.json` が `regression.required=true`, `mode=full`, `result=pass` を示し、かつ evidence が stale でない場合に `covered_by_test_execute_full_regression` として skip する前提でよいですか。stale evidence とは、`test-execute` 後に regression command、dependency/config、runtime-sensitive source、または unknown changed files が増えた状態を指します。",
+      "answer": "はい。must: 同一 flow 内の `test-execute-result.json` が full regression pass を示し、discovered root command/source が artifact と一致し、現在の trigger-relevant changed files が artifact 記録済みの場合、`final-regression` は `covered_by_test_execute_full_regression` として skip できる。",
+      "evidence": "User selected [1] for q1. Issue #391 acceptance criteria require documenting and implementing conditions under which a `test-execute` full regression pass can be reused by `final-regression`. `run-test-execute.js` writes `test-execute-result.json` version 2 with `regression.required`, `mode`, `result`, command, and changed files.",
+      "why": "must: This preserves regression confidence because reuse is limited to same-flow full regression evidence whose root command/source and trigger-relevant changed files still match current final-regression inputs.",
+      "considered": "Always running `final-regression` was rejected because it preserves the duplicate full regression cost that Issue #391 targets.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "must: risk-based skip は、docs/spec artifacts/prompt/skill/template/test-only など runtime 非影響分類に一致する変更だけに限定し、package/config/test runner/runtime source/external integration/unknown files は full regression required に倒す前提でよいですか。fail-closed とは、分類不能な場合に省略せず実行する方針です。",
+      "answer": "はい。must: risk-based skip は docs/spec artifacts/prompt/skill/template/test-only など runtime 非影響分類に一致する変更だけに限定し、package/config/test runner/runtime source/external integration/unknown files は full regression required に倒す。",
+      "evidence": "User selected [1] for q2. Issue #391 policy says unknown / unclassified / runtime-sensitive changes must always fall back to full regression required, while clearly non-runtime changes such as docs/spec/prompt-only changes may omit full regression.",
+      "why": "Fail-closed classification keeps local flow optimization from weakening regression confidence when a changed file may affect runtime, test execution, dependency state, or external integration behavior.",
+      "considered": "Disabling risk-based skip entirely was rejected because Issue #391 explicitly asks to omit full regression for clearly non-runtime changes with a static proof artifact.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "must: skip 時の `final-regression-result.json` は `result: \"skipped\"` と `skipKind` を持つ public artifact とし、`nextAction: \"finalize-commit\"`、`completed: true`、changed files、classification、covered-by-test-execute では reused artifact/command、risk-based では static proof を含める contract にしてよいですか。",
+      "answer": "はい。must: skip 時の `final-regression-result.json` は `result: \"skipped\"` と `skipKind` を持つ public artifact とし、`completed: true`, `nextAction: \"finalize-commit\"`, changed files, classification, covered-by-test-execute では reused artifact/command、risk-based では static proof を含める。",
+      "evidence": "User selected [1] for q3. Issue #391 acceptance criteria require an audit artifact equivalent to `final-regression-result.json` when skipped, and require report / finalize-commit / flow status to distinguish executed, covered-by-test-execute skip, and risk-based skip.",
+      "why": "Keeping skip in the durable final-regression artifact lets validator, next-action schema, registry post-hook, report, and finalize paths use one current-run contract instead of split evidence paths.",
+      "considered": "A separate skip artifact was rejected because it would add downstream lookup paths and make final-regression completion/reporting less direct.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "should: cross-flow last-known-green reuse は対象外とし、同一 flow 内の `test-execute` evidence reuse と fail-closed risk classification のみを今回の対象にする前提でよいですか。last-known-green reuse とは、過去 flow や過去実行の full regression pass を今回の証跡として再利用する方式です。",
+      "answer": "はい。should: cross-flow last-known-green reuse は今回の scope から外し、同一 flow 内の `test-execute` evidence reuse と fail-closed risk classification を対象にする。",
+      "evidence": "User selected [1] for q4. Issue #391 says the initial scope should prioritize reusing a `test-execute` full pass within the same flow and defer cross-flow last-known-green reuse to a later phase.",
+      "why": "Same-flow evidence reuse addresses the duplicate execution problem without introducing broader assumptions about old regression command hashes, dependency state, base branch drift, or prior worktree environment.",
+      "considered": "Including cross-flow last-known-green reuse now was rejected because it expands freshness and environment validation beyond the initial issue scope.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "must: 受け入れ検証では、covered-by-test-execute skip、risk-based skip、runtime-sensitive run、stale evidence run、unknown change fail-closed、schema/report/post-hook handling の挙動を確認する前提でよいですか。",
+      "answer": "はい。must: 受け入れ検証では covered-by-test-execute skip、risk-based skip、runtime-sensitive run、stale evidence run、unknown change fail-closed、schema/report/post-hook handling の挙動を確認する。",
+      "evidence": "User selected [1] for q5. Issue #391 acceptance criteria require unit tests for covered-by-test-execute skip / risk-based skip / run / fail-closed / stale evidence and require report / finalize-commit / flow status to distinguish execution and skip kinds.",
+      "why": "These branches are the behavior surface that protects regression confidence while reducing duplicate full regression execution.",
+      "considered": "Reducing coverage was rejected because the change alters final-regression execution policy and downstream artifact contracts.",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [
+    "must: `senti upgrade` が必要になる変更範囲かどうかは、prompt/skill/template 編集の有無に応じて implementation phase で確認する。"
+  ],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-15T08:42:53Z",
+    "notes": "All draft QA entries answered; no unresolved user decisions remain."
+  }
+}

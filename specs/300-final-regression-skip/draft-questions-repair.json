@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Applied 2 draft question repairs by narrowing q4 and q5 to requirement-level decisions.",
+  "items": [
+    {
+      "title": "1. Implementation details in scope question",
+      "target": "q4",
+      "rationale": "Removed the project config design detail and kept only the scope decision: cross-flow last-known-green reuse is out, same-flow evidence reuse and fail-closed classification are in.",
+      "evidence": "draft.json qa[3].question now asks only about scope and defines last-known-green reuse for the user.",
+      "changedFieldPaths": [
+        "qa[3].question"
+      ]
+    },
+    {
+      "title": "2. Test implementation strategy question",
+      "target": "q5",
+      "rationale": "Removed the unit/spec-local implementation split and kept the required acceptance behaviors to verify.",
+      "evidence": "draft.json qa[4].question now lists behavior coverage without prescribing test file placement or test type.",
+      "changedFieldPaths": [
+        "qa[4].question"
+      ]
+    }
+  ]
+}

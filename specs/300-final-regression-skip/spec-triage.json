@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "All 3 blocking findings are valid and should be applied in spec-repair.",
+  "items": [
+    {
+      "title": "Freshness proof does not cover same-path changes",
+      "target": "R1",
+      "decision": "apply",
+      "rationale": "The current R1 path/source check can miss same-path content or command source changes after test-execute. The spec must require immutable diff/content fingerprints and full command identity before reuse.",
+      "evidence": "spec-review.json blockingFindings[0]; spec.json requirements[0].desc currently checks command/source and path membership only."
+    },
+    {
+      "title": "Risk skip relies on an unsafe non-runtime boundary",
+      "target": "R2",
+      "decision": "apply",
+      "rationale": "The risk-based skip rule needs an explicit allowlist and must treat all non-allowlisted paths as trigger-relevant full-regression inputs.",
+      "evidence": "spec-review.json blockingFindings[1]; existing `classifyRegression()` can classify unanalysed text-like non-doc files as `non-project-only`."
+    },
+    {
+      "title": "Completion contract path is omitted for skipped results",
+      "target": "R4",
+      "decision": "apply",
+      "rationale": "The final-regression completion path includes flow-judgment-contract policy in addition to registry post-hook validation, so R4/T2 must include that retained surface.",
+      "evidence": "spec-review.json blockingFindings[2]; `tryUpdateStepStatus` uses completion contracts before a step can be marked done."
+    }
+  ]
+}
