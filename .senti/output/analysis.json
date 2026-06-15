@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-15T00:51:26.892Z",
+  "analyzedAt": "2026-06-15T02:21:52.274Z",
   "package": {
     "entries": [
       {
@@ -3047,7 +3047,7 @@
         ],
         "id": "aa8dda77",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -3140,7 +3140,7 @@
         ],
         "id": "0edee8a5",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -3571,7 +3571,7 @@
         ],
         "id": "1c664aa8",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -3665,7 +3665,7 @@
         ],
         "id": "f336678e",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -4212,7 +4212,7 @@
         ],
         "id": "9aca938f",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -4338,7 +4338,7 @@
         ],
         "id": "1dd5bb71",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -4685,7 +4685,7 @@
         "usedBy": null,
         "id": "45f8cc74",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -4881,7 +4881,7 @@
         "usedBy": null,
         "id": "2d93c301",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -7927,7 +7927,8 @@
           "src/upgrade.js",
           "src/lib/official-plugins.js",
           "src/lib/plugin-registry.js",
-          "src/plugin.js"
+          "src/plugin.js",
+          "src/presets-cmd.js"
         ],
         "id": "f351ecc4",
         "enrich": {
@@ -9393,9 +9394,9 @@
       },
       {
         "file": "src/lib/plugin-registry.js",
-        "hash": "b84e27baa053aa01e67d24b8c0368d8b",
-        "lines": 1087,
-        "mtime": "2026-06-15T00:51:14.564Z",
+        "hash": "e1839c7c4dd39dd775bb65ada8f713bd",
+        "lines": 1104,
+        "mtime": "2026-06-15T02:21:36.505Z",
         "className": "plugin-registry",
         "methods": [
           "readProjectConfig",
@@ -9522,24 +9523,24 @@
           "src/upgrade.js"
         ],
         "id": "bfaf1dcd",
-        "summary": "Implements the plugin registry, covering plugin discovery, validation, installation, configuration defaults, and runtime hook execution. It is the central integration layer for external plugin packages and official preset bundles.",
-        "detail": "The module enforces strict safety checks on plugin metadata, file paths, JSON size, import boundaries, and copied files before a package can be installed or loaded. It resolves plugin sources from local paths or Git URLs, tracks commits or content hashes, materializes package snapshots, and syncs installed plugins under the project’s `.senti` directory. The registry builds structured views of plugin contributions such as presets, data sources, and commands, then exposes lookup and dispatch helpers for runtime use. It also manages flow command hooks with snapshot validation, artifact storage helpers, lifecycle execution, and special handling for the official preset package used during setup.",
+        "summary": "Implements the plugin registry, installation workflow, and runtime hook loading for Senti plugins. It validates plugin packages, tracks plugin sources, and exposes plugin commands and flow lifecycle integrations.",
+        "detail": "This module centralizes plugin safety checks by validating IDs, JSON size limits, relative paths, import boundaries, and allowlisted file copies before installation. It manages plugin sources from local paths and Git URLs, including checkout synchronization, commit hashing, materialization of package contents, and persistence into the project plugin directory. The registry builds indexed views of plugin manifests, presets, commands, and data sources, then resolves project configuration defaults from installed packages. At runtime it discovers flow command hooks, snapshots hook metadata, rebuilds plugin execution context, and dispatches plugin commands or lifecycle hooks with structured error handling.",
         "chapter": "internal_design",
-        "role": "Plugin registry and lifecycle manager",
+        "role": "Plugin registry, source synchronization, installation, and hook execution layer.",
         "enrich": {
-          "processedAt": "2026-06-15T00:51:50.143Z",
+          "processedAt": "2026-06-15T02:22:15.776Z",
           "attempts": 1
         },
         "keywords": [
           "plugin registry",
           "plugin installation",
-          "plugin discovery",
+          "git source sync",
+          "hook discovery",
           "manifest validation",
-          "Git source sync",
-          "flow hooks",
-          "preset package",
+          "package lifecycle",
           "command dispatch",
-          "artifact storage"
+          "plugin configuration",
+          "source hashing"
         ]
       },
       {
@@ -9628,11 +9629,12 @@
       },
       {
         "file": "src/lib/presets.js",
-        "hash": "4960b0e2f2a17f51bfaa9ac86307951f",
-        "lines": 458,
-        "mtime": "2026-06-14T02:11:20.757Z",
+        "hash": "89d96e354a94a64446d30ae8dce57c8e",
+        "lines": 482,
+        "mtime": "2026-06-15T02:21:36.506Z",
         "className": "presets",
         "methods": [
+          "listPresets",
           "listSetupPresetCandidates",
           "validatePresetCandidateChains",
           "resolveChain",
@@ -9663,6 +9665,7 @@
           "./plugin-registry.js"
         ],
         "exports": [
+          "listPresets",
           "listSetupPresetCandidates",
           "validatePresetCandidateChains",
           "resolveChain",
@@ -9692,23 +9695,24 @@
           "src/upgrade.js"
         ],
         "id": "ae76d513",
-        "summary": "Preset discovery and inheritance resolver for core and plugin-provided presets. It merges available preset definitions and validates template coverage before setup or search operations.",
-        "detail": "The module discovers presets from filesystem directories and from the plugin registry, then deduplicates them by key so later definitions can replace earlier ones. It resolves parent chains with cycle detection and depth limits, and can combine multiple selected preset types into a de-duplicated ancestry order. Search and validation helpers derive effective chapter lists and template lookup directories, while enforcing limits on languages, chapters, and chain depth. It also warns about unmatched project-local templates and exposes lookup helpers for leaf presets and parent-child preset relationships.",
+        "summary": "Provides preset discovery, aggregation, inheritance resolution, and validation across core and plugin-provided presets. It also computes effective template search paths and verifies preset chains against configured chapters and languages.",
+        "detail": "The file loads presets from the built-in directory and from the plugin registry, then deduplicates them by key to form a unified preset catalog. It resolves parent chains with circular reference detection, missing-parent checks, and explicit depth limits, supporting both single-type and multi-type resolution flows. Validation logic derives effective chapters and template directories, enforces bounds on languages and chapter counts, and reports missing template files with detailed diagnostics. It also exposes helper utilities for preset lookups, arch-style child queries, search entry generation, and setup candidate enumeration, including optional official preset package integration.",
         "chapter": "creating_presets",
-        "role": "Preset discovery, inheritance resolution, and template validation layer.",
+        "role": "Preset catalog, inheritance resolver, and template-chain validator.",
         "enrich": {
-          "processedAt": "2026-06-14T02:12:24.840Z",
+          "processedAt": "2026-06-15T02:22:15.776Z",
           "attempts": 1
         },
         "keywords": [
-          "preset discovery",
           "preset inheritance",
-          "parent chain",
-          "template validation",
-          "chapter resolution",
-          "multi-preset merge",
-          "preset lookup",
-          "search entries"
+          "preset discovery",
+          "template resolution",
+          "chain validation",
+          "parent presets",
+          "template directories",
+          "official presets",
+          "chapter validation",
+          "preset catalog"
         ]
       },
       {
@@ -10512,41 +10516,48 @@
       },
       {
         "file": "src/presets-cmd.js",
-        "hash": "c781f4b3b181fabeb3affab4b015a77d",
-        "lines": 91,
-        "mtime": "2026-06-09T08:02:50.464Z",
+        "hash": "7dc3e91e058b41e9b602fb287b5204e8",
+        "lines": 104,
+        "mtime": "2026-06-15T02:21:36.506Z",
         "className": "presets-cmd",
         "methods": [
           "main",
+          "formatPresetTree",
           "printTree"
         ],
         "imports": [
           "fs",
           "path",
           "./lib/presets.js",
-          "./lib/constants.js"
+          "./lib/constants.js",
+          "./lib/cli.js"
         ],
         "exports": [
-          "main"
+          "main",
+          "formatPresetTree",
+          "MAX_PRESET_TREE_ITEMS",
+          "MAX_PRESET_TREE_DEPTH"
         ],
         "extends": null,
         "usedBy": null,
         "id": "85926390",
-        "enrich": {
-          "processedAt": "2026-06-13T13:40:08.618Z",
-          "attempts": 11
-        },
-        "summary": "Implements the `presets` command for inspecting preset trees and localized preset information. It prints a hierarchy view and indicates whether each preset provides templates.",
-        "detail": "The command reads the subcommand from `process.argv` and falls back to English if localized resources cannot be loaded. Tree rendering walks parent and child relationships recursively and formats the structure with branch prefixes. It checks each preset directory for a templates folder so the output reflects documentation asset availability. Errors use the shared exit code path to stay consistent with the rest of the CLI.",
+        "summary": "Implements the `senti presets` CLI behavior for listing presets and rendering a preset inheritance tree. It formats human-readable output while enforcing bounds on tree size and traversal depth.",
+        "detail": "This command module reads the subcommand from process arguments, loads preset data through the preset library, and exits with an error code on invalid usage or failures. Its tree-formatting logic walks parent-child preset relationships recursively, detects template directory presence, and emits a structured text tree for terminal display. The implementation guards traversal with explicit limits on maximum nodes and depth to avoid runaway formatting on malformed graphs. It serves as a thin CLI layer over preset resolution, focusing on presentation, fallback messaging, and process-level error handling.",
         "chapter": "cli_commands",
-        "role": "List and visualize preset inheritance trees.",
+        "role": "CLI entrypoint for preset inspection and tree rendering.",
+        "enrich": {
+          "processedAt": "2026-06-15T02:22:15.776Z",
+          "attempts": 1
+        },
         "keywords": [
-          "presets command",
+          "CLI command",
           "preset tree",
-          "template availability",
-          "localization fallback",
-          "CLI inspection",
-          "preset hierarchy"
+          "preset list",
+          "terminal formatting",
+          "command handler",
+          "inheritance tree",
+          "error exit code",
+          "subcommand parser"
         ]
       },
       {
@@ -11040,9 +11051,9 @@
     ],
     "summary": {
       "total": 212,
-      "totalMethods": 1825
+      "totalMethods": 1827
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-15T00:52:52.977Z"
+  "enrichedAt": "2026-06-15T02:23:17.910Z"
 }
