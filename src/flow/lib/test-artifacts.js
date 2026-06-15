@@ -46,6 +46,13 @@ const MAX_ARTIFACT_PATTERN_COUNT = 500;
 const MAX_COLLECTED_ARTIFACTS = 10_000;
 const MAX_ARTIFACT_GLOB_ENTRIES = 10_000;
 const MAX_PLACEHOLDER_PERMISSION_PATHS = 50;
+const SUMMARY_RESULT_VALUES = Object.freeze(["pass", "fail", "not_applicable"]);
+const SUMMARY_NO_TESTS_REASON = "no_tests_declared";
+const FINAL_REGRESSION_SKIP_KINDS = Object.freeze([
+  "covered_by_test_execute_full_regression",
+  "risk_based_static_proof",
+  "skipped_by_project_policy",
+]);
 // Spec R2 intentionally maps every impl-gate artifact trust failure to the
 // public ARTIFACT_PLACEHOLDER code, including malformed or missing inputs.
 const GATE_ARTIFACT_TRUST_FAILURE_CODE = ARTIFACT_PLACEHOLDER;
@@ -519,10 +526,25 @@ export function validateTestExecuteResultV2(result) {
   if (!result.regression || typeof result.regression !== "object") throw new Error("regression object is required");
   for (const entry of result.summary) {
     if (typeof entry.id !== "string") throw new Error("summary[].id is required");
-    if (entry.result !== "pass" && entry.result !== "fail") throw new Error(`summary[].result invalid for ${entry.id}`);
+    if (!SUMMARY_RESULT_VALUES.includes(entry.result)) throw new Error(`summary[].result invalid for ${entry.id}`);
     if (!entry.evidence || typeof entry.evidence !== "object") throw new Error(`summary[].evidence missing for ${entry.id}`);
+    if (typeof entry.evidence.command !== "string" || entry.evidence.command.length === 0) {
+      throw new Error(`summary[${entry.id}].evidence.command is required`);
+    }
     assertRange(entry.evidence.raw_output_lines, `summary[${entry.id}].evidence`);
     assertEvidenceRangeWithinLimit(entry.evidence.raw_output_lines, `summary[${entry.id}].evidence`);
+    if (entry.result === "not_applicable") {
+      if (entry.reason !== SUMMARY_NO_TESTS_REASON) {
+        throw new Error(`summary[${entry.id}].reason must be ${SUMMARY_NO_TESTS_REASON}`);
+      }
+      continue;
+    }
+    if (typeof entry.evidence.test_file !== "string" || entry.evidence.test_file.length === 0) {
+      throw new Error(`summary[${entry.id}].evidence.test_file is required`);
+    }
+    if (typeof entry.evidence.test_name !== "string" || entry.evidence.test_name.length === 0) {
+      throw new Error(`summary[${entry.id}].evidence.test_name is required`);
+    }
   }
   validateRegression(result.regression);
   return result;
@@ -722,8 +744,7 @@ function validateFinalRegressionSkipKind(result) {
     if (Object.hasOwn(result, "proof")) throw new Error("final-regression proof is only valid on skipped");
     return;
   }
-  const allowed = ["covered_by_test_execute_full_regression", "risk_based_static_proof"];
-  if (!allowed.includes(result.skipKind)) throw new Error(`final-regression skipKind invalid: ${result.skipKind}`);
+  if (!FINAL_REGRESSION_SKIP_KINDS.includes(result.skipKind)) throw new Error(`final-regression skipKind invalid: ${result.skipKind}`);
   if (typeof result.reason !== "string" || result.reason.length === 0) throw new Error("final-regression skipped reason is required");
   if (result.retryable !== false) throw new Error("final-regression skipped retryable must be false");
   if (result.nextAction !== "finalize-commit") throw new Error("final-regression skipped nextAction must be finalize-commit");
@@ -753,7 +774,7 @@ function validateFinalRegressionSkipKind(result) {
     })) {
       throw new Error("final-regression staleCheck must prove same-flow matched evidence");
     }
-  } else {
+  } else if (result.skipKind === "risk_based_static_proof") {
     for (const field of ["allowlistClassifications", "checkedSensitivePathClasses", "failClosedDecision", "upgradeEvidencePath", "testExecuteEvidencePath"]) {
       if (!Object.hasOwn(result.proof, field)) throw new Error(`final-regression risk proof missing ${field}`);
     }
@@ -765,6 +786,26 @@ function validateFinalRegressionSkipKind(result) {
     }
     if (JSON.stringify(result.proof.failClosedDecision) !== JSON.stringify({ eligible: true, fallbackReasons: [] })) {
       throw new Error("final-regression risk proof failClosedDecision must be eligible");
+    }
+  } else {
+    const discovery = result.proof.commandDiscovery;
+    if (!discovery || typeof discovery !== "object" || Array.isArray(discovery)) {
+      throw new Error("final-regression project policy proof missing commandDiscovery");
+    }
+    if (!Array.isArray(discovery.checkedSources) || discovery.checkedSources.length === 0) {
+      throw new Error("final-regression project policy checkedSources must be a non-empty array");
+    }
+    if (discovery.checkedSources.some((entry) => typeof entry !== "string" || entry.length === 0)) {
+      throw new Error("final-regression project policy checkedSources must contain non-empty strings");
+    }
+    if (discovery.supportedCommandFound !== false) {
+      throw new Error("final-regression project policy supportedCommandFound must be false");
+    }
+    if (discovery.invalidConfiguredCommand !== false) {
+      throw new Error("final-regression project policy invalidConfiguredCommand must be false");
+    }
+    if (typeof discovery.reason !== "string" || discovery.reason.length === 0) {
+      throw new Error("final-regression project policy reason is required");
     }
   }
 }
@@ -809,11 +850,35 @@ export function validateSummaryEvidence(summary, {
       throw new Error("summary[].id must be a non-empty requirement id");
     }
     const evidence = entry.evidence;
+    if (!evidence || typeof evidence !== "object") {
+      throw new Error(`${entry.id}: evidence is required`);
+    }
+    assertRange(evidence.raw_output_lines, `${entry.id}: evidence`);
+    assertEvidenceRangeWithinLimit(evidence.raw_output_lines, `${entry.id}: evidence`);
     if (typeof evidence.command !== "string" || evidence.command.length === 0) {
       throw new Error(`${entry.id}: evidence.command is required`);
     }
     if (evidence.raw_output_lines.end_line > rawLines.length) {
       throw new Error(`${entry.id}: summary raw_output_lines is outside raw output`);
+    }
+    if (entry.result === "not_applicable") {
+      if (entry.reason !== SUMMARY_NO_TESTS_REASON) {
+        throw new Error(`${entry.id}: reason must be ${SUMMARY_NO_TESTS_REASON}`);
+      }
+      if (validateRawOutputRange) {
+        const rawRangeText = rawLines
+          .slice(evidence.raw_output_lines.start_line - 1, evidence.raw_output_lines.end_line)
+          .join("\n");
+        if (!rawRangeText.includes(entry.id)
+          || !rawRangeText.includes("not_applicable")
+          || !rawRangeText.includes(SUMMARY_NO_TESTS_REASON)) {
+          throw new Error(`${entry.id}: raw output range does not contain no-tests decision evidence`);
+        }
+      }
+      continue;
+    }
+    if (entry.result !== "pass" && entry.result !== "fail") {
+      throw new Error(`${entry.id}: result invalid: ${entry.result}`);
     }
     const testPath = specDir
       ? resolveRepoRelativePathInside({

@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "test-execute は spec-local tests 0 件かつ testable requirement ありの場合、missing.test.js を evidence として読まず、各 testable requirement を result=not_applicable, reason=no_tests_declared として test-execute-result.json に記録する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/no-tests-valid-state.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "test-execute-result.json v2 schema と validateTestExecuteResultV2 / validateSummaryEvidence は not_applicable summary entries を受け付け、raw_output_lines と reason を検証する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/no-tests-valid-state.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "test-result-review は no-tests artifact の summary membership、raw decision log、project regression contract を検証し、complete な artifact なら verdict=pass を書く。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/no-tests-valid-state.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "retro は verified test-execute artifact の not_applicable entries を not_done ではなく not_applicable として集計し、summary に not_applicable_count を含める。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/no-tests-valid-state.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "final-regression は no supported regression command source が確認できた場合だけ skipKind=skipped_by_project_policy, completed=true, nextAction=finalize-commit の skipped artifact と raw attempt log を書き、malformed configured command や invalid discovery state は invalid_project_test failure のまま扱う。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/no-tests-valid-state.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "impl-gate、acceptance-review、report、finalize artifact handling は既存 artifact file names を保持し、not_applicable / skipped_by_project_policy を valid contract として消費する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/no-tests-valid-state.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "実行開始済みテストの non-zero exit、timeout、signal、spawn failure、無関係な missing file は no-tests state に変換せず、従来どおり failure として扱う。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/no-tests-valid-state.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/no-tests-valid-state.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7"
+      ]
+    }
+  ]
+}

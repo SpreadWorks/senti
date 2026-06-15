@@ -1,0 +1,182 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "qa[4]: invalid category \"consumer-contracts\"; qa[5]: invalid category \"test-strategy\"",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-15T15:29:38.384Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[4]: invalid category \"consumer-contracts\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[5]: invalid category \"test-strategy\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft-gate rejected two QA entries because their categories were not in the allowed draft enum",
+      "trigger": "senti flow run gate --phase draft returned mechanical failure for qa[4] and qa[5] categories",
+      "resolution": "changed qa[4] to dependency-integration-boundary and qa[5] to acceptance-criteria",
+      "guardrailCandidate": "when drafting QA entries, use only the category enum from the draft instructions before running draft-gate",
+      "taskId": null,
+      "timestamp": "2026-06-15T15:29:56.778Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "No explicit inventory of existing public behavior being moved/replaced is provided for the contract migration (e.g., public commands/APIs/hooks/config entries/side effects), only target behavior outcomes and impacted files are listed.; Retained public behaviors are not mapped to a new owner path or marked with explicit removal decisions; the draft lists affected modules only, without a behavior-to-owner migration mapping.; Acceptance coverage does not provide behavior-level verification for each retained public surface through the new path; only three minimum scenarios are stated and not all affected public artifacts/consumers are covered.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-15T15:30:30.025Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "scopeVerification.in"
+          },
+          "observed": "No explicit inventory of existing public behavior being moved/replaced is provided for the contract migration (e.g., public commands/APIs/hooks/config entries/side effects), only target behavior outcomes and impacted files are listed.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "impactOnExisting"
+          },
+          "observed": "Retained public behaviors are not mapped to a new owner path or marked with explicit removal decisions; the draft lists affected modules only, without a behavior-to-owner migration mapping.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "qa"
+          },
+          "observed": "Acceptance coverage does not provide behavior-level verification for each retained public surface through the new path; only three minimum scenarios are stated and not all affected public artifacts/consumers are covered.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "No explicit inventory of existing public behavior being moved/replaced is provided for the contract migration (e.g., public commands/APIs/hooks/config entries/side effects), only target behavior outcomes and impacted files are listed."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "Retained public behaviors are not mapped to a new owner path or marked with explicit removal decisions; the draft lists affected modules only, without a behavior-to-owner migration mapping."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "Acceptance coverage does not provide behavior-level verification for each retained public surface through the new path; only three minimum scenarios are stated and not all affected public artifacts/consumers are covered."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft-gate failed migration-parity because draft lacked public behavior inventory, retained behavior mapping, and behavior-level verification for migrated test artifacts",
+      "trigger": "semantic draft gate reported three migration-parity observations for scopeVerification, impactOnExisting, and qa coverage",
+      "resolution": "added public command and artifact inventory, mapped retained behaviors to owner modules, and expanded verification coverage for no-tests consumers",
+      "guardrailCandidate": "when a draft changes artifact contracts, include migration parity inventory, retained behavior owner mapping, and behavior-level verification before draft-gate",
+      "taskId": null,
+      "timestamp": "2026-06-15T15:31:21.581Z"
+    },
+    {
+      "step": "spec-review",
+      "reason": "spec-review found final-regression no-command skip predicate and skipped artifact proof contract were underspecified",
+      "trigger": "senti flow run review --phase spec returned FAIL with two blocking findings for R5 and T-4",
+      "resolution": "specified skipped_by_project_policy applies only to true absence of supported command sources, kept invalid discovery as invalid_project_test, and added command-discovery proof requirements",
+      "guardrailCandidate": "when adding a final-regression skipKind, specify predicate boundaries and proof validation contract in the spec",
+      "taskId": null,
+      "timestamp": "2026-06-15T15:37:58.847Z"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "scenario-validity classified every requirement as invalid_test because the spec-local test file used test() without importing it from node:test",
+      "trigger": "senti flow run scenario-validity failed with ReferenceError: test is not defined",
+      "resolution": "imported test from node:test in specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+      "guardrailCandidate": "when writing ESM node:test spec-local tests, import test from node:test before scenario-validity",
+      "taskId": null,
+      "timestamp": "2026-06-15T15:40:47.226Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review rejected spec-local tests because several requirements still used weak or incomplete coverage after the first repair",
+      "trigger": "senti flow run review --phase test reported blocking findings for R3 raw log checks, R5 invalid discovery state, and R7 failure modes",
+      "resolution": "added checked-item assertions for test-result-review, package.json invalid discovery coverage, and timeout/spawn/missing-file final-regression failure cases",
+      "guardrailCandidate": "when replacing static spec tests, include executable scenarios for every behavior and failure mode named in the requirement",
+      "taskId": null,
+      "timestamp": "2026-06-15T15:45:48.680Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review still found missing negative coverage for test-result-review and missing concrete downstream consumer checks",
+      "trigger": "second test-review FAIL reported R3 summary/raw rejection gaps and R6 downstream phase coverage gap",
+      "resolution": "added R3 negative test-result-review cases for membership and raw log corruption, plus R6 integration trust and durable artifact pathspec checks",
+      "guardrailCandidate": "test-review repairs should include negative cases for required validators and direct helper coverage for named downstream consumers",
+      "taskId": null,
+      "timestamp": "2026-06-15T15:47:46.296Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review required stricter negative validator coverage, skipped artifact field assertions, downstream consumer coverage, and signal failure coverage",
+      "trigger": "third test-review FAIL reported R2, R3, R5, R6, and R7 remaining gaps",
+      "resolution": "added validateSummaryEvidence negative case, malformed regression review case, full skipped artifact field assertions, acceptance-review consumer checks, and signal failure scenario",
+      "guardrailCandidate": "when a requirement names exact fields or downstream phases, tests should assert those fields and invoke those phase consumers directly",
+      "taskId": null,
+      "timestamp": "2026-06-15T15:50:02.977Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review required direct report/finalize consumer execution and an invalid discovery state distinct from malformed command syntax",
+      "trigger": "fourth test-review FAIL reported R6 downstream phase coverage and R5 invalid discovery coverage gaps",
+      "resolution": "added RunReportCommand dry-run, executeCommitPost finalize handling, and invalid package.json discovery failure case",
+      "guardrailCandidate": "for named downstream phases, spec-local tests should invoke the phase command or closest exported phase helper directly",
+      "taskId": null,
+      "timestamp": "2026-06-15T15:51:30.321Z"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "provider=codex | profile=codex/gpt-5.3-spark | exit=1 | Reading additional input from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019ecc0a-b5f5-7ef1-b25b-46bb33e5546f\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"You've hit your usage limit for GPT-5.3-Codex-Spark. Switch to another m",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-15T16:08:37.852Z"
+    }
+  ]
+}

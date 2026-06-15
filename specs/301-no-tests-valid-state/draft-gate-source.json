@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "No explicit inventory of existing public behavior being moved/replaced is provided for the contract migration (e.g., public commands/APIs/hooks/config entries/side effects), only target behavior outcomes and impacted files are listed.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "scopeVerification.in"
+          },
+          "observed": "No explicit inventory of existing public behavior being moved/replaced is provided for the contract migration (e.g., public commands/APIs/hooks/config entries/side effects), only target behavior outcomes and impacted files are listed.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "Retained public behaviors are not mapped to a new owner path or marked with explicit removal decisions; the draft lists affected modules only, without a behavior-to-owner migration mapping.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "impactOnExisting"
+          },
+          "observed": "Retained public behaviors are not mapped to a new owner path or marked with explicit removal decisions; the draft lists affected modules only, without a behavior-to-owner migration mapping.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "Acceptance coverage does not provide behavior-level verification for each retained public surface through the new path; only three minimum scenarios are stated and not all affected public artifacts/consumers are covered.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "qa"
+          },
+          "observed": "Acceptance coverage does not provide behavior-level verification for each retained public surface through the new path; only three minimum scenarios are stated and not all affected public artifacts/consumers are covered.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft-content",
+        "locator": "scopeVerification.in"
+      },
+      "observed": "No explicit inventory of existing public behavior being moved/replaced is provided for the contract migration (e.g., public commands/APIs/hooks/config entries/side effects), only target behavior outcomes and impacted files are listed.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft-content",
+        "locator": "impactOnExisting"
+      },
+      "observed": "Retained public behaviors are not mapped to a new owner path or marked with explicit removal decisions; the draft lists affected modules only, without a behavior-to-owner migration mapping.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft-content",
+        "locator": "qa"
+      },
+      "observed": "Acceptance coverage does not provide behavior-level verification for each retained public surface through the new path; only three minimum scenarios are stated and not all affected public artifacts/consumers are covered.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    }
+  ]
+}

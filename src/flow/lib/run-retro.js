@@ -44,12 +44,16 @@ function aggregate(requirements, summary) {
     if (entry.result === "pass") {
       return { desc: r.desc, status: "done", note: entry.evidence?.test_name || "" };
     }
+    if (entry.result === "not_applicable") {
+      return { desc: r.desc, status: "not_applicable", note: entry.reason || "no_tests_declared" };
+    }
     return { desc: r.desc, status: "not_done", note: entry.error || entry.evidence?.test_name || "" };
   });
 
   const total = reqs.length;
   const done = reqs.filter((x) => x.status === "done").length;
-  const notDone = total - done;
+  const notApplicable = reqs.filter((x) => x.status === "not_applicable").length;
+  const notDone = total - done - notApplicable;
   const rate = total > 0 ? done / total : 0;
 
   return {
@@ -60,6 +64,7 @@ function aggregate(requirements, summary) {
       done,
       partial: 0,
       not_done: notDone,
+      not_applicable_count: notApplicable,
       na_count: naCount,
       not_testable_count: naCount,
       rate: Math.round(rate * 100) / 100,
@@ -138,7 +143,12 @@ export class RunRetroCommand extends FlowCommand {
     if (dryRun) {
       return {
         result: "dry-run",
-        artifacts: { spec: specPath, retroPath: path.relative(root, retroPath), summary: retro.summary },
+        artifacts: {
+          spec: specPath,
+          retroPath: path.relative(root, retroPath),
+          summary: retro.summary,
+          requirements: retro.requirements,
+        },
       };
     }
 

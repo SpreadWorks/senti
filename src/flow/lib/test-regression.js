@@ -11,6 +11,13 @@ export const DEFAULT_TEST_TIMEOUT_SECONDS = 600;
 export const DEFAULT_PROCESS_HEARTBEAT_MS = 30_000;
 export const MIN_PROCESS_HEARTBEAT_MS = 1000;
 export const TEST_EXECUTE_REGRESSION_POLICIES = Object.freeze(["targeted", "full", "skip"]);
+export const NO_SUPPORTED_REGRESSION_COMMAND = "NO_SUPPORTED_REGRESSION_COMMAND";
+export const REGRESSION_COMMAND_CHECKED_SOURCES = Object.freeze([
+  "test.command",
+  "package.json:scripts.test",
+  "composer.json:scripts.test",
+  "Makefile:test",
+]);
 
 export function formatElapsedMs(ms) {
   const seconds = Math.max(0, Math.floor(ms / 1000));
@@ -152,6 +159,13 @@ export function parseArgvCommand(command, source = "config") {
   let current = "";
   let quote = null;
   let escaped = false;
+  let quoted = false;
+  const pushToken = () => {
+    if (!current) return;
+    tokens.push({ value: current, quoted });
+    current = "";
+    quoted = false;
+  };
   for (const ch of command.trim()) {
     if (escaped) {
       current += ch;
@@ -169,32 +183,34 @@ export function parseArgvCommand(command, source = "config") {
     }
     if (ch === "'" || ch === "\"") {
       quote = ch;
+      quoted = true;
       continue;
     }
     if (/\s/.test(ch)) {
-      if (current) {
-        tokens.push(current);
-        current = "";
-      }
+      pushToken();
       continue;
     }
     current += ch;
   }
   if (escaped) current += "\\";
   if (quote) throw new Error("test.command has an unterminated quote");
-  if (current) tokens.push(current);
+  pushToken();
   if (tokens.length === 0) throw new Error("test.command produced no argv tokens");
-  if (tokens.some((token) => SHELL_SYNTAX_RE.test(token))) {
-    throw new Error("test.command contains unsupported shell control or expansion syntax");
-  }
 
   const env = {};
-  while (tokens.length > 0 && ENV_ASSIGN_RE.test(tokens[0])) {
-    const [key, ...rest] = tokens.shift().split("=");
+  while (tokens.length > 0 && !tokens[0].quoted && ENV_ASSIGN_RE.test(tokens[0].value)) {
+    const [key, ...rest] = tokens.shift().value.split("=");
     env[key] = rest.join("=");
   }
   if (tokens.length === 0) throw new Error("test.command must include a command after env assignments");
-  return new ParsedCommand({ env, argv: tokens, source });
+  const argv = tokens.map((token) => token.value);
+  const quotedNodeEvalArg = (index) => tokens[index].quoted
+    && argv[0] === "node"
+    && ["-e", "--eval", "-p", "--print"].includes(argv[index - 1]);
+  if (tokens.some((token, index) => SHELL_SYNTAX_RE.test(token.value) && !quotedNodeEvalArg(index))) {
+    throw new Error("test.command contains unsupported shell control or expansion syntax");
+  }
+  return new ParsedCommand({ env, argv, source });
 }
 
 function readJsonIfExists(filePath) {
@@ -202,11 +218,18 @@ function readJsonIfExists(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }
 
-function regressionCommandFromSource(source) {
+class NoSupportedRegressionCommandError extends Error {
+  constructor({ checkedSources }) {
+    super("no supported project-level regression command found");
+    this.code = NO_SUPPORTED_REGRESSION_COMMAND;
+    this.checkedSources = Object.freeze([...checkedSources]);
+    this.commandCandidates = [];
+  }
+}
+
+function regressionCommandFromSource(source, checkedSources = REGRESSION_COMMAND_CHECKED_SOURCES) {
   if (!source) {
-    const err = new Error("no supported project-level regression command found");
-    err.commandCandidates = [];
-    throw err;
+    throw new NoSupportedRegressionCommandError({ checkedSources });
   }
   if (source.kind === "config") return parseArgvCommand(source.command, source.source);
   if (source.kind === "package") {
@@ -243,7 +266,7 @@ export function discoverRegressionCommand(root, config = {}) {
     composerScripts: composer?.scripts || null,
     makefileTestTarget,
   }));
-  return regressionCommandFromSource(source);
+  return regressionCommandFromSource(source, REGRESSION_COMMAND_CHECKED_SOURCES);
 }
 
 function normalizePath(p) {
@@ -311,7 +334,7 @@ export function classifyRegression({ root, state, analysis, config, changedFiles
   const activeSpec = path.dirname(normalizePath(state.spec));
   const projectPaths = config?.test?.projectPaths || [];
   const analysisFiles = analysis && typeof analysis === "object"
-    ? projectFilePathsFromAnalysis(analysis, { strict: true })
+    ? projectFilePathsFromAnalysis(analysis, { strict: false })
     : new Set();
   const triggerFiles = [];
   const projectTestFiles = [];

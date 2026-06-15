@@ -1,0 +1,153 @@
+{
+  "verdict": "pass",
+  "issues": [],
+  "nextAction": {
+    "diagnosis": {
+      "summary": "No blocking observations.",
+      "observations": []
+    },
+    "prescription": "retro"
+  },
+  "level": "integration",
+  "phase": "integration",
+  "evaluations": [
+    {
+      "guardrail_id": "R1",
+      "result": "pass",
+      "reason": "The diff implements all parts of R1: (1) findSpecTestFileForReq now returns null instead of missing.test.js when no spec test files exist, (2) runSpecLocalTests sets noTestsDeclared:true when files.length===0, (3) buildSummary produces result='not_applicable' with reason='no_tests_declared' for each testable requirement in that case, (4) the schema adds 'not_applicable' to the result enum and 'no_tests_declared' to the reason enum, and (5) the new test in no-tests-valid-state.test.js explicitly verifies this behavior.",
+      "title": "R1",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R2",
+      "result": "pass",
+      "reason": "The diff implements all parts of R2: (1) test-execute-result.schema.json adds 'not_applicable' to the result enum and 'reason' with enum ['no_tests_declared'], and removes test_file/test_name from required so raw_output_lines and command remain required; (2) validateTestExecuteResultV2 now accepts 'not_applicable' via SUMMARY_RESULT_VALUES, enforces assertRange/assertEvidenceRangeWithinLimit on raw_output_lines, and validates reason === 'no_tests_declared' for not_applicable entries; (3) validateSummaryEvidence similarly validates raw_output_lines range, reason field, and checks raw output content for not_applicable entries; (4) the R2 test case in no-tests-valid-state.test.js confirms valid not_applicable artifacts pass both validators and that missing reason or malformed raw_output_lines throw.",
+      "title": "R2",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R3",
+      "result": "pass",
+      "reason": "The diff implements all three R3 checks in run-test-result-review.js and test-artifacts.js. (1) Summary membership: validateSummaryEvidence checks that summary entry ids belong to spec requirements. (2) Raw decision log: validateRawOutputRange:true is now passed from validateSummary(), and validateSummaryEvidence gains a not_applicable branch that asserts the raw output range contains the requirement id, 'not_applicable', and 'no_tests_declared'. (3) Project regression contract: the existing project_regression_verification check covers this. When all checks pass the review is written with verdict='pass'. The R3 test in no-tests-valid-state.test.js confirms the positive case (complete artifact → pass) and three negative cases (wrong summary id, missing raw decision line, wrong regression artifact).",
+      "title": "R3",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R4",
+      "result": "pass",
+      "reason": "run-retro.js now checks entry.result === 'not_applicable' and returns status 'not_applicable' instead of 'not_done'; notApplicable count is computed separately; not_done = total - done - notApplicable; and not_applicable_count is included in the summary object. The schema also declares not_applicable_count. The test for R4 asserts summary.not_applicable_count === 1, summary.not_done === 0, and requirements[0].status === 'not_applicable'.",
+      "title": "R4",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R5",
+      "result": "pass",
+      "reason": "The diff introduces NoSupportedRegressionCommandError (code=NO_SUPPORTED_REGRESSION_COMMAND) thrown only when no command source exists, and projectPolicySkipDecision() in run-final-regression.js returns a skip decision exclusively when err.code===NO_SUPPORTED_REGRESSION_COMMAND, writing a skipped artifact with skipKind='skipped_by_project_policy', completed=true, nextAction='finalize-commit', and a raw attempt log. Malformed configured commands (shell syntax) and invalid discovery states (bad package.json) throw regular Errors without that code, causing projectPolicySkipDecision to return null and falling through to the existing FinalRegressionProcessResultFactory.commandDiscovery(err) path which produces invalid_project_test failure. The test at R5 asserts both branches explicitly.",
+      "title": "R5",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R6",
+      "result": "pass",
+      "reason": "The diff preserves all existing artifact file names (TEST_RESULT_REVIEW_FILE, final-regression-result.json, test-execute-result.json, retro.json, etc.) and adds not_applicable / skipped_by_project_policy as valid contracts throughout: (1) SUMMARY_RESULT_VALUES and FINAL_REGRESSION_SKIP_KINDS constants add the new values; (2) validateTestExecuteResultV2 and validateSummaryEvidence accept not_applicable entries; (3) validateFinalRegressionSkipKind adds a skipped_by_project_policy branch with full proof validation; (4) run-retro.js aggregates not_applicable separately; (5) writeReviewArtifacts writes to the same reviewPath regardless of early-failure path; (6) the R6 test explicitly asserts that buildTestResultsFromArtifacts, validateIntegrationArtifactTrust, buildAcceptanceReviewArtifactFromEvidence, RunReportCommand, and executeCommitPost all consume these states through unchanged artifact file names.",
+      "title": "R6",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R7",
+      "result": "pass",
+      "reason": "projectPolicySkipDecision only activates when err?.code === NO_SUPPORTED_REGRESSION_COMMAND (thrown solely by NoSupportedRegressionCommandError when no command source is found). Non-zero exit, timeout, signal, and spawn failure all go through processPassed(result) or spawnError in result object—none ever throw NO_SUPPORTED_REGRESSION_COMMAND—so they fall through to the existing failure path (discoveryError / FinalRegressionProcessResultFactory.commandDiscovery). The R7 test block explicitly covers all five scenarios (non-zero exit, timeout, spawn failure, missing file, signal) and asserts result==='fail' with assertFailureIsNotNoTestsSkip.",
+      "title": "R7",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": []
+    },
+    {
+      "guardrail_id": "no-overengineering",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "code-quality",
+      "title": "Avoid Overengineering",
+      "observations": []
+    }
+  ],
+  "reasons": [
+    {
+      "verdict": "PASS",
+      "detail": "R1 — The diff implements all parts of R1: (1) findSpecTestFileForReq now returns null instead of missing.test.js when no spec test files exist, (2) runSpecLocalTests sets noTestsDeclared:true when files.length===0, (3) buildSummary produces result='not_applicable' with reason='no_tests_declared' for each testable requirement in that case, (4) the schema adds 'not_applicable' to the result enum and 'no_tests_declared' to the reason enum, and (5) the new test in no-tests-valid-state.test.js explicitly verifies this behavior.",
+      "guardrail_id": "R1",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R2 — The diff implements all parts of R2: (1) test-execute-result.schema.json adds 'not_applicable' to the result enum and 'reason' with enum ['no_tests_declared'], and removes test_file/test_name from required so raw_output_lines and command remain required; (2) validateTestExecuteResultV2 now accepts 'not_applicable' via SUMMARY_RESULT_VALUES, enforces assertRange/assertEvidenceRangeWithinLimit on raw_output_lines, and validates reason === 'no_tests_declared' for not_applicable entries; (3) validateSummaryEvidence similarly validates raw_output_lines range, reason field, and checks raw output content for not_applicable entries; (4) the R2 test case in no-tests-valid-state.test.js confirms valid not_applicable artifacts pass both validators and that missing reason or malformed raw_output_lines throw.",
+      "guardrail_id": "R2",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R3 — The diff implements all three R3 checks in run-test-result-review.js and test-artifacts.js. (1) Summary membership: validateSummaryEvidence checks that summary entry ids belong to spec requirements. (2) Raw decision log: validateRawOutputRange:true is now passed from validateSummary(), and validateSummaryEvidence gains a not_applicable branch that asserts the raw output range contains the requirement id, 'not_applicable', and 'no_tests_declared'. (3) Project regression contract: the existing project_regression_verification check covers this. When all checks pass the review is written with verdict='pass'. The R3 test in no-tests-valid-state.test.js confirms the positive case (complete artifact → pass) and three negative cases (wrong summary id, missing raw decision line, wrong regression artifact).",
+      "guardrail_id": "R3",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R4 — run-retro.js now checks entry.result === 'not_applicable' and returns status 'not_applicable' instead of 'not_done'; notApplicable count is computed separately; not_done = total - done - notApplicable; and not_applicable_count is included in the summary object. The schema also declares not_applicable_count. The test for R4 asserts summary.not_applicable_count === 1, summary.not_done === 0, and requirements[0].status === 'not_applicable'.",
+      "guardrail_id": "R4",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R5 — The diff introduces NoSupportedRegressionCommandError (code=NO_SUPPORTED_REGRESSION_COMMAND) thrown only when no command source exists, and projectPolicySkipDecision() in run-final-regression.js returns a skip decision exclusively when err.code===NO_SUPPORTED_REGRESSION_COMMAND, writing a skipped artifact with skipKind='skipped_by_project_policy', completed=true, nextAction='finalize-commit', and a raw attempt log. Malformed configured commands (shell syntax) and invalid discovery states (bad package.json) throw regular Errors without that code, causing projectPolicySkipDecision to return null and falling through to the existing FinalRegressionProcessResultFactory.commandDiscovery(err) path which produces invalid_project_test failure. The test at R5 asserts both branches explicitly.",
+      "guardrail_id": "R5",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R6 — The diff preserves all existing artifact file names (TEST_RESULT_REVIEW_FILE, final-regression-result.json, test-execute-result.json, retro.json, etc.) and adds not_applicable / skipped_by_project_policy as valid contracts throughout: (1) SUMMARY_RESULT_VALUES and FINAL_REGRESSION_SKIP_KINDS constants add the new values; (2) validateTestExecuteResultV2 and validateSummaryEvidence accept not_applicable entries; (3) validateFinalRegressionSkipKind adds a skipped_by_project_policy branch with full proof validation; (4) run-retro.js aggregates not_applicable separately; (5) writeReviewArtifacts writes to the same reviewPath regardless of early-failure path; (6) the R6 test explicitly asserts that buildTestResultsFromArtifacts, validateIntegrationArtifactTrust, buildAcceptanceReviewArtifactFromEvidence, RunReportCommand, and executeCommitPost all consume these states through unchanged artifact file names.",
+      "guardrail_id": "R6",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R7 — projectPolicySkipDecision only activates when err?.code === NO_SUPPORTED_REGRESSION_COMMAND (thrown solely by NoSupportedRegressionCommandError when no command source is found). Non-zero exit, timeout, signal, and spawn failure all go through processPassed(result) or spawnError in result object—none ever throw NO_SUPPORTED_REGRESSION_COMMAND—so they fall through to the existing failure path (discoveryError / FinalRegressionProcessResultFactory.commandDiscovery). The R7 test block explicitly covers all five scenarios (non-zero exit, timeout, spawn failure, missing file, signal) and asserts result==='fail' with assertFailureIsNotNoTestsSkip.",
+      "guardrail_id": "R7",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Spec Test Coverage — no observations emitted",
+      "guardrail_id": "spec-test-coverage",
+      "category": "testing"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Avoid Overengineering — no observations emitted",
+      "guardrail_id": "no-overengineering",
+      "category": "code-quality"
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "impl-gate",
+    "artifactPath": "specs/301-no-tests-valid-state/impl-gate-result.json",
+    "verdict": "pass",
+    "result": "pass",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": {
+      "diagnosis": {
+        "summary": "No blocking observations.",
+        "observations": []
+      },
+      "prescription": "retro"
+    },
+    "completionKind": "normal",
+    "progressSignature": "3f68d4f51eb6dccee4d302135cae2339c109e8bf5c86e115955ac3e084d5a558"
+  }
+}

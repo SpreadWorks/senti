@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Removed priority-marker prefixes from six QA question strings.",
+  "items": [
+    {
+      "title": "1. Non-question prefix",
+      "target": "q1, q2, q3, q4, q5, q6",
+      "rationale": "The draft keeps priority markers in requirement-like context fields, but QA question text now contains only the self-contained question.",
+      "evidence": "draft.json qa[0..5].question no longer begins with `must:`.",
+      "changedFieldPaths": [
+        "qa[0].question",
+        "qa[1].question",
+        "qa[2].question",
+        "qa[3].question",
+        "qa[4].question",
+        "qa[5].question"
+      ]
+    }
+  ]
+}

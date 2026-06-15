@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Clarified final-regression no-command skip predicate and added skipped_by_project_policy proof contract.",
+  "items": [
+    {
+      "title": "No-command skip predicate is underspecified",
+      "target": "R5 / T-4",
+      "decision": "applied",
+      "rationale": "The spec now limits skipped_by_project_policy to true absence of supported command sources and keeps malformed configured commands or invalid discovery states as invalid_project_test failures.",
+      "evidence": "spec.json constraints[], requirements[R5].desc, acceptance_criteria[], clarifications[], and tasks[T-4] now state the predicate and failure boundary.",
+      "changedFields": [
+        "constraints[5]",
+        "requirements[4].desc",
+        "acceptance_criteria[4]",
+        "acceptance_criteria[5]",
+        "clarifications[1]",
+        "tasks[3].acceptance",
+        "tasks[3].implementation_notes"
+      ]
+    },
+    {
+      "title": "Skipped artifact proof contract is missing",
+      "target": "R5 / final-regression-result.json contract",
+      "decision": "applied",
+      "rationale": "The spec now requires a skipped_by_project_policy proof object with command-discovery evidence instead of exempting the new skip kind from proof validation.",
+      "evidence": "spec.json overview.decisions[], acceptance_criteria[], clarifications[], tasks[T-1].acceptance, and tasks[T-4].acceptance define proof.kind and proof.commandDiscovery fields.",
+      "changedFields": [
+        "overview.decisions[4]",
+        "acceptance_criteria[6]",
+        "clarifications[2]",
+        "tasks[0].acceptance[1]",
+        "tasks[3].acceptance[2]"
+      ]
+    }
+  ]
+}

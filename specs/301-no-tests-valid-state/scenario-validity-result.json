@@ -1,0 +1,106 @@
+{
+  "version": "1",
+  "raw_output_path": "specs/301-no-tests-valid-state/tests/.raw/scenario-validity.log",
+  "command": "node --test specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+  "process": {
+    "started": true,
+    "exitCode": 1,
+    "signal": null,
+    "timedOut": false,
+    "spawnError": null
+  },
+  "result": "pass",
+  "summary": [
+    {
+      "id": "R1",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+        "test_name": "R1: test-execute writes not_applicable entries for testable requirements when no spec tests exist",
+        "command": "node --test specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 209
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+        "test_name": "R2: validators accept valid not_applicable evidence and reject malformed no-tests entries",
+        "command": "node --test specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 209
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+        "test_name": "R3: test-result-review writes pass verdict for a complete no-tests artifact",
+        "command": "node --test specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 209
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+        "test_name": "R4: retro aggregates not_applicable separately from not_done",
+        "command": "node --test specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 209
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+        "test_name": "R5: final-regression skips only when no supported command source exists and keeps invalid config as failure",
+        "command": "node --test specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 209
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+        "test_name": "R6: downstream artifact loading consumes no-tests states through existing file names",
+        "command": "node --test specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 209
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+        "test_name": "R7: started regression failures are not converted into no-tests skips",
+        "command": "node --test specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 209
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "phase": "draft-questions",
+  "sourceDraft": "draft.json",
+  "generatedAt": "2026-06-15T15:25:42.568Z",
+  "verdict": "ADVISORY",
+  "summary": "0 blocking, 0 advisory, 1 repair target finding(s) recorded.",
+  "blockingFindings": [],
+  "advisoryFindings": [],
+  "repairTargets": [
+    {
+      "title": "1. Non-question prefix",
+      "target": "q1, q2, q3, q4, q5, q6",
+      "rationale": "Remove the `must:` prefix from each existing QA entry, leaving only the question text.",
+      "evidence": "Each shown question includes `must:`, which is an instruction/priority marker rather than question text.",
+      "classification": "repair_target"
+    }
+  ],
+  "sourceArtifact": "draft-review-questions.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "draft-questions-001-blocking-001",
+      "phase": "draft-questions",
+      "sourceArtifact": "draft-review-questions.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "1. Non-question prefix",
+      "body": "Remove the `must:` prefix from each existing QA entry, leaving only the question text.",
+      "category": "repair_target"
+    }
+  ]
+}

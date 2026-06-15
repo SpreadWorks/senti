@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "Two blocking spec-review findings remain valid and should be repaired in spec.json.",
+  "items": [
+    {
+      "title": "No-command skip predicate is underspecified",
+      "target": "R5 / T-4",
+      "decision": "apply",
+      "rationale": "The spec must distinguish true absence of supported regression command sources from malformed configured commands or invalid discovery states.",
+      "evidence": "spec.json R5 and T-4 currently say project regression command absence becomes skipped_by_project_policy, but do not name the invalid discovery cases that must remain invalid_project_test."
+    },
+    {
+      "title": "Skipped artifact proof contract is missing",
+      "target": "R5 / final-regression-result.json contract",
+      "decision": "apply",
+      "rationale": "The existing skipped artifact validator requires skipKind-specific proof, so the new skipped_by_project_policy skip kind needs a deterministic proof shape.",
+      "evidence": "spec.json R5 acceptance lists result, skipKind, completed, process metadata, and raw log, but no proof fields for skipped_by_project_policy."
+    }
+  ]
+}

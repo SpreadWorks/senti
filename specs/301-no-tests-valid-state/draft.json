@@ -1,0 +1,151 @@
+{
+  "devType": "bugfix",
+  "goal": "テスト不在を壊れた設定ではなく明示的な正当状態として扱い、test-execute / test-result-review / retro / final-regression の artifact contract と step promotion で機械検証できるようにする。",
+  "analysis": {
+    "problem": "Issue #392 は、spec-local テストが 0 件で testable requirement がある場合に test-execute が missing.test.js を evidence として読み込み ENOENT になること、project-level regression command が無い場合に final-regression が invalid_project_test として失敗すること、downstream artifact がテスト実行ありきの contract になっていることを問題としている。",
+    "proposedApproach": "test-execute-result.json v2、test-result-review.json、retro.json、final-regression-result.json に no tests / not applicable を表す正当な状態を追加し、schema と validator と post-hook がその状態を pass/skip として検証できるようにする。実テスト失敗や無関係な欠落ファイルは従来どおり failure として扱う。",
+    "validation": "src/flow/lib/run-test-execute.js は spec-local tests 0 件時に node --test を started=true として扱うが、summary evidence 生成で missing.test.js を返す。src/flow/schemas/test-execute-result.schema.json と validateTestExecuteResultV2 は summary[].result を pass/fail に限定する。src/flow/lib/run-final-regression.js は discoverRegressionCommand 失敗を invalid_project_test に分類する。これらを artifact contract と step promotion の設計として直す必要がある。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #392 の対象は flow の回帰テスト系 step であり、spec-local テスト不在と project-level regression command 不在を正当状態として表現すること。",
+      "must: test-execute は現在、testable requirement ごとに summary evidence の test_file / test_name を要求し、テストファイルが無い場合は missing.test.js を evidence にして ENOENT になる。",
+      "must: test-execute-result.json v2 schema と validateTestExecuteResultV2 は summary[].result を pass/fail に限定しており、no tests / not applicable の結果値を受け付けない。",
+      "must: test-result-review と retro は test-execute-result.json を信頼入力として読むため、skip / not applicable を後続 step が検証・集計できる contract に含める必要がある。",
+      "must: final-regression は project-level regression command discovery failure を invalid_project_test として扱い、no project regression command の正当スキップを表す skipKind を持たない。"
+    ],
+    "decisionPoints": [
+      "must: no tests 状態の名称と分類条件を、spec-local tests 0 件、testable requirement の有無、project regression command の有無、変更種別の組み合わせごとに定義する。",
+      "must: no tests 状態でも artifact を必ず作るか、どの artifact を省略可能にするかを決める。",
+      "must: no tests 状態を retro summary で done / not_done / not_applicable のどれとして集計するかを決める。",
+      "must: final-regression の no project regression command を常に skip するか、変更された path class によって fail-closed にするかを決める。",
+      "must: migration parity inventory: public surface `senti flow run test-execute` は test-execute-result.json v2 と tests/.raw/test-execution.log を生成する既存動作を保持し、no tests 状態では同じ出力先に valid artifact と decision log を生成する。",
+      "must: migration parity inventory: public surface `senti flow run test-result-review` は test-execute-result.json と raw log を検証して test-result-review.json / test-result-review.md を生成する既存動作を保持し、no tests artifact を valid contract として検証する。",
+      "must: migration parity inventory: public surface `senti flow run retro` は verified test-execute artifact から retro.json を生成する既存動作を保持し、no tests requirement status を集計結果に反映する。",
+      "must: migration parity inventory: public surface `senti flow run final-regression` は final-regression-result.json と final-regression attempt log を生成する既存動作を保持し、project regression command 不在を valid skipped artifact として記録する。",
+      "must: migration parity inventory: downstream public consumers `impl-gate`, `acceptance-review`, `report`, and finalize artifact commit continue to consume the same artifact file names, with no removal of existing files or commands."
+    ],
+    "resolvedByProjectRules": [
+      "must: src/ 以下は npm package として配布されるため、特定プロジェクト固有の値や構造を埋め込まない。",
+      "must: 外部依存は追加しない。Node.js 組み込みモジュールのみを使う。",
+      "must: 後方互換コードは書かない alpha policy。旧 artifact format を温存するより、現在の v2 contract を明示的に更新する。",
+      "should: 意味のある状態や contract は専用 class / validator に寄せ、薄い object literal の分岐を増やしすぎない。",
+      "must: 実行済みテストの失敗、spawn failure、timeout、無関係な missing file は no tests skip と混同しない。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: artifact schema の具体的な enum 名、required fields、raw output decision log の行範囲表現。",
+      "must: post-hook が done に進める条件と、gate / review が failure とする条件。",
+      "should: 既存 unit/e2e coverage の追加位置と fixture 設計。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: test-execute が spec-local tests 0 件でも ENOENT を起こさず、no tests 状態を test-execute-result.json と raw log に記録する。",
+      "must: test-execute-result.json schema / validator / evidence validation が no tests / not applicable / skipped_by_project_policy を機械検証する。",
+      "must: test-result-review が no tests artifact を hallucination や missing evidence と誤判定せず、正当な contract として pass できる。",
+      "must: retro が no tests 状態を要件集計に反映し、未実行なのか適用外なのかを区別できる。",
+      "must: final-regression が project-level regression command 不在を invalid_project_test に直結せず、正当な skip artifact として記録できる条件を持つ。",
+      "must: registry post-hook と downstream gate/report が更新後 artifact を検証して step promotion できる。",
+      "must: migration parity mapping: test-execute public behavior remains owned by src/flow/lib/run-test-execute.js, src/flow/lib/test-artifacts.js, and src/flow/schemas/test-execute-result.schema.json.",
+      "must: migration parity mapping: test-result-review public behavior remains owned by src/flow/lib/run-test-result-review.js, src/flow/lib/test-artifacts.js, and src/flow/schemas/test-result-review.schema.json.",
+      "must: migration parity mapping: retro public behavior remains owned by src/flow/lib/run-retro.js and src/flow/schemas/retro.schema.json.",
+      "must: migration parity mapping: final-regression public behavior remains owned by src/flow/lib/run-final-regression.js, src/flow/lib/test-artifacts.js, and src/flow/schemas/next-action/final-regression.schema.json.",
+      "must: migration parity mapping: registry step promotion remains owned by src/flow/registry.js post hooks; no command, artifact path, or hook is removed."
+    ],
+    "out": [
+      "must: 実際に存在するテストコマンドの失敗を skip 扱いに変えない。",
+      "must: テスト生成 step の方針全体や scenario-validity の仕様再設計は、この Issue の成立に必要な範囲を超えて変更しない。",
+      "must: 特定プロジェクト向けの固定 test policy や path 名を src/ に埋め込まない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: src/flow/lib/run-test-execute.js の summary evidence 生成と artifact 作成に影響する。",
+    "must: src/flow/lib/test-artifacts.js と src/flow/schemas/test-execute-result.schema.json / test-result-review.schema.json / retro.schema.json / next-action/final-regression.schema.json の contract に影響する可能性がある。",
+    "must: src/flow/lib/run-test-result-review.js、src/flow/lib/run-retro.js、src/flow/lib/run-final-regression.js、src/flow/registry.js の post-hook validation に影響する。",
+    "should: report / acceptance-review / impl-gate が test artifacts を読む箇所は、no tests 状態を表示または判定に反映する必要がある。",
+    "must: retained behavior mapping: `senti flow run test-execute` still overwrites the fixed result/raw artifact paths and still advances only after validateTestExecuteResultV2 accepts the artifact.",
+    "must: retained behavior mapping: `senti flow run test-result-review` still writes both JSON and Markdown review artifacts and advances only when verdict is pass.",
+    "must: retained behavior mapping: `senti flow run retro` still requires trusted test-result-review + test-execute artifacts before writing retro.json.",
+    "must: retained behavior mapping: `senti flow run final-regression` still writes one retained attempt log per run and advances only on pass or skipped.",
+    "must: retained behavior mapping: finalize still commits durable test artifacts by existing file names; no artifact rename or removal is intended."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "Issue #392 の goal は、テスト不在を prerequisite failure や invalid_project_test ではなく、artifact に残る正当な skip / not applicable 状態として扱うことでよいですか。",
+      "answer": "must: はい。Issue #392 の goal は、テスト不在を prerequisite failure や invalid_project_test ではなく、artifact に残る正当な skip / not applicable 状態として扱うことです。",
+      "evidence": "Issue #392 Expected State: no_tests_declared / not_applicable / skipped_by_project_policy のような正当な結果状態を追加し、テスト不在を prerequisite failure や invalid_project_test に直結させない。",
+      "why": "Issue 本文が root problem を artifact contract と step promotion design として明示しているため、単なる ENOENT 回避ではなく flow state model の修正として扱う必要がある。",
+      "considered": "missing.test.js の ENOENT だけを握りつぶす案は、downstream artifact が no tests 状態を検証できないため不採用。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "spec-local tests 0 件かつ testable requirement ありの場合、test-execute-result.json の各 requirement は not_applicable として記録し、test-result-review と retro を通過可能にしますか。",
+      "answer": "must: はい。spec-local tests 0 件かつ testable requirement ありの場合、各 requirement は test-execute-result.json に not_applicable 系の結果として記録し、test-result-review と retro が検証・集計できるようにします。",
+      "evidence": "src/flow/lib/run-test-execute.js の findSpecTestFileForReq は spec tests 0 件で specs/<spec>/tests/missing.test.js を返す。validateSummaryEvidence は evidence.test_file を読むため、現在は ENOENT で artifact 作成前に失敗する。",
+      "why": "testable requirement があること自体は spec の検証対象を示すが、テストを持たない project/spec 状態では実行証跡ではなく no tests 証跡を artifact に残す必要がある。",
+      "considered": "summary を空配列にする案は、testable requirement の存在を失い、retro が未検証要件を区別できないため不採用。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "project-level regression command が存在しない場合、final-regression-result.json は skipped_by_project_policy のような skipKind で completed=true としてよいですか。",
+      "answer": "must: はい。project-level regression command が存在しない場合は、final-regression-result.json に no project tests を示す skipKind を持つ skipped artifact を作り、completed=true として step promotion できるようにします。",
+      "evidence": "src/flow/lib/run-final-regression.js は discoverRegressionCommand 例外を discoveryError として受け、classifyFailure が invalid_project_test に分類する。Issue #392 は no project-level regression command を valid skip として扱うことを期待している。",
+      "why": "テストコマンド不在はプロジェクト方針として正当な場合があるため、実行失敗とは別の skip 証跡に分ける必要がある。",
+      "considered": "コマンド不在を invalid_project_test のままにする案は、Issue の confirmed behavior を解消しないため不採用。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "no tests 状態は、テストコマンドが存在して実行に失敗したケース、spawn error、timeout、無関係な missing file には適用しない、という非目標でよいですか。",
+      "answer": "must: はい。no tests 状態は、テストコマンドが存在して実行に失敗したケース、spawn error、timeout、無関係な missing file には適用しません。",
+      "evidence": "Issue #392 Expected State は、プロジェクト設定・spec 要件・変更種別に基づいて skip / not applicable として artifact に残すことを求めており、実テスト失敗の扱い変更は求めていない。",
+      "why": "実行済みテストの failure を skip に変えると regression gate の信頼性が落ちるため、no tests はテスト不在の分類条件に限定する必要がある。",
+      "considered": "dependency_failure や timeout も skip に含める案は、既存 final-regression failureKind の意味を壊すため不採用。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "downstream consumer は test-execute-result.json の summary[].result に pass / fail 以外の not_applicable 系結果が入る前提で処理する、という contract 更新でよいですか。",
+      "answer": "must: はい。downstream consumer は test-execute-result.json の summary[].result に pass / fail 以外の not_applicable 系結果が入る前提で処理します。",
+      "evidence": "src/flow/lib/run-test-result-review.js は validateTestExecuteResultV2 と validateSummaryEvidence を通じて summary evidence を検証する。src/flow/lib/run-retro.js は entry.result === pass 以外を not_done に集計する。",
+      "why": "no tests 状態を artifact contract に追加する以上、consumer が pass/fail 二値前提のままだと review または retro で正当状態が失敗扱いになる。",
+      "considered": "regression 側だけで no tests を表現する案は、spec-local requirement ごとの状態が downstream に伝わらないため不採用。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q6",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "回帰テストは、spec-local tests 0 件 + testable requirement あり、project regression command 不在、既存テスト失敗は skip されない、の 3 ケースを最低限含める方針でよいですか。",
+      "answer": "must: はい。最低限の回帰テストは、spec-local tests 0 件 + testable requirement あり、project regression command 不在、既存テスト失敗は skip されない、の 3 ケースに加え、test-result-review が no tests artifact を pass すること、retro が no tests requirement status を集計すること、impl-gate/report/finalize が既存 artifact file name を通じて新 contract を消費することを含めます。",
+      "evidence": "Issue #392 Confirmed Behavior は、spec-local tests 0 件 + testable requirement ありの ENOENT、project-level regression command 不在の invalid_project_test、testable requirement 0 件のみ成功する現状を列挙している。",
+      "why": "確認済み不具合と非目標の両方を固定しないと、no tests skip が過剰に広がって本物の failure を隠すリスクが残る。",
+      "considered": "happy path の no tests だけを追加する案は、実テスト失敗を skip しない保証が不足するため不採用。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [
+    "must: no_tests_declared / not_applicable / skipped_by_project_policy の最終 enum 名と適用条件。",
+    "must: retro の requirement status に not_applicable を追加するか、既存 done/not_done のまま note で表すか。",
+    "should: report 表示で no tests 状態を Tests セクションにどう出すか。"
+  ],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-15T15:29:21.000Z",
+    "notes": "autoApprove: Issue #392 and source-context-backed QA entries resolved all draft decisions before draft gate."
+  }
+}

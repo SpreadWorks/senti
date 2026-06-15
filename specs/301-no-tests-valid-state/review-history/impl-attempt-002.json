@@ -1,0 +1,483 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-15T16:16:15.711Z",
+  "verdict": "ADVISORY",
+  "summary": {
+    "blocking": 0,
+    "nonBlocking": 25,
+    "total": 25
+  },
+  "blockingFindings": [],
+  "nonBlockingImprovements": [
+    {
+      "title": "I’ll inspect the touched file around the new skip path and existing result/skip helpers so the proposals are grounded in the file’s current patterns.The path in the diff is not present under the current `.tmp` directory, so I’m checking the worktree layout before relying only on the supplied diff.The repository files are one level above the current `.tmp` directory, while the command working directory remains inside the allowed worktree path. I’m reading the touched file from there now.The new path duplicates the same synthetic “not started” result used by the existing skip path. I’m checking the surrounding factory code to avoid suggesting an abstraction that already exists.I’m also checking where `checkedSources` is produced, because the bounded-resource guardrail turns on whether this new artifact copy can grow without an explicit cap.`checkedSources` currently comes from a fixed internal list, so I don’t see a bounded-resource violation in this specific diff. The main review finding is a local consistency/duplication problem in the new skip result construction.### 1. Extract the skipped process result",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-final-regression.js",
+      "issue": "**File:** `src/flow/lib/run-final-regression.js`  \n**Issue:** The new `skipped_by_project_policy` path duplicates the same synthetic process result object already used by the existing skip path: `started: false`, null exit/signal, empty stdout/stderr, etc. That makes future changes to skipped process shape easy to miss in one branch.  \n**Suggestion:** Add a small factory method such as `FinalRegressionProcessResultFactory.skipped()` and use it in both skip branches.\n\n```js\nstatic skipped() {\n  return {\n    started: false,\n    exitCode: null,\n    signal: null,\n    timedOut: false,\n    spawnError: null,\n    stdout: \"\",\n    stderr: \"\",\n  };\n}\n```\n\nThen replace both duplicated object literals with `FinalRegressionProcessResultFactory.skipped()`.",
+      "suggestion": "**File:** `src/flow/lib/run-final-regression.js`  \n**Issue:** The new `skipped_by_project_policy` path duplicates the same synthetic process result object already used by the existing skip path: `started: false`, null exit/signal, empty stdout/stderr, etc. That makes future changes to skipped process shape easy to miss in one branch.  \n**Suggestion:** Add a small factory method such as `FinalRegressionProcessResultFactory.skipped()` and use it in both skip branches.\n\n```js\nstatic skipped() {\n  return {\n    started: false,\n    exitCode: null,\n    signal: null,\n    timedOut: false,\n    spawnError: null,\n    stdout: \"\",\n    stderr: \"\",\n  };\n}\n```\n\nThen replace both duplicated object literals with `FinalRegressionProcessResultFactory.skipped()`.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "I’ll quickly inspect the touched file around the changed code so the proposals match the surrounding style and don’t overreach beyond the diff.The provided path isn’t present relative to the current temp directory, so I’m checking the workspace layout before relying only on the inline diff.The checked-out source file isn’t available in this workspace snapshot, so I’ll keep the review constrained to the diff text you supplied.### 1. Align Summary Field Naming",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-retro.js",
+      "issue": "**File:** `src/flow/lib/run-retro.js`  \n**Issue:** The new summary field `not_applicable_count` uses a different naming pattern from nearby fields like `not_done`, `na_count`, and `not_testable_count`. This creates a mixed contract style in the same object.  \n**Suggestion:** If external contract allows, prefer one consistent convention, such as `not_applicable`, matching `not_done`. If `not_applicable_count` is required by R4, consider also naming the local variable `notApplicableCount` to make the count semantics explicit.",
+      "suggestion": "**File:** `src/flow/lib/run-retro.js`  \n**Issue:** The new summary field `not_applicable_count` uses a different naming pattern from nearby fields like `not_done`, `na_count`, and `not_testable_count`. This creates a mixed contract style in the same object.  \n**Suggestion:** If external contract allows, prefer one consistent convention, such as `not_applicable`, matching `not_done`. If `not_applicable_count` is required by R4, consider also naming the local variable `notApplicableCount` to make the count semantics explicit.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Avoid Repeated Status Filtering",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-retro.js",
+      "issue": "**File:** `src/flow/lib/run-retro.js`  \n**Issue:** `done` and `notApplicable` are computed with separate `filter` passes over `reqs`, then `notDone` is derived afterward. This is small, but it duplicates traversal logic and makes adding future statuses more error-prone.  \n**Suggestion:** Compute status counts in one pass, for example with `reduce`, then derive `not_done` from the resulting counters.",
+      "suggestion": "**File:** `src/flow/lib/run-retro.js`  \n**Issue:** `done` and `notApplicable` are computed with separate `filter` passes over `reqs`, then `notDone` is derived afterward. This is small, but it duplicates traversal logic and makes adding future statuses more error-prone.  \n**Suggestion:** Compute status counts in one pass, for example with `reduce`, then derive `not_done` from the resulting counters.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Clarify Dry-Run Artifact Shape",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-retro.js",
+      "issue": "**File:** `src/flow/lib/run-retro.js`  \n**Issue:** The dry-run response now includes `requirements` inside `artifacts`, even though `summary` is not a file artifact either. This may further blur whether `artifacts` contains paths, generated content, or both.  \n**Suggestion:** Consider moving generated preview data under a clearly named property such as `preview`, or document/rename the dry-run object fields so `artifacts` does not mix artifact paths with in-memory report contents.",
+      "suggestion": "**File:** `src/flow/lib/run-retro.js`  \n**Issue:** The dry-run response now includes `requirements` inside `artifacts`, even though `summary` is not a file artifact either. This may further blur whether `artifacts` contains paths, generated content, or both.  \n**Suggestion:** Consider moving generated preview data under a clearly named property such as `preview`, or document/rename the dry-run object fields so `artifacts` does not mix artifact paths with in-memory report contents.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "I’ll inspect the touched file around the changed functions so the proposals are grounded in the actual surrounding code, not just the snippet.The diff file is not present at that relative path in the current workspace, so I’ll base this review on the provided diff and keep proposals scoped to `src/flow/lib/run-test-execute.js`.### 1. Cache spec test file discovery in `findSpecTestFileForReq`",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-test-execute.js",
+      "issue": "**File:** `src/flow/lib/run-test-execute.js`  \n**Issue:** `findSpecTestFileForReq` calls `listSpecTestFiles(specDir)` once for iteration and again for the fallback. That duplicates directory/file discovery work and makes the null fallback harder to reason about.  \n**Suggestion:** Store the result once:\n\n```js\nconst files = listSpecTestFiles(specDir);\nfor (const file of files) { ... }\nreturn files[0] || null;\n```",
+      "suggestion": "**File:** `src/flow/lib/run-test-execute.js`  \n**Issue:** `findSpecTestFileForReq` calls `listSpecTestFiles(specDir)` once for iteration and again for the fallback. That duplicates directory/file discovery work and makes the null fallback harder to reason about.  \n**Suggestion:** Store the result once:\n\n```js\nconst files = listSpecTestFiles(specDir);\nfor (const file of files) { ... }\nreturn files[0] || null;\n```",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Centralize requirement outcome construction",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-test-execute.js",
+      "issue": "**File:** `src/flow/lib/run-test-execute.js`  \n**Issue:** The `not_applicable` / `no_tests_declared` logic is now split across `requirementSummaryResult`, `requirementRawResultLine`, and `buildSummary`. If the reason or result semantics change, multiple places must stay synchronized.  \n**Suggestion:** Replace `requirementSummaryResult` with a helper that returns the complete outcome, for example `{ result, reason }`, and use it in both raw output generation and summary generation.",
+      "suggestion": "**File:** `src/flow/lib/run-test-execute.js`  \n**Issue:** The `not_applicable` / `no_tests_declared` logic is now split across `requirementSummaryResult`, `requirementRawResultLine`, and `buildSummary`. If the reason or result semantics change, multiple places must stay synchronized.  \n**Suggestion:** Replace `requirementSummaryResult` with a helper that returns the complete outcome, for example `{ result, reason }`, and use it in both raw output generation and summary generation.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Avoid throwing a generic missing-file error from summary building",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-test-execute.js",
+      "issue": "**File:** `src/flow/lib/run-test-execute.js`  \n**Issue:** `buildSummary` now throws `spec-local test file missing for ${req.id}` if `findSpecTestFileForReq` returns `null`. In normal flow this should only happen if no tests are declared, already handled earlier, so the error path is more of an invariant failure than a user-actionable condition.  \n**Suggestion:** Make the invariant explicit, for example by checking `specLocal.noTestsDeclared` before calling `findSpecTestFileForReq`, or by throwing a clearer invariant-style message that includes that tests were expected but no spec-local files were found.",
+      "suggestion": "**File:** `src/flow/lib/run-test-execute.js`  \n**Issue:** `buildSummary` now throws `spec-local test file missing for ${req.id}` if `findSpecTestFileForReq` returns `null`. In normal flow this should only happen if no tests are declared, already handled earlier, so the error path is more of an invariant failure than a user-actionable condition.  \n**Suggestion:** Make the invariant explicit, for example by checking `specLocal.noTestsDeclared` before calling `findSpecTestFileForReq`, or by throwing a clearer invariant-style message that includes that tests were expected but no spec-local files were found.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Centralize artifact path normalization",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-test-result-review.js",
+      "issue": "**File:** `src/flow/lib/run-test-result-review.js`  \n**Issue:** `path.relative(root, ...).split(path.sep).join(\"/\")` is repeated in several places, and some return paths still use plain `path.relative(...)`.  \n**Suggestion:** Add a small helper such as `relativeArtifactPath(root, targetPath)` and use it consistently for `artifactPath`, `result_file_path`, `raw_output_path`, `changed`, and `artifacts.review_path`.",
+      "suggestion": "**File:** `src/flow/lib/run-test-result-review.js`  \n**Issue:** `path.relative(root, ...).split(path.sep).join(\"/\")` is repeated in several places, and some return paths still use plain `path.relative(...)`.  \n**Suggestion:** Add a small helper such as `relativeArtifactPath(root, targetPath)` and use it consistently for `artifactPath`, `result_file_path`, `raw_output_path`, `changed`, and `artifacts.review_path`.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Avoid mutating review objects while writing",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-test-result-review.js",
+      "issue": "**File:** `src/flow/lib/run-test-result-review.js`  \n**Issue:** `writeReviewArtifacts` mutates `review` by assigning `review.contractSummary`. That makes the helper both transform and write, which can surprise callers.  \n**Suggestion:** Build a local `reviewWithContractSummary` object inside the helper and write that instead.",
+      "suggestion": "**File:** `src/flow/lib/run-test-result-review.js`  \n**Issue:** `writeReviewArtifacts` mutates `review` by assigning `review.contractSummary`. That makes the helper both transform and write, which can surprise callers.  \n**Suggestion:** Build a local `reviewWithContractSummary` object inside the helper and write that instead.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Bound raw output loading and line splitting",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-test-result-review.js",
+      "issue": "**File:** `src/flow/lib/run-test-result-review.js`  \n**Issue:** The review loads the full raw output and splits it into lines without an explicit size or line-count bound. This conflicts with the `bounded-resource-usage` guardrail for bulk data loading.  \n**Suggestion:** Enforce an explicit maximum raw log size and/or maximum line count before `split(/\\r?\\n/)`, failing the review with a clear artifact error if exceeded.",
+      "suggestion": "**File:** `src/flow/lib/run-test-result-review.js`  \n**Issue:** The review loads the full raw output and splits it into lines without an explicit size or line-count bound. This conflicts with the `bounded-resource-usage` guardrail for bulk data loading.  \n**Suggestion:** Enforce an explicit maximum raw log size and/or maximum line count before `split(/\\r?\\n/)`, failing the review with a clear artifact error if exceeded.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Extract shared summary evidence validation",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/test-artifacts.js",
+      "issue": "**File:** `src/flow/lib/test-artifacts.js`  \n**Issue:** `validateTestExecuteResultV2` and `validateSummaryEvidence` now duplicate checks for `evidence`, `evidence.command`, `raw_output_lines`, `not_applicable` reason, and pass/fail handling.  \n**Suggestion:** Extract a helper such as `validateSummaryEntryShape(entry, context)` or smaller helpers for `validateSummaryEvidenceRange` and `validateNoTestsSummaryEntry`. This keeps the v2 schema validator and evidence validator consistent as the contract evolves.",
+      "suggestion": "**File:** `src/flow/lib/test-artifacts.js`  \n**Issue:** `validateTestExecuteResultV2` and `validateSummaryEvidence` now duplicate checks for `evidence`, `evidence.command`, `raw_output_lines`, `not_applicable` reason, and pass/fail handling.  \n**Suggestion:** Extract a helper such as `validateSummaryEntryShape(entry, context)` or smaller helpers for `validateSummaryEvidenceRange` and `validateNoTestsSummaryEntry`. This keeps the v2 schema validator and evidence validator consistent as the contract evolves.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Add an explicit bound for `checkedSources`",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/test-artifacts.js",
+      "issue": "**File:** `src/flow/lib/test-artifacts.js`  \n**Issue:** `discovery.checkedSources` is validated as a non-empty array, then scanned with `.some(...)`, but there is no explicit maximum length. This violates the `bounded-resource-usage` guardrail for bulk data validation.  \n**Suggestion:** Add a constant such as `MAX_COMMAND_DISCOVERY_CHECKED_SOURCES` and reject arrays above that size before iterating.",
+      "suggestion": "**File:** `src/flow/lib/test-artifacts.js`  \n**Issue:** `discovery.checkedSources` is validated as a non-empty array, then scanned with `.some(...)`, but there is no explicit maximum length. This violates the `bounded-resource-usage` guardrail for bulk data validation.  \n**Suggestion:** Add a constant such as `MAX_COMMAND_DISCOVERY_CHECKED_SOURCES` and reject arrays above that size before iterating.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Make skip-kind branching explicit",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/test-artifacts.js",
+      "issue": "**File:** `src/flow/lib/test-artifacts.js`  \n**Issue:** The final `else` in `validateFinalRegressionSkipKind` implicitly means `skipped_by_project_policy`, relying on the earlier allowlist to make that true. That coupling makes future skip kinds easy to misroute into project-policy proof validation.  \n**Suggestion:** Change the branch to `else if (result.skipKind === \"skipped_by_project_policy\")` and add a defensive final `else` error. This keeps each skip kind’s proof contract explicit.",
+      "suggestion": "**File:** `src/flow/lib/test-artifacts.js`  \n**Issue:** The final `else` in `validateFinalRegressionSkipKind` implicitly means `skipped_by_project_policy`, relying on the earlier allowlist to make that true. That coupling makes future skip kinds easy to misroute into project-policy proof validation.  \n**Suggestion:** Change the branch to `else if (result.skipKind === \"skipped_by_project_policy\")` and add a defensive final `else` error. This keeps each skip kind’s proof contract explicit.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "I’ll review the diff as a code-quality pass only, constrained to `src/flow/lib/test-regression.js`, and check the bounded-resource guardrail against the touched logic.The diff path is relative to the project, but this sandbox’s current directory is a `.tmp` workspace root that does not contain `src/flow/lib/test-regression.js`. I’ll base the review on the supplied diff unless the project files are present elsewhere inside the allowed root.### 1. Derive checked source names from discovery candidates",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/test-regression.js",
+      "issue": "**File:** `src/flow/lib/test-regression.js`  \n**Issue:** `REGRESSION_COMMAND_CHECKED_SOURCES` duplicates the command discovery sources manually. If discovery order or supported sources change later, the no-tests artifact can report stale checked sources.  \n**Suggestion:** Build the checked source list from the same candidate definitions used by `discoverRegressionCommand`, or keep source labels beside each candidate and derive both discovery and reporting from that single structure.",
+      "suggestion": "**File:** `src/flow/lib/test-regression.js`  \n**Issue:** `REGRESSION_COMMAND_CHECKED_SOURCES` duplicates the command discovery sources manually. If discovery order or supported sources change later, the no-tests artifact can report stale checked sources.  \n**Suggestion:** Build the checked source list from the same candidate definitions used by `discoverRegressionCommand`, or keep source labels beside each candidate and derive both discovery and reporting from that single structure.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Remove redundant default/passed argument pairing",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/test-regression.js",
+      "issue": "**File:** `src/flow/lib/test-regression.js`  \n**Issue:** `regressionCommandFromSource(source, checkedSources = REGRESSION_COMMAND_CHECKED_SOURCES)` defines a default, but `discoverRegressionCommand` also passes the same constant explicitly. This makes the API look more configurable than it currently is.  \n**Suggestion:** Either call `regressionCommandFromSource(source)` from `discoverRegressionCommand`, or remove the default and require callers to pass checked sources intentionally.",
+      "suggestion": "**File:** `src/flow/lib/test-regression.js`  \n**Issue:** `regressionCommandFromSource(source, checkedSources = REGRESSION_COMMAND_CHECKED_SOURCES)` defines a default, but `discoverRegressionCommand` also passes the same constant explicitly. This makes the API look more configurable than it currently is.  \n**Suggestion:** Either call `regressionCommandFromSource(source)` from `discoverRegressionCommand`, or remove the default and require callers to pass checked sources intentionally.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Extract the Node eval allowance predicate",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/test-regression.js",
+      "issue": "**File:** `src/flow/lib/test-regression.js`  \n**Issue:** `quotedNodeEvalArg` embeds several policy details inline inside `parseArgvCommand`: quoted token state, command name, and accepted Node eval flags. That makes the shell-syntax exception harder to scan and test independently.  \n**Suggestion:** Move it to a small helper such as `isQuotedNodeEvalArgument(tokens, argv, index)` and optionally define the eval flags as a frozen constant.",
+      "suggestion": "**File:** `src/flow/lib/test-regression.js`  \n**Issue:** `quotedNodeEvalArg` embeds several policy details inline inside `parseArgvCommand`: quoted token state, command name, and accepted Node eval flags. That makes the shell-syntax exception harder to scan and test independently.  \n**Suggestion:** Move it to a small helper such as `isQuotedNodeEvalArgument(tokens, argv, index)` and optionally define the eval flags as a frozen constant.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "4. Freeze `commandCandidates` for consistency",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/test-regression.js",
+      "issue": "**File:** `src/flow/lib/test-regression.js`  \n**Issue:** `NoSupportedRegressionCommandError` freezes `checkedSources` but leaves `commandCandidates` as a mutable array. The two fields both describe discovery metadata and should have similar immutability semantics.  \n**Suggestion:** Set `this.commandCandidates = Object.freeze([]);` to match `checkedSources` and avoid accidental mutation downstream.",
+      "suggestion": "**File:** `src/flow/lib/test-regression.js`  \n**Issue:** `NoSupportedRegressionCommandError` freezes `checkedSources` but leaves `commandCandidates` as a mutable array. The two fields both describe discovery metadata and should have similar immutability semantics.  \n**Suggestion:** Set `this.commandCandidates = Object.freeze([]);` to match `checkedSources` and avoid accidental mutation downstream.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Bound `checkedSources`",
+      "failureMode": "refactor",
+      "file": "src/flow/prompts/impl/final-regression.md",
+      "issue": "**File:** `src/flow/prompts/impl/final-regression.md`  \n**Issue:** `commandDiscovery.checkedSources` is newly required, but the prompt does not state an upper bound on the number of checked sources or retained entries. This risks violating `bounded-resource-usage` if discovery can grow with project files/configs.  \n**Suggestion:** Specify that `checkedSources` is limited to a fixed set of supported project-level command source identifiers, with a maximum entry count and truncated/summary behavior if needed.",
+      "suggestion": "**File:** `src/flow/prompts/impl/final-regression.md`  \n**Issue:** `commandDiscovery.checkedSources` is newly required, but the prompt does not state an upper bound on the number of checked sources or retained entries. This risks violating `bounded-resource-usage` if discovery can grow with project files/configs.  \n**Suggestion:** Specify that `checkedSources` is limited to a fixed set of supported project-level command source identifiers, with a maximum entry count and truncated/summary behavior if needed.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Use Exact Skip Kind Naming",
+      "failureMode": "refactor",
+      "file": "src/flow/prompts/impl/final-regression.md",
+      "issue": "**File:** `src/flow/prompts/impl/final-regression.md`  \n**Issue:** “Project-policy proof” is a prose label that does not exactly match the artifact value `skipped_by_project_policy`, while the same sentence uses exact names for other fields.  \n**Suggestion:** Rename the phrase to `` `skipped_by_project_policy` proof `` so the documentation consistently ties proof shape to the exact `skipKind` value.",
+      "suggestion": "**File:** `src/flow/prompts/impl/final-regression.md`  \n**Issue:** “Project-policy proof” is a prose label that does not exactly match the artifact value `skipped_by_project_policy`, while the same sentence uses exact names for other fields.  \n**Suggestion:** Rename the phrase to `` `skipped_by_project_policy` proof `` so the documentation consistently ties proof shape to the exact `skipKind` value.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "I’ll inspect the touched schema so the proposals are grounded in the full structure, while keeping the scope limited to the diff file.The path from the diff is not present relative to the current working directory. I’ll quickly locate the repository layout and then continue only against the touched path.### 1. Preserve Result-Specific Schema Invariants",
+      "failureMode": "refactor",
+      "file": "src/flow/schemas/test-execute-result.schema.json",
+      "issue": "**File:** `src/flow/schemas/test-execute-result.schema.json`  \n**Issue:** The change makes `reason` optional for all results and makes `test_file` / `test_name` optional for `pass` and `fail` entries too. That broadens the schema beyond the new `not_applicable` case.  \n**Suggestion:** Use `oneOf` or `if` / `then` branches: require `reason: no_tests_declared` only when `result` is `not_applicable`, and keep `test_file` / `test_name` required for `pass` and `fail` evidence.",
+      "suggestion": "**File:** `src/flow/schemas/test-execute-result.schema.json`  \n**Issue:** The change makes `reason` optional for all results and makes `test_file` / `test_name` optional for `pass` and `fail` entries too. That broadens the schema beyond the new `not_applicable` case.  \n**Suggestion:** Use `oneOf` or `if` / `then` branches: require `reason: no_tests_declared` only when `result` is `not_applicable`, and keep `test_file` / `test_name` required for `pass` and `fail` evidence.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Add Explicit Bounds For Raw Output",
+      "failureMode": "refactor",
+      "file": "src/flow/schemas/test-execute-result.schema.json",
+      "issue": "**File:** `src/flow/schemas/test-execute-result.schema.json`  \n**Issue:** `raw_output_lines` appears to accept arbitrary output size. Under the `bounded-resource-usage` guardrail, bulk output fields should have explicit limits.  \n**Suggestion:** Add bounds such as `maxItems` for `raw_output_lines` and `maxLength` for each line item. Choose limits that match the executor’s intended evidence size, and apply them consistently to both normal test evidence and `not_applicable` evidence.",
+      "suggestion": "**File:** `src/flow/schemas/test-execute-result.schema.json`  \n**Issue:** `raw_output_lines` appears to accept arbitrary output size. Under the `bounded-resource-usage` guardrail, bulk output fields should have explicit limits.  \n**Suggestion:** Add bounds such as `maxItems` for `raw_output_lines` and `maxLength` for each line item. Choose limits that match the executor’s intended evidence size, and apply them consistently to both normal test evidence and `not_applicable` evidence.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "1. Unify `not_applicable` contract shape",
+      "failureMode": "refactor",
+      "file": "src/flow/schemas/test-execute-result.schema.json",
+      "issue": "**File:** `src/flow/schemas/test-execute-result.schema.json`  \n**Issue:** The new `not_applicable` / `no_tests_declared` state spans `run-test-execute.js`, `run-retro.js`, `test-artifacts.js`, and the schema, but the schema appears broader than the producer/validator contract. It allows optional `reason`, `test_file`, and `test_name` beyond just the `not_applicable` case, while code paths seem to expect stricter result-specific evidence shapes.  \n**Suggestion:** Encode result-specific branches in the schema: `pass` / `fail` require test evidence, while `not_applicable` requires `reason: \"no_tests_declared\"` and omits test-specific fields. Then align `test-artifacts.js` validation to the same branch structure.",
+      "suggestion": "**File:** `src/flow/schemas/test-execute-result.schema.json`  \n**Issue:** The new `not_applicable` / `no_tests_declared` state spans `run-test-execute.js`, `run-retro.js`, `test-artifacts.js`, and the schema, but the schema appears broader than the producer/validator contract. It allows optional `reason`, `test_file`, and `test_name` beyond just the `not_applicable` case, while code paths seem to expect stricter result-specific evidence shapes.  \n**Suggestion:** Encode result-specific branches in the schema: `pass` / `fail` require test evidence, while `not_applicable` requires `reason: \"no_tests_declared\"` and omits test-specific fields. Then align `test-artifacts.js` validation to the same branch structure.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "2. Standardize summary count naming",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/run-retro.js",
+      "issue": "**File:** `src/flow/lib/run-retro.js`  \n**Issue:** The new summary naming is inconsistent across files and report layers: `not_applicable`, `not_applicable_count`, `na_count`, `not_testable_count`, and `not_done` all appear to describe related status/count concepts. This makes the cross-file reporting contract harder to consume reliably.  \n**Suggestion:** Pick one public naming convention for status counts, preferably matching the status name directly, such as `not_applicable`, and use it consistently in retro summaries, test execution summaries, validators, and schema/docs.",
+      "suggestion": "**File:** `src/flow/lib/run-retro.js`  \n**Issue:** The new summary naming is inconsistent across files and report layers: `not_applicable`, `not_applicable_count`, `na_count`, `not_testable_count`, and `not_done` all appear to describe related status/count concepts. This makes the cross-file reporting contract harder to consume reliably.  \n**Suggestion:** Pick one public naming convention for status counts, preferably matching the status name directly, such as `not_applicable`, and use it consistently in retro summaries, test execution summaries, validators, and schema/docs.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "3. Centralize `checkedSources` discovery metadata",
+      "failureMode": "refactor",
+      "file": "src/flow/lib/test-regression.js",
+      "issue": "**File:** `src/flow/lib/test-regression.js`  \n**Issue:** `checkedSources` is introduced across discovery, final regression artifacts, validators, and prompt documentation, but the supported source names and limits are duplicated or only implied. That creates drift risk between what discovery reports, what validation accepts, and what the prompt requires.  \n**Suggestion:** Define a single fixed list of command discovery source identifiers and an explicit maximum count in code, derive reported `checkedSources` from it, and mirror that contract in `test-artifacts.js` validation and `final-regression.md`.",
+      "suggestion": "**File:** `src/flow/lib/test-regression.js`  \n**Issue:** `checkedSources` is introduced across discovery, final regression artifacts, validators, and prompt documentation, but the supported source names and limits are duplicated or only implied. That creates drift risk between what discovery reports, what validation accepts, and what the prompt requires.  \n**Suggestion:** Define a single fixed list of command discovery source identifiers and an explicit maximum count in code, derive reported `checkedSources` from it, and mirror that contract in `test-artifacts.js` validation and `final-regression.md`.",
+      "rationale": "Loop review proposal."
+    },
+    {
+      "title": "4. Share raw output bounds across schema and reviewer",
+      "failureMode": "refactor",
+      "file": "src/flow/schemas/test-execute-result.schema.json",
+      "issue": "**File:** `src/flow/schemas/test-execute-result.schema.json`  \n**Issue:** `raw_output_lines` is treated as bulk evidence in the schema, executor/review flow, and artifact validator, but the proposed bounds are not defined consistently across those files. The reviewer may load/split unbounded raw output while the schema also lacks `maxItems` / line length constraints.  \n**Suggestion:** Introduce shared constants for maximum raw output bytes, maximum evidence lines, and maximum line length, then apply equivalent limits in the executor/reviewer code, artifact validator, and JSON schema.",
+      "suggestion": "**File:** `src/flow/schemas/test-execute-result.schema.json`  \n**Issue:** `raw_output_lines` is treated as bulk evidence in the schema, executor/review flow, and artifact validator, but the proposed bounds are not defined consistently across those files. The reviewer may load/split unbounded raw output while the schema also lacks `maxItems` / line length constraints.  \n**Suggestion:** Introduce shared constants for maximum raw output bytes, maximum evidence lines, and maximum line length, then apply equivalent limits in the executor/reviewer code, artifact validator, and JSON schema.",
+      "rationale": "Loop review proposal."
+    }
+  ],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/301-no-tests-valid-state/impl-review.json",
+    "verdict": "ADVISORY",
+    "result": "ADVISORY",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": "impl-gate",
+    "completionKind": "normal",
+    "progressSignature": "6a2e18d9586eca517cf8dbf02f99d21eeae88927ed5745ce2c893e7d7d1d4bd6"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "impl-002-non-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "I’ll inspect the touched file around the new skip path and existing result/skip helpers so the proposals are grounded in the file’s current patterns.The path in the diff is not present under the current `.tmp` directory, so I’m checking the worktree layout before relying only on the supplied diff.The repository files are one level above the current `.tmp` directory, while the command working directory remains inside the allowed worktree path. I’m reading the touched file from there now.The new path duplicates the same synthetic “not started” result used by the existing skip path. I’m checking the surrounding factory code to avoid suggesting an abstraction that already exists.I’m also checking where `checkedSources` is produced, because the bounded-resource guardrail turns on whether this new artifact copy can grow without an explicit cap.`checkedSources` currently comes from a fixed internal list, so I don’t see a bounded-resource violation in this specific diff. The main review finding is a local consistency/duplication problem in the new skip result construction.### 1. Extract the skipped process result",
+      "body": "**File:** `src/flow/lib/run-final-regression.js`  \n**Issue:** The new `skipped_by_project_policy` path duplicates the same synthetic process result object already used by the existing skip path: `started: false`, null exit/signal, empty stdout/stderr, etc. That makes future changes to skipped process shape easy to miss in one branch.  \n**Suggestion:** Add a small factory method such as `FinalRegressionProcessResultFactory.skipped()` and use it in both skip branches.\n\n```js\nstatic skipped() {\n  return {\n    started: false,\n    exitCode: null,\n    signal: null,\n    timedOut: false,\n    spawnError: null,\n    stdout: \"\",\n    stderr: \"\",\n  };\n}\n```\n\nThen replace both duplicated object literals with `FinalRegressionProcessResultFactory.skipped()`.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-002-non-blocking-002",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "I’ll quickly inspect the touched file around the changed code so the proposals match the surrounding style and don’t overreach beyond the diff.The provided path isn’t present relative to the current temp directory, so I’m checking the workspace layout before relying only on the inline diff.The checked-out source file isn’t available in this workspace snapshot, so I’ll keep the review constrained to the diff text you supplied.### 1. Align Summary Field Naming",
+      "body": "**File:** `src/flow/lib/run-retro.js`  \n**Issue:** The new summary field `not_applicable_count` uses a different naming pattern from nearby fields like `not_done`, `na_count`, and `not_testable_count`. This creates a mixed contract style in the same object.  \n**Suggestion:** If external contract allows, prefer one consistent convention, such as `not_applicable`, matching `not_done`. If `not_applicable_count` is required by R4, consider also naming the local variable `notApplicableCount` to make the count semantics explicit.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-002-non-blocking-003",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "2. Avoid Repeated Status Filtering",
+      "body": "**File:** `src/flow/lib/run-retro.js`  \n**Issue:** `done` and `notApplicable` are computed with separate `filter` passes over `reqs`, then `notDone` is derived afterward. This is small, but it duplicates traversal logic and makes adding future statuses more error-prone.  \n**Suggestion:** Compute status counts in one pass, for example with `reduce`, then derive `not_done` from the resulting counters.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-002-non-blocking-004",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "3. Clarify Dry-Run Artifact Shape",
+      "body": "**File:** `src/flow/lib/run-retro.js`  \n**Issue:** The dry-run response now includes `requirements` inside `artifacts`, even though `summary` is not a file artifact either. This may further blur whether `artifacts` contains paths, generated content, or both.  \n**Suggestion:** Consider moving generated preview data under a clearly named property such as `preview`, or document/rename the dry-run object fields so `artifacts` does not mix artifact paths with in-memory report contents.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-002-non-blocking-005",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "I’ll inspect the touched file around the changed functions so the proposals are grounded in the actual surrounding code, not just the snippet.The diff file is not present at that relative path in the current workspace, so I’ll base this review on the provided diff and keep proposals scoped to `src/flow/lib/run-test-execute.js`.### 1. Cache spec test file discovery in `findSpecTestFileForReq`",
+      "body": "**File:** `src/flow/lib/run-test-execute.js`  \n**Issue:** `findSpecTestFileForReq` calls `listSpecTestFiles(specDir)` once for iteration and again for the fallback. That duplicates directory/file discovery work and makes the null fallback harder to reason about.  \n**Suggestion:** Store the result once:\n\n```js\nconst files = listSpecTestFiles(specDir);\nfor (const file of files) { ... }\nreturn files[0] || null;\n```",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-002-non-blocking-006",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "2. Centralize requirement outcome construction",
+      "body": "**File:** `src/flow/lib/run-test-execute.js`  \n**Issue:** The `not_applicable` / `no_tests_declared` logic is now split across `requirementSummaryResult`, `requirementRawResultLine`, and `buildSummary`. If the reason or result semantics change, multiple places must stay synchronized.  \n**Suggestion:** Replace `requirementSummaryResult` with a helper that returns the complete outcome, for example `{ result, reason }`, and use it in both raw output generation and summary generation.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-002-non-blocking-007",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "3. Avoid throwing a generic missing-file error from summary building",
+      "body": "**File:** `src/flow/lib/run-test-execute.js`  \n**Issue:** `buildSummary` now throws `spec-local test file missing for ${req.id}` if `findSpecTestFileForReq` returns `null`. In normal flow this should only happen if no tests are declared, already handled earlier, so the error path is more of an invariant failure than a user-actionable condition.  \n**Suggestion:** Make the invariant explicit, for example by checking `specLocal.noTestsDeclared` before calling `findSpecTestFileForReq`, or by throwing a clearer invariant-style message that includes that tests were expected but no spec-local files were found.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-002-non-blocking-008",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "1. Centralize artifact path normalization",
+      "body": "**File:** `src/flow/lib/run-test-result-review.js`  \n**Issue:** `path.relative(root, ...).split(path.sep).join(\"/\")` is repeated in several places, and some return paths still use plain `path.relative(...)`.  \n**Suggestion:** Add a small helper such as `relativeArtifactPath(root, targetPath)` and use it consistently for `artifactPath`, `result_file_path`, `raw_output_path`, `changed`, and `artifacts.review_path`.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-002-non-blocking-009",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "2. Avoid mutating review objects while writing",
+      "body": "**File:** `src/flow/lib/run-test-result-review.js`  \n**Issue:** `writeReviewArtifacts` mutates `review` by assigning `review.contractSummary`. That makes the helper both transform and write, which can surprise callers.  \n**Suggestion:** Build a local `reviewWithContractSummary` object inside the helper and write that instead.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-002-non-blocking-010",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "3. Bound raw output loading and line splitting",
+      "body": "**File:** `src/flow/lib/run-test-result-review.js`  \n**Issue:** The review loads the full raw output and splits it into lines without an explicit size or line-count bound. This conflicts with the `bounded-resource-usage` guardrail for bulk data loading.  \n**Suggestion:** Enforce an explicit maximum raw log size and/or maximum line count before `split(/\\r?\\n/)`, failing the review with a clear artifact error if exceeded.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-002-non-blocking-011",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "1. Extract shared summary evidence validation",
+      "body": "**File:** `src/flow/lib/test-artifacts.js`  \n**Issue:** `validateTestExecuteResultV2` and `validateSummaryEvidence` now duplicate checks for `evidence`, `evidence.command`, `raw_output_lines`, `not_applicable` reason, and pass/fail handling.  \n**Suggestion:** Extract a helper such as `validateSummaryEntryShape(entry, context)` or smaller helpers for `validateSummaryEvidenceRange` and `validateNoTestsSummaryEntry`. This keeps the v2 schema validator and evidence validator consistent as the contract evolves.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-002-non-blocking-012",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "2. Add an explicit bound for `checkedSources`",
+      "body": "**File:** `src/flow/lib/test-artifacts.js`  \n**Issue:** `discovery.checkedSources` is validated as a non-empty array, then scanned with `.some(...)`, but there is no explicit maximum length. This violates the `bounded-resource-usage` guardrail for bulk data validation.  \n**Suggestion:** Add a constant such as `MAX_COMMAND_DISCOVERY_CHECKED_SOURCES` and reject arrays above that size before iterating.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-002-non-blocking-013",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "3. Make skip-kind branching explicit",
+      "body": "**File:** `src/flow/lib/test-artifacts.js`  \n**Issue:** The final `else` in `validateFinalRegressionSkipKind` implicitly means `skipped_by_project_policy`, relying on the earlier allowlist to make that true. That coupling makes future skip kinds easy to misroute into project-policy proof validation.  \n**Suggestion:** Change the branch to `else if (result.skipKind === \"skipped_by_project_policy\")` and add a defensive final `else` error. This keeps each skip kind’s proof contract explicit.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-002-non-blocking-014",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "I’ll review the diff as a code-quality pass only, constrained to `src/flow/lib/test-regression.js`, and check the bounded-resource guardrail against the touched logic.The diff path is relative to the project, but this sandbox’s current directory is a `.tmp` workspace root that does not contain `src/flow/lib/test-regression.js`. I’ll base the review on the supplied diff unless the project files are present elsewhere inside the allowed root.### 1. Derive checked source names from discovery candidates",
+      "body": "**File:** `src/flow/lib/test-regression.js`  \n**Issue:** `REGRESSION_COMMAND_CHECKED_SOURCES` duplicates the command discovery sources manually. If discovery order or supported sources change later, the no-tests artifact can report stale checked sources.  \n**Suggestion:** Build the checked source list from the same candidate definitions used by `discoverRegressionCommand`, or keep source labels beside each candidate and derive both discovery and reporting from that single structure.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-002-non-blocking-015",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "2. Remove redundant default/passed argument pairing",
+      "body": "**File:** `src/flow/lib/test-regression.js`  \n**Issue:** `regressionCommandFromSource(source, checkedSources = REGRESSION_COMMAND_CHECKED_SOURCES)` defines a default, but `discoverRegressionCommand` also passes the same constant explicitly. This makes the API look more configurable than it currently is.  \n**Suggestion:** Either call `regressionCommandFromSource(source)` from `discoverRegressionCommand`, or remove the default and require callers to pass checked sources intentionally.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-002-non-blocking-016",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "3. Extract the Node eval allowance predicate",
+      "body": "**File:** `src/flow/lib/test-regression.js`  \n**Issue:** `quotedNodeEvalArg` embeds several policy details inline inside `parseArgvCommand`: quoted token state, command name, and accepted Node eval flags. That makes the shell-syntax exception harder to scan and test independently.  \n**Suggestion:** Move it to a small helper such as `isQuotedNodeEvalArgument(tokens, argv, index)` and optionally define the eval flags as a frozen constant.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-002-non-blocking-017",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "4. Freeze `commandCandidates` for consistency",
+      "body": "**File:** `src/flow/lib/test-regression.js`  \n**Issue:** `NoSupportedRegressionCommandError` freezes `checkedSources` but leaves `commandCandidates` as a mutable array. The two fields both describe discovery metadata and should have similar immutability semantics.  \n**Suggestion:** Set `this.commandCandidates = Object.freeze([]);` to match `checkedSources` and avoid accidental mutation downstream.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-002-non-blocking-018",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "1. Bound `checkedSources`",
+      "body": "**File:** `src/flow/prompts/impl/final-regression.md`  \n**Issue:** `commandDiscovery.checkedSources` is newly required, but the prompt does not state an upper bound on the number of checked sources or retained entries. This risks violating `bounded-resource-usage` if discovery can grow with project files/configs.  \n**Suggestion:** Specify that `checkedSources` is limited to a fixed set of supported project-level command source identifiers, with a maximum entry count and truncated/summary behavior if needed.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-002-non-blocking-019",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "2. Use Exact Skip Kind Naming",
+      "body": "**File:** `src/flow/prompts/impl/final-regression.md`  \n**Issue:** “Project-policy proof” is a prose label that does not exactly match the artifact value `skipped_by_project_policy`, while the same sentence uses exact names for other fields.  \n**Suggestion:** Rename the phrase to `` `skipped_by_project_policy` proof `` so the documentation consistently ties proof shape to the exact `skipKind` value.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-002-non-blocking-020",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "I’ll inspect the touched schema so the proposals are grounded in the full structure, while keeping the scope limited to the diff file.The path from the diff is not present relative to the current working directory. I’ll quickly locate the repository layout and then continue only against the touched path.### 1. Preserve Result-Specific Schema Invariants",
+      "body": "**File:** `src/flow/schemas/test-execute-result.schema.json`  \n**Issue:** The change makes `reason` optional for all results and makes `test_file` / `test_name` optional for `pass` and `fail` entries too. That broadens the schema beyond the new `not_applicable` case.  \n**Suggestion:** Use `oneOf` or `if` / `then` branches: require `reason: no_tests_declared` only when `result` is `not_applicable`, and keep `test_file` / `test_name` required for `pass` and `fail` evidence.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-002-non-blocking-021",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "2. Add Explicit Bounds For Raw Output",
+      "body": "**File:** `src/flow/schemas/test-execute-result.schema.json`  \n**Issue:** `raw_output_lines` appears to accept arbitrary output size. Under the `bounded-resource-usage` guardrail, bulk output fields should have explicit limits.  \n**Suggestion:** Add bounds such as `maxItems` for `raw_output_lines` and `maxLength` for each line item. Choose limits that match the executor’s intended evidence size, and apply them consistently to both normal test evidence and `not_applicable` evidence.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-002-non-blocking-022",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "1. Unify `not_applicable` contract shape",
+      "body": "**File:** `src/flow/schemas/test-execute-result.schema.json`  \n**Issue:** The new `not_applicable` / `no_tests_declared` state spans `run-test-execute.js`, `run-retro.js`, `test-artifacts.js`, and the schema, but the schema appears broader than the producer/validator contract. It allows optional `reason`, `test_file`, and `test_name` beyond just the `not_applicable` case, while code paths seem to expect stricter result-specific evidence shapes.  \n**Suggestion:** Encode result-specific branches in the schema: `pass` / `fail` require test evidence, while `not_applicable` requires `reason: \"no_tests_declared\"` and omits test-specific fields. Then align `test-artifacts.js` validation to the same branch structure.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-002-non-blocking-023",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "2. Standardize summary count naming",
+      "body": "**File:** `src/flow/lib/run-retro.js`  \n**Issue:** The new summary naming is inconsistent across files and report layers: `not_applicable`, `not_applicable_count`, `na_count`, `not_testable_count`, and `not_done` all appear to describe related status/count concepts. This makes the cross-file reporting contract harder to consume reliably.  \n**Suggestion:** Pick one public naming convention for status counts, preferably matching the status name directly, such as `not_applicable`, and use it consistently in retro summaries, test execution summaries, validators, and schema/docs.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-002-non-blocking-024",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "3. Centralize `checkedSources` discovery metadata",
+      "body": "**File:** `src/flow/lib/test-regression.js`  \n**Issue:** `checkedSources` is introduced across discovery, final regression artifacts, validators, and prompt documentation, but the supported source names and limits are duplicated or only implied. That creates drift risk between what discovery reports, what validation accepts, and what the prompt requires.  \n**Suggestion:** Define a single fixed list of command discovery source identifiers and an explicit maximum count in code, derive reported `checkedSources` from it, and mirror that contract in `test-artifacts.js` validation and `final-regression.md`.",
+      "category": "refactor"
+    },
+    {
+      "id": "impl-002-non-blocking-025",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "4. Share raw output bounds across schema and reviewer",
+      "body": "**File:** `src/flow/schemas/test-execute-result.schema.json`  \n**Issue:** `raw_output_lines` is treated as bulk evidence in the schema, executor/review flow, and artifact validator, but the proposed bounds are not defined consistently across those files. The reviewer may load/split unbounded raw output while the schema also lacks `maxItems` / line length constraints.  \n**Suggestion:** Introduce shared constants for maximum raw output bytes, maximum evidence lines, and maximum line length, then apply equivalent limits in the executor/reviewer code, artifact validator, and JSON schema.",
+      "category": "refactor"
+    }
+  ]
+}

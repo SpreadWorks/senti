@@ -32,11 +32,17 @@ function fail(check, detail) {
 
 function validateSummary(result, { root, rawOutputText, rawLines, requirements }) {
   try {
-    validateSummaryEvidence(result.summary, { root, rawText: rawOutputText, rawLines, requirements });
+    validateSummaryEvidence(result.summary, {
+      root,
+      rawText: rawOutputText,
+      rawLines,
+      requirements,
+      validateRawOutputRange: true,
+    });
   } catch (err) {
     return fail("summary_evidence", err.message);
   }
-  return pass("summary_evidence", "summary membership, files, test names, commands, raw ranges, and output ids are valid");
+  return pass("summary_evidence", "summary membership, executable test evidence, no-tests decisions, commands, raw ranges, and output ids are valid");
 }
 
 function validateRegressionRawRange(result, rawLines) {
@@ -78,6 +84,14 @@ function writeMarkdown(specDir, review) {
   fs.writeFileSync(path.join(specDir, TEST_RESULT_REVIEW_MD_FILE), lines.join("\n"));
 }
 
+function writeReviewArtifacts({ root, specDir, reviewPath, review }) {
+  review.contractSummary = contractFromTestResultReviewArtifact(review, {
+    artifactPath: path.relative(root, reviewPath).split(path.sep).join("/"),
+  }).summary.toJSON();
+  fs.writeFileSync(reviewPath, JSON.stringify(review, null, 2) + "\n");
+  writeMarkdown(specDir, review);
+}
+
 export default class RunTestResultReviewCommand extends FlowCommand {
   async execute(ctx) {
     const { root } = ctx;
@@ -89,11 +103,37 @@ export default class RunTestResultReviewCommand extends FlowCommand {
     if (!fs.existsSync(rawOutputPath)) throw new Error(`${RAW_OUTPUT_RELATIVE} not found at ${rawOutputPath}: test-execute raw log is missing`);
 
     const spec = readJsonStrict(path.join(specDir, "spec.json"));
-    const result = validateTestExecuteResultV2(readJsonStrict(resultPath));
+    const loadedResult = readJsonStrict(resultPath);
     const rawOutputText = readRawOutputText(rawOutputPath);
     const rawLines = rawOutputText.split(/\r?\n/);
     const requirements = spec.requirements || [];
     const evidenceContext = { root, rawOutputText, rawLines, requirements };
+    const reviewPath = path.join(specDir, TEST_RESULT_REVIEW_FILE);
+    let result;
+    try {
+      result = validateTestExecuteResultV2(loadedResult);
+    } catch (err) {
+      const review = {
+        verdict: "fail",
+        checked_items: [fail("test_execute_artifact", `test artifact invalid: ${err.message}`)],
+        invalid_reason: `test artifact invalid: ${err.message}`,
+        result_file_path: path.relative(root, resultPath).split(path.sep).join("/"),
+        raw_output_path: path.relative(root, rawOutputPath).split(path.sep).join("/"),
+      };
+      writeReviewArtifacts({ root, specDir, reviewPath, review });
+      return {
+        result: "fail",
+        changed: [
+          path.relative(root, reviewPath),
+          path.relative(root, path.join(specDir, TEST_RESULT_REVIEW_MD_FILE)),
+        ],
+        artifacts: {
+          verdict: review.verdict,
+          review_path: path.relative(root, reviewPath),
+        },
+        next: null,
+      };
+    }
 
     const checked_items = [
       validateSummary(result, evidenceContext),
@@ -109,12 +149,7 @@ export default class RunTestResultReviewCommand extends FlowCommand {
       raw_output_path: path.relative(root, rawOutputPath).split(path.sep).join("/"),
     };
 
-    const reviewPath = path.join(specDir, TEST_RESULT_REVIEW_FILE);
-    review.contractSummary = contractFromTestResultReviewArtifact(review, {
-      artifactPath: path.relative(root, reviewPath).split(path.sep).join("/"),
-    }).summary.toJSON();
-    fs.writeFileSync(reviewPath, JSON.stringify(review, null, 2) + "\n");
-    writeMarkdown(specDir, review);
+    writeReviewArtifacts({ root, specDir, reviewPath, review });
 
     return {
       result: review.verdict === "pass" ? "ok" : "fail",

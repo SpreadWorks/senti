@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "1 repair target remains valid: remove priority-marker prefixes from QA question text.",
+  "items": [
+    {
+      "title": "1. Non-question prefix",
+      "target": "q1, q2, q3, q4, q5, q6",
+      "decision": "apply",
+      "rationale": "The review target is a small draft-only wording repair. QA questions should contain only self-contained question text, while priority markers are already present in requirement-like draft fields outside qa[].",
+      "evidence": "draft.json qa[0..5].question currently begins with `must:`."
+    }
+  ]
+}

@@ -52,6 +52,7 @@ import {
 } from "./test-regression.js";
 
 const MAX_TEST_EXECUTE_REQUIREMENTS = 500;
+const NO_TESTS_DECLARED_REASON = "no_tests_declared";
 
 function recordPrerequisiteIssue(root, state, err) {
   const issueLog = loadIssueLog(root, state.spec);
@@ -97,7 +98,7 @@ function findSpecTestFileForReq(specDir, reqId) {
     const firstLine = fs.readFileSync(file, "utf8").split(/\r?\n/, 1)[0];
     if (new RegExp(`\\b${reqId}\\b`).test(firstLine)) return file;
   }
-  return listSpecTestFiles(specDir)[0] || path.join(specDir, "tests", "missing.test.js");
+  return listSpecTestFiles(specDir)[0] || null;
 }
 
 function appendRaw(lines, sectionLines) {
@@ -111,12 +112,13 @@ async function runSpecLocalTests(root, specDir, timeoutMs) {
   if (files.length === 0) {
     return {
       command: "node --test",
+      noTestsDeclared: true,
       result: { started: true, exitCode: 0, signal: null, timedOut: false, spawnError: null, stdout: "", stderr: "" },
     };
   }
   const argv = ["node", "--test", ...files.map((file) => path.relative(root, file))];
   const result = await runProcessDetailed({ argv, env: {}, source: "spec-local-tests" }, { cwd: root, timeoutMs });
-  return { command: argv.join(" "), result };
+  return { command: argv.join(" "), noTestsDeclared: false, result };
 }
 
 function testableRequirementsForSummary(requirements) {
@@ -150,11 +152,34 @@ function requirementResult(reqId, failedIds) {
   return failedIds.has(reqId) ? "fail" : "pass";
 }
 
+function requirementSummaryResult(reqId, specLocal, failedIds) {
+  return specLocal.noTestsDeclared ? "not_applicable" : requirementResult(reqId, failedIds);
+}
+
+function requirementRawResultLine(req, specLocal, failedIds) {
+  const result = requirementSummaryResult(req.id, specLocal, failedIds);
+  return result === "not_applicable"
+    ? `[senti] requirement ${req.id} result not_applicable reason ${NO_TESTS_DECLARED_REASON}`
+    : `[senti] requirement ${req.id} result ${result}`;
+}
+
 function buildSummary({ root, specDir, testableRequirements, specLocal, range, failedIds = null }) {
   const resolvedFailedIds = failedIds ?? failedRequirementIdsFromSpecLocal(specLocal, testableRequirements);
   return testableRequirements.map((req) => {
+    const result = requirementSummaryResult(req.id, specLocal, resolvedFailedIds);
+    if (result === "not_applicable") {
+      return {
+        id: req.id,
+        result,
+        reason: NO_TESTS_DECLARED_REASON,
+        evidence: {
+          command: specLocal.command,
+          raw_output_lines: range,
+        },
+      };
+    }
     const file = findSpecTestFileForReq(specDir, req.id);
-    const result = requirementResult(req.id, resolvedFailedIds);
+    if (!file) throw new Error(`spec-local test file missing for ${req.id}`);
     return {
       id: req.id,
       result,
@@ -248,7 +273,7 @@ export default class RunTestExecuteCommand extends FlowCommand {
         `command: ${specLocal.command}`,
         ...processOutputLines(specLocal.result),
         ...testableRequirements
-          .map((req) => `[senti] requirement ${req.id} result ${requirementResult(req.id, specLocalFailedIds)}`),
+          .map((req) => requirementRawResultLine(req, specLocal, specLocalFailedIds)),
         "[senti] spec-local tests end",
       ]);
       const summary = buildSummary({

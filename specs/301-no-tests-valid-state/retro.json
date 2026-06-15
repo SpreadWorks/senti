@@ -1,0 +1,53 @@
+{
+  "spec": "specs/301-no-tests-valid-state/spec.json",
+  "date": "2026-06-15T16:16:26.973Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "test-execute は spec-local tests 0 件かつ testable requirement ありの場合、missing.test.js を evidence として読まず、各 testable requirement を result=not_applicable, reason=no_tests_declared として test-execute-result.json に記録する。",
+      "status": "done",
+      "note": "R1: test-execute writes not_applicable entries for testable requirements when no spec tests exist"
+    },
+    {
+      "desc": "test-execute-result.json v2 schema と validateTestExecuteResultV2 / validateSummaryEvidence は not_applicable summary entries を受け付け、raw_output_lines と reason を検証する。",
+      "status": "done",
+      "note": "R2: validators accept valid not_applicable evidence and reject malformed no-tests entries"
+    },
+    {
+      "desc": "test-result-review は no-tests artifact の summary membership、raw decision log、project regression contract を検証し、complete な artifact なら verdict=pass を書く。",
+      "status": "done",
+      "note": "R3: test-result-review writes pass verdict for a complete no-tests artifact"
+    },
+    {
+      "desc": "retro は verified test-execute artifact の not_applicable entries を not_done ではなく not_applicable として集計し、summary に not_applicable_count を含める。",
+      "status": "done",
+      "note": "R4: retro aggregates not_applicable separately from not_done"
+    },
+    {
+      "desc": "final-regression は no supported regression command source が確認できた場合だけ skipKind=skipped_by_project_policy, completed=true, nextAction=finalize-commit の skipped artifact と raw attempt log を書き、malformed configured command や invalid discovery state は invalid_project_test failure のまま扱う。",
+      "status": "done",
+      "note": "R5: final-regression skips only when no supported command source exists and keeps invalid config as failure"
+    },
+    {
+      "desc": "impl-gate、acceptance-review、report、finalize artifact handling は既存 artifact file names を保持し、not_applicable / skipped_by_project_policy を valid contract として消費する。",
+      "status": "done",
+      "note": "R6: downstream artifact loading consumes no-tests states through existing file names"
+    },
+    {
+      "desc": "実行開始済みテストの non-zero exit、timeout、signal、spawn failure、無関係な missing file は no-tests state に変換せず、従来どおり failure として扱う。",
+      "status": "done",
+      "note": "R7: started regression failures are not converted into no-tests skips"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 7,
+    "done": 7,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

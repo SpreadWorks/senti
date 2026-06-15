@@ -27,6 +27,7 @@ import {
   discoverRegressionCommand,
   formatElapsedMs,
   listRegressionChangedFiles,
+  NO_SUPPORTED_REGRESSION_COMMAND,
   processOutputLines,
   processPassed,
   resolveTestTimeoutSeconds,
@@ -93,6 +94,7 @@ const TEXT_FAILURE_CLASSIFIERS = Object.freeze([
 const SKIP_KINDS = Object.freeze({
   COVERED_BY_TEST_EXECUTE: "covered_by_test_execute_full_regression",
   RISK_BASED_STATIC_PROOF: "risk_based_static_proof",
+  SKIPPED_BY_PROJECT_POLICY: "skipped_by_project_policy",
 });
 const SENSITIVE_PATH_CLASSES = Object.freeze([
   "package-config",
@@ -499,6 +501,27 @@ function riskBasedSkipDecision({ root, state, specDir, changedFiles, testExecute
   };
 }
 
+function projectPolicySkipDecision({ err, changedFiles }) {
+  if (err?.code !== NO_SUPPORTED_REGRESSION_COMMAND) return null;
+  const reason = err.message || "no supported project-level regression command found";
+  return {
+    skipKind: SKIP_KINDS.SKIPPED_BY_PROJECT_POLICY,
+    reason,
+    changedFiles,
+    proof: new FinalRegressionSkipProof({
+      kind: SKIP_KINDS.SKIPPED_BY_PROJECT_POLICY,
+      data: {
+        commandDiscovery: {
+          checkedSources: [...(err.checkedSources || [])],
+          supportedCommandFound: false,
+          invalidConfiguredCommand: false,
+          reason,
+        },
+      },
+    }),
+  };
+}
+
 function finalRegressionSkipDecision({ root, state, config, specDir, changedFiles, rootCommand }) {
   const testExecute = readJsonIfExists(testExecuteArtifactPath(specDir));
   const commandIdentity = commandIdentityFor(rootCommand).toJSON();
@@ -738,8 +761,23 @@ export default class RunFinalRegressionCommand extends FlowCommand {
           });
         }
       } catch (err) {
-        discoveryError = err;
-        result = FinalRegressionProcessResultFactory.commandDiscovery(err);
+        skipDecision = projectPolicySkipDecision({ err, changedFiles });
+        if (skipDecision) {
+          result = {
+            started: false,
+            exitCode: null,
+            signal: null,
+            timedOut: false,
+            spawnError: null,
+            stdout: "",
+            stderr: "",
+          };
+          resultStatus = "skipped";
+          failureKind = null;
+        } else {
+          discoveryError = err;
+          result = FinalRegressionProcessResultFactory.commandDiscovery(err);
+        }
       }
       if (!skipDecision) {
         resultStatus = !discoveryError && processPassed(result) ? "pass" : "fail";

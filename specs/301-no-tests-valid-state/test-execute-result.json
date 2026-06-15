@@ -1,0 +1,194 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/301-no-tests-valid-state/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+        "test_name": "R1: test-execute writes not_applicable entries for testable requirements when no spec tests exist",
+        "command": "node --test specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 87
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+        "test_name": "R2: validators accept valid not_applicable evidence and reject malformed no-tests entries",
+        "command": "node --test specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 87
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+        "test_name": "R3: test-result-review writes pass verdict for a complete no-tests artifact",
+        "command": "node --test specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 87
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+        "test_name": "R4: retro aggregates not_applicable separately from not_done",
+        "command": "node --test specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 87
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+        "test_name": "R5: final-regression skips only when no supported command source exists and keeps invalid config as failure",
+        "command": "node --test specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 87
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+        "test_name": "R6: downstream artifact loading consumes no-tests states through existing file names",
+        "command": "node --test specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 87
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+        "test_name": "R7: started regression failures are not converted into no-tests skips",
+        "command": "node --test specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 87
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": false,
+    "result": "skipped",
+    "mode": "none",
+    "category": "full-regression-deferred",
+    "reason": "full project regression deferred to final-regression",
+    "classified_paths": [
+      {
+        "path": "specs/301-no-tests-valid-state/",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/run-final-regression.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/run-retro.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/run-test-execute.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/run-test-result-review.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/test-artifacts.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/test-regression.js",
+        "category": "full-regression-deferred"
+      }
+    ],
+    "trigger_relevant_changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/301-no-tests-valid-state/"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-final-regression.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-retro.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-test-execute.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-test-result-review.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/test-artifacts.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/test-regression.js"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/301-no-tests-valid-state/"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-final-regression.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-retro.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-test-execute.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-test-result-review.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/test-artifacts.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/test-regression.js"
+      }
+    ]
+  }
+}

@@ -13,11 +13,12 @@
         "additionalProperties": false,
         "properties": {
           "id": { "type": "string" },
-          "result": { "type": "string", "enum": ["pass", "fail"] },
+          "result": { "type": "string", "enum": ["pass", "fail", "not_applicable"] },
+          "reason": { "type": "string", "enum": ["no_tests_declared"] },
           "error": { "type": "string" },
           "evidence": {
             "type": "object",
-            "required": ["test_file", "test_name", "command", "raw_output_lines"],
+            "required": ["command", "raw_output_lines"],
             "additionalProperties": false,
             "properties": {
               "test_file": { "type": "string" },
