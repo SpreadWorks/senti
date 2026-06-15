@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-15T03:36:30.227Z",
+  "analyzedAt": "2026-06-15T04:14:52.574Z",
   "package": {
     "entries": [
       {
@@ -7826,9 +7826,9 @@
       },
       {
         "file": "src/lib/agent-defaults.js",
-        "hash": "c4f44c91dafec6ddc3c72d9a2cb7d252",
-        "lines": 222,
-        "mtime": "2026-06-11T10:01:13.813Z",
+        "hash": "593c78b2a473c814e435d74ce7e15fab",
+        "lines": 224,
+        "mtime": "2026-06-15T04:14:35.995Z",
         "className": "agent-defaults",
         "methods": [
           "defaultAgentProfiles",
@@ -7845,25 +7845,29 @@
         ],
         "extends": null,
         "usedBy": [
-          "src/setup.js",
-          "src/upgrade.js"
+          "src/lib/agent.js",
+          "src/lib/config.js",
+          "src/lib/provider.js",
+          "src/setup.js"
         ],
         "id": "1af31edd",
-        "enrich": {
-          "processedAt": "2026-06-12T00:20:00.369Z",
-          "attempts": 3
-        },
-        "summary": "Default agent profile and provider definitions with merge logic for user configuration. It ensures agent settings inherit a valid baseline without mutating shared defaults.",
-        "detail": "The file stores a provider pool and profile map as canonical defaults for agent execution. It deep-clones default structures before returning them so callers cannot accidentally mutate the shared constants. Helper logic gathers referenced provider keys and verifies that default profile selections point to defined providers. The exported mergeAgentDefaults function validates the input shape and returns an agent configuration with defaults, profile definitions, and provider entries normalized into a complete object.",
+        "summary": "Defines the built-in agent provider pool and the default profile map used by senti at runtime. It also exposes safe clone-based accessors and an additive merge helper for materializing defaults into user config.",
+        "detail": "The module keeps provider definitions and profile-to-provider routing in one place, covering Claude and Codex model variants for docs and flow commands. `defaultAgentProfiles()` and `defaultAgentProviders()` return deep-cloned data so callers cannot mutate the shipped defaults. Provider export is filtered to only the provider keys actually referenced by built-in profiles, and it throws if a profile points to an unknown provider key. `mergeAgentDefaults()` mutates a user `agent` object in an add-only way by filling missing profiles, missing command slots, and referenced providers without overwriting user-defined values or touching `default` and `useProfile`.",
         "chapter": "configuration",
-        "role": "agent default configuration merger",
+        "role": "built-in agent defaults registry",
+        "enrich": {
+          "processedAt": "2026-06-15T04:16:16.377Z",
+          "attempts": 1
+        },
         "keywords": [
           "agent defaults",
-          "provider profiles",
+          "default profiles",
+          "provider pool",
+          "built-in providers",
           "configuration merge",
-          "default settings",
-          "provider validation",
-          "profile mapping"
+          "runtime defaults",
+          "Claude profile",
+          "Codex profile"
         ]
       },
       {
@@ -7904,9 +7908,9 @@
       },
       {
         "file": "src/lib/agent.js",
-        "hash": "4c3588652cafa6d0f3df44f72251ec56",
-        "lines": 807,
-        "mtime": "2026-06-12T00:17:18.604Z",
+        "hash": "b5737ee0905df58e1adef4e610b9d42e",
+        "lines": 815,
+        "mtime": "2026-06-15T04:14:35.995Z",
         "className": "agent",
         "methods": [
           "createPluginAgentApi",
@@ -7917,6 +7921,7 @@
           "stableStringify",
           "matchProfilePrefix",
           "resolveProfileSelection",
+          "resolveAgentProfiles",
           "resolveProfileKey",
           "normalizeSelectedProfileKey",
           "resolveProviderOverrideKey",
@@ -7938,7 +7943,8 @@
           "child_process",
           "./log.js",
           "./provider.js",
-          "./error-preview.js"
+          "./error-preview.js",
+          "./agent-defaults.js"
         ],
         "exports": [
           "createPluginAgentApi",
@@ -7950,22 +7956,22 @@
           "src/lib/container.js"
         ],
         "id": "13ddf392",
-        "summary": "Core agent runtime that resolves providers, builds invocations, executes subprocesses, and caches prompt results. It is the main abstraction for model-backed command execution.",
-        "detail": "The module resolves provider and profile selection from config, environment variables, command IDs, and fallback aliases before turning a prompt into concrete CLI arguments. It supports prompt token substitution, schema-file injection, work directory setup, environment construction, timeout handling, and streamed output cleanup. Execution includes retries with backoff, provider-specific parsing, logging, and metric collection around each request. It also implements a prompt cache keyed by stable identity data and exposes a plugin-facing API wrapper so plugins can invoke the same agent pipeline safely.",
+        "summary": "Implements the main agent service that resolves profiles, builds CLI invocations, runs external AI commands, and records logs and metrics. It also includes retry logic, prompt caching, stdin fallback, and plugin-facing agent wrapping.",
+        "detail": "The `Agent` class resolves the effective provider through profile selection rules that consider explicit options, `SENTI_PROFILE`, configured profiles, and default family aliases. Invocation building injects system prompts, work directory flags, JSON schema flags, and switches from argv prompt delivery to stdin when the argument payload exceeds a configured threshold. Execution uses `child_process.spawn`, timeout handling, output parsing through provider-specific parsers, streaming-event filtering for plain text mode, and bounded exponential retry. The module also persists per-spec prompt cache entries under `.senti/agent-cache`, reports cache hits and usage metrics to the flow manager, and exposes `createPluginAgentApi()` so plugins can namespace command IDs and apply provider or profile overrides consistently.",
         "chapter": "internal_design",
-        "role": "agent execution engine",
+        "role": "agent execution orchestrator",
         "enrich": {
-          "processedAt": "2026-06-12T00:20:00.369Z",
+          "processedAt": "2026-06-15T04:16:16.377Z",
           "attempts": 1
         },
         "keywords": [
-          "agent runtime",
-          "provider resolution",
+          "agent runner",
+          "profile resolution",
           "prompt cache",
-          "subprocess execution",
-          "retry backoff",
-          "stream parsing",
-          "LLM invocation",
+          "retry with backoff",
+          "stdin fallback",
+          "child process spawn",
+          "AI invocation",
           "plugin agent API"
         ]
       },
@@ -8172,9 +8178,9 @@
       },
       {
         "file": "src/lib/config.js",
-        "hash": "fec4f81b60c6a29237b57fb0827ff5e2",
-        "lines": 580,
-        "mtime": "2026-06-12T04:49:16.894Z",
+        "hash": "cfddbf0911703b70cce1bca399f59e71",
+        "lines": 585,
+        "mtime": "2026-06-15T04:14:35.995Z",
         "className": "config",
         "methods": [
           "resolveConcurrency",
@@ -8205,7 +8211,8 @@
           "fs",
           "path",
           "./provider.js",
-          "./schema-validate.js"
+          "./schema-validate.js",
+          "./agent-defaults.js"
         ],
         "exports": [
           "resolveConcurrency",
@@ -8225,6 +8232,7 @@
         ],
         "extends": null,
         "usedBy": [
+          "src/help.js",
           "src/lib/active-flow-registry.js",
           "src/lib/container.js",
           "src/lib/flow-manager.js",
@@ -8236,27 +8244,26 @@
           "src/lib/preparing-flow-store.js",
           "src/presets/base/tests/acceptance/fixtures/src/index.js",
           "src/setup.js",
-          "src/upgrade.js",
-          "src/help.js"
+          "src/upgrade.js"
         ],
         "id": "dff6e5b4",
-        "summary": "Provides core configuration loading, validation, merging, and default resolution for the application. It also exposes common `.senti` path helpers and plugin-aware schema extension logic.",
-        "detail": "The module defines defaults such as concurrency and language, plus helper functions for locating config files, output directories, and the effective work directory beneath the repository root. It loads JSON safely, validates the merged configuration against a base schema plus plugin-provided schema fragments, and reports aggregated validation errors. Local overlay handling merges `config.local.json` into the main config with recursive object merging and id-based array merging where needed. Plugin support extends configuration with enabled plugin manifests, default namespaces, and additional schemas while enforcing basic safety checks on IDs, commits, paths, and test commands.",
+        "summary": "Provides config path helpers, schema validation, local overlay merging, and plugin-aware config loading for senti. It is the central module for interpreting `.senti/config.json` and related configuration defaults.",
+        "detail": "The file defines the base config schema, default language and concurrency values, and helpers for locating `.senti` paths and resolving the agent work directory. Validation combines structural schema checks with cross-field rules such as language consistency, valid agent profile references, safe test command syntax, plugin source and package integrity, and root-relative test paths. `loadRawConfig()` merges `config.json` with `config.local.json`, using recursive object merge and ID-based array merging for plugin sources and packages. `loadConfig()` then layers enabled plugin schemas and default values on top of the raw config before returning a validated configuration object.",
         "chapter": "configuration",
-        "role": "Configuration loader and schema merger",
+        "role": "configuration loader and validator",
         "enrich": {
-          "processedAt": "2026-06-12T04:50:22.320Z",
+          "processedAt": "2026-06-15T04:16:16.377Z",
           "attempts": 1
         },
         "keywords": [
-          "configuration",
+          "config schema",
           "config validation",
-          "schema merge",
-          "plugin config",
-          "defaults",
-          "local override",
-          "work directory",
-          "settings loader"
+          "config overlay",
+          "local config merge",
+          "plugin configuration",
+          "work directory resolution",
+          "JSON loader",
+          "settings parser"
         ]
       },
       {
@@ -9964,12 +9971,14 @@
       },
       {
         "file": "src/lib/provider.js",
-        "hash": "49d00b450c76b52547090d691b449996",
-        "lines": 242,
-        "mtime": "2026-06-11T02:26:13.977Z",
+        "hash": "89cf41466f4c65a7e12b963de882adba",
+        "lines": 245,
+        "mtime": "2026-06-15T04:14:35.996Z",
         "className": "provider",
         "methods": [],
-        "imports": [],
+        "imports": [
+          "./agent-defaults.js"
+        ],
         "exports": [
           "Provider",
           "ClaudeProvider",
@@ -9983,23 +9992,23 @@
           "src/lib/container.js"
         ],
         "id": "0e966da6",
-        "enrich": {
-          "processedAt": "2026-06-11T04:00:32.862Z",
-          "attempts": 2
-        },
-        "summary": "Provider abstraction layer for running different AI backends through a common interface. It includes built-in implementations for Claude, Codex, and user-defined provider profiles.",
-        "detail": "A base `Provider` class defines the parse and flag contract, while each concrete provider supplies command-line arguments, output parsing, and supported flags such as system prompt or working directory. The Claude provider parses structured JSON output and extracts result payloads from event envelopes. The Codex provider parses line-oriented event streams and builds execution arguments that include sandbox mode and model selection. `ProviderRegistry` merges built-in providers with profile-based user providers and resolves provider/profile keys for runtime selection.",
+        "summary": "Defines the provider abstraction layer for AI CLIs and the registry that resolves provider profiles. It normalizes Claude, Codex, and user-defined providers behind a shared interface.",
+        "detail": "The base `Provider` class declares parsing and CLI capability hooks, while concrete implementations encode the protocol details for Claude JSON envelopes and Codex NDJSON event streams. Claude providers expose inline JSON schema support and a system prompt flag, whereas Codex providers define exec arguments, a work directory flag, and file-based output schema support. `UserProvider` acts as a generic fallback for custom commands by reading optional flags directly from the configured profile. `ProviderRegistry` merges built-in provider profiles, packaged default agent providers, and user overrides, then resolves a profile key into both the raw profile entry and the matching provider implementation.",
         "chapter": "internal_design",
-        "role": "AI provider abstraction and registry",
+        "role": "provider abstraction and registry",
+        "enrich": {
+          "processedAt": "2026-06-15T04:16:16.377Z",
+          "attempts": 1
+        },
         "keywords": [
+          "provider registry",
           "provider abstraction",
-          "Claude provider",
-          "Codex provider",
-          "model profile",
-          "command builder",
-          "output parser",
-          "AI backend",
-          "registry lookup"
+          "Claude parser",
+          "Codex parser",
+          "custom provider",
+          "profile resolution",
+          "CLI adapter",
+          "model provider layer"
         ]
       },
       {
@@ -10942,13 +10951,26 @@
       },
       {
         "file": "src/setup.js",
-        "hash": "cf48b5ab04c5ede30f61aa01167e1521",
-        "lines": 645,
-        "mtime": "2026-06-15T00:51:14.564Z",
+        "hash": "308722fed0f71c720391906758afe9b3",
+        "lines": 885,
+        "mtime": "2026-06-15T04:14:35.998Z",
         "className": "setup",
         "methods": [
+          "resolveSetupAgentDefaults",
+          "parseSetupAgentOption",
+          "buildSetupAgentConfig",
+          "resolveSetupAgentFileTargets",
+          "buildSetupAgentPromptPlan",
+          "buildSetupAgentHelpText",
+          "writeSetupAgentFiles",
+          "buildSetupConfig",
           "ask",
           "parseSetupArgs",
+          "clone",
+          "normalizeSetupAgentFamily",
+          "normalizeSelectedAgents",
+          "setupIntentFromProfile",
+          "setupBuiltInProfileNames",
           "readConfigFile",
           "snapshotConfigFile",
           "restoreConfigFile",
@@ -10986,6 +11008,14 @@
           "./lib/plugin-registry.js"
         ],
         "exports": [
+          "resolveSetupAgentDefaults",
+          "parseSetupAgentOption",
+          "buildSetupAgentConfig",
+          "resolveSetupAgentFileTargets",
+          "buildSetupAgentPromptPlan",
+          "buildSetupAgentHelpText",
+          "writeSetupAgentFiles",
+          "buildSetupConfig",
           "main",
           "loadSetupDefaults",
           "listSetupWizardPresetCandidates",
@@ -10995,24 +11025,23 @@
         "extends": null,
         "usedBy": null,
         "id": "9820c9db",
-        "summary": "Defines the `setup` command that initializes a Senti project, gathers configuration inputs, and writes the initial workspace files. It combines interactive setup behavior with filesystem bootstrapping and preset selection.",
-        "detail": "The module parses CLI arguments, loads existing defaults, and optionally runs an interactive wizard to collect project metadata, language, agent settings, and preset choices. It creates required directories, writes `.senti/config.json`, and updates supporting files such as `.gitignore`, `.gitattributes`, and agent instruction documents like `AGENTS.md` or `CLAUDE.md`. Setup logic also validates and restores config snapshots when needed, merges agent defaults, deploys skills, and resolves preset chains including official preset sources. The command acts as the entry point for first-time project initialization and normalizes the repository into the structure expected by later Senti workflows.",
+        "summary": "Implements the `senti setup` command, including the interactive wizard, project bootstrapping, config generation, and agent instruction file creation. It turns user choices into a validated project setup with presets, language, and agent defaults.",
+        "detail": "The command parses CLI options for non-interactive setup, but can also run a readline-driven wizard that collects project metadata, output languages, preset types, writing style, agent families, and target instruction files. It derives agent intent from built-in profile conventions, builds `agent.default` and `agent.useProfile`, and can generate or update `AGENTS.md` and `CLAUDE.md` by replacing only the senti-managed directive block. Setup also prepares project directories, normalizes `.gitignore`, adds `.gitattributes`, resolves official preset state when needed, and validates the resulting config and preset chain before writing files. After writing `.senti/config.json`, it creates the agent work directory, deploys skills, and prints next-step guidance.",
         "chapter": "cli_commands",
-        "role": "Project setup command and bootstrap workflow",
+        "role": "interactive setup wizard and bootstrap command",
         "enrich": {
-          "processedAt": "2026-06-15T00:51:50.143Z",
+          "processedAt": "2026-06-15T04:16:16.377Z",
           "attempts": 1
         },
         "keywords": [
-          "setup command",
-          "project initialization",
-          "interactive wizard",
+          "setup wizard",
+          "project bootstrap",
           "config generation",
+          "interactive CLI",
+          "agent file generation",
           "preset selection",
-          "workspace bootstrap",
-          "agent config",
-          "gitignore update",
-          "official presets"
+          "project initialization",
+          "AGENTS.md"
         ]
       },
       {
@@ -11105,14 +11134,16 @@
       },
       {
         "file": "src/upgrade.js",
-        "hash": "d81ee3bdd2bb926e5c7e2e78129a5c49",
-        "lines": 728,
-        "mtime": "2026-06-12T14:57:02.872Z",
+        "hash": "508e5232b656261af34a332a724145b3",
+        "lines": 729,
+        "mtime": "2026-06-15T04:14:35.998Z",
         "className": "upgrade",
         "methods": [
           "RenameMigration",
           "parseUpgradeArgs",
+          "migrateConfigForUpgrade",
           "migratePluginConfigNamespaces",
+          "clone",
           "resolveActiveUpgradeFlow",
           "createUpgradeLogger",
           "resultFromSummary",
@@ -11137,7 +11168,6 @@
           "./lib/constants.js",
           "./lib/config.js",
           "./lib/container.js",
-          "./lib/agent-defaults.js",
           "./lib/i18n.js",
           "./lib/presets.js",
           "./lib/official-plugins.js",
@@ -11150,38 +11180,38 @@
         "exports": [
           "RenameMigration",
           "parseUpgradeArgs",
+          "migrateConfigForUpgrade",
           "migratePluginConfigNamespaces",
           "main"
         ],
         "extends": null,
         "usedBy": null,
         "id": "a631f658",
-        "enrich": {
-          "processedAt": "2026-06-13T13:38:55.904Z",
-          "attempts": 2
-        },
-        "summary": "`src/upgrade.js` implements the upgrade and migration command for moving older Senti project layouts and configuration into the current format. It handles text rewrites, file and directory renames, preset/plugin migration, and upgrade result reporting.",
-        "detail": "The module defines rename rules that systematically replace legacy `senti` names with `senti` equivalents across file contents, paths, skill directories, and environment-related identifiers. It includes migration helpers for legacy preset directories, plugin namespace changes, local preset manifest generation, and official provider installation checks. The upgrade flow reads and rewrites JSON config files, records changed files, normalizes `.gitignore`, and preserves upgrade diagnostics through structured logging and artifact output. The command also detects active upgrade flow context, supports dry-run behavior, validates preset chains and plugin state, and exits with explicit error handling when migration steps fail.",
+        "summary": "Implements the `senti upgrade` command that migrates legacy naming, refreshes managed skills and presets, and updates config structures safely. The command is designed to be repeatable while preserving user customizations.",
+        "detail": "The module includes a `RenameMigration` engine that renames legacy `sdd-forge` paths and text references to `senti`, while skipping excluded directories and avoiding binary files. Upgrade logic can migrate old plugin config namespaces, convert legacy preset directories into a local preset plugin source, ensure official preset support, and refresh both core and plugin-contributed skills. It also validates preset-chain integrity, migrates chapter lists from string arrays to object entries, and records structured upgrade artifacts when a flow is active. The main command supports dry-run mode, logs granular results, and only writes managed or migrated content so repeated runs remain safe.",
         "chapter": "cli_commands",
-        "role": "CLI upgrade command entrypoint and legacy migration engine",
+        "role": "upgrade and migration command",
+        "enrich": {
+          "processedAt": "2026-06-15T04:16:16.377Z",
+          "attempts": 1
+        },
         "keywords": [
           "upgrade command",
-          "migration",
-          "rename rules",
-          "legacy compatibility",
+          "migration tool",
+          "rename migration",
+          "legacy config upgrade",
+          "skill deployment",
           "preset migration",
-          "plugin registry",
-          "config rewrite",
           "dry run",
-          "artifact logging"
+          "managed files refresh"
         ]
       }
     ],
     "summary": {
       "total": 212,
-      "totalMethods": 1833
+      "totalMethods": 1849
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-15T03:37:22.960Z"
+  "enrichedAt": "2026-06-15T04:16:16.377Z"
 }
