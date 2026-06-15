@@ -1,0 +1,117 @@
+{
+  "devType": "bugfix",
+  "goal": "must: `senti flow prepare --worktree` は、worktree 内で必須となる `.senti/config.json` が作成元ブランチに反映されていない場合、`git worktree add` の前に停止する。",
+  "analysis": {
+    "problem": "Issue #389 は、worktree 作成元ブランチに `.senti/config.json` が存在しない、または local 変更が未反映のまま `--worktree` prepare が進む問題を扱う。現在の `src/flow/lib/run-prepare-spec.js` は `git worktree add` 後に `.senti/config.local.json` と plugin runtime を同期し、その後 worktree 側で docs scan を走らせるため、worktree 側の `.senti/config.json` はブランチ commit の内容だけに依存する。",
+    "proposedApproach": "`--worktree` prepare の preflight として、worktree に必要な branch-reflected files を検査する。初期対象は `.senti/config.json`。HEAD/base に存在しない状態、または staged / unstaged / untracked の local 状態により新しい worktree に同じ内容が入らない状態を、worktree 作成前に halt envelope または prompt context として返す。",
+    "validation": "この方針は、暗黙 commit や `.senti/config.json` の自動コピーを避けながら、worktree が branch history と一致した設定で作成されることを保証する。既存の `.senti/config.local.json` overlay 同期は、Issue が維持対象として明示しており、`syncPluginRuntimeToWorktree()` の既存責務として残す。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #389 は `.senti/config.json` が untracked の場合、worktree 作成後に worktree 側で欠落し `ERR_MISSING_FILE` になると説明している。",
+      "Issue #389 は `.senti/config.json` が tracked かつ unstaged 変更を持つ場合、worktree 側には古い commit 済み内容が入り stale config で flow が進むと説明している。",
+      "`src/flow/lib/run-prepare-spec.js` では `git worktree add` 後に `syncPluginRuntimeToWorktree()`、`PostWorktree` hook、spec file 作成、flow state 作成、docs scan が続く。",
+      "`syncPluginRuntimeToWorktree()` は `.senti/config.local.json` と plugin runtime を worktree にコピーするが、`.senti/config.json` はコピーしていない。",
+      "`tests/e2e/flow/commands/post-worktree-hook.test.js` は `.senti/config.local.json` と plugin runtime の worktree 同期を既存挙動として検証している。",
+      "must: Issue #389 は初期必須ファイルを `.senti/config.json` に限定し、`.senti/config.local.json` overlay 同期を維持対象としている。",
+      "must: Issue #389 は確認なしの自動 commit と local file の worktree 自動コピーを避ける方針を明示している。",
+      "must: Issue #389 の acceptance criteria は `.senti/config.json` 欠落、staged / unstaged / untracked 変更、worktree 作成前停止、commit-or-abort 選択、config.local overlay 維持を含む。"
+    ],
+    "decisionPoints": [
+      "must: preflight は `git worktree add` より前に完了し、失敗時に worktree directory や feature branch を作らない。",
+      "must: 初期必須ファイルは `.senti/config.json` に限定する。",
+      "must: local state の修復で暗黙 commit を行わず、履歴追加が必要な場合はユーザー判断に委ねる。",
+      "should: halt envelope または prompt context には、対象ファイル、検出状態、worktree に反映されない理由、選択可能な次アクションを含める。"
+    ],
+    "resolvedByProjectRules": [
+      "must: Node.js 組み込みモジュールのみを使い、外部依存を追加しない。",
+      "must: 旧フォーマット互換や非推奨パス維持ではなく、現在の flow prepare 実装に直接合わせる。",
+      "must: `.senti/config.json` を worktree に自動コピーしない。branch history と worktree state の乖離を避けるため。",
+      "must: `.senti/config.local.json` overlay 同期と plugin runtime 同期は既存 public behavior として保持する。"
+    ],
+    "requiresUserJudgment": [
+      "must: 実行時に `.senti/config.json` の未反映状態が検出された場合、ユーザーは commit して続行するか abort するかを選ぶ必要がある。"
+    ],
+    "deferredToSpec": [
+      "must: halt envelope / prompt context の正確な code 名、data schema、CLI 表示文言を spec で定義する。",
+      "must: staged / unstaged / untracked / HEAD 欠落を再現するテストシナリオを spec で定義する。",
+      "should: dry-run や branch mode / no-branch mode への影響有無を spec で明示する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: `senti flow prepare --worktree` の worktree 作成前 preflight を追加する。",
+      "must: `.senti/config.json` が HEAD/base に存在しない状態を検出する。",
+      "must: `.senti/config.json` の staged / unstaged / untracked 状態を検出し、新しい worktree に反映されない場合に停止する。",
+      "must: 停止時は `git worktree add` の副作用が起きる前に、commit-and-continue または abort に進める情報を返す。",
+      "must: `.senti/config.local.json` overlay 同期と plugin runtime 同期の既存挙動を維持する。"
+    ],
+    "out": [
+      "must: `.senti/config.json` の暗黙 commit はしない。",
+      "must: `.senti/config.json` を local filesystem から worktree へ自動コピーしない。",
+      "must: 初期対応では `.senti/config.json` 以外の必須ファイルを preflight 対象に広げない。",
+      "should: worktree mode 以外の branch / no-branch prepare の挙動は変更しない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: `--worktree` prepare は `.senti/config.json` が branch-reflected でない場合に、従来より早く停止する。",
+    "must: `.senti/config.json` が branch-reflected である通常の `--worktree` prepare は、従来どおり worktree、branch、spec files、flow state を作成する。",
+    "must: `.senti/config.local.json` と plugin runtime は、従来どおり worktree 作成後に overlay として同期される。",
+    "should: error / halt output は既存の flow envelope 形式に合わせ、呼び出し側が機械的に状態と次アクションを判定できる。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "Issue #389 の範囲どおり、初期必須ファイルは `.senti/config.json` のみに限定します。`.senti/config.local.json` は local overlay として既存同期を維持し、branch-reflected 検査の対象外にする理解でよいですか？",
+      "answer": "はい。must: 初期必須ファイルは `.senti/config.json` のみに限定し、`.senti/config.local.json` は local overlay として既存同期を維持する。",
+      "evidence": "Issue #389 Recommended Approach は初期必須ファイルを `.senti/config.json` に絞ると明記し、Acceptance Criteria は既存 `.senti/config.local.json` overlay sync behavior の維持を求めている。",
+      "why": "`.senti/config.json` は branch history に反映されるべき共有設定であり、`.senti/config.local.json` は local overlay として既存同期される別責務だから。",
+      "considered": "`.senti/config.local.json` も branch-reflected 検査対象に含める案は、Issue の初期範囲を広げ、既存 overlay 挙動と衝突するため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "未反映の `.senti/config.json` を検出した場合、prepare は worktree 作成前に halt envelope を返し、表示上は「commit required files and continue」または「abort」を案内します。実際の commit 実行はユーザーの明示操作に委ねる形でよいですか？",
+      "answer": "はい。must: 未反映の `.senti/config.json` を検出した場合は worktree 作成前に停止し、commit して続行するか abort するかをユーザーの明示選択に委ねる。",
+      "evidence": "Issue #389 Recommended Approach は暗黙の自動 commit を避け、停止後にユーザーへ「Commit the required file changes and continue」または「Abort flow prepare」を選ばせると説明している。",
+      "why": "`.senti/config.json` は scan targets、agent settings、plugin settings、flow behavior を含み得る共有設定で、履歴を増やす副作用には明示判断が必要だから。",
+      "considered": "prepare が確認なしに commit する案と、local file を worktree にコピーする案は、Issue の非目標として明示されているため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "受け入れ条件は missing from HEAD/base、staged、unstaged、untracked の 4 ケースを必須テスト対象にし、正常系として branch-reflected な `.senti/config.json` と既存 `.senti/config.local.json` overlay 同期も検証する形でよいですか？",
+      "answer": "はい。must: missing from HEAD/base、staged、unstaged、untracked の 4 ケースを検出対象とし、正常系では branch-reflected な `.senti/config.json` と既存 overlay 同期を検証する。",
+      "evidence": "Issue #389 Acceptance Criteria は missing `.senti/config.json`、staged / unstaged / untracked changes、`git worktree add` 前停止、commit-or-abort 選択、`.senti/config.local.json` overlay 維持を列挙している。",
+      "why": "この組み合わせで、問題の再現ケース、停止タイミング、副作用なし、既存挙動維持をすべて検証できるから。",
+      "considered": "unstaged のみを対象にする案は、Issue が staged と untracked も検出対象に含めているため不足する。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "`--worktree` 以外の prepare mode は今回の対象外とし、branch mode / no-branch mode の dirty worktree 判定や spec-only 作成挙動は変更しない理解でよいですか？",
+      "answer": "はい。should: 今回の挙動変更は `--worktree` mode に限定し、branch mode / no-branch mode の既存 prepare 挙動は変更しない。",
+      "evidence": "Issue #389 Background と Recommended Approach は `senti flow prepare --worktree` と `--worktree mode` に対象を限定している。`src/flow/lib/run-prepare-spec.js` も worktree path、branch path、skipBranch path を分岐している。",
+      "why": "問題は `git worktree add` が branch commit から isolated checkout を作ることに起因するため、worktree を作らない mode へ範囲を広げる必要はない。",
+      "considered": "全 prepare mode の dirty 判定を再設計する案は Issue の concern を超えるため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [
+    "must: halt envelope / prompt context の code 名と data schema は spec で確定する。",
+    "must: commit-and-continue を CLI が自動実行するか、ユーザーへ次操作を返すだけにするかは spec で明確化する。"
+  ],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-15T02:55:35.000Z",
+    "notes": "autoApprove flow: Issue #389 and project rules resolved all draft QA entries without additional user input."
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "4 repair targets apply: remove answer-like recommendation prefixes from pending question text.",
+  "items": [
+    {
+      "title": "1. Recommendation Prefix Included",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "The pending question should contain only the question text. Removing the prefix keeps the scope question intact.",
+      "evidence": "draft-review-questions.json repairTargets[0] identifies q1 as including `推奨:`."
+    },
+    {
+      "title": "2. Recommendation Prefix Included",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "The pending question should not include answer markers. Removing the prefix preserves the user-visible behavior question.",
+      "evidence": "draft-review-questions.json repairTargets[1] identifies q2 as including `推奨:`."
+    },
+    {
+      "title": "3. Recommendation Prefix Included",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "The pending question should not include answer markers. Removing the prefix preserves the acceptance criteria question.",
+      "evidence": "draft-review-questions.json repairTargets[2] identifies q3 as including `推奨:`."
+    },
+    {
+      "title": "4. Recommendation Prefix Included",
+      "target": "q4",
+      "decision": "apply",
+      "rationale": "The pending question should not include answer markers. Removing the prefix preserves the non-goal boundary question.",
+      "evidence": "draft-review-questions.json repairTargets[3] identifies q4 as including `推奨:`."
+    }
+  ]
+}

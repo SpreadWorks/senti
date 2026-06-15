@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied prepare-state preservation requirement for required-file preflight failures.",
+  "items": [
+    {
+      "title": "Preflight failure must preserve prepare-phase state",
+      "target": "R1/R4 and T-2",
+      "decision": "applied",
+      "rationale": "The spec now requires required-file preflight to run before prepare-state cleanup/deletion, requires preflight failure to preserve `--run-id` preparing state, and adds acceptance coverage for retry-critical preparing fields.",
+      "evidence": "spec.json constraints[2], overview.decisions[7], requirements R1/R4, acceptance_criteria R1/R4, and T-2 acceptance now cover preserving preparing state before worktree side effects.",
+      "changedFields": [
+        "constraints[2]",
+        "overview.decisions[7]",
+        "requirements[0].desc",
+        "requirements[3].desc",
+        "acceptance_criteria[0]",
+        "acceptance_criteria[5]",
+        "tasks[1].acceptance"
+      ]
+    }
+  ]
+}

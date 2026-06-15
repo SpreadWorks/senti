@@ -1,0 +1,29 @@
+{
+  "entries": [
+    {
+      "step": "draft",
+      "reason": "Initial draft edit attempted a relative patch path that resolved outside the active worktree and failed before writing any file",
+      "trigger": "apply_patch was invoked with specs/299-worktree-config-preflight/draft.json while the active flow requires worktree-local edits",
+      "resolution": "Re-applied the same draft edit using the absolute path under the active worktree",
+      "guardrailCandidate": "During active worktree flows, always use worktree-relative shell commands and worktree-root absolute paths for file editing tools",
+      "taskId": null,
+      "timestamp": "2026-06-15T02:52:56.683Z"
+    },
+    {
+      "step": "implement",
+      "reason": "Implement completion was attempted before registering requirement file-map entries, causing IMPLEMENT_COMPLETION_VALIDATION_FAILED with file-map-missing",
+      "trigger": "senti flow set step implement done validates file-map coverage for all testable requirements",
+      "resolution": "Register file-map entries for R1 through R6 before retrying implement completion",
+      "guardrailCandidate": "Before completing implement, record file-map entries for every testable requirement after code and spec-local test changes are known",
+      "taskId": null,
+      "timestamp": "2026-06-15T03:14:28.419Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: refreshed failed spec-local requirement tests after gate artifact failure; preserved git porcelain leading spaces so unstaged .senti/config.json is classified as unstaged, corrected spec-local local overlay and plugin hook fixtures, and regenerated test-execute/test-result-review artifacts",
+      "resolution": "The gate failure was caused by failed spec-local evidence. The product fix addresses the R3 status misclassification, fixture repairs align tests with existing config/plugin contracts, focused spec-local tests now pass 9/9, test-execute reports regression pass, and impl-review is PASS.",
+      "taskId": null,
+      "timestamp": "2026-06-15T03:31:49.420Z"
+    }
+  ]
+}

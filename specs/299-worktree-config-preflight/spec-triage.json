@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "1 blocking finding applies: required-file preflight must preserve prepare-phase state on failure.",
+  "items": [
+    {
+      "title": "Preflight failure must preserve prepare-phase state",
+      "target": "R1/R4 and T-2",
+      "decision": "apply",
+      "rationale": "The finding is source-grounded and affects recovery safety: `run-prepare-spec.js` currently deletes preparing flow state before worktree side effects, so the spec must require the preflight to run before that deletion or otherwise preserve the run-id state on failure.",
+      "evidence": "spec-review.json blockingFindings[0] cites `flowManager.cleanStaleFlows()`, `flowManager.cleanStalePreparingFlows()`, and `flowManager.deletePreparingFlow(runIdArg)` before `git worktree add`; spec.json R1/R4 and acceptance criteria did not cover preserving preparing state."
+    }
+  ]
+}

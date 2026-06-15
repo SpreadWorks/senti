@@ -1,0 +1,48 @@
+{
+  "spec": "specs/299-worktree-config-preflight/spec.json",
+  "date": "2026-06-15T03:32:40.218Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "`senti flow prepare --worktree` runs a preflight for required branch-reflected files before prepare-state cleanup/deletion and before invoking `git worktree add`.",
+      "status": "done",
+      "note": "R1: halts before worktree and branch side effects when required config is unreflected"
+    },
+    {
+      "desc": "The preflight fails before side effects when `.senti/config.json` does not exist in the selected base/HEAD checkout that would be used for the new worktree.",
+      "status": "done",
+      "note": "R2: reports missing branch-reflected config before git worktree add"
+    },
+    {
+      "desc": "The preflight fails before side effects when `.senti/config.json` has staged, unstaged, or untracked local state that would not be reflected in the new worktree checkout.",
+      "status": "done",
+      "note": "R3: reports staged config changes that would not be reflected"
+    },
+    {
+      "desc": "A preflight failure preserves any `--run-id` preparing state and returns a clear halt envelope or prompt context containing the required file path, detected status, reason it will not be reflected in the worktree, and recovery choices for commit-and-continue or abort.",
+      "status": "done",
+      "note": "R4: preserves preparing state on required config halt"
+    },
+    {
+      "desc": "When `.senti/config.json` is reflected in the selected base/HEAD checkout, `--worktree` prepare preserves existing successful behavior, including worktree creation, spec artifact creation, docs scan, `.senti/config.local.json` overlay sync, and plugin runtime sync.",
+      "status": "done",
+      "note": "R5: succeeds and preserves local overlay sync when config is branch-reflected"
+    },
+    {
+      "desc": "The change does not modify branch mode or no-branch prepare behavior and does not auto-copy `.senti/config.json` into the worktree or auto-commit it.",
+      "status": "done",
+      "note": "R6: does not apply the required config halt to no-branch prepare"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 6,
+    "done": 6,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}
