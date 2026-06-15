@@ -1,0 +1,139 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/298-fix-presets-list-tree/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/298-fix-presets-list-tree/tests/presets-list-tree.test.js",
+        "test_name": "R1: reads enabled project plugin presets in presets list",
+        "command": "node --test specs/298-fix-presets-list-tree/tests/presets-list-tree.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 99
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/298-fix-presets-list-tree/tests/presets-list-tree.test.js",
+        "test_name": "R2: renders nextjs under js-webapp under webapp",
+        "command": "node --test specs/298-fix-presets-list-tree/tests/presets-list-tree.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 99
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/298-fix-presets-list-tree/tests/presets-list-tree.test.js",
+        "test_name": "R3: keeps base-only fallback when no plugin registry is available",
+        "command": "node --test specs/298-fix-presets-list-tree/tests/presets-list-tree.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 99
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/298-fix-presets-list-tree/tests/presets-list-tree.test.js",
+        "test_name": "R4: preserves renderer output surfaces",
+        "command": "node --test specs/298-fix-presets-list-tree/tests/presets-list-tree.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 99
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/298-fix-presets-list-tree/tests/presets-list-tree.test.js",
+        "test_name": "R5: leaves setup candidate and resolver ownership outside presets list",
+        "command": "node --test specs/298-fix-presets-list-tree/tests/presets-list-tree.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 99
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/298-fix-presets-list-tree/tests/presets-list-tree.test.js",
+        "test_name": "R6: bounds renderer preset count, depth, and cycles",
+        "command": "node --test specs/298-fix-presets-list-tree/tests/presets-list-tree.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 99
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": true,
+    "mode": "full",
+    "root_test_command": "node tests/run.js",
+    "root_test_command_source": "test.command",
+    "command": "node tests/run.js",
+    "result": "pass",
+    "raw_output_lines": {
+      "start_line": 100,
+      "end_line": 18621
+    },
+    "trigger_relevant_changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/298-fix-presets-list-tree/"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/plugin-registry.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/presets.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/presets-cmd.js"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/298-fix-presets-list-tree/"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/plugin-registry.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/presets.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/presets-cmd.js"
+      }
+    ],
+    "process": {
+      "started": true,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "spawnError": null
+    }
+  }
+}

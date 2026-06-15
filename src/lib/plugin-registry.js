@@ -267,11 +267,15 @@ export class PluginManifest {
     return new PluginManifest(root, readPluginJson(path.join(root, "plugin.json"), root), providerId);
   }
 
-  presetEntries() {
-    return (this.contributions.presets || []).map((entry) => {
+  presetEntries({ maxEntries, limitLabel } = {}) {
+    const entries = [];
+    for (const entry of this.contributions.presets || []) {
+      if (maxEntries !== undefined && entries.length >= maxEntries) {
+        throw new Error(`preset registry exceeds ${limitLabel || maxEntries} entries`);
+      }
       const manifestPath = pluginMetadataPath(this.root, `${entry.path}/preset.json`, "preset metadata");
       const presetManifest = fs.existsSync(manifestPath) ? readPluginJson(manifestPath, this.root) : {};
-      return {
+      entries.push({
         key: entry.key,
         dir: path.join(this.root, entry.path),
         parent: entry.parent || presetManifest.parent || null,
@@ -280,8 +284,9 @@ export class PluginManifest {
         scan: presetManifest.scan || {},
         chapters: presetManifest.chapters || [],
         providerId: this.providerId,
-      };
-    });
+      });
+    }
+    return entries;
   }
 
   dataSourceEntries() {
@@ -323,14 +328,26 @@ export class PluginManifest {
 }
 
 export class PluginRegistry {
-  constructor(root, manifests) {
+  constructor(root, manifests, options = {}) {
     this.root = root;
     this.manifests = manifests;
     this.presets = new Map();
     this.dataSources = new Map();
     this.commands = new Map();
+    const maxPresetEntries = options.maxPresetEntries;
+    let remainingPresetEntries = maxPresetEntries === undefined
+      ? undefined
+      : maxPresetEntries - (options.existingPresetCount || 0);
+    if (remainingPresetEntries !== undefined && remainingPresetEntries < 0) {
+      throw new Error(`preset registry exceeds ${maxPresetEntries} entries`);
+    }
     for (const manifest of manifests) {
-      for (const preset of manifest.presetEntries()) this.presets.set(preset.key, preset);
+      const presets = manifest.presetEntries({
+        maxEntries: remainingPresetEntries,
+        limitLabel: maxPresetEntries,
+      });
+      for (const preset of presets) this.presets.set(preset.key, preset);
+      if (remainingPresetEntries !== undefined) remainingPresetEntries -= presets.length;
       for (const dataSource of manifest.dataSourceEntries()) {
         assertNoCoreInternalImports(root, manifest.providerId, manifest.root, dataSource.path, "plugin dataSource");
         this.dataSources.set(dataSource.name, dataSource);
@@ -383,7 +400,7 @@ export class PluginRegistry {
   }
 }
 
-export function loadPluginRegistry(root = repoRoot()) {
+export function loadPluginRegistry(root = repoRoot(), options = {}) {
   let config;
   try {
     config = readProjectConfig(root);
@@ -402,7 +419,7 @@ export function loadPluginRegistry(root = repoRoot()) {
     if (!fs.existsSync(manifestPath)) continue;
     manifests.push(PluginManifest.fromRoot(pluginRoot, pkg.id));
   }
-  return new PluginRegistry(root, manifests);
+  return new PluginRegistry(root, manifests, options);
 }
 
 export function loadPluginConfigDefaults(root = repoRoot()) {

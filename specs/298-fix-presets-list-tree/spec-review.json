@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "generatedAt": "2026-06-15T01:30:26.970Z",
+  "verdict": "ADVISORY",
+  "counts": {
+    "blocking": 0,
+    "nonBlocking": 2,
+    "total": 2
+  },
+  "blockingFindings": [],
+  "nonBlockingImprovements": [
+    {
+      "kind": "improvement",
+      "title": "Clarify registry-failure fixture boundary",
+      "target": "R3 / Acceptance Criteria",
+      "body": "**Target:** R3 / Acceptance Criteria\n**Improvement:** The spec could clarify that the fallback case should be exercised with a valid or missing project config plus an unreadable/malformed enabled plugin registry entry, not an invalid `.senti/config.json`. `src/senti.js` initializes the container and loads config before `src/presets-cmd.js`, so invalid config can fail before the non-strict preset inventory path is reached.\n**Why non-blocking:** R3 is still implementable and testable using existing registry failure paths such as malformed plugin metadata; this clarification only prevents a misleading test fixture choice.",
+      "improvement": "The spec could clarify that the fallback case should be exercised with a valid or missing project config plus an unreadable/malformed enabled plugin registry entry, not an invalid `.senti/config.json`. `src/senti.js` initializes the container and loads config before `src/presets-cmd.js`, so invalid config can fail before the non-strict preset inventory path is reached.",
+      "whyNonBlocking": "R3 is still implementable and testable using existing registry failure paths such as malformed plugin metadata; this clarification only prevents a misleading test fixture choice."
+    },
+    {
+      "kind": "improvement",
+      "title": "Pin project-root resolution in tests",
+      "target": "R1 / tests/spec-local",
+      "body": "**Target:** R1 / tests/spec-local\n**Improvement:** For CLI tests, explicitly set the subprocess cwd and preferably `SENTI_WORK_ROOT` to the temporary project root. The existing `repoRoot()` resolution prefers `SENTI_WORK_ROOT`, then git root, then cwd, so making the project root explicit avoids accidental coupling to the surrounding repository layout.\n**Why non-blocking:** The acceptance criteria already state that the command runs from the temporary project; this only makes the intended test setup less fragile.",
+      "improvement": "For CLI tests, explicitly set the subprocess cwd and preferably `SENTI_WORK_ROOT` to the temporary project root. The existing `repoRoot()` resolution prefers `SENTI_WORK_ROOT`, then git root, then cwd, so making the project root explicit avoids accidental coupling to the surrounding repository layout.",
+      "whyNonBlocking": "The acceptance criteria already state that the command runs from the temporary project; this only makes the intended test setup less fragile."
+    }
+  ]
+}

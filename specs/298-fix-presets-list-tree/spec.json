@@ -1,0 +1,261 @@
+{
+  "goal": "`senti presets list` が setup 後の project plugin registry を反映し、official-presets を含む preset 継承 tree を表示できるようにする。",
+  "scope": {
+    "in": [
+      "`senti presets list` の preset inventory lookup。",
+      "projectRoot/plugin registry を持つ project での preset tree 表示。",
+      "plugin registry を読めない、または未設定の project での base-only fallback。",
+      "既存の tree output formatting: root line、branch connector、label、aliases、scan marker、template availability marker、child ordering。",
+      "plugin-backed と base-only の regression tests。"
+    ],
+    "out": [
+      "`senti setup` の preset candidate resolution 変更。",
+      "`resolveChain` / `resolveMultiChains` の意味変更。",
+      "`.senti/presets` legacy storage migration。",
+      "official-presets package contents の変更。",
+      "npm publish / dist-tag 操作。"
+    ]
+  },
+  "constraints": [
+    "外部依存を追加しない。Node.js built-in modules と既存 preset/plugin registry API を使う。",
+    "`src/` に特定 project 固有の情報を入れない。official preset 名は test fixture または installed plugin metadata 由来に限定する。",
+    "`senti presets list` は public CLI inspection command なので、plugin registry を読めない場合も fatal にせず core preset fallback で表示可能にする。",
+    "setup candidate resolution と runtime resolver は既に動作しているため、表示 command の inventory lookup 以外へ変更範囲を広げない。",
+    "migration parity として、既存 output formatting と fallback behavior を behavior-level tests で保持確認する。",
+    "bounded-resource-usage: preset inventory rendering must have explicit upper bounds. The command must reject or truncate before processing more than 512 preset entries, and recursive tree rendering must not exceed depth 16.",
+    "bounded-resource-usage: tree rendering must track visited preset keys so cycles or malformed parent links cannot recurse indefinitely.",
+    "新しい spec behavior coverage は `specs/298-fix-presets-list-tree/tests/` 配下に置き、各 spec-local test file に `// spec: R<N> ...` header を付ける。"
+  ],
+  "design_principles": [
+    "preset discovery の source of truth は既存の project-aware preset registry に寄せる。",
+    "rendering contract と inventory lookup を分ける。tree renderer は既存 format を維持し、入力だけを project-aware にする。",
+    "inspection command は設定途上の project でも使えるように、registry failure では base-only fallback を保つ。",
+    "migration parity を public output surface ごとに検証する。plugin preset presence だけでなく、既存 formatting markers も保持確認する。"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/presets-cmd.js`: `senti presets list` entrypoint。現在は static `PRESETS` を読み tree を render する。"
+      },
+      {
+        "text": "`src/lib/presets.js`: core presets と project plugin registry presets を統合し、projectRoot-aware resolver を提供する。"
+      },
+      {
+        "text": "`src/lib/plugin-registry.js`: `.senti/plugins/*/plugin.json` から enabled preset contributions を読み込む。"
+      },
+      {
+        "text": "tests/spec-local: plugin-backed project fixture と base-only fallback fixture で CLI output を検証する。"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "`senti presets list` は実行 project root を解決し、project-aware preset inventory を取得する。"
+      },
+      {
+        "text": "inventory lookup は core `base` と enabled plugin presets を key で統合し、plugin preset が core preset を補完できるようにする。"
+      },
+      {
+        "text": "registry load failure または registry absence では core presets だけを使い、existing base-only tree output を表示する。"
+      },
+      {
+        "text": "tree renderer は existing fields (`key`, `parent`, `label`, `aliases`, `scan`, `dir`) を使い、root line と child connector output を維持する。"
+      },
+      {
+        "text": "children は既存どおり key の alphabetical order で表示する。"
+      },
+      {
+        "text": "tree rendering validates bounded processing before output: at most 512 preset entries are processed, recursion depth is capped at 16, and visited keys prevent cycle traversal."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] `presets list` currently reads static built-in presets only.",
+        "evidence": "`src/presets-cmd.js` imports `PRESETS` from `src/lib/presets.js` and `printTree()` iterates that constant. `src/lib/presets.js` defines `PRESETS = CORE_PRESETS`, and `src/presets` contains only builtin base in this package."
+      },
+      {
+        "text": "[VERIFY] setup and runtime resolution are already project-aware.",
+        "evidence": "`src/setup.js` uses `listSetupPresetCandidates()` with official preset options for setup candidate display. `src/lib/presets.js` merges `registryPresets(projectRoot)` in project-aware resolution and can resolve plugin presets such as nextjs when the registry is installed."
+      },
+      {
+        "text": "[VERIFY] fallback should use non-strict registry behavior.",
+        "evidence": "`src/lib/presets.js` has a non-strict registry loading path that logs verbose failures and returns core presets. This matches the inspection-command requirement to remain usable without installed plugin state."
+      },
+      {
+        "text": "Migration inventory: retained public behavior includes root line display, tree branch connectors, preset labels, aliases display, scan key display, template availability marker, child alphabetical ordering, base-only output, and missing-base fallback.",
+        "evidence": "Draft migration parity inventory and `src/presets-cmd.js` renderer show these are current user-visible surfaces of `senti presets list`."
+      },
+      {
+        "text": "Migration mapping: output rendering remains owned by `presets list`; only the preset inventory provider moves from static `PRESETS` to project-aware registry plus core fallback.",
+        "evidence": "Issue #388 reports correct resolver behavior but incorrect command output, so the smallest behavior-preserving change is the command inventory lookup."
+      },
+      {
+        "text": "Fallback decision: registry load failure in `presets list` is not fatal and falls back to core presets.",
+        "evidence": "Draft q3 resolved this by project rule: inspection commands should remain usable outside configured projects; current base-only output already works."
+      },
+      {
+        "text": "Bounded traversal decision: renderer processing is capped by preset count, depth, and visited keys.",
+        "evidence": "Spec guardrail `bounded-resource-usage` requires explicit upper bounds for recursive processing. `src/lib/presets.js` already uses a max chain depth of 16 for preset parent chains, so tree rendering uses the same depth class and adds a 512-entry inventory cap."
+      },
+      {
+        "text": "Acceptance target: `nextjs` is the concrete plugin-backed leaf because it proves multi-level parent rendering (`base > webapp > js-webapp > nextjs`).",
+        "evidence": "Issue #388 uses `nextjs` as the reproduction and expected chain; local investigation confirmed setup candidate output includes that chain."
+      }
+    ]
+  },
+  "background": "`senti setup` can install official-presets and project-aware resolution can resolve a selected preset such as `nextjs` through `base > webapp > js-webapp > nextjs`. The separate `senti presets list` command still reads the static built-in `PRESETS` constant, which contains only the package's core `base` preset. As a result, setup-installed presets exist and resolve correctly, but the inspection tree appears broken because the command output shows only `base`.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "`senti presets list` uses project-aware preset inventory when run from a project root, so enabled plugin presets are included with core presets.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "A project with installed official-presets displays the multi-level chain containing `base`, `webapp`, `js-webapp`, and `nextjs` in the tree output.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "When no plugin registry is available, or registry loading fails in non-strict inspection mode, `senti presets list` still displays the existing base-only tree output instead of failing.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "The command preserves retained public output formatting: root line format, branch connectors, preset labels, aliases, scan markers, template availability marker, child alphabetical ordering, and missing-base fallback behavior.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "The change does not modify setup candidate resolution, preset chain resolution semantics, plugin installation, or official-presets package contents.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "`senti presets list` bounds preset inventory and tree traversal by processing at most 512 preset entries, rendering at most depth 16, and preventing cycle traversal with visited preset keys.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "R1: In a temporary project with `.senti/plugins/official-presets/plugin.json` enabled through project config, running `node <repo>/src/senti.js presets list` from that project outputs plugin preset nodes in addition to `base`.",
+    "R2: The plugin-backed output contains `base/`, `webapp/`, `js-webapp/`, and `nextjs/`, with `nextjs` nested under `js-webapp` and `js-webapp` nested under `webapp`.",
+    "R3: In a project without enabled plugin presets, `presets list` exits successfully and prints the same base root line format as before.",
+    "R3: If plugin registry loading is unavailable in the inspection command path, output falls back to core presets and still exits successfully.",
+    "R4: Behavior-level assertions verify root line formatting, `├──` / `└──` branch connector formatting, label rendering, aliases rendering, scan marker rendering, template availability marker rendering, and alphabetical child ordering.",
+    "R4: A renderer-level test verifies `(no base preset found)` is still printed when the inventory has no base preset.",
+    "R5: Existing setup candidate tests and resolver tests continue to pass without changes to official-presets package content.",
+    "R6: A renderer or command-level test verifies inventories above 512 entries are rejected or bounded before rendering.",
+    "R6: A renderer-level test verifies cyclic parent links or depth greater than 16 do not recurse indefinitely."
+  ],
+  "clarifications": [
+    {
+      "q": "Does this change install official presets during `presets list`?",
+      "a": "No. The command reads already enabled project plugin registry state. It does not fetch, install, or persist plugins."
+    },
+    {
+      "q": "Should `presets list` fail if plugin registry cannot be read?",
+      "a": "No. It is an inspection command. It should fall back to core presets and keep existing base-only output."
+    },
+    {
+      "q": "Is setup behavior in scope?",
+      "a": "No. setup candidate resolution and official preset installation already work for this issue and are explicitly out of scope."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Change setup candidate resolution again",
+      "reason": "Rejected because Issue #388 reproduces after setup succeeds; setup candidates and runtime resolver already resolve the plugin chain."
+    },
+    {
+      "option": "Make `presets list` install or refresh official-presets automatically",
+      "reason": "Rejected because inspection commands should not mutate plugin state. Installation remains setup/upgrade/plugin ownership."
+    },
+    {
+      "option": "Fail when plugin registry cannot be loaded",
+      "reason": "Rejected because existing base-only command behavior is useful outside configured projects, and non-strict registry fallback already exists."
+    },
+    {
+      "option": "Duplicate a separate plugin scan inside `presets-cmd.js`",
+      "reason": "Rejected because preset registry merging already exists in `src/lib/presets.js`; duplicating it risks divergence."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "presets list",
+    "preset tree",
+    "project plugin registry",
+    "official-presets",
+    "nextjs",
+    "webapp",
+    "js-webapp",
+    "PRESETS",
+    "CORE_PRESETS",
+    "loadPluginRegistry",
+    "preset inventory",
+    "tree renderer",
+    "template availability marker"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Expose project preset inventory",
+      "goal": "Provide or expose a project-aware preset inventory path that `presets list` can use without duplicating registry merge logic.",
+      "acceptance": [
+        "R1 inventory includes core presets and enabled plugin presets for a project root.",
+        "R3 inventory falls back to core presets when project registry is absent or unavailable.",
+        "R5 setup candidate and chain resolver semantics are not changed.",
+        "R6 inventory collection enforces the 512 preset entry cap before rendering."
+      ],
+      "implementation_notes": "Prefer a small exported helper in `src/lib/presets.js` if existing internal `allPresets(projectRoot)` is sufficient. Keep non-strict registry loading for inspection fallback.",
+      "test_strategy": "Spec-local tests should construct a plugin-backed temp project using existing helper patterns and assert the inventory or command output contains plugin presets.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Render project preset tree",
+      "goal": "Update `senti presets list` to render project-aware preset inventory while preserving existing tree formatting behavior.",
+      "acceptance": [
+        "R2 command output shows `base > webapp > js-webapp > nextjs` in a plugin-backed project.",
+        "R3 base-only command output remains successful without plugin registry.",
+        "R4 retained formatting surfaces are preserved.",
+        "R6 renderer traversal enforces depth 16 and visited-key cycle prevention."
+      ],
+      "implementation_notes": "Keep renderer behavior separate from inventory lookup. Consider making the renderer accept an explicit preset list so missing-base and formatting behavior can be tested without filesystem-heavy setup.",
+      "test_strategy": "Add spec-local command or renderer tests covering plugin-backed tree output, base-only output, and missing-base fallback.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-3",
+      "title": "Cover retained output surfaces",
+      "goal": "Add behavior-level regression coverage for the public `presets list` output surfaces retained during the inventory migration.",
+      "acceptance": [
+        "R4 tests assert root format, branch connectors, labels, aliases, scan markers, template availability marker, and child alphabetical ordering.",
+        "R4 tests assert `(no base preset found)` fallback when inventory has no base preset.",
+        "R6 tests assert entry-count, depth, and cycle bounds.",
+        "R5 existing setup and resolver tests continue passing."
+      ],
+      "implementation_notes": "Use focused fixture preset objects for renderer-level output surfaces where possible; use plugin-backed temp project only for registry integration behavior.",
+      "test_strategy": "Spec-local tests under `specs/298-fix-presets-list-tree/tests/` with `// spec: R<N> ...` headers. Run targeted spec tests and relevant existing preset/setup tests.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-06-15T01:32:16.291Z",
+    "notes": "autoApprove: approved gate-passed spec for issue #388"
+  }
+}

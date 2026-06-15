@@ -1,0 +1,140 @@
+{
+  "verdict": "pass",
+  "issues": [],
+  "nextAction": {
+    "diagnosis": {
+      "summary": "No blocking observations.",
+      "observations": []
+    },
+    "prescription": "retro"
+  },
+  "level": "integration",
+  "phase": "integration",
+  "evaluations": [
+    {
+      "guardrail_id": "R1",
+      "result": "pass",
+      "reason": "`presets list` now uses `listPresets(repoRoot(), ...)`, which combines core presets with project plugin registry presets before rendering.",
+      "title": "R1",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R2",
+      "result": "pass",
+      "reason": "Tree rendering remains hierarchical via parent/child links and now consumes project registry presets, enabling `base -> webapp -> js-webapp -> nextjs` chain display when official-presets are installed.",
+      "title": "R2",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R3",
+      "result": "pass",
+      "reason": "Registry lookup failures are handled in non-strict mode by `registryPresets` returning `[]`, so base preset fallback still renders; command errors only on explicit/unrecoverable exceptions.",
+      "title": "R3",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R5",
+      "result": "pass",
+      "reason": "Changes are isolated to `presets list` inventory/formatting and bounded registry loading; setup candidate/chain resolver paths and plugin install flow are not altered, and setup/package behavior is unchanged.",
+      "title": "R5",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R4",
+      "result": "pass",
+      "reason": "`formatPresetTree` preserves root/child tree rendering format, branch connectors, labels, alias and scan markers, template marker, alphabetical child sorting, and missing-base fallback behavior.",
+      "title": "R4",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R6",
+      "result": "pass",
+      "reason": "Command now caps preset input via `maxEntries=512`, enforces depth with `MAX_PRESET_TREE_DEPTH`, and tracks visited keys to avoid revisiting cycles; plugin registry changes support bounded preset loading before formatting.",
+      "title": "R6",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": []
+    },
+    {
+      "guardrail_id": "no-overengineering",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "code-quality",
+      "title": "Avoid Overengineering",
+      "observations": []
+    }
+  ],
+  "reasons": [
+    {
+      "verdict": "PASS",
+      "detail": "R1 — `presets list` now uses `listPresets(repoRoot(), ...)`, which combines core presets with project plugin registry presets before rendering.",
+      "guardrail_id": "R1",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R2 — Tree rendering remains hierarchical via parent/child links and now consumes project registry presets, enabling `base -> webapp -> js-webapp -> nextjs` chain display when official-presets are installed.",
+      "guardrail_id": "R2",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R3 — Registry lookup failures are handled in non-strict mode by `registryPresets` returning `[]`, so base preset fallback still renders; command errors only on explicit/unrecoverable exceptions.",
+      "guardrail_id": "R3",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R5 — Changes are isolated to `presets list` inventory/formatting and bounded registry loading; setup candidate/chain resolver paths and plugin install flow are not altered, and setup/package behavior is unchanged.",
+      "guardrail_id": "R5",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R4 — `formatPresetTree` preserves root/child tree rendering format, branch connectors, labels, alias and scan markers, template marker, alphabetical child sorting, and missing-base fallback behavior.",
+      "guardrail_id": "R4",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R6 — Command now caps preset input via `maxEntries=512`, enforces depth with `MAX_PRESET_TREE_DEPTH`, and tracks visited keys to avoid revisiting cycles; plugin registry changes support bounded preset loading before formatting.",
+      "guardrail_id": "R6",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Spec Test Coverage — no observations emitted",
+      "guardrail_id": "spec-test-coverage",
+      "category": "testing"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Avoid Overengineering — no observations emitted",
+      "guardrail_id": "no-overengineering",
+      "category": "code-quality"
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "impl-gate",
+    "artifactPath": "specs/298-fix-presets-list-tree/impl-gate-result.json",
+    "verdict": "pass",
+    "result": "pass",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": {
+      "diagnosis": {
+        "summary": "No blocking observations.",
+        "observations": []
+      },
+      "prescription": "retro"
+    },
+    "completionKind": "normal",
+    "progressSignature": "27060b5677d13eb5c8acb15785b2ac9dd579da76745e5b7ac8053a28fbf62065"
+  }
+}

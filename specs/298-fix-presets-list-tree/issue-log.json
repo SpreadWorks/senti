@@ -1,0 +1,269 @@
+{
+  "entries": [
+    {
+      "step": "draft",
+      "reason": "apply_patch resolved a relative path against the main repository during an active worktree flow and failed before making changes",
+      "trigger": "draft.json edit attempted with a relative path while apply_patch had no workdir option",
+      "resolution": "re-applied the patch using the absolute draft.json path under the active worktree",
+      "guardrailCandidate": "during active worktree flows, use absolute paths under the worktree for edit tools that do not accept a workdir",
+      "taskId": null,
+      "timestamp": "2026-06-15T01:21:55.445Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The change shifts `senti presets list` from static built-in data to project-aware registry output, but the draft does not include an explicit inventory of retained public behavior being moved/replaced for this command before implementation.; There is no per-behavior migration mapping identifying where retained outputs (for example tree formatting contract, aliases, markers, or legacy-only paths) are owned after the migration, only a general fallback intent.; Behavior-level verification is specified for plugin-chain and base-only presence, but no retained-surface verification is specified for all preserved public output behavior (e.g., root/branch formatting, labels, aliases, scan markers, template-availability marker).; The statement `should improve diagnostics for existing projects...` is not stated as a verifiable condition, so implementers cannot agree objectively when it is satisfied.; `should improve diagnostics` lacks measurable acceptance criteria and is therefore not sufficiently specific for independent reviewers to determine pass/fail.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-15T01:24:25.387Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft.json",
+            "locator": "scopeVerification.in + scopeVerification.out + decisionMap"
+          },
+          "observed": "The change shifts `senti presets list` from static built-in data to project-aware registry output, but the draft does not include an explicit inventory of retained public behavior being moved/replaced for this command before implementation.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft.json",
+            "locator": "scopeVerification.in"
+          },
+          "observed": "There is no per-behavior migration mapping identifying where retained outputs (for example tree formatting contract, aliases, markers, or legacy-only paths) are owned after the migration, only a general fallback intent.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft.json",
+            "locator": "validation"
+          },
+          "observed": "Behavior-level verification is specified for plugin-chain and base-only presence, but no retained-surface verification is specified for all preserved public output behavior (e.g., root/branch formatting, labels, aliases, scan markers, template-availability marker).",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "draft.json",
+            "locator": "impactOnExisting[2]"
+          },
+          "observed": "The statement `should improve diagnostics for existing projects...` is not stated as a verifiable condition, so implementers cannot agree objectively when it is satisfied.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "draft.json",
+            "locator": "impactOnExisting[2]"
+          },
+          "observed": "`should improve diagnostics` lacks measurable acceptance criteria and is therefore not sufficiently specific for independent reviewers to determine pass/fail.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The change shifts `senti presets list` from static built-in data to project-aware registry output, but the draft does not include an explicit inventory of retained public behavior being moved/replaced for this command before implementation."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "There is no per-behavior migration mapping identifying where retained outputs (for example tree formatting contract, aliases, markers, or legacy-only paths) are owned after the migration, only a general fallback intent."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "Behavior-level verification is specified for plugin-chain and base-only presence, but no retained-surface verification is specified for all preserved public output behavior (e.g., root/branch formatting, labels, aliases, scan markers, template-availability marker)."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The statement `should improve diagnostics for existing projects...` is not stated as a verifiable condition, so implementers cannot agree objectively when it is satisfied."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "`should improve diagnostics` lacks measurable acceptance criteria and is therefore not sufficiently specific for independent reviewers to determine pass/fail."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate failed because migration parity inventory, per-behavior mapping, retained output verification, and a measurable diagnostics statement were incomplete",
+      "trigger": "senti flow run gate --phase draft returned blocking migration-parity, unambiguous-requirements, and complete-context findings",
+      "resolution": "expanded draft.json with migration inventory, retained behavior mapping, retained output verification, and replaced vague diagnostics wording with concrete output assertions",
+      "guardrailCandidate": "when changing a public CLI command data source, draft must inventory retained output surfaces and map each one to behavior-level verification",
+      "taskId": null,
+      "timestamp": "2026-06-15T01:25:11.789Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The specification adds a project-aware preset inventory flow and tree rendering from plugin registry data, but it does not define explicit bounds for recursive traversal, number of presets, or loaded registry size; it lacks any upper-limit guard for recursive/bulk processing and includes no matched exception rationale.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-15T01:30:47.979Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec-content",
+            "locator": "requirements / design_overview"
+          },
+          "observed": "The specification adds a project-aware preset inventory flow and tree rendering from plugin registry data, but it does not define explicit bounds for recursive traversal, number of presets, or loaded registry size; it lacks any upper-limit guard for recursive/bulk processing and includes no matched exception rationale.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "The specification adds a project-aware preset inventory flow and tree rendering from plugin registry data, but it does not define explicit bounds for recursive traversal, number of presets, or loaded registry size; it lacks any upper-limit guard for recursive/bulk processing and includes no matched exception rationale."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec gate failed because project-aware preset inventory and tree rendering did not define explicit preset count, recursion depth, or cycle traversal bounds",
+      "trigger": "senti flow run gate returned a bounded-resource-usage blocking finding for spec.json",
+      "resolution": "added bounded-resource constraints, data-flow, decision, requirement R6, acceptance criteria, and task acceptance for 512 preset entries, depth 16, and visited-key cycle prevention",
+      "guardrailCandidate": "when a spec renders registry-derived trees, define count, depth, and cycle bounds before implementation",
+      "taskId": null,
+      "timestamp": "2026-06-15T01:31:31.915Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test review failed because spec-local tests did not assert concrete nesting, registry-load failure fallback, missing-base fallback, depth bound, or reachable cycle traversal",
+      "trigger": "senti flow run review --phase test returned five blocking findings for specs/298-fix-presets-list-tree/tests/presets-list-tree.test.js",
+      "resolution": "strengthened R2 structural assertions, added R3 registry failure fallback, added R4 missing-base fallback, and added R6 depth and reachable duplicate-key cycle tests",
+      "guardrailCandidate": "spec-local tree-rendering tests must assert structure and malformed-input bounds, not only name presence or disconnected cycles",
+      "taskId": null,
+      "timestamp": "2026-06-15T01:36:18.197Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test review still failed because R2 used a synthetic plugin id instead of official-presets and R5 only covered one setup smoke path",
+      "trigger": "second senti flow run review --phase test returned two blocking findings for R2 and R5 coverage",
+      "resolution": "changed plugin fixture to official-presets and added R5 coverage for plugin package non-mutation, setup candidate discovery, and resolveChain semantics",
+      "guardrailCandidate": "tests for official plugin behavior must use an official-presets-shaped package fixture and cover non-regression boundaries named by the requirement",
+      "taskId": null,
+      "timestamp": "2026-06-15T01:37:41.667Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test review still failed because R5 did not inspect the actual official-presets package content relevant to the command change",
+      "trigger": "third senti flow run review --phase test returned one blocking finding for R5 official-presets package content coverage",
+      "resolution": "changed integration fixtures to copy the actual .senti/plugins/official-presets package and assert package content is not mutated by presets list",
+      "guardrailCandidate": "when a requirement names official package content preservation, spec-local tests must inspect the real installed package fixture rather than only a synthetic plugin with the same id",
+      "taskId": null,
+      "timestamp": "2026-06-15T01:39:25.389Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test review still failed because R6 only tested renderer arrays and did not cover command inventory loading above 512 plugin presets",
+      "trigger": "fourth senti flow run review --phase test returned one blocking finding for R6 command inventory bounds",
+      "resolution": "added a CLI test that installs 513 plugin preset contributions and expects presets list to reject before rendering with a 512-bound diagnostic",
+      "guardrailCandidate": "bounded-resource tests must cover both pure renderer helpers and the production command path that loads registry data",
+      "taskId": null,
+      "timestamp": "2026-06-15T01:40:51.229Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test review failed because R1 could pass through non-project official loading, R5 still lacked package-tree and no-install coverage, and R6 could reject only after reading the 513th preset",
+      "trigger": "fifth senti flow run review --phase test returned three blocking findings for R1, R5, and R6",
+      "resolution": "added unique project plugin registry coverage, full official package tree non-mutation, missing-package no-install behavior, and a missing 513th contribution assertion that must report the 512 bound first",
+      "guardrailCandidate": "coverage for registry and bounds behavior must make false-positive implementation shortcuts detectably fail",
+      "taskId": null,
+      "timestamp": "2026-06-15T01:44:01.341Z"
+    },
+    {
+      "step": "implement",
+      "reason": "implement completion failed because required file-map entries were not registered before marking implementation done",
+      "trigger": "senti flow set step implement done returned IMPLEMENT_COMPLETION_VALIDATION_FAILED with file-map-missing",
+      "resolution": "registered changed file mappings for R1 through R6 before retrying implement completion",
+      "guardrailCandidate": "record file-map entries for every testable requirement immediately after implementation changes are known",
+      "taskId": null,
+      "timestamp": "2026-06-15T01:47:11.695Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl review failed because the 512-entry bound was enforced only after plugin registry preset materialization completed",
+      "trigger": "senti flow run review reported missing_acceptance_requirement for R6 in src/lib/presets.js",
+      "resolution": "threaded maxPresetEntries through listPresets, registryPresets, loadPluginRegistry, PluginRegistry, and PluginManifest.presetEntries so over-limit contributions throw before reading the extra preset metadata",
+      "guardrailCandidate": "resource bounds for registry-backed commands must be enforced before materializing untrusted contribution entries",
+      "taskId": null,
+      "timestamp": "2026-06-15T01:53:39.488Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: generated missing upgrade evidence after gate reported upgrade-result.json missing",
+      "resolution": "Ran senti upgrade in the active flow worktree; it wrote specs/298-fix-presets-list-tree/upgrade-result.json and tests/.raw/upgrade.log with checkedPaths containing src/lib/presets.js.",
+      "taskId": null,
+      "timestamp": "2026-06-15T01:56:29.488Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: refreshed stale regression evidence after upgrade changed the diff snapshot",
+      "resolution": "Re-ran test-execute and test-result-review after removing unrelated upgrade side-effect diffs; project regression now passes, then regenerated upgrade-result.json for src/lib/presets.js without leaving those side-effect diffs in the worktree.",
+      "taskId": null,
+      "timestamp": "2026-06-15T02:05:41.741Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "acceptance-review found stale deferred test-review findings after test coverage had been expanded; grant one re-evaluation against the updated tests",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "bef8b62914bf102e8d57b93f4bc71304979e22b3dee915f65de03abf1a437a9e",
+        "currentHash": "9406f29ae85f537b301a4913744544b2f2171b9bd7301de9cb3f09cc8923b03d",
+        "changedPaths": [
+          "specs/298-fix-presets-list-tree/tests/.raw/scenario-validity.log",
+          "specs/298-fix-presets-list-tree/tests/.raw/test-execution.log",
+          "specs/298-fix-presets-list-tree/tests/.raw/upgrade.log",
+          "specs/298-fix-presets-list-tree/tests/presets-list-tree.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset review test --reason \"acceptance-review found stale deferred test-review findings after test coverage had been expanded; grant one re-evaluation against the updated tests\" --yes",
+      "createdAt": "2026-06-15T02:08:01.872Z"
+    }
+  ]
+}

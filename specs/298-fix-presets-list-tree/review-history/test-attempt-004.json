@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-15T01:40:04.460Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 1,
+    "total": 2
+  },
+  "coverageArtifact": "specs/298-fix-presets-list-tree/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R6 inventory bound is only tested on renderer input, not command inventory loading",
+      "target": "specs/298-fix-presets-list-tree/tests/presets-list-tree.test.js: R6 test",
+      "issue": "The R6 acceptance requires `senti presets list` to bound preset inventory by processing at most 512 preset entries. The test only calls `formatPresetTree(tooMany)` with an already-materialized array, so an implementation could load/process an unbounded plugin inventory in the CLI path and still pass.",
+      "requiredChange": "Add a spec-local CLI or inventory-loading test that installs/configures more than 512 plugin preset contributions and verifies `senti presets list` enforces the 512-entry processing bound before rendering.",
+      "whyBlocking": "This leaves a concrete acceptance requirement without corresponding coverage on the production behavior where the risk exists."
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R1 fixture helper is unused for project plugin inventory",
+      "target": "specs/298-fix-presets-list-tree/tests/presets-list-tree.test.js: installPluginPresets",
+      "improvement": "Use the lightweight `installPluginPresets` helper in at least one project-aware inventory test, or remove it if the actual official-presets fixture is the intended sole coverage path.",
+      "whyNonBlocking": "Current R1/R2 coverage with installed official-presets still exercises plugin preset inclusion; the unused helper is a maintainability issue rather than a coverage blocker."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/298-fix-presets-list-tree/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "945e4d5dadbbbbeba917ed64119d3577549c78b57a6957035fc4f38cd3b3a9f2"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "test-004-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "R6 inventory bound is only tested on renderer input, not command inventory loading",
+      "body": "The R6 acceptance requires `senti presets list` to bound preset inventory by processing at most 512 preset entries. The test only calls `formatPresetTree(tooMany)` with an already-materialized array, so an implementation could load/process an unbounded plugin inventory in the CLI path and still pass.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-004-non-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "non-blocking",
+      "title": "R1 fixture helper is unused for project plugin inventory",
+      "body": "R1 fixture helper is unused for project plugin inventory",
+      "category": "unknown"
+    }
+  ]
+}

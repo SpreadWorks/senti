@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-15T01:52:02.378Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "title": "Preset inventory is bounded only after full registry materialization",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/lib/presets.js",
+      "requirementId": "R6",
+      "issue": "`listPresets(projectRoot)` delegates to `allPresets(projectRoot)`, which loads and merges every enabled plugin preset before `src/presets-cmd.js` checks `presets.length > MAX_PRESET_TREE_ITEMS`. A project plugin can therefore contribute more than 512 presets and the command still processes them all before rejecting.",
+      "suggestion": "Move the 512-entry bound into the inventory path, for example by adding a `maxEntries` option to `listPresets`/`allPresets` and stopping or throwing while merging registry presets once the limit would be exceeded. Then call that bounded path from `printTree`.",
+      "rationale": "R6 explicitly requires `senti presets list` to bound preset inventory by processing at most 512 preset entries. Checking the array length after registry loading and merging does not satisfy that acceptance requirement because the unbounded work has already happened."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/298-fix-presets-list-tree/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "109c0dac7fe4c38e0c24f07650143f4727a62ccaf7b2a6f9dfe4aed1dd971277"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "impl-001-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Preset inventory is bounded only after full registry materialization",
+      "body": "`listPresets(projectRoot)` delegates to `allPresets(projectRoot)`, which loads and merges every enabled plugin preset before `src/presets-cmd.js` checks `presets.length > MAX_PRESET_TREE_ITEMS`. A project plugin can therefore contribute more than 512 presets and the command still processes them all before rejecting.",
+      "category": "missing_acceptance_requirement"
+    }
+  ]
+}

@@ -8,18 +8,26 @@
 
 import fs from "fs";
 import path from "path";
-import { PRESETS, presetByLeaf } from "./lib/presets.js";
+import { listPresets } from "./lib/presets.js";
 import { EXIT_ERROR } from "./lib/constants.js";
+import { repoRoot } from "./lib/cli.js";
+
+export const MAX_PRESET_TREE_ITEMS = 512;
+export const MAX_PRESET_TREE_DEPTH = 16;
 
 export async function main() {
   const subCmd = process.argv[2];
 
   if (!subCmd || subCmd === "list") {
-    printTree();
+    try {
+      printTree();
+    } catch (err) {
+      console.error(`senti presets: ${err.message}`);
+      process.exit(EXIT_ERROR);
+    }
   } else if (subCmd === "-h" || subCmd === "--help") {
     const { loadLang } = await import("./lib/config.js");
     const { createI18n } = await import("./lib/i18n.js");
-    const { repoRoot } = await import("./lib/cli.js");
     let lang;
     try {
       lang = loadLang(repoRoot());
@@ -37,35 +45,39 @@ export async function main() {
 }
 
 function printTree() {
-  // Build parent → children map
-  const childrenMap = new Map();
-  for (const p of PRESETS) {
-    const parentKey = p.parent || null;
-    if (!childrenMap.has(parentKey)) childrenMap.set(parentKey, []);
-    if (parentKey !== null || p.key === "base") {
-      // base has no parent (null), others have parent
-    }
+  console.log(formatPresetTree(listPresets(repoRoot(), { maxEntries: MAX_PRESET_TREE_ITEMS })));
+}
+
+export function formatPresetTree(presets) {
+  if (presets.length > MAX_PRESET_TREE_ITEMS) {
+    throw new Error(`preset tree exceeds ${MAX_PRESET_TREE_ITEMS} entries`);
   }
-  for (const p of PRESETS) {
+
+  const childrenMap = new Map();
+  for (const p of presets) {
     const parentKey = p.parent || null;
     if (!childrenMap.has(parentKey)) childrenMap.set(parentKey, []);
     childrenMap.get(parentKey).push(p);
   }
 
-  // Find root (base — no parent)
   const roots = childrenMap.get(null) || [];
   const base = roots.find((p) => p.key === "base");
   if (!base) {
-    console.log("(no base preset found)");
-    return;
+    return "(no base preset found)";
   }
+  const lines = [];
 
-  function printNode(preset, prefix, isLast, isRoot) {
+  function formatNode(preset, prefix, isLast, isRoot, depth, visited) {
+    if (depth > MAX_PRESET_TREE_DEPTH) return;
+    if (visited.has(preset.key)) return;
+    const nextVisited = new Set(visited);
+    nextVisited.add(preset.key);
     const parts = [preset.label];
     if (preset.axis) parts.push(`axis: ${preset.axis}`);
     if (preset.lang) parts.push(`lang: ${preset.lang}`);
-    if (preset.aliases.length > 0) parts.push(`aliases: ${preset.aliases.join(", ")}`);
-    const scanKeys = Object.keys(preset.scan);
+    const aliases = preset.aliases || [];
+    if (aliases.length > 0) parts.push(`aliases: ${aliases.join(", ")}`);
+    const scanKeys = Object.keys(preset.scan || {});
     if (scanKeys.length > 0) parts.push(`scan: [${scanKeys.join(", ")}]`);
 
     const tplDir = path.join(preset.dir, "templates");
@@ -73,18 +85,19 @@ function printTree() {
     const tplMark = hasTpl ? "" : "  [no templates]";
 
     if (isRoot) {
-      console.log(`${preset.key}/  (${parts.join(", ")})${tplMark}`);
+      lines.push(`${preset.key}/  (${parts.join(", ")})${tplMark}`);
     } else {
       const connector = isLast ? "└── " : "├── ";
-      console.log(`${prefix}${connector}${preset.key}/  (${parts.join(", ")})${tplMark}`);
+      lines.push(`${prefix}${connector}${preset.key}/  (${parts.join(", ")})${tplMark}`);
     }
 
     const children = (childrenMap.get(preset.key) || []).sort((a, b) => a.key.localeCompare(b.key));
     const childPrefix = isRoot ? "" : (prefix + (isLast ? "    " : "│   "));
     for (let i = 0; i < children.length; i++) {
-      printNode(children[i], childPrefix, i === children.length - 1, false);
+      formatNode(children[i], childPrefix, i === children.length - 1, false, depth + 1, nextVisited);
     }
   }
 
-  printNode(base, "", true, true);
+  formatNode(base, "", true, true, 0, new Set());
+  return lines.join("\n");
 }

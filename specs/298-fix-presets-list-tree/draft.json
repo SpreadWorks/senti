@@ -1,0 +1,103 @@
+{
+  "devType": "bugfix",
+  "goal": "must fix the presets tree inspection command so a project initialized by setup shows installed plugin presets, not only the built-in base preset.",
+  "analysis": {
+    "problem": "Issue #388 reports that setup can install and resolve official presets such as nextjs, but `senti presets list` still prints only the built-in `base` tree. This makes the presets tree look broken after setup even though runtime preset resolution works.",
+    "proposedApproach": "Make the presets listing path use the same project-aware preset inventory that runtime resolution uses, while preserving the built-in base-only fallback for projects without enabled preset plugins.",
+    "validation": "Verify the command in a project with an installed official-presets plugin and in a base-only project. The plugin-backed case must include inherited nodes such as base, webapp, js-webapp, and nextjs. The base-only case must still print base. Retained public output behavior must be verified for root and branch formatting, labels, aliases, scan markers, and template availability markers."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must treat Issue #388 as one concern: the tree inspection command output after setup.",
+      "must preserve setup candidate resolution because `listSetupWizardPresetCandidates` already builds a full official preset tree.",
+      "must preserve runtime resolver behavior because `resolveChain('nextjs', projectRoot)` already resolves `base > webapp > js-webapp > nextjs` when the plugin registry is installed.",
+      "must account for `src/presets-cmd.js` currently importing `PRESETS`, which contains only core built-in presets.",
+      "must keep the fix focused on `senti presets list`; the user approved the flow scope for Issue #388 with setup candidate and runtime resolver changes out of scope.",
+      "must: migration inventory includes existing `senti presets list` public behavior: root line display, tree branch connectors, preset labels, aliases display, scan key display, template availability marker, child alphabetical ordering, base-only output, and `(no base preset found)` fallback.",
+      "must: migration inventory includes the replaced data source: the command currently reads static built-in `PRESETS`, and the replacement must read project-aware presets while retaining the same rendering contract."
+    ],
+    "decisionPoints": [
+      "must decide the user-visible source of truth for `senti presets list`: the project-aware preset registry should be used when a project root is available.",
+      "should keep the command usable outside configured projects by falling back to built-in presets instead of failing.",
+      "should include behavior-level regression coverage for both plugin-backed and base-only display.",
+      "must: migration mapping keeps output rendering owned by `presets list` and changes only the preset inventory provider from static `PRESETS` to project-aware registry plus core fallback.",
+      "must: migration mapping keeps missing-base fallback and formatting behavior owned by the existing print tree renderer."
+    ],
+    "resolvedByProjectRules": [
+      "must use the existing plugin registry and preset resolver patterns rather than introducing a separate preset discovery path.",
+      "must avoid adding external dependencies; Node.js built-in modules are sufficient.",
+      "must keep source code generic and avoid project-specific hardcoded preset values beyond test fixtures.",
+      "should preserve base-only fallback when plugin registry loading is unavailable because CLI inspection commands should remain usable outside configured projects."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must define exact acceptance criteria for command output in plugin-backed setup projects.",
+      "should define whether command output ordering follows the existing alphabetical child sort or setup wizard order.",
+      "must: migration parity verification must map every retained public output behavior to at least one behavior-level test or assertion in the spec.",
+      "must: spec scenarios must verify plugin-backed inventory and retained formatting surfaces separately from setup candidate resolution."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must update `senti presets list` so it includes enabled project plugin presets when run from a configured project.",
+      "must keep the existing tree formatting contract: root line, branch connectors, labels, aliases, scan markers, and template availability marker.",
+      "must add regression coverage for a setup-installed official-presets scenario or an equivalent plugin-backed project fixture.",
+      "should preserve base-only output when no plugin registry is available.",
+      "must: migration parity verification must assert root line format, branch connector format, label rendering, aliases rendering, scan marker rendering, template availability marker rendering, and child ordering continue to match the existing public output contract.",
+      "must: migration parity verification must assert `(no base preset found)` behavior remains owned by the tree renderer if no base preset exists in the inventory."
+    ],
+    "out": [
+      "must not change setup preset candidate resolution.",
+      "must not change `resolveChain` or `resolveMultiChains` semantics unless required by the display command.",
+      "must not migrate or rewrite `.senti/presets` legacy storage.",
+      "must not change official-presets package contents."
+    ]
+  },
+  "impactOnExisting": [
+    "must affect only the `senti presets list` display path and its tests.",
+    "should not affect docs build, setup config generation, plugin installation, or preset data loading behavior.",
+    "must: retained public behavior mapping keeps all existing `senti presets list` output formatting in the command renderer while replacing only the preset inventory lookup.",
+    "must: retained public behavior verification includes plugin-backed output containing `base`, `webapp`, `js-webapp`, and `nextjs`, plus base-only output containing exactly the existing base root line format."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "この修正は must `senti presets list` の表示だけを対象にし、setup candidate や runtime resolver の仕様変更は対象外、という理解でよいですか。",
+      "answer": "はい。must `senti presets list` の表示経路だけを修正対象にし、setup candidate と runtime resolver の仕様変更は対象外にする。",
+      "evidence": "Issue #388 states setup candidate and runtime resolver already resolve `nextjs` as `base > webapp > js-webapp > nextjs`; the user selected auto mode for the displayed scope that named those areas out of scope.",
+      "why": "問題は setup 後の tree inspection output に限定されており、動作済みの resolver へ変更を広げると blast radius が増えるため。",
+      "considered": "",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "plugin-backed project での受け入れ条件は must `nextjs` の親チェーン `base > webapp > js-webapp > nextjs` が tree 表示に現れること、で十分ですか。",
+      "answer": "はい。must plugin-backed project で `base`, `webapp`, `js-webapp`, `nextjs` が継承 tree として表示されることを受け入れ条件にする。should 他の official preset sibling も registry 由来で表示されることを確認する。",
+      "evidence": "Issue #388 gives `nextjs` as the concrete reproduction target and expected chain; local investigation confirmed setup candidate output includes `webapp > js-webapp > nextjs`.",
+      "why": "`nextjs` は broken tree を再現する最小の leaf preset で、parent chain 表示の成否を behavior-level に検証できるため。",
+      "considered": "",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "plugin registry を読めないプロジェクトでは should 既存どおり base-only 表示にフォールバックし、fatal error にしない方針でよいですか。",
+      "answer": "はい。should plugin registry を読めない場合は既存の base-only 表示へフォールバックし、`presets list` 自体は失敗させない。",
+      "evidence": "`src/lib/presets.js` has projectRoot-aware registry loading that can fall back to core presets when strict loading is not requested; current `presets list` already works in base-only mode.",
+      "why": "inspection command は未設定プロジェクトや package-local 実行でも使われるため、registry がないだけで fatal にすると既存利用を壊すため。",
+      "considered": "",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-15T01:23:58Z",
+    "notes": "autoApprove accepted for Issue #388; all draft QA entries are answered from issue content, user-approved scope, project rules, and source context."
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-15T01:42:57.508Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 3,
+    "advisory": 1,
+    "total": 4
+  },
+  "coverageArtifact": "specs/298-fix-presets-list-tree/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R1 can pass without project-aware plugin inventory",
+      "target": "specs/298-fix-presets-list-tree/tests/presets-list-tree.test.js: R1 test",
+      "issue": "The R1 test installs and asserts real official-presets keys such as webapp, js-webapp, and nextjs. Those same keys could be loaded by a non-project mechanism, so the test does not prove that senti presets list reads enabled plugin contributions from the current project's registry/config.",
+      "requiredChange": "Use a project-local plugin fixture with at least one unique preset key or label not available from core or bundled official presets, enable it in .senti/config.json, run the CLI from that project root, and assert that unique preset appears together with base.",
+      "whyBlocking": "R1 is a must requirement, and the current test can pass while the command ignores the project's enabled plugin registry."
+    },
+    {
+      "kind": "blocking",
+      "title": "R5 coverage omits plugin installation and package contents",
+      "target": "specs/298-fix-presets-list-tree/tests/presets-list-tree.test.js: R5 tests",
+      "issue": "R5 is marked covered, but the tests only check setup candidate inclusion, resolveChain for nextjs, and that plugin.json in a copied plugin remains unchanged. They do not exercise plugin installation behavior, and they do not verify official-presets package contents beyond plugin.json.",
+      "requiredChange": "Add spec-local regression coverage for the plugin installation path or API, and compare the relevant official-presets package tree or preset files before and after the list/setup operations instead of only plugin.json.",
+      "whyBlocking": "R5 is a must non-regression requirement; the coverage artifact claims coverage while required surfaces have no executable coverage."
+    },
+    {
+      "kind": "blocking",
+      "title": "R6 command inventory bound can pass after unbounded loading",
+      "target": "specs/298-fix-presets-list-tree/tests/presets-list-tree.test.js: R6 command inventory test",
+      "issue": "The CLI test creates 513 valid preset files and only asserts a nonzero result containing 512. An implementation that reads all 513 plugin preset entries and then lets formatPresetTree reject the array would pass, even though R6 requires inventory loading itself to be bounded before rendering.",
+      "requiredChange": "Make processing the 513th contribution detectably fail, such as by making it missing or invalid, and assert the command reports the 512-entry bound instead of attempting to read it.",
+      "whyBlocking": "This static anti-pattern would pass without exercising the production behavior required by R6."
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Add exact boundary cases",
+      "target": "specs/298-fix-presets-list-tree/tests/presets-list-tree.test.js: R6 tests",
+      "improvement": "Add non-failing boundary coverage showing exactly 512 preset entries are accepted and clarifying the intended inclusive depth-16 behavior.",
+      "whyNonBlocking": "The current tests cover over-limit count and depth truncation, so this would improve precision rather than fill a missing must-have behavior."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/298-fix-presets-list-tree/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "b41507ac85f06804e38af21e6feadeded48aa449b0c61018ae5b0e9ef6f1c8ed"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 5,
+  "findings": [
+    {
+      "id": "test-005-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "R1 can pass without project-aware plugin inventory",
+      "body": "The R1 test installs and asserts real official-presets keys such as webapp, js-webapp, and nextjs. Those same keys could be loaded by a non-project mechanism, so the test does not prove that senti presets list reads enabled plugin contributions from the current project's registry/config.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-005-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "R5 coverage omits plugin installation and package contents",
+      "body": "R5 is marked covered, but the tests only check setup candidate inclusion, resolveChain for nextjs, and that plugin.json in a copied plugin remains unchanged. They do not exercise plugin installation behavior, and they do not verify official-presets package contents beyond plugin.json.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-005-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "R6 command inventory bound can pass after unbounded loading",
+      "body": "The CLI test creates 513 valid preset files and only asserts a nonzero result containing 512. An implementation that reads all 513 plugin preset entries and then lets formatPresetTree reject the array would pass, even though R6 requires inventory loading itself to be bounded before rendering.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-005-non-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "non-blocking",
+      "title": "Add exact boundary cases",
+      "body": "Add exact boundary cases",
+      "category": "unknown"
+    }
+  ]
+}

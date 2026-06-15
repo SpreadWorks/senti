@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "acceptance-review found stale deferred test-review findings after test coverage had been expanded; grant one re-evaluation against the updated tests",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "bef8b62914bf102e8d57b93f4bc71304979e22b3dee915f65de03abf1a437a9e",
+        "currentHash": "9406f29ae85f537b301a4913744544b2f2171b9bd7301de9cb3f09cc8923b03d",
+        "changedPaths": [
+          "specs/298-fix-presets-list-tree/tests/.raw/scenario-validity.log",
+          "specs/298-fix-presets-list-tree/tests/.raw/test-execution.log",
+          "specs/298-fix-presets-list-tree/tests/.raw/upgrade.log",
+          "specs/298-fix-presets-list-tree/tests/presets-list-tree.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset review test --reason \"acceptance-review found stale deferred test-review findings after test coverage had been expanded; grant one re-evaluation against the updated tests\" --yes",
+      "createdAt": "2026-06-15T02:08:01.872Z"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "bounded-resource-usage",
+      "result": "fail",
+      "reason": "The specification adds a project-aware preset inventory flow and tree rendering from plugin registry data, but it does not define explicit bounds for recursive traversal, number of presets, or loaded registry size; it lacks any upper-limit guard for recursive/bulk processing and includes no matched exception rationale.",
+      "category": "code-quality",
+      "title": "Bounded Resource Usage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec-content",
+            "locator": "requirements / design_overview"
+          },
+          "observed": "The specification adds a project-aware preset inventory flow and tree rendering from plugin registry data, but it does not define explicit bounds for recursive traversal, number of presets, or loaded registry size; it lacks any upper-limit guard for recursive/bulk processing and includes no matched exception rationale.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "bounded-resource-usage",
+      "where": {
+        "file": "spec-content",
+        "locator": "requirements / design_overview"
+      },
+      "observed": "The specification adds a project-aware preset inventory flow and tree rendering from plugin registry data, but it does not define explicit bounds for recursive traversal, number of presets, or loaded registry size; it lacks any upper-limit guard for recursive/bulk processing and includes no matched exception rationale.",
+      "severity": "blocking",
+      "refs": [
+        "bounded-resource-usage"
+      ]
+    }
+  ]
+}

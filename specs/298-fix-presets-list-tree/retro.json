@@ -1,0 +1,48 @@
+{
+  "spec": "specs/298-fix-presets-list-tree/spec.json",
+  "date": "2026-06-15T02:15:57.467Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "`senti presets list` uses project-aware preset inventory when run from a project root, so enabled plugin presets are included with core presets.",
+      "status": "done",
+      "note": "R1: reads enabled project plugin presets in presets list"
+    },
+    {
+      "desc": "A project with installed official-presets displays the multi-level chain containing `base`, `webapp`, `js-webapp`, and `nextjs` in the tree output.",
+      "status": "done",
+      "note": "R2: renders nextjs under js-webapp under webapp"
+    },
+    {
+      "desc": "When no plugin registry is available, or registry loading fails in non-strict inspection mode, `senti presets list` still displays the existing base-only tree output instead of failing.",
+      "status": "done",
+      "note": "R3: keeps base-only fallback when no plugin registry is available"
+    },
+    {
+      "desc": "The command preserves retained public output formatting: root line format, branch connectors, preset labels, aliases, scan markers, template availability marker, child alphabetical ordering, and missing-base fallback behavior.",
+      "status": "done",
+      "note": "R4: preserves renderer output surfaces"
+    },
+    {
+      "desc": "The change does not modify setup candidate resolution, preset chain resolution semantics, plugin installation, or official-presets package contents.",
+      "status": "done",
+      "note": "R5: leaves setup candidate and resolver ownership outside presets list"
+    },
+    {
+      "desc": "`senti presets list` bounds preset inventory and tree traversal by processing at most 512 preset entries, rendering at most depth 16, and preventing cycle traversal with visited preset keys.",
+      "status": "done",
+      "note": "R6: bounds renderer preset count, depth, and cycles"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 6,
+    "done": 6,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

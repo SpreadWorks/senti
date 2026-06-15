@@ -1,0 +1,194 @@
+{
+  "version": 1,
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "The change shifts `senti presets list` from static built-in data to project-aware registry output, but the draft does not include an explicit inventory of retained public behavior being moved/replaced for this command before implementation.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft.json",
+            "locator": "scopeVerification.in + scopeVerification.out + decisionMap"
+          },
+          "observed": "The change shifts `senti presets list` from static built-in data to project-aware registry output, but the draft does not include an explicit inventory of retained public behavior being moved/replaced for this command before implementation.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "There is no per-behavior migration mapping identifying where retained outputs (for example tree formatting contract, aliases, markers, or legacy-only paths) are owned after the migration, only a general fallback intent.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft.json",
+            "locator": "scopeVerification.in"
+          },
+          "observed": "There is no per-behavior migration mapping identifying where retained outputs (for example tree formatting contract, aliases, markers, or legacy-only paths) are owned after the migration, only a general fallback intent.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "Behavior-level verification is specified for plugin-chain and base-only presence, but no retained-surface verification is specified for all preserved public output behavior (e.g., root/branch formatting, labels, aliases, scan markers, template-availability marker).",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft.json",
+            "locator": "validation"
+          },
+          "observed": "Behavior-level verification is specified for plugin-chain and base-only presence, but no retained-surface verification is specified for all preserved public output behavior (e.g., root/branch formatting, labels, aliases, scan markers, template-availability marker).",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "unambiguous-requirements",
+      "result": "fail",
+      "reason": "The statement `should improve diagnostics for existing projects...` is not stated as a verifiable condition, so implementers cannot agree objectively when it is satisfied.",
+      "category": "code-quality",
+      "title": "Unambiguous Requirements",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "draft.json",
+            "locator": "impactOnExisting[2]"
+          },
+          "observed": "The statement `should improve diagnostics for existing projects...` is not stated as a verifiable condition, so implementers cannot agree objectively when it is satisfied.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "`should improve diagnostics` lacks measurable acceptance criteria and is therefore not sufficiently specific for independent reviewers to determine pass/fail.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "draft.json",
+            "locator": "impactOnExisting[2]"
+          },
+          "observed": "`should improve diagnostics` lacks measurable acceptance criteria and is therefore not sufficiently specific for independent reviewers to determine pass/fail.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft.json",
+        "locator": "scopeVerification.in + scopeVerification.out + decisionMap"
+      },
+      "observed": "The change shifts `senti presets list` from static built-in data to project-aware registry output, but the draft does not include an explicit inventory of retained public behavior being moved/replaced for this command before implementation.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft.json",
+        "locator": "scopeVerification.in"
+      },
+      "observed": "There is no per-behavior migration mapping identifying where retained outputs (for example tree formatting contract, aliases, markers, or legacy-only paths) are owned after the migration, only a general fallback intent.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft.json",
+        "locator": "validation"
+      },
+      "observed": "Behavior-level verification is specified for plugin-chain and base-only presence, but no retained-surface verification is specified for all preserved public output behavior (e.g., root/branch formatting, labels, aliases, scan markers, template-availability marker).",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "unambiguous-requirements",
+      "where": {
+        "file": "draft.json",
+        "locator": "impactOnExisting[2]"
+      },
+      "observed": "The statement `should improve diagnostics for existing projects...` is not stated as a verifiable condition, so implementers cannot agree objectively when it is satisfied.",
+      "severity": "blocking",
+      "refs": [
+        "unambiguous-requirements"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "draft.json",
+        "locator": "impactOnExisting[2]"
+      },
+      "observed": "`should improve diagnostics` lacks measurable acceptance criteria and is therefore not sufficiently specific for independent reviewers to determine pass/fail.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ]
+    }
+  ]
+}

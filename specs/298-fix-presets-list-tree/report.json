@@ -1,0 +1,300 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".../acceptance-review-evidence.json                |   53 +\n .../acceptance-review.json                         |   88 ++\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-gate-source.json                         |  194 ++++\n .../draft-questions-repair.json                    |    8 +\n .../draft-questions-triage.json                    |    8 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   11 +\n specs/298-fix-presets-list-tree/draft.json         |  103 ++\n specs/298-fix-presets-list-tree/file-map.json      |   30 +\n specs/298-fix-presets-list-tree/flow-findings.json |   71 ++\n specs/298-fix-presets-list-tree/flow.json          | 1190 ++++++++++++++++++++\n specs/298-fix-presets-list-tree/impl-review.json   |   28 +\n specs/298-fix-presets-list-tree/issue-log.json     |  269 +++++\n specs/298-fix-presets-list-tree/issue.md           |   10 +\n .../plugin-artifacts/workflow/prepare.json         |   10 +\n .../298-fix-presets-list-tree/retry-recovery.json  |   31 +\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |   14 +\n .../review-history/impl-attempt-001.json           |   52 +\n .../review-history/impl-attempt-001.md             |   23 +\n .../review-history/impl-attempt-002.json           |   31 +\n .../review-history/impl-attempt-002.md             |   16 +\n .../review-history/impl-attempt-003.json           |   31 +\n .../review-history/impl-attempt-003.md             |   16 +\n .../review-history/spec-attempt-001.json           |   54 +\n .../review-history/spec-attempt-001.md             |   19 +\n .../review-history/test-attempt-001.json           |  138 +++\n .../review-history/test-attempt-001.md             |   45 +\n .../review-history/test-attempt-002.json           |   66 ++\n .../review-history/test-attempt-002.md             |   24 +\n .../review-history/test-attempt-003.json           |   48 +\n .../review-history/test-attempt-003.md             |   18 +\n .../review-history/test-attempt-004.json           |   66 ++\n .../review-history/test-attempt-004.md             |   21 +\n .../review-history/test-attempt-005.json           |  102 ++\n .../review-history/test-attempt-005.md             |   33 +\n .../review-history/test-attempt-006.json           |   47 +\n .../review-history/test-attempt-006.md             |   16 +\n specs/298-fix-presets-list-tree/review.md          |   16 +\n .../spec-gate-source.json                          |   46 +\n specs/298-fix-presets-list-tree/spec-review.json   |   30 +\n specs/298-fix-presets-list-tree/spec-review.md     |   19 +\n specs/298-fix-presets-list-tree/spec.json          |  261 +++++\n specs/298-fix-presets-list-tree/spec.md            |  123 ++\n specs/298-fix-presets-list-tree/tasks/T-1.md       |   21 +\n specs/298-fix-presets-list-tree/tasks/T-2.md       |   21 +\n specs/298-fix-presets-list-tree/tasks/T-3.md       |   21 +\n specs/298-fix-presets-list-tree/test-coverage.json |   86 ++\n specs/298-fix-presets-list-tree/test-review.json   |   33 +\n specs/298-fix-presets-list-tree/test-review.md     |   16 +\n .../tests/presets-list-tree.test.js                |  433 +++++++\n src/lib/plugin-registry.js                         |   35 +-\n src/lib/presets.js                                 |   28 +-\n src/presets-cmd.js                                 |   57 +-\n 56 files changed, 4238 insertions(+), 33 deletions(-)",
+      "commits": [
+        "fix: list project preset registry"
+      ]
+    },
+    "retro": {
+      "total": 6,
+      "done": 6,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "`senti presets list` uses project-aware preset inventory when run from a project root, so enabled plugin presets are included with core presets.",
+          "status": "done",
+          "note": "R1: reads enabled project plugin presets in presets list"
+        },
+        {
+          "desc": "A project with installed official-presets displays the multi-level chain containing `base`, `webapp`, `js-webapp`, and `nextjs` in the tree output.",
+          "status": "done",
+          "note": "R2: renders nextjs under js-webapp under webapp"
+        },
+        {
+          "desc": "When no plugin registry is available, or registry loading fails in non-strict inspection mode, `senti presets list` still displays the existing base-only tree output instead of failing.",
+          "status": "done",
+          "note": "R3: keeps base-only fallback when no plugin registry is available"
+        },
+        {
+          "desc": "The command preserves retained public output formatting: root line format, branch connectors, preset labels, aliases, scan markers, template availability marker, child alphabetical ordering, and missing-base fallback behavior.",
+          "status": "done",
+          "note": "R4: preserves renderer output surfaces"
+        },
+        {
+          "desc": "The change does not modify setup candidate resolution, preset chain resolution semantics, plugin installation, or official-presets package contents.",
+          "status": "done",
+          "note": "R5: leaves setup candidate and resolver ownership outside presets list"
+        },
+        {
+          "desc": "`senti presets list` bounds preset inventory and tree traversal by processing at most 512 preset entries, rendering at most depth 16, and preventing cycle traversal with visited preset keys.",
+          "status": "done",
+          "note": "R6: bounds renderer preset count, depth, and cycles"
+        }
+      ]
+    },
+    "upgrade": {
+      "result": "success-updated",
+      "summary": {
+        "skills": {
+          "updated": 0,
+          "unchanged": 6,
+          "removed": 0
+        },
+        "presets": {
+          "copied": 4
+        },
+        "plugins": {
+          "changed": true
+        },
+        "config": {
+          "changed": false
+        },
+        "rename": {
+          "changed": 2
+        }
+      },
+      "rawLogPath": "tests/.raw/upgrade.log"
+    },
+    "issueLog": {
+      "count": 15,
+      "fullLogPath": "specs/298-fix-presets-list-tree/issue-log.json",
+      "importantTotal": 12,
+      "importantShown": 10,
+      "importantOmitted": 2,
+      "recentOtherTotal": 3,
+      "recentOtherShown": 3,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft",
+          "reason": "apply_patch resolved a relative path against the main repository during an active worktree flow and failed before making changes",
+          "resolution": "re-applied the patch using the absolute draft.json path under the active worktree"
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "The change shifts `senti presets list` from static built-in data to project-aware registry output, but the draft does not include an explicit inventory of retained public behavior being moved/replaced for this command before implementati...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "draft gate failed because migration parity inventory, per-behavior mapping, retained output verification, and a measurable diagnostics statement were incomplete",
+          "resolution": "expanded draft.json with migration inventory, retained behavior mapping, retained output verification, and replaced vague diagnostics wording with concrete output assertions"
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "spec gate failed because project-aware preset inventory and tree rendering did not define explicit preset count, recursion depth, or cycle traversal bounds",
+          "resolution": "added bounded-resource constraints, data-flow, decision, requirement R6, acceptance criteria, and task acceptance for 512 preset entries, depth 16, and visited-key cycle prevention"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test review failed because spec-local tests did not assert concrete nesting, registry-load failure fallback, missing-base fallback, depth bound, or reachable cycle traversal",
+          "resolution": "strengthened R2 structural assertions, added R3 registry failure fallback, added R4 missing-base fallback, and added R6 depth and reachable duplicate-key cycle tests"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test review still failed because R2 used a synthetic plugin id instead of official-presets and R5 only covered one setup smoke path",
+          "resolution": "changed plugin fixture to official-presets and added R5 coverage for plugin package non-mutation, setup candidate discovery, and resolveChain semantics"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test review still failed because R5 did not inspect the actual official-presets package content relevant to the command change",
+          "resolution": "changed integration fixtures to copy the actual .senti/plugins/official-presets package and assert package content is not mutated by presets list"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test review still failed because R6 only tested renderer arrays and did not cover command inventory loading above 512 plugin presets",
+          "resolution": "added a CLI test that installs 513 plugin preset contributions and expects presets list to reject before rendering with a 512-bound diagnostic"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test review failed because R1 could pass through non-project official loading, R5 still lacked package-tree and no-install coverage, and R6 could reject only after reading the 513th preset",
+          "resolution": "added unique project plugin registry coverage, full official package tree non-mutation, missing-package no-install behavior, and a missing 513th contribution assertion that must report the 512 bound first"
+        },
+        {
+          "classification": "important",
+          "step": "implement",
+          "reason": "implement completion failed because required file-map entries were not registered before marking implementation done",
+          "resolution": "registered changed file mappings for R1 through R6 before retrying implement completion"
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "The specification adds a project-aware preset inventory flow and tree rendering from plugin registry data, but it does not define explicit bounds for recursive traversal, number of presets, or loaded registry size; it lacks any upper-lim...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: generated missing upgrade evidence after gate reported upgrade-result.json missing",
+          "resolution": "Ran senti upgrade in the active flow worktree; it wrote specs/298-fix-presets-list-tree/upgrade-result.json and tests/.raw/upgrade.log with checkedPaths containing src/lib/presets.js."
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: refreshed stale regression evidence after upgrade changed the diff snapshot",
+          "resolution": "Re-ran test-execute and test-result-review after removing unrelated upgrade side-effect diffs; project regression now passes, then regenerated upgrade-result.json for src/lib/presets.js without leaving those side-effect diffs in the work..."
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 12
+    },
+    "tokenMetrics": {
+      "input": 461389,
+      "output": 60860,
+      "cacheRead": 1550976,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 19,
+      "durationMs": 766273,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 13125
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 10418
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 26496
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 177117
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 18637
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 200961
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 261706
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 36124
+        },
+        {
+          "phase": "implement",
+          "durationMs": 21689
+        }
+      ]
+    },
+    "tests": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/298-fix-presets-list-tree/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "node tests/run.js",
+        "root_test_command_source": "test.command",
+        "command": "node tests/run.js",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 100,
+          "end_line": 18621
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/298-fix-presets-list-tree/"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/plugin-registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/presets.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/presets-cmd.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/298-fix-presets-list-tree/"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/plugin-registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/presets.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/presets-cmd.js"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/298-fix-presets-list-tree/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    fix: list project preset registry\n    56 files changed, 4238 insertions(+), 33 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (6 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 12\n    agent calls ................. 19\n    input tokens ................ 461,389\n    output tokens ............... 60,860\n    cache-read tokens ........... 1,550,976\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 766.3s\n      draft-questions-review .... 13.1s\n      draft-coverage-review ..... 10.4s\n      draft-gate ................ 26.5s\n      spec-review ............... 177.1s\n      spec-gate ................. 18.6s\n      test-review ............... 201.0s\n      impl-review ............... 261.7s\n      impl-gate ................. 36.1s\n      implement ................. 21.7s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 6  passed 6  failed 0 verdict=pass\n    raw_output: specs/298-fix-presets-list-tree/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n    Final regression: result=pass\n\n  Issue Log Summary (15 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/298-fix-presets-list-tree/issue-log.json\n\n    Important (10 of 12)\n    - [draft] apply_patch resolved a relative path against the main repository during an active worktree flow and failed before making changes\n    - [draft-gate] The change shifts `senti presets list` from static built-in data to project-aware registry output, but the draft does not include an explicit inventory of retained public behavior being moved/replaced for this command before implementati...\n    - [draft-gate] draft gate failed because migration parity inventory, per-behavior mapping, retained output verification, and a measurable diagnostics statement were incomplete\n    - [spec-gate] spec gate failed because project-aware preset inventory and tree rendering did not define explicit preset count, recursion depth, or cycle traversal bounds\n    - [test-review] test review failed because spec-local tests did not assert concrete nesting, registry-load failure fallback, missing-base fallback, depth bound, or reachable cycle traversal\n    - [test-review] test review still failed because R2 used a synthetic plugin id instead of official-presets and R5 only covered one setup smoke path\n    - [test-review] test review still failed because R5 did not inspect the actual official-presets package content relevant to the command change\n    - [test-review] test review still failed because R6 only tested renderer arrays and did not cover command inventory loading above 512 plugin presets\n    - [test-review] test review failed because R1 could pass through non-project official loading, R5 still lacked package-tree and no-install coverage, and R6 could reject only after reading the 513th preset\n    - [implement] implement completion failed because required file-map entries were not registered before marking implementation done\n    ... 2 important issue-log entries omitted\n\n    Recent Other (3)\n    - [spec-gate] The specification adds a project-aware preset inventory flow and tree rendering from plugin registry data, but it does not define explicit bounds for recursive traversal, number of presets, or loaded registry size; it lacks any upper-lim...\n    - [impl-gate] fix: generated missing upgrade evidence after gate reported upgrade-result.json missing\n    - [impl-gate] fix: refreshed stale regression evidence after upgrade changed the diff snapshot"
+}

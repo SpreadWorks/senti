@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "`senti presets list` uses project-aware preset inventory when run from a project root, so enabled plugin presets are included with core presets.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/presets-list-tree.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "A project with installed official-presets displays the multi-level chain containing `base`, `webapp`, `js-webapp`, and `nextjs` in the tree output.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/presets-list-tree.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "When no plugin registry is available, or registry loading fails in non-strict inspection mode, `senti presets list` still displays the existing base-only tree output instead of failing.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/presets-list-tree.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "The command preserves retained public output formatting: root line format, branch connectors, preset labels, aliases, scan markers, template availability marker, child alphabetical ordering, and missing-base fallback behavior.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/presets-list-tree.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "The change does not modify setup candidate resolution, preset chain resolution semantics, plugin installation, or official-presets package contents.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/presets-list-tree.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "`senti presets list` bounds preset inventory and tree traversal by processing at most 512 preset entries, rendering at most depth 16, and preventing cycle traversal with visited preset keys.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/presets-list-tree.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/presets-list-tree.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ]
+    }
+  ]
+}

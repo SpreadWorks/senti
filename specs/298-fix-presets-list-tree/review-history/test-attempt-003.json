@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-15T01:38:12.177Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/298-fix-presets-list-tree/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Official presets package contents are not actually covered",
+      "target": "specs/298-fix-presets-list-tree/tests/presets-list-tree.test.js R5",
+      "issue": "The R5 coverage uses a synthetic local plugin fixture named official-presets, but it never reads or asserts against the repository's actual official-presets package contents. This leaves the explicit acceptance requirement that official-presets package contents are not modified without corresponding spec-local coverage.",
+      "requiredChange": "Add a focused R5 test or fixture assertion that inspects the real official-presets package content relevant to this change, or otherwise verifies the command/change path does not alter that package.",
+      "whyBlocking": "The coverage artifact marks R5 covered, but one of R5's concrete acceptance clauses has no corresponding executable test coverage."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/298-fix-presets-list-tree/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "08ced257bc13fe48f07fad486fbde2cb77d8c1518bec79b4822421dcfc261d1f"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "test-003-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Official presets package contents are not actually covered",
+      "body": "The R5 coverage uses a synthetic local plugin fixture named official-presets, but it never reads or asserts against the repository's actual official-presets package contents. This leaves the explicit acceptance requirement that official-presets package contents are not modified without corresponding spec-local coverage.",
+      "category": "unknown"
+    }
+  ]
+}

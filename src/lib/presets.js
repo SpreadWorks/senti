@@ -49,11 +49,15 @@ function discoverPresetsInDir(presetsDir) {
 export const CORE_PRESETS = discoverPresetsInDir(CORE_PRESETS_DIR);
 export const PRESETS = CORE_PRESETS;
 
-function registryPresets(projectRoot, { strict = false } = {}) {
+function registryPresets(projectRoot, { strict = false, maxEntries, existingPresetCount = 0 } = {}) {
   if (!projectRoot) return [];
   try {
-    return [...loadPluginRegistry(projectRoot).presets.values()];
+    return [...loadPluginRegistry(projectRoot, {
+      maxPresetEntries: maxEntries,
+      existingPresetCount,
+    }).presets.values()];
   } catch (err) {
+    if (err.message.includes("preset registry exceeds")) throw err;
     if (strict) throw err;
     logger.verbose(`plugin registry failed: ${err.message}`);
     return [];
@@ -66,6 +70,26 @@ function allPresets(projectRoot) {
     return [...byKey.values()];
   }
   for (const preset of registryPresets(projectRoot)) byKey.set(preset.key, preset);
+  return [...byKey.values()];
+}
+
+export function listPresets(projectRoot, { maxEntries } = {}) {
+  if (maxEntries !== undefined && CORE_PRESETS.length > maxEntries) {
+    throw new Error(`preset registry exceeds ${maxEntries} entries`);
+  }
+  if (maxEntries === undefined) return allPresets(projectRoot);
+
+  const byKey = new Map(CORE_PRESETS.map((preset) => [preset.key, preset]));
+  if (!projectRoot) return [...byKey.values()];
+  for (const preset of registryPresets(projectRoot, {
+    maxEntries,
+    existingPresetCount: byKey.size,
+  })) {
+    byKey.set(preset.key, preset);
+  }
+  if (byKey.size > maxEntries) {
+    throw new Error(`preset registry exceeds ${maxEntries} entries`);
+  }
   return [...byKey.values()];
 }
 
