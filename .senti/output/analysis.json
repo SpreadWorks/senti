@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-17T08:38:17.605Z",
+  "analyzedAt": "2026-06-17T09:47:16.936Z",
   "package": {
     "entries": [
       {
@@ -5206,11 +5206,15 @@
       },
       {
         "file": "src/flow/lib/run-finalize-cleanup.js",
-        "hash": "3ca9a630bf8616e0566a7823c32d228a",
-        "lines": 1063,
-        "mtime": "2026-06-12T16:16:56.613Z",
+        "hash": "d6be5f67523f66b2366643cc4603a8fb",
+        "lines": 1240,
+        "mtime": "2026-06-17T09:47:05.415Z",
         "className": "run-finalize-cleanup",
         "methods": [
+          "removeWorktreeForCleanup",
+          "deleteFeatureBranchForCleanup",
+          "recordFinalizeCleanupPostCommandMetadata",
+          "finalizeCleanupPluginLifecycleContext",
           "RunFinalizeCleanupCommand",
           "syncMetadataFromWorktreeToMain",
           "validateTeardown",
@@ -5229,7 +5233,7 @@
           "submoduleDirtyEnvelope",
           "submoduleStatusFailedEnvelope",
           "submoduleForceRemoveFailedEnvelope",
-          "removeWorktreeForCleanup",
+          "writeJsonFile",
           "readOrphanCommits",
           "appendIssueLog",
           "restoreIssueLog",
@@ -5244,6 +5248,7 @@
           "path",
           "../../lib/flow-envelope.js",
           "../../lib/flow-helpers.js",
+          "../../lib/finalize-cleanup-paths.js",
           "../../lib/git-helpers.js",
           "./base-command.js",
           "./run-finalize.js",
@@ -5253,6 +5258,10 @@
           "../../lib/plugin-registry.js"
         ],
         "exports": [
+          "removeWorktreeForCleanup",
+          "deleteFeatureBranchForCleanup",
+          "recordFinalizeCleanupPostCommandMetadata",
+          "finalizeCleanupPluginLifecycleContext",
           "RunFinalizeCleanupCommand",
           "syncMetadataFromWorktreeToMain",
           "validateTeardown",
@@ -5262,26 +5271,9 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "40e4daa5",
-        "summary": "Implements the `finalize-cleanup` flow command that tears down a completed worktree, synchronizes flow metadata, and handles failure recovery. It combines git cleanup, audit logging, report attachment, and plugin lifecycle hooks into a single finalize step.",
-        "detail": "This module orchestrates cleanup after a flow run by validating arguments, resolving report data, and removing worktrees and feature branches from the main repository. It contains defensive git diagnostics for dirty repositories, orphan commits, and submodule-related removal failures, then converts those cases into structured `Envelope` errors with recovery options. The command also snapshots and restores issue-log state, syncs selected metadata from the worktree back to the main repo, and verifies teardown invariants before completing. Forced cleanup and auto-rescue paths are included for cases where normal teardown or cherry-pick based recovery cannot proceed cleanly. Plugin lifecycle integration wraps the command so pre/post/finally hooks can augment warnings and side effects.",
-        "chapter": "cli_commands",
-        "role": "Flow finalization cleanup and recovery coordinator",
         "enrich": {
-          "processedAt": "2026-06-12T16:17:40.795Z",
           "attempts": 1
-        },
-        "keywords": [
-          "finalize cleanup",
-          "worktree teardown",
-          "git branch removal",
-          "flow command",
-          "recovery options",
-          "submodule cleanup",
-          "audit log",
-          "metadata sync",
-          "orphan commits",
-          "plugin lifecycle"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/run-finalize-commit.js",
@@ -8024,7 +8016,8 @@
         ],
         "extends": null,
         "usedBy": [
-          "src/lib/flow-store.js"
+          "src/lib/flow-store.js",
+          "src/lib/agent.js"
         ],
         "id": "38813272",
         "summary": "Tiny utility that normalizes a metric dimension string, defaulting empty values to 'unknown'.",
@@ -8047,12 +8040,13 @@
       },
       {
         "file": "src/lib/agent.js",
-        "hash": "b5737ee0905df58e1adef4e610b9d42e",
-        "lines": 815,
-        "mtime": "2026-06-15T04:14:35.995Z",
+        "hash": "2b4cd01da8812a18d355823a75a1542d",
+        "lines": 865,
+        "mtime": "2026-06-17T09:47:05.416Z",
         "className": "agent",
         "methods": [
           "createPluginAgentApi",
+          "buildAgentMetricEntry",
           "resolvePromptCacheContext",
           "recordPromptCacheHit",
           "sha256",
@@ -8083,7 +8077,8 @@
           "./log.js",
           "./provider.js",
           "./error-preview.js",
-          "./agent-defaults.js"
+          "./agent-defaults.js",
+          "./agent-metrics.js"
         ],
         "exports": [
           "createPluginAgentApi",
@@ -8095,24 +8090,9 @@
           "src/lib/container.js"
         ],
         "id": "13ddf392",
-        "summary": "Implements the main agent service that resolves profiles, builds CLI invocations, runs external AI commands, and records logs and metrics. It also includes retry logic, prompt caching, stdin fallback, and plugin-facing agent wrapping.",
-        "detail": "The `Agent` class resolves the effective provider through profile selection rules that consider explicit options, `SENTI_PROFILE`, configured profiles, and default family aliases. Invocation building injects system prompts, work directory flags, JSON schema flags, and switches from argv prompt delivery to stdin when the argument payload exceeds a configured threshold. Execution uses `child_process.spawn`, timeout handling, output parsing through provider-specific parsers, streaming-event filtering for plain text mode, and bounded exponential retry. The module also persists per-spec prompt cache entries under `.senti/agent-cache`, reports cache hits and usage metrics to the flow manager, and exposes `createPluginAgentApi()` so plugins can namespace command IDs and apply provider or profile overrides consistently.",
-        "chapter": "internal_design",
-        "role": "agent execution orchestrator",
         "enrich": {
-          "processedAt": "2026-06-15T04:16:16.377Z",
           "attempts": 1
-        },
-        "keywords": [
-          "agent runner",
-          "profile resolution",
-          "prompt cache",
-          "retry with backoff",
-          "stdin fallback",
-          "child process spawn",
-          "AI invocation",
-          "plugin agent API"
-        ]
+        }
       },
       {
         "file": "src/lib/agents-md.js",
@@ -8534,9 +8514,9 @@
       },
       {
         "file": "src/lib/dispatcher.js",
-        "hash": "267639f91d28cb0d972ff52dbe53a062",
-        "lines": 456,
-        "mtime": "2026-06-09T08:02:50.461Z",
+        "hash": "e57da9940f2e36d9879f766fec14eada",
+        "lines": 481,
+        "mtime": "2026-06-17T09:47:05.416Z",
         "className": "dispatcher",
         "methods": [
           "parseEntryInput",
@@ -8545,8 +8525,10 @@
           "splitArgsBySpec",
           "runtimeLogRunId",
           "runtimeLogFlowId",
+          "runtimeLogRoot",
           "attachRuntimeLog",
           "runtimeLogStepId",
+          "persistFinalizeCleanupPostReturnMetadata",
           "findWarning",
           "truncateText",
           "formatWarningMessages",
@@ -8575,23 +8557,9 @@
           "src/spec.js"
         ],
         "id": "18d5f63b",
-        "summary": "Parses entry arguments and dispatches commands with normalized output, envelopes, and error handling. It also integrates runtime logging and finalize cleanup reporting.",
-        "detail": "The dispatcher splits raw arguments according to entry-defined flags and options, and raises explicit errors for missing or unknown options. Command execution is wrapped so stdout and stderr can be intercepted, routed, and optionally serialized as structured envelopes. It attaches runtime log metadata, resolves output modes dynamically, and runs entry lifecycle hooks such as `pre`, `post`, and `onError`. Finalize cleanup warnings are truncated and rendered in a consistent report format so CLI consumers receive predictable diagnostics.",
-        "chapter": "cli_commands",
-        "role": "CLI dispatcher",
         "enrich": {
-          "processedAt": "2026-06-09T11:46:36.602Z",
           "attempts": 1
-        },
-        "keywords": [
-          "command dispatcher",
-          "argument parsing",
-          "CLI output mode",
-          "error envelope",
-          "runtime logging",
-          "hook lifecycle",
-          "finalize report"
-        ]
+        }
       },
       {
         "file": "src/lib/error-preview.js",
@@ -8630,9 +8598,9 @@
       },
       {
         "file": "src/lib/finalize-cleanup-paths.js",
-        "hash": "d5bf9e51fb01d8644f4f6fb622145e47",
-        "lines": 45,
-        "mtime": "2026-06-09T08:02:50.461Z",
+        "hash": "4bdbd1f8ac2a63abefd36ebc67278693",
+        "lines": 93,
+        "mtime": "2026-06-17T09:47:05.416Z",
         "className": "finalize-cleanup-paths",
         "methods": [
           "FinalizeCleanupPathResolver",
@@ -8643,29 +8611,17 @@
         ],
         "exports": [
           "FinalizeCleanupPathResolver",
-          "FINALIZE_CLEANUP_DURABLE_AGENT_WORK_DIR"
+          "FINALIZE_CLEANUP_DURABLE_AGENT_WORK_DIR",
+          "FINALIZE_CLEANUP_DURABLE_SUBDIR"
         ],
         "extends": null,
         "usedBy": [
           "src/lib/container.js"
         ],
         "id": "1223c23c",
-        "summary": "Resolves cleanup target paths for flows running in a Git worktree. It determines when artifacts should be mapped back to durable locations in the main repository.",
-        "detail": "The module defines a small path utility and a `FinalizeCleanupPathResolver` class that compares worktree and main repository roots. It detects whether a cleanup run is active and whether a file path belongs to the current worktree. When relocation is needed, it rewrites worktree-relative paths onto the main repository tree. It also exposes a durable agent work directory path under `.senti/agent-work` for cleanup outputs that must survive worktree removal.",
-        "chapter": "internal_design",
-        "role": "Finalize cleanup path resolver",
         "enrich": {
-          "processedAt": "2026-06-09T11:46:36.602Z",
           "attempts": 1
-        },
-        "keywords": [
-          "worktree cleanup",
-          "path relocation",
-          "main repository",
-          "durable path",
-          "finalize cleanup",
-          "repository mapping"
-        ]
+        }
       },
       {
         "file": "src/lib/flow-envelope.js",
@@ -9668,9 +9624,9 @@
       },
       {
         "file": "src/lib/plugin-registry.js",
-        "hash": "6ec1f71426ca4f88f31249bd13966e39",
-        "lines": 1167,
-        "mtime": "2026-06-17T08:37:50.714Z",
+        "hash": "7ab10cfd3d47b34840788a0c82aa4c30",
+        "lines": 1170,
+        "mtime": "2026-06-17T09:47:05.416Z",
         "className": "plugin-registry",
         "methods": [
           "readProjectConfig",
@@ -9801,26 +9757,9 @@
           "src/upgrade.js"
         ],
         "id": "bfaf1dcd",
-        "summary": "Implements the full plugin registry, installation lifecycle, validation rules, and hook execution framework. It manages plugin sources, manifests, safe file handling, config overlays, and runtime dispatch for plugin commands and flow hooks.",
-        "detail": "The module enforces strict safety constraints around plugin IDs, paths, JSON size, file counts, traversal prevention, and imports to keep plugin packages isolated from core internals. It loads and merges project and local plugin configuration, tracks source repositories, resolves git or local package origins, and installs or syncs plugin packages into the managed `.senti` area. `PluginManifest` and `PluginRegistry` expose structured access to presets, data sources, commands, and other plugin contributions after validation. The runtime side builds plugin execution context, dispatches plugin commands, discovers flow command hooks, snapshots hook metadata, and runs lifecycle hooks with artifact helpers and structured envelope-style results.",
-        "chapter": "project_structure",
-        "role": "Plugin package management, validation, registry loading, and hook runtime",
         "enrich": {
-          "processedAt": "2026-06-17T08:38:40.353Z",
           "attempts": 1
-        },
-        "keywords": [
-          "plugin registry",
-          "plugin manifest",
-          "plugin installation",
-          "hook discovery",
-          "flow hooks",
-          "package validation",
-          "git source sync",
-          "artifact storage",
-          "command dispatch",
-          "config overlay"
-        ]
+        }
       },
       {
         "file": "src/lib/preparing-flow-store.js",
@@ -11360,9 +11299,9 @@
     ],
     "summary": {
       "total": 213,
-      "totalMethods": 1925
+      "totalMethods": 1932
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-17T08:38:40.353Z"
+  "enrichedAt": "2026-06-17T09:48:12.623Z"
 }
