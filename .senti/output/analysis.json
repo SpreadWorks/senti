@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-17T16:38:43.277Z",
+  "analyzedAt": "2026-06-17T16:50:16.362Z",
   "package": {
     "entries": [
       {
@@ -4248,9 +4248,9 @@
       },
       {
         "file": "src/flow/lib/get-status.js",
-        "hash": "b35f4bfb53a831895ccf88847aeba5af",
-        "lines": 293,
-        "mtime": "2026-06-13T17:36:17.992Z",
+        "hash": "b72df3b3eb57e8525076a604d9945014",
+        "lines": 334,
+        "mtime": "2026-06-17T16:50:05.501Z",
         "className": "get-status",
         "methods": [
           "buildMetricsSummary",
@@ -4264,6 +4264,8 @@
           "buildStatusRetryRecoveryView",
           "buildStatusGateViews",
           "validateRunId",
+          "validateExpectedIssue",
+          "activeFlowMismatch",
           "buildStatusOutput"
         ],
         "imports": [
@@ -4274,6 +4276,7 @@
           "../definition.js",
           "./step-tree.js",
           "./base-command.js",
+          "../../lib/flow-envelope.js",
           "./review-failure.js",
           "./gate-recovery-display.js",
           "./run-review.js",
@@ -4293,23 +4296,24 @@
           "src/flow/lib/get-qa-count.js"
         ],
         "id": "9aca938f",
-        "enrich": {
-          "processedAt": "2026-06-15T03:37:22.960Z",
-          "attempts": 7
-        },
-        "summary": "Builds the flow status view by aggregating metrics, retries, review state, gate state, and deferred findings. It is the main formatter behind status command output for active or historical runs.",
-        "detail": "The module computes token and activity summaries from agent metric entries, grouping them by phase and provider while preserving total counters for reporting. It derives higher-level status views for review stops, gate stops, retry recovery, and bounded broad-mode history, then merges them with flow-state metadata into a single status payload. Validation ensures requested run identifiers are well-formed and that historical run lookups fail with explicit errors when missing. The exported command class uses these helpers to return consistent status objects whether the caller targets the current flow state or a specific recorded run.",
+        "summary": "Implements the flow status command and assembles a normalized status payload for active or historical runs. It also derives review, gate, retry, and metrics views while validating run and issue expectations.",
+        "detail": "The module builds aggregated activity and token metrics with fixed counter keys, zero-filled defaults, and provider or phase buckets for reporting. It resolves active execution context from flow state and flattened step trees, including max-attempt handling, latest in-progress leaf detection, and spec-derived requirements. It composes status-specific views for review stops, gate recovery, retry recovery, bounded broad-mode history, and deferred findings summaries so the caller gets a richer operational snapshot. It also validates run IDs and expected issue references, returning envelope-based failures when the requested status does not match the active flow before exposing the logic through a FlowCommand subclass.",
         "chapter": "cli_commands",
-        "role": "Flow status aggregation and reporting command logic",
+        "role": "Flow status aggregation and validation command",
+        "enrich": {
+          "processedAt": "2026-06-17T16:50:50.155Z",
+          "attempts": 1
+        },
         "keywords": [
-          "status command",
+          "flow status",
+          "run status",
           "metrics summary",
+          "token counters",
+          "review stop",
           "retry recovery",
-          "review state",
-          "gate state",
-          "run history",
-          "token usage",
-          "flow reporting"
+          "gate failure",
+          "step tree",
+          "issue validation"
         ]
       },
       {
@@ -7722,9 +7726,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "104ab81c13e2d68ca07548742eb0a050",
-        "lines": 1209,
-        "mtime": "2026-06-15T13:47:44.731Z",
+        "hash": "2dbf1c1ab024eae4d5655984cc321755",
+        "lines": 1210,
+        "mtime": "2026-06-17T16:50:05.501Z",
         "className": "registry",
         "methods": [
           "assertDraftReviewRegistryHookBoundary",
@@ -7763,25 +7767,25 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
+        "summary": "Defines the flow command registry and lifecycle orchestration layer for the CLI. It maps commands to handlers, applies post-command side effects, and coordinates review, gate, finalize, and issue-log behaviors.",
+        "detail": "The file centralizes flow command wiring in a FLOW_COMMANDS registry, pairing handlers with help text, validation logic, and command-specific execution paths. It uses helper resolvers to derive the active phase, locate runtime log step IDs, choose draft-review and gate routes, and operate against the main repository flow manager when needed. Several wrapper functions perform step-status and issue-log mutations defensively, logging skipped lifecycle updates for recoverable situations while still rethrowing unexpected failures. A RegistryLifecycleAdapter encapsulates side effects such as gate actions, finalize hooks, merge outcome updates, plugin hook dispatch, and retry counter maintenance after command execution. The registry also validates artifacts under the spec directory for test and final-regression workflows, enforcing expected JSON schemas and acceptable pass or skipped outcomes.",
+        "chapter": "project_structure",
+        "role": "Central flow command registry and lifecycle coordinator",
         "enrich": {
-          "processedAt": "2026-06-15T16:21:20.972Z",
-          "attempts": 2
+          "processedAt": "2026-06-17T16:50:50.155Z",
+          "attempts": 1
         },
-        "summary": "This module is the central registry for flow commands and lifecycle hooks. It coordinates command execution, step-state updates, retry handling, issue logging, and artifact validation across flow phases.",
-        "detail": "The file wires together flow commands with registry-level lifecycle behavior, including draft review, gate, finalize, and retry-related transitions. It derives active phases and runtime step IDs, updates step status defensively, and applies lifecycle actions through an adapter that can invoke side effects and plugin hooks. The exported command registry includes operational commands for flow management as well as validation-oriented commands that load and verify test-execute, test-review, and final-regression artifacts from the active spec directory. Overall, this module acts as the orchestration layer that connects CLI-style entrypoints to lower-level flow, judgment, and artifact subsystems.",
-        "chapter": "cli_commands",
-        "role": "Top-level flow command registry and lifecycle orchestration",
         "keywords": [
           "command registry",
-          "CLI flow commands",
+          "CLI dispatch",
           "lifecycle hooks",
-          "step status",
-          "retry handling",
-          "issue log",
           "flow orchestration",
-          "artifact checks",
-          "phase routing",
-          "plugin hooks"
+          "plugin hooks",
+          "step status",
+          "issue log",
+          "gate routing",
+          "finalize workflow",
+          "artifact validation"
         ]
       },
       {
@@ -11400,9 +11404,9 @@
     ],
     "summary": {
       "total": 213,
-      "totalMethods": 1952
+      "totalMethods": 1954
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-17T16:39:19.262Z"
+  "enrichedAt": "2026-06-17T16:50:50.155Z"
 }
