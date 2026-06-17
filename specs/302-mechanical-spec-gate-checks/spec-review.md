@@ -1,0 +1,16 @@
+# Spec Review Results
+
+## Verdict: FAIL
+
+## Blocking Findings
+
+### 1. Optional null values are not schema-owned today
+**Target:** R2, R3, Acceptance Criteria
+**Issue:** The spec says empty, invalid, and non-string priority values remain validateSpecJsonObject() schema failures before checkSpecJson(), and describes tasks[].test_strategy as an optional string. In the current schema validator, optional properties with null are skipped, so requirements[N].priority: null and tasks[N].test_strategy: null pass schema validation and reach checkSpecJson(). The spec does not define whether the new structural checks should treat those nulls as missing/empty or leave them to semantic AI.
+**Required change:** Specify the null-handling rule for the two migrated fields and align R2/R3 plus the schema-failure acceptance criterion with that rule.
+**Why blocking:** Without this, implementation and tests cannot be made consistent with verified behavior: a regression test for non-string priority schema failures will fail for null, and a task with null test_strategy can bypass both schema validation and a missing/whitespace-only precheck.
+
+
+## Non-blocking Improvements
+
+No non-blocking improvements.

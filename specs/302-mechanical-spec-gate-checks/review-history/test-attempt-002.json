@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-17T03:16:41.473Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/302-mechanical-spec-gate-checks/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R5 coverage is incomplete",
+      "target": "specs/302-mechanical-spec-gate-checks/tests/gate-spec-precheck.test.js",
+      "issue": "The R5 test only asserts that a mechanical failure occurs before the skipped guardrail path can pass, plus part of the failure envelope. It does not provide spec-local coverage for retry accounting, issue-log semantics, AI guardrail definitions, or broader runGateFlow ordering preservation called out by R5.",
+      "requiredChange": "Add the smallest focused spec-local test coverage for the untested R5 preservation clauses, or split R5 into separately tracked requirements with accurate coverage status.",
+      "whyBlocking": "The coverage artifact marks R5 as covered, but the actual tests omit multiple required preservation behaviors, so an acceptance requirement has no corresponding spec-local test coverage.",
+      "origin": "R5",
+      "failureKind": "missing-test-coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/302-mechanical-spec-gate-checks/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "4f92a840c0c564d58b6d39f68d6780538ce785d81103ac5b6ae21576d33eaf07"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "test-002-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R5 coverage is incomplete",
+      "body": "The R5 test only asserts that a mechanical failure occurs before the skipped guardrail path can pass, plus part of the failure envelope. It does not provide spec-local coverage for retry accounting, issue-log semantics, AI guardrail definitions, or broader runGateFlow ordering preservation called out by R5.",
+      "category": "unknown"
+    }
+  ]
+}

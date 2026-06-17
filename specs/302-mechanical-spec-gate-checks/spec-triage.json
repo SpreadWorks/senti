@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "One blocking finding remains valid: null handling must be specified for migrated fields before implementation.",
+  "items": [
+    {
+      "title": "Optional null values are not schema-owned today",
+      "target": "R2, R3, Acceptance Criteria",
+      "decision": "apply",
+      "rationale": "The finding is blocking because current optional schema properties skip null values, so implementation and tests need an explicit null handling rule for priority and task test_strategy.",
+      "evidence": "spec-review.json blockingFindings[0]; src/lib/schema-validate.js skips object properties when value[key] == null, so optional priority/test_strategy null values are not schema failures today."
+    }
+  ]
+}

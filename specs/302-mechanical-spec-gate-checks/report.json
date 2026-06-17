@@ -1,0 +1,276 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".senti/output/analysis.json                        |   2 +-\n .../acceptance-review.json                         |  21 +\n .../draft-coverage-repair.json                     |   8 +\n .../draft-coverage-triage.json                     |   8 +\n .../draft-gate-source.json                         |  83 ++\n .../draft-questions-repair.json                    |   8 +\n .../draft-questions-triage.json                    |   8 +\n .../draft-review-coverage.json                     |  11 +\n .../draft-review-questions.json                    |  11 +\n specs/302-mechanical-spec-gate-checks/draft.json   |  86 ++\n .../302-mechanical-spec-gate-checks/file-map.json  |  34 +\n specs/302-mechanical-spec-gate-checks/flow.json    | 943 +++++++++++++++++++++\n .../impl-review.json                               |  28 +\n .../302-mechanical-spec-gate-checks/issue-log.json | 174 ++++\n specs/302-mechanical-spec-gate-checks/issue.md     | 334 ++++++++\n .../plugin-artifacts/workflow/prepare.json         |  10 +\n .../review-history/draft-coverage-attempt-001.json |  14 +\n .../draft-questions-attempt-001.json               |  14 +\n .../review-history/impl-attempt-001.json           |  31 +\n .../review-history/impl-attempt-001.md             |  16 +\n .../review-history/spec-attempt-001.json           |  37 +\n .../review-history/spec-attempt-001.md             |  16 +\n .../review-history/test-attempt-001.json           | 108 +++\n .../review-history/test-attempt-001.md             |  33 +\n .../review-history/test-attempt-002.json           |  50 ++\n .../review-history/test-attempt-002.md             |  18 +\n .../review-history/test-attempt-003.json           |  48 ++\n .../review-history/test-attempt-003.md             |  18 +\n .../review-history/test-attempt-004.json           |  28 +\n .../review-history/test-attempt-004.md             |  13 +\n specs/302-mechanical-spec-gate-checks/review.md    |  16 +\n .../spec-gate-source.json                          |  83 ++\n .../spec-repair.json                               |  24 +\n .../spec-review.json                               |  23 +\n .../302-mechanical-spec-gate-checks/spec-review.md |  16 +\n .../spec-triage.json                               |  15 +\n specs/302-mechanical-spec-gate-checks/spec.json    | 220 +++++\n specs/302-mechanical-spec-gate-checks/spec.md      | 110 +++\n specs/302-mechanical-spec-gate-checks/tasks/T-1.md |  20 +\n specs/302-mechanical-spec-gate-checks/tasks/T-2.md |  20 +\n .../test-coverage.json                             |  86 ++\n .../test-review.json                               |  25 +\n .../302-mechanical-spec-gate-checks/test-review.md |  13 +\n .../tests/gate-spec-precheck.test.js               | 355 ++++++++\n src/flow/lib/run-gate.js                           |  19 +\n .../t1-entry-enforcement.test.js                   |   1 +\n tests/unit/flow/gate-spec-sanity.test.js           |  76 +-\n tests/unit/specs/commands/gate.test.js             |  72 +-\n 48 files changed, 3402 insertions(+), 5 deletions(-)",
+      "commits": [
+        "Implement mechanical spec gate checks"
+      ]
+    },
+    "retro": {
+      "total": 6,
+      "done": 6,
+      "partial": 0,
+      "not_done": 0,
+      "not_applicable_count": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "`checkSpecJson()` must return one deterministic issue for each requirement whose own `priority` field is missing or null when `spec.requirements.length > 3`; each issue must include `requirements[N].priority` and the requirement id.",
+          "status": "done",
+          "note": "R1: reports each missing or null priority when requirements count is greater than three"
+        },
+        {
+          "desc": "`checkSpecJson()` must not duplicate priority enum/type validation for non-null values; empty string, invalid string, and non-string non-null priority values remain `validateSpecJsonObject()` schema failures before `checkSpecJson()` runs in spec gate.",
+          "status": "done",
+          "note": "R2: leaves non-null invalid priority values to schema validation"
+        },
+        {
+          "desc": "`checkSpecJson()` must return one deterministic issue for each existing task whose `test_strategy` is missing, null, or whitespace-only; each issue must include `tasks[N].test_strategy` and the task id.",
+          "status": "done",
+          "note": "R3: reports missing, null, and whitespace-only task test_strategy with task ids"
+        },
+        {
+          "desc": "`tasks` missing and empty failures must remain owned by the existing `checkSpecJson()` task decomposition checks; the new task test_strategy check must run only when `spec.tasks` is an array with at least one task.",
+          "status": "done",
+          "note": "R4: keeps existing missing and empty tasks failures as the only task failures when tasks are absent"
+        },
+        {
+          "desc": "Spec gate behavior must preserve `runGateFlow()` ordering, `--skip-guardrail` semantics, retry accounting, issue-log semantics, `gateFail()` envelope shape, schema validation boundaries, and AI guardrail definitions.",
+          "status": "done",
+          "note": "R5: skipGuardrail still returns structural failure before retry accounting can replace it"
+        },
+        {
+          "desc": "Existing mechanical checks for unresolved markers, empty goal, empty requirements, empty acceptance criteria, missing tasks, empty tasks, task depth, and `validateTestHeaders()` coverage behavior must not regress.",
+          "status": "done",
+          "note": "R6: preserves existing checkSpecJson and validateTestHeaders behavior"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 10,
+      "fullLogPath": "specs/302-mechanical-spec-gate-checks/issue-log.json",
+      "importantTotal": 8,
+      "importantShown": 8,
+      "importantOmitted": 0,
+      "recentOtherTotal": 2,
+      "recentOtherShown": 2,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "draft-gate migration-parity guardrail failed because draft lacked explicit retained public surface inventory and behavior-level evidence mapping",
+          "resolution": "added migration inventory for spec gate public surfaces, retained-owner mapping, and behavior-level verification entries to draft.json"
+        },
+        {
+          "classification": "important",
+          "step": "spec-repair",
+          "reason": "spec-review found null handling ambiguity because optional null fields are skipped by current schema validation",
+          "resolution": "updated spec requirements acceptance criteria and decisions so null migrated fields are structural absence handled by checkSpecJson"
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "spec-gate spec-test-coverage failed because spec listed shared unit tests without spec-local tests and spec headers",
+          "resolution": "updated acceptance criteria and task test strategies to require specs/302-mechanical-spec-gate-checks/tests/gate-spec-precheck.test.js with spec headers for R1-R6"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test-review found incomplete R2, R5, and R6 spec-local coverage for schema-boundary, gate-command, and regression behavior.",
+          "resolution": "expanded specs/302-mechanical-spec-gate-checks/tests/gate-spec-precheck.test.js to cover non-null invalid priority schema ownership, RunGateCommand skip-guardrail mechanical failure envelope, existing checkSpecJson regressions, validateT..."
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test-review still found R5 preservation coverage incomplete after the first spec-local test repair.",
+          "resolution": "expanded the R5 spec-local tests to seed a prior spec issue-log and current git state, assert structural precheck failure wins without issue-log mutation, and assert the retained spec-phase AI guardrail definitions remain loaded."
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test-review required explicit R5 coverage for skip-guardrail, retry accounting, and schema-boundary ordering.",
+          "resolution": "changed the R5 gate-command test to run with skipGuardrail true against a seeded prior issue-log and added an invalid priority schema-failure case proving schema issues return before checkSpecJson task strategy prechecks."
+        },
+        {
+          "classification": "important",
+          "step": "implement",
+          "reason": "implement completion validation failed because file-map entries were missing before marking implement done.",
+          "resolution": "recorded changed-file mappings for R1 through R6 using senti flow set files, covering the product code and regression test files touched by the implementation."
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "impl-gate rejected the implementation because the latest test-execute artifact contained failing spec-local requirement tests for R1 through R6.",
+          "resolution": "updated the spec-local tests to match current schema error wording, existing gateFail next token, and a task-depth fixture that actually exceeds the depth limit."
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "The draft introduces a behavior move (AI semantic guardrail structural checks to checkSpecJson) but does not include an explicit inventory of existing public surfaces being moved/replaced (commands/APIs/hooks/config entries/generated art...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "Required spec-local coverage location is not provided; the acceptance plan points to `tests/unit/flow/gate-spec-sanity.test.js` and `tests/unit/specs/commands/gate.test.js` instead of `specs/<specid>/tests/`.; No `// spec: R<N> ...` head...",
+          "resolution": null
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 8
+    },
+    "tokenMetrics": {
+      "input": 365649,
+      "output": 56928,
+      "cacheRead": 884864,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 18,
+      "durationMs": 479818,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 10442
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 5210
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 24079
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 143103
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 26923
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 132653
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 98946
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 38462
+        }
+      ]
+    },
+    "tests": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/302-mechanical-spec-gate-checks/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "specs/302-mechanical-spec-gate-checks/",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-gate.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/226-task-decomp-wiring/t1-entry-enforcement.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/gate-spec-sanity.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/specs/commands/gate.test.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/302-mechanical-spec-gate-checks/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/226-task-decomp-wiring/t1-entry-enforcement.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-spec-sanity.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/specs/commands/gate.test.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/302-mechanical-spec-gate-checks/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/226-task-decomp-wiring/t1-entry-enforcement.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-spec-sanity.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/specs/commands/gate.test.js"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "skipKind": null,
+        "rawOutputPath": "specs/302-mechanical-spec-gate-checks/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    Implement mechanical spec gate checks\n    48 files changed, 3402 insertions(+), 5 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (6 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 8\n    agent calls ................. 18\n    input tokens ................ 365,649\n    output tokens ............... 56,928\n    cache-read tokens ........... 884,864\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 479.8s\n      draft-questions-review .... 10.4s\n      draft-coverage-review ..... 5.2s\n      draft-gate ................ 24.1s\n      spec-review ............... 143.1s\n      spec-gate ................. 26.9s\n      test-review ............... 132.7s\n      impl-review ............... 98.9s\n      impl-gate ................. 38.5s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 6  passed 6  failed 0 verdict=pass\n    raw_output: specs/302-mechanical-spec-gate-checks/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=pass\n\n  Issue Log Summary (10 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/302-mechanical-spec-gate-checks/issue-log.json\n\n    Important (8)\n    - [draft-gate] draft-gate migration-parity guardrail failed because draft lacked explicit retained public surface inventory and behavior-level evidence mapping\n    - [spec-repair] spec-review found null handling ambiguity because optional null fields are skipped by current schema validation\n    - [spec-gate] spec-gate spec-test-coverage failed because spec listed shared unit tests without spec-local tests and spec headers\n    - [test-review] test-review found incomplete R2, R5, and R6 spec-local coverage for schema-boundary, gate-command, and regression behavior.\n    - [test-review] test-review still found R5 preservation coverage incomplete after the first spec-local test repair.\n    - [test-review] test-review required explicit R5 coverage for skip-guardrail, retry accounting, and schema-boundary ordering.\n    - [implement] implement completion validation failed because file-map entries were missing before marking implement done.\n    - [impl-gate] impl-gate rejected the implementation because the latest test-execute artifact contained failing spec-local requirement tests for R1 through R6.\n\n    Recent Other (2)\n    - [draft-gate] The draft introduces a behavior move (AI semantic guardrail structural checks to checkSpecJson) but does not include an explicit inventory of existing public surfaces being moved/replaced (commands/APIs/hooks/config entries/generated art...\n    - [spec-gate] Required spec-local coverage location is not provided; the acceptance plan points to `tests/unit/flow/gate-spec-sanity.test.js` and `tests/unit/specs/commands/gate.test.js` instead of `specs/<specid>/tests/`.; No `// spec: R<N> ...` head..."
+}

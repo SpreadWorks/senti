@@ -1,0 +1,84 @@
+[senti] spec-local tests start
+command: node --test specs/302-mechanical-spec-gate-checks/tests/gate-spec-precheck.test.js
+TAP version 13
+# [presets] resolveChain failed for "node-cli": Preset not found: node-cli
+# [presets] resolveChain failed for "node-cli": Preset not found: node-cli
+# [presets] resolveChain failed for "node-cli": Preset not found: node-cli
+# Subtest: spec gate mechanical prechecks
+    # Subtest: R1: reports each missing or null priority when requirements count is greater than three
+    ok 1 - R1: reports each missing or null priority when requirements count is greater than three
+      ---
+      duration_ms: 3.710859
+      type: 'test'
+      ...
+    # Subtest: R1: does not require priority when requirements count is exactly three
+    ok 2 - R1: does not require priority when requirements count is exactly three
+      ---
+      duration_ms: 0.469442
+      type: 'test'
+      ...
+    # Subtest: R2: leaves non-null invalid priority values to schema validation
+    ok 3 - R2: leaves non-null invalid priority values to schema validation
+      ---
+      duration_ms: 2.497373
+      type: 'test'
+      ...
+    # Subtest: R3: reports missing, null, and whitespace-only task test_strategy with task ids
+    ok 4 - R3: reports missing, null, and whitespace-only task test_strategy with task ids
+      ---
+      duration_ms: 1.547448
+      type: 'test'
+      ...
+    # Subtest: R4: keeps existing missing and empty tasks failures as the only task failures when tasks are absent
+    ok 5 - R4: keeps existing missing and empty tasks failures as the only task failures when tasks are absent
+      ---
+      duration_ms: 0.296601
+      type: 'test'
+      ...
+    # Subtest: R5: skipGuardrail still returns structural failure before retry accounting can replace it
+    ok 6 - R5: skipGuardrail still returns structural failure before retry accounting can replace it
+      ---
+      duration_ms: 153.952711
+      type: 'test'
+      ...
+    # Subtest: R5: schema validation failures stay ahead of checkSpecJson mechanical prechecks
+    ok 7 - R5: schema validation failures stay ahead of checkSpecJson mechanical prechecks
+      ---
+      duration_ms: 88.055972
+      type: 'test'
+      ...
+    # Subtest: R5: preserves spec-phase AI guardrail definitions while moving only structural checks
+    ok 8 - R5: preserves spec-phase AI guardrail definitions while moving only structural checks
+      ---
+      duration_ms: 4.063261
+      type: 'test'
+      ...
+    # Subtest: R6: preserves existing checkSpecJson and validateTestHeaders behavior
+    ok 9 - R6: preserves existing checkSpecJson and validateTestHeaders behavior
+      ---
+      duration_ms: 9.163487
+      type: 'test'
+      ...
+    1..9
+ok 1 - spec gate mechanical prechecks
+  ---
+  duration_ms: 266.68621
+  type: 'suite'
+  ...
+1..1
+# tests 9
+# suites 1
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 438.442932
+exitCode: 0
+[senti] requirement R1 result pass
+[senti] requirement R2 result pass
+[senti] requirement R3 result pass
+[senti] requirement R4 result pass
+[senti] requirement R5 result pass
+[senti] requirement R6 result pass
+[senti] spec-local tests end

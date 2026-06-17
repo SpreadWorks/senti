@@ -1,0 +1,49 @@
+{
+  "spec": "specs/302-mechanical-spec-gate-checks/spec.json",
+  "date": "2026-06-17T03:28:38.422Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "`checkSpecJson()` must return one deterministic issue for each requirement whose own `priority` field is missing or null when `spec.requirements.length > 3`; each issue must include `requirements[N].priority` and the requirement id.",
+      "status": "done",
+      "note": "R1: reports each missing or null priority when requirements count is greater than three"
+    },
+    {
+      "desc": "`checkSpecJson()` must not duplicate priority enum/type validation for non-null values; empty string, invalid string, and non-string non-null priority values remain `validateSpecJsonObject()` schema failures before `checkSpecJson()` runs in spec gate.",
+      "status": "done",
+      "note": "R2: leaves non-null invalid priority values to schema validation"
+    },
+    {
+      "desc": "`checkSpecJson()` must return one deterministic issue for each existing task whose `test_strategy` is missing, null, or whitespace-only; each issue must include `tasks[N].test_strategy` and the task id.",
+      "status": "done",
+      "note": "R3: reports missing, null, and whitespace-only task test_strategy with task ids"
+    },
+    {
+      "desc": "`tasks` missing and empty failures must remain owned by the existing `checkSpecJson()` task decomposition checks; the new task test_strategy check must run only when `spec.tasks` is an array with at least one task.",
+      "status": "done",
+      "note": "R4: keeps existing missing and empty tasks failures as the only task failures when tasks are absent"
+    },
+    {
+      "desc": "Spec gate behavior must preserve `runGateFlow()` ordering, `--skip-guardrail` semantics, retry accounting, issue-log semantics, `gateFail()` envelope shape, schema validation boundaries, and AI guardrail definitions.",
+      "status": "done",
+      "note": "R5: skipGuardrail still returns structural failure before retry accounting can replace it"
+    },
+    {
+      "desc": "Existing mechanical checks for unresolved markers, empty goal, empty requirements, empty acceptance criteria, missing tasks, empty tasks, task depth, and `validateTestHeaders()` coverage behavior must not regress.",
+      "status": "done",
+      "note": "R6: preserves existing checkSpecJson and validateTestHeaders behavior"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 6,
+    "done": 6,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

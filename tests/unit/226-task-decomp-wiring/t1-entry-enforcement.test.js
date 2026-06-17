@@ -117,6 +117,7 @@ describe("T-1: entry enforcement (guardrail + prompts + spec gate tasks check)",
           added_round: 0,
           status: "pending",
           parent: null,
+          test_strategy: "Run focused unit tests.",
         },
       ],
     });

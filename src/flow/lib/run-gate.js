@@ -547,6 +547,18 @@ function checkSpecJson(spec) {
     }
   }
 
+  if (Array.isArray(spec.requirements) && spec.requirements.length > 3) {
+    for (let i = 0; i < spec.requirements.length; i += 1) {
+      const requirement = spec.requirements[i];
+      if (!Object.prototype.hasOwnProperty.call(requirement, "priority") || requirement.priority == null) {
+        issues.push(
+          `requirements[${i}].priority: missing priority for requirement ${requirement.id} ` +
+            "(required when requirements length is greater than 3)",
+        );
+      }
+    }
+  }
+
   // spec 226: tasks[] must be present and non-empty for new specs.
   // Existing merged specs are not gated (flow.json is cleanup'd on finalize),
   // so this check naturally applies only to active flows.
@@ -561,6 +573,13 @@ function checkSpecJson(spec) {
     const depth = computeForestDepth(spec.tasks);
     if (depth > 10) {
       issues.push(`tasks: forest depth ${depth} exceeds maximum of 10`);
+    }
+    for (let i = 0; i < spec.tasks.length; i += 1) {
+      const task = spec.tasks[i];
+      const strategy = task.test_strategy;
+      if (strategy == null || (typeof strategy === "string" && strategy.trim() === "")) {
+        issues.push(`tasks[${i}].test_strategy: missing test strategy for task ${task.id}`);
+      }
     }
   }
 

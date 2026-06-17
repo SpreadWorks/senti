@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-17T03:18:12.861Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/302-mechanical-spec-gate-checks/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R5 coverage omits skip-guardrail, retry, and schema-boundary preservation",
+      "target": "specs/302-mechanical-spec-gate-checks/tests/gate-spec-precheck.test.js",
+      "issue": "The R5 tests exercise one mechanical failure envelope, issue-log non-mutation, and guardrail definition text, but they do not cover `--skip-guardrail` behavior, retry accounting preservation, or schema validation boundary ordering. The only `RunGateCommand().execute()` call passes `skipGuardrail: false`, and there is no invalid-schema case proving schema failures remain owned by `validateSpecJsonObject()` before `checkSpecJson()` in the spec gate.",
+      "requiredChange": "Add the smallest spec-local R5 regression coverage for `skipGuardrail: true`, retry accounting behavior, and an invalid schema case showing schema validation still fails before mechanical `checkSpecJson()` prechecks.",
+      "whyBlocking": "R5 explicitly requires these behaviors to be preserved, but the claimed coverage artifact marks R5 covered while the executable tests do not cover several acceptance-critical behaviors."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/302-mechanical-spec-gate-checks/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "c219f87b4dacd6565c4b5cb34dd6f2d6653e5d6893d540f3046d8ffdf791891c"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "test-003-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R5 coverage omits skip-guardrail, retry, and schema-boundary preservation",
+      "body": "The R5 tests exercise one mechanical failure envelope, issue-log non-mutation, and guardrail definition text, but they do not cover `--skip-guardrail` behavior, retry accounting preservation, or schema validation boundary ordering. The only `RunGateCommand().execute()` call passes `skipGuardrail: false`, and there is no invalid-schema case proving schema failures remain owned by `validateSpecJsonObject()` before `checkSpecJson()` in the spec gate.",
+      "category": "unknown"
+    }
+  ]
+}

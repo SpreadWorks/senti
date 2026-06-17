@@ -31,7 +31,16 @@ function validSpecJson(overrides = {}) {
     open_questions: [],
     // spec 226: tasks[] is required to be non-empty for spec gate to pass
     tasks: [
-      { id: "T-1", title: "placeholder", goal: "placeholder", origin: "plan", added_round: 0, status: "pending" },
+      {
+        id: "T-1",
+        title: "placeholder",
+        goal: "placeholder",
+        origin: "plan",
+        added_round: 0,
+        status: "pending",
+        parent: null,
+        test_strategy: "Run focused unit tests.",
+      },
     ],
     ...overrides,
   };
@@ -381,7 +390,16 @@ describe("gate CLI", () => {
     const validSpec = validSpecJson({
       // T-default matches the seed task in flow.json (monotonic check).
       tasks: [
-        { id: "T-default", title: "Default test task", goal: "Placeholder task for test fixtures.", origin: "plan", added_round: 0, status: "pending" },
+        {
+          id: "T-default",
+          title: "Default test task",
+          goal: "Placeholder task for test fixtures.",
+          origin: "plan",
+          added_round: 0,
+          status: "pending",
+          parent: null,
+          test_strategy: "Run focused unit tests.",
+        },
       ],
     });
     writeJson(tmp, "specs/001-test/spec.json", validSpec);
@@ -397,6 +415,56 @@ describe("gate CLI", () => {
     const envelope = JSON.parse(result);
     assert.equal(envelope.ok, true);
     assert.equal(envelope.data.result, "pass");
+  });
+
+  it("phase=spec returns mechanical failures before --skip-guardrail can pass (R5)", () => {
+    tmp = createTmpDir();
+    initGateProject(tmp);
+    const specDir = join(tmp, "specs", "001-test");
+    const invalidSpec = validSpecJson({
+      requirements: [
+        { id: "R1", desc: "one", priority: "must" },
+        { id: "R2", desc: "two" },
+        { id: "R3", desc: "three", priority: "should" },
+        { id: "R4", desc: "four", priority: "nice-to-have" },
+      ],
+      tasks: [
+        {
+          id: "T-default",
+          title: "Default test task",
+          goal: "Placeholder task for test fixtures.",
+          origin: "plan",
+          added_round: 0,
+          status: "pending",
+          parent: null,
+        },
+      ],
+    });
+    writeJson(tmp, "specs/001-test/spec.json", invalidSpec);
+
+    const result = execFileSync("node", [
+      join(process.cwd(), "src/senti.js"),
+      "flow", "run", "gate",
+      "--phase", "spec",
+      "--spec", join(specDir, "spec.md"),
+      "--skip-guardrail",
+    ], { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } });
+    const envelope = JSON.parse(result);
+
+    assert.equal(envelope.ok, true);
+    assert.equal(envelope.data.result, "fail");
+    assert.equal(envelope.data.artifacts.failureKind, "mechanical");
+    assert.deepEqual(envelope.data.artifacts.evaluations, []);
+    assert.ok(
+      envelope.data.artifacts.issues.includes(
+        "requirements[1].priority: missing priority for requirement R2 (required when requirements length is greater than 3)",
+      ),
+    );
+    assert.ok(
+      envelope.data.artifacts.issues.includes(
+        "tasks[0].test_strategy: missing test strategy for task T-default",
+      ),
+    );
   });
 
   it("phase=spec FAILs when spec.json has unresolved marker in goal (R3, R7)", () => {

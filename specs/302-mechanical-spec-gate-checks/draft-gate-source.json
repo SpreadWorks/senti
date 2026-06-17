@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "The draft introduces a behavior move (AI semantic guardrail structural checks to checkSpecJson) but does not include an explicit inventory of existing public surfaces being moved/replaced (commands/APIs/hooks/config entries/generated artifacts/side effects).",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft",
+            "locator": "scopeVerification.in"
+          },
+          "observed": "The draft introduces a behavior move (AI semantic guardrail structural checks to checkSpecJson) but does not include an explicit inventory of existing public surfaces being moved/replaced (commands/APIs/hooks/config entries/generated artifacts/side effects).",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "There is no explicit mapping for each retained behavioral surface to a new owner or explicit removal decision, and no behavior-level acceptance evidence per retained public surface in the migration path.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft",
+            "locator": "scopeVerification.in"
+          },
+          "observed": "There is no explicit mapping for each retained behavioral surface to a new owner or explicit removal decision, and no behavior-level acceptance evidence per retained public surface in the migration path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft",
+        "locator": "scopeVerification.in"
+      },
+      "observed": "The draft introduces a behavior move (AI semantic guardrail structural checks to checkSpecJson) but does not include an explicit inventory of existing public surfaces being moved/replaced (commands/APIs/hooks/config entries/generated artifacts/side effects).",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft",
+        "locator": "scopeVerification.in"
+      },
+      "observed": "There is no explicit mapping for each retained behavioral surface to a new owner or explicit removal decision, and no behavior-level acceptance evidence per retained public surface in the migration path.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    }
+  ]
+}

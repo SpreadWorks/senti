@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "fail",
+      "reason": "Required spec-local coverage location is not provided; the acceptance plan points to `tests/unit/flow/gate-spec-sanity.test.js` and `tests/unit/specs/commands/gate.test.js` instead of `specs/<specid>/tests/`.",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria"
+          },
+          "observed": "Required spec-local coverage location is not provided; the acceptance plan points to `tests/unit/flow/gate-spec-sanity.test.js` and `tests/unit/specs/commands/gate.test.js` instead of `specs/<specid>/tests/`.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "fail",
+      "reason": "No `// spec: R<N> ...` header is specified for new regression test files, so the required spec-linked coverage headers are missing.",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[].test_strategy"
+          },
+          "observed": "No `// spec: R<N> ...` header is specified for new regression test files, so the required spec-linked coverage headers are missing.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "spec-test-coverage",
+      "where": {
+        "file": "spec.json",
+        "locator": "acceptance_criteria"
+      },
+      "observed": "Required spec-local coverage location is not provided; the acceptance plan points to `tests/unit/flow/gate-spec-sanity.test.js` and `tests/unit/specs/commands/gate.test.js` instead of `specs/<specid>/tests/`.",
+      "severity": "blocking",
+      "refs": [
+        "spec-test-coverage"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "spec-test-coverage",
+      "where": {
+        "file": "spec.json",
+        "locator": "tasks[].test_strategy"
+      },
+      "observed": "No `// spec: R<N> ...` header is specified for new regression test files, so the required spec-linked coverage headers are missing.",
+      "severity": "blocking",
+      "refs": [
+        "spec-test-coverage"
+      ]
+    }
+  ]
+}

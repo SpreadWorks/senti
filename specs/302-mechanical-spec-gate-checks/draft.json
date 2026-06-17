@@ -1,0 +1,86 @@
+{
+  "devType": "feature",
+  "goal": "must: spec gate の AI guardrail のうち deterministic に判定できる構造違反を、AI 実行前の checkSpecJson() precheck に移す。",
+  "analysis": {
+    "problem": "spec gate は textCheck() の後に AI guardrail を実行する構造を既に持つが、prioritize-requirements と spec-includes-test-strategy の明白な field 欠落が AI 判断へ残っているため、同じ入力でも AI 判定揺れや semantic retry 消費が起きる。",
+    "proposedApproach": "src/flow/lib/run-gate.js の checkSpecJson() に、requirements 4 件以上の priority field 欠落と、存在する tasks[] の test_strategy 欠落または空文字を検出する deterministic issue を追加する。schema validation、runGateFlow() の順序、skip-guardrail、retry accounting、AI guardrail 定義は変更しない。",
+    "validation": "checkSpecJson() の unit test と gate command-level test で、priority 欠落、test_strategy 欠落、schema validation との責務分離、skip-guardrail 時の mechanical failure、既存 sanity checks の非退行を確認する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #393 は prioritize-requirements と spec-includes-test-strategy の obvious structural failure だけを今回の移行対象にしている。",
+      "must: runGateFlow() は textCheck() を AI guardrail より先に実行し、issue があれば gateFail(..., evaluations=[], issues) を返す。",
+      "must: executeSpec() は validateSpecJsonObject() が成功した場合だけ checkSpecJson()、checkTasksMonotonic()、validateSpecRepairAudit() を textCheck() として実行する。",
+      "must: src/flow/schemas/spec.schema.json では requirements[].priority は enum 付き optional field である。",
+      "must: src/flow/schemas/spec.schema.json では tasks[].test_strategy は optional string field で、top-level test_strategy は存在しない。",
+      "must: checkSpecJson() は現状 unresolved marker、空の goal / requirements / acceptance_criteria、tasks missing / empty / depth を mechanical issue として返す。",
+      "must: spec-test-coverage は validateTestHeaders() に既存の機械判定があるため、今回の新規移行対象ではない。"
+      ,
+      "must: migration inventory は spec gate public surface に限定する。対象 surface は senti flow run gate --phase spec、RunGateCommand.executeSpec()、checkSpecJson()、gateFail() artifacts.issues / failureKind、--skip-guardrail behavior、spec.schema.json validation boundary、src/presets/base/guardrail.json の AI guardrail definitions である。"
+    ],
+    "decisionPoints": [
+      "must: priority field 欠落だけを checkSpecJson() の対象にし、priority の enum / 空文字 / 不正値は schema validation に委ねる。",
+      "must: tasks[] が存在し非空のときだけ tasks[].test_strategy の欠落または空文字を checkSpecJson() の対象にする。",
+      "must: failure message は field path、array index、対象 id、欠落内容を含め、AI semantic failure と区別できる mechanical issue にする。",
+      "must: skip-guardrail 指定時も textCheck() failure が skip されないことを command-level で検証する。"
+      ,
+      "must: retained behavior mapping は、priority/test_strategy の obvious structural failure を checkSpecJson() owner に移し、schema validation owner、AI semantic judgment owner、guardrail definitions owner、validateTestHeaders() owner は維持する。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 外部依存を追加しない。Node.js 組み込みモジュールと既存 test runner だけを使う。",
+      "must: alpha 版ポリシーに従い、旧 format 互換や deprecated path のための後方互換コードを追加しない。",
+      "must: 同じ判定が 2 箇所以上に出る場合は helper に抽出するが、今回の実装は checkSpecJson() から呼ぶ範囲に閉じる。",
+      "must: src/ 以下にプロジェクト固有情報を入れず、Issue 固有文言は spec/tests の範囲に閉じる。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: exact requirement IDs、task decomposition、acceptance criteria は spec 作成時に Issue #393 の受け入れ条件から写像する。",
+      "must: command-level test の fixture 構成は既存 tests/unit/specs/commands/gate.test.js の helper に合わせて決める。",
+      "should: helper 抽出の要否は実装時に重複の有無を見て決める。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: checkSpecJson() が requirements 4 件以上かつ priority field 欠落の requirement を deterministic issue として返す。",
+      "must: checkSpecJson() が tasks[] 内の test_strategy 欠落または空文字 task を deterministic issue として返す。",
+      "must: priority enum、空文字、不正値は既存 schema validation の責務として扱い、checkSpecJson() で enum validation を二重実装しない。",
+      "must: top-level test_strategy を spec.schema.json に追加しない。",
+      "must: tasks[].test_strategy を schema required にしない。",
+      "must: runGateFlow() の AI guardrail 実行順、skipGuardrail、retry counter、issue-log semantics を変更しない。",
+      "must: spec gate mechanical failure がある場合、AI agent call に進まず gateFail() になる。",
+      "must: spec gate mechanical failure は --skip-guardrail 指定時も issue として返る。",
+      "must: unresolved marker、empty goal、empty requirements、empty acceptance criteria、tasks missing、tasks empty、tasks depth の既存 check を退行させない。",
+      "must: validateTestHeaders() の既存 coverage behavior を退行させない。"
+      ,
+      "must: migration parity inventory covers senti flow run gate --phase spec, checkSpecJson(), validateSpecJsonObject(), gateFail() artifacts, --skip-guardrail behavior, and AI guardrail definitions.",
+      "must: retained behavior mapping keeps schema validation in validateSpecJsonObject(), moves only missing priority/test_strategy structural failure to checkSpecJson(), keeps AI content judgment in guardrail evaluation, keeps spec-test-coverage mechanics in validateTestHeaders(), and removes no public behavior."
+    ],
+    "out": [
+      "must: spec-test-coverage の新規機械判定移行は今回の範囲外。",
+      "must: no-disabling-existing-tests、no-silent-error-swallowing、secret/log literal、bounded-resource-usage など diff 文脈や意味理解が必要な guardrail は今回の範囲外。",
+      "must: completeSpecArtifactChange() への責務移動は今回の必須範囲外。",
+      "must: AI guardrail 定義の削除は今回の範囲外。"
+      ,
+      "must: public command names, CLI flags, output envelope field names, spec schema required fields, and guardrail IDs are not renamed or removed."
+    ]
+  },
+  "impactOnExisting": [
+    "must: spec gate の structural failure は現行どおり artifacts.issues と failureKind mechanical で返る。",
+    "must: AI semantic guardrail は obvious structural failure がない入力に対する内容妥当性判断として残る。",
+    "must: schema validation failure は checkSpecJson() 到達前の schema mechanical failure として残る。",
+    "must: --skip-guardrail は AI guardrail だけを skip し、textCheck() failure を skip しない現行契約を維持する。",
+    "must: senti flow run gate --phase spec keeps the same command and envelope shape while returning new mechanical artifacts.issues for the two migrated structural failures.",
+    "must: gateFail() retained surface keeps artifacts.evaluations, artifacts.reasons, artifacts.issues, artifacts.failureKind, and nextAction semantics; migrated structural failures use the existing mechanical failure path.",
+    "must: validateSpecJsonObject() retained surface keeps enum/type validation for priority values, so invalid priority values remain schema failures before checkSpecJson().",
+    "must: src/presets/base/guardrail.json retained surface keeps prioritize-requirements and spec-includes-test-strategy definitions for semantic adequacy checks after structural precheck passes.",
+    "must: behavior-level verification proves missing priority, missing/empty task test_strategy, skip-guardrail mechanical failure, and existing sanity checks through direct unit tests or command-level gate tests.",
+    "should: failure message の具体化により、修正対象の requirement / task が index と id で特定できる。"
+  ],
+  "qa": [],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-17T02:57:30.000Z",
+    "notes": "User selected Yes for Issue #393 Goal / Scope confirmation before prepare. Worktree and base branch main were also selected."
+  }
+}

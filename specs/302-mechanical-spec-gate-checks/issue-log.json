@@ -1,0 +1,174 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The draft introduces a behavior move (AI semantic guardrail structural checks to checkSpecJson) but does not include an explicit inventory of existing public surfaces being moved/replaced (commands/APIs/hooks/config entries/generated artifacts/side effects).; There is no explicit mapping for each retained behavioral surface to a new owner or explicit removal decision, and no behavior-level acceptance evidence per retained public surface in the migration path.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-17T02:57:50.076Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft",
+            "locator": "scopeVerification.in"
+          },
+          "observed": "The draft introduces a behavior move (AI semantic guardrail structural checks to checkSpecJson) but does not include an explicit inventory of existing public surfaces being moved/replaced (commands/APIs/hooks/config entries/generated artifacts/side effects).",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft",
+            "locator": "scopeVerification.in"
+          },
+          "observed": "There is no explicit mapping for each retained behavioral surface to a new owner or explicit removal decision, and no behavior-level acceptance evidence per retained public surface in the migration path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft introduces a behavior move (AI semantic guardrail structural checks to checkSpecJson) but does not include an explicit inventory of existing public surfaces being moved/replaced (commands/APIs/hooks/config entries/generated artifacts/side effects)."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "There is no explicit mapping for each retained behavioral surface to a new owner or explicit removal decision, and no behavior-level acceptance evidence per retained public surface in the migration path."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft-gate migration-parity guardrail failed because draft lacked explicit retained public surface inventory and behavior-level evidence mapping",
+      "trigger": "senti flow run gate --phase draft returned migration-parity AI semantic FAIL",
+      "resolution": "added migration inventory for spec gate public surfaces, retained-owner mapping, and behavior-level verification entries to draft.json",
+      "guardrailCandidate": "migration-style drafts must inventory retained public surfaces before draft-gate",
+      "taskId": null,
+      "timestamp": "2026-06-17T02:58:22.790Z"
+    },
+    {
+      "step": "spec-repair",
+      "reason": "spec-review found null handling ambiguity because optional null fields are skipped by current schema validation",
+      "trigger": "spec-review FAIL reported priority null and task test_strategy null were not covered by schema or precheck semantics",
+      "resolution": "updated spec requirements acceptance criteria and decisions so null migrated fields are structural absence handled by checkSpecJson",
+      "guardrailCandidate": "specs that rely on schema validation must state optional null behavior when the validator skips null values",
+      "taskId": null,
+      "timestamp": "2026-06-17T03:05:29.499Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Required spec-local coverage location is not provided; the acceptance plan points to `tests/unit/flow/gate-spec-sanity.test.js` and `tests/unit/specs/commands/gate.test.js` instead of `specs/<specid>/tests/`.; No `// spec: R<N> ...` header is specified for new regression test files, so the required spec-linked coverage headers are missing.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-17T03:06:00.638Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria"
+          },
+          "observed": "Required spec-local coverage location is not provided; the acceptance plan points to `tests/unit/flow/gate-spec-sanity.test.js` and `tests/unit/specs/commands/gate.test.js` instead of `specs/<specid>/tests/`.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[].test_strategy"
+          },
+          "observed": "No `// spec: R<N> ...` header is specified for new regression test files, so the required spec-linked coverage headers are missing.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "Required spec-local coverage location is not provided; the acceptance plan points to `tests/unit/flow/gate-spec-sanity.test.js` and `tests/unit/specs/commands/gate.test.js` instead of `specs/<specid>/tests/`."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "No `// spec: R<N> ...` header is specified for new regression test files, so the required spec-linked coverage headers are missing."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec-gate spec-test-coverage failed because spec listed shared unit tests without spec-local tests and spec headers",
+      "trigger": "senti flow run gate --phase spec returned spec-test-coverage AI semantic FAIL",
+      "resolution": "updated acceptance criteria and task test strategies to require specs/302-mechanical-spec-gate-checks/tests/gate-spec-precheck.test.js with spec headers for R1-R6",
+      "guardrailCandidate": "spec acceptance criteria must name spec-local tests and header coverage before spec-gate",
+      "taskId": null,
+      "timestamp": "2026-06-17T03:06:22.461Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review found incomplete R2, R5, and R6 spec-local coverage for schema-boundary, gate-command, and regression behavior.",
+      "trigger": "senti flow run review --phase test returned FAIL with blocking findings for R2 priority boundary coverage, R5 gate behavior coverage, and R6 existing mechanical coverage.",
+      "resolution": "expanded specs/302-mechanical-spec-gate-checks/tests/gate-spec-precheck.test.js to cover non-null invalid priority schema ownership, RunGateCommand skip-guardrail mechanical failure envelope, existing checkSpecJson regressions, validateTestHeaders coverage behavior, and the exactly-three-requirements priority boundary.",
+      "guardrailCandidate": "spec-local coverage must exercise every claimed requirement surface before test-review passes",
+      "taskId": null,
+      "timestamp": "2026-06-17T03:16:21.141Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review still found R5 preservation coverage incomplete after the first spec-local test repair.",
+      "trigger": "senti flow run review --phase test returned FAIL with one blocking finding for retry accounting, issue-log semantics, AI guardrail definitions, and runGateFlow ordering preservation.",
+      "resolution": "expanded the R5 spec-local tests to seed a prior spec issue-log and current git state, assert structural precheck failure wins without issue-log mutation, and assert the retained spec-phase AI guardrail definitions remain loaded.",
+      "guardrailCandidate": "broad preservation requirements should either have focused tests for each retained surface or be split into separately covered requirements",
+      "taskId": null,
+      "timestamp": "2026-06-17T03:17:51.121Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review required explicit R5 coverage for skip-guardrail, retry accounting, and schema-boundary ordering.",
+      "trigger": "senti flow run review --phase test returned FAIL because R5 tests did not include skipGuardrail true and invalid-schema gate ordering cases.",
+      "resolution": "changed the R5 gate-command test to run with skipGuardrail true against a seeded prior issue-log and added an invalid priority schema-failure case proving schema issues return before checkSpecJson task strategy prechecks.",
+      "guardrailCandidate": "coverage for preserved command semantics should name and execute each retained boundary explicitly",
+      "taskId": null,
+      "timestamp": "2026-06-17T03:18:51.510Z"
+    },
+    {
+      "step": "implement",
+      "reason": "implement completion validation failed because file-map entries were missing before marking implement done.",
+      "trigger": "senti flow set step implement done returned IMPLEMENT_COMPLETION_VALIDATION_FAILED with issueCodes file-map-missing.",
+      "resolution": "recorded changed-file mappings for R1 through R6 using senti flow set files, covering the product code and regression test files touched by the implementation.",
+      "guardrailCandidate": "record requirement file mappings before attempting implementation completion",
+      "taskId": null,
+      "timestamp": "2026-06-17T03:24:24.818Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "impl-gate rejected the implementation because the latest test-execute artifact contained failing spec-local requirement tests for R1 through R6.",
+      "trigger": "senti flow run gate returned ARTIFACT_PLACEHOLDER with spec-local requirement tests failed; raw test log showed expectation mismatches in gate-spec-precheck.test.js.",
+      "resolution": "updated the spec-local tests to match current schema error wording, existing gateFail next token, and a task-depth fixture that actually exceeds the depth limit.",
+      "guardrailCandidate": "after test-design repairs, run centralized test-execute again before retrying impl-gate",
+      "taskId": null,
+      "timestamp": "2026-06-17T03:27:27.922Z"
+    }
+  ]
+}

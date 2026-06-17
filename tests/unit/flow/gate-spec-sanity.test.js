@@ -8,9 +8,9 @@ import { checkSpecJson, validateSpecRepairAudit } from "../../../src/flow/lib/ru
 function makeValidSpec() {
   return {
     goal: "Some goal",
-    requirements: [{ id: "REQ-1", desc: "Something" }],
+    requirements: [{ id: "REQ-1", desc: "Something", priority: "must" }],
     acceptance_criteria: ["Criterion 1"],
-    tasks: [{ id: "T-1", parent: null }],
+    tasks: [{ id: "T-1", parent: null, test_strategy: "Run focused unit tests." }],
   };
 }
 
@@ -59,6 +59,78 @@ describe("checkSpecJson — empty-field sanity checks (spec 228)", () => {
     assert.ok(issues.some((i) => /goal/.test(i)));
     assert.ok(issues.some((i) => /requirements/.test(i)));
     assert.ok(issues.some((i) => /acceptance_criteria/.test(i)));
+  });
+
+  it("reports missing requirement priority only when requirements count is greater than three", () => {
+    const spec = {
+      ...makeValidSpec(),
+      requirements: [
+        { id: "R1", desc: "one", priority: "must" },
+        { id: "R2", desc: "two" },
+        { id: "R3", desc: "three", priority: null },
+        { id: "R4", desc: "four", priority: "should" },
+      ],
+    };
+
+    assert.deepEqual(
+      checkSpecJson(spec).filter((issue) => issue.includes(".priority")),
+      [
+        "requirements[1].priority: missing priority for requirement R2 (required when requirements length is greater than 3)",
+        "requirements[2].priority: missing priority for requirement R3 (required when requirements length is greater than 3)",
+      ],
+    );
+
+    const shortSpec = {
+      ...makeValidSpec(),
+      requirements: [
+        { id: "R1", desc: "one" },
+        { id: "R2", desc: "two" },
+        { id: "R3", desc: "three" },
+      ],
+    };
+    assert.deepEqual(
+      checkSpecJson(shortSpec).filter((issue) => issue.includes(".priority")),
+      [],
+    );
+  });
+
+  it("reports missing, null, and blank task test strategies", () => {
+    const spec = {
+      ...makeValidSpec(),
+      tasks: [
+        { id: "T-1", parent: null },
+        { id: "T-2", parent: null, test_strategy: null },
+        { id: "T-3", parent: null, test_strategy: "   " },
+        { id: "T-4", parent: null, test_strategy: "Run focused unit tests." },
+      ],
+    };
+
+    assert.deepEqual(
+      checkSpecJson(spec).filter((issue) => issue.includes(".test_strategy")),
+      [
+        "tasks[0].test_strategy: missing test strategy for task T-1",
+        "tasks[1].test_strategy: missing test strategy for task T-2",
+        "tasks[2].test_strategy: missing test strategy for task T-3",
+      ],
+    );
+  });
+
+  it("returns deterministic priority issues before task strategy issues", () => {
+    const spec = {
+      ...makeValidSpec(),
+      requirements: [
+        { id: "R1", desc: "one", priority: "must" },
+        { id: "R2", desc: "two" },
+        { id: "R3", desc: "three", priority: "should" },
+        { id: "R4", desc: "four", priority: "nice-to-have" },
+      ],
+      tasks: [{ id: "T-1", parent: null }],
+    };
+
+    assert.deepEqual(checkSpecJson(spec), [
+      "requirements[1].priority: missing priority for requirement R2 (required when requirements length is greater than 3)",
+      "tasks[0].test_strategy: missing test strategy for task T-1",
+    ]);
   });
 });
 

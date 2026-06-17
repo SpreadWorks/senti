@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied the null-handling clarification required by spec review.",
+  "items": [
+    {
+      "title": "Optional null values are not schema-owned today",
+      "target": "R2, R3, Acceptance Criteria",
+      "decision": "applied",
+      "rationale": "Clarified that optional null values for migrated fields are structural absence handled by checkSpecJson(), while non-null invalid priority values remain schema-owned.",
+      "evidence": "spec.json overview.decisions[4], requirements R1-R3, acceptance_criteria[4], and tasks[0].acceptance/test_strategy now cover null handling.",
+      "changedFields": [
+        "overview.decisions[4]",
+        "requirements[0].desc",
+        "requirements[1].desc",
+        "requirements[2].desc",
+        "acceptance_criteria[4]",
+        "tasks[0].acceptance[0]",
+        "tasks[0].test_strategy"
+      ]
+    }
+  ]
+}
