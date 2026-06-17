@@ -58,6 +58,25 @@ function buildAgentMetricEntry(phase, { usage, responseChars, model, durationMs,
   };
 }
 
+function shouldPersistFinalizeMetricToSidecar(flowManager, context) {
+  if (!flowManager || !context?.spec || !String(context.sentiPhase || "").startsWith("finalize-")) return false;
+  try {
+    const state = flowManager.loadReadOnly(context.spec);
+    return state?.worktree === true;
+  } catch (_) {
+    return false;
+  }
+}
+
+async function persistFinalizeMetricToSidecar(flowManager, context, metric) {
+  const { recordFinalizeCleanupPostCommandMetadata } = await import("../flow/lib/run-finalize-cleanup.js");
+  recordFinalizeCleanupPostCommandMetadata({
+    flowManager,
+    specId: context.spec,
+    metrics: [metric],
+  });
+}
+
 class Agent {
   /**
    * @param {Object} opts
@@ -513,13 +532,8 @@ async function recordPromptCacheHit({ flowManager, context, provider, profileKey
       cachedResponse: true,
       responseChars: textStats(text).chars,
     };
-    if (context.sentiPhase === "finalize-cleanup" && context.spec) {
-      const { recordFinalizeCleanupPostCommandMetadata } = await import("../flow/lib/run-finalize-cleanup.js");
-      recordFinalizeCleanupPostCommandMetadata({
-        flowManager,
-        specId: context.spec,
-        metrics: [metric],
-      });
+    if (shouldPersistFinalizeMetricToSidecar(flowManager, context)) {
+      await persistFinalizeMetricToSidecar(flowManager, context, metric);
       return;
     }
     flowManager.appendMetric(metric, { specId: context.spec, taskId: context.taskId ?? null });
@@ -812,13 +826,8 @@ async function runWithLogging({ logger, flowManager, command, systemPrompt, prom
             model: null,
             durationMs,
           });
-          if (ctx.sentiPhase === "finalize-cleanup" && ctx.spec) {
-            const { recordFinalizeCleanupPostCommandMetadata } = await import("../flow/lib/run-finalize-cleanup.js");
-            recordFinalizeCleanupPostCommandMetadata({
-              flowManager,
-              specId: ctx.spec,
-              metrics: [metric],
-            });
+          if (shouldPersistFinalizeMetricToSidecar(flowManager, ctx)) {
+            await persistFinalizeMetricToSidecar(flowManager, ctx, metric);
           } else {
             flowManager.accumulateAgentMetrics(ctx.sentiPhase, {
               provider,
