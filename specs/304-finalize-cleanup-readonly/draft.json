@@ -1,0 +1,106 @@
+{
+  "devType": "bugfix",
+  "goal": "must: finalize-cleanup 開始後に削除対象 worktree 内の flow.json や関連 artifact を cleanup コマンド自身が変更して dirty にしないようにし、明示的な --force 指定時は dirty な worktree でも git worktree remove --force 相当で削除できるようにする。",
+  "analysis": {
+    "problem": "Spec #303 の finalize-cleanup 中に cleanup コマンド側の metrics 追記が削除対象 worktree 内の specs/<spec>/flow.json を変更し、git worktree remove が dirty worktree と判定して失敗した。must: cleanup は main 側へ反映済みの最終状態を確認して worktree を削除する責務に限定し、target worktree へ後続書き込みを発生させない。",
+    "proposedApproach": "must: finalize-cleanup コマンド開始後は target worktree を read-only とみなし、cleanup 中の flow state、metrics、notes、issue-log、plugin artifact、runtime log などの永続先を main repo 側または cleanup 外の durable location に限定し、--force 指定時は dirty worktree の異常系でも git worktree remove --force 相当を実行する。",
+    "validation": "Issue #396 は root cause、対象コマンド、受け入れ条件、force 異常系を明示している。src/flow/lib/run-finalize-cleanup.js は finalize-cleanup の teardown、metadata sync、worktree remove、force teardown を担当し、src/lib/finalize-cleanup-paths.js は cleanup 用 durable path relocation を提供するため、must: target worktree への書き込み経路と force removal の検証で root problem を直接扱える。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #396 は cleanup 開始後に target worktree 内のファイルを変更しないことを要求している。",
+      "must: Issue #396 は metrics / logs / notes が target worktree を dirty にしないことを要求している。",
+      "must: Issue #396 は dirty worktree が外部要因で残った場合、finalize-cleanup --force が明示的な force cleanup として機能することを要求している。",
+      "must: src/flow/lib/run-finalize-cleanup.js は finalize-cleanup の metadata sync、step status 更新、commit、worktree remove、branch delete をまとめて扱う。",
+      "must: src/lib/finalize-cleanup-paths.js は finalize-cleanup 用に worktree 内 path を main repo 側へ relocation する resolver を提供している。",
+      "must: Issue #396 は target worktree 内の plugin artifacts を cleanup 開始後の書き込み禁止対象として明示している。",
+      "must: finalize-cleanup --force は dirty root files と initialized submodule dirty state のどちらでも git worktree remove --force 相当として扱う。",
+      "must: migration parity inventory は senti flow run finalize-cleanup コマンド、flow.json final state commit、step status update、issue-log audit、metrics / notes / runtime log persistence、plugin finalize-cleanup hook artifact flow、embedded finalize report、.senti/last-finalized-spec、active-flow clear、worktree remove、feature branch delete を retained public behavior として扱う。"
+    ],
+    "decisionPoints": [
+      "must: target worktree read-only の開始点は finalize-cleanup コマンドの args validation 後、削除対象 worktree が特定された時点とする。",
+      "must: cleanup 中に許可される書き込み先を main repo 側、.senti/last-finalized-spec、durable agent work dir、runtime log location に限定する。",
+      "must: --force が orphan drop の意味だけでなく dirty worktree remove にも効くことを明示する。",
+      "must: retained public behavior は removal ではなく owner relocation として扱い、target worktree への cleanup-time write だけを禁止する。"
+    ],
+    "resolvedByProjectRules": [
+      "must: Issue は 1 つの concern として扱い、read-only cleanup と --force dirty removal を同一 spec 内で扱う。",
+      "must: 外部依存を追加せず、Node.js 組み込みモジュールと既存 git helper を使う。",
+      "must: src/ 以下に特定プロジェクト固有の情報を入れない。Issue 番号や過去 spec は spec/test artifact 側の文脈に留める。",
+      "must: 既存の cleanup path resolver や FlowManager / FlowStore の責務に合わせ、同じ path relocation パターンを使う。",
+      "must: finalize-cleanup の retained behavior mapping は main repo FlowManager / FlowStore、FinalizeCleanupPathResolver、runtime log facility、plugin lifecycle envelope、removeWorktreeForCleanup の既存責務へ割り当てる。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: target worktree read-only 境界の正確な検証方法を tasks と acceptance criteria に落とし込む。",
+      "must: regression test は cleanup 中の metrics append が flow.json を dirty にして remove 失敗する再現を検知する。",
+      "should: force cleanup のテストは既存 tests/unit/flow/finalize-cleanup-robustness.test.js または e2e worktree finalize tests の既存 fixture に寄せる。",
+      "must: plugin lifecycle hook の artifact 書き込み先は target worktree ではなく main/durable 側に限定できるよう spec で検証対象に含める。",
+      "must: behavior-level verification は flow.json final state commit、step status done、issue-log audit persistence、cleanup-time metrics append relocation、plugin hook artifact relocation、embedded report / hook warning preservation、.senti/last-finalized-spec update、active-flow clear、normal worktree removal、feature branch delete、dirty worktree --force removal をそれぞれ確認する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: finalize-cleanup 開始後、削除対象 worktree 内の specs/<spec>/flow.json、issue-log、plugin artifact、runtime-derived artifact を変更しない。",
+      "must: cleanup 実行中の metrics / logs / notes / recovery note は target worktree 外へ書くか、cleanup 前段で完了させる。",
+      "must: main repo 側の .senti/last-finalized-spec、final flow state、final report attachment、active-flow cleanup は維持する。",
+      "must: dirty worktree が外部要因で残る異常系で、finalize-cleanup --force が git worktree remove --force 相当の削除を行う。",
+      "must: flow.json metrics append による worktree remove failure を検知できる regression coverage を追加する。",
+      "must: retained public behavior の inventory と owner mapping を spec requirements に含め、削除対象 worktree から移る書き込みの新 owner を明示する。",
+      "must: migration parity verification は final flow state、step status、issue-log audit、report envelope、plugin hook result、runtime/metrics persistence、last-finalized pointer、active-flow clear、worktree/branch teardown の各 public surface を少なくとも 1 件ずつ検証する。"
+    ],
+    "out": [
+      "must: finalize-commit / finalize-sync の通常責務や merge strategy の再設計は対象外。",
+      "must: plugin framework 全体の lifecycle API 変更は対象外。ただし cleanup hook が target worktree を dirty にする場合の扱いは spec 内で境界を定義する。",
+      "must: 過去 spec #303 の artifact 修復や履歴改変は対象外。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: worktree mode の finalize-cleanup 成功率に直接影響する。通常 cleanup は clean worktree removal を継続しつつ、cleanup 自身の後続書き込みで dirty 化しない必要がある。",
+    "must: finalize-cleanup --force の semantics に影響する。orphan drop の明示 force に加え、dirty worktree removal にも force が伝播する必要がある。",
+    "should: metrics / notes / runtime log の保存先や append timing に影響する可能性があるため、flow status / metrics token / report で必要な最終情報が失われないことを確認する。",
+    "should: plugin finalize-cleanup hook の artifact 書き込み先に影響する可能性があるため、hook warnings / followUps の envelope 反映は維持する。",
+    "must: migration parity の観点で、既存の cleanup user-facing command behavior と observable side effects は削除せず、target worktree 書き込みだけを main/durable 側へ移す。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "must: finalize-cleanup の plugin lifecycle hook は、cleanup 開始後に target worktree 内へ artifact を書くことを禁止し、main repo 側または durable agent work dir に限定する、という境界で進めてよいですか。",
+      "answer": "はい。must: cleanup 開始後の plugin artifact は target worktree 内へ書かず、main repo 側または cleanup 用 durable location に限定する。",
+      "evidence": "Issue #396 Approach: target worktree 内の flow.json、issue logs、plugin artifacts などへ新規書き込み・追記・変更をしない。src/flow/lib/run-finalize-cleanup.js は finalize-cleanup の plugin lifecycle を実行する。",
+      "why": "plugin hook が target worktree に artifact を作ると、cleanup コマンド自身以外の書き込みでも worktree remove を妨げる。同じ read-only 境界に含めると受け入れ条件の「After finalize-cleanup starts, files inside the target worktree are not modified」と一致する。",
+      "considered": "plugin hook は対象外にする案もあるが、Issue 本文が plugin artifacts を禁止対象として明示しているため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "must: finalize-cleanup --force は、root worktree の dirty files だけでなく initialized submodule に dirty state が残る場合も git worktree remove --force 相当の削除対象に含めてよいですか。",
+      "answer": "はい。must: --force は外部要因で dirty な worktree を明示的に削除する recovery path なので、root dirty files と initialized submodule dirty state のどちらも git worktree remove --force 相当の対象に含める。",
+      "evidence": "Issue #396 Additional Issue: 外部要因で dirty が残る異常系の防御線として finalize-cleanup --force が実際に git worktree remove --force 相当を実行すること。src/flow/lib/run-finalize-cleanup.js には submodule cleanup failure の専用診断と force removal path がある。",
+      "why": "Issue は dirty の原因を cleanup 自身の metrics だけに限定していない。--force はユーザーが明示的に削除を選ぶ recovery path なので、Git の worktree force semantics に寄せる必要がある。",
+      "considered": "submodule dirty state は従来どおり halt する案もあるが、--force が通常 remove と同じエラーになる問題を残すため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "must: regression coverage は、cleanup 実行中の metrics append が target worktree の flow.json ではなく main/durable 側へ向かい、worktree remove が失敗しないことを検証する形で十分ですか。",
+      "answer": "はい。must: regression coverage は cleanup 実行中の metrics append が target worktree の flow.json を dirty にせず、worktree remove が成功することに加え、retained public behavior の final state、step status、issue-log audit、report、plugin hook result、last-finalized pointer、active-flow clear、branch delete、force removal を検証する。",
+      "evidence": "Issue #396 Acceptance Criteria: regression test または spec-local reproduction test で、cleanup 中の flow.json metrics 追記による worktree remove failure を検知できること。",
+      "why": "失敗原因は cleanup 中の metrics append が target worktree の flow.json を変更したことなので、書き込み先と remove 成功を同時に確認する test が root problem を直接再現する。migration parity guardrail により、移管される retained public behavior も behavior-level に検証する必要がある。",
+      "considered": "単に --force removal だけを検証する案もあるが、通常 cleanup の read-only regression と migration parity を検知できないため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-17T08:10:55.000Z",
+    "notes": "autoApprove: Issue #396 and draft-refine resolved all QA entries without unresolved user decisions."
+  }
+}

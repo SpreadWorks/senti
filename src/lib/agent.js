@@ -23,6 +23,7 @@ import { generateRequestId } from "./log.js";
 import { ProviderRegistry } from "./provider.js";
 import { formatPreview } from "./error-preview.js";
 import { defaultAgentProfiles } from "./agent-defaults.js";
+import { normalizeAgentMetricDimension } from "./agent-metrics.js";
 
 const DEFAULT_AGENT_TIMEOUT_MS = 300_000;
 const DEFAULT_STDIN_FALLBACK_THRESHOLD = 100_000;
@@ -34,6 +35,28 @@ const DEFAULT_PROVIDER_FAMILY_ALIASES = Object.freeze({
   codex: "codex/gpt-5.4",
   claude: "claude/sonnet",
 });
+
+function buildAgentMetricEntry(phase, { usage, responseChars, model, durationMs, provider, profileKey } = {}) {
+  return {
+    phase,
+    kind: "agent",
+    provider: normalizeAgentMetricDimension(provider),
+    profileKey: normalizeAgentMetricDimension(profileKey),
+    callCount: 1,
+    responseChars: responseChars || 0,
+    ...(durationMs != null && { durationMs }),
+    ...(model && { model }),
+    ...(usage && {
+      tokens: {
+        input: usage.input_tokens || 0,
+        output: usage.output_tokens || 0,
+        cacheRead: usage.cache_read_tokens || 0,
+        cacheCreation: usage.cache_creation_tokens || 0,
+      },
+      ...(usage.cost_usd != null && { cost: usage.cost_usd }),
+    }),
+  };
+}
 
 class Agent {
   /**
@@ -109,7 +132,7 @@ class Agent {
     const promptCache = this._resolvePromptCache(resolved, prompt, opts);
     const hit = promptCache?.cache.get(promptCache.key);
     if (hit != null) {
-      recordPromptCacheHit({
+      await recordPromptCacheHit({
         flowManager: this._flowManager,
         context: promptCache.context,
         provider: resolved.providerKey,
@@ -478,10 +501,10 @@ function resolvePromptCacheContext(flowManager) {
   }
 }
 
-function recordPromptCacheHit({ flowManager, context, provider, profileKey, text }) {
+async function recordPromptCacheHit({ flowManager, context, provider, profileKey, text }) {
   if (!flowManager || !context?.sentiPhase) return;
   try {
-    flowManager.appendMetric({
+    const metric = {
       phase: context.sentiPhase,
       kind: "agent-cache",
       provider,
@@ -489,7 +512,17 @@ function recordPromptCacheHit({ flowManager, context, provider, profileKey, text
       callCount: 0,
       cachedResponse: true,
       responseChars: textStats(text).chars,
-    }, { specId: context.spec, taskId: context.taskId ?? null });
+    };
+    if (context.sentiPhase === "finalize-cleanup" && context.spec) {
+      const { recordFinalizeCleanupPostCommandMetadata } = await import("../flow/lib/run-finalize-cleanup.js");
+      recordFinalizeCleanupPostCommandMetadata({
+        flowManager,
+        specId: context.spec,
+        metrics: [metric],
+      });
+      return;
+    }
+    flowManager.appendMetric(metric, { specId: context.spec, taskId: context.taskId ?? null });
   } catch (err) {
     process.stderr.write(`[senti] agent: cache-hit metric failed: ${err.message}\n`);
   }
@@ -771,7 +804,7 @@ async function runWithLogging({ logger, flowManager, command, systemPrompt, prom
         const ctx = flowManager.resolveCurrentContext();
         if (ctx.sentiPhase) {
           const durationMs = Math.max(0, Math.round(Date.now() - startedAt));
-          flowManager.accumulateAgentMetrics(ctx.sentiPhase, {
+          const metric = buildAgentMetricEntry(ctx.sentiPhase, {
             provider,
             profileKey,
             usage,
@@ -779,6 +812,23 @@ async function runWithLogging({ logger, flowManager, command, systemPrompt, prom
             model: null,
             durationMs,
           });
+          if (ctx.sentiPhase === "finalize-cleanup" && ctx.spec) {
+            const { recordFinalizeCleanupPostCommandMetadata } = await import("../flow/lib/run-finalize-cleanup.js");
+            recordFinalizeCleanupPostCommandMetadata({
+              flowManager,
+              specId: ctx.spec,
+              metrics: [metric],
+            });
+          } else {
+            flowManager.accumulateAgentMetrics(ctx.sentiPhase, {
+              provider,
+              profileKey,
+              usage,
+              responseChars: responseStats.chars,
+              model: null,
+              durationMs,
+            });
+          }
         }
       } catch (metricErr) {
         process.stderr.write(`[senti] agent: metric accumulation failed: ${metricErr.message}\n`);

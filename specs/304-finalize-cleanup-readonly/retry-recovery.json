@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "Changed evidence after preserving repeated cleanup sidecar metric writes in run-finalize-cleanup.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "aa9d1e5247e72fac92e3d3b95a511418ad1ad21111ba9c72e938657fdfa8c052",
+        "currentHash": "ffa6fd0601ab3f7908e5d9fca877c6d362dd1a703585f379c62650fcb5e79da1",
+        "changedPaths": [
+          "specs/304-finalize-cleanup-readonly/spec.json",
+          "src/flow/lib/run-finalize-cleanup.js",
+          "src/lib/agent.js",
+          "src/lib/dispatcher.js",
+          "src/lib/finalize-cleanup-paths.js",
+          "src/lib/plugin-registry.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"Changed evidence after preserving repeated cleanup sidecar metric writes in run-finalize-cleanup.\" --yes",
+      "createdAt": "2026-06-17T09:41:20.223Z"
+    }
+  ]
+}

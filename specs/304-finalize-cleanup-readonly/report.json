@@ -1,0 +1,294 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".../acceptance-review-evidence.json                |   14 +\n .../acceptance-review.json                         |   34 +\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-gate-source.json                         |  120 ++\n .../draft-questions-repair.json                    |    8 +\n .../draft-questions-triage.json                    |    8 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   11 +\n specs/304-finalize-cleanup-readonly/draft.json     |  106 ++\n specs/304-finalize-cleanup-readonly/file-map.json  |   31 +\n .../flow-findings.json                             |   16 +\n specs/304-finalize-cleanup-readonly/flow.json      | 1487 ++++++++++++++++++++\n .../304-finalize-cleanup-readonly/impl-review.json |   28 +\n specs/304-finalize-cleanup-readonly/issue-log.json |  236 ++++\n specs/304-finalize-cleanup-readonly/issue.md       |   80 ++\n .../plugin-artifacts/workflow/prepare.json         |   10 +\n .../retry-recovery.json                            |   33 +\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |   14 +\n .../review-history/impl-attempt-001.json           |   69 +\n .../review-history/impl-attempt-001.md             |   29 +\n .../review-history/impl-attempt-002.json           |   69 +\n .../review-history/impl-attempt-002.md             |   29 +\n .../review-history/impl-attempt-003.json           |   31 +\n .../review-history/impl-attempt-003.md             |   16 +\n .../review-history/impl-attempt-004.json           |   52 +\n .../review-history/impl-attempt-004.md             |   23 +\n .../review-history/impl-attempt-005.json           |   52 +\n .../review-history/impl-attempt-005.md             |   23 +\n .../review-history/impl-attempt-006.json           |   52 +\n .../review-history/impl-attempt-006.md             |   23 +\n .../review-history/impl-attempt-007.json           |   51 +\n .../review-history/impl-attempt-007.md             |   22 +\n .../review-history/impl-attempt-008.json           |   31 +\n .../review-history/impl-attempt-008.md             |   16 +\n .../review-history/spec-attempt-001.json           |   74 +\n .../review-history/spec-attempt-001.md             |   24 +\n .../review-history/test-attempt-001.json           |   48 +\n .../review-history/test-attempt-001.md             |   18 +\n .../review-history/test-attempt-002.json           |   70 +\n .../review-history/test-attempt-002.md             |   24 +\n .../review-history/test-attempt-003.json           |  105 ++\n .../review-history/test-attempt-003.md             |   33 +\n .../review-history/test-attempt-004.json           |   66 +\n .../review-history/test-attempt-004.md             |   21 +\n .../review-history/test-attempt-005.json           |   48 +\n .../review-history/test-attempt-005.md             |   18 +\n specs/304-finalize-cleanup-readonly/review.md      |   16 +\n .../304-finalize-cleanup-readonly/spec-repair.json |   24 +\n .../304-finalize-cleanup-readonly/spec-review.json |   40 +\n specs/304-finalize-cleanup-readonly/spec-review.md |   24 +\n .../304-finalize-cleanup-readonly/spec-triage.json |   15 +\n specs/304-finalize-cleanup-readonly/spec.json      |  247 ++++\n specs/304-finalize-cleanup-readonly/spec.md        |  112 ++\n specs/304-finalize-cleanup-readonly/tasks/T-1.md   |   21 +\n specs/304-finalize-cleanup-readonly/tasks/T-2.md   |   20 +\n specs/304-finalize-cleanup-readonly/tasks/T-3.md   |   20 +\n .../test-coverage.json                             |   86 ++\n .../304-finalize-cleanup-readonly/test-review.json |   35 +\n specs/304-finalize-cleanup-readonly/test-review.md |   18 +\n .../tests/finalize-cleanup-readonly.test.js        |  674 +++++++++\n src/flow/lib/run-finalize-cleanup.js               |  217 ++-\n src/lib/agent.js                                   |   60 +-\n src/lib/dispatcher.js                              |   27 +-\n src/lib/finalize-cleanup-paths.js                  |   48 +\n src/lib/plugin-registry.js                         |    3 +\n 67 files changed, 5095 insertions(+), 26 deletions(-)",
+      "commits": [
+        "fix: keep finalize cleanup worktree read-only"
+      ]
+    },
+    "retro": {
+      "total": 6,
+      "done": 6,
+      "partial": 0,
+      "not_done": 0,
+      "not_applicable_count": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "After finalize-cleanup resolves the target worktree, cleanup-time flow state, metrics, notes, issue-log, runtime-derived, and plugin artifact writes must not create or modify files under that target worktree.",
+          "status": "done",
+          "note": "R1: cleanup write policy relocates flow and plugin artifact writes away from target worktree"
+        },
+        {
+          "desc": "Retained finalize-cleanup surfaces must still be persisted or reported through the main repository FlowManager/FlowStore before the final flow.json commit, or through a durable non-worktree sidecar/runtime log for dispatcher and agent metadata produced after that commit.",
+          "status": "done",
+          "note": "R2: retained finalize-cleanup surfaces have durable owners outside the removable worktree"
+        },
+        {
+          "desc": "After the final flow.json snapshot is committed during finalize-cleanup, dispatcher-owned runtimeLog completion and agent metric writes must not mutate the committed flow.json; they must persist to target-worktree-external durable storage.",
+          "status": "done",
+          "note": "R6: post-command runtime and metric metadata use sidecar storage instead of final flow.json"
+        },
+        {
+          "desc": "`senti flow run finalize-cleanup --force` must call git worktree removal with force semantics for dirty root files and initialized submodule dirty state caused by external factors.",
+          "status": "done",
+          "note": "R3: forced finalize-cleanup removal passes --force to git worktree remove for dirty worktrees"
+        },
+        {
+          "desc": "Spec-local regression tests must cover cleanup-time metrics append relocation, retained public finalize-cleanup surfaces, normal worktree removal, feature branch deletion, and dirty worktree force removal.",
+          "status": "done",
+          "note": "R4: regression hooks cover read-only cleanup and force-removal scenarios"
+        },
+        {
+          "desc": "Existing finalize-cleanup report warnings, plugin hook warning/follow-up data, and recovery envelopes must remain available to callers after write relocation.",
+          "status": "done",
+          "note": "R5: report and plugin hook outputs remain observable through durable cleanup owners"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 20,
+      "fullLogPath": "specs/304-finalize-cleanup-readonly/issue-log.json",
+      "importantTotal": 13,
+      "importantShown": 10,
+      "importantOmitted": 3,
+      "recentOtherTotal": 7,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 2,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "where contains unknown property \"line\"",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "gate FAIL (no details)",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "where contains unknown property \"line\"",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "gate FAIL (no details)",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "draft gate failed before verdict because AI output included schema-unknown where.line property",
+          "resolution": "removed unresolved-looking draft wording and added explicit priority markers before rerunning draft gate"
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "draft gate failed migration parity because retained finalize-cleanup behavior inventory and owner mapping were missing",
+          "resolution": "added retained behavior inventory, owner mapping, and behavior-level verification requirements to draft.json"
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "AI evaluation response is not valid JSON: Expected double-quoted property name in JSON at position 192 (line 1 column 193)",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "gate FAIL (no details)",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "AI evaluation response is not valid JSON: Expected double-quoted property name in JSON at position 192 (line 1 column 193)",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "gate FAIL (no details)",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: regenerated stale test evidence after review repairs",
+          "resolution": "Re-ran test-execute and test-result-review so R1/R3 artifacts match the current finalize-cleanup implementation before retrying impl-gate."
+        },
+        {
+          "classification": "recent-other",
+          "step": "implement",
+          "reason": "fix: wired finalize-cleanup post-command metadata writers",
+          "resolution": "Dispatcher now persists closed finalize-cleanup runtime metadata to durable cleanup sidecar storage, and agent metric accumulation routes finalize-cleanup metrics to the same sidecar instead of flow.json."
+        },
+        {
+          "classification": "recent-other",
+          "step": "implement",
+          "reason": "fix: moved finalize-cleanup runtime log root outside worktree",
+          "resolution": "Dispatcher runtime log writer now uses the main repository root for finalize-cleanup in worktree mode, so the actual .tmp/logs artifact is not opened under the target worktree."
+        },
+        {
+          "classification": "recent-other",
+          "step": "implement",
+          "reason": "fix: routed finalize-cleanup prompt-cache metrics outside worktree",
+          "resolution": "Prompt cache-hit metric recording now uses recordFinalizeCleanupPostCommandMetadata during finalize-cleanup, preserving agent-cache fields in durable sidecar storage instead of appending to flow.json."
+        },
+        {
+          "classification": "recent-other",
+          "step": "implement",
+          "reason": "fix: preserved repeated cleanup sidecar metrics",
+          "resolution": "recordFinalizeCleanupPostCommandMetadata now appends entry-style sidecar payloads for agent metrics, notes, and plugin artifacts instead of overwriting earlier cleanup metadata writes."
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 10
+    },
+    "tokenMetrics": {
+      "input": 1470422,
+      "output": 151294,
+      "cacheRead": 5894912,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 29,
+      "durationMs": 2127056,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 21077
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 18398
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 47538
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 319296
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 12084
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 128454
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 1440040
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 140169
+        }
+      ]
+    },
+    "tests": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/304-finalize-cleanup-readonly/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "specs/304-finalize-cleanup-readonly/",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-finalize-cleanup.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/finalize-cleanup-paths.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/plugin-registry.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/304-finalize-cleanup-readonly/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-finalize-cleanup.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/finalize-cleanup-paths.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/plugin-registry.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/304-finalize-cleanup-readonly/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-finalize-cleanup.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/finalize-cleanup-paths.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/plugin-registry.js"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "skipKind": null,
+        "rawOutputPath": "specs/304-finalize-cleanup-readonly/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    fix: keep finalize cleanup worktree read-only\n    67 files changed, 5095 insertions(+), 26 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (6 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 10\n    agent calls ................. 29\n    input tokens ................ 1,470,422\n    output tokens ............... 151,294\n    cache-read tokens ........... 5,894,912\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 2127.1s\n      draft-questions-review .... 21.1s\n      draft-coverage-review ..... 18.4s\n      draft-gate ................ 47.5s\n      spec-review ............... 319.3s\n      spec-gate ................. 12.1s\n      test-review ............... 128.5s\n      impl-review ............... 1440.0s\n      impl-gate ................. 140.2s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 6  passed 6  failed 0 verdict=pass\n    raw_output: specs/304-finalize-cleanup-readonly/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=pass\n\n  Issue Log Summary (20 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/304-finalize-cleanup-readonly/issue-log.json\n\n    Important (10 of 13)\n    - [draft-gate] where contains unknown property \"line\"\n    - [draft-gate] gate FAIL (no details)\n    - [draft-gate] where contains unknown property \"line\"\n    - [draft-gate] gate FAIL (no details)\n    - [draft-gate] draft gate failed before verdict because AI output included schema-unknown where.line property\n    - [draft-gate] draft gate failed migration parity because retained finalize-cleanup behavior inventory and owner mapping were missing\n    - [draft-gate] AI evaluation response is not valid JSON: Expected double-quoted property name in JSON at position 192 (line 1 column 193)\n    - [draft-gate] gate FAIL (no details)\n    - [draft-gate] AI evaluation response is not valid JSON: Expected double-quoted property name in JSON at position 192 (line 1 column 193)\n    - [draft-gate] gate FAIL (no details)\n    ... 3 important issue-log entries omitted\n\n    Recent Other (5 of 7)\n    - [impl-gate] fix: regenerated stale test evidence after review repairs\n    - [implement] fix: wired finalize-cleanup post-command metadata writers\n    - [implement] fix: moved finalize-cleanup runtime log root outside worktree\n    - [implement] fix: routed finalize-cleanup prompt-cache metrics outside worktree\n    - [implement] fix: preserved repeated cleanup sidecar metrics\n    ... 2 other issue-log entries omitted"
+}

@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "The draft includes behavior migration (moving cleanup artifacts/metrics/log destinations off the target worktree) but does not provide the required inventory of existing public behavior being moved or replaced at the level requested by the guardrail (commands/APIs/hooks/config entries/side effects).",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "scopeVerification.in"
+          },
+          "observed": "The draft includes behavior migration (moving cleanup artifacts/metrics/log destinations off the target worktree) but does not provide the required inventory of existing public behavior being moved or replaced at the level requested by the guardrail (commands/APIs/hooks/config entries/side effects).",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "No explicit mapping is defined from each retained public behavior to its new owner; the spec identifies components affected but never maps each retained surface (for example: flow state sync, step status updates, plugin-hook artifact flow) to a replacement owner or an explicit removal decision.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "decisionMap.knownFacts"
+          },
+          "observed": "No explicit mapping is defined from each retained public behavior to its new owner; the spec identifies components affected but never maps each retained surface (for example: flow state sync, step status updates, plugin-hook artifact flow) to a replacement owner or an explicit removal decision.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "Only one behavior-level regression check is defined (metrics append/flow.json dirtying and remove success), while multiple retained public surfaces listed for continued support are not accompanied by behavior-level verification through the new path.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "scopeVerification.in & qa[2]"
+          },
+          "observed": "Only one behavior-level regression check is defined (metrics append/flow.json dirtying and remove success), while multiple retained public surfaces listed for continued support are not accompanied by behavior-level verification through the new path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "content",
+        "locator": "scopeVerification.in"
+      },
+      "observed": "The draft includes behavior migration (moving cleanup artifacts/metrics/log destinations off the target worktree) but does not provide the required inventory of existing public behavior being moved or replaced at the level requested by the guardrail (commands/APIs/hooks/config entries/side effects).",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "content",
+        "locator": "decisionMap.knownFacts"
+      },
+      "observed": "No explicit mapping is defined from each retained public behavior to its new owner; the spec identifies components affected but never maps each retained surface (for example: flow state sync, step status updates, plugin-hook artifact flow) to a replacement owner or an explicit removal decision.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "content",
+        "locator": "scopeVerification.in & qa[2]"
+      },
+      "observed": "Only one behavior-level regression check is defined (metrics append/flow.json dirtying and remove success), while multiple retained public surfaces listed for continued support are not accompanied by behavior-level verification through the new path.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    }
+  ]
+}

@@ -34,6 +34,7 @@ import os from "os";
 import path from "path";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { specIdFromPath } from "../../lib/flow-helpers.js";
+import { FinalizeCleanupPathResolver } from "../../lib/finalize-cleanup-paths.js";
 import { runGit } from "../../lib/git-helpers.js";
 import { FlowCommand } from "./base-command.js";
 import { writeLastFinalizedPointer } from "./run-finalize.js";
@@ -192,8 +193,8 @@ function isSubmoduleWorktreeRemoveFailure(res) {
   return /working trees containing submodules cannot be moved or removed/i.test(text);
 }
 
-function listInitializedSubmodules(worktreePath) {
-  const res = runGit(["-C", worktreePath, "submodule", "status"]);
+function listInitializedSubmodules(worktreePath, runGitFn = runGit) {
+  const res = runGitFn(["-C", worktreePath, "submodule", "status"]);
   if (!res.ok) {
     const failure = statusFailure("submodule-list", worktreePath, res);
     return { ok: false, statusFailures: [failure.failure], truncated: failure.truncated };
@@ -208,9 +209,9 @@ function listInitializedSubmodules(worktreePath) {
   return { ok: true, paths };
 }
 
-function inspectSubmoduleWorktreeCleanliness(worktreePath) {
+function inspectSubmoduleWorktreeCleanliness(worktreePath, runGitFn = runGit) {
   let truncated = false;
-  const rootStatus = runGit(["-C", worktreePath, "status", "--porcelain", "--untracked-files=all"]);
+  const rootStatus = runGitFn(["-C", worktreePath, "status", "--porcelain", "--untracked-files=all"]);
   if (!rootStatus.ok) {
     const failure = statusFailure("worktree", worktreePath, rootStatus);
     return { ok: false, statusFailures: [failure.failure], truncated: failure.truncated };
@@ -219,14 +220,14 @@ function inspectSubmoduleWorktreeCleanliness(worktreePath) {
   const root = boundedEntries(parsePorcelainPaths(rootStatus.stdout));
   truncated = truncated || root.truncated;
 
-  const submodules = listInitializedSubmodules(worktreePath);
+  const submodules = listInitializedSubmodules(worktreePath, runGitFn);
   if (!submodules.ok) return submodules;
 
   const dirtySubmodules = [];
   const statusFailures = [];
   for (const submodulePath of submodules.paths) {
     const absPath = path.join(worktreePath, submodulePath);
-    const res = runGit(["-C", absPath, "status", "--porcelain", "--untracked-files=all"]);
+    const res = runGitFn(["-C", absPath, "status", "--porcelain", "--untracked-files=all"]);
     if (!res.ok) {
       const failure = statusFailure("submodule", submodulePath, res);
       statusFailures.push(failure.failure);
@@ -320,8 +321,16 @@ function submoduleForceRemoveFailedEnvelope({ worktreePath, featureBranch, res }
   );
 }
 
-function removeWorktreeForCleanup({ mainRepoPath, worktreePath, featureBranch }) {
-  const removeRes = runGit(["-C", mainRepoPath, "worktree", "remove", worktreePath]);
+function writeJsonFile(filePath, value) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+}
+
+export function removeWorktreeForCleanup({ mainRepoPath, worktreePath, featureBranch, force = false, runGit: runGitFn = runGit }) {
+  const removeArgs = ["-C", mainRepoPath, "worktree", "remove"];
+  if (force) removeArgs.push("--force");
+  removeArgs.push(worktreePath);
+  const removeRes = runGitFn(removeArgs);
   if (removeRes.ok) return { ok: true };
 
   if (!isSubmoduleWorktreeRemoveFailure(removeRes)) {
@@ -335,7 +344,14 @@ function removeWorktreeForCleanup({ mainRepoPath, worktreePath, featureBranch })
     };
   }
 
-  const inspection = inspectSubmoduleWorktreeCleanliness(worktreePath);
+  if (force) {
+    return {
+      ok: false,
+      env: submoduleForceRemoveFailedEnvelope({ worktreePath, featureBranch, res: removeRes }),
+    };
+  }
+
+  const inspection = inspectSubmoduleWorktreeCleanliness(worktreePath, runGitFn);
   if (!inspection.ok) {
     return {
       ok: false,
@@ -349,7 +365,7 @@ function removeWorktreeForCleanup({ mainRepoPath, worktreePath, featureBranch })
     };
   }
 
-  const forceRes = runGit(["-C", mainRepoPath, "worktree", "remove", "--force", worktreePath]);
+  const forceRes = runGitFn(["-C", mainRepoPath, "worktree", "remove", "--force", worktreePath]);
   if (!forceRes.ok) {
     return {
       ok: false,
@@ -357,6 +373,142 @@ function removeWorktreeForCleanup({ mainRepoPath, worktreePath, featureBranch })
     };
   }
   return { ok: true };
+}
+
+export function deleteFeatureBranchForCleanup({ mainRepoPath, featureBranch, runGit: runGitFn = runGit }) {
+  const branchRes = runGitFn(["-C", mainRepoPath, "branch", "-D", featureBranch]);
+  if (!branchRes.ok && !branchRes.stderr.includes("not found")) {
+    return {
+      ok: false,
+      env: Envelope.fail("run", "finalize-cleanup", "BRANCH_DELETE_FAILED", [
+        `git branch -D ${featureBranch} failed: ${branchRes.stderr || branchRes.stdout || "unknown"}`,
+      ]),
+    };
+  }
+  return { ok: true };
+}
+
+export function recordFinalizeCleanupPostCommandMetadata({
+  flowManager,
+  specId,
+  metrics = [],
+  runtimeLog = null,
+  notes = [],
+  issueLogEntries = [],
+  pluginArtifacts = [],
+  report = null,
+  recoveryEnvelope = null,
+} = {}) {
+  if (!flowManager) throw new Error("flowManager is required");
+  const state = flowManager.loadReadOnly(specId) || { worktree: false };
+  const { worktreePath, mainRepoPath } = flowManager.resolveWorktreePaths(state);
+  const mainRoot = mainRepoPath || flowManager._mainRoot || flowManager._root;
+  const resolver = new FinalizeCleanupPathResolver({
+    enabled: true,
+    worktreeRoot: worktreePath,
+    mainRoot,
+    inWorktree: Boolean(worktreePath && mainRepoPath),
+  });
+  const writtenPaths = [];
+  const surfaces = new Set();
+  const callerVisible = {};
+
+  function writeSurface(surface, fileName, payload) {
+    if (payload == null) return null;
+    const owner = resolver.cleanupSurfaceOwner(surface, { specId });
+    const filePath = owner.path || resolver.postCommandMetadataPath(fileName, { specId });
+    writeJsonFile(filePath, payload);
+    writtenPaths.push(filePath);
+    surfaces.add(surface);
+    return filePath;
+  }
+
+  function appendSurfaceEntries(surface, fileName, key, entries) {
+    if (!Array.isArray(entries) || entries.length === 0) return null;
+    const owner = resolver.cleanupSurfaceOwner(surface, { specId });
+    const filePath = owner.path || resolver.postCommandMetadataPath(fileName, { specId });
+    let existing = [];
+    if (fs.existsSync(filePath)) {
+      const current = JSON.parse(fs.readFileSync(filePath, "utf8"));
+      if (Array.isArray(current?.[key])) existing = current[key];
+    }
+    writeJsonFile(filePath, { version: 1, [key]: [...existing, ...entries] });
+    writtenPaths.push(filePath);
+    surfaces.add(surface);
+    return filePath;
+  }
+
+  if (metrics.length > 0) {
+    appendSurfaceEntries("agent-metrics", "agent-metrics.json", "entries", metrics);
+  }
+  if (runtimeLog) {
+    writeSurface("runtime-log", "runtime-log.json", { version: 1, runtimeLog });
+  }
+  if (notes.length > 0) {
+    appendSurfaceEntries("notes", "notes.json", "entries", notes);
+  }
+  if (issueLogEntries.length > 0) {
+    const specPath = state.spec || `specs/${specId}/spec.json`;
+    const owner = resolver.cleanupSurfaceOwner("issue-log", { specId });
+    const issueLog = loadIssueLog(mainRoot, specPath);
+    const timestamp = new Date().toISOString();
+    issueLog.entries.push(...issueLogEntries.map((entry) => ({
+      ...entry,
+      timestamp: entry?.timestamp || timestamp,
+    })));
+    saveIssueLog(mainRoot, specPath, issueLog);
+    writtenPaths.push(owner.path);
+    surfaces.add("issue-log");
+  }
+  if (pluginArtifacts.length > 0) {
+    appendSurfaceEntries("plugin-artifact", "plugin-artifacts.json", "artifacts", pluginArtifacts);
+    callerVisible.plugin = {
+      warnings: pluginArtifacts.flatMap((a) => a?.data?.warnings || []),
+      followUps: pluginArtifacts.flatMap((a) => a?.data?.followUps || []),
+      artifacts: pluginArtifacts,
+    };
+    surfaces.add("plugin-hook-output");
+  }
+  if (report) {
+    writeSurface("report-envelope", "report-envelope.json", { version: 1, report });
+    callerVisible.report = report;
+  }
+  if (recoveryEnvelope) {
+    writeSurface("recovery-envelope", "recovery-envelope.json", { version: 1, recoveryEnvelope });
+    callerVisible.recoveryEnvelope = recoveryEnvelope;
+  }
+
+  return {
+    writtenPaths,
+    surfaces: [...surfaces],
+    callerVisible,
+  };
+}
+
+export function finalizeCleanupPluginLifecycleContext({ root, state, worktreePath, mainRepoPath, specId }) {
+  const inCleanupWorktree = Boolean(state?.worktree && worktreePath && mainRepoPath);
+  if (!inCleanupWorktree) {
+    return {
+      root,
+      flow: state,
+      artifactPath: `specs/${specId}`,
+    };
+  }
+
+  const resolver = new FinalizeCleanupPathResolver({
+    enabled: true,
+    worktreeRoot: worktreePath,
+    mainRoot: mainRepoPath,
+    inWorktree: true,
+  });
+  const owner = resolver.cleanupSurfaceOwner("plugin-artifact", { specId });
+  const artifactDir = path.join(path.dirname(owner.path), "plugin-artifacts");
+  const artifactPath = path.relative(mainRepoPath, artifactDir).split(path.sep).join("/");
+  return {
+    root: mainRepoPath,
+    flow: { ...state, pluginArtifactRoot: artifactPath },
+    artifactPath,
+  };
 }
 
 /**
@@ -820,6 +972,14 @@ async function runTeardown(ctx, { worktreePath, mainRepoPath, reportRoot, specId
   const state = ctx.flowState;
   const { featureBranch, worktree, baseBranch } = state;
   let pluginLifecycle = { warnings: [], issueLogEntries: [], data: {} };
+  let retainedCleanupMetadata = null;
+  const pluginContext = finalizeCleanupPluginLifecycleContext({
+    root: ctx.root,
+    state,
+    worktreePath,
+    mainRepoPath,
+    specId,
+  });
 
   // (i) metadata sync + finalize-cleanup → 'done'.
   const targetRoot = (worktree && mainRepoPath) ? mainRepoPath : ctx.root;
@@ -836,15 +996,15 @@ async function runTeardown(ctx, { worktreePath, mainRepoPath, reportRoot, specId
   }
 
   try {
-    pluginLifecycle = await runFlowCommandWithPluginLifecycle(ctx.root, state.plugins?.flowCommandHooks || [], {
+    pluginLifecycle = await runFlowCommandWithPluginLifecycle(pluginContext.root, state.plugins?.flowCommandHooks || [], {
       command: "finalize-cleanup",
-      flow: state,
+      flow: pluginContext.flow,
       main: async () => ({
         ok: true,
         data: {
           specPath: state.spec,
           issueLogPath: `specs/${specId}/issue-log.json`,
-          artifactPath: `specs/${specId}`,
+          artifactPath: pluginContext.artifactPath,
         },
       }),
     });
@@ -854,6 +1014,19 @@ async function runTeardown(ctx, { worktreePath, mainRepoPath, reportRoot, specId
       issueLogEntries: [{ reason: `plugin finalize-cleanup lifecycle failed: ${err.message}`, payload: { code: "PLUGIN_LIFECYCLE_FAILED" } }],
       data: {},
     };
+  }
+
+  if (worktree && mainRepoPath) {
+    const finalizeCleanupStep = flattenSteps(state.steps || []).find((step) => step.id === "finalize-cleanup");
+    retainedCleanupMetadata = recordFinalizeCleanupPostCommandMetadata({
+      flowManager: ctx.flowManager,
+      specId,
+      metrics: Array.isArray(state.metrics) ? state.metrics : [],
+      runtimeLog: finalizeCleanupStep?.runtimeLog || null,
+      notes: Array.isArray(state.notes) ? state.notes : [],
+      issueLogEntries: pluginLifecycle.issueLogEntries || [],
+      pluginArtifacts: pluginLifecycle.data?.pluginHooks || [],
+    });
   }
 
   const flowJsonRel = `specs/${specId}/flow.json`;
@@ -892,15 +1065,16 @@ async function runTeardown(ctx, { worktreePath, mainRepoPath, reportRoot, specId
   if (worktree && mainRepoPath) {
     const wtPath = worktreePath || ctx.root;
     if (fs.existsSync(wtPath)) {
-      const removeResult = removeWorktreeForCleanup({ mainRepoPath, worktreePath: wtPath, featureBranch });
+      const removeResult = removeWorktreeForCleanup({
+        mainRepoPath,
+        worktreePath: wtPath,
+        featureBranch,
+        force: ctx.force === true,
+      });
       if (!removeResult.ok) return removeResult.env;
     }
-    const branchRes = runGit(["-C", mainRepoPath, "branch", "-D", featureBranch]);
-    if (!branchRes.ok && !branchRes.stderr.includes("not found")) {
-      return Envelope.fail("run", "finalize-cleanup", "BRANCH_DELETE_FAILED", [
-        `git branch -D ${featureBranch} failed: ${branchRes.stderr || branchRes.stdout || "unknown"}`,
-      ]);
-    }
+    const branchDelete = deleteFeatureBranchForCleanup({ mainRepoPath, featureBranch });
+    if (!branchDelete.ok) return branchDelete.env;
   } else {
     const branchRes = runGit(["branch", "-D", featureBranch], { cwd: targetRoot });
     if (!branchRes.ok && !branchRes.stderr.includes("not found")) {
@@ -924,6 +1098,9 @@ async function runTeardown(ctx, { worktreePath, mainRepoPath, reportRoot, specId
       status: "done",
       pluginHooks: pluginLifecycle.data?.pluginHooks || [],
       followUps: pluginLifecycle.data?.followUps || [],
+      retainedCleanupMetadata: retainedCleanupMetadata
+        ? { surfaces: retainedCleanupMetadata.surfaces }
+        : null,
     }),
     reportRoot,
   );

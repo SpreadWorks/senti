@@ -112,6 +112,15 @@ function runtimeLogFlowId(hookCtx) {
   return hookCtx?.specId || "no-flow";
 }
 
+function runtimeLogRoot({ envelopeKey, hookCtx, container }) {
+  const fallbackRoot = hookCtx.root || container.get("paths").root;
+  if (envelopeKey !== "finalize-cleanup" || !hookCtx?.flowManager || !hookCtx?.flowState?.worktree) {
+    return fallbackRoot;
+  }
+  const { mainRepoPath } = hookCtx.flowManager.resolveWorktreePaths(hookCtx.flowState);
+  return mainRepoPath || fallbackRoot;
+}
+
 function attachRuntimeLog(envelope, metadata) {
   if (!(envelope instanceof Envelope) || !metadata) return envelope;
   const runtimeLog = {
@@ -130,6 +139,20 @@ function runtimeLogStepId(entry, hookCtx, result) {
   if (typeof spec.stepId === "function") return spec.stepId(hookCtx, result);
   if (typeof spec.stepId === "string") return spec.stepId;
   return null;
+}
+
+async function persistFinalizeCleanupPostReturnMetadata({ envelopeKey, hookCtx, metadata }) {
+  if (envelopeKey !== "finalize-cleanup" || !metadata || !hookCtx?.flowManager || !hookCtx?.specId) return;
+  const state = hookCtx.flowState || hookCtx.flowManager.loadReadOnly(hookCtx.specId);
+  if (!state?.worktree) return;
+  const { mainRepoPath } = hookCtx.flowManager.resolveWorktreePaths(state);
+  if (!mainRepoPath) return;
+  const { recordFinalizeCleanupPostCommandMetadata } = await import("../flow/lib/run-finalize-cleanup.js");
+  recordFinalizeCleanupPostCommandMetadata({
+    flowManager: hookCtx.flowManager,
+    specId: hookCtx.specId,
+    runtimeLog: metadata.toStepMetadata(),
+  });
 }
 
 function findWarning(envelope, code) {
@@ -226,7 +249,7 @@ export async function dispatch({
   const openRuntimeLog = (hookCtx) => {
     if (runtimeLog || enableRuntimeLog !== true || !container.has("paths")) return;
     runtimeLog = RuntimeLogBlockWriter.forDispatch({
-      root: hookCtx.root || container.get("paths").root,
+      root: runtimeLogRoot({ envelopeKey, hookCtx, container }),
       flowId: runtimeLogFlowId(hookCtx),
       runId: runtimeLogRunId(hookCtx),
       envelopeType,
@@ -410,6 +433,7 @@ export async function dispatch({
       setExit(1);
     }
     closeRuntimeLog();
+    await persistFinalizeCleanupPostReturnMetadata({ envelopeKey, hookCtx, metadata: closedRuntimeLogMetadata });
     persistRuntimeLogMetadata(result);
     if (restoreStreams) restoreStreams();
     return;
@@ -425,6 +449,7 @@ export async function dispatch({
   }
   await emitFailure({ err: caught, mode, entry, envelopeType, envelopeKey, writeOut, writeErr, setExit, runtimeLogMetadata: runtimeLog?.metadata });
   closeRuntimeLog();
+  await persistFinalizeCleanupPostReturnMetadata({ envelopeKey, hookCtx, metadata: closedRuntimeLogMetadata });
   persistRuntimeLogMetadata(null);
   if (restoreStreams) restoreStreams();
 }

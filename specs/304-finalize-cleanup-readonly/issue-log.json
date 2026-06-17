@@ -1,0 +1,236 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "phase": "draft",
+      "reason": "where contains unknown property \"line\"",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-17T08:11:33.524Z"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "gate FAIL (no details)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-17T08:11:33.533Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "draft-gate",
+      "phase": "draft",
+      "reason": "where contains unknown property \"line\"",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-17T08:11:55.006Z"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "gate FAIL (no details)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-17T08:11:55.016Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate failed before verdict because AI output included schema-unknown where.line property",
+      "trigger": "senti flow run gate --phase draft returned ESCALATE_RETRY_EXHAUSTED twice",
+      "resolution": "removed unresolved-looking draft wording and added explicit priority markers before rerunning draft gate",
+      "guardrailCandidate": "when gate tooling fails while emitting findings, inspect authored draft fields for likely trigger patterns before retrying",
+      "taskId": null,
+      "timestamp": "2026-06-17T08:13:09.171Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The draft includes behavior migration (moving cleanup artifacts/metrics/log destinations off the target worktree) but does not provide the required inventory of existing public behavior being moved or replaced at the level requested by the guardrail (commands/APIs/hooks/config entries/side effects).; No explicit mapping is defined from each retained public behavior to its new owner; the spec identifies components affected but never maps each retained surface (for example: flow state sync, step status updates, plugin-hook artifact flow) to a replacement owner or an explicit removal decision.; Only one behavior-level regression check is defined (metrics append/flow.json dirtying and remove success), while multiple retained public surfaces listed for continued support are not accompanied by behavior-level verification through the new path.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-17T08:13:28.297Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "scopeVerification.in"
+          },
+          "observed": "The draft includes behavior migration (moving cleanup artifacts/metrics/log destinations off the target worktree) but does not provide the required inventory of existing public behavior being moved or replaced at the level requested by the guardrail (commands/APIs/hooks/config entries/side effects).",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "decisionMap.knownFacts"
+          },
+          "observed": "No explicit mapping is defined from each retained public behavior to its new owner; the spec identifies components affected but never maps each retained surface (for example: flow state sync, step status updates, plugin-hook artifact flow) to a replacement owner or an explicit removal decision.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "scopeVerification.in & qa[2]"
+          },
+          "observed": "Only one behavior-level regression check is defined (metrics append/flow.json dirtying and remove success), while multiple retained public surfaces listed for continued support are not accompanied by behavior-level verification through the new path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft includes behavior migration (moving cleanup artifacts/metrics/log destinations off the target worktree) but does not provide the required inventory of existing public behavior being moved or replaced at the level requested by the guardrail (commands/APIs/hooks/config entries/side effects)."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "No explicit mapping is defined from each retained public behavior to its new owner; the spec identifies components affected but never maps each retained surface (for example: flow state sync, step status updates, plugin-hook artifact flow) to a replacement owner or an explicit removal decision."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "Only one behavior-level regression check is defined (metrics append/flow.json dirtying and remove success), while multiple retained public surfaces listed for continued support are not accompanied by behavior-level verification through the new path."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate failed migration parity because retained finalize-cleanup behavior inventory and owner mapping were missing",
+      "trigger": "draft gate reported three blocking migration-parity observations",
+      "resolution": "added retained behavior inventory, owner mapping, and behavior-level verification requirements to draft.json",
+      "guardrailCandidate": "when cleanup changes relocate writes, draft must inventory retained command behavior, side effects, owners, and parity checks",
+      "taskId": null,
+      "timestamp": "2026-06-17T08:14:35.234Z"
+    },
+    {
+      "step": "draft-gate",
+      "phase": "draft",
+      "reason": "AI evaluation response is not valid JSON: Expected double-quoted property name in JSON at position 192 (line 1 column 193)",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-17T08:15:03.341Z"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "gate FAIL (no details)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-17T08:15:03.352Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "draft-gate",
+      "phase": "draft",
+      "reason": "AI evaluation response is not valid JSON: Expected double-quoted property name in JSON at position 192 (line 1 column 193)",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-17T08:15:24.932Z"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "gate FAIL (no details)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-17T08:15:24.943Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate agent response became invalid JSON while reporting remaining migration parity verification gaps",
+      "trigger": "senti flow run gate --phase draft returned invalid JSON twice after migration parity edits",
+      "resolution": "inspected prompt log and added explicit verification for issue-log audit, step status, last-finalized pointer, active-flow clear, and branch delete",
+      "guardrailCandidate": "migration parity verification must enumerate every retained finalize-cleanup public surface, not just representative surfaces",
+      "taskId": null,
+      "timestamp": "2026-06-17T08:16:19.934Z"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "scenario-validity blocked because base branch advanced and src files differed from current main",
+      "trigger": "senti flow run scenario-validity reported implementation-target changes for src/lib/command-registry.js, src/lib/plugin-registry.js, and src/plugin.js",
+      "resolution": "rebased the worktree onto main, resolved generated analysis timestamp conflict to upstream, and dropped the temporary autostash",
+      "guardrailCandidate": "when base branch advances during plan tests, rebase within the active worktree and resolve generated artifacts before rerunning scenario-validity",
+      "taskId": null,
+      "timestamp": "2026-06-17T08:41:21.920Z"
+    },
+    {
+      "step": "implement",
+      "reason": "implement completion failed because file-map entries were missing for testable requirements",
+      "trigger": "senti flow set step implement done returned IMPLEMENT_COMPLETION_VALIDATION_FAILED file-map-missing",
+      "resolution": "record file-map entries for each requirement before retrying implement completion",
+      "guardrailCandidate": "record requirement file-map before marking implement done, not only before impl-gate",
+      "taskId": null,
+      "timestamp": "2026-06-17T08:47:14.784Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: regenerated stale test evidence after review repairs",
+      "resolution": "Re-ran test-execute and test-result-review so R1/R3 artifacts match the current finalize-cleanup implementation before retrying impl-gate.",
+      "taskId": null,
+      "timestamp": "2026-06-17T09:10:56.718Z"
+    },
+    {
+      "step": "implement",
+      "reason": "fix: wired finalize-cleanup post-command metadata writers",
+      "resolution": "Dispatcher now persists closed finalize-cleanup runtime metadata to durable cleanup sidecar storage, and agent metric accumulation routes finalize-cleanup metrics to the same sidecar instead of flow.json.",
+      "taskId": null,
+      "timestamp": "2026-06-17T09:22:25.977Z"
+    },
+    {
+      "step": "implement",
+      "reason": "fix: moved finalize-cleanup runtime log root outside worktree",
+      "resolution": "Dispatcher runtime log writer now uses the main repository root for finalize-cleanup in worktree mode, so the actual .tmp/logs artifact is not opened under the target worktree.",
+      "taskId": null,
+      "timestamp": "2026-06-17T09:28:35.322Z"
+    },
+    {
+      "step": "implement",
+      "reason": "fix: routed finalize-cleanup prompt-cache metrics outside worktree",
+      "resolution": "Prompt cache-hit metric recording now uses recordFinalizeCleanupPostCommandMetadata during finalize-cleanup, preserving agent-cache fields in durable sidecar storage instead of appending to flow.json.",
+      "taskId": null,
+      "timestamp": "2026-06-17T09:37:24.849Z"
+    },
+    {
+      "step": "implement",
+      "reason": "fix: preserved repeated cleanup sidecar metrics",
+      "resolution": "recordFinalizeCleanupPostCommandMetadata now appends entry-style sidecar payloads for agent metrics, notes, and plugin artifacts instead of overwriting earlier cleanup metadata writes.",
+      "taskId": null,
+      "timestamp": "2026-06-17T09:40:53.988Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "Changed evidence after preserving repeated cleanup sidecar metric writes in run-finalize-cleanup.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "aa9d1e5247e72fac92e3d3b95a511418ad1ad21111ba9c72e938657fdfa8c052",
+        "currentHash": "ffa6fd0601ab3f7908e5d9fca877c6d362dd1a703585f379c62650fcb5e79da1",
+        "changedPaths": [
+          "specs/304-finalize-cleanup-readonly/spec.json",
+          "src/flow/lib/run-finalize-cleanup.js",
+          "src/lib/agent.js",
+          "src/lib/dispatcher.js",
+          "src/lib/finalize-cleanup-paths.js",
+          "src/lib/plugin-registry.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"Changed evidence after preserving repeated cleanup sidecar metric writes in run-finalize-cleanup.\" --yes",
+      "createdAt": "2026-06-17T09:41:20.223Z"
+    }
+  ]
+}

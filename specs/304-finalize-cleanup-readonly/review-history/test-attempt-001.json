@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-17T08:31:17.188Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/304-finalize-cleanup-readonly/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R4 coverage artifact overstates regression coverage",
+      "target": "specs/304-finalize-cleanup-readonly/tests/finalize-cleanup-readonly.test.js",
+      "issue": "The R4 test only asserts that helper functions exist. It does not exercise cleanup-time metrics append relocation, normal worktree removal, or feature branch deletion, despite the requirement and coverage artifact claiming those cases are covered.",
+      "requiredChange": "Add spec-local assertions that verify metrics append writes are relocated outside the target worktree, non-force cleanup invokes normal git worktree removal, and finalize cleanup deletes the feature branch as expected.",
+      "whyBlocking": "R4 is a must requirement for explicit regression coverage, and the current executable tests do not cover several required behaviors."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/304-finalize-cleanup-readonly/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "91c1dd20dbdc0ce53c31cdfdd64bac89ed83f456201d226f7b42df38852ec2ba"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "test-001-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R4 coverage artifact overstates regression coverage",
+      "body": "The R4 test only asserts that helper functions exist. It does not exercise cleanup-time metrics append relocation, normal worktree removal, or feature branch deletion, despite the requirement and coverage artifact claiming those cases are covered.",
+      "category": "unknown"
+    }
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "version": "1",
+  "raw_output_path": "specs/304-finalize-cleanup-readonly/tests/.raw/scenario-validity.log",
+  "command": "node --test specs/304-finalize-cleanup-readonly/tests/finalize-cleanup-readonly.test.js",
+  "process": {
+    "started": true,
+    "exitCode": 1,
+    "signal": null,
+    "timedOut": false,
+    "spawnError": null
+  },
+  "result": "pass",
+  "summary": [
+    {
+      "id": "R1",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/304-finalize-cleanup-readonly/tests/finalize-cleanup-readonly.test.js",
+        "test_name": "R1: cleanup write policy relocates flow and plugin artifact writes away from target worktree",
+        "command": "node --test specs/304-finalize-cleanup-readonly/tests/finalize-cleanup-readonly.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 269
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/304-finalize-cleanup-readonly/tests/finalize-cleanup-readonly.test.js",
+        "test_name": "R2: retained finalize-cleanup surfaces have durable owners outside the removable worktree",
+        "command": "node --test specs/304-finalize-cleanup-readonly/tests/finalize-cleanup-readonly.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 269
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/304-finalize-cleanup-readonly/tests/finalize-cleanup-readonly.test.js",
+        "test_name": "R6: post-command runtime and metric metadata use sidecar storage instead of final flow.json",
+        "command": "node --test specs/304-finalize-cleanup-readonly/tests/finalize-cleanup-readonly.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 269
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/304-finalize-cleanup-readonly/tests/finalize-cleanup-readonly.test.js",
+        "test_name": "R3: forced finalize-cleanup removal passes --force to git worktree remove for dirty worktrees",
+        "command": "node --test specs/304-finalize-cleanup-readonly/tests/finalize-cleanup-readonly.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 269
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/304-finalize-cleanup-readonly/tests/finalize-cleanup-readonly.test.js",
+        "test_name": "R4: regression hooks cover read-only cleanup and force-removal scenarios",
+        "command": "node --test specs/304-finalize-cleanup-readonly/tests/finalize-cleanup-readonly.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 269
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/304-finalize-cleanup-readonly/tests/finalize-cleanup-readonly.test.js",
+        "test_name": "R5: report and plugin hook outputs remain observable through durable cleanup owners",
+        "command": "node --test specs/304-finalize-cleanup-readonly/tests/finalize-cleanup-readonly.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 269
+        }
+      }
+    }
+  ]
+}

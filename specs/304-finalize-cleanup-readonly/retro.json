@@ -1,0 +1,49 @@
+{
+  "spec": "specs/304-finalize-cleanup-readonly/spec.json",
+  "date": "2026-06-17T09:43:16.535Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "After finalize-cleanup resolves the target worktree, cleanup-time flow state, metrics, notes, issue-log, runtime-derived, and plugin artifact writes must not create or modify files under that target worktree.",
+      "status": "done",
+      "note": "R1: cleanup write policy relocates flow and plugin artifact writes away from target worktree"
+    },
+    {
+      "desc": "Retained finalize-cleanup surfaces must still be persisted or reported through the main repository FlowManager/FlowStore before the final flow.json commit, or through a durable non-worktree sidecar/runtime log for dispatcher and agent metadata produced after that commit.",
+      "status": "done",
+      "note": "R2: retained finalize-cleanup surfaces have durable owners outside the removable worktree"
+    },
+    {
+      "desc": "After the final flow.json snapshot is committed during finalize-cleanup, dispatcher-owned runtimeLog completion and agent metric writes must not mutate the committed flow.json; they must persist to target-worktree-external durable storage.",
+      "status": "done",
+      "note": "R6: post-command runtime and metric metadata use sidecar storage instead of final flow.json"
+    },
+    {
+      "desc": "`senti flow run finalize-cleanup --force` must call git worktree removal with force semantics for dirty root files and initialized submodule dirty state caused by external factors.",
+      "status": "done",
+      "note": "R3: forced finalize-cleanup removal passes --force to git worktree remove for dirty worktrees"
+    },
+    {
+      "desc": "Spec-local regression tests must cover cleanup-time metrics append relocation, retained public finalize-cleanup surfaces, normal worktree removal, feature branch deletion, and dirty worktree force removal.",
+      "status": "done",
+      "note": "R4: regression hooks cover read-only cleanup and force-removal scenarios"
+    },
+    {
+      "desc": "Existing finalize-cleanup report warnings, plugin hook warning/follow-up data, and recovery envelopes must remain available to callers after write relocation.",
+      "status": "done",
+      "note": "R5: report and plugin hook outputs remain observable through durable cleanup owners"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 6,
+    "done": 6,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

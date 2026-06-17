@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "After finalize-cleanup resolves the target worktree, cleanup-time flow state, metrics, notes, issue-log, runtime-derived, and plugin artifact writes must not create or modify files under that target worktree.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finalize-cleanup-readonly.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "Retained finalize-cleanup surfaces must still be persisted or reported through the main repository FlowManager/FlowStore before the final flow.json commit, or through a durable non-worktree sidecar/runtime log for dispatcher and agent metadata produced after that commit.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finalize-cleanup-readonly.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "After the final flow.json snapshot is committed during finalize-cleanup, dispatcher-owned runtimeLog completion and agent metric writes must not mutate the committed flow.json; they must persist to target-worktree-external durable storage.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finalize-cleanup-readonly.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "`senti flow run finalize-cleanup --force` must call git worktree removal with force semantics for dirty root files and initialized submodule dirty state caused by external factors.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finalize-cleanup-readonly.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "Spec-local regression tests must cover cleanup-time metrics append relocation, retained public finalize-cleanup surfaces, normal worktree removal, feature branch deletion, and dirty worktree force removal.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finalize-cleanup-readonly.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "Existing finalize-cleanup report warnings, plugin hook warning/follow-up data, and recovery envelopes must remain available to callers after write relocation.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finalize-cleanup-readonly.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/finalize-cleanup-readonly.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "One blocking finding is valid and should be repaired in spec.json by defining the owner and transaction boundary for post-command runtime and metric writes.",
+  "items": [
+    {
+      "title": "Post-command runtime/metric writes are not assigned an owner or commit boundary",
+      "target": "R1/R2 and Data Flow",
+      "decision": "apply",
+      "rationale": "The spec requires runtime/metric persistence and target worktree read-only cleanup, but it does not explicitly say what happens to dispatcher-owned runtimeLog metadata and agent metrics appended after the finalize-cleanup command returns.",
+      "evidence": "spec.json requirements R1/R2 and overview.data_flow mention runtime/metrics persistence but do not define whether post-command dispatcher/agent writes are committed with final flow.json or stored in a durable sidecar."
+    }
+  ]
+}

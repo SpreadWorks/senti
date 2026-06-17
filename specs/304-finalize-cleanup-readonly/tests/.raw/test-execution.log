@@ -1,0 +1,80 @@
+[senti] spec-local tests start
+command: node --test specs/304-finalize-cleanup-readonly/tests/finalize-cleanup-readonly.test.js
+TAP version 13
+# Subtest: R1: cleanup write policy relocates flow and plugin artifact writes away from target worktree
+ok 1 - R1: cleanup write policy relocates flow and plugin artifact writes away from target worktree
+  ---
+  duration_ms: 2.834375
+  type: 'test'
+  ...
+# Subtest: R1: production post-command metadata writer does not mutate the target worktree
+ok 2 - R1: production post-command metadata writer does not mutate the target worktree
+  ---
+  duration_ms: 11.545459
+  type: 'test'
+  ...
+# Subtest: R1: finalize-cleanup plugin lifecycle writes artifacts to durable cleanup storage
+ok 3 - R1: finalize-cleanup plugin lifecycle writes artifacts to durable cleanup storage
+  ---
+  duration_ms: 9.184688
+  type: 'test'
+  ...
+# Subtest: R2: retained finalize-cleanup surfaces have durable owners outside the removable worktree
+ok 4 - R2: retained finalize-cleanup surfaces have durable owners outside the removable worktree
+  ---
+  duration_ms: 4.326103
+  type: 'test'
+  ...
+# Subtest: R3: forced finalize-cleanup removal passes --force to git worktree remove for dirty worktrees
+ok 5 - R3: forced finalize-cleanup removal passes --force to git worktree remove for dirty worktrees
+  ---
+  duration_ms: 0.378802
+  type: 'test'
+  ...
+# Subtest: R3: forced submodule cleanup does not downgrade to the non-force dirty halt
+ok 6 - R3: forced submodule cleanup does not downgrade to the non-force dirty halt
+  ---
+  duration_ms: 0.531363
+  type: 'test'
+  ...
+# Subtest: R3: CLI finalize-cleanup --force forwards force semantics to worktree removal
+ok 7 - R3: CLI finalize-cleanup --force forwards force semantics to worktree removal
+  ---
+  duration_ms: 425.287875
+  type: 'test'
+  ...
+# Subtest: R4: regression hooks cover read-only cleanup and force-removal scenarios
+ok 8 - R4: regression hooks cover read-only cleanup and force-removal scenarios
+  ---
+  duration_ms: 1.165087
+  type: 'test'
+  ...
+# Subtest: R5: report and plugin hook outputs remain observable through durable cleanup owners
+ok 9 - R5: report and plugin hook outputs remain observable through durable cleanup owners
+  ---
+  duration_ms: 3.502698
+  type: 'test'
+  ...
+# Subtest: R6: post-command runtime and metric metadata use sidecar storage instead of final flow.json
+ok 10 - R6: post-command runtime and metric metadata use sidecar storage instead of final flow.json
+  ---
+  duration_ms: 2.921375
+  type: 'test'
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 623.117816
+exitCode: 0
+[senti] requirement R1 result pass
+[senti] requirement R2 result pass
+[senti] requirement R6 result pass
+[senti] requirement R3 result pass
+[senti] requirement R4 result pass
+[senti] requirement R5 result pass
+[senti] spec-local tests end

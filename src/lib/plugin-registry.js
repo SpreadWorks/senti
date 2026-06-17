@@ -844,6 +844,9 @@ function pluginConfigFor(root, pluginId) {
 }
 
 function artifactRoot(root, pluginId, flow = {}, { requireSpec = false } = {}) {
+  if (flow?.pluginArtifactRoot) {
+    return path.resolve(root, normalizeRel(flow.pluginArtifactRoot, "flow plugin artifact root"), pluginId);
+  }
   if (flow?.spec) {
     const specPath = normalizeRel(flow.spec, "flow spec path");
     return path.join(root, path.dirname(specPath), "plugin-artifacts", pluginId);
