@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-17T02:53:36.148Z",
+  "analyzedAt": "2026-06-17T03:32:17.563Z",
   "package": {
     "entries": [
       {
@@ -2567,8 +2567,23 @@
         "usedBy": null,
         "id": "5f80ffd2",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-06-17T03:32:38.393Z",
+          "attempts": 3
+        },
+        "summary": "Implements report generation and persistence for flow executions, including task rows, totals, and issue-log summaries. It converts execution state into both structured JSON data and formatted text output.",
+        "detail": "The module builds report rows from task state, step status, requirement coverage, and artifact-derived results, while capping long fields to keep output readable. It classifies issue-log entries into important and secondary groups using failure terms, origin steps, and signal-based heuristics, then limits how many entries are shown in each section. Report text is assembled with formatter helpers, section dividers, and compact summary labels so the same data can be consumed by humans and automation. A save helper resolves the spec directory, creates it when needed, and writes a normalized `report.json` file.",
+        "chapter": "cli_commands",
+        "role": "Flow reporting and issue-log summarization module",
+        "keywords": [
+          "report generation",
+          "status summary",
+          "issue log",
+          "task metrics",
+          "formatted output",
+          "JSON report",
+          "failure classification",
+          "progress report"
+        ]
       },
       {
         "file": "src/flow/commands/review.js",
@@ -3695,8 +3710,23 @@
         ],
         "id": "f336678e",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-06-17T03:32:38.393Z",
+          "attempts": 3
+        },
+        "summary": "Defines the completion judgment contract used to decide whether a flow step may be marked complete. It normalizes review artifacts, computes fingerprints, validates policies, and supports explicit override evidence.",
+        "detail": "The module models completion data with classes such as `FlowJudgmentContract`, `JudgmentContractSummary`, `StepCompletionPolicy`, and validator-oriented result objects. It uses stable serialization and SHA-256 fingerprints to create deterministic progress signatures, making validation and change tracking reproducible. Validation logic checks requested step transitions against step-specific policies, artifact-backed contracts, deferred finding evidence, and optional completion override files stored in the spec directory. It also provides factory functions that translate different review artifacts into a common contract shape and envelope helpers that return structured failure or success decisions.",
+        "chapter": "internal_design",
+        "role": "Completion validation and step-judgment contract layer",
+        "keywords": [
+          "completion contract",
+          "step validation",
+          "judgment policy",
+          "override evidence",
+          "artifact normalization",
+          "progress signature",
+          "workflow gate",
+          "review findings"
+        ]
       },
       {
         "file": "src/flow/lib/gate-recovery-display.js",
@@ -5140,8 +5170,24 @@
         "usedBy": null,
         "id": "49364661",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-06-17T03:32:38.393Z",
+          "attempts": 2
+        },
+        "summary": "Runs and records the final regression phase, including skip decisions, attempt tracking, failure classification, and artifact generation. It determines whether failures are caused by the current change, pre-existing conditions, or execution environment issues.",
+        "detail": "The module defines structured domain objects for regression decisions, process metadata, skip proof, and result artifacts so the final regression step produces consistent machine-readable output. It analyzes changed files, test-execute coverage, path risk categories, and project policy conditions to decide whether regression can be skipped or must run. When execution fails, it gathers bounded evidence from logs and process output, classifies the failure with text-based heuristics and changed-file attribution, and records issue-log entries for historical tracking. It also manages numbered raw attempt logs, enforces scan and attempt limits, and writes the final regression result artifact under the resolved spec directory.",
+        "chapter": "internal_design",
+        "role": "Final regression execution, skip analysis, and failure attribution module",
+        "keywords": [
+          "final regression",
+          "failure classification",
+          "skip decision",
+          "changed files",
+          "test coverage reuse",
+          "attempt log",
+          "artifact writing",
+          "issue tracking",
+          "process execution"
+        ]
       },
       {
         "file": "src/flow/lib/run-finalize-cleanup.js",
@@ -5425,9 +5471,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "890559eadabcea1c7d0d979c7d575cae",
-        "lines": 3758,
-        "mtime": "2026-06-14T23:04:20.652Z",
+        "hash": "cc51f7180785c7c3548689e64054a16e",
+        "lines": 3777,
+        "mtime": "2026-06-17T03:32:06.524Z",
         "className": "run-gate",
         "methods": [
           "completeGateArtifactBeforeSemanticEvaluation",
@@ -5650,25 +5696,24 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "Implements the flow gate runner that validates spec, draft, task implementation, and integration phases. It combines diff analysis, guardrail evaluation, retry handling, and artifact persistence into a single gate pipeline.",
-        "detail": "This module orchestrates gate execution across multiple flow phases by mapping phases to levels, selecting source and result artifacts, and running phase-specific validation before semantic evaluation. It builds AI-facing guardrail and requirement prompts from specs, diffs, file maps, and prior memory, then parses strict JSON responses with schema checks and explicit error types. The code also enforces lifecycle and audit rules for spec and draft artifacts, including triage, repair, monotonic task checks, and unresolved placeholder detection. For failure handling, it tracks retry counts, persists recovery baselines, detects repeated failures or no-progress states from git state and issue logs, and can defer exhausted retries by writing durable source artifacts. The `RunGateCommand` class ties these pieces into the CLI flow command and returns normalized pass/fail envelopes and gate result artifacts.",
+        "summary": "Implements the flow gate engine that validates specs, drafts, diffs, and integration outputs before later workflow steps proceed. It combines artifact checks, AI guardrail evaluation, retry control, and result persistence under a single command module.",
+        "detail": "This module centralizes gate execution for multiple phases such as spec, draft, task implementation, and integration, with phase-to-level mapping and strict validation of allowed combinations. It builds prompt inputs from specs, diffs, file maps, and guardrails, then parses and validates structured AI responses against explicit JSON schemas and error classes. The implementation also manages retry budgets, repeated-failure detection, recovery baselines, deferred exhaustion handling, and issue-log persistence so gate failures can be escalated consistently. In addition, it stores durable artifacts, tracks prior implementation-memory snapshots, reconciles changed files, and dispatches phase-specific logic through the RunGateCommand entry point.",
         "chapter": "internal_design",
-        "role": "Flow gate engine for validation, guardrail judgment, retry control, and result artifact generation.",
+        "role": "Gate orchestration and guardrail evaluation command",
         "enrich": {
-          "processedAt": "2026-06-14T23:04:52.661Z",
+          "processedAt": "2026-06-17T03:32:46.337Z",
           "attempts": 1
         },
         "keywords": [
           "gate runner",
           "guardrail evaluation",
-          "requirement checks",
+          "workflow validation",
           "diff analysis",
-          "retry handling",
-          "artifact validation",
-          "flow command",
-          "issue log",
-          "semantic gate",
-          "integration gate"
+          "retry logic",
+          "artifact persistence",
+          "spec gate",
+          "integration gate",
+          "JSON schema parsing"
         ]
       },
       {
@@ -6025,8 +6070,22 @@
         "usedBy": null,
         "id": "862e7d08",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-06-17T03:32:46.337Z",
+          "attempts": 2
+        },
+        "summary": "Generates a retrospective artifact by combining requirement data from spec.json with prior test execution and review artifacts. It maps each requirement to a completion-style status and writes the result as retro.json.",
+        "detail": "The command first resolves the spec directory and checks that both test-result-review.json and test-execute-result.json exist, returning structured Envelope failures when prerequisites are missing or invalid. It loads spec.json, normalizes requirements, and aggregates per-requirement outcomes from the execution summary into done, not_done, or not_applicable statuses with supporting notes. The resulting retro object includes paths and requirement coverage derived from previously produced test artifacts rather than recomputing execution results. Finally, it ensures the target directory exists, writes retro.json, and returns metadata about the created file.",
+        "chapter": "cli_commands",
+        "role": "Retro summary generation command",
+        "keywords": [
+          "retro report",
+          "requirement coverage",
+          "test summary aggregation",
+          "spec retrospective",
+          "flow command",
+          "artifact synthesis",
+          "post-test analysis"
+        ]
       },
       {
         "file": "src/flow/lib/run-review.js",
@@ -6323,8 +6382,23 @@
         "usedBy": null,
         "id": "41745e8b",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-06-17T03:32:46.337Z",
+          "attempts": 2
+        },
+        "summary": "Executes spec-local tests and project regression checks, then records structured evidence in a test execution artifact. It turns raw test output into requirement-level pass/fail summaries and reproducible command metadata.",
+        "detail": "This module discovers spec-scoped test files, extracts requirement identifiers from test content, and derives friendly test names for summary evidence. It runs local Node.js tests and optional regression commands, captures raw output ranges, and classifies whether requirements are testable, passed, failed, or not applicable when no tests are declared. The command enforces limits such as maximum tracked requirements, validates prerequisite analysis artifacts, and records startup failures in the issue log for later diagnosis. It writes both a raw output log and test-execute-result.json so downstream review steps can validate evidence without rerunning tests.",
+        "chapter": "cli_commands",
+        "role": "Test execution and evidence capture command",
+        "keywords": [
+          "test execute",
+          "requirement verification",
+          "regression testing",
+          "raw output log",
+          "spec-local tests",
+          "test artifact",
+          "evidence collection",
+          "Node test runner"
+        ]
       },
       {
         "file": "src/flow/lib/run-test-result-review.js",
@@ -6357,8 +6431,22 @@
         "usedBy": null,
         "id": "c1fba537",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-06-17T03:32:46.337Z",
+          "attempts": 2
+        },
+        "summary": "Reviews the test execution artifact against raw logs and requirement definitions to ensure the recorded evidence is internally consistent. It produces both machine-readable and Markdown review artifacts for downstream flow decisions.",
+        "detail": "The module validates summary entries, raw output line ranges, command evidence, and project regression data by comparing test-execute-result.json with the saved raw test output. It uses focused pass/fail helper builders to produce review checks and treats malformed or oversized raw logs as hard errors. After loading spec.json and the execution artifacts, it creates a structured review object, writes test-result-review.json, and also emits a Markdown companion file for human inspection. This separates test running from evidence verification, allowing later stages to rely on a reviewed artifact rather than raw command results alone.",
+        "chapter": "cli_commands",
+        "role": "Test result verification and review command",
+        "keywords": [
+          "test result review",
+          "artifact validation",
+          "raw log verification",
+          "evidence audit",
+          "requirement traceability",
+          "review artifact",
+          "consistency check"
+        ]
       },
       {
         "file": "src/flow/lib/run-update-overview.js",
@@ -11168,5 +11256,5 @@
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-15T16:21:45.944Z"
+  "enrichedAt": "2026-06-17T03:32:46.337Z"
 }
