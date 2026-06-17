@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "3 repair targets are valid: q1, q2, and q3 should be rewritten so pending questions do not embed the expected answer.",
+  "items": [
+    {
+      "title": "1. q1 includes an instruction",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "The q1 pending question asks for confirmation but embeds the required outcome with a must marker, which makes the question contain an answer.",
+      "evidence": "draft-review-questions.json repairTargets[0] identifies q1; draft.json qa[0].question includes 'must:' and the expected dispatcher behavior."
+    },
+    {
+      "title": "2. q2 includes an instruction",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "The q2 pending question embeds the desired runId-aware autoApprove policy instead of asking for the unresolved policy choice.",
+      "evidence": "draft-review-questions.json repairTargets[1] identifies q2; draft.json qa[1].question includes 'must:' and the target status behavior."
+    },
+    {
+      "title": "3. q3 includes an answer and evidence",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "The q3 pending question preselects the CLI error naming and acceptance framing, so the repair step should rewrite it as a neutral naming/acceptance question.",
+      "evidence": "draft-review-questions.json repairTargets[2] identifies q3; draft.json qa[2].question includes 'must:' and ACTIVE_FLOW_MISMATCH as the proposed answer."
+    }
+  ]
+}

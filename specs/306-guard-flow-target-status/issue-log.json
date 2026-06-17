@@ -1,0 +1,284 @@
+{
+  "entries": [
+    {
+      "step": "draft-questions-repair",
+      "reason": "draft repair initially produced invalid draft.json because q3 question line missed a comma",
+      "trigger": "node JSON.parse validation failed after applying draft question repair patch",
+      "resolution": "added the missing comma and re-ran JSON validation for draft.json and draft-questions-repair.json",
+      "guardrailCandidate": "validate edited JSON artifacts before marking a draft repair step done",
+      "taskId": null,
+      "timestamp": "2026-06-17T16:04:16.338Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Migration-parity is not defined before implementation: the draft does not inventory the existing public behavior being replaced (context-based active-flow continuation/status usage, guidance assumptions, and affected entry/autoApprove flow commands).; No mapping is provided from each retained public behavior to its new owner or an explicit removal decision. The draft lists intended changes but never states where existing behavior like context-based status for current-context display is reassigned or intentionally retired.; The acceptance criteria are defined for mismatch handling, but there is no behavior-level verification specified for each retained public surface after migration (registration/help-level checks alone are insufficient per the rule).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-17T16:06:39.824Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in"
+          },
+          "observed": "Migration-parity is not defined before implementation: the draft does not inventory the existing public behavior being replaced (context-based active-flow continuation/status usage, guidance assumptions, and affected entry/autoApprove flow commands).",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in"
+          },
+          "observed": "No mapping is provided from each retained public behavior to its new owner or an explicit removal decision. The draft lists intended changes but never states where existing behavior like context-based status for current-context display is reassigned or intentionally retired.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "qa"
+          },
+          "observed": "The acceptance criteria are defined for mismatch handling, but there is no behavior-level verification specified for each retained public surface after migration (registration/help-level checks alone are insufficient per the rule).",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "Migration-parity is not defined before implementation: the draft does not inventory the existing public behavior being replaced (context-based active-flow continuation/status usage, guidance assumptions, and affected entry/autoApprove flow commands)."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "No mapping is provided from each retained public behavior to its new owner or an explicit removal decision. The draft lists intended changes but never states where existing behavior like context-based status for current-context display is reassigned or intentionally retired."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The acceptance criteria are defined for mismatch handling, but there is no behavior-level verification specified for each retained public surface after migration (registration/help-level checks alone are insufficient per the rule)."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate failed because migration parity inventory mapping and behavior-level verification were missing",
+      "trigger": "senti flow run gate --phase draft returned migration-parity blocking findings",
+      "resolution": "add migration parity inventory retained behavior mapping and behavior-level verification to draft.json before retrying draft gate",
+      "guardrailCandidate": "when draft changes flow entry behavior, define migration parity inventory before draft gate",
+      "taskId": null,
+      "timestamp": "2026-06-17T16:06:47.373Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "遷移先の自動承認関連（`requires_approval`／`autoApprove`）の behavior-level 検証が、migration parity の verification 予定に含まれていない。既存 behavior の inventory と mapping はあるが、維持される autoApprove 判定が新経路で動作することを示す受け入れ条件が未定義。; 既存 public behavior（`finalize-cleanup` の orphan commit recovery / `SQUASH_BASELINE` 系例外）を保持する旨のみの記述があり、変更影響がないことの明示的な behavior-level 検証基準（実行結果または artifact 検証）が記載されていない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-17T16:07:45.235Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "decisionMap.deferredToSpec[2]"
+          },
+          "observed": "遷移先の自動承認関連（`requires_approval`／`autoApprove`）の behavior-level 検証が、migration parity の verification 予定に含まれていない。既存 behavior の inventory と mapping はあるが、維持される autoApprove 判定が新経路で動作することを示す受け入れ条件が未定義。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "scopeVerification[0], deferredToSpec"
+          },
+          "observed": "既存 public behavior（`finalize-cleanup` の orphan commit recovery / `SQUASH_BASELINE` 系例外）を保持する旨のみの記述があり、変更影響がないことの明示的な behavior-level 検証基準（実行結果または artifact 検証）が記載されていない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "遷移先の自動承認関連（`requires_approval`／`autoApprove`）の behavior-level 検証が、migration parity の verification 予定に含まれていない。既存 behavior の inventory と mapping はあるが、維持される autoApprove 判定が新経路で動作することを示す受け入れ条件が未定義。"
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "既存 public behavior（`finalize-cleanup` の orphan commit recovery / `SQUASH_BASELINE` 系例外）を保持する旨のみの記述があり、変更影響がないことの明示的な behavior-level 検証基準（実行結果または artifact 検証）が記載されていない。"
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate retry still failed because retained autoApprove and finalize recovery behaviors lacked behavior-level verification",
+      "trigger": "second senti flow run gate --phase draft returned migration-parity blocking findings",
+      "resolution": "add explicit behavior-level verification for autoApprove requires_approval routing and finalize recovery exceptions",
+      "guardrailCandidate": "migration parity verification must cover every retained behavior listed in inventory",
+      "taskId": null,
+      "timestamp": "2026-06-17T16:07:52.703Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The spec targets `tests/` only and provides task-level test strategy text, but does not define spec-local coverage under `specs/<specid>/tests/`, and does not specify any `// spec: R<N> ...` header usage, violating the required test coverage placement/format.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-17T16:16:39.376Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "implementationTargets",
+            "locator": "tests"
+          },
+          "observed": "The spec targets `tests/` only and provides task-level test strategy text, but does not define spec-local coverage under `specs/<specid>/tests/`, and does not specify any `// spec: R<N> ...` header usage, violating the required test coverage placement/format.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "The spec targets `tests/` only and provides task-level test strategy text, but does not define spec-local coverage under `specs/<specid>/tests/`, and does not specify any `// spec: R<N> ...` header usage, violating the required test coverage placement/format."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec gate failed because spec-local test coverage path and spec header convention were not defined",
+      "trigger": "senti flow run gate returned spec-test-coverage blocking finding",
+      "resolution": "add specs/306-guard-flow-target-status/tests coverage target and spec header requirements to spec.json",
+      "guardrailCandidate": "specs must name spec-local tests and header convention before spec gate",
+      "taskId": null,
+      "timestamp": "2026-06-17T16:16:47.260Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "R4 mismatch envelope omitted requested runId in runId status path",
+      "trigger": "impl-review blocking finding: Mismatch envelope omits requested runId",
+      "resolution": "Passed requested runId into ACTIVE_FLOW_MISMATCH data as expectedRunId and updated spec-local assertion",
+      "guardrailCandidate": "machine-readable error envelopes must include all target identifiers available at the integration point",
+      "taskId": null,
+      "timestamp": "2026-06-17T16:36:12.482Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: upgrade-result.json was missing after src/skills changes",
+      "trigger": "impl-gate ARTIFACT_PLACEHOLDER: upgrade-result.json missing",
+      "resolution": "Ran local node src/senti.js upgrade to produce upgrade-result.json and tests/.raw/upgrade.log for changed skill source paths",
+      "guardrailCandidate": "skill-source changes must produce upgrade evidence before integration gate",
+      "taskId": null,
+      "timestamp": "2026-06-17T16:38:03.787Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: spec-local test artifact failed because temporary config fixture lacked docs config and Entry ordering check matched the intro next-action text",
+      "trigger": "impl-gate ARTIFACT_PLACEHOLDER: spec-local requirement tests failed",
+      "resolution": "Added docs.languages/defaultLanguage to the tmp config and made the Entry guard assertion section-aware, then regenerated test-execute and test-result-review artifacts",
+      "guardrailCandidate": "spec-local CLI fixtures must satisfy current config schema and section assertions must avoid matching unrelated introductory text",
+      "taskId": null,
+      "timestamp": "2026-06-17T16:40:37.097Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: upgrade-result.json was removed when test-execute regenerated rebuildable artifacts",
+      "trigger": "impl-gate ARTIFACT_PLACEHOLDER: upgrade-result.json missing after test-execute rerun",
+      "resolution": "Regenerated upgrade-result.json after the final test-execute/test-result-review cycle and reverted unrelated rename migration noise",
+      "guardrailCandidate": "run upgrade evidence after the final test-execute rerun when skill sources changed",
+      "taskId": null,
+      "timestamp": "2026-06-17T16:41:21.066Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: spec-local tests still failed after first fixture repair",
+      "trigger": "impl-gate ARTIFACT_PLACEHOLDER: spec-local requirement tests failed after artifact regeneration",
+      "resolution": "Replaced R1 downstream next-action assertion with direct flow-state non-mutation assertion, made R5 bare-status assertion run before adding a second active flow, added the required goalGate marker to the R2 persisted autoCheck fixture, then regenerated test, review, and upgrade evidence",
+      "guardrailCandidate": "spec-local tests for guard behavior should not execute the downstream action they claim was skipped",
+      "taskId": null,
+      "timestamp": "2026-06-17T16:43:14.289Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: spec-local tests still failed because tmp project was not a git repository and R1 expected a fixed initial branch status",
+      "trigger": "impl-gate ARTIFACT_PLACEHOLDER: spec-local requirement tests failed after second fixture repair",
+      "resolution": "Initialized tmp projects with git init -b main and changed R1 to compare pre/post branch status instead of assuming the initial status value, then regenerated test, review, and upgrade evidence",
+      "guardrailCandidate": "spec-local CLI fixtures should initialize every external precondition that production commands assume",
+      "taskId": null,
+      "timestamp": "2026-06-17T16:44:58.420Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff modifies `src/skills/` content but does not show `senti upgrade` execution or committed generated-skill refresh changes under `.agents/` (only a test assertion was added).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-17T16:45:34.521Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R6",
+          "where": null,
+          "observed": "The diff modifies `src/skills/` content but does not show `senti upgrade` execution or committed generated-skill refresh changes under `.agents/` (only a test assertion was added).",
+          "severity": "blocking",
+          "refs": [
+            "R6"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R6",
+          "reason": "The diff modifies `src/skills/` content but does not show `senti upgrade` execution or committed generated-skill refresh changes under `.agents/` (only a test assertion was added)."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: R6 upgrade evidence was not visible enough to integration gate",
+      "trigger": "impl-gate semantic FAIL: R6 did not show upgrade execution or generated skill refresh evidence",
+      "resolution": "Added upgrade-result.json, upgrade raw log, and the ignored generated .agents skill path to R6 file-map so gate can see the upgrade evidence and generated-skill verification surface",
+      "guardrailCandidate": "requirements that rely on ignored generated files need tracked evidence artifacts and explicit file-map entries",
+      "taskId": null,
+      "timestamp": "2026-06-17T16:45:56.126Z"
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "generatedAt": "2026-06-17T16:14:19.948Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "nonBlocking": 1,
+    "total": 3
+  },
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Expected Issue has no CLI integration point",
+      "target": "R1, R4, T-1",
+      "body": "**Target:** R1, R4, T-1\n**Issue:** The spec requires a CLI-side ACTIVE_FLOW_MISMATCH error for an Issue-specified flow entry, but the existing continuation commands that must be blocked (`senti flow get next-action`, `senti flow run ...`, `finalize-cleanup`) do not accept the requested Issue, and the requested Issue currently exists only in the skill-level user input parsing path. `senti flow get status` only returns the active state's issue; it has no expected-issue input to validate against.\n**Required change:** Specify the exact integration point that receives the requested Issue and emits ACTIVE_FLOW_MISMATCH, such as a new explicit expected-Issue argument/check command or a required skill-level guard in `src/skills/senti.flow/SKILL.md` before entering the dispatcher loop.\n**Why blocking:** Without a defined place to pass and compare the requested Issue, implementation cannot produce a machine-readable CLI mismatch error or write tests proving that next-action, flow run, and finalize-cleanup were not invoked for the wrong active flow.",
+      "issue": "The spec requires a CLI-side ACTIVE_FLOW_MISMATCH error for an Issue-specified flow entry, but the existing continuation commands that must be blocked (`senti flow get next-action`, `senti flow run ...`, `finalize-cleanup`) do not accept the requested Issue, and the requested Issue currently exists only in the skill-level user input parsing path. `senti flow get status` only returns the active state's issue; it has no expected-issue input to validate against.",
+      "requiredChange": "Specify the exact integration point that receives the requested Issue and emits ACTIVE_FLOW_MISMATCH, such as a new explicit expected-Issue argument/check command or a required skill-level guard in `src/skills/senti.flow/SKILL.md` before entering the dispatcher loop.",
+      "whyBlocking": "Without a defined place to pass and compare the requested Issue, implementation cannot produce a machine-readable CLI mismatch error or write tests proving that next-action, flow run, and finalize-cleanup were not invoked for the wrong active flow."
+    },
+    {
+      "kind": "blocking",
+      "title": "RunId status guidance conflicts with preparing autoApprove status",
+      "target": "R2, R5, core-principle guidance",
+      "body": "**Target:** R2, R5, core-principle guidance\n**Issue:** The spec says that once a runId is known, autoApprove checks should read `senti flow get status <runId>`. Existing code intentionally reports `autoApprove: false` for preparing states in `src/flow/lib/get-status.js`, while `src/flow/lib/set-auto.js` can set `autoApprove: true` on a preparing flow so `flow prepare` inherits it. A runId is known during prelude while the flow is still preparing, so the proposed guidance can read false from the target status even after auto mode has been enabled.\n**Required change:** State whether runId-targeted status must expose preparing-flow `autoApprove`, or limit the runId-aware autoApprove check to active flow states and require prelude to use the set-auto result/preparing state semantics instead.\n**Why blocking:** If left unspecified, an implementation can either preserve the current preparing-status behavior and break the new guidance, or change preparing status output and risk altering existing prelude auto-mode behavior without a clear acceptance basis.",
+      "issue": "The spec says that once a runId is known, autoApprove checks should read `senti flow get status <runId>`. Existing code intentionally reports `autoApprove: false` for preparing states in `src/flow/lib/get-status.js`, while `src/flow/lib/set-auto.js` can set `autoApprove: true` on a preparing flow so `flow prepare` inherits it. A runId is known during prelude while the flow is still preparing, so the proposed guidance can read false from the target status even after auto mode has been enabled.",
+      "requiredChange": "State whether runId-targeted status must expose preparing-flow `autoApprove`, or limit the runId-aware autoApprove check to active flow states and require prelude to use the set-auto result/preparing state semantics instead.",
+      "whyBlocking": "If left unspecified, an implementation can either preserve the current preparing-status behavior and break the new guidance, or change preparing status output and risk altering existing prelude auto-mode behavior without a clear acceptance basis."
+    }
+  ],
+  "nonBlockingImprovements": [
+    {
+      "kind": "improvement",
+      "title": "Mention main flow skill placement",
+      "target": "Overview Modules / T-2",
+      "body": "**Target:** Overview Modules / T-2\n**Improvement:** Add `src/skills/senti.flow/SKILL.md` as a related implementation target because the active-flow entry branch and Issue parsing rules live there, while `core-principle.md` only supplies shared autoApprove/status guidance.\n**Why non-blocking:** The correction is mostly navigational; once the mismatch integration point is specified, implementers can still discover the main skill file from the existing codebase.",
+      "improvement": "Add `src/skills/senti.flow/SKILL.md` as a related implementation target because the active-flow entry branch and Issue parsing rules live there, while `core-principle.md` only supplies shared autoApprove/status guidance.",
+      "whyNonBlocking": "The correction is mostly navigational; once the mismatch integration point is specified, implementers can still discover the main skill file from the existing codebase."
+    }
+  ],
+  "sourceArtifact": "spec-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "spec-001-blocking-001",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Expected Issue has no CLI integration point",
+      "body": "**Target:** R1, R4, T-1\n**Issue:** The spec requires a CLI-side ACTIVE_FLOW_MISMATCH error for an Issue-specified flow entry, but the existing continuation commands that must be blocked (`senti flow get next-action`, `senti flow run ...`, `finalize-cleanup`) do not accept the requested Issue, and the requested Issue currently exists only in the skill-level user input parsing path. `senti flow get status` only returns the active state's issue; it has no expected-issue input to validate against.\n**Required change:** Specify the exact integration point that receives the requested Issue and emits ACTIVE_FLOW_MISMATCH, such as a new explicit expected-Issue argument/check command or a required skill-level guard in `src/skills/senti.flow/SKILL.md` before entering the dispatcher loop.\n**Why blocking:** Without a defined place to pass and compare the requested Issue, implementation cannot produce a machine-readable CLI mismatch error or write tests proving that next-action, flow run, and finalize-cleanup were not invoked for the wrong active flow.",
+      "category": "unknown"
+    },
+    {
+      "id": "spec-001-blocking-002",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "RunId status guidance conflicts with preparing autoApprove status",
+      "body": "**Target:** R2, R5, core-principle guidance\n**Issue:** The spec says that once a runId is known, autoApprove checks should read `senti flow get status <runId>`. Existing code intentionally reports `autoApprove: false` for preparing states in `src/flow/lib/get-status.js`, while `src/flow/lib/set-auto.js` can set `autoApprove: true` on a preparing flow so `flow prepare` inherits it. A runId is known during prelude while the flow is still preparing, so the proposed guidance can read false from the target status even after auto mode has been enabled.\n**Required change:** State whether runId-targeted status must expose preparing-flow `autoApprove`, or limit the runId-aware autoApprove check to active flow states and require prelude to use the set-auto result/preparing state semantics instead.\n**Why blocking:** If left unspecified, an implementation can either preserve the current preparing-status behavior and break the new guidance, or change preparing status output and risk altering existing prelude auto-mode behavior without a clear acceptance basis.",
+      "category": "unknown"
+    },
+    {
+      "id": "spec-001-non-blocking-003",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "Mention main flow skill placement",
+      "body": "**Target:** Overview Modules / T-2\n**Improvement:** Add `src/skills/senti.flow/SKILL.md` as a related implementation target because the active-flow entry branch and Issue parsing rules live there, while `core-principle.md` only supplies shared autoApprove/status guidance.\n**Why non-blocking:** The correction is mostly navigational; once the mismatch integration point is specified, implementers can still discover the main skill file from the existing codebase.",
+      "category": "unknown"
+    }
+  ]
+}

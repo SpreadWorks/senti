@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "fail",
+      "reason": "The spec targets `tests/` only and provides task-level test strategy text, but does not define spec-local coverage under `specs/<specid>/tests/`, and does not specify any `// spec: R<N> ...` header usage, violating the required test coverage placement/format.",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "implementationTargets",
+            "locator": "tests"
+          },
+          "observed": "The spec targets `tests/` only and provides task-level test strategy text, but does not define spec-local coverage under `specs/<specid>/tests/`, and does not specify any `// spec: R<N> ...` header usage, violating the required test coverage placement/format.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "spec-test-coverage",
+      "where": {
+        "file": "implementationTargets",
+        "locator": "tests"
+      },
+      "observed": "The spec targets `tests/` only and provides task-level test strategy text, but does not define spec-local coverage under `specs/<specid>/tests/`, and does not specify any `// spec: R<N> ...` header usage, violating the required test coverage placement/format.",
+      "severity": "blocking",
+      "refs": [
+        "spec-test-coverage"
+      ]
+    }
+  ]
+}

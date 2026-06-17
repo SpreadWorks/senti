@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied both spec-review blocking repairs by defining the expected-Issue status integration point and separating preparing auto mode semantics from active runId status checks.",
+  "items": [
+    {
+      "title": "Expected Issue has no CLI integration point",
+      "target": "R1, R4, T-1",
+      "decision": "applied",
+      "rationale": "Specified `senti flow get status [runId] --expect-issue <n>` as the command surface that receives the requested Issue and emits ACTIVE_FLOW_MISMATCH before dispatcher actions.",
+      "evidence": "spec.json overview.data_flow[0], requirements R1/R4, acceptance_criteria[0], clarifications[2], and task T-1 now name the expected-Issue status check.",
+      "changedFields": [
+        "overview.modules",
+        "overview.data_flow[0]",
+        "overview.decisions",
+        "background",
+        "requirements[0].desc",
+        "requirements[3].desc",
+        "acceptance_criteria[0]",
+        "clarifications[2].a",
+        "tasks[0]"
+      ]
+    },
+    {
+      "title": "RunId status guidance conflicts with preparing autoApprove status",
+      "target": "R2, R5, core-principle guidance",
+      "decision": "applied",
+      "rationale": "Clarified that runId-targeted status autoApprove applies to active flow states, while preparing auto mode relies on the set-auto response and prepare inheritance.",
+      "evidence": "spec.json overview.data_flow[3], overview.decisions, requirements R2, acceptance_criteria[1-2], clarifications[1], and tasks T-2/T-3 now separate preparing and active-flow semantics.",
+      "changedFields": [
+        "overview.data_flow",
+        "overview.decisions",
+        "background",
+        "requirements[1].desc",
+        "acceptance_criteria[1]",
+        "acceptance_criteria[2]",
+        "clarifications[1].a",
+        "tasks[1]",
+        "tasks[2]"
+      ]
+    }
+  ]
+}

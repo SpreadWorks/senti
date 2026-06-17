@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "Both blocking findings are valid and should be repaired in spec.json before spec-gate.",
+  "items": [
+    {
+      "title": "Expected Issue has no CLI integration point",
+      "target": "R1, R4, T-1",
+      "decision": "apply",
+      "rationale": "The spec requires a machine-readable mismatch error but does not define the command surface that receives the expected Issue, so implementation and tests cannot target the behavior.",
+      "evidence": "spec-review.json blockingFindings[0]; spec.json currently mentions flow entry / dispatcher boundary but does not name an expected-Issue argument or check command."
+    },
+    {
+      "title": "RunId status guidance conflicts with preparing autoApprove status",
+      "target": "R2, R5, core-principle guidance",
+      "decision": "apply",
+      "rationale": "Preparing status intentionally reports autoApprove false, so the spec must distinguish active-flow runId status checks from prelude set-auto result semantics.",
+      "evidence": "spec-review.json blockingFindings[1]; src/flow/lib/get-status.js comments that autoApprove is always false in preparing state, while set-auto can trust a preparing autoCheck result."
+    }
+  ]
+}

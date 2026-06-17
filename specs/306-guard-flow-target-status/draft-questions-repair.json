@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Rewrote q1, q2, and q3 pending question text so the questions no longer embed the expected answer.",
+  "items": [
+    {
+      "title": "1. q1 includes an instruction",
+      "target": "q1",
+      "rationale": "Removed the embedded must statement and rewrote q1 as a neutral behavior-definition question.",
+      "evidence": "draft.json qa[0].question now asks how Issue mismatch should be defined as user-facing behavior without preselecting the answer.",
+      "changedFieldPaths": ["qa[0].question"]
+    },
+    {
+      "title": "2. q2 includes an instruction",
+      "target": "q2",
+      "rationale": "Removed the embedded status-source answer and rewrote q2 as a neutral policy question.",
+      "evidence": "draft.json qa[1].question now asks which status source should be used after runId is known.",
+      "changedFieldPaths": ["qa[1].question"]
+    },
+    {
+      "title": "3. q3 includes an answer and evidence",
+      "target": "q3",
+      "rationale": "Removed the preselected ACTIVE_FLOW_MISMATCH answer and rewrote q3 as a neutral error-shape question.",
+      "evidence": "draft.json qa[2].question now asks for mismatch error naming and response fields without embedding the answer.",
+      "changedFieldPaths": ["qa[2].question"]
+    }
+  ]
+}

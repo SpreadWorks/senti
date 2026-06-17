@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-17T16:35:43.719Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "title": "Mismatch envelope omits requested runId",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/get-status.js",
+      "requirementId": "R4",
+      "issue": "R4 requires ACTIVE_FLOW_MISMATCH to return expectedRunId when it is available. In the runId path, execute() knows the requested runId, but activeFlowMismatch() always emits expectedRunId: null, so `senti flow get status <runId> --expect-issue <n>` loses a required machine-readable identifier.",
+      "suggestion": "Change activeFlowMismatch to accept the requested runId and pass `runId` from the runId branch, then set `expectedRunId` to that value in the ACTIVE_FLOW_MISMATCH data.",
+      "rationale": "The explicit runId form is a core integration point in the spec; omitting expectedRunId prevents callers from reliably identifying which target flow was requested when a mismatch occurs."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/306-guard-flow-target-status/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "e9208781ddc9a2f24e57533f71a00f2fa827c858a7ed6297598a2e39d74bf1f7"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "impl-001-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Mismatch envelope omits requested runId",
+      "body": "R4 requires ACTIVE_FLOW_MISMATCH to return expectedRunId when it is available. In the runId path, execute() knows the requested runId, but activeFlowMismatch() always emits expectedRunId: null, so `senti flow get status <runId> --expect-issue <n>` loses a required machine-readable identifier.",
+      "category": "missing_acceptance_requirement"
+    }
+  ]
+}

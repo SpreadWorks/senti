@@ -46,7 +46,11 @@ Note: `senti flow get context` automatically records these metrics via hooks —
 
 ### A. Entry — branch on flow state
 
-Run `senti flow get status`.
+Run `senti flow get status`, or the target-specific form below when the target is known.
+
+- If the user request names a GitHub Issue and a flow `runId` is already known, run `senti flow get status <runId> --expect-issue <n>`.
+- If the user request names a GitHub Issue and no `runId` is known yet, run `senti flow get status --expect-issue <n>` before any dispatcher action.
+- If status returns `ACTIVE_FLOW_MISMATCH`, STOP. Do not run `senti flow get next-action`, any `senti flow run ...`, or `senti flow run finalize-cleanup`.
 
 - If `active: false` and the user's latest request did not explicitly invoke Spec-Driven Development flow → go to **A.0 Route choice**.
 - If `active: false` and the user's latest request explicitly invoked Spec-Driven Development flow → go to **B. Prelude**.

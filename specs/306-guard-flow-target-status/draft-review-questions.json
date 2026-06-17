@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "phase": "draft-questions-review",
+  "sourceDraft": "draft.json",
+  "generatedAt": "2026-06-17T16:02:48.721Z",
+  "verdict": "ADVISORY",
+  "summary": "0 blocking, 0 advisory, 3 repair target finding(s) recorded.",
+  "blockingFindings": [],
+  "advisoryFindings": [],
+  "repairTargets": [
+    {
+      "title": "1. q1 includes an instruction",
+      "target": "q1",
+      "rationale": "Issue 指定で flow を開始または再開したとき、active flow が別 Issue の場合はどのように扱うべきか。",
+      "evidence": "The question includes `must:` and states the expected behavior as an instruction/answer.",
+      "classification": "repair_target"
+    },
+    {
+      "title": "2. q2 includes an instruction",
+      "target": "q2",
+      "rationale": "runId が判明した後の autoApprove 確認では、どの status を参照すべきか。",
+      "evidence": "The question includes `must:` and states the desired policy as an instruction/answer.",
+      "classification": "repair_target"
+    },
+    {
+      "title": "3. q3 includes an answer and evidence",
+      "target": "q3",
+      "rationale": "CLI-side error 名と acceptance criteria では、要求 Issue/runId と active context の取り違えをどのように表現すべきか。",
+      "evidence": "The question includes `must:` plus rationale/evidence from Issue #400 and preselects the acceptance criteria.",
+      "classification": "repair_target"
+    }
+  ]
+}

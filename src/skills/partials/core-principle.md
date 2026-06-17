@@ -5,7 +5,10 @@ Do not ask the user to confirm routine step execution when `requires_approval: f
 
 **autoApprove check (MANDATORY):**
 Before presenting any choice to the user, you MUST run `senti flow get status` and display the `autoApprove` field value. This is not optional — skipping this check is a protocol violation.
-- Run the command exactly as `senti flow get status` (no extra options).
+- If the current flow `runId` is known, prefer `senti flow get status <runId>` so the check reads the target flow instead of an unrelated current context.
+- If the user entered through an Issue-specific flow request and the requested Issue number is known, run `senti flow get status <runId> --expect-issue <n>` when `runId` is known, or `senti flow get status --expect-issue <n>` before dispatcher actions when only the current context is available.
+- A preparing flow still reports `autoApprove: false` in status; use the `senti flow set auto on --run-id <runId>` response and `senti flow prepare --run-id <runId>` inheritance for prelude auto mode.
+- Bare `senti flow get status` remains valid for current-context display and for detecting whether any active flow exists before a runId is known.
 - If the next-action envelope has `requires_approval: false`, execute the step without a "run this step?" confirmation. This applies even when `autoApprove: false`.
 - If `requires_approval: true` and `autoApprove: false` (or field is missing): present the choice to the user and wait for input.
 - If `requires_approval: true` and `autoApprove: true`: treat choice id=1 as selected and proceed immediately. Display progress briefly (e.g. "auto: approval → [1] 承認").

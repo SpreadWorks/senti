@@ -1,0 +1,117 @@
+{
+  "devType": "bugfix",
+  "goal": "Issue 指定で Spec-Driven Development flow に入るとき、別 Issue の active flow を誤って継続対象として扱わないようにする。",
+  "analysis": {
+    "problem": "$senti.flow #399 のように対象 Issue を明示した場合でも、別 Issue の active flow が存在すると、skill が context-based な裸の senti flow get status を参照し、対象外 flow の autoApprove や next-action を使ってしまう可能性がある。",
+    "proposedApproach": "Issue 指定時は active status の issue と要求 Issue の一致を確認し、不一致なら停止する。runId が判明した後は autoApprove 確認を runId 指定の status へ寄せ、skill 文言と CLI guardrail の両方で対象 flow の取り違えを防ぐ。",
+    "validation": "Issue #400 は再現条件、原因、期待修正、受け入れ条件を明示している。src/skills/partials/core-principle.md には裸の status 強制があり、src/flow/registry.js と src/flow/lib/get-status.js には runId 指定 status の既存経路があるため、root problem は skill guidance と CLI entry guard の不一致として扱える。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #400 は、Issue 指定の flow entry が別 Issue の active flow を継続しないことを要求している。",
+      "must: src/skills/partials/core-principle.md は、選択肢提示前に exactly senti flow get status を実行し、追加 option を付けないよう指示している。",
+      "must: src/flow/registry.js の status command は positional runId を受け付ける。",
+      "must: src/flow/lib/get-status.js は runId 指定時に resolveByRunId を使い、context-based active flow ではなく指定 runId の state を返す。",
+      "must: src/lib/flow-manager.js は active flow と preparing flow の両方から runId を解決できる。",
+      "must: Migration parity inventory: 裸の senti flow get status は current execution context の status display と active flow 有無確認の public behavior として保持する。",
+      "must: Migration parity inventory: senti flow get status <runId> は active / preparing flow を runId で読む public behavior として保持する。",
+      "must: Migration parity inventory: requires_approval と autoApprove に基づく通常承認の自動選択 behavior は、対象 flow が確定している場合に限って保持する。",
+      "must: Migration parity inventory: finalize-cleanup の orphan commit recovery や SQUASH_BASELINE 系の manual recovery exception は変更しない。"
+    ],
+    "decisionPoints": [
+      "must: Issue 指定時の不一致検出を、dispatcher に入る前の flow entry 境界で扱う。",
+      "must: runId 判明後の autoApprove 確認は、対象 runId の status を優先する。",
+      "must: ACTIVE_FLOW_MISMATCH 相当の明確な CLI-side failure を導入し、誤った継続コマンド実行を防ぐ。",
+      "must: skill 文言から裸の status 前提を除去し、runId-aware guidance を upgrade で配布される skill source に反映する。",
+      "must: Migration parity mapping: current-context status display は get-status の runId なし default path が引き続き owner となる。",
+      "must: Migration parity mapping: runId-targeted status lookup は既存 get-status runId path と FlowManager.resolveByRunId が owner となる。",
+      "must: Migration parity mapping: Issue mismatch 停止は flow entry / dispatcher boundary と skill prelude guidance が owner となる。",
+      "must: Migration parity mapping: autoApprove 表示と自動承認判断は、runId がある場合は target runId status、runId がない場合は mismatch guard 後の current context status が owner となる。"
+    ],
+    "resolvedByProjectRules": [
+      "must: Issue は 1 つの concern として扱い、別 spec への分割提案はしない。",
+      "must: src/ 配下には特定プロジェクトや環境固有の値を hardcode しない。",
+      "must: 外部 npm dependency は追加しない。",
+      "must: src/skills/ を変更した場合は senti upgrade を実行し、生成済み skill への反映を検証する。",
+      "must: prompt guidance の配置移動を行う場合は、旧配置削除と新配置存在を regression test または placement assertion で検証する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: どの flow entry command が要求 Issue/runId を受け取り、どこで mismatch を検出するかを spec で具体化する。",
+      "must: runId-aware autoApprove guidance を core-principle partial と生成 skill のどちらで検証するかを spec で具体化する。",
+      "must: mismatch guard の回帰テスト対象を CLI unit test、skill text assertion、flow behavior test のどれに置くかを spec で具体化する。",
+      "must: Migration parity verification: runId なし status が current context status display として従来どおり使えることを behavior-level test で確認する。",
+      "must: Migration parity verification: runId 指定 status が別 active context ではなく対象 runId の state を返すことを behavior-level test で確認する。",
+      "must: Migration parity verification: Issue 指定 entry が別 Issue の active flow を検出した場合、next-action / flow run / finalize-cleanup を実行せず ACTIVE_FLOW_MISMATCH 相当で停止することを behavior-level test で確認する。",
+      "must: Migration parity verification: core-principle skill guidance から旧 unsafe wording が消え、runId-aware guidance が存在することを placement assertion で確認する。",
+      "must: Migration parity verification: requires_approval が true かつ target flow の autoApprove が true の場合、対象 flow の choice id=1 auto-selection behavior が維持されることを behavior-level test で確認する。",
+      "must: Migration parity verification: requires_approval が true かつ target flow の autoApprove が false の場合、ユーザー確認で停止する behavior が維持されることを behavior-level test で確認する。",
+      "must: Migration parity verification: finalize-cleanup の ORPHAN_COMMITS_DETECTED、SQUASH_BASELINE_*、FORCED_ORPHAN_* は autoApprove が true でも自動選択されず、manual recovery prompt と artifact が維持されることを behavior-level test または existing fixture artifact validation で確認する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: Issue 指定付き flow entry で、active flow の issue が要求 Issue と異なる場合に停止する。",
+      "must: runId が既知の autoApprove 確認で、senti flow get status <runId> 相当の対象 flow status を使う。",
+      "must: src/skills/partials/core-principle.md の裸 status 強制を runId-aware guidance に置き換える。",
+      "must: CLI 側に ACTIVE_FLOW_MISMATCH 相当の明確な不一致 error を追加する。",
+      "must: 旧 unsafe guidance の削除と新 guidance の存在、および Issue mismatch guard を regression coverage に含める。"
+    ],
+    "out": [
+      "must: flow state schema の大規模再設計は行わない。",
+      "must: GitHub Issue 取得や board workflow の仕様変更は行わない。",
+      "must: finalize-cleanup の orphan commit recovery policy は変更しない。",
+      "must: npm publish や release 操作は行わない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: senti.flow skill の entry / autoApprove 手順が変わるため、既存の通常 flow では runId がない初期状態と runId 判明後の状態を区別して扱う必要がある。",
+    "must: senti flow get status の既存 runId positional behavior は維持し、context-based status が必要な current-context 表示用途は壊さない。",
+    "must: flow prepare / auto-check / next-action / finalize-cleanup などの継続系コマンドは、Issue mismatch 時に誤って別 flow へ実行されないことを保証する。",
+    "must: src/skills/ を変更するため、senti upgrade による .agents/skills などの反映差分が発生する。",
+    "must: Migration parity impact: current-context status display、runId-targeted status lookup、autoApprove exception handling、finalize recovery prompts は保持し、Issue mismatch guard のみを新しい停止条件として追加する。",
+    "must: Migration parity impact: help text や command registration の存在確認だけでは不十分であり、保持する public behavior ごとに実行結果または artifact を検証する。",
+    "must: Migration parity impact: autoApprove の通常承認 path と manual recovery exception path は別の retained behavior として扱い、それぞれ独立した behavior-level verification を持つ。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "Issue 指定で flow を開始または再開したとき、active flow が別 Issue だった場合の扱いは、どのような user-facing behavior として定義すべきか。",
+      "answer": "must: 要求 Issue と active flow の Issue が一致しない場合は、dispatcher に入らず停止し、要求 Issue と active Issue の不一致を明示する。",
+      "evidence": "Issue #400 Expected Fix 1-3 states that the specified Issue must be compared with status.data.issue, mismatch must stop immediately, and next-action / flow run / finalize-cleanup must not execute.",
+      "why": "対象外 flow の next-action や cleanup を実行する事故を防ぐには、Issue 不一致を継続対象選択の前で user-visible に止める必要がある。",
+      "considered": "別 active flow を自動 cleanup してから続行する案は、対象外 flow を勝手に進めるため除外する。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "runId が判明した後の autoApprove 確認では、どの status source を参照する policy として skill の必須手順に定義すべきか。",
+      "answer": "must: runId が判明した後は、対象 runId の status を参照する。裸の context-based status は、runId 未確定時の active flow 有無確認に限定する。",
+      "evidence": "src/flow/registry.js defines `senti flow get status [runId]`; src/flow/lib/get-status.js resolves by runId before falling back to context-based flow state.",
+      "why": "autoApprove は対象 flow の承認状態であり、context-based status を使うと別 active flow の autoApprove を読めるため。",
+      "considered": "常に裸の status を使う案は Issue #400 の再現原因そのものなので除外する。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "CLI-side mismatch error は、どの名称と response fields で要求 Issue/runId と active context の取り違えを表現すべきか。",
+      "answer": "must: CLI-side mismatch error は ACTIVE_FLOW_MISMATCH 相当の明確な code とし、利用可能な範囲で expectedIssue、activeIssue、expectedRunId、activeRunId を返す。",
+      "evidence": "Issue #400 Expected Fix 6 requests a clear CLI-side error such as ACTIVE_FLOW_MISMATCH, and Acceptance Criteria require preventing incorrect association between Issue / runId and active flow.",
+      "why": "要求対象と active context の差分を machine-readable に返すことで、skill が安全に停止し、ユーザーにも何が衝突しているかを説明できる。",
+      "considered": "汎用エラー文だけにする案は、skill が recovery path を判別しにくく、再発防止の acceptance criteria を満たしにくいため除外する。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-17T16:06:03Z",
+    "notes": "Auto-approved after draft-refine resolved all QA entries from Issue #400 and source context; no unresolved user decision remains."
+  }
+}

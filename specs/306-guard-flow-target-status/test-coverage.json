@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Issue 指定付き flow entry は、`senti flow get status [runId] --expect-issue <n>` を mismatch check の integration point とし、resolved flow issue が要求 Issue と異なる場合、ACTIVE_FLOW_MISMATCH 相当の error で停止し、next-action、flow run、finalize-cleanup を実行しない。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/flow-target-status.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "active flow の runId が判明した後の autoApprove status check は、対象 runId の status を読み、別 active context の autoApprove を参照しない。preparing state では status の autoApprove を信頼せず、set-auto envelope と prepare inheritance を使う。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/flow-target-status.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "src/skills/partials/core-principle.md は、`exactly senti flow get status` / `no extra options` 前提を削除し、runId がある場合に `senti flow get status <runId>` を優先する guidance を含む。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/flow-target-status.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "`senti flow get status [runId] --expect-issue <n>` の ACTIVE_FLOW_MISMATCH 相当 error は、利用可能な範囲で expectedIssue、activeIssue、expectedRunId、activeRunId を machine-readable に返す。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/flow-target-status.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "Migration parity として、bare `senti flow get status` の current-context 表示、`senti flow get status <runId>` の target lookup、requires_approval / autoApprove の通常承認 behavior、finalize recovery exception behavior を保持する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/flow-target-status.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "src/skills/ を変更した場合、senti upgrade を実行し、生成済み skill への反映差分を検証する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/flow-target-status.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/flow-target-status.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ]
+    }
+  ]
+}

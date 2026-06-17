@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "遷移先の自動承認関連（`requires_approval`／`autoApprove`）の behavior-level 検証が、migration parity の verification 予定に含まれていない。既存 behavior の inventory と mapping はあるが、維持される autoApprove 判定が新経路で動作することを示す受け入れ条件が未定義。",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "decisionMap.deferredToSpec[2]"
+          },
+          "observed": "遷移先の自動承認関連（`requires_approval`／`autoApprove`）の behavior-level 検証が、migration parity の verification 予定に含まれていない。既存 behavior の inventory と mapping はあるが、維持される autoApprove 判定が新経路で動作することを示す受け入れ条件が未定義。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "既存 public behavior（`finalize-cleanup` の orphan commit recovery / `SQUASH_BASELINE` 系例外）を保持する旨のみの記述があり、変更影響がないことの明示的な behavior-level 検証基準（実行結果または artifact 検証）が記載されていない。",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "scopeVerification[0], deferredToSpec"
+          },
+          "observed": "既存 public behavior（`finalize-cleanup` の orphan commit recovery / `SQUASH_BASELINE` 系例外）を保持する旨のみの記述があり、変更影響がないことの明示的な behavior-level 検証基準（実行結果または artifact 検証）が記載されていない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft-content",
+        "locator": "decisionMap.deferredToSpec[2]"
+      },
+      "observed": "遷移先の自動承認関連（`requires_approval`／`autoApprove`）の behavior-level 検証が、migration parity の verification 予定に含まれていない。既存 behavior の inventory と mapping はあるが、維持される autoApprove 判定が新経路で動作することを示す受け入れ条件が未定義。",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft-content",
+        "locator": "scopeVerification[0], deferredToSpec"
+      },
+      "observed": "既存 public behavior（`finalize-cleanup` の orphan commit recovery / `SQUASH_BASELINE` 系例外）を保持する旨のみの記述があり、変更影響がないことの明示的な behavior-level 検証基準（実行結果または artifact 検証）が記載されていない。",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    }
+  ]
+}
