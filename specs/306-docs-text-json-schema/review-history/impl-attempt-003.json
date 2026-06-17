@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-17T16:28:20.460Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "title": "File-mode schema path can collide across concurrent agent calls",
+      "failureMode": "security_or_data_integrity_bug",
+      "file": "src/lib/agent.js",
+      "issue": "In Agent._buildInvocation, the schemaMode === \"file\" branch writes schemas to schema-${Date.now()}.json under the shared agent work directory. docs.text batch processing can invoke multiple file-mode providers concurrently, so two calls in the same millisecond can share the same schema path and overwrite each other's schema before the provider reads it.",
+      "suggestion": "In Agent._buildInvocation's schemaMode === \"file\" branch, generate a per-invocation unique schema path, for example with crypto.randomUUID() or fs.mkdtemp under agentWorkDir, and have Agent._callOnce remove that exact pending schema file after the child process closes or errors.",
+      "rationale": "The JSON schema is part of the provider invocation contract. A shared timestamp filename can make one target file run with another target file's schema, causing nondeterministic parse failures or incorrect schema enforcement during concurrent docs.text generation."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/306-docs-text-json-schema/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "50dff16a22ae72168e18ad9fdf0788bce09b7ad61b88cf9ad1da7c911e31c680"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "impl-003-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "File-mode schema path can collide across concurrent agent calls",
+      "body": "In Agent._buildInvocation, the schemaMode === \"file\" branch writes schemas to schema-${Date.now()}.json under the shared agent work directory. docs.text batch processing can invoke multiple file-mode providers concurrently, so two calls in the same millisecond can share the same schema path and overwrite each other's schema before the provider reads it.",
+      "category": "security_or_data_integrity_bug"
+    }
+  ]
+}

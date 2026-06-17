@@ -1,0 +1,49 @@
+{
+  "spec": "specs/306-docs-text-json-schema/spec.json",
+  "date": "2026-06-17T16:32:19.522Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "docs.text batch generation passes a JSON schema to agent.call that constrains the response to an object mapping directive id strings to markdown text strings.",
+      "status": "done",
+      "note": "R1: batch generation passes a directive-id JSON schema to agent.call"
+    },
+    {
+      "desc": "Every built-in default provider entry reachable by docs.text, including claude/sonnet and codex/gpt-5.4, includes jsonSchemaFlag and jsonSchemaMode so schema options are represented in provider invocation.",
+      "status": "done",
+      "note": "R2: docs.text-reachable built-in default providers expose schema flag and mode"
+    },
+    {
+      "desc": "When a docs.text batch response cannot be parsed as the required JSON object, that response is not saved to .senti/agent-cache during active flow execution.",
+      "status": "done",
+      "note": "R3: parse-invalid docs.text responses are not stored in active-flow prompt cache"
+    },
+    {
+      "desc": "When docs.text batch parsing fails for a target file, the failed target file can be retried within a bounded retry path, and a later valid JSON response lets the build continue.",
+      "status": "done",
+      "note": "R4: a failed target-file parse retries and succeeds on a later valid JSON response"
+    },
+    {
+      "desc": "When the resolved docs.text provider/profile lacks schema support because of project-local overrides or custom providers, diagnostics name commandId docs.text and the missing schema fields jsonSchemaFlag/jsonSchemaMode.",
+      "status": "done",
+      "note": "R5: docs.text schema-disabled provider overrides emit an actionable diagnostic"
+    },
+    {
+      "desc": "Existing docs.text public behavior is retained for successful JSON responses, per-directive mode, user override precedence, generated markdown writes, and successful prompt cache reuse.",
+      "status": "done",
+      "note": "R6: successful docs.text batch behavior is retained while schema is supplied"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 6,
+    "done": 6,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 1,
+    "not_testable_count": 1,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "The spec lists affected public surfaces for migration parity but does not map each retained behavior (docs build, textFillFromAnalysis, processTemplateFileBatch, agent config, generated markdown, prompt cache behavior) to a new owner or an explicit removal decision.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec-content",
+            "locator": "scope.in[0]/overview.decisions[3]"
+          },
+          "observed": "The spec lists affected public surfaces for migration parity but does not map each retained behavior (docs build, textFillFromAnalysis, processTemplateFileBatch, agent config, generated markdown, prompt cache behavior) to a new owner or an explicit removal decision.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "There is no explicit behavior-level verification for each retained public surface through the new path; only a few general test outcomes are listed (e.g., existing successful batch insertion), leaving other retained surfaces without dedicated parity acceptance checks.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec-content",
+            "locator": "acceptance_criteria"
+          },
+          "observed": "There is no explicit behavior-level verification for each retained public surface through the new path; only a few general test outcomes are listed (e.g., existing successful batch insertion), leaving other retained surfaces without dedicated parity acceptance checks.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "spec-content",
+        "locator": "scope.in[0]/overview.decisions[3]"
+      },
+      "observed": "The spec lists affected public surfaces for migration parity but does not map each retained behavior (docs build, textFillFromAnalysis, processTemplateFileBatch, agent config, generated markdown, prompt cache behavior) to a new owner or an explicit removal decision.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "spec-content",
+        "locator": "acceptance_criteria"
+      },
+      "observed": "There is no explicit behavior-level verification for each retained public surface through the new path; only a few general test outcomes are listed (e.g., existing successful batch insertion), leaving other retained surfaces without dedicated parity acceptance checks.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    }
+  ]
+}

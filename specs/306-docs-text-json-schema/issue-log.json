@@ -1,0 +1,194 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The draft changes existing docs.text parsing/cache behavior but does not define a migration inventory of existing public behavior (commands, APIs, config entries, generated artifacts, and side effects) before implementation.; For retained public behavior, the draft does not map each surface to a new owner/path, nor explicitly call out any intentional removals and user-visible compatibility impact.; No behavior-level acceptance criteria are specified for retained public surfaces through the new path; the draft relies on intent statements and issue/test mentions without explicit parity-verification criteria.; Requirement uses the subjective term \"easier root-cause identification\" without verifiable thresholds or criteria, which is not objectively testable as written.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-17T16:02:42.394Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec-draft",
+            "locator": "scopeVerification.in"
+          },
+          "observed": "The draft changes existing docs.text parsing/cache behavior but does not define a migration inventory of existing public behavior (commands, APIs, config entries, generated artifacts, and side effects) before implementation.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec-draft",
+            "locator": "impactOnExisting"
+          },
+          "observed": "For retained public behavior, the draft does not map each surface to a new owner/path, nor explicitly call out any intentional removals and user-visible compatibility impact.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec-draft",
+            "locator": "qa"
+          },
+          "observed": "No behavior-level acceptance criteria are specified for retained public surfaces through the new path; the draft relies on intent statements and issue/test mentions without explicit parity-verification criteria.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec-draft",
+            "locator": "decisionPoints[3]"
+          },
+          "observed": "Requirement uses the subjective term \"easier root-cause identification\" without verifiable thresholds or criteria, which is not objectively testable as written.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft changes existing docs.text parsing/cache behavior but does not define a migration inventory of existing public behavior (commands, APIs, config entries, generated artifacts, and side effects) before implementation."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "For retained public behavior, the draft does not map each surface to a new owner/path, nor explicitly call out any intentional removals and user-visible compatibility impact."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "No behavior-level acceptance criteria are specified for retained public surfaces through the new path; the draft relies on intent statements and issue/test mentions without explicit parity-verification criteria."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Requirement uses the subjective term \"easier root-cause identification\" without verifiable thresholds or criteria, which is not objectively testable as written."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate failed because migration parity inventory and behavior-level verification were missing and one diagnostic requirement used vague wording",
+      "trigger": "senti flow run gate --phase draft returned migration-parity and unambiguous-requirements blocking observations",
+      "resolution": "expanded draft with public surface inventory, retained behavior owner mapping, behavior-level verification criteria, no-removal statement, and concrete diagnostic fields",
+      "guardrailCandidate": "drafts that alter existing public command behavior must inventory retained surfaces and define behavior-level parity checks before gate",
+      "taskId": null,
+      "timestamp": "2026-06-17T16:03:30.643Z"
+    },
+    {
+      "step": "spec-review",
+      "reason": "spec review found schema-default alignment only covered Codex while default docs.text profiles can resolve claude/sonnet without schema fields",
+      "trigger": "senti flow run review --phase spec returned blocking finding for R2 and T-4 default docs.text path coverage",
+      "resolution": "broadened R2, T-4, scope, acceptance, and source verification evidence to cover every docs.text-reachable built-in default provider entry including claude/sonnet and codex/gpt-5.4",
+      "guardrailCandidate": "schema-default requirements must cover the actual default profile route, not only the provider family named in the bug report",
+      "taskId": null,
+      "timestamp": "2026-06-17T16:09:24.123Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The spec lists affected public surfaces for migration parity but does not map each retained behavior (docs build, textFillFromAnalysis, processTemplateFileBatch, agent config, generated markdown, prompt cache behavior) to a new owner or an explicit removal decision.; There is no explicit behavior-level verification for each retained public surface through the new path; only a few general test outcomes are listed (e.g., existing successful batch insertion), leaving other retained surfaces without dedicated parity acceptance checks.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-17T16:10:12.116Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec-content",
+            "locator": "scope.in[0]/overview.decisions[3]"
+          },
+          "observed": "The spec lists affected public surfaces for migration parity but does not map each retained behavior (docs build, textFillFromAnalysis, processTemplateFileBatch, agent config, generated markdown, prompt cache behavior) to a new owner or an explicit removal decision.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec-content",
+            "locator": "acceptance_criteria"
+          },
+          "observed": "There is no explicit behavior-level verification for each retained public surface through the new path; only a few general test outcomes are listed (e.g., existing successful batch insertion), leaving other retained surfaces without dedicated parity acceptance checks.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The spec lists affected public surfaces for migration parity but does not map each retained behavior (docs build, textFillFromAnalysis, processTemplateFileBatch, agent config, generated markdown, prompt cache behavior) to a new owner or an explicit removal decision."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "There is no explicit behavior-level verification for each retained public surface through the new path; only a few general test outcomes are listed (e.g., existing successful batch insertion), leaving other retained surfaces without dedicated parity acceptance checks."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec gate failed because migration parity inventory lacked explicit retained surface owner mapping and per-surface behavior-level checks",
+      "trigger": "senti flow run gate reported migration-parity failures for owner/removal mapping and acceptance criteria coverage",
+      "resolution": "added migration parity mapping decision and acceptance criteria for docs commands, exported helpers, user-wins config, generated markdown, and prompt cache reuse",
+      "guardrailCandidate": "spec migration parity must map every retained public surface to an owner and list behavior-level checks for each surface before gate",
+      "taskId": null,
+      "timestamp": "2026-06-17T16:10:38.026Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test review found R1 schema constraint under-tested and R6 retained behavior coverage incomplete",
+      "trigger": "senti flow run review --phase test returned blocking findings for docs-text-json-schema spec-local tests",
+      "resolution": "expanded R1 schema assertions to require string directive values and added R6 tests for per-directive mode, textFillFromAnalysis writes, user override precedence, and successful cache reuse",
+      "guardrailCandidate": "spec-local tests must cover the full requirement sentence, not only one representative assertion",
+      "taskId": null,
+      "timestamp": "2026-06-17T16:15:35.450Z"
+    },
+    {
+      "step": "implement",
+      "reason": "implement completion validation failed because file-map entries for testable requirements were missing",
+      "trigger": "senti flow set step implement done returned IMPLEMENT_COMPLETION_VALIDATION_FAILED with file-map-missing",
+      "resolution": "registered changed files for R1 through R6 using senti flow set files before retrying implement completion",
+      "guardrailCandidate": "record file-map entries for every testable requirement before marking implement done",
+      "taskId": null,
+      "timestamp": "2026-06-17T16:19:57.241Z"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "dependency_failure",
+      "reason": "final-regression failed: dependency_failure",
+      "command": "node tests/run.js",
+      "rawOutputPath": "specs/306-docs-text-json-schema/tests/.raw/final-regression-attempt-001.log",
+      "retryable": false,
+      "nextAction": "stop",
+      "timestamp": "2026-06-17T16:35:07.352Z"
+    }
+  ]
+}

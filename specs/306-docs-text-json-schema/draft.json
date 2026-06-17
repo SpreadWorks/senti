@@ -1,0 +1,79 @@
+{
+  "devType": "bugfix",
+  "goal": "senti docs build の docs.text batch 生成で、directive id から markdown text への JSON object 契約を must として強制し、非 JSON 応答による build 失敗と active flow の prompt cache 固定化を防ぐ。",
+  "analysis": {
+    "problem": "Issue #399 は docs.text の batch 生成が JSON object を期待している一方で、agent.call に jsonSchema が渡らず、Codex などが自然文を返すと batch JSON parse failed になる問題を扱う。現行の parse failure は agent.call の戻り値を受け取った後に src/docs/commands/text.js で発生するため、src/lib/agent.js の prompt cache は失敗レスポンスを成功応答として保存し得る。",
+    "proposedApproach": "docs.text batch 呼び出しに directive id -> markdown text の JSON schema を must として渡す。Codex provider defaults と defaultAgentProviders 側に schema flag/mode を揃え、schema 未対応または project-local override で schema 設定が欠ける場合を診断できるようにする。parse failure は対象ファイル単位で再試行し、失敗応答を cache に保存しない契約を追加する。",
+    "validation": "src/docs/commands/text.js は processTemplateFileBatch から invokeAgent を呼び、parseBatchJsonResponse 失敗時に batch JSON parse failed を投げている。src/lib/agent.js は cacheCandidate.cacheable !== false のとき prompt cache に保存するため、docs.text 側が parse failure を cache 不可として扱う仕組みが必要。src/lib/provider.js には provider builtin profile の jsonSchemaFlag/jsonSchemaMode があるが、src/lib/agent-defaults.js の PROVIDER_POOL には同等設定がない。既存 unit test は tests/unit/docs/commands/text-batch.test.js、tests/unit/lib/agent-service.test.js、tests/unit/lib/provider.test.js に配置できる。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: docs.text batch mode expects a JSON object keyed by directive id; Issue #399 reports ordinary natural language responses causing batch JSON parse failed.",
+      "must: active flow prompt cache is stored under .senti/agent-cache via src/lib/agent.js, and cache writes currently depend on agent-level cacheable metadata rather than docs.text parse success.",
+      "must: src/docs/commands/text.js currently parses batch JSON after agent.call returns, so parse failure happens outside Agent.call unless the docs.text contract is changed.",
+      "must: src/lib/provider.js CodexProvider builtin profiles include jsonSchemaFlag/jsonSchemaMode, but src/lib/agent-defaults.js PROVIDER_POOL entries used by defaultAgentProviders do not include those schema settings.",
+      "must: project-local .senti/config.json can override agent.providers entries and currently shows provider entries without jsonSchemaFlag/jsonSchemaMode, matching the mismatch class described by Issue #399.",
+      "must: migration inventory covers public commands senti docs build and senti docs text, exported helpers textFillFromAnalysis and processTemplateFileBatch, config entries agent.profiles and agent.providers, generated docs markdown files, and active-flow prompt cache artifacts under .senti/agent-cache."
+    ],
+    "decisionPoints": [
+      "must: define the docs.text JSON schema shape as an object whose property names are directive ids and whose property values are generated markdown strings.",
+      "must: define where parse-failure retry lives so a single target file can retry without restarting the entire docs build.",
+      "must: define how a non-JSON response is marked non-cacheable when parsing fails after agent.call returns.",
+      "should: prefer diagnostic output for schema-disabled project-local overrides over silent prompt-only fallback; the diagnostic must name commandId docs.text, resolved profile/provider key when available, and missing schema fields jsonSchemaFlag/jsonSchemaMode."
+    ],
+    "resolvedByProjectRules": [
+      "must: no external npm dependency may be added; JSON schema construction, retry control, and diagnostics must use Node.js built-ins and existing helpers.",
+      "must: src/ code must not hardcode project-specific values; any provider/default changes must remain generic package behavior.",
+      "must: tests must be added or updated without weakening existing test scenarios to make failures pass.",
+      "must: source code is authoritative when docs are stale; docs/ was slightly older than src/ at draft start, so source inspection drives the draft."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: exact helper/class names and retry API shape are deferred to spec and implementation, but the public behavior and tests must match Issue #399 acceptance criteria.",
+      "must: exact diagnostic wording is deferred to spec, but it must identify missing jsonSchemaFlag/jsonSchemaMode for resolved docs.text provider/profile paths."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: docs.text batch agent calls pass a JSON schema constraining the response to directive id -> markdown text.",
+      "must: Codex provider defaults exposed through built-in profiles/default providers include jsonSchemaFlag and jsonSchemaMode so schema settings reach provider invocation.",
+      "must: JSON parse failure responses from docs.text are not saved to prompt cache during active flow execution.",
+      "must: parse failure can retry at failed target-file level, and a later valid JSON response lets the build continue.",
+      "must: project-local override cases that remove schema settings are diagnosed or explicitly specified with test coverage.",
+      "must: migration parity is verified for retained docs.text public surfaces through behavior-level tests rather than only provider registration or help output."
+    ],
+    "out": [
+      "must: no docs.text contract change outside JSON object responses for text directive batch generation.",
+      "must: no external dependency addition.",
+      "must: no project-specific provider names, paths, issue ids, or local config values hardcoded in src/.",
+      "should: no broad rewrite of the docs generation pipeline beyond the text phase behavior needed for Issue #399."
+    ]
+  },
+  "impactOnExisting": [
+    "must: retained public command senti docs build keeps the existing pipeline and writes generated docs markdown through DocsTextCommand/runText; behavior-level verification covers an invalid first docs.text batch response followed by valid JSON for the same target file with successful build continuation.",
+    "must: retained public command senti docs text keeps batch directive replacement semantics owned by processTemplateFileBatch; behavior-level verification covers existing directive id insertion and preservation of unrelated data directive content.",
+    "must: retained exported helper textFillFromAnalysis keeps its root, analysis, commandId, srcRoot, and opts contract while adding failed-file retry; behavior-level verification covers one failed target file retry without reprocessing successful files as failures.",
+    "must: retained agent configuration surfaces agent.profiles, agent.providers, jsonSchemaFlag, and jsonSchemaMode keep user overrides winning; behavior-level verification covers diagnostics when the resolved docs.text provider/profile lacks schema fields.",
+    "must: retained prompt cache behavior keeps successful cacheable responses reusable and removes no cache file format; behavior-level verification covers parse-invalid docs.text responses not being written to .senti/agent-cache.",
+    "must: no intentional public behavior removal is planned; any implementation that removes a docs.text command, exported helper, config field, generated artifact, or cache behavior must return to draft/spec for explicit user-visible impact review."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "Issue #399 の目的は、docs.text batch 生成で directive id -> markdown text の JSON object 契約を must として強制し、非 JSON 応答の cache 保存と build 全体の不安定化を防ぐことでよいか。",
+      "answer": "はい。must: docs.text batch 生成で JSON object 契約を強制し、非 JSON 応答を prompt cache に保存せず、対象ファイル単位の retry によって後続の valid JSON 応答で build を継続できるようにする。Retained public behavior is senti docs build, senti docs text, textFillFromAnalysis, processTemplateFileBatch, agent profile/provider configuration, generated docs markdown, and active-flow prompt cache reuse.",
+      "evidence": "Issue #399 Overview / Expected Fixes / Acceptance Criteria。src/docs/commands/text.js processTemplateFileBatch は parseBatchJsonResponse 失敗時に batch JSON parse failed を投げる。src/lib/agent.js Agent.call は cacheCandidate.cacheable !== false の場合に .senti/agent-cache へ保存する。",
+      "why": "preflight summary はユーザーが [1] Enable auto で承認済み。Issue は JSON schema 渡し、provider schema flag/mode、parse failure cache 抑止、target-file retry、override 診断を受け入れ条件として明示している。",
+      "considered": "docs.text を per-directive mode に戻す案は batch JSON 契約の修正にならず、Issue の schema enforcement と cache prevention の受け入れ条件を満たさないため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-17T16:02:15Z",
+    "notes": "Preflight summary accepted by user with auto mode; draft-refine resolved the approved goal confirmation from Issue #399 evidence."
+  }
+}

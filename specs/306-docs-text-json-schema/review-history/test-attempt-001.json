@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-17T16:14:13.511Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "advisory": 1,
+    "total": 3
+  },
+  "coverageArtifact": "specs/306-docs-text-json-schema/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R1 schema constraint is under-tested",
+      "target": "specs/306-docs-text-json-schema/tests/docs-text-json-schema.test.js R1 test",
+      "issue": "The test only asserts that agent.call receives a jsonSchema with type \"object\". A schema with only { type: \"object\" } would pass while failing the requirement to constrain the response to directive id keys mapped to markdown text strings.",
+      "requiredChange": "Assert the schema constrains directive id entries to string values, for example by checking a known directive id property or additionalProperties/patternProperties has type \"string\" and that non-string/object-shaped values would be rejected by the intended schema shape.",
+      "whyBlocking": "This leaves the core R1 acceptance requirement without executable coverage and would allow an implementation that passes the test without enforcing the required JSON response contract."
+    },
+    {
+      "kind": "blocking",
+      "title": "R6 regression coverage omits several required retained behaviors",
+      "target": "specs/306-docs-text-json-schema/tests/docs-text-json-schema.test.js R6 test",
+      "issue": "The R6 test covers a successful batch write with an existing data block and schema presence, but it does not cover per-directive mode, user override precedence, generated markdown writes beyond the returned text, or successful prompt cache reuse.",
+      "requiredChange": "Add spec-local assertions or tests for the missing R6 behaviors: per-directive mode remains unchanged, user overrides still take precedence, generated markdown is written as expected, and a successful JSON response is reusable from prompt cache.",
+      "whyBlocking": "The coverage artifact marks all of R6 as covered, but multiple explicitly listed public behaviors have no corresponding test coverage."
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R2 provider coverage could be future-proofed",
+      "target": "specs/306-docs-text-json-schema/tests/docs-text-json-schema.test.js R2 test",
+      "improvement": "Instead of checking only claude/sonnet and codex/gpt-5.4, derive or enumerate all docs.text-reachable built-in providers and assert each exposes jsonSchemaFlag and jsonSchemaMode.",
+      "whyNonBlocking": "The requirement explicitly calls out those two providers and the current test covers them, but broader enumeration would better protect against future default-provider additions."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/306-docs-text-json-schema/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "f5a9d0b4d801e6577497c3a30e269dcb38671efa5b6de83dfdfb024afd180e52"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "test-001-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R1 schema constraint is under-tested",
+      "body": "The test only asserts that agent.call receives a jsonSchema with type \"object\". A schema with only { type: \"object\" } would pass while failing the requirement to constrain the response to directive id keys mapped to markdown text strings.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R6 regression coverage omits several required retained behaviors",
+      "body": "The R6 test covers a successful batch write with an existing data block and schema presence, but it does not cover per-directive mode, user override precedence, generated markdown writes beyond the returned text, or successful prompt cache reuse.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-non-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "R2 provider coverage could be future-proofed",
+      "body": "R2 provider coverage could be future-proofed",
+      "category": "unknown"
+    }
+  ]
+}

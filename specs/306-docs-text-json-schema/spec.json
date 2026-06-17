@@ -1,0 +1,274 @@
+{
+  "goal": "Make docs.text batch generation reliably return and consume directive id -> markdown text JSON objects, while preventing non-JSON responses from being cached and allowing target-file retry after parse failure.",
+  "scope": {
+    "in": [
+      "Pass a JSON schema to docs.text batch agent calls.",
+      "Align jsonSchemaFlag/jsonSchemaMode defaults for every built-in default provider entry reachable by docs.text, including claude/sonnet and codex/gpt-5.4.",
+      "Prevent docs.text JSON parse failure responses from being written to active-flow prompt cache.",
+      "Retry failed docs.text target files so a later valid JSON response can continue the build.",
+      "Diagnose or explicitly specify project-local provider/profile overrides that omit schema support.",
+      "Preserve migration parity for senti docs build, senti docs text, textFillFromAnalysis, processTemplateFileBatch, agent config, generated markdown, and prompt cache behavior."
+    ],
+    "out": [
+      "Changing the docs.text batch response contract away from directive id -> markdown text JSON objects.",
+      "Adding external npm dependencies.",
+      "Hardcoding project-specific paths, provider names beyond generic provider keys, issue ids, or local config values in src/.",
+      "Rewriting docs generation phases outside the text phase unless required by shared agent/cache contracts."
+    ]
+  },
+  "constraints": [
+    "Use only Node.js built-in modules and existing project helpers.",
+    "Keep src/ package code generic and free of project-specific values.",
+    "Do not weaken existing tests to make the new behavior pass.",
+    "User provider/profile overrides continue to win; missing schema support must be visible through diagnostics or explicit behavior."
+  ],
+  "design_principles": [
+    "Treat docs.text JSON schema enforcement as contract repair, not a new feature.",
+    "Keep retry bounded by existing agent retry configuration or an explicitly bounded file-level retry count.",
+    "Keep cache exclusion tied to parse-invalid docs.text responses so successful cacheable responses retain existing behavior."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/docs/commands/text.js owns docs.text batch prompt construction, JSON parsing, per-file application, file-level error aggregation, and generated markdown writes."
+      },
+      {
+        "text": "src/lib/agent.js owns provider/profile resolution, prompt cache keying, cache reads/writes, jsonSchema invocation arguments, and cacheable response handling."
+      },
+      {
+        "text": "src/lib/provider.js and src/lib/agent-defaults.js own built-in provider/profile defaults that determine whether jsonSchema reaches CLI invocation."
+      },
+      {
+        "text": "tests/unit/docs/commands and tests/unit/lib contain the existing unit coverage targets for docs.text batch processing and agent/provider invocation behavior."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "senti docs build runs DocsTextCommand, which reads target docs files, strips existing text content, builds one batch prompt per target file, calls agent.call with commandId docs.text, parses returned JSON, applies values by directive id, validates the result, and writes changed files."
+      },
+      {
+        "text": "During an active flow, Agent.call resolves the current flow context, reads .senti/agent-cache by prompt/profile/schema key, invokes the provider on cache miss, and writes the returned text unless cacheable is false."
+      },
+      {
+        "text": "With this spec, docs.text batch calls include jsonSchema in the agent options; parse-invalid responses are retried at file scope and are marked or handled so they are not persisted to prompt cache."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] checked docs.text batch parse path; result=match. processTemplateFileBatch calls invokeAgent, then parseBatchJsonResponse, and throws batch JSON parse failed when parsing returns null.",
+        "evidence": "src/docs/commands/text.js: processTemplateFileBatch builds batch prompt, calls invokeAgent, parses with parseBatchJsonResponse, logs WARN, then throws Error(`batch JSON parse failed for ${fileName}: ...`)."
+      },
+      {
+        "text": "[VERIFY] checked active-flow prompt cache path; result=match. Agent.call writes returned text to prompt cache when promptCache exists and cacheCandidate.cacheable is not false.",
+        "evidence": "src/lib/agent.js: Agent.call resolves promptCache, returns cache hits, stores text via promptCache.cache.set(promptCache.key, text) when cacheCandidate?.cacheable !== false."
+      },
+      {
+        "text": "[VERIFY] checked schema default mismatch; result=match. Provider builtin profiles include schema flags, while defaultAgentProviders pool entries omit jsonSchemaFlag/jsonSchemaMode.",
+        "evidence": "src/lib/provider.js provider builtinProfiles include schema fields for Claude/Codex. src/lib/agent-defaults.js PROVIDER_POOL entries for docs.text-reachable defaults such as claude/sonnet and codex/gpt-5.4 include jsonOutputFlag but no schema fields."
+      },
+      {
+        "text": "[VERIFY] checked migration inventory; result=match. Public surfaces affected are docs build/text commands, textFillFromAnalysis, processTemplateFileBatch, agent profiles/providers, markdown outputs, and prompt cache artifacts.",
+        "evidence": "src/docs/commands/build.js invokes DocsTextCommand with commandId docs.text. src/docs/commands/text.js exports textFillFromAnalysis and processTemplateFileBatch. src/lib/agent.js writes .senti/agent-cache."
+      },
+      {
+        "text": "Migration parity mapping: docs build/text remain owned by DocsTextCommand/runText; textFillFromAnalysis/processTemplateFileBatch remain text.js exports; schema defaults stay in agent-defaults/provider/agent invocation; markdown writes stay in text.js; prompt cache stays in AgentPromptCache with only parse-invalid docs.text responses excluded. No removals.",
+        "evidence": "Covers retained commands, exported helpers, config/defaults, generated artifacts, and cache side effects listed in draft migration inventory."
+      },
+      {
+        "text": "The spec keeps user overrides winning and requires diagnostics for missing schema fields instead of silently assuming built-in provider capability.",
+        "evidence": "Issue #399 requires project-local agent.profiles/providers override mismatch to be diagnosed or made explicit. src/lib/agent-defaults.js mergeAgentDefaults is add-only and existing user values win.",
+        "consideredAlternatives": "Overwriting project-local providers would hide configuration intent and violate existing override behavior."
+      }
+    ]
+  },
+  "background": "docs.text batch mode depends on an AI response shaped as a JSON object whose keys are directive ids and whose values are generated markdown strings. The current code parses that response after agent.call returns. If the provider returns ordinary natural language, docs.text throws batch JSON parse failed. During active flows, Agent.call can cache the raw returned text before docs.text discovers the parse failure, so reruns may replay the same invalid response from .senti/agent-cache. Issue #399 requires schema enforcement, provider schema default alignment, cache exclusion for parse-invalid responses, target-file retry, and diagnostics for local override mismatches.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "docs.text batch generation passes a JSON schema to agent.call that constrains the response to an object mapping directive id strings to markdown text strings.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "Every built-in default provider entry reachable by docs.text, including claude/sonnet and codex/gpt-5.4, includes jsonSchemaFlag and jsonSchemaMode so schema options are represented in provider invocation.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "When a docs.text batch response cannot be parsed as the required JSON object, that response is not saved to .senti/agent-cache during active flow execution.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "When docs.text batch parsing fails for a target file, the failed target file can be retried within a bounded retry path, and a later valid JSON response lets the build continue.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "When the resolved docs.text provider/profile lacks schema support because of project-local overrides or custom providers, diagnostics name commandId docs.text and the missing schema fields jsonSchemaFlag/jsonSchemaMode.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "Existing docs.text public behavior is retained for successful JSON responses, per-directive mode, user override precedence, generated markdown writes, and successful prompt cache reuse.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "desc": "Implementation uses no external npm dependencies and does not hardcode project-specific values in src/.",
+      "priority": "must",
+      "testable": false,
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "A unit test confirms that docs.text batch calls pass jsonSchema to agent.call.",
+    "A unit test confirms that docs.text-reachable built-in default provider entries include schema-related flag/mode and provider invocation uses them when jsonSchema is provided.",
+    "A unit test confirms that a docs.text JSON parse failure response is not saved to .senti/agent-cache.",
+    "A test confirms that a first natural-language response followed by a valid JSON response succeeds through target-file retry.",
+    "A test or explicit diagnostic behavior confirms that local provider/profile overrides missing jsonSchemaFlag/jsonSchemaMode are visible for docs.text.",
+    "Existing tests for successful docs.text batch insertion and data directive preservation continue to pass.",
+    "Parity check: senti docs build and senti docs text still route through DocsTextCommand/runText and write generated markdown for a valid JSON response.",
+    "Parity check: textFillFromAnalysis and processTemplateFileBatch remain exported with their existing call contracts and existing successful batch tests pass.",
+    "Parity check: agent profile/provider override precedence remains user-wins and diagnostics do not overwrite custom providers.",
+    "Parity check: successful prompt cache reuse remains available while parse-invalid docs.text responses are excluded from cache writes.",
+    "Spec-local tests under specs/306-docs-text-json-schema/tests/ include // spec: R<N> headers for testable requirements."
+  ],
+  "clarifications": [
+    {
+      "q": "Should docs.text switch away from batch JSON mode?",
+      "a": "No. The retained contract is batch JSON object output keyed by directive id; the fix enforces and recovers that contract."
+    },
+    {
+      "q": "Should project-local agent provider overrides be overwritten to add schema fields?",
+      "a": "No. Existing override precedence is retained. Missing schema support must be diagnosed or explicitly specified, not silently overwritten."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Fallback permanently to per-directive docs.text generation after parse failure",
+      "reason": "This avoids one batch failure but does not satisfy the Issue requirement to enforce the batch JSON schema contract or prevent invalid batch responses from being cached."
+    },
+    {
+      "option": "Only add prompt wording asking for JSON",
+      "reason": "Prompt wording alone does not ensure provider invocation receives jsonSchema and does not prevent active-flow cache from storing parse-invalid responses."
+    },
+    {
+      "option": "Disable prompt cache for all docs.text calls",
+      "reason": "This would remove retained successful cache behavior. The required change is limited to parse-invalid docs.text responses."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "docs.text",
+    "processTemplateFileBatch",
+    "textFillFromAnalysis",
+    "jsonSchema",
+    "jsonSchemaFlag",
+    "jsonSchemaMode",
+    "AgentPromptCache",
+    "agent.call",
+    "CodexProvider",
+    "defaultAgentProviders",
+    "batch JSON parse",
+    "target-file retry"
+  ],
+  "implementationTargets": [
+    "src/docs/commands/text.js",
+    "src/lib/agent.js",
+    "src/lib/provider.js",
+    "src/lib/agent-defaults.js",
+    "tests/unit/docs/commands/text-batch.test.js",
+    "tests/unit/lib/agent-service.test.js",
+    "tests/unit/lib/provider.test.js",
+    "specs/306-docs-text-json-schema/tests/"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Add batch schema contract",
+      "goal": "Ensure docs.text batch calls provide a JSON schema that matches directive id -> markdown text output.",
+      "acceptance": [
+        "docs.text batch agent.call receives jsonSchema for target files with text directives.",
+        "The schema accepts string directive ids and string markdown values."
+      ],
+      "implementation_notes": "Keep schema construction generic and close to docs.text batch prompt construction. Avoid project-specific directive ids.",
+      "test_strategy": "Unit test processTemplateFileBatch with a test agent that records options passed to agent.call.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Prevent invalid cache writes",
+      "goal": "Ensure parse-invalid docs.text batch responses are not persisted to active-flow prompt cache.",
+      "acceptance": [
+        "A non-JSON docs.text response that fails parse is not written to .senti/agent-cache.",
+        "Successful cacheable responses remain reusable."
+      ],
+      "implementation_notes": "Choose a bounded mechanism that lets docs.text parse failure mark the relevant response non-cacheable without disabling cache globally.",
+      "test_strategy": "Unit test active-flow cache behavior with a parse-invalid response and assert no cache entry is stored for that response.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-3",
+      "title": "Add file retry",
+      "goal": "Retry only the target file whose docs.text batch parsing failed, allowing a later valid JSON response to complete the build.",
+      "acceptance": [
+        "First natural-language response and second valid JSON response for the same file succeeds.",
+        "Retry count is bounded and does not create an unbounded loop."
+      ],
+      "implementation_notes": "Use existing agent retry configuration or an explicit small file-level retry bound. Keep successful files from being reported as failed when another file retries.",
+      "test_strategy": "Unit or integration-style test with a stub agent returning invalid then valid output for one target file.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-4",
+      "title": "Align schema defaults",
+      "goal": "Make every built-in default provider entry reachable by docs.text carry jsonSchemaFlag/jsonSchemaMode through default provider materialization and invocation.",
+      "acceptance": [
+        "docs.text-reachable built-in default provider entries, including claude/sonnet and codex/gpt-5.4, expose schema flag and mode.",
+        "Agent invocation includes the schema flag/path when jsonSchema is provided."
+      ],
+      "implementation_notes": "Keep provider defaults generic. Preserve user override precedence.",
+      "test_strategy": "Unit tests in provider/agent coverage for default providers and invocation args.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-5",
+      "title": "Diagnose schema overrides",
+      "goal": "Expose missing schema support for docs.text when resolved provider/profile settings omit jsonSchemaFlag or jsonSchemaMode.",
+      "acceptance": [
+        "Diagnostic output identifies commandId docs.text and missing jsonSchemaFlag/jsonSchemaMode.",
+        "User-provided provider/profile values are not overwritten."
+      ],
+      "implementation_notes": "Prefer a testable warning or error path tied to docs.text schema use. Avoid logging secrets or full prompts.",
+      "test_strategy": "Unit test a local override profile without schema fields and assert the diagnostic content.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-06-17T16:11:18.337Z",
+    "notes": "auto-approved after user selected Enable auto for Issue #399"
+  }
+}

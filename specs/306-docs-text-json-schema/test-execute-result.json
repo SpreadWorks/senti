@@ -1,0 +1,157 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/306-docs-text-json-schema/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/306-docs-text-json-schema/tests/docs-text-json-schema.test.js",
+        "test_name": "R1: batch generation passes a directive-id JSON schema to agent.call",
+        "command": "node --test specs/306-docs-text-json-schema/tests/docs-text-json-schema.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 112
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/306-docs-text-json-schema/tests/docs-text-json-schema.test.js",
+        "test_name": "R2: docs.text-reachable built-in default providers expose schema flag and mode",
+        "command": "node --test specs/306-docs-text-json-schema/tests/docs-text-json-schema.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 112
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/306-docs-text-json-schema/tests/docs-text-json-schema.test.js",
+        "test_name": "R3: parse-invalid docs.text responses are not stored in active-flow prompt cache",
+        "command": "node --test specs/306-docs-text-json-schema/tests/docs-text-json-schema.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 112
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/306-docs-text-json-schema/tests/docs-text-json-schema.test.js",
+        "test_name": "R4: a failed target-file parse retries and succeeds on a later valid JSON response",
+        "command": "node --test specs/306-docs-text-json-schema/tests/docs-text-json-schema.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 112
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/306-docs-text-json-schema/tests/docs-text-json-schema.test.js",
+        "test_name": "R5: docs.text schema-disabled provider overrides emit an actionable diagnostic",
+        "command": "node --test specs/306-docs-text-json-schema/tests/docs-text-json-schema.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 112
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/306-docs-text-json-schema/tests/docs-text-json-schema.test.js",
+        "test_name": "R6: successful docs.text batch behavior is retained while schema is supplied",
+        "command": "node --test specs/306-docs-text-json-schema/tests/docs-text-json-schema.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 112
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": false,
+    "result": "skipped",
+    "mode": "none",
+    "category": "full-regression-deferred",
+    "reason": "full project regression deferred to final-regression",
+    "classified_paths": [
+      {
+        "path": "specs/306-docs-text-json-schema/",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/docs/commands/text.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/lib/agent-defaults.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/lib/agent.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/upgrade-rename-migration.test.js",
+        "category": "full-regression-deferred"
+      }
+    ],
+    "trigger_relevant_changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/306-docs-text-json-schema/"
+      },
+      {
+        "status": "modified",
+        "path": "src/docs/commands/text.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/agent-defaults.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/agent.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/upgrade-rename-migration.test.js"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/306-docs-text-json-schema/"
+      },
+      {
+        "status": "modified",
+        "path": "src/docs/commands/text.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/agent-defaults.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/agent.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/upgrade-rename-migration.test.js"
+      }
+    ]
+  }
+}

@@ -175,7 +175,7 @@ class Agent {
         return cacheCandidate;
       },
     });
-    if (promptCache && text && cacheCandidate?.cacheable !== false) {
+    if (promptCache && text && this._isCacheableResponse(text, cacheCandidate, opts)) {
       promptCache.cache.set(promptCache.key, text);
     }
     return text;
@@ -213,6 +213,17 @@ class Agent {
     return { retryCount, retryDelayMs };
   }
 
+  _isCacheableResponse(text, cacheCandidate, options = {}) {
+    if (cacheCandidate?.cacheable === false) return false;
+    if (typeof options.validateResponseForCache !== "function") return true;
+    try {
+      const result = options.validateResponseForCache(text);
+      return result !== false && result != null;
+    } catch (_) {
+      return false;
+    }
+  }
+
   _resolvePromptCache(resolved, prompt, options) {
     const context = resolvePromptCacheContext(this._flowManager);
     if (!context) return null;
@@ -238,11 +249,22 @@ class Agent {
     // jsonSchema handling: profile-property-based flag or fmtFallback
     const jsonSchema = options.jsonSchema ?? null;
     const schemaFlag = jsonSchema ? (profile.jsonSchemaFlag || null) : null;
+    const schemaMode = jsonSchema ? (profile.jsonSchemaMode || null) : null;
     const schemaSuffix = [];
     let pendingSchemaWrite = null;
+    if (jsonSchema && (!schemaFlag || !schemaMode)) {
+      reportMissingJsonSchemaProfileFields({
+        commandId: options.commandId,
+        profileKey: resolved.profileKey,
+        missing: [
+          ...(!schemaFlag ? ["jsonSchemaFlag"] : []),
+          ...(!schemaMode ? ["jsonSchemaMode"] : []),
+        ],
+      });
+    }
     if (jsonSchema && schemaFlag) {
-      if (profile.jsonSchemaMode === "file") {
-        const schemaPath = path.join(this._paths.agentWorkDir, `schema-${Date.now()}.json`);
+      if (schemaMode === "file") {
+        const schemaPath = path.join(this._paths.agentWorkDir, `schema-${crypto.randomUUID()}.json`);
         pendingSchemaWrite = { path: schemaPath, content: JSON.stringify(jsonSchema) };
         schemaSuffix.push(schemaFlag, schemaPath);
       } else {
@@ -313,70 +335,76 @@ class Agent {
       await fs.promises.writeFile(pendingSchemaWrite.path, pendingSchemaWrite.content);
     }
 
-    return new Promise((resolve, reject) => {
-      const child = spawn(profile.command, finalArgs, {
-        stdio: [stdinContent != null ? "pipe" : "ignore", "pipe", "pipe"],
-        cwd,
-        env,
-      });
-
-      let stdinError = null;
-      if (stdinContent != null) {
-        child.stdin.on("error", (err) => {
-          stdinError = err;
+    try {
+      return await new Promise((resolve, reject) => {
+        const child = spawn(profile.command, finalArgs, {
+          stdio: [stdinContent != null ? "pipe" : "ignore", "pipe", "pipe"],
+          cwd,
+          env,
         });
-        child.stdin.write(stdinContent, () => {
-          child.stdin.end();
-        });
-      }
 
-      let stdout = "";
-      let stderr = "";
-      child.stdout.on("data", (chunk) => {
-        stdout += chunk;
-        if (options.onStdout) options.onStdout(String(chunk));
-      });
-      child.stderr.on("data", (chunk) => {
-        stderr += chunk;
-        if (options.onStderr) options.onStderr(String(chunk));
-      });
-
-      const timer = setTimeout(() => child.kill("SIGTERM"), timeoutMs);
-
-      child.on("close", (code, signal) => {
-        clearTimeout(timer);
-        if (code === 0 && !signal && !stdinError) {
-          const trimmed = String(stdout).trim();
-          if (profile.jsonOutputFlag) {
-            const parsed = tryParseProvider(provider, trimmed);
-            resolve(parsed ?? { text: trimmed, usage: null, cacheable: false });
-          } else {
-            resolve({ text: filterStreamingEvents(trimmed), usage: null });
-          }
-          return;
+        let stdinError = null;
+        if (stdinContent != null) {
+          child.stdin.on("error", (err) => {
+            stdinError = err;
+          });
+          child.stdin.write(stdinContent, () => {
+            child.stdin.end();
+          });
         }
-        const parts = [];
-        parts.push(`provider=${providerKey}`);
-        parts.push(`profile=${profileKey}`);
-        if (signal) parts.push(signal === "SIGTERM" ? "timeout" : `signal=${signal}`);
-        if (code != null && code !== 0) parts.push(`exit=${code}`);
-        if (stdinError) parts.push(`stdin=${stdinError.code || stdinError.message}`);
-        if (stderr) parts.push(String(stderr).trim());
-        const stdoutPreview = formatPreview(stdout);
-        if (stdoutPreview) parts.push(`stdoutPreview=${stdoutPreview}`);
-        const error = new Error(parts.join(" | ") || "unknown error");
-        error.code = code;
-        error.signal = signal;
-        error.killed = signal === "SIGTERM";
-        error.stdinError = stdinError || null;
-        reject(error);
-      });
 
-      child.on("error", (err) => {
-        clearTimeout(timer);
-        reject(err);
+        let stdout = "";
+        let stderr = "";
+        child.stdout.on("data", (chunk) => {
+          stdout += chunk;
+          if (options.onStdout) options.onStdout(String(chunk));
+        });
+        child.stderr.on("data", (chunk) => {
+          stderr += chunk;
+          if (options.onStderr) options.onStderr(String(chunk));
+        });
+
+        const timer = setTimeout(() => child.kill("SIGTERM"), timeoutMs);
+
+        child.on("close", (code, signal) => {
+          clearTimeout(timer);
+          if (code === 0 && !signal && !stdinError) {
+            const trimmed = String(stdout).trim();
+            if (profile.jsonOutputFlag) {
+              const parsed = tryParseProvider(provider, trimmed);
+              resolve(parsed ?? { text: trimmed, usage: null, cacheable: false });
+            } else {
+              resolve({ text: filterStreamingEvents(trimmed), usage: null });
+            }
+            return;
+          }
+          const parts = [];
+          parts.push(`provider=${providerKey}`);
+          parts.push(`profile=${profileKey}`);
+          if (signal) parts.push(signal === "SIGTERM" ? "timeout" : `signal=${signal}`);
+          if (code != null && code !== 0) parts.push(`exit=${code}`);
+          if (stdinError) parts.push(`stdin=${stdinError.code || stdinError.message}`);
+          if (stderr) parts.push(String(stderr).trim());
+          const stdoutPreview = formatPreview(stdout);
+          if (stdoutPreview) parts.push(`stdoutPreview=${stdoutPreview}`);
+          const error = new Error(parts.join(" | ") || "unknown error");
+          error.code = code;
+          error.signal = signal;
+          error.killed = signal === "SIGTERM";
+          error.stdinError = stdinError || null;
+          reject(error);
+        });
+
+        child.on("error", (err) => {
+          clearTimeout(timer);
+          reject(err);
+        });
       });
-    });
+    } finally {
+      if (pendingSchemaWrite) {
+        await fs.promises.rm(pendingSchemaWrite.path, { force: true });
+      }
+    }
   }
 }
 
@@ -774,6 +802,14 @@ function tryParseProvider(provider, stdout) {
     process.stderr.write(`[senti] agent output parse failed (${provider.constructor.name}): ${err.message}\n`);
     return null;
   }
+}
+
+function reportMissingJsonSchemaProfileFields({ commandId, profileKey, missing }) {
+  if (!missing || missing.length === 0) return;
+  process.stderr.write(
+    `[senti] agent: jsonSchema requested but resolved profile is missing ${missing.join(", ")} ` +
+    `(commandId=${commandId || "unknown"}, profile=${profileKey || "unknown"})\n`,
+  );
 }
 
 function sleep(ms) {

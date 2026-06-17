@@ -1,0 +1,112 @@
+[senti] spec-local tests start
+command: node --test specs/306-docs-text-json-schema/tests/docs-text-json-schema.test.js
+TAP version 13
+# [text] Batch overview.md: 1 directive(s) → 1 call
+# [text] Batch DONE overview.md: 1/1 filled
+# Subtest: docs.text JSON schema and cache recovery
+    # Subtest: R1: batch generation passes a directive-id JSON schema to agent.call
+    ok 1 - R1: batch generation passes a directive-id JSON schema to agent.call
+      ---
+      duration_ms: 6.256472
+      type: 'test'
+      ...
+    # Subtest: R2: docs.text-reachable built-in default providers expose schema flag and mode
+    ok 2 - R2: docs.text-reachable built-in default providers expose schema flag and mode
+      ---
+      duration_ms: 0.882205
+      type: 'test'
+      ...
+# [senti] agent: metric accumulation failed: flowManager.accumulateAgentMetrics is not a function
+# [text] Batch overview.md: 1 directive(s) → 1 call
+# [senti] agent: jsonSchema requested but resolved profile is missing jsonSchemaFlag, jsonSchemaMode (commandId=docs.text, profile=test/raw)
+    # Subtest: R2: file-mode JSON schema invocations use unique temporary files and clean them up
+    ok 3 - R2: file-mode JSON schema invocations use unique temporary files and clean them up
+      ---
+      duration_ms: 52.561823
+      type: 'test'
+      ...
+# [senti] agent: metric accumulation failed: flowManager.accumulateAgentMetrics is not a function
+# [text] WARN: JSON parse failed for overview.md, response preview: not-json-response
+# [text] Batch overview.md: 1 directive(s) → 1 call
+# [text] WARN: JSON parse failed for overview.md, response preview: ordinary natural language
+# [text] Retrying overview.md after batch JSON parse failure (1/1)
+# [text] Batch DONE overview.md: 1/1 filled
+    # Subtest: R3: parse-invalid docs.text responses are not stored in active-flow prompt cache
+    ok 4 - R3: parse-invalid docs.text responses are not stored in active-flow prompt cache
+      ---
+      duration_ms: 35.98518
+      type: 'test'
+      ...
+    # Subtest: R4: a failed target-file parse retries and succeeds on a later valid JSON response
+    ok 5 - R4: a failed target-file parse retries and succeeds on a later valid JSON response
+      ---
+      duration_ms: 1.929049
+      type: 'test'
+      ...
+# [text] Batch README.md: 1 directive(s) → 1 call
+# [text] Batch DONE README.md: 1/1 filled
+# [text] Processing README.md:7: write overview...
+# [text] FILLED README.md:7 (1 lines)
+# [text] Batch overview.md: 1 directive(s) → 1 call
+# [text] Batch DONE overview.md: 1/1 filled
+# [senti] agent: jsonSchema requested but resolved profile is missing jsonSchemaFlag, jsonSchemaMode (commandId=docs.text, profile=test/raw)
+    # Subtest: R5: docs.text schema-disabled provider overrides emit an actionable diagnostic
+    ok 6 - R5: docs.text schema-disabled provider overrides emit an actionable diagnostic
+      ---
+      duration_ms: 32.919404
+      type: 'test'
+      ...
+    # Subtest: R6: successful docs.text batch behavior is retained while schema is supplied
+    ok 7 - R6: successful docs.text batch behavior is retained while schema is supplied
+      ---
+      duration_ms: 1.274486
+      type: 'test'
+      ...
+    # Subtest: R6: per-directive docs.text mode still fills only text directives
+    ok 8 - R6: per-directive docs.text mode still fills only text directives
+      ---
+      duration_ms: 1.743489
+      type: 'test'
+      ...
+    # Subtest: R6: textFillFromAnalysis still writes generated markdown files
+    ok 9 - R6: textFillFromAnalysis still writes generated markdown files
+      ---
+      duration_ms: 123.893579
+      type: 'test'
+      ...
+    # Subtest: R6: user provider overrides still take precedence over built-in defaults
+    ok 10 - R6: user provider overrides still take precedence over built-in defaults
+      ---
+      duration_ms: 1.172366
+      type: 'test'
+      ...
+# [senti] agent: metric accumulation failed: flowManager.accumulateAgentMetrics is not a function
+    # Subtest: R6: successful prompt cache responses remain reusable
+    ok 11 - R6: successful prompt cache responses remain reusable
+      ---
+      duration_ms: 33.177525
+      type: 'test'
+      ...
+    1..11
+ok 1 - docs.text JSON schema and cache recovery
+  ---
+  duration_ms: 294.610553
+  type: 'suite'
+  ...
+1..1
+# tests 11
+# suites 1
+# pass 11
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 425.092725
+exitCode: 0
+[senti] requirement R1 result pass
+[senti] requirement R2 result pass
+[senti] requirement R3 result pass
+[senti] requirement R4 result pass
+[senti] requirement R5 result pass
+[senti] requirement R6 result pass
+[senti] spec-local tests end

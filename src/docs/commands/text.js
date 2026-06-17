@@ -171,6 +171,50 @@ function parseBatchJsonResponse(response) {
   }
 }
 
+function directiveBatchId(directive, index) {
+  return directive.params?.id || `d${index}`;
+}
+
+function buildBatchJsonSchema(textFills) {
+  const properties = {};
+  const required = [];
+  for (let i = 0; i < textFills.length; i++) {
+    const id = directiveBatchId(textFills[i], i);
+    properties[id] = { type: "string" };
+    if (!required.includes(id)) required.push(id);
+  }
+  return {
+    type: "object",
+    additionalProperties: false,
+    properties,
+    required,
+  };
+}
+
+function isValidBatchJsonData(jsonData, textFills) {
+  if (!jsonData || typeof jsonData !== "object" || Array.isArray(jsonData)) return false;
+  const expectedIds = textFills.map((d, i) => directiveBatchId(d, i));
+  for (const id of expectedIds) {
+    if (typeof jsonData[id] !== "string") return false;
+  }
+  for (const key of Object.keys(jsonData)) {
+    if (!expectedIds.includes(key)) return false;
+  }
+  return true;
+}
+
+function isValidBatchJsonResponse(response, textFills) {
+  const parsed = parseBatchJsonResponse(response);
+  return isValidBatchJsonData(parsed, textFills);
+}
+
+function resolveBatchContextOptions(srcRoot, retryCount) {
+  if (retryCount === undefined && typeof srcRoot === "number") {
+    return { srcRoot: undefined, retryCount: srcRoot };
+  }
+  return { srcRoot, retryCount };
+}
+
 /**
  * JSON レスポンスを元のファイルのディレクティブ位置に挿入する。
  *
@@ -187,7 +231,7 @@ function applyBatchJsonToFile(text, textFills, jsonData) {
   // 逆順で挿入（行番号のずれを防ぐ）
   for (let i = textFills.length - 1; i >= 0; i--) {
     const d = textFills[i];
-    const id = d.params?.id || `d${i}`;
+    const id = directiveBatchId(d, i);
     const generated = jsonData[id];
 
     if (!generated) {
@@ -220,6 +264,7 @@ function applyBatchJsonToFile(text, textFills, jsonData) {
  * @returns {{ text: string, filled: number, skipped: number }}
  */
 async function processTemplateFileBatch(text, analysis, fileName, agent, dryRun, _preamblePatterns, systemPrompt, _filterId, _concurrency, lang, srcRoot, retryCount) {
+  const batchOptions = resolveBatchContextOptions(srcRoot, retryCount);
   // cleanText を先に計算してから parseDirectives を呼ぶ。
   // stripFillContent は既存コンテンツを除去するため行数が変わる。
   // parseDirectives の行番号は applyBatchJsonToFile に渡す text と一致させる必要がある。
@@ -232,7 +277,7 @@ async function processTemplateFileBatch(text, analysis, fileName, agent, dryRun,
   // Determine the deepest mode across all directives in this file
   const hasDeep = textFills.some((d) => d.params?.mode === "deep");
   const batchMode = hasDeep ? "deep" : "light";
-  const enriched = getEnrichedContext(analysis, fileName, batchMode, srcRoot);
+  const enriched = getEnrichedContext(analysis, fileName, batchMode, batchOptions.srcRoot);
   let prompt = buildBatchPrompt(fileName, cleanText, textFills, lang);
   if (enriched) {
     prompt = enriched + "\n\n" + prompt;
@@ -245,16 +290,34 @@ async function processTemplateFileBatch(text, analysis, fileName, agent, dryRun,
 
   logger.verbose(`Batch ${fileName}: ${textFills.length} directive(s) → 1 call`);
 
-  const result = await invokeAgent(agent, prompt, [], systemPrompt, { retryCount: retryCount || 0 });
+  const attempts = Math.max(1, (Number(batchOptions.retryCount) || 0) + 1);
+  const jsonSchema = buildBatchJsonSchema(textFills);
+  let jsonData = null;
+  let lastResult = "";
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const result = await invokeAgent(agent, prompt, [], systemPrompt, {
+      retryCount: batchOptions.retryCount || 0,
+      jsonSchema,
+      validateResponseForCache: (response) => isValidBatchJsonResponse(response, textFills),
+    });
 
-  if (!result) {
-    throw new Error(`empty batch response for ${fileName}`);
-  }
+    if (!result) {
+      throw new Error(`empty batch response for ${fileName}`);
+    }
 
-  const jsonData = parseBatchJsonResponse(result);
-  if (!jsonData) {
+    lastResult = result;
+    jsonData = parseBatchJsonResponse(result);
+    if (isValidBatchJsonData(jsonData, textFills)) break;
+
     const preview = formatPreview(result);
     logger.log(`WARN: JSON parse failed for ${fileName}, response preview: ${preview}`);
+    if (attempt < attempts - 1) {
+      logger.log(`Retrying ${fileName} after batch JSON parse failure (${attempt + 1}/${attempts - 1})`);
+    }
+  }
+
+  if (!isValidBatchJsonData(jsonData, textFills)) {
+    const preview = formatPreview(lastResult);
     throw new Error(`batch JSON parse failed for ${fileName}: responsePreview=${preview}`);
   }
 

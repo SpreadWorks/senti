@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "One blocking finding should be applied: schema-default alignment must cover every built-in default provider entry reachable by docs.text, not only Codex.",
+  "items": [
+    {
+      "title": "Default docs.text path is not covered by schema-default alignment",
+      "target": "R2 / T-4 / src/lib/agent-defaults.js",
+      "decision": "apply",
+      "rationale": "The finding is grounded in verified source context and can be fixed by broadening the spec requirement, acceptance criterion, and task text. Leaving R2 Codex-only would allow the default docs.text profile path to miss schema flags.",
+      "evidence": "spec.json requirements R2 and task T-4 currently name Codex provider defaults. spec-review.json notes docs.text routes to claude/sonnet in built-in profiles and src/lib/agent-defaults.js provider pool entries override schema-capable provider.js profiles."
+    }
+  ]
+}

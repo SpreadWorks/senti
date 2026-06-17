@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied the schema-default repair by broadening Codex-only wording to every built-in default provider entry reachable by docs.text.",
+  "items": [
+    {
+      "title": "Default docs.text path is not covered by schema-default alignment",
+      "target": "R2 / T-4 / src/lib/agent-defaults.js",
+      "decision": "applied",
+      "rationale": "Broadened the spec from Codex-specific defaults to all built-in default provider entries reachable by docs.text, including claude/sonnet and codex/gpt-5.4.",
+      "evidence": "spec.json scope.in[1], overview.decisions[2].evidence, requirements R2, acceptance_criteria[1], and task T-4 now name docs.text-reachable built-in default provider entries rather than only Codex.",
+      "changedFields": [
+        "scope.in[1]",
+        "overview.decisions[2].evidence",
+        "requirements[R2].desc",
+        "acceptance_criteria[1]",
+        "tasks[T-4].goal",
+        "tasks[T-4].acceptance[0]"
+      ]
+    }
+  ]
+}

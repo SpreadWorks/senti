@@ -1,0 +1,157 @@
+{
+  "version": 1,
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "The draft changes existing docs.text parsing/cache behavior but does not define a migration inventory of existing public behavior (commands, APIs, config entries, generated artifacts, and side effects) before implementation.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec-draft",
+            "locator": "scopeVerification.in"
+          },
+          "observed": "The draft changes existing docs.text parsing/cache behavior but does not define a migration inventory of existing public behavior (commands, APIs, config entries, generated artifacts, and side effects) before implementation.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "For retained public behavior, the draft does not map each surface to a new owner/path, nor explicitly call out any intentional removals and user-visible compatibility impact.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec-draft",
+            "locator": "impactOnExisting"
+          },
+          "observed": "For retained public behavior, the draft does not map each surface to a new owner/path, nor explicitly call out any intentional removals and user-visible compatibility impact.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "No behavior-level acceptance criteria are specified for retained public surfaces through the new path; the draft relies on intent statements and issue/test mentions without explicit parity-verification criteria.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec-draft",
+            "locator": "qa"
+          },
+          "observed": "No behavior-level acceptance criteria are specified for retained public surfaces through the new path; the draft relies on intent statements and issue/test mentions without explicit parity-verification criteria.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "unambiguous-requirements",
+      "result": "fail",
+      "reason": "Requirement uses the subjective term \"easier root-cause identification\" without verifiable thresholds or criteria, which is not objectively testable as written.",
+      "category": "code-quality",
+      "title": "Unambiguous Requirements",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec-draft",
+            "locator": "decisionPoints[3]"
+          },
+          "observed": "Requirement uses the subjective term \"easier root-cause identification\" without verifiable thresholds or criteria, which is not objectively testable as written.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "spec-draft",
+        "locator": "scopeVerification.in"
+      },
+      "observed": "The draft changes existing docs.text parsing/cache behavior but does not define a migration inventory of existing public behavior (commands, APIs, config entries, generated artifacts, and side effects) before implementation.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "spec-draft",
+        "locator": "impactOnExisting"
+      },
+      "observed": "For retained public behavior, the draft does not map each surface to a new owner/path, nor explicitly call out any intentional removals and user-visible compatibility impact.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "spec-draft",
+        "locator": "qa"
+      },
+      "observed": "No behavior-level acceptance criteria are specified for retained public surfaces through the new path; the draft relies on intent statements and issue/test mentions without explicit parity-verification criteria.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "unambiguous-requirements",
+      "where": {
+        "file": "spec-draft",
+        "locator": "decisionPoints[3]"
+      },
+      "observed": "Requirement uses the subjective term \"easier root-cause identification\" without verifiable thresholds or criteria, which is not objectively testable as written.",
+      "severity": "blocking",
+      "refs": [
+        "unambiguous-requirements"
+      ]
+    }
+  ]
+}
