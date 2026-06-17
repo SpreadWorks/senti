@@ -1,0 +1,67 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The retained behavior `plugin command execution` is listed in the migration inventory/mapping, but no acceptance criterion or behavior-level verification is defined for execution through the new path (`workflow` command dispatch).; The retained behavior `unknown plugin command failure` is referenced as kept, but migration parity includes no retained-surface behavior-level verification proving this failure behavior still works through the new route.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-17T08:49:31.554Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "resolvedByProjectRules.behavior-level verification"
+          },
+          "observed": "The retained behavior `plugin command execution` is listed in the migration inventory/mapping, but no acceptance criterion or behavior-level verification is defined for execution through the new path (`workflow` command dispatch).",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "resolvedByProjectRules.behavior-level verification"
+          },
+          "observed": "The retained behavior `unknown plugin command failure` is referenced as kept, but migration parity includes no retained-surface behavior-level verification proving this failure behavior still works through the new route.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The retained behavior `plugin command execution` is listed in the migration inventory/mapping, but no acceptance criterion or behavior-level verification is defined for execution through the new path (`workflow` command dispatch)."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The retained behavior `unknown plugin command failure` is referenced as kept, but migration parity includes no retained-surface behavior-level verification proving this failure behavior still works through the new route."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate failed because migration parity lacked behavior-level verification for plugin command execution and unknown command failure",
+      "trigger": "draft gate migration-parity observations for retained plugin command execution and unknown plugin command failure",
+      "resolution": "Add draft requirements for non-help plugin command dispatch parity and unknown plugin command help failure parity",
+      "guardrailCandidate": "When changing CLI help dispatch around plugin commands, include behavior-level parity for non-help execution and unknown command failure",
+      "taskId": null,
+      "timestamp": "2026-06-17T08:49:47.283Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-06-17T10:06:53.863Z"
+    }
+  ]
+}

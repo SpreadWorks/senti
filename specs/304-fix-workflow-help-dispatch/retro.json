@@ -1,0 +1,59 @@
+{
+  "spec": "specs/304-fix-workflow-help-dispatch/spec.json",
+  "date": "2026-06-17T09:26:13.450Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "`senti workflow --help` must dispatch to the workflow plugin command and print command-level help containing `Usage: senti workflow <subcommand> [args]`.",
+      "status": "done",
+      "note": "R1: workflow --help prints command-level workflow usage"
+    },
+    {
+      "desc": "`senti workflow --help` output must contain the workflow subcommands `add`, `update`, `show`, `search`, `list`, `publish`, and `ideas`.",
+      "status": "done",
+      "note": "R2: workflow --help lists current workflow command subcommands"
+    },
+    {
+      "desc": "`senti workflow --help` must not render package-level output headed by `Plugin: workflow` as its primary output.",
+      "status": "done",
+      "note": "R3: workflow --help does not render plugin package help as the primary output"
+    },
+    {
+      "desc": "`senti help workflow` must continue to render package-level workflow plugin help headed by `Plugin: workflow` and include the workflow command row.",
+      "status": "done",
+      "note": "R4: help workflow keeps package-level workflow plugin help"
+    },
+    {
+      "desc": "Core and independent command shared help paths must retain existing behavior for `senti help`, `senti plugin --help`, and `senti plugin find --help`.",
+      "status": "done",
+      "note": "R5: existing core and independent help routes keep shared metadata behavior"
+    },
+    {
+      "desc": "`senti workflow` without a help flag must continue to reach plugin command dispatch and return the workflow command's normal no-subcommand result.",
+      "status": "done",
+      "note": "R6: workflow without a help flag still dispatches to the workflow command"
+    },
+    {
+      "desc": "A nonexistent plugin command help request must not exit successfully with rendered help output.",
+      "status": "done",
+      "note": "R7: unknown plugin command help requests do not become successful help output"
+    },
+    {
+      "desc": "Spec-local coverage should exercise both contributed plugin command help and package-level plugin help through the CLI entry point.",
+      "status": "done",
+      "note": "R8: spec-local coverage declares every testable requirement in the header"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 8,
+    "done": 8,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

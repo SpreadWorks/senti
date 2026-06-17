@@ -1,0 +1,86 @@
+{
+  "devType": "bugfix",
+  "goal": "must: `senti workflow --help` が plugin package help ではなく workflow plugin command 本体の help を表示し、workflow サブコマンド一覧を確認できるようにする。",
+  "analysis": {
+    "problem": "`senti workflow --help` は plugin command 実装へ到達する前に shared help に送られ、`Plugin: workflow` と plugin command row だけを表示している。workflow plugin command 側は `--help` を受け取れば command-level help を返せるため、root problem は top-level CLI の help dispatch が plugin package topic と plugin command invocation を同じ `workflow` topic として扱っている点にある。",
+    "proposedApproach": "`src/senti.js` の plugin command fallback で、`workflow --help` のような plugin command help request を plugin command dispatch へ渡す。package-level help は `src/help.js` が既に提供する `senti help workflow` route に残し、`senti workflow --help` は command-level help、`senti help workflow` は package-level help という分担にする。",
+    "validation": "`node src/senti.js workflow --help` と `node src/senti.js help workflow` はどちらも `Plugin: workflow` を表示した。`src/senti.js` には plugin fallback 前の `if (isHelpRequest(rest)) await renderSharedHelp([subCmd, ...rest])` があり、`src/help.js` は single-token plugin package topic を `renderPluginPackageHelp()` に解決する。したがって plugin command help を dispatch 前に shared help へ送らない修正で root problem に対応できる。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: `senti workflow --help` の現在出力は `Plugin: workflow` と `workflow [EXPERIMENTAL] Manage workflow board drafts` だけで、workflow command のサブコマンド一覧を表示しない。",
+      "must: `senti help workflow` の現在出力も `Plugin: workflow` と workflow command row を表示する package-level help である。",
+      "must: `src/senti.js` は core/independent command では help metadata を見て shared help を使い、plugin fallback では `isHelpRequest(rest)` の場合に plugin command dispatch 前に `renderSharedHelp([subCmd, ...rest])` を呼ぶ。",
+      "must: `src/help.js` は `renderHelp()` で single-token plugin package topic を `renderPluginPackageHelp()` に解決する。",
+      "must: `tests/e2e/help.test.js` は core help、plugin core command help、plugin find help を検証しているが、plugin-contributed command の `workflow --help` と `help workflow` の衝突を検証していない。",
+      "must: workflow plugin command 本体は plugin package 側にあり、この spec は stale plugin snapshot 更新や workflow board service behavior を変更しない。"
+    ],
+    "decisionPoints": [
+      "must: `senti workflow --help` は plugin package topic ではなく plugin command invocation として扱う。",
+      "must: `senti help workflow` は package-level workflow plugin help の保持 route として扱う。",
+      "must: plugin command help request を plugin command dispatch へ渡す際、core command help の shared metadata route は維持する。",
+      "must: unknown plugin command の help request は、従来どおり unknown command guidance または shared help error として失敗し、存在しない command を成功扱いにしない。",
+      "must: `senti workflow` の help flag なし invocation は引き続き plugin command dispatch へ到達し、workflow command 本体の help または通常結果を返す。",
+      "should: regression は `node src/senti.js workflow --help` と `node src/senti.js help workflow` の両方を実行する。"
+    ],
+    "resolvedByProjectRules": [
+      "must: Issue #3 相当の concern は help dispatch の 1 件として扱い、workflow board service や plugin snapshot 更新へ scope を広げない。",
+      "must: docs と source が矛盾する場合は source を正とする。今回は `src/senti.js` と `src/help.js` が top-level help dispatch の source of truth である。",
+      "must: migration parity inventory: retained public behavior は top-level core help、core/independent command help、plugin package help route、plugin command execution、plugin command help、unknown command failure である。",
+      "must: migration parity mapping: core help は shared metadata renderer、plugin package help は `senti help <plugin>` route、plugin command help/execution は plugin command dispatch が所有する。",
+      "must: behavior-level verification は `senti workflow --help` が command-level help を表示すること、`senti help workflow` が package-level help を表示すること、`senti workflow` が plugin command dispatch へ到達すること、存在しない plugin command の `--help` が成功扱いにならないこと、既存 core/independent help tests が通ることを確認する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: spec では package-level help route を `senti help workflow` と明記し、期待出力に `Plugin: workflow` と workflow command row を含める。",
+      "must: spec では command-level help の期待出力を workflow plugin command の `Usage: senti workflow <subcommand> [args]` と 8 サブコマンド一覧として定義する。",
+      "must: spec では actual plugin command dispatch を使う regression と、既存 shared help route の parity regression を分けて定義する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: `senti workflow --help` は workflow plugin command 本体の help を表示する。",
+      "must: command-level help は `Usage: senti workflow <subcommand> [args]` を含む。",
+      "must: command-level help は `add` / `update` / `show` / `search` / `list` / `publish` / `refine` / `ideas` の workflow subcommands を含む。",
+      "must: `senti workflow --help` は primary output として `Plugin: workflow` package help を表示しない。",
+      "must: `senti workflow` は help flag なしでも plugin command dispatch へ到達し、workflow command 本体の help または通常結果を返す。",
+      "must: 存在しない plugin command の `--help` は exit code 0 の成功 help として扱わない。",
+      "must: `senti help workflow` は package-level workflow plugin help を表示し、`Plugin: workflow` と workflow command row を含む。",
+      "must: 既存 core command help と independent command help の behavior を維持する。"
+    ],
+    "out": [
+      "must: stale な `.senti/plugins/workflow` snapshot 更新や plugin package の `commands/workflow.js` 変更は行わない。",
+      "must: workflow board item の add / update / show / search / list / publish / refine / ideas の機能仕様は変更しない。",
+      "must: plugin registry の install/sync/update behavior は変更しない。",
+      "must: `senti help workflow` の package-level help を command-level help へ置き換えない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: `senti workflow --help` の表示は package-level help から plugin command-level help に変わる。",
+    "must: `senti help workflow` は package-level plugin help として `Plugin: workflow` 出力を維持する。",
+    "must: help flag なしの plugin command execution path は維持し、`senti workflow` が plugin command dispatch へ到達することを確認する。",
+    "must: 存在しない plugin command の `--help` は成功扱いにせず、unknown command failure を維持する。",
+    "must: `senti --help` / `senti help` の top-level help と `senti plugin --help` / `senti plugin find --help` の既存 help behavior は維持する。",
+    "must: plugin command execution path は help request 以外では現状どおり plugin command dispatch を使う。",
+    "should: tests/e2e/help.test.js または spec-local test に plugin-contributed command help と package-level help の衝突 regression を追加する。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "`senti workflow --help` を workflow plugin command 本体の help に到達させ、`senti help workflow` を package-level help として残す方針で進めてよいですか。",
+      "answer": "はい。`senti workflow --help` は workflow plugin command 本体の help に到達させ、package-level help は `senti help workflow` として残す。",
+      "evidence": "User selected auto for the preflight summary with this scope. Source verification shows `src/senti.js` intercepts plugin `--help` before plugin dispatch, while `src/help.js` already renders `senti help workflow` as package-level help.",
+      "why": "`senti workflow --help` is an explicit command invocation and should show command usage. `senti help workflow` is the package-topic route and can preserve plugin discovery without occupying the command help path.",
+      "considered": "Leaving package-level help on `senti workflow --help` was rejected because it reproduces the reported bug; replacing `senti help workflow` with command-level help was rejected because it removes the package-level discovery route.",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-17T08:56:00Z",
+    "notes": "autoApprove enabled by the user after preflight intent confirmation; draft-refine answered q1 from the request, source context, and reproduced CLI behavior."
+  }
+}

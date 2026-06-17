@@ -1,0 +1,77 @@
+[senti] spec-local tests start
+command: node --test specs/304-fix-workflow-help-dispatch/tests/workflow-help-dispatch.test.js
+TAP version 13
+# Subtest: workflow plugin help dispatch
+    # Subtest: R1: workflow --help prints command-level workflow usage
+    ok 1 - R1: workflow --help prints command-level workflow usage
+      ---
+      duration_ms: 447.118986
+      type: 'test'
+      ...
+    # Subtest: R2: workflow --help lists current workflow command subcommands
+    ok 2 - R2: workflow --help lists current workflow command subcommands
+      ---
+      duration_ms: 513.007645
+      type: 'test'
+      ...
+    # Subtest: R3: workflow --help does not render plugin package help as the primary output
+    ok 3 - R3: workflow --help does not render plugin package help as the primary output
+      ---
+      duration_ms: 498.47805
+      type: 'test'
+      ...
+    # Subtest: R4: help workflow keeps package-level workflow plugin help
+    ok 4 - R4: help workflow keeps package-level workflow plugin help
+      ---
+      duration_ms: 530.226614
+      type: 'test'
+      ...
+    # Subtest: R5: existing core and independent help routes keep shared metadata behavior
+    ok 5 - R5: existing core and independent help routes keep shared metadata behavior
+      ---
+      duration_ms: 1169.929633
+      type: 'test'
+      ...
+    # Subtest: R6: workflow without a help flag still dispatches to the workflow command
+    ok 6 - R6: workflow without a help flag still dispatches to the workflow command
+      ---
+      duration_ms: 288.454087
+      type: 'test'
+      ...
+    # Subtest: R7: unknown plugin command help requests do not become successful help output
+    ok 7 - R7: unknown plugin command help requests do not become successful help output
+      ---
+      duration_ms: 326.651085
+      type: 'test'
+      ...
+    # Subtest: R8: spec-local coverage declares every testable requirement in the header
+    ok 8 - R8: spec-local coverage declares every testable requirement in the header
+      ---
+      duration_ms: 0.670044
+      type: 'test'
+      ...
+    1..8
+ok 1 - workflow plugin help dispatch
+  ---
+  duration_ms: 3776.636513
+  type: 'suite'
+  ...
+1..1
+# tests 8
+# suites 1
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3866.402137
+exitCode: 0
+[senti] requirement R1 result pass
+[senti] requirement R2 result pass
+[senti] requirement R3 result pass
+[senti] requirement R4 result pass
+[senti] requirement R5 result pass
+[senti] requirement R6 result pass
+[senti] requirement R7 result pass
+[senti] requirement R8 result pass
+[senti] spec-local tests end

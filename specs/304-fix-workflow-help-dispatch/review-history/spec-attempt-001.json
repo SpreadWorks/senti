@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "generatedAt": "2026-06-17T08:56:00.713Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "nonBlocking": 1,
+    "total": 2
+  },
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Required refine subcommand is not in the workflow command help surface",
+      "target": "R2 / AC2 / T-2 / .senti/plugins/workflow/commands/workflow.js",
+      "body": "**Target:** R2 / AC2 / T-2 / .senti/plugins/workflow/commands/workflow.js\n**Issue:** The spec requires `senti workflow --help` to contain `refine`, but the verified workflow plugin command's `helpText()` and `publicSurface` include only `add`, `update`, `show`, `search`, `list`, `publish`, and `ideas`. The spec also declares changing the workflow plugin implementation and updating `.senti/plugins/workflow` snapshots out of scope.\n**Required change:** Remove `refine` from the required `senti workflow --help` subcommand list in R2, AC2, and T-2 so the spec matches the current workflow command surface.\n**Why blocking:** After the dispatcher fix, the CLI will print the plugin command's existing help, which cannot satisfy AC2 because `refine` is absent. Keeping this requirement forces either an out-of-scope plugin/snapshot change or a failing acceptance test.",
+      "issue": "The spec requires `senti workflow --help` to contain `refine`, but the verified workflow plugin command's `helpText()` and `publicSurface` include only `add`, `update`, `show`, `search`, `list`, `publish`, and `ideas`. The spec also declares changing the workflow plugin implementation and updating `.senti/plugins/workflow` snapshots out of scope.",
+      "requiredChange": "Remove `refine` from the required `senti workflow --help` subcommand list in R2, AC2, and T-2 so the spec matches the current workflow command surface.",
+      "whyBlocking": "After the dispatcher fix, the CLI will print the plugin command's existing help, which cannot satisfy AC2 because `refine` is absent. Keeping this requirement forces either an out-of-scope plugin/snapshot change or a failing acceptance test."
+    }
+  ],
+  "nonBlockingImprovements": [
+    {
+      "kind": "improvement",
+      "title": "Clarify plugin subcommand help flag scope",
+      "target": "Scope / Requirements",
+      "body": "**Target:** Scope / Requirements\n**Improvement:** State whether only top-level plugin command help such as `senti workflow --help` is in scope, or whether nested forms like `senti workflow add --help` must also be preserved or changed.\n**Why non-blocking:** The current acceptance criteria only exercise `senti workflow --help`, so implementation and tests can proceed without resolving nested plugin help semantics.",
+      "improvement": "State whether only top-level plugin command help such as `senti workflow --help` is in scope, or whether nested forms like `senti workflow add --help` must also be preserved or changed.",
+      "whyNonBlocking": "The current acceptance criteria only exercise `senti workflow --help`, so implementation and tests can proceed without resolving nested plugin help semantics."
+    }
+  ],
+  "sourceArtifact": "spec-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "spec-001-blocking-001",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Required refine subcommand is not in the workflow command help surface",
+      "body": "**Target:** R2 / AC2 / T-2 / .senti/plugins/workflow/commands/workflow.js\n**Issue:** The spec requires `senti workflow --help` to contain `refine`, but the verified workflow plugin command's `helpText()` and `publicSurface` include only `add`, `update`, `show`, `search`, `list`, `publish`, and `ideas`. The spec also declares changing the workflow plugin implementation and updating `.senti/plugins/workflow` snapshots out of scope.\n**Required change:** Remove `refine` from the required `senti workflow --help` subcommand list in R2, AC2, and T-2 so the spec matches the current workflow command surface.\n**Why blocking:** After the dispatcher fix, the CLI will print the plugin command's existing help, which cannot satisfy AC2 because `refine` is absent. Keeping this requirement forces either an out-of-scope plugin/snapshot change or a failing acceptance test.",
+      "category": "unknown"
+    },
+    {
+      "id": "spec-001-non-blocking-002",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "Clarify plugin subcommand help flag scope",
+      "body": "**Target:** Scope / Requirements\n**Improvement:** State whether only top-level plugin command help such as `senti workflow --help` is in scope, or whether nested forms like `senti workflow add --help` must also be preserved or changed.\n**Why non-blocking:** The current acceptance criteria only exercise `senti workflow --help`, so implementation and tests can proceed without resolving nested plugin help semantics.",
+      "category": "unknown"
+    }
+  ]
+}

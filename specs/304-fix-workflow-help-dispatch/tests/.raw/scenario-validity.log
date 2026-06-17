@@ -1,0 +1,167 @@
+[senti] scenario-validity tests start
+command: node --test specs/304-fix-workflow-help-dispatch/tests/workflow-help-dispatch.test.js
+[senti] scenario-validity file start command=node specs/304-fix-workflow-help-dispatch/tests/workflow-help-dispatch.test.js
+TAP version 13
+# Subtest: workflow plugin help dispatch
+    # Subtest: R1: workflow --help prints command-level workflow usage
+    not ok 1 - R1: workflow --help prints command-level workflow usage
+      ---
+      duration_ms: 295.174963
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-304-fix-workflow-help-dispatch/specs/304-fix-workflow-help-dispatch/tests/workflow-help-dispatch.test.js:27:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        The input did not match the regular expression /Usage: senti workflow <subcommand> \[args\]/. Input:
+        
+        'Plugin: workflow\n' +
+          '\n' +
+          'Commands:\n' +
+          '  workflow      [EXPERIMENTAL] Manage workflow board drafts\n'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: |-
+        Plugin: workflow
+        
+        Commands:
+          workflow      [EXPERIMENTAL] Manage workflow board drafts
+        
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-304-fix-workflow-help-dispatch/specs/304-fix-workflow-help-dispatch/tests/workflow-help-dispatch.test.js:31:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Test.start (node:internal/test_runner/test:944:17)
+        node:internal/test_runner/test:1440:71
+        node:internal/per_context/primordials:464:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:433:3)
+        node:internal/per_context/primordials:464:9
+        Array.map (<anonymous>)
+      ...
+    # Subtest: R2: workflow --help lists current workflow command subcommands
+    not ok 2 - R2: workflow --help lists current workflow command subcommands
+      ---
+      duration_ms: 323.941551
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-304-fix-workflow-help-dispatch/specs/304-fix-workflow-help-dispatch/tests/workflow-help-dispatch.test.js:34:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        The input did not match the regular expression /\badd\b/. Input:
+        
+        'Plugin: workflow\n' +
+          '\n' +
+          'Commands:\n' +
+          '  workflow      [EXPERIMENTAL] Manage workflow board drafts\n'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: |-
+        Plugin: workflow
+        
+        Commands:
+          workflow      [EXPERIMENTAL] Manage workflow board drafts
+        
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-304-fix-workflow-help-dispatch/specs/304-fix-workflow-help-dispatch/tests/workflow-help-dispatch.test.js:39:14)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1442:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+      ...
+    # Subtest: R3: workflow --help does not render plugin package help as the primary output
+    not ok 3 - R3: workflow --help does not render plugin package help as the primary output
+      ---
+      duration_ms: 319.488728
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-304-fix-workflow-help-dispatch/specs/304-fix-workflow-help-dispatch/tests/workflow-help-dispatch.test.js:43:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Plugin: workflow
+        
+        Commands:
+          workflow      [EXPERIMENTAL] Manage workflow board drafts
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-304-fix-workflow-help-dispatch/specs/304-fix-workflow-help-dispatch/tests/workflow-help-dispatch.test.js:47:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R4: help workflow keeps package-level workflow plugin help
+    ok 4 - R4: help workflow keeps package-level workflow plugin help
+      ---
+      duration_ms: 329.205219
+      type: 'test'
+      ...
+    # Subtest: R5: existing core and independent help routes keep shared metadata behavior
+    ok 5 - R5: existing core and independent help routes keep shared metadata behavior
+      ---
+      duration_ms: 1035.718863
+      type: 'test'
+      ...
+    # Subtest: R6: workflow without a help flag still dispatches to the workflow command
+    ok 6 - R6: workflow without a help flag still dispatches to the workflow command
+      ---
+      duration_ms: 274.153094
+      type: 'test'
+      ...
+    # Subtest: R7: unknown plugin command help requests do not become successful help output
+    ok 7 - R7: unknown plugin command help requests do not become successful help output
+      ---
+      duration_ms: 391.54218
+      type: 'test'
+      ...
+    # Subtest: R8: spec-local coverage declares every testable requirement in the header
+    ok 8 - R8: spec-local coverage declares every testable requirement in the header
+      ---
+      duration_ms: 0.801644
+      type: 'test'
+      ...
+    1..8
+not ok 1 - workflow plugin help dispatch
+  ---
+  duration_ms: 2972.780298
+  type: 'suite'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-304-fix-workflow-help-dispatch/specs/304-fix-workflow-help-dispatch/tests/workflow-help-dispatch.test.js:26:1'
+  failureType: 'subtestsFailed'
+  error: '3 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 8
+# suites 1
+# pass 5
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2990.212227
+Command failed: node specs/304-fix-workflow-help-dispatch/tests/workflow-help-dispatch.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/304-fix-workflow-help-dispatch/tests/workflow-help-dispatch.test.js
+exitCode: 1
+[senti] requirement R1 observed: R1: workflow --help prints command-level workflow usage
+[senti] requirement R2 observed: R2: workflow --help lists current workflow command subcommands
+[senti] requirement R3 observed: R3: workflow --help does not render plugin package help as the primary output
+[senti] requirement R4 observed: R4: help workflow keeps package-level workflow plugin help
+[senti] requirement R5 observed: R5: existing core and independent help routes keep shared metadata behavior
+[senti] requirement R6 observed: R6: workflow without a help flag still dispatches to the workflow command
+[senti] requirement R7 observed: R7: unknown plugin command help requests do not become successful help output
+[senti] requirement R8 observed: R8: spec-local coverage declares every testable requirement in the header
+[senti] scenario-validity tests end

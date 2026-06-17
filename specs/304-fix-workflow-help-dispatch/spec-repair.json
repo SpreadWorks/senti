@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Removed refine from the required workflow command help assertions so the spec matches the installed workflow plugin command surface.",
+  "items": [
+    {
+      "title": "Required refine subcommand is not in the workflow command help surface",
+      "target": "R2 / AC2 / T-2 / .senti/plugins/workflow/commands/workflow.js",
+      "decision": "applied",
+      "rationale": "Updated the requirement, acceptance criterion, and task acceptance wording to require the current workflow command subcommands exposed by the installed plugin command help.",
+      "evidence": "spec.json requirements[1].desc and acceptance_criteria[1] now list add, update, show, search, list, publish, and ideas; tasks[1].acceptance[0] now refers to all current workflow command subcommands.",
+      "changedFields": [
+        "requirements[1].desc",
+        "acceptance_criteria[1]",
+        "tasks[1].acceptance[0]"
+      ]
+    }
+  ]
+}

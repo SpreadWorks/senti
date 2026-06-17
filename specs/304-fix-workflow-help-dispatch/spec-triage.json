@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "The blocking finding is valid. The current workflow plugin command help surface in this repository does not include refine, and changing the workflow plugin snapshot is explicitly out of scope.",
+  "items": [
+    {
+      "title": "Required refine subcommand is not in the workflow command help surface",
+      "target": "R2 / AC2 / T-2 / .senti/plugins/workflow/commands/workflow.js",
+      "decision": "apply",
+      "rationale": "The spec should match the command help emitted by the installed workflow plugin command. Requiring refine would force an out-of-scope plugin snapshot change or a failing acceptance test.",
+      "evidence": "spec-review.json blockingFindings[0] identifies that helpText() and publicSurface include add, update, show, search, list, publish, and ideas. .senti/plugins/workflow/commands/workflow.js confirms publicSurface and helpText() have no refine entry."
+    }
+  ]
+}

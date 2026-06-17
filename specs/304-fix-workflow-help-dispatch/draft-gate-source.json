@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "The retained behavior `plugin command execution` is listed in the migration inventory/mapping, but no acceptance criterion or behavior-level verification is defined for execution through the new path (`workflow` command dispatch).",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "resolvedByProjectRules.behavior-level verification"
+          },
+          "observed": "The retained behavior `plugin command execution` is listed in the migration inventory/mapping, but no acceptance criterion or behavior-level verification is defined for execution through the new path (`workflow` command dispatch).",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "The retained behavior `unknown plugin command failure` is referenced as kept, but migration parity includes no retained-surface behavior-level verification proving this failure behavior still works through the new route.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "resolvedByProjectRules.behavior-level verification"
+          },
+          "observed": "The retained behavior `unknown plugin command failure` is referenced as kept, but migration parity includes no retained-surface behavior-level verification proving this failure behavior still works through the new route.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "content",
+        "locator": "resolvedByProjectRules.behavior-level verification"
+      },
+      "observed": "The retained behavior `plugin command execution` is listed in the migration inventory/mapping, but no acceptance criterion or behavior-level verification is defined for execution through the new path (`workflow` command dispatch).",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "content",
+        "locator": "resolvedByProjectRules.behavior-level verification"
+      },
+      "observed": "The retained behavior `unknown plugin command failure` is referenced as kept, but migration parity includes no retained-surface behavior-level verification proving this failure behavior still works through the new route.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    }
+  ]
+}

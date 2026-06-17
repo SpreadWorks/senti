@@ -1,0 +1,202 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".senti/output/analysis.json                        |   2 +-\n .../acceptance-review.json                         |  21 +\n .../draft-coverage-repair.json                     |   8 +\n .../draft-coverage-triage.json                     |   8 +\n .../draft-gate-source.json                         |  83 +++\n .../draft-questions-repair.json                    |   8 +\n .../draft-questions-triage.json                    |   8 +\n .../draft-review-coverage.json                     |  11 +\n .../draft-review-questions.json                    |  11 +\n specs/304-fix-workflow-help-dispatch/draft.json    |  86 +++\n specs/304-fix-workflow-help-dispatch/file-map.json |  34 +\n specs/304-fix-workflow-help-dispatch/flow.json     | 736 +++++++++++++++++++++\n .../impl-review.json                               |  28 +\n .../304-fix-workflow-help-dispatch/issue-log.json  |  62 ++\n .../review-history/draft-coverage-attempt-001.json |  14 +\n .../draft-questions-attempt-001.json               |  14 +\n .../review-history/impl-attempt-001.json           |  31 +\n .../review-history/impl-attempt-001.md             |  16 +\n .../review-history/spec-attempt-001.json           |  56 ++\n .../review-history/spec-attempt-001.md             |  19 +\n .../review-history/test-attempt-001.json           |  28 +\n .../review-history/test-attempt-001.md             |  13 +\n specs/304-fix-workflow-help-dispatch/review.md     |  16 +\n .../spec-repair.json                               |  20 +\n .../spec-review.json                               |  32 +\n .../304-fix-workflow-help-dispatch/spec-review.md  |  19 +\n .../spec-triage.json                               |  15 +\n specs/304-fix-workflow-help-dispatch/spec.json     | 225 +++++++\n specs/304-fix-workflow-help-dispatch/spec.md       | 111 ++++\n specs/304-fix-workflow-help-dispatch/tasks/T-1.md  |  20 +\n specs/304-fix-workflow-help-dispatch/tasks/T-2.md  |  20 +\n .../test-coverage.json                             | 108 +++\n .../test-review.json                               |  25 +\n .../304-fix-workflow-help-dispatch/test-review.md  |  13 +\n .../tests/workflow-help-dispatch.test.js           |  94 +++\n src/senti.js                                       |   6 +-\n 36 files changed, 2017 insertions(+), 4 deletions(-)",
+      "commits": [
+        "fix: route workflow help through plugin command"
+      ]
+    },
+    "retro": {
+      "total": 8,
+      "done": 8,
+      "partial": 0,
+      "not_done": 0,
+      "not_applicable_count": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "`senti workflow --help` must dispatch to the workflow plugin command and print command-level help containing `Usage: senti workflow <subcommand> [args]`.",
+          "status": "done",
+          "note": "R1: workflow --help prints command-level workflow usage"
+        },
+        {
+          "desc": "`senti workflow --help` output must contain the workflow subcommands `add`, `update`, `show`, `search`, `list`, `publish`, and `ideas`.",
+          "status": "done",
+          "note": "R2: workflow --help lists current workflow command subcommands"
+        },
+        {
+          "desc": "`senti workflow --help` must not render package-level output headed by `Plugin: workflow` as its primary output.",
+          "status": "done",
+          "note": "R3: workflow --help does not render plugin package help as the primary output"
+        },
+        {
+          "desc": "`senti help workflow` must continue to render package-level workflow plugin help headed by `Plugin: workflow` and include the workflow command row.",
+          "status": "done",
+          "note": "R4: help workflow keeps package-level workflow plugin help"
+        },
+        {
+          "desc": "Core and independent command shared help paths must retain existing behavior for `senti help`, `senti plugin --help`, and `senti plugin find --help`.",
+          "status": "done",
+          "note": "R5: existing core and independent help routes keep shared metadata behavior"
+        },
+        {
+          "desc": "`senti workflow` without a help flag must continue to reach plugin command dispatch and return the workflow command's normal no-subcommand result.",
+          "status": "done",
+          "note": "R6: workflow without a help flag still dispatches to the workflow command"
+        },
+        {
+          "desc": "A nonexistent plugin command help request must not exit successfully with rendered help output.",
+          "status": "done",
+          "note": "R7: unknown plugin command help requests do not become successful help output"
+        },
+        {
+          "desc": "Spec-local coverage should exercise both contributed plugin command help and package-level plugin help through the CLI entry point.",
+          "status": "done",
+          "note": "R8: spec-local coverage declares every testable requirement in the header"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 2,
+      "fullLogPath": "specs/304-fix-workflow-help-dispatch/issue-log.json",
+      "importantTotal": 2,
+      "importantShown": 2,
+      "importantOmitted": 0,
+      "recentOtherTotal": 0,
+      "recentOtherShown": 0,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "The retained behavior `plugin command execution` is listed in the migration inventory/mapping, but no acceptance criterion or behavior-level verification is defined for execution through the new path (`workflow` command dispatch).; The r...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "Draft gate failed because migration parity lacked behavior-level verification for plugin command execution and unknown command failure",
+          "resolution": "Add draft requirements for non-help plugin command dispatch parity and unknown plugin command help failure parity"
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 276304,
+      "output": 26662,
+      "cacheRead": 597632,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 10,
+      "durationMs": 346724,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 10222
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 13537
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 19896
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 164490
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 12116
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 15821
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 97459
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 13183
+        }
+      ]
+    },
+    "tests": {
+      "total": 8,
+      "passed": 8,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/304-fix-workflow-help-dispatch/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "specs/304-fix-workflow-help-dispatch/",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/senti.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/304-fix-workflow-help-dispatch/"
+          },
+          {
+            "status": "modified",
+            "path": "src/senti.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/304-fix-workflow-help-dispatch/"
+          },
+          {
+            "status": "modified",
+            "path": "src/senti.js"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "skipKind": null,
+        "rawOutputPath": "specs/304-fix-workflow-help-dispatch/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    fix: route workflow help through plugin command\n    36 files changed, 2017 insertions(+), 4 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (8 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 1\n    agent calls ................. 10\n    input tokens ................ 276,304\n    output tokens ............... 26,662\n    cache-read tokens ........... 597,632\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 346.7s\n      draft-questions-review .... 10.2s\n      draft-coverage-review ..... 13.5s\n      draft-gate ................ 19.9s\n      spec-review ............... 164.5s\n      spec-gate ................. 12.1s\n      test-review ............... 15.8s\n      impl-review ............... 97.5s\n      impl-gate ................. 13.2s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 8  passed 8  failed 0 verdict=pass\n    raw_output: specs/304-fix-workflow-help-dispatch/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=pass\n\n  Issue Log Summary (2 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/304-fix-workflow-help-dispatch/issue-log.json\n\n    Important (2)\n    - [draft-gate] The retained behavior `plugin command execution` is listed in the migration inventory/mapping, but no acceptance criterion or behavior-level verification is defined for execution through the new path (`workflow` command dispatch).; The r...\n    - [draft-gate] Draft gate failed because migration parity lacked behavior-level verification for plugin command execution and unknown command failure"
+}

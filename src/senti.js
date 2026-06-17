@@ -132,9 +132,6 @@ if (NAMESPACE_SCRIPTS[subCmd]) {
   try {
     const { repoRoot } = await import("./lib/cli.js");
     const { dispatchPluginCommand } = await import("./lib/plugin-registry.js");
-    if (isHelpRequest(rest)) {
-      await renderSharedHelp([subCmd, ...rest]);
-    }
     const handled = await dispatchPluginCommand(repoRoot(), subCmd, rest);
     if (handled) {
       if (handled.ok != null) {
@@ -146,6 +143,9 @@ if (NAMESPACE_SCRIPTS[subCmd]) {
         process.exit(handled.ok ? 0 : (handled.exitCode || EXIT_ERROR));
       }
       process.exit(0);
+    }
+    if (isHelpRequest(rest)) {
+      await renderSharedHelp([subCmd, ...rest]);
     }
     console.error(`senti: unknown command '${subCmd}' is unavailable. Enable a plugin that contributes this command, or run: senti plugin list`);
   } catch (err) {

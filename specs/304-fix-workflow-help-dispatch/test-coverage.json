@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "`senti workflow --help` must dispatch to the workflow plugin command and print command-level help containing `Usage: senti workflow <subcommand> [args]`.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/workflow-help-dispatch.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "`senti workflow --help` output must contain the workflow subcommands `add`, `update`, `show`, `search`, `list`, `publish`, and `ideas`.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/workflow-help-dispatch.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "`senti workflow --help` must not render package-level output headed by `Plugin: workflow` as its primary output.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/workflow-help-dispatch.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "`senti help workflow` must continue to render package-level workflow plugin help headed by `Plugin: workflow` and include the workflow command row.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/workflow-help-dispatch.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "Core and independent command shared help paths must retain existing behavior for `senti help`, `senti plugin --help`, and `senti plugin find --help`.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/workflow-help-dispatch.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "`senti workflow` without a help flag must continue to reach plugin command dispatch and return the workflow command's normal no-subcommand result.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/workflow-help-dispatch.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "A nonexistent plugin command help request must not exit successfully with rendered help output.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/workflow-help-dispatch.test.js"
+      ]
+    },
+    {
+      "id": "R8",
+      "desc": "Spec-local coverage should exercise both contributed plugin command help and package-level plugin help through the CLI entry point.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/workflow-help-dispatch.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/workflow-help-dispatch.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8"
+      ]
+    }
+  ]
+}

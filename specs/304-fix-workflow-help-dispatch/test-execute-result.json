@@ -1,0 +1,147 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/304-fix-workflow-help-dispatch/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/304-fix-workflow-help-dispatch/tests/workflow-help-dispatch.test.js",
+        "test_name": "R1: workflow --help prints command-level workflow usage",
+        "command": "node --test specs/304-fix-workflow-help-dispatch/tests/workflow-help-dispatch.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 77
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/304-fix-workflow-help-dispatch/tests/workflow-help-dispatch.test.js",
+        "test_name": "R2: workflow --help lists current workflow command subcommands",
+        "command": "node --test specs/304-fix-workflow-help-dispatch/tests/workflow-help-dispatch.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 77
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/304-fix-workflow-help-dispatch/tests/workflow-help-dispatch.test.js",
+        "test_name": "R3: workflow --help does not render plugin package help as the primary output",
+        "command": "node --test specs/304-fix-workflow-help-dispatch/tests/workflow-help-dispatch.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 77
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/304-fix-workflow-help-dispatch/tests/workflow-help-dispatch.test.js",
+        "test_name": "R4: help workflow keeps package-level workflow plugin help",
+        "command": "node --test specs/304-fix-workflow-help-dispatch/tests/workflow-help-dispatch.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 77
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/304-fix-workflow-help-dispatch/tests/workflow-help-dispatch.test.js",
+        "test_name": "R5: existing core and independent help routes keep shared metadata behavior",
+        "command": "node --test specs/304-fix-workflow-help-dispatch/tests/workflow-help-dispatch.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 77
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/304-fix-workflow-help-dispatch/tests/workflow-help-dispatch.test.js",
+        "test_name": "R6: workflow without a help flag still dispatches to the workflow command",
+        "command": "node --test specs/304-fix-workflow-help-dispatch/tests/workflow-help-dispatch.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 77
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/304-fix-workflow-help-dispatch/tests/workflow-help-dispatch.test.js",
+        "test_name": "R7: unknown plugin command help requests do not become successful help output",
+        "command": "node --test specs/304-fix-workflow-help-dispatch/tests/workflow-help-dispatch.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 77
+        }
+      }
+    },
+    {
+      "id": "R8",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/304-fix-workflow-help-dispatch/tests/workflow-help-dispatch.test.js",
+        "test_name": "R8: spec-local coverage declares every testable requirement in the header",
+        "command": "node --test specs/304-fix-workflow-help-dispatch/tests/workflow-help-dispatch.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 77
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": false,
+    "result": "skipped",
+    "mode": "none",
+    "category": "full-regression-deferred",
+    "reason": "full project regression deferred to final-regression",
+    "classified_paths": [
+      {
+        "path": "specs/304-fix-workflow-help-dispatch/",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/senti.js",
+        "category": "full-regression-deferred"
+      }
+    ],
+    "trigger_relevant_changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/304-fix-workflow-help-dispatch/"
+      },
+      {
+        "status": "modified",
+        "path": "src/senti.js"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/304-fix-workflow-help-dispatch/"
+      },
+      {
+        "status": "modified",
+        "path": "src/senti.js"
+      }
+    ]
+  }
+}
