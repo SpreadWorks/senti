@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "consumerPhase": "test-review",
+  "fields": [
+    "requirementId",
+    "testFile",
+    "testName",
+    "assertionOrBlockCount",
+    "skipMarker",
+    "helperOnly",
+    "scenarioValidityRef",
+    "testExecuteRef"
+  ],
+  "fallbackCondition": "Run full test review when matrix parsing fails, executable test names cannot be matched to headers, assertions are helper-only, skipped tests appear, or anti-pattern scans report boundary cases.",
+  "auditFields": [
+    "matrixVersion",
+    "sourceTestHash",
+    "generatedAt",
+    "uncoveredRequirements",
+    "producerWarnings",
+    "fallbackReason"
+  ],
+  "behaviorVerification": "Every testable requirement has at least one executable test row, no helper-only row is counted as coverage, and scenario-validity/test-execute references are preserved."
+}

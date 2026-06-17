@@ -1,0 +1,222 @@
+{
+  "version": 1,
+  "method": "Observed before baseline values come from flow.json agent metrics for the fixed primary sample. Projected-after values are a planning model based on candidate fallback policies, not measured production runtime.",
+  "samples": [
+    {
+      "specDir": "specs/293-bounded-defer-review",
+      "beforeBaseline": {
+        "agentCallCount": 44,
+        "durationMs": 3817866,
+        "inputTokens": 2300322,
+        "retryCount": 75,
+        "finalizeSyncTimeMs": 131955,
+        "completionRate": 1,
+        "findingDetectionRisk": "baseline preserved by full AI fallback",
+        "docsQualityRisk": "baseline full finalize-sync docs path observed",
+        "issueLogImpact": "issue-log artifact present",
+        "acceptanceLoopImpact": "acceptance-review artifact present"
+      },
+      "projectedAfterModel": {
+        "agentCallCount": 35,
+        "durationMs": 2863399,
+        "inputTokens": 1725242,
+        "retryCount": 75,
+        "finalizeSyncTimeMs": 79173,
+        "completionRate": 1,
+        "findingDetectionRisk": "no increase accepted unless full AI fallback preserves blocking findings",
+        "docsQualityRisk": "deferred AI docs requires warning/follow-up artifact",
+        "issueLogImpact": "grouped findings reduce duplicate entries without deleting originals",
+        "acceptanceLoopImpact": "suggestedDisposition evidence may reduce repeated acceptance loops"
+      }
+    },
+    {
+      "specDir": "specs/294-setup-preset-options",
+      "beforeBaseline": {
+        "agentCallCount": 30,
+        "durationMs": 1516219,
+        "inputTokens": 800865,
+        "retryCount": 38,
+        "finalizeSyncTimeMs": 88612,
+        "completionRate": 1,
+        "findingDetectionRisk": "baseline preserved by full AI fallback",
+        "docsQualityRisk": "baseline full finalize-sync docs path observed",
+        "issueLogImpact": "issue-log artifact present",
+        "acceptanceLoopImpact": "acceptance-review artifact present"
+      },
+      "projectedAfterModel": {
+        "agentCallCount": 24,
+        "durationMs": 1137164,
+        "inputTokens": 600649,
+        "retryCount": 38,
+        "finalizeSyncTimeMs": 53167,
+        "completionRate": 1,
+        "findingDetectionRisk": "no increase accepted unless full AI fallback preserves blocking findings",
+        "docsQualityRisk": "deferred AI docs requires warning/follow-up artifact",
+        "issueLogImpact": "grouped findings reduce duplicate entries without deleting originals",
+        "acceptanceLoopImpact": "suggestedDisposition evidence may reduce repeated acceptance loops"
+      }
+    },
+    {
+      "specDir": "specs/295-producer-artifact-contract",
+      "beforeBaseline": {
+        "agentCallCount": 34,
+        "durationMs": 1675766,
+        "inputTokens": 1006957,
+        "retryCount": 36,
+        "finalizeSyncTimeMs": 125044,
+        "completionRate": 1,
+        "findingDetectionRisk": "baseline preserved by full AI fallback",
+        "docsQualityRisk": "baseline full finalize-sync docs path observed",
+        "issueLogImpact": "issue-log artifact present",
+        "acceptanceLoopImpact": "acceptance-review artifact present"
+      },
+      "projectedAfterModel": {
+        "agentCallCount": 27,
+        "durationMs": 1256824,
+        "inputTokens": 755218,
+        "retryCount": 36,
+        "finalizeSyncTimeMs": 75026,
+        "completionRate": 1,
+        "findingDetectionRisk": "no increase accepted unless full AI fallback preserves blocking findings",
+        "docsQualityRisk": "deferred AI docs requires warning/follow-up artifact",
+        "issueLogImpact": "grouped findings reduce duplicate entries without deleting originals",
+        "acceptanceLoopImpact": "suggestedDisposition evidence may reduce repeated acceptance loops"
+      }
+    },
+    {
+      "specDir": "specs/296-review-gate-defer",
+      "beforeBaseline": {
+        "agentCallCount": 37,
+        "durationMs": 1246554,
+        "inputTokens": 644478,
+        "retryCount": 12,
+        "finalizeSyncTimeMs": 90456,
+        "completionRate": 1,
+        "findingDetectionRisk": "baseline preserved by full AI fallback",
+        "docsQualityRisk": "baseline full finalize-sync docs path observed",
+        "issueLogImpact": "issue-log artifact present",
+        "acceptanceLoopImpact": "acceptance-review artifact present"
+      },
+      "projectedAfterModel": {
+        "agentCallCount": 29,
+        "durationMs": 934916,
+        "inputTokens": 483358,
+        "retryCount": 12,
+        "finalizeSyncTimeMs": 54274,
+        "completionRate": 1,
+        "findingDetectionRisk": "no increase accepted unless full AI fallback preserves blocking findings",
+        "docsQualityRisk": "deferred AI docs requires warning/follow-up artifact",
+        "issueLogImpact": "grouped findings reduce duplicate entries without deleting originals",
+        "acceptanceLoopImpact": "suggestedDisposition evidence may reduce repeated acceptance loops"
+      }
+    },
+    {
+      "specDir": "specs/297-setup-official-presets",
+      "beforeBaseline": {
+        "agentCallCount": 18,
+        "durationMs": 719283,
+        "inputTokens": 446828,
+        "retryCount": 4,
+        "finalizeSyncTimeMs": 109187,
+        "completionRate": 1,
+        "findingDetectionRisk": "baseline preserved by full AI fallback",
+        "docsQualityRisk": "baseline full finalize-sync docs path observed",
+        "issueLogImpact": "issue-log artifact present",
+        "acceptanceLoopImpact": "acceptance-review artifact present"
+      },
+      "projectedAfterModel": {
+        "agentCallCount": 14,
+        "durationMs": 539462,
+        "inputTokens": 335121,
+        "retryCount": 4,
+        "finalizeSyncTimeMs": 65512,
+        "completionRate": 1,
+        "findingDetectionRisk": "no increase accepted unless full AI fallback preserves blocking findings",
+        "docsQualityRisk": "deferred AI docs requires warning/follow-up artifact",
+        "issueLogImpact": "grouped findings reduce duplicate entries without deleting originals",
+        "acceptanceLoopImpact": "suggestedDisposition evidence may reduce repeated acceptance loops"
+      }
+    },
+    {
+      "specDir": "specs/298-fix-presets-list-tree",
+      "beforeBaseline": {
+        "agentCallCount": 21,
+        "durationMs": 875228,
+        "inputTokens": 482329,
+        "retryCount": 12,
+        "finalizeSyncTimeMs": 108955,
+        "completionRate": 1,
+        "findingDetectionRisk": "baseline preserved by full AI fallback",
+        "docsQualityRisk": "baseline full finalize-sync docs path observed",
+        "issueLogImpact": "issue-log artifact present",
+        "acceptanceLoopImpact": "acceptance-review artifact present"
+      },
+      "projectedAfterModel": {
+        "agentCallCount": 16,
+        "durationMs": 656421,
+        "inputTokens": 361747,
+        "retryCount": 12,
+        "finalizeSyncTimeMs": 65373,
+        "completionRate": 1,
+        "findingDetectionRisk": "no increase accepted unless full AI fallback preserves blocking findings",
+        "docsQualityRisk": "deferred AI docs requires warning/follow-up artifact",
+        "issueLogImpact": "grouped findings reduce duplicate entries without deleting originals",
+        "acceptanceLoopImpact": "suggestedDisposition evidence may reduce repeated acceptance loops"
+      }
+    },
+    {
+      "specDir": "specs/299-agent-config-setup",
+      "beforeBaseline": {
+        "agentCallCount": 25,
+        "durationMs": 837248,
+        "inputTokens": 416191,
+        "retryCount": 3,
+        "finalizeSyncTimeMs": 83715,
+        "completionRate": 1,
+        "findingDetectionRisk": "baseline preserved by full AI fallback",
+        "docsQualityRisk": "baseline full finalize-sync docs path observed",
+        "issueLogImpact": "issue-log artifact present",
+        "acceptanceLoopImpact": "acceptance-review artifact present"
+      },
+      "projectedAfterModel": {
+        "agentCallCount": 20,
+        "durationMs": 627936,
+        "inputTokens": 312143,
+        "retryCount": 3,
+        "finalizeSyncTimeMs": 50229,
+        "completionRate": 1,
+        "findingDetectionRisk": "no increase accepted unless full AI fallback preserves blocking findings",
+        "docsQualityRisk": "deferred AI docs requires warning/follow-up artifact",
+        "issueLogImpact": "grouped findings reduce duplicate entries without deleting originals",
+        "acceptanceLoopImpact": "suggestedDisposition evidence may reduce repeated acceptance loops"
+      }
+    },
+    {
+      "specDir": "specs/299-worktree-config-preflight",
+      "beforeBaseline": {
+        "agentCallCount": 15,
+        "durationMs": 592049,
+        "inputTokens": 258476,
+        "retryCount": 6,
+        "finalizeSyncTimeMs": 0,
+        "completionRate": 1,
+        "findingDetectionRisk": "baseline preserved by full AI fallback",
+        "docsQualityRisk": "no finalize-sync agent metric found in this sample",
+        "issueLogImpact": "issue-log artifact present",
+        "acceptanceLoopImpact": "acceptance-review artifact present"
+      },
+      "projectedAfterModel": {
+        "agentCallCount": 12,
+        "durationMs": 444036,
+        "inputTokens": 193857,
+        "retryCount": 6,
+        "finalizeSyncTimeMs": 0,
+        "completionRate": 1,
+        "findingDetectionRisk": "no increase accepted unless full AI fallback preserves blocking findings",
+        "docsQualityRisk": "deferred AI docs requires warning/follow-up artifact when docs sync exists",
+        "issueLogImpact": "grouped findings reduce duplicate entries without deleting originals",
+        "acceptanceLoopImpact": "suggestedDisposition evidence may reduce repeated acceptance loops"
+      }
+    }
+  ]
+}

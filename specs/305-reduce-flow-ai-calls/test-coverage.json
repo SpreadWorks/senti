@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Create `phase-candidates.json` with entries for skill slimming, spec-review, impl-review, test-review, impl-gate, context.search, auto-check, finalize-sync/docs build, docs.enrich/docs.text/README/AGENTS, AI JSON repair, findings aggregation, triage/repair artifact generation, and requirement compliance precheck; each entry records current AI surface, deterministic candidate, expected effect, quality risk, fallback condition, related code, and behavior-level verification.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/research-artifacts.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "Define skill slimming responsibility split with rules that move normal step branching, retry metadata, context instructions, output schema, and post-hook guidance toward CLI next-action envelope fields while retaining user approval boundaries, autoApprove exceptions, worktree boundary, and destructive recovery prompts in the skill.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/research-artifacts.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "Define `review-manifest-prototype.json` for spec-review and impl-review with producer inputs, JSON fields, consumer phase, fallback conditions, audit fields, and behavior-level verification for full review parity.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/research-artifacts.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "Define `test-coverage-matrix-prototype.json` for test-review with requirement IDs, test files, test names, assertion or executable block counts, skipped/helper-only markers, scenario-validity/test-execute references, fallback conditions, audit fields, and behavior-level verification.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/research-artifacts.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "Define fallback policies for context.search and auto-check that separate rule-based pass/fail cases from boundary cases requiring AI, including the condition that context.search AI keyword selection runs only when deterministic search is insufficient and fallback is explicitly allowed.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/research-artifacts.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "Define finalize-sync/docs build separation policy and docs staticization inventory covering deterministic docs build, AI enrich/text/readme/agents/translate steps, warning or follow-up artifact options, differential run conditions, and docs quality verification.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/research-artifacts.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "Define JSON normalizer, findings de-dupe/aggregation, generated triage/repair artifact, and requirement compliance precheck policies with keys, schema normalization rules, severity merge rules, grouped audit representation, and AI fallback or hard-fail boundaries.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/research-artifacts.test.js"
+      ]
+    },
+    {
+      "id": "R8",
+      "desc": "Create `migration-parity-map.json` that covers every surface listed in clarifications `Minimum retained public surfaces`, maps current owner to proposed owner or explicit removal decision, names fallback owner, and lists at least one behavior-level verification for each retained surface.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/research-artifacts.test.js"
+      ]
+    },
+    {
+      "id": "R9",
+      "desc": "Create `measurement-results.json` using every directory listed in clarifications `Primary measurement sample directories` as the primary sample and recording before baseline plus projected-after model for agent call count, duration, input token, retry count, finalize-sync time, completion rate, finding detection risk, docs quality risk, issue-log impact, and acceptance-loop impact.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/research-artifacts.test.js"
+      ]
+    },
+    {
+      "id": "R10",
+      "desc": "Add spec-local tests under `specs/305-reduce-flow-ai-calls/tests/` that validate required research artifact files, required phase coverage, required fallback fields, measurement metric coverage, and migration parity coverage.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/research-artifacts.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/research-artifacts.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10"
+      ]
+    }
+  ]
+}

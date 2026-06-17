@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "deterministicSteps": [
+    "scan",
+    "init",
+    "data"
+  ],
+  "aiCapableSteps": [
+    "enrich",
+    "text",
+    "readme",
+    "agents",
+    "translate"
+  ],
+  "finalizeSyncSeparationPolicy": "Finalize may run deterministic docs build on the blocking path and defer AI-capable enrich/text/translate work to warning or follow-up artifacts when changed files do not affect public docs surfaces.",
+  "warningOrFollowUpArtifactOptions": [
+    "docs-ai-deferred-warning",
+    "docs-follow-up-workflow-item",
+    "docs-sync-risk-entry"
+  ],
+  "differentialRunConditions": [
+    "run AI docs when docs templates or directive text changed",
+    "run AI docs when public command help or README-visible behavior changed",
+    "skip or defer AI docs when only spec-local research artifacts changed",
+    "fallback to full docs build when docs review reports unresolved directives or stale generated text"
+  ],
+  "docsQualityVerification": "Verify generated docs contain no unresolved directives, README/AGENTS generated sections remain present, docs review passes, and deferred AI steps are recorded with explicit risk and owner."
+}

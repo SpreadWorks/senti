@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "Both blocking findings are valid and should be repaired with small spec changes: enumerate the primary measurement sample directories and define the minimum migration parity public-surface inventory.",
+  "items": [
+    {
+      "title": "Primary measurement sample is ambiguous",
+      "target": "R9 / Scope measurement sample",
+      "decision": "apply",
+      "rationale": "The finding is blocking because the repository has two spec directories with numeric prefix 299, and tests for measurement coverage need a deterministic sample set.",
+      "evidence": "`find specs -maxdepth 1 -type d -name '29[3-9]-*'` returned specs/293-bounded-defer-review, specs/294-setup-preset-options, specs/295-producer-artifact-contract, specs/296-review-gate-defer, specs/297-setup-official-presets, specs/298-fix-presets-list-tree, specs/299-agent-config-setup, and specs/299-worktree-config-preflight."
+    },
+    {
+      "title": "Migration parity coverage has no fixed inventory source",
+      "target": "R8 / Acceptance R8",
+      "decision": "apply",
+      "rationale": "The finding is blocking because migration parity tests cannot determine completeness unless the retained public surfaces are explicitly enumerated in spec.json.",
+      "evidence": "Draft knownFacts inventory names flow skill dispatch, next-action envelope, review phases, impl review, gate, context.search, auto-check, finalize-sync, docs build, AI JSON repair, and flow findings / issue-log / acceptance evidence artifacts."
+    }
+  ]
+}

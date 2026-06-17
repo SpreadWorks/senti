@@ -1,0 +1,172 @@
+{
+  "devType": "other",
+  "goal": "must: flow の AI 呼び出し回数、入力 token、応答待ち時間を減らすため、AI 判断そのものは残しつつ、周辺処理を deterministic な前処理・圧縮・分離・監査可能 artifact に寄せる調査結果と実装方針を整理する。",
+  "analysis": {
+    "problem": "Issue #398 は specs 293-299 の agent metrics で impl-review / spec-review / test-review / impl-gate / finalize-sync が重いことを示し、guardrail 判定の deterministic 化とは別に、skill / prompt / review input / context 探索 / docs sync / AI 出力修復で不要な AI 呼び出しや大きな入力が発生している可能性を扱っている。",
+    "proposedApproach": "phase ごとに AI 判断が必要な部分と deterministic に処理できる部分を分離し、review manifest、test coverage matrix、fallback 条件、docs/finalize 分離、docs staticization、JSON normalizer、findings aggregation、triage/repair artifact、requirement compliance precheck の候補を、効果・品質リスク・fallback・計測方法とともに仕様化する。",
+    "validation": "Issue #398 は非対象として AI 判断の全面撤去、guardrail 判定そのものの deterministic 化、pre-auto-check UX 改善を除外している。関連コード確認では `src/flow/lib/get-next-action.js` が envelope を返し、`src/flow/commands/review.js` が review prompt / diff / findings / JSON repair を扱い、`src/flow/lib/run-finalize-sync.js` が docs build を finalize blocking path で実行し、`src/docs/commands/build.js` が enrich / text / readme / agents / translate を含むため、調査対象は root problem に対応している。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #398 は impl-review=60 calls / 5,897,507ms、spec-review=8 calls / 1,744,536ms、test-review=38 calls / 1,204,677ms、impl-gate=52 calls / 964,429ms、finalize-sync=16 calls / 737,924ms を最近の heavy phase として挙げている。",
+      "must: Issue #398 は AI guardrail 判定の deterministic 化そのものを非対象にしている。",
+      "must: Issue #398 は auto-check 前 UX / preflight loop 改善を非対象にしている。",
+      "must: Issue #398 は AI 判断の全面撤去を非対象にしている。",
+      "must: `src/flow/lib/get-next-action.js` は step、instructions、context、output_schema、requires_approval、maxAttempts などを返す next-action envelope を構築している。",
+      "must: `src/flow/commands/review.js` は spec / test / impl / draft review の prompt、diff、coverage、findings、review artifact、JSON repair 経路を扱っている。",
+      "must: `src/flow/lib/run-finalize-sync.js` は worktree flow でも main repo 側で `node docs.js build` を実行し、docs / AGENTS / CLAUDE / README / analysis を commit 対象にする。",
+      "must: `src/docs/commands/build.js` の docs build pipeline は scan / enrich / init / data / text / readme / agents / translate を順に実行し、agent 設定がある場合に enrich / text / translate などが AI を使い得る。",
+      "must: `src/lib/json-parse.js` は AI response の壊れた JSON を parser ベースで修復する既存 utility を持つ。",
+      "must: Migration parity inventory の対象公開表層は、flow skill dispatch 手順、`senti flow get next-action` envelope、`senti flow run review --phase draft|spec|test`、impl review、`senti flow run gate`、`senti flow get context --search`、`senti flow run auto-check`、`senti flow run finalize-sync`、`senti docs build` pipeline、AI JSON repair、flow findings / issue-log / acceptance evidence artifacts である。",
+      "must: Retained behavior mapping は、user approval / recovery 例外を skill が保持し、通常 step 分岐と retry metadata を CLI envelope が所有し、manifest / matrix / group / normalizer artifact producers が AI prompt 入力を圧縮し、既存 full AI path が fallback owner として残り、docs build separation policy が finalize-sync の retained docs synchronization behavior を所有する形で整理する。",
+      "must: Behavior-level verification は公開表層ごとに、新経路でも command result、artifact schema、fallback trigger、finding detection、docs output、metrics / runtime log evidence が保持されることを確認する。"
+    ],
+    "decisionPoints": [
+      "must: research deliverable を実装変更まで含めるか、prototype specification と計測・方針文書までに留めるかを確定する。",
+      "must: representative specs の選定基準と、before / after 計測で必須にする metrics を確定する。",
+      "must: skill slimming で skill に残す例外と CLI envelope へ移す運用分岐の境界を確定する。",
+      "must: manifest / matrix / static score / normalizer が insufficient と判定して既存 AI path へ fallback する条件を phase ごとに確定する。",
+      "should: finalize-sync / docs build の AI step を blocking path から外す場合の warning / follow-up artifact の扱いを確定する。",
+      "should: docs staticization と README / AGENTS template 化で、AI 生成を残す natural-language 部分と data renderer 化する部分を確定する。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 外部依存は追加しない。AGENTS.md は Node.js built-in modules のみを許可している。",
+      "must: `src/` に project 固有情報を埋め込まない。metrics fixture や representative spec は汎用的な test data / spec artifact として扱う。",
+      "must: alpha 版ポリシーにより旧フォーマット・非推奨パスの後方互換 shim は追加しない。",
+      "must: OOP による型表現ルールに従い、manifest / matrix / findings group / normalizer result など意味のある値は専用 class と behavior で表現する。",
+      "must: docs と source に矛盾がある場合は source を正とする。今回の draft 前確認では `src/spec/commands/render.js` が `docs/ja/project_structure.md` より新しいため、source を優先する。",
+      "must: `src/skills/` や `src/presets/` を変更する場合は `senti upgrade` を実行し、active-flow upgrade artifact を残す。",
+      "must: Migration parity guardrail により、既存公開振る舞いを移動・分割・置換する候補は inventory、retained behavior owner mapping、intentional removal decision、behavior-level verification を spec に含める。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: phase-by-phase candidate table の exact columns、candidate IDs、fallback condition fields を spec で定義する。",
+      "must: impl-review / spec-review manifest prototype と test-review coverage matrix prototype の JSON shape、producer command、consumer phase、audit fields を spec で定義する。",
+      "must: context.search / auto-check fallback policy の rule-based pass/fail/boundary classification を spec で定義する。",
+      "must: findings de-dupe / aggregation key、severity merge、grouped audit representation を spec で定義する。",
+      "must: docs.enrich / docs.text / README / AGENTS の deterministic candidate inventory と verification method を spec で定義する。",
+      "must: JSON normalizer policy と AI repair / hard fail の境界を spec で定義する。",
+      "must: representative spec measurement の fixture source、before baseline、after comparison method、completion-rate interpretation を spec で定義する。",
+      "must: migration parity section として、公開表層 inventory、retained behavior owner mapping、intentional removal decision、surface-by-surface behavior verification を spec で定義する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: phase 別に AI 呼び出しを staticization / slimming できる候補を分類し、期待効果、品質リスク、fallback 条件、関連コードを整理する。",
+      "must: skill から削る rules、CLI next-action envelope に移す rules、skill に残す例外を整理する。",
+      "must: impl-review / spec-review manifest の prototype specification を定義する。",
+      "must: test-review coverage matrix の prototype specification を定義する。",
+      "must: context.search と auto-check の AI fallback 条件を整理する。",
+      "must: finalize-sync / docs build の AI step を分離または遅延できるかを整理する。",
+      "must: docs.enrich / docs.text / README / AGENTS の deterministic 化候補を棚卸しする。",
+      "must: AI JSON repair を schema-aware normalizer に寄せる候補と限界を整理する。",
+      "must: findings de-dupe / aggregation key と grouped audit representation を設計する。",
+      "must: representative specs で agent call count、duration、input token、retry count、finalize-sync time、completion rate への影響を測定する。"
+      ,"must: 移動・分割・置換候補ごとに、既存公開表層 inventory、retained behavior owner mapping、intentional removal decision、behavior-level verification を整理する。"
+    ],
+    "out": [
+      "must: AI guardrail 判定そのものを deterministic 化しない。",
+      "must: pre-auto-check UX / preflight loop の改善をこの spec で扱わない。",
+      "must: AI 判断を全面撤去しない。",
+      "must: npm publish / dist-tag など release 操作は行わない。",
+      "must: Issue #398 を複数 spec に分割しない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: flow review / gate / docs / auto-check / context search の AI input shape、artifact shape、fallback behavior に影響し得るため、既存 finding detection、docs quality、acceptance loop を比較する必要がある。",
+    "must: skill slimming は `.agents/skills/senti.flow/SKILL.md` と `src/skills/senti.flow/SKILL.md` の責務分担に影響し得るため、deployed skill と source skill の同期を検証する必要がある。",
+    "must: review manifest と coverage matrix を導入する場合、spec-review / impl-review / test-review の prompt 入力、artifact 読み取り、retry/recovery evidence に影響し得る。",
+    "must: finalize-sync / docs build 分離は docs / AGENTS / CLAUDE / README / `.senti/output/analysis.json` の同期タイミングに影響し得る。",
+    "must: JSON normalizer policy は AI output parse failure、repair retry、hard fail の分類に影響し得る。",
+    "must: Migration parity では、`senti flow get next-action` の envelope fields、review/gate command results、context.search results、auto-check verdict、finalize-sync docs commit behavior、docs build outputs、JSON repair success/failure behavior、flow-findings / issue-log / acceptance evidence shape が新経路でも検証対象になる。",
+    "should: docs が source より古い状態では source を優先し、docs sync が必要な変更では finalization 前に documentation drift を扱う。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "Issue #398 の成果物は、まず調査・設計・計測方針を spec artifact として完成させ、実装変更は prototype producer / fixture / measurement helper など必要最小限に留める理解でよいですか。ここでいう prototype は、本番経路に完全統合する前の検証用 artifact や helper を指します。",
+      "answer": "must: Issue #398 の成果物は調査・設計・計測結果を中心にし、実装変更は prototype specification、measurement helper、fixture、artifact producer の検証に必要な範囲に留める。full production integration は後続 spec の候補として切り出せるように設計境界を明記する。",
+      "evidence": "Issue #398 Deliverables lists prototype specifications, fallback policies, deterministic candidate inventories, normalizer policy, de-dupe/audit proposal, and measurement results. It does not request full production integration of every candidate.",
+      "why": "Issue scope is a research concern. 全候補を本番経路へ統合すると review / docs / gate / auto-check / context search へ広く同時変更が入り、quality preservation の before/after 比較が難しくなるため。",
+      "considered": "全 candidate を一括実装する案は、Issue の research scope を超え、fallback と品質比較の検証単位を曖昧にするため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "representative specs の before / after 計測は、Issue に挙がった specs 293-299 を primary sample とし、agent call count、duration、input token、retry count、finalize-sync time、completion rate を must 指標として扱いますか。",
+      "answer": "must: specs 293-299 を primary sample とし、agent call count、duration、input token、retry count、finalize-sync time、completion rate を must 指標にする。追加 sample は最新の heavy flow evidence が存在する場合に should として扱う。",
+      "evidence": "Issue #398 Background cites recent agent metrics from specs 293-299 and Acceptance Criteria requires measurement of agent call count, duration, input token, retry count, finalize-sync time, and completion rate.",
+      "why": "Issue が具体的な baseline と測定軸を指定しているため、代表 spec と指標を固定しないと before/after の比較条件が曖昧になる。",
+      "considered": "最新 spec だけで測る案は、Issue が提示した heavy phase baseline との比較ができないため primary sample にはしない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "skill slimming では、通常 step の分岐・retry・post-hook・context 指示を CLI next-action envelope 側へ移し、skill には user approval 境界、autoApprove 例外、worktree boundary、destructive recovery など安全上の例外だけを残す方針でよいですか。",
+      "answer": "must: skill slimming では通常 step の分岐・retry・post-hook・context 指示を CLI next-action envelope 側へ寄せ、skill には user approval 境界、autoApprove 例外、worktree boundary、destructive recovery など安全上の例外を残す責務分担として整理する。",
+      "evidence": "Issue #398 Track 1 says operational branching may move into `senti flow get next-action` fields such as step, instructions, context, output_schema, requires_approval, maxAttempts, and retryRecovery. `src/flow/lib/get-next-action.js` already constructs those fields.",
+      "why": "skill を thin dispatcher にする目的は runtime context と判断負荷の削減であり、通常分岐を CLI envelope に集約すると生成 skill の長大化を抑えられるため。",
+      "considered": "skill に全運用ルールを残す案は現状の 41k character skill 問題を残すため採用しない。安全例外まで CLI へ全移動する案は human approval と destructive recovery の見落としリスクがあるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "manifest / matrix / static score / normalizer が情報不足または confidence 不足の場合は、必ず既存の full AI review / full docs generation / AI repair へ fallback し、fallback した理由を artifact に残す品質方針でよいですか。manifest は review 入力を要約した構造化 artifact、matrix は requirement と test evidence の対応表です。",
+      "answer": "must: manifest / matrix / static score / normalizer が情報不足、schema 不一致、coverage 不足、confidence 不足、または quality risk を検出した場合は既存の full AI review / full docs generation / AI repair へ fallback し、fallback reason と入力 artifact を監査可能に残す。",
+      "evidence": "Issue #398 Policy for preserving quality says AI judgment must not be removed entirely, existing AI path must remain as fallback when manifest/matrix/static score/static docs classification is insufficient, and generated/normalized artifacts must be auditable.",
+      "why": "AI call 削減が finding detection や docs quality を下げないことが acceptance の中心であり、fallback 条件と audit evidence がないと品質劣化時の原因追跡ができないため。",
+      "considered": "static artifact だけで fail/pass を完結させる案は、Issue の non-goal である AI 判断の全面撤去に近づくため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "finalize-sync / docs build の分離案では、deterministic docs build は finalize の blocking path に残し、AI enrich / translate / natural-language text 生成は変更種別に応じて warning または follow-up artifact に分離する案を検討対象に含めますか。",
+      "answer": "should: finalize-sync / docs build の分離案では、deterministic docs build を blocking path に残す案と、AI enrich / translate / natural-language text generation を変更種別に応じて warning または follow-up artifact に分離する案を検討対象に含める。ただし docs drift が release quality を壊す場合の fallback は must として定義する。",
+      "evidence": "Issue #398 Track 6 asks whether finalize can run only deterministic docs build, whether AI enrich/translate can be split into separate tasks, whether unsynced docs can be warning/follow-up artifacts, and whether differential judgment can decide when AI docs runs.",
+      "why": "finalize-sync は Issue の heavy phase に含まれ、`src/flow/lib/run-finalize-sync.js` は docs build を blocking path で実行するため、分離案を検討しないと latency reduction の主要候補を外すことになる。",
+      "considered": "docs AI step を常に blocking path に残す案は現状の finalize-sync wait time を温存する。常に非 blocking にする案は docs quality regression を見落とす可能性があるため、変更種別と fallback 条件付きで扱う。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q6",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "新しく定義する review manifest、coverage matrix、findings group、normalizer result は、AI prompt 入力だけでなく review/gate/acceptance の監査 evidence として読める JSON artifact contract を must として定義しますか。",
+      "answer": "must: review manifest、coverage matrix、findings group、normalizer result は、AI prompt 入力だけでなく review / gate / acceptance の監査 evidence として読める JSON artifact contract を定義する。",
+      "evidence": "Issue #398 Policy for preserving quality requires generated and normalized artifacts to be auditable and to preserve original AI response or grouped findings. Candidate tracks mention review manifests, coverage matrix inputs, de-dupe aggregation, and normalizer policy.",
+      "why": "AI 入力圧縮だけを目的にすると、なぜ full review へ fallback したか、どの finding が統合されたか、どの requirement が coverage されたかを後続 step が検証できなくなるため。",
+      "considered": "prompt-only intermediate として捨てる案は実装が軽いが、issue-log / acceptance-review / retry recovery の evidence として再利用できないため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q7",
+      "status": "answered",
+      "category": "follow-up-coverage",
+      "question": "quality preservation の検証では、prompt size や call count の削減だけでなく、既存 finding detection rate、docs quality regression、retry 回数、issue-log / acceptance loop への影響を must evidence として要求しますか。",
+      "answer": "must: quality preservation の検証では、prompt size や call count の削減だけでなく、既存 finding detection rate、docs quality regression、retry count、issue-log / acceptance loop への影響を evidence として要求する。must: retained public surfaces ごとに、review/gate command result、context.search result、auto-check verdict、finalize-sync docs commit behavior、docs build output、JSON repair behavior、flow-findings / issue-log / acceptance evidence shape の同等性を検証する。",
+      "evidence": "Issue #398 Policy for preserving quality says to compare finding detection rates and docs quality, measure retries, issue-log, acceptance loop, finalize-sync wait time, and not only prompt reduction. Draft gate migration-parity guardrail requires retained public behavior inventory, owner mapping, and behavior-level verification through the new path.",
+      "why": "call count が減っても blocking finding の見逃し、docs 劣化、retry 増加、acceptance loop 増加が起きるなら flow 全体の品質と完遂率は改善しないため。公開表層ごとの behavior-level verification がないと、移動・分割・置換後に利用者 visible な command result や artifact contract が保たれたか判断できない。",
+      "considered": "token / duration だけで成功判定する案は測定が容易だが、Issue の品質保持条件を満たせないため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [
+    "should: finalize-sync / docs build の AI step 分離を warning に留めるか、follow-up workflow item まで作るかは spec で確定する。",
+    "should: 最新の heavy flow samples を specs 293-299 に追加するかは、利用可能な metrics evidence を見て spec で扱う。"
+  ],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-17T14:43:18Z",
+    "notes": "All draft QA entries were resolved from Issue #398, project rules, and source context; no unresolved user decision remains."
+  }
+}

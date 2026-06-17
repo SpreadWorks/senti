@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "retainedSkillResponsibilities": [
+    "user approval boundaries",
+    "autoApprove exceptions",
+    "worktree boundary",
+    "destructive recovery prompts",
+    "choice-format presentation for user decisions"
+  ],
+  "cliEnvelopeResponsibilities": [
+    "normal step branching",
+    "retry metadata",
+    "context instructions",
+    "output schema",
+    "post-hook guidance",
+    "step action key",
+    "maxAttempts",
+    "recovery hint"
+  ],
+  "relatedCode": [
+    "src/flow/lib/get-next-action.js",
+    "src/flow/definition.js",
+    "src/flow/lib/get-step-instructions.js",
+    "src/skills/senti.flow/SKILL.md"
+  ],
+  "verification": [
+    "Every next-action envelope includes step, action, instructions, context, output_schema, requires_approval, and maxAttempts.",
+    "Approval and destructive recovery choices remain user-visible when autoApprove cannot safely choose.",
+    "Generated skill size can be reduced without losing worktree boundary and recovery exception text."
+  ]
+}

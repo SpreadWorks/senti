@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied both triaged blocking findings by fixing the primary measurement sample inventory and migration parity surface inventory in spec.json.",
+  "items": [
+    {
+      "title": "Primary measurement sample is ambiguous",
+      "target": "R9 / Scope measurement sample",
+      "decision": "applied",
+      "rationale": "Added clarifications `Primary measurement sample directories` with the exact 293-299 directory list and updated scope, requirement R9, acceptance R9, and task acceptance to reference that fixed list.",
+      "evidence": "spec.json clarifications[0].a now lists specs/293-bounded-defer-review, specs/294-setup-preset-options, specs/295-producer-artifact-contract, specs/296-review-gate-defer, specs/297-setup-official-presets, specs/298-fix-presets-list-tree, specs/299-agent-config-setup, and specs/299-worktree-config-preflight.",
+      "changedFields": [
+        "scope.in[2]",
+        "constraints[4]",
+        "overview.data_flow[3].text",
+        "overview.decisions[6]",
+        "clarifications[0]",
+        "requirements[8].desc",
+        "acceptance_criteria[8]",
+        "tasks[3].acceptance[1]"
+      ]
+    },
+    {
+      "title": "Migration parity coverage has no fixed inventory source",
+      "target": "R8 / Acceptance R8",
+      "decision": "applied",
+      "rationale": "Added clarifications `Minimum retained public surfaces` as the fixed inventory source and updated R8 acceptance plus task acceptance to require coverage of every listed surface.",
+      "evidence": "spec.json clarifications[1].a now lists flow skill dispatch, next-action envelope, draft/spec/test/impl review paths, gate, context.search, auto-check, finalize-sync, docs build, AI JSON repair, flow-findings, issue-log, and acceptance-review evidence.",
+      "changedFields": [
+        "clarifications[1]",
+        "requirements[7].desc",
+        "acceptance_criteria[7]",
+        "tasks[3].acceptance[0]"
+      ]
+    }
+  ]
+}

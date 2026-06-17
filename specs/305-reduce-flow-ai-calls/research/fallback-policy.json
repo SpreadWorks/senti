@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "contextSearch": {
+    "deterministicPassConditions": [
+      "keyword/path search returns ranked entries with non-zero score",
+      "requested file path resolves directly",
+      "draft or spec already names related code"
+    ],
+    "deterministicFailConditions": [
+      "query is empty",
+      "search index is unavailable",
+      "requested path is outside the repository"
+    ],
+    "boundaryAiConditions": [
+      "deterministic search returns zero useful results",
+      "query uses domain language with no direct code keyword match",
+      "user or flow policy explicitly allows AI keyword selection"
+    ],
+    "aiFallbackCondition": "Use AI keyword selection only when deterministic search is insufficient and explicit opt-in or flow policy has allowed AI fallback."
+  },
+  "autoCheck": {
+    "deterministicPassConditions": [
+      "Goal, Scope, Acceptance, Out of Scope, target path, and verification phrase are all present",
+      "request names concrete files or commands",
+      "static gates do not hit hard failure"
+    ],
+    "deterministicFailConditions": [
+      "no concrete goal can be derived",
+      "scope is unbounded",
+      "success cannot be verified mechanically",
+      "static hard gate rejects the request"
+    ],
+    "boundaryAiConditions": [
+      "rule score is near threshold",
+      "one hard-gate category is ambiguous",
+      "research or multi-surface request has concrete deliverables but broad phrasing"
+    ],
+    "aiFallbackCondition": "Use AI scoring for boundary cases where rule-based scoring cannot decide buildability, ambiguity, verifiability, boundedness, target specificity, or precedent."
+  }
+}

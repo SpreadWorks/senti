@@ -1,0 +1,183 @@
+{
+  "version": 1,
+  "candidates": [
+    {
+      "topic": "skill-slimming",
+      "currentAiSurface": "Generated senti.flow skill carries operational branching, approval rules, retry rules, worktree rules, and per-step instructions in a large runtime prompt.",
+      "deterministicCandidate": "Move normal step branching, context descriptors, output schema, retry metadata, and post-hook instructions into `senti flow get next-action` envelope fields.",
+      "expectedEffect": "Smaller skill prompt and fewer model-side routing decisions before each flow step.",
+      "qualityRisk": "Moving destructive recovery and user approval exceptions out of the skill could hide irreversible decisions.",
+      "fallbackCondition": "Keep approval boundaries, autoApprove exceptions, worktree boundary, and destructive recovery prompts in the skill until equivalent envelope safeguards are proven.",
+      "relatedCode": [
+        "src/skills/senti.flow/SKILL.md",
+        ".agents/skills/senti.flow/SKILL.md",
+        "src/flow/lib/get-next-action.js"
+      ],
+      "behaviorVerification": "Compare next-action envelopes with generated skill responsibilities and verify approval-gated choices still surface before execution."
+    },
+    {
+      "topic": "spec-review",
+      "currentAiSurface": "Spec review receives rendered spec context and asks AI to classify blocking completeness issues.",
+      "deterministicCandidate": "Generate a review manifest with changed spec fields, requirement/task coverage, migration parity inventory, and acceptance/testability fields before invoking AI.",
+      "expectedEffect": "Reduced spec-review input size and fewer repeated completeness checks already expressible as schema or manifest facts.",
+      "qualityRisk": "A manifest that omits a spec contradiction can suppress a real blocking finding.",
+      "fallbackCondition": "Run full spec review whenever manifest generation fails, required sections are missing, migration parity is incomplete, or manifest confidence is boundary/unknown.",
+      "relatedCode": [
+        "src/flow/commands/review.js",
+        "src/flow/lib/run-review.js",
+        "src/flow/lib/flow-judgment-contract.js"
+      ],
+      "behaviorVerification": "Replay representative spec-review artifacts and confirm existing blocking findings are either represented in the manifest or routed to full AI review."
+    },
+    {
+      "topic": "impl-review",
+      "currentAiSurface": "Implementation review can send broad diffs, requirement maps, previous review memory, and task spec content to AI.",
+      "deterministicCandidate": "Create per-file/requirement review manifests with changed hunks, public surface flags, file-map coverage, test evidence summary, risky pattern scan results, and previous finding resolution state.",
+      "expectedEffect": "Lower input tokens for impl-review and fewer loop review chunks when manifest evidence is sufficient.",
+      "qualityRisk": "Compressed hunks may hide cross-file behavior contradictions or security/data-integrity issues.",
+      "fallbackCondition": "Use full impl-review when public API/schema/config changes are detected, file-map is incomplete, risky pattern scan is inconclusive, or changed hunks exceed manifest limits.",
+      "relatedCode": [
+        "src/flow/commands/review.js",
+        "src/flow/lib/req-map.js",
+        "src/flow/lib/flow-judgment-contract.js"
+      ],
+      "behaviorVerification": "Compare impl-review findings before/after on specs 293-299 and require no loss of blocking failure modes."
+    },
+    {
+      "topic": "test-review",
+      "currentAiSurface": "Test review inspects test code and requirement coverage for anti-patterns and missing coverage.",
+      "deterministicCandidate": "Generate a requirement-level coverage matrix with test file, test name, assertion or executable block count, skip/helper markers, and scenario/test-execute references.",
+      "expectedEffect": "Smaller static review input and deterministic detection of empty coverage, skipped tests, helper-only tests, and missing R-N names.",
+      "qualityRisk": "Assertion counting cannot prove assertion semantic quality.",
+      "fallbackCondition": "Run full test review when matrix parsing fails, executable blocks cannot be identified, assertion intent is ambiguous, or anti-pattern scans find boundary cases.",
+      "relatedCode": [
+        "src/flow/commands/review.js",
+        "specs/305-reduce-flow-ai-calls/tests/research-artifacts.test.js"
+      ],
+      "behaviorVerification": "Verify matrix rows cover every testable requirement and test-review still detects input-as-expected and existence-only anti-patterns."
+    },
+    {
+      "topic": "impl-gate",
+      "currentAiSurface": "Integration gate evaluates whether implementation satisfies requirements using diff, file-map, and test evidence.",
+      "deterministicCandidate": "Precheck missing file-map entries, no-diff requirements, missing test evidence, unregistered changed files, and requirement-to-file coverage before AI judgment.",
+      "expectedEffect": "Obvious pass/fail cases are handled before AI, leaving only undecidable semantic compliance to model judgment.",
+      "qualityRisk": "Static pass conditions may over-trust file-map and test presence without verifying behavior.",
+      "fallbackCondition": "Send undecidable requirements to AI whenever file-map/test evidence exists but behavior equivalence cannot be determined from diff and test summaries.",
+      "relatedCode": [
+        "src/flow/lib/run-gate.js",
+        "src/flow/lib/req-map.js",
+        "src/flow/lib/flow-findings.js"
+      ],
+      "behaviorVerification": "Ensure pre-AI obvious failures match existing gate failures and undecidable requirements retain AI review."
+    },
+    {
+      "topic": "context.search",
+      "currentAiSurface": "Context search may use AI keyword selection to recover relevant files.",
+      "deterministicCandidate": "Prefer deterministic keyword/path search and only ask AI for keyword selection when zero useful results are found and fallback is explicitly allowed.",
+      "expectedEffect": "Avoids AI calls for searches that already produce relevant code/doc context.",
+      "qualityRisk": "Deterministic search can miss semantic aliases when the request wording differs from code terminology.",
+      "fallbackCondition": "Use AI keyword selection only when deterministic search is insufficient and explicit AI fallback allowance is present.",
+      "relatedCode": [
+        "src/flow/lib/get-context.js"
+      ],
+      "behaviorVerification": "Run queries with known hits and zero-hit cases; verify AI is skipped for deterministic hits and used for allowed boundary cases."
+    },
+    {
+      "topic": "auto-check",
+      "currentAiSurface": "Auto-check uses static gates plus AI scoring for buildability, ambiguity, verifiability, scope boundedness, target specificity, and precedent.",
+      "deterministicCandidate": "Rule-score explicit Goal/Scope/Expected/Out of scope/Reproduction/target path/verification phrase fields and send only boundary cases to AI.",
+      "expectedEffect": "Obvious eligible or ineligible requests avoid AI scoring.",
+      "qualityRisk": "Rule scoring may misclassify nuanced research or multi-surface requests.",
+      "fallbackCondition": "Use AI scoring when static gate data is incomplete, rule scores are near threshold, or any hard-gate category is ambiguous.",
+      "relatedCode": [
+        "src/flow/lib/run-auto-check.js",
+        "src/flow/lib/auto-check-static.js",
+        "src/flow/lib/resolve-auto-check-input.js"
+      ],
+      "behaviorVerification": "Compare static verdicts against current auto-check outcomes and require boundary cases to preserve existing AI scoring."
+    },
+    {
+      "topic": "finalize-sync-docs-build",
+      "currentAiSurface": "Finalize-sync runs docs build on the blocking finalize path, and docs build can invoke AI-capable docs steps.",
+      "deterministicCandidate": "Separate deterministic docs scan/init/data from AI enrich/text/readme/agents/translate, and make AI docs steps conditional or follow-up artifacts when quality gate is already complete.",
+      "expectedEffect": "Reduced finalize wait time for code changes that do not need AI docs regeneration.",
+      "qualityRisk": "Docs drift can persist if AI docs steps are deferred incorrectly.",
+      "fallbackCondition": "Run full docs build when public docs surfaces changed, docs quality verification fails, generated directives are stale, or release policy requires synced natural language docs.",
+      "relatedCode": [
+        "src/flow/lib/run-finalize-sync.js",
+        "src/docs/commands/build.js"
+      ],
+      "behaviorVerification": "Compare docs output and finalize-sync timing before/after, and require warnings/follow-up artifacts for deferred AI docs steps."
+    },
+    {
+      "topic": "docs-staticization",
+      "currentAiSurface": "docs.enrich, docs.text, README, AGENTS, and translate can ask AI to classify or regenerate natural language content.",
+      "deterministicCandidate": "Infer keywords, chapter, and role from path/export/import/command names; render README command lists and AGENTS project sections from data where possible.",
+      "expectedEffect": "Less AI text generation for stable structural content.",
+      "qualityRisk": "Natural-language summaries may become too mechanical or miss intent.",
+      "fallbackCondition": "Use AI when structural data is incomplete, source hashes changed in prose-heavy files, or generated text quality checks fail.",
+      "relatedCode": [
+        "src/docs/commands/enrich.js",
+        "src/docs/commands/text.js",
+        "src/docs/commands/readme.js",
+        "src/docs/commands/agents.js",
+        "src/docs/commands/translate.js"
+      ],
+      "behaviorVerification": "Check generated docs for unresolved directives, chapter placement, and README/AGENTS content parity."
+    },
+    {
+      "topic": "ai-json-repair",
+      "currentAiSurface": "Some review paths may retry or repair malformed AI JSON output.",
+      "deterministicCandidate": "Use schema-aware normalizer for markdown fences, surrounding prose, defaults, extra keys, enum normalization, and parser-repairable JSON.",
+      "expectedEffect": "Fewer second AI calls for output repair and clearer hard-fail boundaries.",
+      "qualityRisk": "Normalizer can fabricate missing semantic fields if defaults are too aggressive.",
+      "fallbackCondition": "Hard fail or use AI repair only when required semantic fields cannot be derived without changing meaning.",
+      "relatedCode": [
+        "src/lib/json-parse.js",
+        "src/flow/commands/review.js"
+      ],
+      "behaviorVerification": "Fixture malformed JSON cases and ensure normalizer preserves original response plus normalized output."
+    },
+    {
+      "topic": "findings-aggregation",
+      "currentAiSurface": "Repeated review/gate findings may be passed onward separately for issue-log, flow-findings, and acceptance review.",
+      "deterministicCandidate": "Group findings using sourceStep/sourceArtifact/sourceFindingId or sourceStep/file/locator/requirementRef/failureMode keys with severity merge rules.",
+      "expectedEffect": "Reduced duplicate finding volume before acceptance review and clearer audit history.",
+      "qualityRisk": "Aggressive grouping can hide distinct failures sharing the same file or requirement.",
+      "fallbackCondition": "Keep findings separate when keys are incomplete, severity conflicts cannot be merged, or evidence references differ materially.",
+      "relatedCode": [
+        "src/flow/lib/flow-findings.js",
+        "src/flow/lib/run-acceptance-review.js",
+        "src/flow/commands/review.js"
+      ],
+      "behaviorVerification": "Verify grouped findings retain original members, highest severity, evidence refs, and latest disposition."
+    },
+    {
+      "topic": "triage-repair-artifacts",
+      "currentAiSurface": "Triage and repair artifacts may be manually or semantically derived from review findings.",
+      "deterministicCandidate": "Generate initial triage values and repair checklist templates from guardrail_id, where.file, locator, requirementRef, and failureMode.",
+      "expectedEffect": "Less repeated reasoning for mechanical triage and clearer mutation audit templates.",
+      "qualityRisk": "Mechanical templates cannot decide semantic correctness of a fix.",
+      "fallbackCondition": "Require human/AI semantic repair when disposition changes behavior, rejects a finding, or modifies requirements.",
+      "relatedCode": [
+        "src/flow/lib/draft-review-routes.js",
+        "src/flow/commands/review.js"
+      ],
+      "behaviorVerification": "Confirm generated templates preserve finding identity and require explicit semantic rationale for applied repairs."
+    },
+    {
+      "topic": "requirement-compliance-precheck",
+      "currentAiSurface": "Integration gate asks AI whether requirements are implemented in the diff.",
+      "deterministicCandidate": "Pre-summarize requirements with file-map entries, changed files, test evidence, and no-diff/missing-evidence obvious failures.",
+      "expectedEffect": "Smaller AI input for requirements that have complete file/test evidence and early rejection of obvious misses.",
+      "qualityRisk": "Presence of changed files and tests does not prove behavior implementation.",
+      "fallbackCondition": "Send requirement to AI when behavior cannot be decided from diff, file-map, and test summaries alone.",
+      "relatedCode": [
+        "src/flow/lib/run-gate.js",
+        "src/flow/lib/req-map.js",
+        "src/flow/lib/flow-judgment-contract.js"
+      ],
+      "behaviorVerification": "Compare precheck decisions with gate observations and require AI review for all undecidable requirements."
+    }
+  ]
+}

@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "候補の分類と影響整理はあるが、既存の公開振る舞い（コマンド/API/フック/設定/生成アーティファクト）を移動・分割・置換対象として列挙する公開振る舞いインベントリが未記載。",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft",
+            "locator": "scopeVerification.in[0]"
+          },
+          "observed": "候補の分類と影響整理はあるが、既存の公開振る舞い（コマンド/API/フック/設定/生成アーティファクト）を移動・分割・置換対象として列挙する公開振る舞いインベントリが未記載。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "skill 由来ルールの envelope への移行方針は示されているが、既存挙動を保持する各要素をどの新所有者（CLI/既存 AI path/他コンポーネント）へ割当てるか、または削除するかのマッピングがない。",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft",
+            "locator": "scopeVerification.in[1]"
+          },
+          "observed": "skill 由来ルールの envelope への移行方針は示されているが、既存挙動を保持する各要素をどの新所有者（CLI/既存 AI path/他コンポーネント）へ割当てるか、または削除するかのマッピングがない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "全体的な計測指標はあるが、残す公開表層ごとに新経路で同等動作を証明する振る舞いレベルの検証観点（各表層ごとの受入条件と検証手順）が明示されず、検証が集約指標寄りに留まっている。",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft",
+            "locator": "qa[6].evidence"
+          },
+          "observed": "全体的な計測指標はあるが、残す公開表層ごとに新経路で同等動作を証明する振る舞いレベルの検証観点（各表層ごとの受入条件と検証手順）が明示されず、検証が集約指標寄りに留まっている。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft",
+        "locator": "scopeVerification.in[0]"
+      },
+      "observed": "候補の分類と影響整理はあるが、既存の公開振る舞い（コマンド/API/フック/設定/生成アーティファクト）を移動・分割・置換対象として列挙する公開振る舞いインベントリが未記載。",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft",
+        "locator": "scopeVerification.in[1]"
+      },
+      "observed": "skill 由来ルールの envelope への移行方針は示されているが、既存挙動を保持する各要素をどの新所有者（CLI/既存 AI path/他コンポーネント）へ割当てるか、または削除するかのマッピングがない。",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft",
+        "locator": "qa[6].evidence"
+      },
+      "observed": "全体的な計測指標はあるが、残す公開表層ごとに新経路で同等動作を証明する振る舞いレベルの検証観点（各表層ごとの受入条件と検証手順）が明示されず、検証が集約指標寄りに留まっている。",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    }
+  ]
+}

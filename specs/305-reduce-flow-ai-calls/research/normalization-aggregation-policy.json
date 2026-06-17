@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "jsonNormalizerRules": [
+    "strip markdown fences and surrounding prose",
+    "repair parser-recoverable JSON syntax",
+    "remove unknown keys only after preserving raw response",
+    "insert defaults only for non-semantic optional fields",
+    "normalize enum spelling when mapping is exact"
+  ],
+  "findingDeduplicationKeys": [
+    "sourceStep + sourceArtifact + sourceFindingId",
+    "sourceStep + file + locator + requirementRef + failureMode"
+  ],
+  "severityMergeRules": [
+    "blocking dominates advisory",
+    "security_or_data_integrity_bug remains blocking",
+    "group keeps all member evidenceRefs",
+    "latest disposition does not delete original member findings"
+  ],
+  "groupedAuditRepresentation": "A group stores groupId, mergeKey, highestSeverity, memberFindings, evidenceRefs, latestDisposition, and sourceArtifacts without deleting original finding records.",
+  "generatedTriageRepairBoundary": "Mechanical triage and repair templates may prefill finding identity, target file, locator, requirementRef, and checklist items, but semantic disposition and code/spec mutation rationale must remain explicit.",
+  "requirementCompliancePrecheckFallback": "Obvious no-diff, missing file-map, missing test evidence, and unregistered changed files can fail before AI; requirements with changed files and test evidence but semantic uncertainty go to AI.",
+  "aiFallbackOrHardFailBoundaries": {
+    "jsonNormalizer": "Use AI repair or hard fail when required semantic fields are missing, contradictory, or cannot be normalized without changing meaning.",
+    "findingsAggregation": "Keep findings unmerged when keys are incomplete, evidence differs materially, or severity cannot be merged safely.",
+    "requirementCompliancePrecheck": "Send undecidable requirements to AI whenever behavior cannot be proven from diff, file-map, and test summaries alone."
+  }
+}

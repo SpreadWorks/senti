@@ -1,0 +1,140 @@
+{
+  "version": 1,
+  "surfaces": [
+    {
+      "name": "flow skill dispatch procedure",
+      "currentOwner": "Generated senti.flow skill",
+      "proposedOwnerOrRemovalDecision": "Retain only safety-critical dispatch rules in skill and move routine step metadata to CLI envelopes.",
+      "fallbackOwner": "Generated senti.flow skill",
+      "behaviorVerifications": [
+        "User approval and destructive recovery choices are still presented before execution."
+      ]
+    },
+    {
+      "name": "senti flow get next-action envelope",
+      "currentOwner": "src/flow/lib/get-next-action.js",
+      "proposedOwnerOrRemovalDecision": "Own normal step branching, context, output_schema, requires_approval, maxAttempts, and retryRecovery.",
+      "fallbackOwner": "Existing next-action envelope plus skill instructions",
+      "behaviorVerifications": [
+        "Envelope includes step, action, instructions, context, output_schema, requires_approval, and maxAttempts."
+      ]
+    },
+    {
+      "name": "senti flow run review --phase draft",
+      "currentOwner": "src/flow/commands/review.js",
+      "proposedOwnerOrRemovalDecision": "Keep review command owner and add manifest/coverage inputs only as pre-AI evidence.",
+      "fallbackOwner": "Full draft review AI path",
+      "behaviorVerifications": [
+        "Draft review PASS/FAIL artifacts preserve blocking/advisory/repair target buckets."
+      ]
+    },
+    {
+      "name": "senti flow run review --phase spec",
+      "currentOwner": "src/flow/commands/review.js",
+      "proposedOwnerOrRemovalDecision": "Add spec manifest precheck while preserving full AI review fallback.",
+      "fallbackOwner": "Full spec review AI path",
+      "behaviorVerifications": [
+        "Known blocking spec-review findings are represented or trigger full AI review."
+      ]
+    },
+    {
+      "name": "senti flow run review --phase test",
+      "currentOwner": "src/flow/commands/review.js",
+      "proposedOwnerOrRemovalDecision": "Add coverage matrix input while preserving static anti-pattern review.",
+      "fallbackOwner": "Full test review AI path",
+      "behaviorVerifications": [
+        "Coverage matrix does not count skipped or helper-only tests as executable coverage."
+      ]
+    },
+    {
+      "name": "implementation review command path",
+      "currentOwner": "src/flow/commands/review.js impl review",
+      "proposedOwnerOrRemovalDecision": "Use review manifest to summarize diff/test evidence and keep full AI fallback for semantic failures.",
+      "fallbackOwner": "Full impl-review AI path",
+      "behaviorVerifications": [
+        "missing_acceptance_requirement, spec_behavior_contradiction, and security_or_data_integrity_bug remain detectable."
+      ]
+    },
+    {
+      "name": "senti flow run gate",
+      "currentOwner": "src/flow/lib/run-gate.js",
+      "proposedOwnerOrRemovalDecision": "Add deterministic prechecks for obvious missing evidence and preserve AI gate for undecidable requirements.",
+      "fallbackOwner": "Existing AI integration gate",
+      "behaviorVerifications": [
+        "Obvious missing file-map/test evidence fails before AI and undecidable requirements retain AI judgment."
+      ]
+    },
+    {
+      "name": "senti flow get context --search",
+      "currentOwner": "src/flow/lib/get-context.js",
+      "proposedOwnerOrRemovalDecision": "Prefer deterministic search and require explicit allowance for AI keyword fallback.",
+      "fallbackOwner": "Existing AI keyword selection path",
+      "behaviorVerifications": [
+        "AI keyword selection runs only when deterministic search is insufficient and fallback is explicitly allowed."
+      ]
+    },
+    {
+      "name": "senti flow run auto-check",
+      "currentOwner": "src/flow/lib/run-auto-check.js",
+      "proposedOwnerOrRemovalDecision": "Use rule-based obvious pass/fail scoring and keep AI scoring for boundary cases.",
+      "fallbackOwner": "Existing AI auto-check scoring",
+      "behaviorVerifications": [
+        "Boundary cases still include AI scoring with the same hard-gate categories."
+      ]
+    },
+    {
+      "name": "senti flow run finalize-sync",
+      "currentOwner": "src/flow/lib/run-finalize-sync.js",
+      "proposedOwnerOrRemovalDecision": "Separate deterministic docs sync from AI-capable docs work when policy permits.",
+      "fallbackOwner": "Existing blocking docs build path",
+      "behaviorVerifications": [
+        "Docs commit behavior remains available and deferred AI docs work creates warning or follow-up evidence."
+      ]
+    },
+    {
+      "name": "senti docs build pipeline",
+      "currentOwner": "src/docs/commands/build.js",
+      "proposedOwnerOrRemovalDecision": "Classify deterministic scan/init/data separately from AI-capable enrich/text/readme/agents/translate.",
+      "fallbackOwner": "Existing full docs build pipeline",
+      "behaviorVerifications": [
+        "Docs review passes and unresolved directives are not introduced."
+      ]
+    },
+    {
+      "name": "AI JSON repair behavior",
+      "currentOwner": "src/lib/json-parse.js and review command parsing",
+      "proposedOwnerOrRemovalDecision": "Use schema-aware normalizer before AI repair or hard fail.",
+      "fallbackOwner": "Existing AI repair or command failure path",
+      "behaviorVerifications": [
+        "Raw response and normalized output are preserved for audit."
+      ]
+    },
+    {
+      "name": "flow-findings artifact",
+      "currentOwner": "src/flow/lib/flow-findings.js",
+      "proposedOwnerOrRemovalDecision": "Store grouped findings without deleting original members.",
+      "fallbackOwner": "Existing ungrouped flow-findings artifact",
+      "behaviorVerifications": [
+        "Grouped artifact retains sourceStep, sourceArtifact, member findings, severity, and evidenceRefs."
+      ]
+    },
+    {
+      "name": "issue-log artifact",
+      "currentOwner": "senti flow set issue-log",
+      "proposedOwnerOrRemovalDecision": "Allow deterministic finding summaries to seed issue-log candidates but keep explicit audit text.",
+      "fallbackOwner": "Existing issue-log entries",
+      "behaviorVerifications": [
+        "Issue-log entries still include step, reason, trigger, resolution, and timestamp."
+      ]
+    },
+    {
+      "name": "acceptance-review evidence artifact",
+      "currentOwner": "src/flow/lib/run-acceptance-review.js",
+      "proposedOwnerOrRemovalDecision": "Generate suggestedDisposition and evidenceRefs when latest test-review blocking count is zero and coverage updated.",
+      "fallbackOwner": "Existing acceptance-review AI path",
+      "behaviorVerifications": [
+        "Acceptance evidence preserves source artifacts and does not auto-close unresolved blocking findings."
+      ]
+    }
+  ]
+}

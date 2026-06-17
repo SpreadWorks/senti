@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "specReview": {
+    "producerInputs": [
+      "spec.json",
+      "draft.json",
+      "spec-review.json previous memory",
+      "guardrail ids",
+      "migration parity inventory"
+    ],
+    "consumerPhase": "spec-review",
+    "fields": [
+      "goalChanged",
+      "scopeIn",
+      "scopeOut",
+      "requirements",
+      "acceptanceCriteria",
+      "tasks",
+      "constraints",
+      "migrationParitySurfaces",
+      "openQuestions",
+      "testabilitySummary"
+    ],
+    "fallbackCondition": "Run full spec review when required fields are missing, migration parity inventory is incomplete, requirements conflict with scope, or manifest validation reports boundary confidence.",
+    "auditFields": [
+      "manifestVersion",
+      "sourceSpecHash",
+      "generatedAt",
+      "producerWarnings",
+      "fallbackReason",
+      "sourceReviewMemory"
+    ],
+    "behaviorVerification": "Spec-review PASS/FAIL must match existing blocking criteria for missing acceptance, contradictory fields, migration parity gaps, and untestable requirements."
+  },
+  "implReview": {
+    "producerInputs": [
+      "git diff against merge base",
+      "staged diff",
+      "file-map.json",
+      "test-execute-result.json",
+      "test-result-review.json",
+      "previous impl-review.json"
+    ],
+    "consumerPhase": "impl-review",
+    "fields": [
+      "changedHunks",
+      "requirementToFiles",
+      "publicSurfaceChanges",
+      "schemaConfigChanges",
+      "unmappedChangedFiles",
+      "testEvidenceSummary",
+      "riskyPatternFindings",
+      "previousFindingResolution"
+    ],
+    "fallbackCondition": "Run full impl-review when changed hunks exceed manifest limits, public API/schema/config changed, file-map is incomplete, risky patterns are inconclusive, or previous blocking findings lack resolution evidence.",
+    "auditFields": [
+      "manifestVersion",
+      "mergeBase",
+      "diffHash",
+      "producerWarnings",
+      "fallbackReason",
+      "sourceArtifacts"
+    ],
+    "behaviorVerification": "Impl-review blocking failure modes missing_acceptance_requirement, spec_behavior_contradiction, and security_or_data_integrity_bug remain detectable through manifest or full AI fallback."
+  }
+}
