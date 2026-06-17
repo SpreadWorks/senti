@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-17T07:59:39.674Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "title": "Overlay update-all reports new commits without persisting the pin",
+      "failureMode": "security_or_data_integrity_bug",
+      "file": "src/lib/plugin-registry.js",
+      "issue": "syncInstalledPlugins reads merged config.local packages, but installFromSource only writes .senti/config.json. For an overlay-only package updated by plugin update-all, the command can return updated: true with a new commit and materialize/deploy that commit while leaving .senti/config.local.json pinned to the old commit.",
+      "suggestion": "Update syncInstalledPlugins or the installFromSource update branch so overlay-owned packages write the new commit back to .senti/config.local.json, or fail before reporting updated: true when the package state cannot be persisted without leaking it to public config.",
+      "rationale": "A successful update-all must leave installed package state and persisted package metadata consistent. Otherwise subsequent sync/update-all reads the stale overlay pin, can revert the package, and repeatedly reports the same update."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/303-auto-plugin-upgrade/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "dad48431574e08f95a065297266e640c11ed2d28edd0d99b79b79ebf5e8225af"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "impl-001-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Overlay update-all reports new commits without persisting the pin",
+      "body": "syncInstalledPlugins reads merged config.local packages, but installFromSource only writes .senti/config.json. For an overlay-only package updated by plugin update-all, the command can return updated: true with a new commit and materialize/deploy that commit while leaving .senti/config.local.json pinned to the old commit.",
+      "category": "security_or_data_integrity_bug"
+    }
+  ]
+}

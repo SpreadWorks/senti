@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "Both blocking findings are valid and should be repaired in spec.json. The non-blocking install --json help suggestion is advisory memory only.",
+  "items": [
+    {
+      "title": "Define the upgrade invocation boundary",
+      "target": "Overview Data Flow / T-2",
+      "decision": "apply",
+      "rationale": "The current spec permits an unsafe in-process upgrade call. The spec must require a captured normal upgrade entrypoint or equivalent adapter so process.exit and stdout/stderr behavior cannot bypass plugin output.",
+      "evidence": "spec-review.json blockingFindings[0] explains that src/upgrade.js failure paths can call process.exit and contaminate --json if invoked in-process."
+    },
+    {
+      "title": "Preserve config.local plugin overlay behavior",
+      "target": "Data Flow / R9",
+      "decision": "apply",
+      "rationale": "The current spec does not preserve the existing private overlay path. The spec must require automatic-upgrade metadata and decision logic to respect merged config without writing overlay-only source/package data to public config.",
+      "evidence": "spec-review.json blockingFindings[1] identifies existing installPlugin config.local overlay behavior and the risk of leaking private source data into .senti/config.json."
+    }
+  ]
+}

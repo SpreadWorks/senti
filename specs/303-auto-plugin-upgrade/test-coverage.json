@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "`senti plugin install <id>` runs `senti upgrade` after install succeeds unless `--no-upgrade` is present.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/plugin-auto-upgrade.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "`senti plugin update-all` processes at most 100 enabled packages, records `previousCommit`, `commit`, and `updated` for each processed enabled package, and runs `senti upgrade` at most once only when at least one package has `updated: true` unless `--no-upgrade` is present.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/plugin-auto-upgrade.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "`senti plugin update-all` does not run `senti upgrade` when no package commit changes, and the response reports `upgrade.ran: false` with a skip reason indicating no package updates.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/plugin-auto-upgrade.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "`senti plugin source update` and `senti plugin sync` never trigger automatic `senti upgrade`.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/plugin-auto-upgrade.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "`--no-upgrade` is accepted by `senti plugin install` and `senti plugin update-all`, suppresses automatic upgrade, and is shown in help for those two commands only.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/plugin-auto-upgrade.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "`--json` output for install and update-all returns plugin operation data and an `upgrade` object that exposes whether upgrade ran, whether it succeeded, and failure details when applicable.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/plugin-auto-upgrade.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "When automatic `senti upgrade` fails after a successful plugin install or update-all operation, the command exits non-zero and output still exposes both the plugin operation result and the upgrade failure.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/plugin-auto-upgrade.test.js"
+      ]
+    },
+    {
+      "id": "R8",
+      "desc": "Human output for install and update-all includes plugin operation output followed by one upgrade result line containing `upgrade`, a state word from `ran`, `skipped`, or `failed`, and a failure message or skip reason when present.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/plugin-auto-upgrade.test.js"
+      ]
+    },
+    {
+      "id": "R9",
+      "desc": "Existing basic behavior for plugin install, update-all, sync, and source update remains covered by behavior-level tests, including plugin-side scripts not being executed.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/plugin-auto-upgrade.test.js"
+      ]
+    },
+    {
+      "id": "R10",
+      "desc": "Automatic-upgrade changes continue respecting `.senti/config.local.json` plugin overlays: overlay-only private sources/packages are not persisted into public `.senti/config.json`, while upgrade decision and output metadata may be computed from merged project config.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/plugin-auto-upgrade.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/plugin-auto-upgrade.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10"
+      ]
+    }
+  ]
+}

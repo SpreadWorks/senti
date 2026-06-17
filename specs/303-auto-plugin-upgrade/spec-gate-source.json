@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "bounded-resource-usage",
+      "result": "fail",
+      "reason": "`update-all` is specified to process every enabled package and trigger upgrade when at least one package is updated, but the spec does not define any explicit upper bound on package batch size, iteration depth, or bulk-load limits.",
+      "category": "code-quality",
+      "title": "Bounded Resource Usage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements.R2 / overview.data_flow[1]"
+          },
+          "observed": "`update-all` is specified to process every enabled package and trigger upgrade when at least one package is updated, but the spec does not define any explicit upper bound on package batch size, iteration depth, or bulk-load limits.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "Migration parity inventory/mapping includes retained public surfaces (e.g., plugin list/find/enable/disable/help routing and JSON output surfaces), but no behavior-level verification is defined for each of those retained surfaces through acceptance criteria.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "overview.decisions[4-5]"
+          },
+          "observed": "Migration parity inventory/mapping includes retained public surfaces (e.g., plugin list/find/enable/disable/help routing and JSON output surfaces), but no behavior-level verification is defined for each of those retained surfaces through acceptance criteria.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "bounded-resource-usage",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements.R2 / overview.data_flow[1]"
+      },
+      "observed": "`update-all` is specified to process every enabled package and trigger upgrade when at least one package is updated, but the spec does not define any explicit upper bound on package batch size, iteration depth, or bulk-load limits.",
+      "severity": "blocking",
+      "refs": [
+        "bounded-resource-usage"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "spec.json",
+        "locator": "overview.decisions[4-5]"
+      },
+      "observed": "Migration parity inventory/mapping includes retained public surfaces (e.g., plugin list/find/enable/disable/help routing and JSON output surfaces), but no behavior-level verification is defined for each of those retained surfaces through acceptance criteria.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    }
+  ]
+}

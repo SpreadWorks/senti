@@ -1,0 +1,197 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/303-auto-plugin-upgrade/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js",
+        "test_name": "R1: install runs upgrade and deploys plugin skill by default",
+        "command": "node --test specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 90
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js",
+        "test_name": "R2: update-all records package change metadata and runs upgrade once after changed packages",
+        "command": "node --test specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 90
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js",
+        "test_name": "R3: update-all skips upgrade and reports a skip reason when no package commits change",
+        "command": "node --test specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 90
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js",
+        "test_name": "R4: sync and source update do not trigger automatic upgrade after a plugin source changes",
+        "command": "node --test specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 90
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js",
+        "test_name": "R5: no-upgrade is accepted for install and update-all and documented only on those commands",
+        "command": "node --test specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 90
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js",
+        "test_name": "R6: JSON output for install exposes plugin operation data and upgrade status",
+        "command": "node --test specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 90
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js",
+        "test_name": "R7: upgrade failure exits non-zero while preserving plugin operation and failure details",
+        "command": "node --test specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 90
+        }
+      }
+    },
+    {
+      "id": "R8",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js",
+        "test_name": "R8: human output includes plugin output followed by one upgrade result line",
+        "command": "node --test specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 90
+        }
+      }
+    },
+    {
+      "id": "R9",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js",
+        "test_name": "R9: pinned sync behavior remains intact while automatic upgrade is limited to install and update-all",
+        "command": "node --test specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 90
+        }
+      }
+    },
+    {
+      "id": "R10",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js",
+        "test_name": "R10: config.local plugin overlays remain private while install upgrade uses merged config",
+        "command": "node --test specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 90
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": false,
+    "result": "skipped",
+    "mode": "none",
+    "category": "full-regression-deferred",
+    "reason": "full project regression deferred to final-regression",
+    "classified_paths": [
+      {
+        "path": "specs/303-auto-plugin-upgrade/",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/lib/command-registry.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/lib/plugin-registry.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/plugin.js",
+        "category": "full-regression-deferred"
+      }
+    ],
+    "trigger_relevant_changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/303-auto-plugin-upgrade/"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/command-registry.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/plugin-registry.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/plugin.js"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/303-auto-plugin-upgrade/"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/command-registry.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/plugin-registry.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/plugin.js"
+      }
+    ]
+  }
+}

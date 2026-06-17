@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-17T08:12:56.825Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "title": "Private source installs are not persisted on first install",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/lib/plugin-registry.js",
+      "issue": "In `installFromSource`, the non-public source branch only updates `.senti.local` when `localExisting` is found. When installing a plugin from a non-public source for the first time, the new `entry` is never added to `localPlugin.packages`, so the installed package is not recorded for later sync or automatic upgrade behavior.",
+      "suggestion": "In the non-public source branch of `installFromSource`, push `entry` into `localPlugin.packages` when `localExisting` is absent, then call `writeLocalProjectConfig(root, localConfig)` before returning.",
+      "rationale": "The implementation cannot reliably support auto-upgrade/sync for non-public installed plugins if first installs are not persisted in either project config or local project config."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/303-auto-plugin-upgrade/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "0d771ef3df2517479bd7aab7397148b93ad308b527594e9f58e894e8f8b9f21e"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "impl-003-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Private source installs are not persisted on first install",
+      "body": "In `installFromSource`, the non-public source branch only updates `.senti.local` when `localExisting` is found. When installing a plugin from a non-public source for the first time, the new `entry` is never added to `localPlugin.packages`, so the installed package is not recorded for later sync or automatic upgrade behavior.",
+      "category": "missing_acceptance_requirement"
+    }
+  ]
+}

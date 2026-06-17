@@ -3,7 +3,7 @@ import path from "path";
 import crypto from "crypto";
 import { fileURLToPath, pathToFileURL } from "url";
 import { repoRoot } from "./cli.js";
-import { loadConfig, loadRawConfig, sentiConfigPath, sentiDir } from "./config.js";
+import { loadConfig, loadRawConfig, sentiConfigPath, sentiDir, sentiLocalConfigPath } from "./config.js";
 import { Envelope } from "./flow-envelope.js";
 import { officialPresetPluginRoot } from "./official-plugins.js";
 import { runCmd, assertOk } from "./process.js";
@@ -91,8 +91,52 @@ function readStoredProjectConfig(root = repoRoot(), { missingAsEmpty = false } =
   return config;
 }
 
+function readStoredLocalProjectConfig(root = repoRoot(), { missingAsEmpty = false } = {}) {
+  const localPath = sentiLocalConfigPath(root);
+  if (missingAsEmpty && !fs.existsSync(localPath)) {
+    const config = {};
+    ensurePluginConfig(config);
+    return config;
+  }
+  const config = readJson(localPath);
+  ensurePluginConfig(config);
+  return config;
+}
+
+function mergePluginEntriesById(base, overlay) {
+  const out = Array.isArray(base) ? structuredClone(base) : [];
+  const indexById = new Map(out.map((entry, index) => [entry?.id, index]).filter(([id]) => typeof id === "string"));
+  for (const entry of overlay || []) {
+    const next = structuredClone(entry);
+    const index = indexById.get(next?.id);
+    if (index == null) {
+      indexById.set(next?.id, out.length);
+      out.push(next);
+    } else {
+      out[index] = { ...out[index], ...next };
+    }
+  }
+  return out;
+}
+
+function readPluginOperationConfig(root = repoRoot()) {
+  const config = readProjectConfig(root);
+  const publicConfig = readStoredProjectConfig(root, { missingAsEmpty: true });
+  const localConfig = readStoredLocalProjectConfig(root, { missingAsEmpty: true });
+  const plugin = ensurePluginConfig(config);
+  const publicPlugin = ensurePluginConfig(publicConfig);
+  const localPlugin = ensurePluginConfig(localConfig);
+  plugin.sources = mergePluginEntriesById(publicPlugin.sources, localPlugin.sources);
+  plugin.packages = mergePluginEntriesById(publicPlugin.packages, localPlugin.packages);
+  return config;
+}
+
 export function writeProjectConfig(root, config) {
   writeJson(sentiConfigPath(root), config);
+}
+
+function writeLocalProjectConfig(root, config) {
+  writeJson(sentiLocalConfigPath(root), config);
 }
 
 export function maskPluginSource(source) {
@@ -625,6 +669,18 @@ function installFromSource(root, source, sourceRoot, commit, { updateExisting = 
   } else if (publicSources.has(source.id)) {
     plugin.packages.push(entry);
   } else {
+    const localConfig = readStoredLocalProjectConfig(root, { missingAsEmpty: true });
+    const localPlugin = ensurePluginConfig(localConfig);
+    const localSources = new Set(localPlugin.sources.map((item) => item.id));
+    const localExisting = localPlugin.packages.find((pkg) => pkg.id === manifest.name);
+    if (localExisting) {
+      if (!updateExisting && localExisting.enabled === false) entry.enabled = false;
+      Object.assign(localExisting, entry);
+      writeLocalProjectConfig(root, localConfig);
+    } else if (localSources.has(source.id)) {
+      localPlugin.packages.push(entry);
+      writeLocalProjectConfig(root, localConfig);
+    }
     return installedManifest;
   }
   writeProjectConfig(root, config);
@@ -632,7 +688,7 @@ function installFromSource(root, source, sourceRoot, commit, { updateExisting = 
 }
 
 export function installPlugin(root, id) {
-  const config = readProjectConfig(root);
+  const config = readPluginOperationConfig(root);
   for (const source of config.plugin.sources) {
     const resolved = resolveSource(root, source);
     const manifest = PluginManifest.fromRoot(resolved.root);
@@ -645,21 +701,28 @@ export function installPlugin(root, id) {
 }
 
 export function syncInstalledPlugins(root, { update = false } = {}) {
-  const config = readProjectConfig(root);
+  const config = readPluginOperationConfig(root);
   const sources = new Map(config.plugin.sources.map((source) => [source.id, source]));
+  const enabledPackages = config.plugin.packages.filter((pkg) => pkg.enabled !== false);
+  if (enabledPackages.length > MAX_ENABLED_PLUGIN_PACKAGES) throw new Error(`enabled plugin packages exceed ${MAX_ENABLED_PLUGIN_PACKAGES}`);
   const results = [];
-  for (const pkg of config.plugin.packages) {
-    if (pkg.enabled === false) continue;
+  for (const pkg of enabledPackages) {
     const source = sources.get(pkg.source);
     if (!source) throw new Error(`plugin source not found for package ${pkg.id}: ${pkg.source}`);
     const resolved = update || source.type === "local"
       ? resolveSource(root, source)
       : { root: checkedOutSourceRoot(root, source), commit: pkg.commit, materialized: false };
     if (!fs.existsSync(path.join(resolved.root, "plugin.json"))) Object.assign(resolved, resolveSource(root, source));
+    const previousCommit = pkg.commit;
     const commit = update ? resolved.commit : pkg.commit;
     if (!SHA_RE.test(commit)) throw new Error(`plugin package ${pkg.id} must have a pinned commit`);
     installFromSource(root, source, resolved.root, commit, { updateExisting: update, sourceMaterialized: resolved.materialized });
-    results.push({ id: pkg.id, source: source.id, commit });
+    const result = { id: pkg.id, source: source.id, commit };
+    if (update) {
+      result.previousCommit = previousCommit;
+      result.updated = previousCommit !== commit;
+    }
+    results.push(result);
   }
   return results;
 }

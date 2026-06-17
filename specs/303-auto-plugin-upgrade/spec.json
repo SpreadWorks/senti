@@ -1,0 +1,307 @@
+{
+  "goal": "`senti plugin install` と `senti plugin update-all` の成功後に、必要な `senti upgrade` まで自動実行し、plugin package の取得と project 反映を一つの CLI flow で完了できるようにする。",
+  "scope": {
+    "in": [
+      "`senti plugin install <id>` 成功後の automatic upgrade 実行。",
+      "`senti plugin update-all` で 1 件以上の package commit が変わった場合の automatic upgrade 実行。",
+      "`senti plugin update-all` で更新がない場合の upgrade skip。",
+      "`senti plugin install` と `senti plugin update-all` の `--no-upgrade` option。",
+      "`--json` 出力で plugin 操作結果と upgrade 実行結果を区別できる response contract。",
+      "upgrade 失敗時に plugin 操作結果と upgrade 失敗を両方表示し、command 全体を失敗 exit にする behavior。",
+      "plugin install / update-all / sync / source update の behavior-level regression tests。"
+    ],
+    "out": [
+      "`senti plugin source update` から automatic upgrade を実行する変更。",
+      "`senti plugin sync` から automatic upgrade を実行する変更。",
+      "`senti upgrade` の内部 migration / deployment logic 変更。",
+      "plugin-side scripts の実行。",
+      "npm publish、dist-tag、external release 操作。"
+    ]
+  },
+  "constraints": [
+    "外部依存を追加しない。automatic upgrade 実行は Node.js built-in modules と既存 CLI module / process helper の範囲で実装する。",
+    "`src/` に project 固有情報を埋め込まない。plugin command と upgrade result は汎用 CLI contract として扱う。",
+    "plugin install / update-all / sync の既存安全方針を維持し、plugin-side `scripts` は実行しない。今回実行する追加処理は core 側の `senti upgrade` に限定する。",
+    "alpha 版ポリシーに従い、旧 output shape 専用の互換 shim は追加しない。ただし Issue #395 の acceptance にある既存 basic behavior は behavior-level tests で維持する。",
+    "spec-local tests は `specs/303-auto-plugin-upgrade/tests/` 配下に置き、各 test file に `// spec: R<N>` header を付ける。",
+    "upgrade failure を catch する場合、error は JSON response / human output / process exit に反映し、silent discard しない。",
+    "`update-all` は existing plugin registry bound を維持し、enabled package count が 100 件を超える場合は処理を開始せず失敗する。各 command execution あたり automatic upgrade invocation は最大 1 回。"
+  ],
+  "design_principles": [
+    "plugin package state を変更した public command だけが automatic upgrade の責務を持つ。",
+    "update-all は commit 変更有無を result data で判定し、更新なしの project に不要な upgrade side effect を発生させない。",
+    "JSON consumer と human CLI consumer の両方が plugin 操作結果と upgrade 結果を区別できるようにする。",
+    "source update と sync の責務は広げず、source 解決 / pinned commit restore の既存用途を維持する。"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/plugin.js`: plugin CLI dispatcher。install / update-all / sync / source update の command branch、flag parsing、human / JSON output を扱う。"
+      },
+      {
+        "text": "`src/lib/plugin-registry.js`: plugin source/package materialization。installPlugin と syncInstalledPlugins が installed package state と copied runtime files を更新する。"
+      },
+      {
+        "text": "`src/lib/command-registry.js`: plugin command help metadata。install / update-all に `--no-upgrade` を表示する。"
+      },
+      {
+        "text": "`src/upgrade.js`: existing `senti upgrade` command。内部 behavior は変更せず、plugin CLI から実行される対象として扱う。"
+      },
+      {
+        "text": "`specs/303-auto-plugin-upgrade/tests/`: install、update-all、no-update、no-upgrade、source update、sync、upgrade failure の behavior-level coverage。"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "install は id を解決し、installPlugin が package runtime を `.senti/plugins/<id>` に materialize し、config package commit を保存する。成功後、`--no-upgrade` が無ければ upgrade runner を呼ぶ。"
+      },
+      {
+        "text": "update-all は syncInstalledPlugins の update mode で最大 100 件の enabled package を 1 回ずつ処理し、各 package を resolved commit に materialize し、previousCommit と commit を比較した updated flag を返す。1 件以上 updated=true なら upgrade runner を最大 1 回呼ぶ。"
+      },
+      {
+        "text": "upgrade runner は normal `senti upgrade` CLI entrypoint を captured child process で実行するか、それと明示的に同等の adapter を使い、upgrade entry initialization を保ち、stdout/stderr と exit status を `{ ran, ok, exitCode, error }` 相当の result object に正規化する。in-process import/call で `process.exit` が plugin output を bypass する実装は禁止する。"
+      },
+      {
+        "text": "`--json` は `{ packages|package, upgrade }` 形式で structured response を出す。human output は plugin 操作結果の後に upgrade result を 1 行で出す。"
+      },
+      {
+        "text": "source update と sync は upgrade runner を呼ばず、それぞれ既存の source update / pinned commit restore behavior を維持する。"
+      },
+      {
+        "text": "config.local overlay 由来の private plugin sources/packages は automatic upgrade decision と output metadata の入力に使ってよいが、overlay-only source/package data を public `.senti/config.json` に永続化しない。"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] plugin CLI owns install/update-all/sync branching; result output currently goes through output()/formatLine().",
+        "evidence": "`src/plugin.js` has branches for `install`, `sync`, and `update-all`; install currently calls `output(installPlugin(root, id), false)`, update-all calls `output(syncInstalledPlugins(root, { update: true }), hasJson(rest))`, and `formatLine` renders human results."
+      },
+      {
+        "text": "[VERIFY] plugin registry currently returns install and sync result objects without update change metadata.",
+        "evidence": "`src/lib/plugin-registry.js` `installPlugin()` returns `{ id, source, commit }`; `syncInstalledPlugins()` pushes `{ id, source, commit }` for each enabled package and does not include previousCommit or updated."
+      },
+      {
+        "text": "Upgrade failure policy: automatic upgrade failure makes the overall plugin command fail while preserving plugin operation result in output.",
+        "evidence": "Draft q1 answer selected failed overall exit. Issue #395 acceptance requires upgrade failure output to show both plugin update result and upgrade failure."
+      },
+      {
+        "text": "Human output policy: automatic upgrade result is visible in one line after plugin result output.",
+        "evidence": "Draft q2 answer selected human output. Existing pattern basis: `src/plugin.js` `formatLine` renders one result per line."
+      },
+      {
+        "text": "Migration inventory: retained public surfaces in this spec are plugin install, plugin update-all, plugin sync, plugin source update, JSON output for update-all/sync, and plugin-side script safety.",
+        "evidence": "Issue #395 changes install/update-all side effects only. Draft impact inventory requires sync and source update to remain excluded from automatic upgrade. Other plugin commands are outside this migration inventory because this spec does not change their routing, output, config writes, or side effects."
+      },
+      {
+        "text": "Migration mapping: install and update-all gain post-operation upgrade orchestration; update-all/sync JSON output remains command output data owned by plugin CLI; sync and source update remain owned by their existing registry/source update paths with no upgrade call.",
+        "evidence": "`src/plugin.js` separates command branches, so automatic upgrade can be scoped to install and update-all without changing sync/source branches. Acceptance criteria cover install, update-all, sync, source update, JSON output, and plugin-side script safety."
+      },
+      {
+        "text": "Upgrade invocation boundary: automatic upgrade must preserve top-level upgrade initialization and capture output/exit before plugin command output is emitted.",
+        "evidence": "Spec review verified `src/upgrade.js` can write stdout/stderr and call `process.exit(EXIT_ERROR)` on failure; captured child process or equivalent adapter prevents bypassing plugin result output."
+      },
+      {
+        "text": "config.local compatibility: automatic upgrade must not leak overlay-only private plugin source/package data into public config.",
+        "evidence": "Spec review verified existing `installPlugin()` overlay behavior materializes private local sources without writing them to public `.senti/config.json`."
+      }
+    ]
+  },
+  "background": "Plugin install and update-all already update package runtime files and `.senti/config.json` package commits, but plugin-provided skills, presets, templates, and AGENTS are applied to the project by `senti upgrade`. Requiring users to run upgrade separately leaves an easy half-updated state: the plugin package has changed, but project-facing generated or managed files have not been refreshed. Issue #395 narrows the fix to commands that actually change installed package state: install always changes state after success; update-all changes state only when at least one package commit changes.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "`senti plugin install <id>` runs `senti upgrade` after install succeeds unless `--no-upgrade` is present.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "`senti plugin update-all` processes at most 100 enabled packages, records `previousCommit`, `commit`, and `updated` for each processed enabled package, and runs `senti upgrade` at most once only when at least one package has `updated: true` unless `--no-upgrade` is present.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "`senti plugin update-all` does not run `senti upgrade` when no package commit changes, and the response reports `upgrade.ran: false` with a skip reason indicating no package updates.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "`senti plugin source update` and `senti plugin sync` never trigger automatic `senti upgrade`.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "`--no-upgrade` is accepted by `senti plugin install` and `senti plugin update-all`, suppresses automatic upgrade, and is shown in help for those two commands only.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "`--json` output for install and update-all returns plugin operation data and an `upgrade` object that exposes whether upgrade ran, whether it succeeded, and failure details when applicable.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "desc": "When automatic `senti upgrade` fails after a successful plugin install or update-all operation, the command exits non-zero and output still exposes both the plugin operation result and the upgrade failure.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R8",
+      "desc": "Human output for install and update-all includes plugin operation output followed by one upgrade result line containing `upgrade`, a state word from `ran`, `skipped`, or `failed`, and a failure message or skip reason when present.",
+      "priority": "should",
+      "status": "done"
+    },
+    {
+      "id": "R9",
+      "desc": "Existing basic behavior for plugin install, update-all, sync, and source update remains covered by behavior-level tests, including plugin-side scripts not being executed.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R10",
+      "desc": "Automatic-upgrade changes continue respecting `.senti/config.local.json` plugin overlays: overlay-only private sources/packages are not persisted into public `.senti/config.json`, while upgrade decision and output metadata may be computed from merged project config.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "R1: A spec-local test installs a valid plugin fixture and observes one automatic upgrade invocation after install success.",
+    "R1/R5: A spec-local test runs plugin install with `--no-upgrade` and observes no upgrade invocation while the plugin package is still installed.",
+    "R2: A spec-local test advances at least one installed plugin source commit, runs update-all, observes `updated: true` with `previousCommit` and new `commit`, and observes one automatic upgrade invocation.",
+    "R2: A spec-local or shared regression test configures more than 100 enabled plugin packages and observes update-all fail before package processing or automatic upgrade execution.",
+    "R3: A spec-local test runs update-all when resolved commits match stored commits and observes no upgrade invocation plus `upgrade.ran === false` and a no-updates skip reason.",
+    "R4: Spec-local tests run plugin source update and plugin sync and observe no upgrade invocation.",
+    "R5: Help output for `senti plugin install --help` and `senti plugin update-all --help` includes `--no-upgrade`; help output for `plugin sync` and `plugin source update` does not include it.",
+    "R6: JSON output for install contains one plugin result object and an `upgrade` object; JSON output for update-all contains a `packages` array with per-package update metadata and an `upgrade` object.",
+    "R7: A spec-local test forces automatic upgrade to fail, observes a non-zero command exit, and parses output showing the plugin result plus `upgrade.ok === false` or equivalent failure fields.",
+    "R8: A spec-local test for non-JSON install or update-all output observes plugin operation lines followed by one line containing `upgrade` and one of `ran`, `skipped`, or `failed`.",
+    "R9: Existing sync behavior restores pinned commits without advancing to source HEAD and does not run automatic upgrade.",
+    "R9: A behavior-level safety test verifies plugin install/update-all/sync do not execute plugin-side scripts while performing package materialization or update checks.",
+    "R10: A spec-local or shared regression test installs or updates an overlay-only plugin source/package from `.senti/config.local.json`, observes automatic upgrade decision/output metadata if applicable, and verifies public `.senti/config.json` does not receive the private source/package entry."
+  ],
+  "clarifications": [
+    {
+      "q": "Does this change alter `senti upgrade` internals?",
+      "a": "No. The plugin CLI invokes the existing upgrade command after selected plugin operations. The migration/deployment logic inside upgrade is out of scope."
+    },
+    {
+      "q": "Why does install run upgrade unconditionally after success?",
+      "a": "A successful install adds or refreshes a plugin package in project state, so project-managed files may need to be applied immediately."
+    },
+    {
+      "q": "Why does update-all check `updated` before upgrade?",
+      "a": "update-all can complete with no package commit changes. Running upgrade in that case adds an unnecessary side effect and contradicts Issue #395 acceptance."
+    },
+    {
+      "q": "What is the failure policy when upgrade fails?",
+      "a": "The plugin operation result is preserved in output, but the overall command exits non-zero because the requested one-flow application did not complete."
+    },
+    {
+      "q": "Does sync become an update command?",
+      "a": "No. sync remains a pinned commit materialization/restore command and does not trigger automatic upgrade."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Require users to run `senti upgrade` manually after plugin install/update-all",
+      "reason": "Rejected because Issue #395 exists to remove the half-updated state created by the separate manual step."
+    },
+    {
+      "option": "Run upgrade after every plugin update-all invocation",
+      "reason": "Rejected because update-all with no commit changes would produce unnecessary side effects and violates the no-updates acceptance criterion."
+    },
+    {
+      "option": "Run upgrade after plugin sync",
+      "reason": "Rejected because sync restores pinned commits and widening it to project upgrade changes its responsibility."
+    },
+    {
+      "option": "Treat upgrade failure as successful plugin command exit",
+      "reason": "Rejected by draft q1 because automation would miss project reflection failure even though plugin package state changed."
+    },
+    {
+      "option": "Hide automatic upgrade result in human output",
+      "reason": "Rejected by draft q2 because human CLI users need to see the added side effect and distinguish plugin success from upgrade failure."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "plugin install",
+    "plugin update-all",
+    "plugin sync",
+    "plugin source update",
+    "senti upgrade",
+    "no-upgrade",
+    "installPlugin",
+    "syncInstalledPlugins",
+    "previousCommit",
+    "updated",
+    "upgrade result",
+    "json output",
+    "command-registry",
+    "formatLine",
+    "plugin-registry"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Track plugin update results",
+      "goal": "Expose enough package update metadata for plugin update-all to decide whether automatic upgrade is required.",
+      "acceptance": [
+        "syncInstalledPlugins update mode returns `previousCommit`, `commit`, and `updated` for each processed enabled package.",
+        "No-update packages return `updated: false` with identical previous and current commits.",
+        "Install result remains able to identify installed package id, source, and commit.",
+        "Overlay-only private plugin source/package data from `.senti/config.local.json` is not written to public `.senti/config.json`."
+      ],
+      "implementation_notes": "`src/lib/plugin-registry.js` owns package commit comparison because it reads existing config and resolved source commits. Preserve the existing MAX_ENABLED_PLUGIN_PACKAGES bound of 100 enabled packages. Upgrade decision/output metadata may use merged config, but writes must preserve the existing public/local config boundary. Do not execute plugin-side scripts while collecting update metadata.",
+      "test_strategy": "Use spec-local fixtures for one package whose source commit advances, a no-update case where stored commit already equals resolved commit, an over-100 enabled package bound case, and an overlay-only private plugin source/package case that verifies public config is not polluted.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Run automatic upgrade",
+      "goal": "Add post-operation upgrade orchestration to install and update-all while preserving excluded command responsibilities.",
+      "acceptance": [
+        "install invokes upgrade after successful install unless `--no-upgrade` is present.",
+        "update-all invokes upgrade only when at least one result has `updated: true` and `--no-upgrade` is absent.",
+        "source update and sync do not invoke upgrade.",
+        "Upgrade failure preserves plugin result output and exits non-zero."
+      ],
+      "implementation_notes": "`src/plugin.js` is the command boundary for deciding whether to run upgrade. Use a bounded single upgrade invocation per command execution. Run upgrade through a captured normal `senti upgrade` CLI entrypoint or an explicitly equivalent adapter that preserves entry initialization and converts stdout/stderr plus exit status into the upgrade result. Do not call upgrade in-process in a way that allows `process.exit` to bypass plugin output. Surface upgrade errors through output and exit status; do not silently swallow them.",
+      "test_strategy": "Spec-local CLI tests observe upgrade invocation via deterministic test hook or fixture-visible side effect. A failure test forces upgrade failure and checks non-zero exit plus structured failure output.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-3",
+      "title": "Shape command output",
+      "goal": "Return plugin and upgrade results in both JSON and human CLI output, and expose `--no-upgrade` in help for supported commands.",
+      "acceptance": [
+        "install JSON output contains package result and upgrade result.",
+        "update-all JSON output contains packages array and upgrade result.",
+        "Human output contains plugin result lines followed by one upgrade result line.",
+        "Help metadata includes `--no-upgrade` only for install and update-all."
+      ],
+      "implementation_notes": "Keep human output aligned with the existing one-result-per-line `formatLine` style. Do not add `--no-upgrade` to sync or source update help.",
+      "test_strategy": "Use spec-local JSON parsing assertions for install, update-all, no-update, and failure cases. Update existing help e2e coverage if command metadata output changes.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-06-17T07:09:10.703Z",
+    "notes": "User approved the gate-passed spec for Issue #395."
+  }
+}

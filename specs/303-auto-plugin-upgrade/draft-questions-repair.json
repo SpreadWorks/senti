@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Removed embedded recommendations and rationale from both pending draft questions.",
+  "items": [
+    {
+      "title": "1. Question includes recommendation and rationale",
+      "target": "q1",
+      "rationale": "Shortened q1 so it asks only for the upgrade failure exit-status decision.",
+      "evidence": "draft.json qa[0].question now contains the user-visible decision question without recommendation or rationale text.",
+      "changedFieldPaths": [
+        "qa[0].question"
+      ]
+    },
+    {
+      "title": "2. Question includes recommendation and rationale",
+      "target": "q2",
+      "rationale": "Shortened q2 so it asks only for the non-JSON output decision.",
+      "evidence": "draft.json qa[1].question now contains the user-visible decision question without recommendation or rationale text.",
+      "changedFieldPaths": [
+        "qa[1].question"
+      ]
+    }
+  ]
+}

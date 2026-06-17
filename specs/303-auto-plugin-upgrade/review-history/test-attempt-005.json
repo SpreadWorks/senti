@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-17T07:36:51.578Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 1,
+    "total": 2
+  },
+  "coverageArtifact": "specs/303-auto-plugin-upgrade/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Bounded update-all fixture is not a valid update source",
+      "target": "specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js: R2 test \"update-all bounds enabled package processing and reports a single upgrade line\"",
+      "issue": "The 101-package bound case creates enabled packages with createPlainPluginSource(), which does not initialize a git repository, while update-all is required to inspect package commits and record previousCommit/commit/updated for processed enabled packages. A non-git local source can fail for fixture reasons before exercising the 100-package bound.",
+      "requiredChange": "Use valid git-backed plugin sources for the bounded update-all fixture, or otherwise construct a valid source shape that the target update-all API can process while still testing the 100-package limit.",
+      "whyBlocking": "This test is not reliably executable against the target API and can block implementation for an invalid fixture rather than the acceptance requirement."
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Install auto-upgrade assertion is indirect",
+      "target": "specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js: R1 test \"install runs upgrade and deploys plugin skill by default\"",
+      "improvement": "Add a PATH probe or JSON upgrade assertion to verify that install reported or invoked automatic upgrade, not only that the skill became deployed.",
+      "whyNonBlocking": "Other tests cover JSON upgrade metadata and no-upgrade suppression for install, so the requirement still has behavior-level coverage."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/303-auto-plugin-upgrade/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "0840e30c6dcc60135de176744a88cfe13bd771c90cd8535bdfbc22fd1f9231f3"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 5,
+  "findings": [
+    {
+      "id": "test-005-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "Bounded update-all fixture is not a valid update source",
+      "body": "The 101-package bound case creates enabled packages with createPlainPluginSource(), which does not initialize a git repository, while update-all is required to inspect package commits and record previousCommit/commit/updated for processed enabled packages. A non-git local source can fail for fixture reasons before exercising the 100-package bound.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-005-non-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "non-blocking",
+      "title": "Install auto-upgrade assertion is indirect",
+      "body": "Install auto-upgrade assertion is indirect",
+      "category": "unknown"
+    }
+  ]
+}

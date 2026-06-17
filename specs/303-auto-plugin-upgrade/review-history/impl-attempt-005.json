@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-17T08:18:43.129Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "title": "Local plugin packages are still excluded from update-all",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/lib/plugin-registry.js",
+      "issue": "`installFromSource` can persist non-public plugin packages into `.senti.local`, but `syncInstalledPlugins` still reads only `readProjectConfig(root)` and derives `sources` and `enabledPackages` exclusively from `.senti/config.json`. As a result, packages stored in local project config are not processed by `senti plugin update-all`, so their automatic upgrade path never runs.",
+      "suggestion": "Update `syncInstalledPlugins` to also read `readStoredLocalProjectConfig(root, { missingAsEmpty: true })`, merge project and local plugin sources/packages for iteration, and preserve writes to the correct config location when `installFromSource` updates each package.",
+      "rationale": "The implementation moves private/local package state into local config, but the update path cannot see that state. This leaves accepted auto-upgrade behavior missing for those installed packages."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/303-auto-plugin-upgrade/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "5a07dbf043b01167fdb0cb5a6e4ee17508a003f4c52d2a6f8fc7d726be868c8f"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 5,
+  "findings": [
+    {
+      "id": "impl-005-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "Local plugin packages are still excluded from update-all",
+      "body": "`installFromSource` can persist non-public plugin packages into `.senti.local`, but `syncInstalledPlugins` still reads only `readProjectConfig(root)` and derives `sources` and `enabledPackages` exclusively from `.senti/config.json`. As a result, packages stored in local project config are not processed by `senti plugin update-all`, so their automatic upgrade path never runs.",
+      "category": "missing_acceptance_requirement"
+    }
+  ]
+}

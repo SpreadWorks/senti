@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "changed test evidence: bounded update-all fixture now uses git-backed plugin sources and plugin skill contribution paths match upgrade discovery",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "ceb413e83561eb104325f9b080de2bc08eefdd314ac812b08c492ee5532371c1",
+        "currentHash": "1f39f8c85cfa0d01ba928b174d5e313cdb69efe6a5a50bad06592115a220be04",
+        "changedPaths": [
+          "specs/303-auto-plugin-upgrade/tests/.raw/scenario-validity.log",
+          "specs/303-auto-plugin-upgrade/tests/.raw/test-execution.log",
+          "specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset review test --reason \"changed test evidence: bounded update-all fixture now uses git-backed plugin sources and plugin skill contribution paths match upgrade discovery\" --yes",
+      "createdAt": "2026-06-17T08:07:17.087Z"
+    },
+    {
+      "id": "recovery-002",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "changed test evidence: added install upgrade invocation probe, unchanged update-all commit metadata assertions, and install json no-upgrade assertions",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "1f39f8c85cfa0d01ba928b174d5e313cdb69efe6a5a50bad06592115a220be04",
+        "currentHash": "85b1d8c22a73360c61e26366778d3a8b3a0552254763888c7aa424aa611087ce",
+        "changedPaths": [
+          "specs/303-auto-plugin-upgrade/tests/.raw/scenario-validity.log",
+          "specs/303-auto-plugin-upgrade/tests/.raw/test-execution.log",
+          "specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset review test --reason \"changed test evidence: added install upgrade invocation probe, unchanged update-all commit metadata assertions, and install json no-upgrade assertions\" --yes",
+      "createdAt": "2026-06-17T08:10:30.455Z"
+    }
+  ]
+}

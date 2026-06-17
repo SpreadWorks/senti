@@ -1,0 +1,90 @@
+[senti] spec-local tests start
+command: node --test specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js
+TAP version 13
+# Subtest: R1: install runs upgrade and deploys plugin skill by default
+ok 1 - R1: install runs upgrade and deploys plugin skill by default
+  ---
+  duration_ms: 505.786766
+  type: 'test'
+  ...
+# Subtest: R2: update-all records package change metadata and runs upgrade once after changed packages
+ok 2 - R2: update-all records package change metadata and runs upgrade once after changed packages
+  ---
+  duration_ms: 419.974324
+  type: 'test'
+  ...
+# Subtest: R2: update-all bounds enabled package processing and reports a single upgrade line
+ok 3 - R2: update-all bounds enabled package processing and reports a single upgrade line
+  ---
+  duration_ms: 4232.174287
+  type: 'test'
+  ...
+# Subtest: R3: update-all skips upgrade and reports a skip reason when no package commits change
+ok 4 - R3: update-all skips upgrade and reports a skip reason when no package commits change
+  ---
+  duration_ms: 168.216147
+  type: 'test'
+  ...
+# Subtest: R4: sync and source update do not trigger automatic upgrade after a plugin source changes
+ok 5 - R4: sync and source update do not trigger automatic upgrade after a plugin source changes
+  ---
+  duration_ms: 581.346356
+  type: 'test'
+  ...
+# Subtest: R5: no-upgrade is accepted for install and update-all and documented only on those commands
+ok 6 - R5: no-upgrade is accepted for install and update-all and documented only on those commands
+  ---
+  duration_ms: 853.265277
+  type: 'test'
+  ...
+# Subtest: R6: JSON output for install exposes plugin operation data and upgrade status
+ok 7 - R6: JSON output for install exposes plugin operation data and upgrade status
+  ---
+  duration_ms: 512.982723
+  type: 'test'
+  ...
+# Subtest: R7: upgrade failure exits non-zero while preserving plugin operation and failure details
+ok 8 - R7: upgrade failure exits non-zero while preserving plugin operation and failure details
+  ---
+  duration_ms: 618.564308
+  type: 'test'
+  ...
+# Subtest: R8: human output includes plugin output followed by one upgrade result line
+ok 9 - R8: human output includes plugin output followed by one upgrade result line
+  ---
+  duration_ms: 383.876538
+  type: 'test'
+  ...
+# Subtest: R9: pinned sync behavior remains intact while automatic upgrade is limited to install and update-all
+ok 10 - R9: pinned sync behavior remains intact while automatic upgrade is limited to install and update-all
+  ---
+  duration_ms: 1074.234455
+  type: 'test'
+  ...
+# Subtest: R10: config.local plugin overlays remain private while install upgrade uses merged config
+ok 11 - R10: config.local plugin overlays remain private while install upgrade uses merged config
+  ---
+  duration_ms: 1127.272448
+  type: 'test'
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 11
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 10567.13729
+exitCode: 0
+[senti] requirement R1 result pass
+[senti] requirement R2 result pass
+[senti] requirement R3 result pass
+[senti] requirement R4 result pass
+[senti] requirement R5 result pass
+[senti] requirement R6 result pass
+[senti] requirement R7 result pass
+[senti] requirement R8 result pass
+[senti] requirement R9 result pass
+[senti] requirement R10 result pass
+[senti] spec-local tests end

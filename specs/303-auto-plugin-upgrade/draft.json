@@ -1,0 +1,91 @@
+{
+  "devType": "feature",
+  "goal": "`senti plugin install` と `senti plugin update-all` の成功後に、必要な `senti upgrade` まで自動実行し、plugin 取得と project 反映を一連の CLI 操作で完了できるようにする。",
+  "analysis": {
+    "problem": "`senti plugin install` / `senti plugin update-all` は `.senti/plugins/<id>` と `.senti/config.json` の plugin package state を更新するが、project 側へ展開される skills / presets / templates / AGENTS 反映には別途 `senti upgrade` が必要で、ユーザーから見ると plugin 更新後に利用可能機能が未反映の中途半端な状態になり得る。",
+    "proposedApproach": "plugin package state を変更する public CLI 操作のうち install と、実際に package commit が変わった update-all の成功後だけ、既存の `senti upgrade` を自動実行する。`--no-upgrade` で抑止し、JSON 出力では plugin 操作結果と upgrade 実行結果を分けて返す。",
+    "validation": "Issue #395 は install / update-all / source update / sync / --no-upgrade / JSON 出力 / upgrade 失敗時の期待を acceptance として列挙している。既存コードでは `src/plugin.js` が install と update-all の CLI 分岐を持ち、`src/lib/plugin-registry.js` の `installPlugin` と `syncInstalledPlugins` が package materialization を担当しているため、surface request は root problem である反映漏れを直接解消する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #395 は `senti plugin install <id>` 成功後に `senti upgrade` を自動実行することを求めている。",
+      "must: Issue #395 は `senti plugin update-all` で 1 件以上の package commit が変わった場合だけ `senti upgrade` を自動実行し、更新なしの場合は実行しないことを求めている。",
+      "must: Issue #395 は `plugin source update` と `plugin sync` からの自動 upgrade を対象外としている。",
+      "must: Issue #395 は `--no-upgrade` による自動 upgrade 抑止と、`--json` で plugin 更新結果と upgrade 実行結果を判別可能にすることを求めている。",
+      "must: `src/plugin.js` は install / update-all / sync の CLI 分岐を持ち、update-all は `syncInstalledPlugins(root, { update: true })` の結果を出力している。",
+      "must: `src/lib/plugin-registry.js` の `syncInstalledPlugins` は現在、各 package の返却値に previous commit や updated flag を含めていない。",
+      "must: 自動 `senti upgrade` が失敗した場合、plugin 操作結果と upgrade 失敗を両方判別できる response を返し、command 全体は失敗 exit にする。",
+      "should: `--json` なしの install / update-all でも、自動 `senti upgrade` の結果を plugin 操作結果の後に 1 行で表示し、その行には `upgrade`、`ran|skipped|failed` の状態語、失敗時の error message または skip reason を含める。"
+    ],
+    "decisionPoints": [
+      "must: update-all で commit 変更有無を判定できる result shape を spec で確定する。",
+      "should: 非 JSON 出力の exact text は既存 `formatLine` の 1 result 1 line pattern と help output に合わせて spec / implementation で確定する。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 外部依存は追加しない。AGENTS.md は Node.js 組み込みモジュールのみを許可している。",
+      "must: `src/` に project 固有情報を埋め込まない。upgrade 呼び出しと出力 contract は汎用 CLI 挙動として扱う。",
+      "must: alpha 版ポリシーにより旧挙動維持のための互換 shim は追加しない。ただし Issue #395 の acceptance にある既存 basic behavior は壊さない。",
+      "must: plugin install / sync / update-all は plugin-side scripts を実行しない既存安全方針を維持する。今回の自動実行対象は core 側の `senti upgrade` に限定する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: update-all で commit 変更を検出するための result shape、previousCommit / commit / updated の exact field contract は spec で定義する。",
+      "must: install / update-all / no updates / --no-upgrade / source update / sync / upgrade failure の test strategy は spec で acceptance criteria に対応付ける。",
+      "must: `--no-upgrade` を help metadata と flag parser に反映する範囲は spec の task 分解で扱う。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: `senti plugin install <id>` 成功後に default で `senti upgrade` を実行する。",
+      "must: `senti plugin update-all` 成功後、1 件以上の package commit が変わった場合だけ default で `senti upgrade` を実行する。",
+      "must: `senti plugin update-all` で更新がない場合は `senti upgrade` を実行しない。",
+      "must: `senti plugin install` と `senti plugin update-all` に `--no-upgrade` を追加し、自動 upgrade を抑止する。",
+      "must: `--json` 出力で plugin 操作結果と upgrade 実行結果を構造化して返す。",
+      "must: upgrade が失敗した場合も plugin 操作結果と upgrade 失敗を判別できる response にする。"
+    ],
+    "out": [
+      "must: `senti plugin source update` から自動 upgrade を実行しない。",
+      "must: `senti plugin sync` から自動 upgrade を実行しない。",
+      "must: `senti upgrade` の内部仕様自体は変更しない。",
+      "must: npm publish や external release 操作は行わない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: `senti plugin install` の成功後に追加 side effect として `senti upgrade` が走る。`--no-upgrade` 指定時は従来どおり install のみで止められる必要がある。",
+    "must: `senti plugin update-all` の成功後に、実際の package commit 変更がある場合だけ追加 side effect として `senti upgrade` が走る。更新なしの場合の既存挙動は維持する必要がある。",
+    "must: `senti plugin sync` は pinned commit の再 materialize / restore 用途として維持し、自動 upgrade を追加しない。",
+    "must: `senti plugin source update` は source 解決・更新用途として維持し、自動 upgrade を追加しない。",
+    "must: help output と flag parsing は `--no-upgrade` を install / update-all にだけ表示・許可し、既存 `--json` の基本動作を壊さない。",
+    "must: JSON consumers は plugin operation result と upgrade result を区別できる必要がある。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "upgrade 失敗時の CLI exit status を確認したいです。`senti plugin install` または commit 変更ありの `senti plugin update-all` は成功したが、その後の自動 `senti upgrade` が失敗した場合、command 全体は失敗 exit にしますか。",
+      "answer": "must: command 全体を失敗 exit にする。plugin 操作結果と upgrade 失敗は response で両方判別できるようにする。",
+      "evidence": "User selected option 1 during draft-refine. Issue #395 acceptance says upgrade failure must show both the plugin update result and upgrade failure. Guardrail basis: complete-context requires independently verifiable completion state.",
+      "why": "project 反映まで一連で完了することが goal であり、upgrade 失敗時に automation / CI が未完了状態を検知できる必要があるため。Guardrail basis: complete-context and unambiguous-requirements require failure state to be observable.",
+      "considered": "成功 exit は plugin 操作成功を優先できるが、project 反映漏れを CI が見落としやすいため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "非 JSON 出力での upgrade 結果表示を確認したいです。`--json` なしの install / update-all でも、自動 `senti upgrade` の結果を plugin 操作結果の後に 1 行で表示し、その行に `upgrade`、`ran|skipped|failed` の状態語、失敗時の error message または skip reason を含めますか。",
+      "answer": "should: `--json` なしの install / update-all でも、自動 `senti upgrade` の結果を plugin 操作結果の後に 1 行で表示し、その行には `upgrade`、`ran|skipped|failed` の状態語、失敗時の error message または skip reason を含める。",
+      "evidence": "User selected option 1 during draft-refine. Issue #395 acceptance requires upgrade failure output to show both plugin operation result and upgrade failure. Existing pattern basis: `src/plugin.js` `formatLine` renders each human result as one line.",
+      "why": "human CLI 利用者にも追加 side effect と成否が見え、失敗時に plugin 操作結果と upgrade 失敗を区別しやすくするため。Guardrail basis: unambiguous-requirements requires measurable output content rather than subjective wording.",
+      "considered": "表示しない案は通常出力を plugin 操作結果中心に保てるが、自動 upgrade が走ったか分かりにくくなるため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-17T06:48:28Z",
+    "notes": "All draft QA entries are answered; no unresolved user decision remains."
+  }
+}

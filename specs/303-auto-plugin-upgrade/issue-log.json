@@ -1,0 +1,319 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "`短い行で表示する` は出力要件の判定基準が主観的で、具体的な文字数・形式・内容が示されていないため検証不能。; `短い行で表示する` の条件が具体化されておらず、実装が要件を満たすかを独立レビューで同一判断できない。; `短い行で表示` の要件は `短い` の閾値や許容形式が定義されず、合否判定が測定不能。; `短い行` とする理由・構文要件が不足しており、レビューア間で実装適合判断が一致しにくい。; 推奨回答の根拠として、project docs／ガードレール原則／既存実装パターンのいずれかを明示しておらず、推奨理由が要件定義に沿って示されていない。; 推奨回答の根拠が `Issue #395` とユーザー選択に依存しており、要件で求める根拠分類（docs/guardrail/prior patterns）を明示していない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-17T06:48:56.867Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "provided draft content",
+            "locator": "decisionMap.decisionPoints[1]"
+          },
+          "observed": "`短い行で表示する` は出力要件の判定基準が主観的で、具体的な文字数・形式・内容が示されていないため検証不能。",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "provided draft content",
+            "locator": "decisionMap.decisionPoints[1]"
+          },
+          "observed": "`短い行で表示する` の条件が具体化されておらず、実装が要件を満たすかを独立レビューで同一判断できない。",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "provided draft content",
+            "locator": "qa[1].answer"
+          },
+          "observed": "`短い行で表示` の要件は `短い` の閾値や許容形式が定義されず、合否判定が測定不能。",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "provided draft content",
+            "locator": "qa[1].answer"
+          },
+          "observed": "`短い行` とする理由・構文要件が不足しており、レビューア間で実装適合判断が一致しにくい。",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "provided draft content",
+            "locator": "qa[0]"
+          },
+          "observed": "推奨回答の根拠として、project docs／ガードレール原則／既存実装パターンのいずれかを明示しておらず、推奨理由が要件定義に沿って示されていない。",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "provided draft content",
+            "locator": "qa[1]"
+          },
+          "observed": "推奨回答の根拠が `Issue #395` とユーザー選択に依存しており、要件で求める根拠分類（docs/guardrail/prior patterns）を明示していない。",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "`短い行で表示する` は出力要件の判定基準が主観的で、具体的な文字数・形式・内容が示されていないため検証不能。"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "`短い行で表示する` の条件が具体化されておらず、実装が要件を満たすかを独立レビューで同一判断できない。"
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "`短い行で表示` の要件は `短い` の閾値や許容形式が定義されず、合否判定が測定不能。"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "`短い行` とする理由・構文要件が不足しており、レビューア間で実装適合判断が一致しにくい。"
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "推奨回答の根拠として、project docs／ガードレール原則／既存実装パターンのいずれかを明示しておらず、推奨理由が要件定義に沿って示されていない。"
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "推奨回答の根拠が `Issue #395` とユーザー選択に依存しており、要件で求める根拠分類（docs/guardrail/prior patterns）を明示していない。"
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate failed because non-JSON upgrade output used subjective short-line wording and QA evidence lacked guardrail or existing-pattern basis",
+      "trigger": "senti flow run gate --phase draft returned unambiguous-requirements, complete-context, and draft-recommend-with-reasoning failures",
+      "resolution": "Replaced short-line wording with one-line output fields and added guardrail plus existing formatLine pattern evidence to answered QA entries",
+      "guardrailCandidate": "Draft output requirements should state measurable fields and cite guardrail or existing code pattern basis before gate execution",
+      "taskId": null,
+      "timestamp": "2026-06-17T06:49:52.129Z"
+    },
+    {
+      "step": "spec-review",
+      "reason": "Spec review command failed before review because task implementation_notes and test_strategy used arrays while schema requires strings",
+      "trigger": "senti flow run review --phase spec schema validation error for tasks fields",
+      "resolution": "Converted all task implementation_notes and test_strategy values to strings without changing task intent",
+      "guardrailCandidate": "Before spec review, validate task field primitive types against spec-json schema when adding tasks",
+      "taskId": null,
+      "timestamp": "2026-06-17T06:54:00.480Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "`update-all` is specified to process every enabled package and trigger upgrade when at least one package is updated, but the spec does not define any explicit upper bound on package batch size, iteration depth, or bulk-load limits.; Migration parity inventory/mapping includes retained public surfaces (e.g., plugin list/find/enable/disable/help routing and JSON output surfaces), but no behavior-level verification is defined for each of those retained surfaces through acceptance criteria.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-17T07:02:53.602Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements.R2 / overview.data_flow[1]"
+          },
+          "observed": "`update-all` is specified to process every enabled package and trigger upgrade when at least one package is updated, but the spec does not define any explicit upper bound on package batch size, iteration depth, or bulk-load limits.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "overview.decisions[4-5]"
+          },
+          "observed": "Migration parity inventory/mapping includes retained public surfaces (e.g., plugin list/find/enable/disable/help routing and JSON output surfaces), but no behavior-level verification is defined for each of those retained surfaces through acceptance criteria.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "`update-all` is specified to process every enabled package and trigger upgrade when at least one package is updated, but the spec does not define any explicit upper bound on package batch size, iteration depth, or bulk-load limits."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "Migration parity inventory/mapping includes retained public surfaces (e.g., plugin list/find/enable/disable/help routing and JSON output surfaces), but no behavior-level verification is defined for each of those retained surfaces through acceptance criteria."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "Spec gate failed because update-all lacked explicit bounded resource limits and migration inventory listed retained surfaces without matching behavior verification",
+      "trigger": "senti flow run gate --phase spec returned bounded-resource-usage and migration-parity failures",
+      "resolution": "Added 100 enabled package bound, one upgrade invocation limit, over-bound acceptance coverage, and narrowed migration inventory to affected plugin surfaces with mapped acceptance coverage",
+      "guardrailCandidate": "Spec migration inventories should list only affected retained surfaces and each batch command should state existing count bounds before gate",
+      "taskId": null,
+      "timestamp": "2026-06-17T07:04:04.716Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: regenerated test-execute and test-result-review artifacts after post-review code changes",
+      "resolution": "Updated v2 test-execute-result.json, raw test log, and test-result-review artifacts so impl-gate validates the current diff instead of stale failing evidence.",
+      "taskId": null,
+      "timestamp": "2026-06-17T08:03:07.406Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: corrected plugin skill fixture manifest paths and regenerated test artifacts",
+      "resolution": "Fixture skill contributions now point at skill directories, matching upgrade pluginSkillSourceDirs behavior; regenerated test-execute and review artifacts now show no spec-local failures.",
+      "taskId": null,
+      "timestamp": "2026-06-17T08:04:16.949Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "changed test evidence: bounded update-all fixture now uses git-backed plugin sources and plugin skill contribution paths match upgrade discovery",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "ceb413e83561eb104325f9b080de2bc08eefdd314ac812b08c492ee5532371c1",
+        "currentHash": "1f39f8c85cfa0d01ba928b174d5e313cdb69efe6a5a50bad06592115a220be04",
+        "changedPaths": [
+          "specs/303-auto-plugin-upgrade/tests/.raw/scenario-validity.log",
+          "specs/303-auto-plugin-upgrade/tests/.raw/test-execution.log",
+          "specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset review test --reason \"changed test evidence: bounded update-all fixture now uses git-backed plugin sources and plugin skill contribution paths match upgrade discovery\" --yes",
+      "createdAt": "2026-06-17T08:07:17.087Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-002",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "changed test evidence: added install upgrade invocation probe, unchanged update-all commit metadata assertions, and install json no-upgrade assertions",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "1f39f8c85cfa0d01ba928b174d5e313cdb69efe6a5a50bad06592115a220be04",
+        "currentHash": "85b1d8c22a73360c61e26366778d3a8b3a0552254763888c7aa424aa611087ce",
+        "changedPaths": [
+          "specs/303-auto-plugin-upgrade/tests/.raw/scenario-validity.log",
+          "specs/303-auto-plugin-upgrade/tests/.raw/test-execution.log",
+          "specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset review test --reason \"changed test evidence: added install upgrade invocation probe, unchanged update-all commit metadata assertions, and install json no-upgrade assertions\" --yes",
+      "createdAt": "2026-06-17T08:10:30.455Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: resolved deferred test-review coverage and local overlay update evidence",
+      "resolution": "Added install upgrade invocation and JSON no-upgrade coverage, added first private install update-all coverage, made plugin registry merge public/local plugin entries explicitly, and regenerated test artifacts.",
+      "taskId": null,
+      "timestamp": "2026-06-17T08:22:57.439Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "`plugin install` now always runs automatic upgrade unless `--no-upgrade` is set, with no explicit guard that install succeeded before invoking `senti upgrade`.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-17T08:23:35.234Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R1",
+          "where": null,
+          "observed": "`plugin install` now always runs automatic upgrade unless `--no-upgrade` is set, with no explicit guard that install succeeded before invoking `senti upgrade`.",
+          "severity": "blocking",
+          "refs": [
+            "R1"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R5",
+        "R2",
+        "R3",
+        "R6",
+        "R9",
+        "R10",
+        "R4",
+        "R7",
+        "R8"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R1",
+          "reason": "`plugin install` now always runs automatic upgrade unless `--no-upgrade` is set, with no explicit guard that install succeeded before invoking `senti upgrade`."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: added explicit install success guard before automatic upgrade",
+      "resolution": "plugin install now validates the install result before invoking automatic upgrade, making the R1 success boundary explicit; regenerated test artifacts and impl review passed.",
+      "taskId": null,
+      "timestamp": "2026-06-17T08:29:16.973Z"
+    }
+  ]
+}

@@ -1,0 +1,231 @@
+{
+  "version": 1,
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "unambiguous-requirements",
+      "result": "fail",
+      "reason": "`短い行で表示する` は出力要件の判定基準が主観的で、具体的な文字数・形式・内容が示されていないため検証不能。",
+      "category": "code-quality",
+      "title": "Unambiguous Requirements",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "provided draft content",
+            "locator": "decisionMap.decisionPoints[1]"
+          },
+          "observed": "`短い行で表示する` は出力要件の判定基準が主観的で、具体的な文字数・形式・内容が示されていないため検証不能。",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "`短い行で表示する` の条件が具体化されておらず、実装が要件を満たすかを独立レビューで同一判断できない。",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "provided draft content",
+            "locator": "decisionMap.decisionPoints[1]"
+          },
+          "observed": "`短い行で表示する` の条件が具体化されておらず、実装が要件を満たすかを独立レビューで同一判断できない。",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "unambiguous-requirements",
+      "result": "fail",
+      "reason": "`短い行で表示` の要件は `短い` の閾値や許容形式が定義されず、合否判定が測定不能。",
+      "category": "code-quality",
+      "title": "Unambiguous Requirements",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "provided draft content",
+            "locator": "qa[1].answer"
+          },
+          "observed": "`短い行で表示` の要件は `短い` の閾値や許容形式が定義されず、合否判定が測定不能。",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "`短い行` とする理由・構文要件が不足しており、レビューア間で実装適合判断が一致しにくい。",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "provided draft content",
+            "locator": "qa[1].answer"
+          },
+          "observed": "`短い行` とする理由・構文要件が不足しており、レビューア間で実装適合判断が一致しにくい。",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "draft-recommend-with-reasoning",
+      "result": "fail",
+      "reason": "推奨回答の根拠として、project docs／ガードレール原則／既存実装パターンのいずれかを明示しておらず、推奨理由が要件定義に沿って示されていない。",
+      "category": "code-quality",
+      "title": "Present Recommendations with Reasoning",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "provided draft content",
+            "locator": "qa[0]"
+          },
+          "observed": "推奨回答の根拠として、project docs／ガードレール原則／既存実装パターンのいずれかを明示しておらず、推奨理由が要件定義に沿って示されていない。",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "draft-recommend-with-reasoning",
+      "result": "fail",
+      "reason": "推奨回答の根拠が `Issue #395` とユーザー選択に依存しており、要件で求める根拠分類（docs/guardrail/prior patterns）を明示していない。",
+      "category": "code-quality",
+      "title": "Present Recommendations with Reasoning",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "provided draft content",
+            "locator": "qa[1]"
+          },
+          "observed": "推奨回答の根拠が `Issue #395` とユーザー選択に依存しており、要件で求める根拠分類（docs/guardrail/prior patterns）を明示していない。",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "unambiguous-requirements",
+      "where": {
+        "file": "provided draft content",
+        "locator": "decisionMap.decisionPoints[1]"
+      },
+      "observed": "`短い行で表示する` は出力要件の判定基準が主観的で、具体的な文字数・形式・内容が示されていないため検証不能。",
+      "severity": "blocking",
+      "refs": [
+        "unambiguous-requirements"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "provided draft content",
+        "locator": "decisionMap.decisionPoints[1]"
+      },
+      "observed": "`短い行で表示する` の条件が具体化されておらず、実装が要件を満たすかを独立レビューで同一判断できない。",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "unambiguous-requirements",
+      "where": {
+        "file": "provided draft content",
+        "locator": "qa[1].answer"
+      },
+      "observed": "`短い行で表示` の要件は `短い` の閾値や許容形式が定義されず、合否判定が測定不能。",
+      "severity": "blocking",
+      "refs": [
+        "unambiguous-requirements"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "provided draft content",
+        "locator": "qa[1].answer"
+      },
+      "observed": "`短い行` とする理由・構文要件が不足しており、レビューア間で実装適合判断が一致しにくい。",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "draft-recommend-with-reasoning",
+      "where": {
+        "file": "provided draft content",
+        "locator": "qa[0]"
+      },
+      "observed": "推奨回答の根拠として、project docs／ガードレール原則／既存実装パターンのいずれかを明示しておらず、推奨理由が要件定義に沿って示されていない。",
+      "severity": "blocking",
+      "refs": [
+        "draft-recommend-with-reasoning"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "draft-recommend-with-reasoning",
+      "where": {
+        "file": "provided draft content",
+        "locator": "qa[1]"
+      },
+      "observed": "推奨回答の根拠が `Issue #395` とユーザー選択に依存しており、要件で求める根拠分類（docs/guardrail/prior patterns）を明示していない。",
+      "severity": "blocking",
+      "refs": [
+        "draft-recommend-with-reasoning"
+      ]
+    }
+  ]
+}

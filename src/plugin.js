@@ -2,6 +2,7 @@
 
 import { repoRoot } from "./lib/cli.js";
 import { EXIT_ERROR } from "./lib/constants.js";
+import { runCmd } from "./lib/process.js";
 import {
   addPluginRepo,
   findPluginCandidates,
@@ -23,10 +24,15 @@ function hasJson(args) {
   return args.includes("--json");
 }
 
+function hasNoUpgrade(args) {
+  return args.includes("--no-upgrade");
+}
+
 function stripFlags(args) {
   const out = [];
   for (let i = 0; i < args.length; i += 1) {
     if (args[i] === "--json") continue;
+    if (args[i] === "--no-upgrade") continue;
     if (args[i] === "--ref") {
       i += 1;
       continue;
@@ -54,6 +60,56 @@ function output(value, json) {
     return;
   }
   console.log(formatLine(value));
+}
+
+function upgradeSkip(reason) {
+  return {
+    ran: false,
+    succeeded: false,
+    ok: false,
+    exitCode: null,
+    skipReason: reason,
+  };
+}
+
+function runAutomaticUpgrade(root) {
+  const result = runCmd("senti", ["upgrade"], {
+    cwd: root,
+    env: { ...process.env, SENTI_WORK_ROOT: root, SENTI_SOURCE_ROOT: root },
+    maxBuffer: 50 * 1024 * 1024,
+  });
+  const upgrade = {
+    ran: true,
+    succeeded: result.ok,
+    ok: result.ok,
+    exitCode: result.status,
+    stdout: result.stdout,
+    stderr: result.stderr,
+  };
+  if (!result.ok) {
+    const detail = (result.stderr || result.stdout || `exit ${result.status}`).trim();
+    upgrade.error = `upgrade failed: ${detail}`;
+  }
+  return upgrade;
+}
+
+function upgradeResultLine(upgrade) {
+  if (!upgrade.ran) return `upgrade skipped: ${upgrade.skipReason}`;
+  if (upgrade.succeeded) return "upgrade ran";
+  return `upgrade failed: ${upgrade.error}`;
+}
+
+function outputPluginOperationWithUpgrade(pluginResult, upgrade, { json, key }) {
+  const value = key === "packages"
+    ? { packages: pluginResult, upgrade }
+    : { package: pluginResult, upgrade };
+  if (json) {
+    console.log(JSON.stringify(value, null, 2));
+  } else {
+    output(pluginResult, false);
+    console.log(upgradeResultLine(upgrade));
+  }
+  if (upgrade.ran && !upgrade.succeeded) process.exit(EXIT_ERROR);
 }
 
 export function renderPluginList(entries, { json = false } = {}) {
@@ -125,7 +181,12 @@ export async function main() {
     if (command === "install") {
       const id = stripFlags(rest)[0];
       if (!id) throw new Error("Usage: senti plugin install <id>");
-      output(installPlugin(root, id), false);
+      const result = installPlugin(root, id);
+      if (!result?.id) throw new Error(`plugin install failed: ${id}`);
+      const upgrade = hasNoUpgrade(rest)
+        ? upgradeSkip("no-upgrade option present")
+        : runAutomaticUpgrade(root);
+      outputPluginOperationWithUpgrade(result, upgrade, { json: hasJson(rest), key: "package" });
       return;
     }
     if (command === "list") {
@@ -143,7 +204,16 @@ export async function main() {
       return;
     }
     if (command === "update-all") {
-      output(syncInstalledPlugins(root, { update: true }), hasJson(rest));
+      const results = syncInstalledPlugins(root, { update: true });
+      let upgrade;
+      if (hasNoUpgrade(rest)) {
+        upgrade = upgradeSkip("no-upgrade option present");
+      } else if (!results.some((result) => result.updated)) {
+        upgrade = upgradeSkip("no package updates");
+      } else {
+        upgrade = runAutomaticUpgrade(root);
+      }
+      outputPluginOperationWithUpgrade(results, upgrade, { json: hasJson(rest), key: "packages" });
       return;
     }
 

@@ -185,11 +185,11 @@ const pluginSourceSubcommands = [
 const pluginSubcommands = [
   ["source", "Manage plugin sources", "Usage: senti plugin source <command>", { positional: ["command"], rest: "args" }, ["-h, --help"], pluginSourceSubcommands],
   ["find", "Find installable plugin packages", "Usage: senti plugin find [--json]", { flags: ["--json"] }, ["--json", "-h, --help"]],
-  ["install", "Install a plugin package", "Usage: senti plugin install <id>", { positional: ["id"] }, ["-h, --help"]],
+  ["install", "Install a plugin package", "Usage: senti plugin install <id> [--json] [--no-upgrade]", { positional: ["id"], flags: ["--json", "--no-upgrade"] }, ["--json", "--no-upgrade", "-h, --help"]],
   ["list", "List installed plugin packages", "Usage: senti plugin list [--json]", { flags: ["--json"] }, ["--json", "-h, --help"]],
   ["enable", "Enable an installed plugin package", "Usage: senti plugin enable <id>", { positional: ["id"] }, ["-h, --help"]],
   ["disable", "Disable an installed plugin package", "Usage: senti plugin disable <id>", { positional: ["id"] }, ["-h, --help"]],
-  ["update-all", "Update all installed plugin packages", "Usage: senti plugin update-all [--json]", { flags: ["--json"] }, ["--json", "-h, --help"]],
+  ["update-all", "Update all installed plugin packages", "Usage: senti plugin update-all [--json] [--no-upgrade]", { flags: ["--json", "--no-upgrade"] }, ["--json", "--no-upgrade", "-h, --help"]],
   ["sync", "Sync installed plugin packages", "Usage: senti plugin sync [--json]", { flags: ["--json"] }, ["--json", "-h, --help"]],
 ].map(([name, summary, usage, args, options, subcommands]) => new CommandHelpMetadata({
   name: `plugin ${name}`,

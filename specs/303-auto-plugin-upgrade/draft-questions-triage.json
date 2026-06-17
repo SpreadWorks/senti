@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "2 repair targets are valid question-shape fixes; both should remove embedded recommendations and rationale from pending question text.",
+  "items": [
+    {
+      "title": "1. Question includes recommendation and rationale",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "Pending draft questions must contain only the question text; recommendation and rationale belong in later user-facing choice presentation or answered fields.",
+      "evidence": "draft-review-questions.json repairTargets[0] identifies q1 as including a recommendation and rationale."
+    },
+    {
+      "title": "2. Question includes recommendation and rationale",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "Pending draft questions must contain only the question text; recommendation and rationale belong in later user-facing choice presentation or answered fields.",
+      "evidence": "draft-review-questions.json repairTargets[1] identifies q2 as including a recommendation and rationale."
+    }
+  ]
+}

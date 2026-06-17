@@ -1,0 +1,69 @@
+{
+  "spec": "specs/303-auto-plugin-upgrade/spec.json",
+  "date": "2026-06-17T08:30:00.763Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "`senti plugin install <id>` runs `senti upgrade` after install succeeds unless `--no-upgrade` is present.",
+      "status": "done",
+      "note": "R1: install runs upgrade and deploys plugin skill by default"
+    },
+    {
+      "desc": "`senti plugin update-all` processes at most 100 enabled packages, records `previousCommit`, `commit`, and `updated` for each processed enabled package, and runs `senti upgrade` at most once only when at least one package has `updated: true` unless `--no-upgrade` is present.",
+      "status": "done",
+      "note": "R2: update-all records package change metadata and runs upgrade once after changed packages"
+    },
+    {
+      "desc": "`senti plugin update-all` does not run `senti upgrade` when no package commit changes, and the response reports `upgrade.ran: false` with a skip reason indicating no package updates.",
+      "status": "done",
+      "note": "R3: update-all skips upgrade and reports a skip reason when no package commits change"
+    },
+    {
+      "desc": "`senti plugin source update` and `senti plugin sync` never trigger automatic `senti upgrade`.",
+      "status": "done",
+      "note": "R4: sync and source update do not trigger automatic upgrade after a plugin source changes"
+    },
+    {
+      "desc": "`--no-upgrade` is accepted by `senti plugin install` and `senti plugin update-all`, suppresses automatic upgrade, and is shown in help for those two commands only.",
+      "status": "done",
+      "note": "R5: no-upgrade is accepted for install and update-all and documented only on those commands"
+    },
+    {
+      "desc": "`--json` output for install and update-all returns plugin operation data and an `upgrade` object that exposes whether upgrade ran, whether it succeeded, and failure details when applicable.",
+      "status": "done",
+      "note": "R6: JSON output for install exposes plugin operation data and upgrade status"
+    },
+    {
+      "desc": "When automatic `senti upgrade` fails after a successful plugin install or update-all operation, the command exits non-zero and output still exposes both the plugin operation result and the upgrade failure.",
+      "status": "done",
+      "note": "R7: upgrade failure exits non-zero while preserving plugin operation and failure details"
+    },
+    {
+      "desc": "Human output for install and update-all includes plugin operation output followed by one upgrade result line containing `upgrade`, a state word from `ran`, `skipped`, or `failed`, and a failure message or skip reason when present.",
+      "status": "done",
+      "note": "R8: human output includes plugin output followed by one upgrade result line"
+    },
+    {
+      "desc": "Existing basic behavior for plugin install, update-all, sync, and source update remains covered by behavior-level tests, including plugin-side scripts not being executed.",
+      "status": "done",
+      "note": "R9: pinned sync behavior remains intact while automatic upgrade is limited to install and update-all"
+    },
+    {
+      "desc": "Automatic-upgrade changes continue respecting `.senti/config.local.json` plugin overlays: overlay-only private sources/packages are not persisted into public `.senti/config.json`, while upgrade decision and output metadata may be computed from merged project config.",
+      "status": "done",
+      "note": "R10: config.local plugin overlays remain private while install upgrade uses merged config"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 10,
+    "done": 10,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

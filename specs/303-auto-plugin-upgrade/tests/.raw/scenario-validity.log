@@ -1,0 +1,326 @@
+[senti] scenario-validity tests start
+command: node --test specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js
+[senti] scenario-validity file start command=node specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js
+TAP version 13
+# Subtest: R1: install runs upgrade and deploys plugin skill by default
+not ok 1 - R1: install runs upgrade and deploys plugin skill by default
+  ---
+  duration_ms: 192.884072
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-303-auto-plugin-upgrade/specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js:155:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    /tmp/spec-303-install-upgradeMXgHR0/.agents/skills/sample-plugin-skill/SKILL.md must exist
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    assertDeployedSkillContains (file:///home/nakano/workspace/senti/.senti/worktree/feature-303-auto-plugin-upgrade/specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js:151:10)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-303-auto-plugin-upgrade/specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js:163:3)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: R2: update-all records package change metadata and runs upgrade once after changed packages
+not ok 2 - R2: update-all records package change metadata and runs upgrade once after changed packages
+  ---
+  duration_ms: 265.620206
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-303-auto-plugin-upgrade/specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js:166:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    update-all JSON must include packages array
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-303-auto-plugin-upgrade/specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js:182:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: R2: update-all bounds enabled package processing and reports a single upgrade line
+not ok 3 - R2: update-all bounds enabled package processing and reports a single upgrade line
+  ---
+  duration_ms: 6075.64837
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-303-auto-plugin-upgrade/specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js:197:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    update-all JSON must include packages array
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-303-auto-plugin-upgrade/specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js:212:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R3: update-all skips upgrade and reports a skip reason when no package commits change
+not ok 4 - R3: update-all skips upgrade and reports a skip reason when no package commits change
+  ---
+  duration_ms: 166.771498
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-303-auto-plugin-upgrade/specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js:238:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    update-all JSON must include packages array
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-303-auto-plugin-upgrade/specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js:246:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R4: sync and source update do not trigger automatic upgrade after a plugin source changes
+not ok 5 - R4: sync and source update do not trigger automatic upgrade after a plugin source changes
+  ---
+  duration_ms: 517.596062
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-303-auto-plugin-upgrade/specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js:253:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    initial install must deploy the plugin skill
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-303-auto-plugin-upgrade/specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js:266:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R5: no-upgrade is accepted for install and update-all and documented only on those commands
+not ok 6 - R5: no-upgrade is accepted for install and update-all and documented only on those commands
+  ---
+  duration_ms: 768.556313
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-303-auto-plugin-upgrade/specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js:274:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /--no-upgrade/. Input:
+    
+    'Usage: senti plugin install <id>\n' +
+      '\n' +
+      'Install a plugin package\n' +
+      '\n' +
+      'Options:\n' +
+      '  -h, --help\n' +
+      '\n' +
+      'Arguments:\n' +
+      '  id\n'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: |-
+    Usage: senti plugin install <id>
+    
+    Install a plugin package
+    
+    Options:
+      -h, --help
+    
+    Arguments:
+      id
+    
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-303-auto-plugin-upgrade/specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js:286:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R6: JSON output for install exposes plugin operation data and upgrade status
+not ok 7 - R6: JSON output for install exposes plugin operation data and upgrade status
+  ---
+  duration_ms: 162.539516
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-303-auto-plugin-upgrade/specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js:307:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    stdout must be JSON, got: sample-plugin source=fixture-source f43b995c57e2e3d2629d57c42eede1074b7aea00
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  operator: 'fail'
+  stack: |-
+    parseJsonOutput (file:///home/nakano/workspace/senti/.senti/worktree/feature-303-auto-plugin-upgrade/specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js:44:12)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-303-auto-plugin-upgrade/specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js:312:18)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R7: upgrade failure exits non-zero while preserving plugin operation and failure details
+not ok 8 - R7: upgrade failure exits non-zero while preserving plugin operation and failure details
+  ---
+  duration_ms: 159.40766
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-303-auto-plugin-upgrade/specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js:321:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    sample-plugin source=fixture-source c245d5fffb56d1724f3f48cbd0e8f522b0d986e7
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 0
+  actual: 0
+  operator: 'notStrictEqual'
+  stack: |-
+    assertFailure (file:///home/nakano/workspace/senti/.senti/worktree/feature-303-auto-plugin-upgrade/specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js:36:10)
+    parseJsonFailureOutput (file:///home/nakano/workspace/senti/.senti/worktree/feature-303-auto-plugin-upgrade/specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js:49:3)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-303-auto-plugin-upgrade/specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js:329:18)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R8: human output includes plugin output followed by one upgrade result line
+not ok 9 - R8: human output includes plugin output followed by one upgrade result line
+  ---
+  duration_ms: 153.889191
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-303-auto-plugin-upgrade/specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js:352:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The expression evaluated to a falsy value:
+    
+      assert.ok(result.stdout.indexOf("sample-plugin") < result.stdout.search(/upgrade\s+(ran|skipped|failed)/i))
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-303-auto-plugin-upgrade/specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js:361:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R9: pinned sync behavior remains intact while automatic upgrade is limited to install and update-all
+not ok 10 - R9: pinned sync behavior remains intact while automatic upgrade is limited to install and update-all
+  ---
+  duration_ms: 293.067547
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-303-auto-plugin-upgrade/specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js:365:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    /tmp/spec-303-pinned-syncucDiVO/.agents/skills/sample-plugin-skill/SKILL.md must exist
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    assertDeployedSkillContains (file:///home/nakano/workspace/senti/.senti/worktree/feature-303-auto-plugin-upgrade/specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js:151:10)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-303-auto-plugin-upgrade/specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js:376:3)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R10: config.local plugin overlays remain private while install upgrade uses merged config
+not ok 11 - R10: config.local plugin overlays remain private while install upgrade uses merged config
+  ---
+  duration_ms: 145.78559
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-303-auto-plugin-upgrade/specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js:393:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    stdout must be JSON, got: private-plugin source=private-source 070a3569edd3faf07f993d22ef081f7cd7c2726c
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  operator: 'fail'
+  stack: |-
+    parseJsonOutput (file:///home/nakano/workspace/senti/.senti/worktree/feature-303-auto-plugin-upgrade/specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js:44:12)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-303-auto-plugin-upgrade/specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js:409:18)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 0
+# fail 11
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8922.617333
+Command failed: node specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/303-auto-plugin-upgrade/tests/plugin-auto-upgrade.test.js
+exitCode: 1
+[senti] requirement R1 observed: R1: install runs upgrade and deploys plugin skill by default
+[senti] requirement R2 observed: R2: update-all records package change metadata and runs upgrade once after changed packages
+[senti] requirement R3 observed: R3: update-all skips upgrade and reports a skip reason when no package commits change
+[senti] requirement R4 observed: R4: sync and source update do not trigger automatic upgrade after a plugin source changes
+[senti] requirement R5 observed: R5: no-upgrade is accepted for install and update-all and documented only on those commands
+[senti] requirement R6 observed: R6: JSON output for install exposes plugin operation data and upgrade status
+[senti] requirement R7 observed: R7: upgrade failure exits non-zero while preserving plugin operation and failure details
+[senti] requirement R8 observed: R8: human output includes plugin output followed by one upgrade result line
+[senti] requirement R9 observed: R9: pinned sync behavior remains intact while automatic upgrade is limited to install and update-all
+[senti] requirement R10 observed: R10: config.local plugin overlays remain private while install upgrade uses merged config
+[senti] scenario-validity tests end
