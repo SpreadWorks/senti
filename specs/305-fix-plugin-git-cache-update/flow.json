@@ -16,7 +16,16 @@
         {
           "id": "prepare-spec",
           "status": "done",
-          "finishedAt": "2026-06-17T14:30:05.439Z"
+          "finishedAt": "2026-06-17T14:30:05.439Z",
+          "runtimeLog": {
+            "runId": "3c25255b-2f79-4985-aac9-0807fbb2784c",
+            "sequence": 21,
+            "attempt": 1,
+            "command": "flow prepare",
+            "startedAt": "2026-06-17T15:57:08.248Z",
+            "endedAt": "2026-06-17T15:57:15.824Z",
+            "exitCode": 0
+          }
         },
         {
           "id": "draft",
@@ -397,7 +406,7 @@
             },
             {
               "id": "finalize-merge",
-              "status": "in_progress",
+              "status": "done",
               "startedAt": "2026-06-17T15:24:53.150Z",
               "runtimeLog": {
                 "runId": "3c25255b-2f79-4985-aac9-0807fbb2784c",
@@ -407,17 +416,29 @@
                 "startedAt": "2026-06-17T15:25:12.345Z",
                 "endedAt": "2026-06-17T15:25:14.780Z",
                 "exitCode": 1
-              }
+              },
+              "finishedAt": "2026-06-17T15:26:48.843Z"
             },
             {
               "id": "finalize-sync",
-              "status": "pending",
-              "finishedAt": "2026-06-17T15:25:14.766Z"
+              "status": "done",
+              "finishedAt": "2026-06-17T15:28:07.810Z",
+              "startedAt": "2026-06-17T15:26:48.843Z",
+              "runtimeLog": {
+                "runId": "3c25255b-2f79-4985-aac9-0807fbb2784c",
+                "sequence": 150,
+                "attempt": 1,
+                "command": "flow run finalize-sync",
+                "startedAt": "2026-06-17T15:27:04.407Z",
+                "endedAt": "2026-06-17T15:28:07.814Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-cleanup",
-              "status": "pending",
-              "finishedAt": "2026-06-17T15:25:14.777Z"
+              "status": "done",
+              "finishedAt": "2026-06-17T16:03:33.741Z",
+              "startedAt": "2026-06-17T15:28:07.810Z"
             }
           ]
         }
@@ -428,7 +449,7 @@
   "tasks": [],
   "currentTaskId": null,
   "issue": 397,
-  "request": "Goal: Fix Git URL plugin source updates so update-all adopts the fetched target commit instead of stale cache HEAD. Scope: src/plugin.js and src/lib/plugin-registry.js update path, Git URL source cache handling, source.ref resolution for branch/tag/SHA-like refs, dirty-cache self-heal, and regression tests for behind-remote and dirty cache cases. Out of Scope: Non-Git plugin sources and npm publishing. Description: Existing caches can fetch remote updates but still report updated:false because HEAD is not advanced when source.ref is missing. The fix must deterministically resolve the target revision after fetch, adopt that commit for install/materialize, and return managed caches to a clean state by reset/clean or reclone.",
+  "request": "Goal: docs.text の batch 生成で JSON object 契約を強制し、非 JSON 応答による build 失敗と失敗キャッシュ固定化を防ぐ。 Scope: docs.text の agent.call schema 渡し、Codex provider の jsonSchemaFlag/jsonSchemaMode defaults、JSON parse failure 時の cache 抑止、対象ファイル単位 retry、project-local override の診断または仕様化。 Out of Scope: docs.text 以外の生成契約変更、外部依存追加、project-specific 値の hardcode。 Description: Issue #399 の受け入れ条件に沿って unit test と実装を追加し、1 回目が自然文で 2 回目が JSON の場合に build が継続できることを確認する。",
   "worktree": true,
   "plugins": {
     "flowCommandHooks": [
@@ -467,6 +488,11 @@
       "text": "implement approach: user selected [1] proceed with confirmed Git URL cache resolution and repair design",
       "taskId": null,
       "ts": "2026-06-17T14:55:48.833Z"
+    },
+    {
+      "text": "preflight: user selected Enable auto for Issue #399 summary",
+      "taskId": null,
+      "ts": "2026-06-17T15:56:58.260Z"
     }
   ],
   "metrics": [
@@ -1239,6 +1265,8 @@
     "updatedAt": "2026-06-17T15:21:07.736Z"
   },
   "state": {
-    "finalizedAt": "2026-06-17T15:24:52.839Z"
+    "finalizedAt": "2026-06-17T15:24:52.839Z",
+    "mergeStrategy": "squash",
+    "featureBranchSquashedSha": "88f7ed6a6954e8d4ff01b24a5914c2d711a5865e"
   }
 }
