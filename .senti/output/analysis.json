@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-17T15:57:13.166Z",
+  "analyzedAt": "2026-06-17T16:38:43.277Z",
   "package": {
     "entries": [
       {
@@ -1051,9 +1051,9 @@
       },
       {
         "file": "src/docs/commands/text.js",
-        "hash": "f69e72a2ca24879be477fb9ea9580b83",
-        "lines": 785,
-        "mtime": "2026-06-09T08:02:50.450Z",
+        "hash": "90fb64167c1bf52f9520ba67008eff0e",
+        "lines": 848,
+        "mtime": "2026-06-17T16:38:36.963Z",
         "className": "text",
         "methods": [
           "textFillFromAnalysis",
@@ -1062,6 +1062,11 @@
           "stripFillContent",
           "countFilledInBatch",
           "parseBatchJsonResponse",
+          "directiveBatchId",
+          "buildBatchJsonSchema",
+          "isValidBatchJsonData",
+          "isValidBatchJsonResponse",
+          "resolveBatchContextOptions",
           "applyBatchJsonToFile",
           "processTemplateFileBatch",
           "invokeAgent",
@@ -1112,21 +1117,23 @@
           "src/docs/commands/readme.js"
         ],
         "id": "7c5e7654",
-        "summary": "This command fills `{{text}}` directives by asking an AI agent to generate prose from analysis data and template context. It is the narrative-writing stage that complements structural data insertion.",
-        "detail": "The module supports both batched JSON-based fills and more granular directive processing, strips common agent preambles, and validates results to catch suspicious shrinkage or malformed output. It tracks how many directives were filled or skipped, writes only changed files, and can narrow work to chapters whose backing source files changed by comparing hashes. Concurrency, retry counts, and dry-run behavior are configurable, while parse and repair helpers make AI responses more resilient. The overall pattern is controlled text synthesis with safeguards against destructive rewrites.",
-        "chapter": "internal_design",
-        "role": "text directive generation pipeline",
+        "summary": "Implements the docs text workflow that fills {{text}} directives in documentation files from analysis data. It supports per-directive and batched generation, validation, and file update orchestration.",
+        "detail": "The module reads documentation files, detects text directives with parser utilities, and builds prompts from analysis entries plus resolved docs context. For files with multiple directives, it can request a structured JSON batch response, repair and parse model output, validate the returned payload, and apply generated text back into the template while tracking filled and skipped items. It strips agent preambles, supports dry-run, language, source-root, retry, and concurrency options, and can clear previous fill blocks before regeneration. The command flow also filters targets by changed chapters, writes updated files, aggregates errors, and exports helper functions for reuse and testing.",
+        "chapter": "cli_commands",
+        "role": "Docs text autofill command",
         "enrich": {
-          "processedAt": "2026-06-09T11:45:10.652Z",
+          "processedAt": "2026-06-17T16:39:19.262Z",
           "attempts": 1
         },
         "keywords": [
-          "text directives",
-          "AI content generation",
+          "documentation generation",
+          "text directive",
+          "template filling",
           "batch JSON response",
-          "content validation",
-          "chapter diff detection",
-          "concurrency"
+          "prompt building",
+          "concurrency control",
+          "chapter detection",
+          "CLI command"
         ]
       },
       {
@@ -7972,9 +7979,9 @@
       },
       {
         "file": "src/lib/agent-defaults.js",
-        "hash": "593c78b2a473c814e435d74ce7e15fab",
-        "lines": 224,
-        "mtime": "2026-06-15T04:14:35.995Z",
+        "hash": "07b15d58350935a8e27ac19ac9c5e321",
+        "lines": 236,
+        "mtime": "2026-06-17T16:38:36.963Z",
         "className": "agent-defaults",
         "methods": [
           "defaultAgentProfiles",
@@ -7997,23 +8004,23 @@
           "src/setup.js"
         ],
         "id": "1af31edd",
-        "summary": "Defines the built-in agent provider pool and the default profile map used by senti at runtime. It also exposes safe clone-based accessors and an additive merge helper for materializing defaults into user config.",
-        "detail": "The module keeps provider definitions and profile-to-provider routing in one place, covering Claude and Codex model variants for docs and flow commands. `defaultAgentProfiles()` and `defaultAgentProviders()` return deep-cloned data so callers cannot mutate the shipped defaults. Provider export is filtered to only the provider keys actually referenced by built-in profiles, and it throws if a profile points to an unknown provider key. `mergeAgentDefaults()` mutates a user `agent` object in an add-only way by filling missing profiles, missing command slots, and referenced providers without overwriting user-defined values or touching `default` and `useProfile`.",
+        "summary": "Defines built-in agent provider pools and profile presets, then merges them into user configuration safely. It centralizes default profile cloning, provider validation, and fallback assembly.",
+        "detail": "The module stores default provider and profile maps and deep-clones them before returning values so callers cannot mutate shared defaults. It derives which provider keys are referenced by the active profiles, materializes only those provider entries, and throws if a built-in profile points to an unknown provider. The exported helpers expose default profiles and default providers separately for reuse by other configuration code. The merge function validates that the incoming agent section is an object and returns a combined configuration with built-in defaults plus user overrides.",
         "chapter": "configuration",
-        "role": "built-in agent defaults registry",
+        "role": "Agent defaults and profile merger",
         "enrich": {
-          "processedAt": "2026-06-15T04:16:16.377Z",
+          "processedAt": "2026-06-17T16:39:19.262Z",
           "attempts": 1
         },
         "keywords": [
           "agent defaults",
-          "default profiles",
-          "provider pool",
-          "built-in providers",
-          "configuration merge",
-          "runtime defaults",
-          "Claude profile",
-          "Codex profile"
+          "provider presets",
+          "profile configuration",
+          "config merge",
+          "default providers",
+          "validation",
+          "fallback profiles",
+          "runtime settings"
         ]
       },
       {
@@ -8055,9 +8062,9 @@
       },
       {
         "file": "src/lib/agent.js",
-        "hash": "2ac9f50a9c7555677f6042c108b3b976",
-        "lines": 874,
-        "mtime": "2026-06-17T09:56:36.532Z",
+        "hash": "9b9786189e68195f6d18de5664a11bf1",
+        "lines": 910,
+        "mtime": "2026-06-17T16:38:36.963Z",
         "className": "agent",
         "methods": [
           "createPluginAgentApi",
@@ -8082,6 +8089,7 @@
           "ensureWorkDir",
           "filterStreamingEvents",
           "tryParseProvider",
+          "reportMissingJsonSchemaProfileFields",
           "sleep",
           "runWithLogging",
           "textStats"
@@ -8107,23 +8115,25 @@
           "src/lib/container.js"
         ],
         "id": "13ddf392",
-        "enrich": {
-          "processedAt": "2026-06-17T15:28:02.808Z",
-          "attempts": 4
-        },
-        "summary": "Provides the core agent runtime that resolves provider and profile settings before executing model invocations through subprocesses. It wraps provider calls with caching, retries, logging, and metric persistence.",
-        "detail": "The `Agent` class resolves providers from configuration and built-in profiles, normalizes profile aliases, and prepares invocation arguments including prompt substitution, work-directory injection, environment variables, and optional JSON schema files. Execution is handled through spawned child processes with timeouts, provider-specific output parsing, streaming-event filtering, and exponential-backoff retries. A prompt cache keyed by a stable serialized request identity stores responses under `.senti/agent-cache`, and cache hits can also emit finalize-sidecar metrics when flow context is available. The module also exposes profile-selection helpers and a plugin-facing agent API so plugins can reuse the same invocation and telemetry behavior.",
+        "summary": "Implements the core agent runtime that resolves profiles, invokes external providers, and manages retries, caching, and metrics. It is the main abstraction behind prompt execution in the CLI.",
+        "detail": "The Agent class resolves provider and profile selection from config, command IDs, environment variables, and built-in aliases before constructing provider-specific invocations. It supports JSON-schema-assisted calls, stdin fallback thresholds, temporary schema files, working-directory argument injection, streaming event filtering, and provider output parsing. The module includes a prompt cache keyed by a stable serialized request identity, along with cache-hit accounting and optional sidecar metric persistence for flow contexts. Retry handling uses bounded attempts with exponential backoff, while logging captures request IDs, usage, model metadata, timing, and response size statistics. Additional helpers implement profile prefix matching, default fallback rules, prompt token substitution, and a plugin-facing wrapper API.",
         "chapter": "internal_design",
-        "role": "LLM agent runtime and profile resolver",
+        "role": "Agent orchestration runtime",
+        "enrich": {
+          "processedAt": "2026-06-17T16:39:19.262Z",
+          "attempts": 1
+        },
         "keywords": [
           "agent runtime",
           "provider registry",
-          "profile selection",
+          "profile resolution",
           "prompt cache",
-          "subprocess invocation",
           "retry backoff",
           "metrics logging",
-          "plugin agent API"
+          "schema-based output",
+          "process spawning",
+          "plugin API",
+          "stream filtering"
         ]
       },
       {
@@ -11390,9 +11400,9 @@
     ],
     "summary": {
       "total": 213,
-      "totalMethods": 1946
+      "totalMethods": 1952
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-17T15:28:05.367Z"
+  "enrichedAt": "2026-06-17T16:39:19.262Z"
 }
