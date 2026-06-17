@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "unambiguous-requirements",
+      "result": "fail",
+      "reason": "要件に「小さな shared foundation」という定量化されない表現があり、実装判定条件としての明確さが不足している。",
+      "category": "code-quality",
+      "title": "Unambiguous Requirements",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content",
+            "locator": "analysis.proposedApproach"
+          },
+          "observed": "要件に「小さな shared foundation」という定量化されない表現があり、実装判定条件としての明確さが不足している。",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "既存の公開振る舞い（`senti flow run review` のsingle-shot系、gates系）を維持対象として定義しているが、各振る舞いを新経路にどこで移譲するか／明示的に除外するかのマッピングが本文中にない。",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "scopeVerification.out[0]"
+          },
+          "observed": "既存の公開振る舞い（`senti flow run review` のsingle-shot系、gates系）を維持対象として定義しているが、各振る舞いを新経路にどこで移譲するか／明示的に除外するかのマッピングが本文中にない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "保持される公開面の検証が、loop 実行関連に偏っており、変更されない経路（single-shot impl-review、impl-gate / integration gate / test-review / draft-review / spec-review）について、new path経由での動作保証（behavior-level verification）が示されていない。",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "qa[4].answer"
+          },
+          "observed": "保持される公開面の検証が、loop 実行関連に偏っており、変更されない経路（single-shot impl-review、impl-gate / integration gate / test-review / draft-review / spec-review）について、new path経由での動作保証（behavior-level verification）が示されていない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "unambiguous-requirements",
+      "where": {
+        "file": "content",
+        "locator": "analysis.proposedApproach"
+      },
+      "observed": "要件に「小さな shared foundation」という定量化されない表現があり、実装判定条件としての明確さが不足している。",
+      "severity": "blocking",
+      "refs": [
+        "unambiguous-requirements"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "content",
+        "locator": "scopeVerification.out[0]"
+      },
+      "observed": "既存の公開振る舞い（`senti flow run review` のsingle-shot系、gates系）を維持対象として定義しているが、各振る舞いを新経路にどこで移譲するか／明示的に除外するかのマッピングが本文中にない。",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "content",
+        "locator": "qa[4].answer"
+      },
+      "observed": "保持される公開面の検証が、loop 実行関連に偏っており、変更されない経路（single-shot impl-review、impl-gate / integration gate / test-review / draft-review / spec-review）について、new path経由での動作保証（behavior-level verification）が示されていない。",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    }
+  ]
+}

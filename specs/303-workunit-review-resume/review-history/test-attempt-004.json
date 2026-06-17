@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-17T05:56:29.265Z",
+  "verdict": "ADVISORY",
+  "counts": {
+    "blocking": 0,
+    "advisory": 2,
+    "total": 2
+  },
+  "coverageArtifact": "specs/303-workunit-review-resume/test-coverage.json",
+  "blockingFindings": [],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Add explicit unitId load assertion",
+      "target": "specs/303-workunit-review-resume/tests/workunit-primitives.test.js",
+      "improvement": "R2 would be stronger with a direct store-level assertion that lookup occurs by stable unitId and then rejects reuse when the stored full identity differs from the planned full identity.",
+      "whyNonBlocking": "Current R2 and R4 tests cover the core identity separation and stale decision behavior, so this is an extra precision check rather than missing executable coverage."
+    },
+    {
+      "kind": "advisory",
+      "title": "Cover child fallback failure variants",
+      "target": "specs/303-workunit-review-resume/tests/cross-check-fallback.test.js",
+      "improvement": "R8 coverage could add parser_failure and schema_failure to the positive retryable threshold examples, not only provider_failure and timeout.",
+      "whyNonBlocking": "R10 separately classifies all retryable WorkUnit tooling failures, and R8 already validates the split behavior with retryable failures, so the current coverage is sufficient for implementation to proceed."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/303-workunit-review-resume/test-review.json",
+    "verdict": "ADVISORY",
+    "result": "ADVISORY",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": "implement",
+    "completionKind": "normal",
+    "progressSignature": "8501d9cecba11d1559d0fff95f688f71c175546c44e56694f2af181fcf5a8362"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "test-004-non-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "non-blocking",
+      "title": "Add explicit unitId load assertion",
+      "body": "Add explicit unitId load assertion",
+      "category": "unknown"
+    },
+    {
+      "id": "test-004-non-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "non-blocking",
+      "title": "Cover child fallback failure variants",
+      "body": "Cover child fallback failure variants",
+      "category": "unknown"
+    }
+  ]
+}

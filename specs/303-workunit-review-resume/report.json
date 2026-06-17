@@ -1,0 +1,330 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".senti/output/analysis.json                        |    2 +-\n .../acceptance-review.json                         |   21 +\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-gate-source.json                         |  120 +++\n .../draft-questions-repair.json                    |   53 +\n .../draft-questions-triage.json                    |   43 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   47 +\n specs/303-workunit-review-resume/draft.json        |  140 +++\n specs/303-workunit-review-resume/file-map.json     |   48 +\n specs/303-workunit-review-resume/flow.json         | 1041 ++++++++++++++++++++\n specs/303-workunit-review-resume/impl-review.json  |   37 +\n specs/303-workunit-review-resume/issue-log.json    |  308 ++++++\n specs/303-workunit-review-resume/issue.md          |  324 ++++++\n .../plugin-artifacts/workflow/prepare.json         |   10 +\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |  101 ++\n .../review-history/impl-attempt-001.json           |   51 +\n .../review-history/impl-attempt-001.md             |   22 +\n .../review-history/spec-attempt-001.json           |  112 +++\n .../review-history/spec-attempt-001.md             |   36 +\n .../review-history/test-attempt-001.json           |  210 ++++\n .../review-history/test-attempt-001.md             |   69 ++\n .../review-history/test-attempt-002.json           |  120 +++\n .../review-history/test-attempt-002.md             |   39 +\n .../review-history/test-attempt-003.json           |   84 ++\n .../review-history/test-attempt-003.md             |   30 +\n .../review-history/test-attempt-004.json           |   64 ++\n .../review-history/test-attempt-004.md             |   21 +\n specs/303-workunit-review-resume/review.md         |   22 +\n .../spec-gate-source.json                          |   83 ++\n specs/303-workunit-review-resume/spec-repair.json  |   62 ++\n specs/303-workunit-review-resume/spec-review.json  |   58 ++\n specs/303-workunit-review-resume/spec-review.md    |   36 +\n specs/303-workunit-review-resume/spec-triage.json  |   29 +\n specs/303-workunit-review-resume/spec.json         |  380 +++++++\n specs/303-workunit-review-resume/spec.md           |  168 ++++\n specs/303-workunit-review-resume/tasks/T-1.md      |   20 +\n specs/303-workunit-review-resume/tasks/T-2.md      |   20 +\n specs/303-workunit-review-resume/tasks/T-3.md      |   20 +\n specs/303-workunit-review-resume/tasks/T-4.md      |   20 +\n specs/303-workunit-review-resume/tasks/T-5.md      |   20 +\n .../303-workunit-review-resume/test-coverage.json  |  187 ++++\n specs/303-workunit-review-resume/test-review.json  |   40 +\n specs/303-workunit-review-resume/test-review.md    |   21 +\n .../tests/cross-check-fallback.test.js             |  145 +++\n .../tests/loop-review-resume.test.js               |  313 ++++++\n .../tests/retained-surfaces.test.js                |   64 ++\n .../tests/review-exclusions.test.js                |   57 ++\n .../tests/workunit-primitives.test.js              |  188 ++++\n src/flow/commands/review.js                        |  308 +++++-\n src/flow/lib/run-gate.js                           |    8 +\n src/flow/lib/run-review.js                         |   14 +-\n src/flow/lib/work-unit.js                          |  442 +++++++++\n 55 files changed, 5889 insertions(+), 30 deletions(-)",
+      "commits": [
+        "Add resumable WorkUnit loop review"
+      ]
+    },
+    "retro": {
+      "total": 12,
+      "done": 12,
+      "partial": 0,
+      "not_done": 0,
+      "not_applicable_count": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "Introduce dedicated WorkUnit value classes for identity, plan entries, checkpoint records, and resume decisions. These classes enforce required identity fields and status values in constructors and expose behavior for hashing, identity comparison, serialization, and stale detection.",
+          "status": "done",
+          "note": "R1: WorkUnit foundation exposes value classes with constructor invariants"
+        },
+        {
+          "desc": "Calculate each WorkUnit identity from phase, kind, stable order key, normalized target files, input hash, commandId, resolved provider identity, prompt version, and schema version. Derive `unitId` separately from stable lookup fields: phase, kind, stable order key, and parentUnitId. A checkpoint is reusable only when loaded by `unitId` and the stored full identity exactly matches the planned full identity.",
+          "status": "done",
+          "note": "R2: stable unitId is separate from full identity comparison"
+        },
+        {
+          "desc": "Persist WorkUnit checkpoints under the current spec directory at `review-history/work-units/impl-review/<unit-id>.json` with version, phase, kind, unitId, identity, targetFiles, inputHash, provider identity, promptVersion, schemaVersion, status, attemptCount, startedAt, finishedAt, and optional success or failure fields.",
+          "status": "done",
+          "note": "R3: checkpoint store writes under spec-dir review history by unitId"
+        },
+        {
+          "desc": "For loop chunk WorkUnits, reuse a matching success checkpoint without calling the provider, and execute only missing, failed, or stale WorkUnits.",
+          "status": "done",
+          "note": "R4: loop review reuses matching success checkpoints and executes missing failed or stale chunks"
+        },
+        {
+          "desc": "On loop chunk provider success, parse proposals and immediately save a success checkpoint before executing later WorkUnits. On provider failure, timeout, parser failure, or schema failure, immediately save a failed checkpoint and return an impl `TOOLING_FAILURE` result across the `run-review` boundary without writing successful final review artifacts or advancing to the next step.",
+          "status": "done",
+          "note": "R5: later chunk tooling failure preserves earlier success checkpoints without final artifacts"
+        },
+        {
+          "desc": "Generate `impl-review.json` and `review.md` only after every required WorkUnit in the current plan is successful, preserving the existing loop proposal conversion to `nonBlockingImprovements` and an empty `blockingFindings` array.",
+          "status": "done",
+          "note": "R6: final review artifacts are produced only after every planned WorkUnit succeeds"
+        },
+        {
+          "desc": "Plan, save, and reuse loop cross-check as a WorkUnit when the existing condition holds: at least two chunk summaries exist and reviewCallCount remains below `MAX_LOOP_CALLS`. Cross-check identity is based on the hashes of chunk summaries included in its input.",
+          "status": "done",
+          "note": "R7: loop cross-check is checkpointed and reused by summary hashes"
+        },
+        {
+          "desc": "After the same retryable parent `loop-chunk` WorkUnit has two failed checkpoints, split only that parent chunk into child WorkUnits, one child per group. `provider_failure`, `timeout`, `parser_failure`, and `schema_failure` checkpoints are retryable for this threshold. Fallback splitting is one level only: child WorkUnits are never split again, and child WorkUnit count is bounded by the parent chunk group count. Child WorkUnits include parentUnitId, and aggregation expands successful child results at the parent position without writing a parent success checkpoint.",
+          "status": "done",
+          "note": "R8: two retryable parent failures split only that parent into one-level bounded children"
+        },
+        {
+          "desc": "Add config setting `flow.review.excludePaths` and combine it with default review exclusions through one repository-root-relative path matching decision. Apply exclusions before touched file count, per-file diff collection, and loop review chunk creation.",
+          "status": "done",
+          "note": "R9: default and configured review exclusions share one matcher before touched-file counting"
+        },
+        {
+          "desc": "Provider failure, timeout, parser failure, and schema failure inside WorkUnit execution are tooling failures and do not increment semantic reviewRetry. Checkpoint I/O failure and invariant violation are non-retryable command failures and do not count toward fallback splitting.",
+          "status": "done",
+          "note": "R10: WorkUnit tooling failures normalize without semantic reviewRetry consumption"
+        },
+        {
+          "desc": "Preserve retained public surfaces: single-shot impl-review, impl-gate / integration gate, test-review, draft-review, and spec-review continue through existing paths and do not create WorkUnit checkpoint artifacts.",
+          "status": "done",
+          "note": "R11: retained review and gate surfaces do not create WorkUnit checkpoints"
+        },
+        {
+          "desc": "Record WorkUnit checkpoint rawResponse and failure details as spec-directory development evidence only; do not add new secret collection behavior or a new redaction policy.",
+          "status": "done",
+          "note": "R12: raw responses and failure details stay inside spec-dir checkpoint evidence"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 14,
+      "fullLogPath": "specs/303-workunit-review-resume/issue-log.json",
+      "importantTotal": 10,
+      "importantShown": 10,
+      "importantOmitted": 0,
+      "recentOtherTotal": 4,
+      "recentOtherShown": 4,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "draft-gate found ambiguous foundation wording and missing migration parity mapping for retained review and gate public surfaces",
+          "resolution": "replaced vague foundation wording with explicit responsibilities and added retained public surface mapping plus behavior-level verification requirements"
+        },
+        {
+          "classification": "important",
+          "step": "spec-repair",
+          "reason": "spec-review found missing stable unitId lookup, impl tooling-failure boundary contract, and retryable WorkUnit failure classification",
+          "resolution": "updated spec.json and spec-repair.json to define stable unitId lookup, structured impl TOOLING_FAILURE behavior, and retryable failureKind mapping"
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "Fallback split rule is unbounded: R8 only states split a failed parent after two retryable failures and does not define a cap or terminal condition for repeated retry/split cycles (e.g., a repeatedly failing chunk repeatedly generating c...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "spec-gate found fallback splitting lacked explicit resource bounds and spec-local tests lacked required spec header convention",
+          "resolution": "bounded fallback splitting to one level with child count limited by parent group count and required spec-local test files to include spec headers"
+        },
+        {
+          "classification": "important",
+          "step": "scenario-validity",
+          "reason": "Spec-local tests failed scenario-validity as invalid_test because missing future modules were imported at file load time.",
+          "resolution": "Moved future module and export checks inside test bodies using assertions before dynamic imports or function calls."
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Second static test review found remaining contradictions and missing behavior assertions in WorkUnit tests.",
+          "resolution": "Changed cross-check invalidation to alter chunk input identity, added immediate checkpoint and stop assertions, added timeout/parser/schema execution failures, and asserted positive fallback threshold from failed checkpoints."
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Third static test review found a cross-check count contradiction and missing parser/schema and command-failure coverage.",
+          "resolution": "Adjusted the R6 scenario to avoid cross-check planning, added malformed provider output cases, and asserted checkpoint I/O and invariant failures normalize as non-retryable command failures."
+        },
+        {
+          "classification": "important",
+          "step": "implement",
+          "reason": "implement completion validation failed because file-map evidence was missing before marking implement done.",
+          "resolution": "Record changed implementation files for every requirement using senti flow set files, then retry implement completion."
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "Fallback child split helpers (`shouldFallbackSplit`, `planFallbackChildWorkUnits`, `runFallbackChildWorkUnits`) are present, but there is no flow integration in `runLoopReviewWithDependencies` to trigger splitting after two retryable fai...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "fix: impl-gate failed R8 fallback integration and R9 wildcard matcher reliability.",
+          "resolution": "Integrated fallback child planning/execution into runLoopReviewWithDependencies after two retryable parent failures, and replaced wildcard escaping with a dedicated regex literal escape helper."
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "qa[1]: invalid category \"edge-cases\"; qa[3]: invalid category \"consumer-contracts\"; qa[4]: invalid category \"test-strategy\"",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "draft-gate rejected three draft QA entries because their categories were not in the allowed schema enum",
+          "resolution": "replaced edge-cases with implementation-policy, consumer-contracts with risk-migration-policy, and test-strategy with follow-up-coverage"
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "要件に「小さな shared foundation」という定量化されない表現があり、実装判定条件としての明確さが不足している。; 既存の公開振る舞い（`senti flow run review` のsingle-shot系、gates系）を維持対象として定義しているが、各振る舞いを新経路にどこで移譲するか／明示的に除外するかのマッピングが本文中にない。; 保持される公開面の検証が、loop 実行関連に偏っており、変更されない経路（single-shot impl-re...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "test-review",
+          "reason": "Static test review found helper-only and partial-contract coverage for WorkUnit resume requirements.",
+          "resolution": "Expanded spec-local tests to exercise loop checkpoint reuse, final artifacts, cross-check planning, fallback aggregation, exclusions, retry accounting, retained surfaces, and full identity persistence."
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 10
+    },
+    "tokenMetrics": {
+      "input": 601866,
+      "output": 95873,
+      "cacheRead": 1496576,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 20,
+      "durationMs": 749601,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 21238
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 10405
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 27185
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 219969
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 25533
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 334467
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 25556
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 85248
+        }
+      ]
+    },
+    "tests": {
+      "total": 12,
+      "passed": 12,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/303-workunit-review-resume/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "specs/303-workunit-review-resume/",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/commands/review.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-gate.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-review.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/work-unit.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/303-workunit-review-resume/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/review.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-review.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/flow/lib/work-unit.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/303-workunit-review-resume/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/review.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-review.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/flow/lib/work-unit.js"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "skipKind": null,
+        "rawOutputPath": "specs/303-workunit-review-resume/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    Add resumable WorkUnit loop review\n    55 files changed, 5889 insertions(+), 30 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (12 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 10\n    agent calls ................. 20\n    input tokens ................ 601,866\n    output tokens ............... 95,873\n    cache-read tokens ........... 1,496,576\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 749.6s\n      draft-questions-review .... 21.2s\n      draft-coverage-review ..... 10.4s\n      draft-gate ................ 27.2s\n      spec-review ............... 220.0s\n      spec-gate ................. 25.5s\n      test-review ............... 334.5s\n      impl-review ............... 25.6s\n      impl-gate ................. 85.2s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 12  passed 12  failed 0 verdict=pass\n    raw_output: specs/303-workunit-review-resume/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=pass\n\n  Issue Log Summary (14 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/303-workunit-review-resume/issue-log.json\n\n    Important (10)\n    - [draft-gate] draft-gate found ambiguous foundation wording and missing migration parity mapping for retained review and gate public surfaces\n    - [spec-repair] spec-review found missing stable unitId lookup, impl tooling-failure boundary contract, and retryable WorkUnit failure classification\n    - [spec-gate] Fallback split rule is unbounded: R8 only states split a failed parent after two retryable failures and does not define a cap or terminal condition for repeated retry/split cycles (e.g., a repeatedly failing chunk repeatedly generating c...\n    - [spec-gate] spec-gate found fallback splitting lacked explicit resource bounds and spec-local tests lacked required spec header convention\n    - [scenario-validity] Spec-local tests failed scenario-validity as invalid_test because missing future modules were imported at file load time.\n    - [test-review] Second static test review found remaining contradictions and missing behavior assertions in WorkUnit tests.\n    - [test-review] Third static test review found a cross-check count contradiction and missing parser/schema and command-failure coverage.\n    - [implement] implement completion validation failed because file-map evidence was missing before marking implement done.\n    - [spec-gate] Fallback child split helpers (`shouldFallbackSplit`, `planFallbackChildWorkUnits`, `runFallbackChildWorkUnits`) are present, but there is no flow integration in `runLoopReviewWithDependencies` to trigger splitting after two retryable fai...\n    - [impl-gate] fix: impl-gate failed R8 fallback integration and R9 wildcard matcher reliability.\n\n    Recent Other (4)\n    - [draft-gate] qa[1]: invalid category \"edge-cases\"; qa[3]: invalid category \"consumer-contracts\"; qa[4]: invalid category \"test-strategy\"\n    - [draft-gate] draft-gate rejected three draft QA entries because their categories were not in the allowed schema enum\n    - [draft-gate] 要件に「小さな shared foundation」という定量化されない表現があり、実装判定条件としての明確さが不足している。; 既存の公開振る舞い（`senti flow run review` のsingle-shot系、gates系）を維持対象として定義しているが、各振る舞いを新経路にどこで移譲するか／明示的に除外するかのマッピングが本文中にない。; 保持される公開面の検証が、loop 実行関連に偏っており、変更されない経路（single-shot impl-re...\n    - [test-review] Static test review found helper-only and partial-contract coverage for WorkUnit resume requirements."
+}

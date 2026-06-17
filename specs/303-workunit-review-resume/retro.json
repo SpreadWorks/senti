@@ -1,0 +1,79 @@
+{
+  "spec": "specs/303-workunit-review-resume/spec.json",
+  "date": "2026-06-17T06:14:01.365Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Introduce dedicated WorkUnit value classes for identity, plan entries, checkpoint records, and resume decisions. These classes enforce required identity fields and status values in constructors and expose behavior for hashing, identity comparison, serialization, and stale detection.",
+      "status": "done",
+      "note": "R1: WorkUnit foundation exposes value classes with constructor invariants"
+    },
+    {
+      "desc": "Calculate each WorkUnit identity from phase, kind, stable order key, normalized target files, input hash, commandId, resolved provider identity, prompt version, and schema version. Derive `unitId` separately from stable lookup fields: phase, kind, stable order key, and parentUnitId. A checkpoint is reusable only when loaded by `unitId` and the stored full identity exactly matches the planned full identity.",
+      "status": "done",
+      "note": "R2: stable unitId is separate from full identity comparison"
+    },
+    {
+      "desc": "Persist WorkUnit checkpoints under the current spec directory at `review-history/work-units/impl-review/<unit-id>.json` with version, phase, kind, unitId, identity, targetFiles, inputHash, provider identity, promptVersion, schemaVersion, status, attemptCount, startedAt, finishedAt, and optional success or failure fields.",
+      "status": "done",
+      "note": "R3: checkpoint store writes under spec-dir review history by unitId"
+    },
+    {
+      "desc": "For loop chunk WorkUnits, reuse a matching success checkpoint without calling the provider, and execute only missing, failed, or stale WorkUnits.",
+      "status": "done",
+      "note": "R4: loop review reuses matching success checkpoints and executes missing failed or stale chunks"
+    },
+    {
+      "desc": "On loop chunk provider success, parse proposals and immediately save a success checkpoint before executing later WorkUnits. On provider failure, timeout, parser failure, or schema failure, immediately save a failed checkpoint and return an impl `TOOLING_FAILURE` result across the `run-review` boundary without writing successful final review artifacts or advancing to the next step.",
+      "status": "done",
+      "note": "R5: later chunk tooling failure preserves earlier success checkpoints without final artifacts"
+    },
+    {
+      "desc": "Generate `impl-review.json` and `review.md` only after every required WorkUnit in the current plan is successful, preserving the existing loop proposal conversion to `nonBlockingImprovements` and an empty `blockingFindings` array.",
+      "status": "done",
+      "note": "R6: final review artifacts are produced only after every planned WorkUnit succeeds"
+    },
+    {
+      "desc": "Plan, save, and reuse loop cross-check as a WorkUnit when the existing condition holds: at least two chunk summaries exist and reviewCallCount remains below `MAX_LOOP_CALLS`. Cross-check identity is based on the hashes of chunk summaries included in its input.",
+      "status": "done",
+      "note": "R7: loop cross-check is checkpointed and reused by summary hashes"
+    },
+    {
+      "desc": "After the same retryable parent `loop-chunk` WorkUnit has two failed checkpoints, split only that parent chunk into child WorkUnits, one child per group. `provider_failure`, `timeout`, `parser_failure`, and `schema_failure` checkpoints are retryable for this threshold. Fallback splitting is one level only: child WorkUnits are never split again, and child WorkUnit count is bounded by the parent chunk group count. Child WorkUnits include parentUnitId, and aggregation expands successful child results at the parent position without writing a parent success checkpoint.",
+      "status": "done",
+      "note": "R8: two retryable parent failures split only that parent into one-level bounded children"
+    },
+    {
+      "desc": "Add config setting `flow.review.excludePaths` and combine it with default review exclusions through one repository-root-relative path matching decision. Apply exclusions before touched file count, per-file diff collection, and loop review chunk creation.",
+      "status": "done",
+      "note": "R9: default and configured review exclusions share one matcher before touched-file counting"
+    },
+    {
+      "desc": "Provider failure, timeout, parser failure, and schema failure inside WorkUnit execution are tooling failures and do not increment semantic reviewRetry. Checkpoint I/O failure and invariant violation are non-retryable command failures and do not count toward fallback splitting.",
+      "status": "done",
+      "note": "R10: WorkUnit tooling failures normalize without semantic reviewRetry consumption"
+    },
+    {
+      "desc": "Preserve retained public surfaces: single-shot impl-review, impl-gate / integration gate, test-review, draft-review, and spec-review continue through existing paths and do not create WorkUnit checkpoint artifacts.",
+      "status": "done",
+      "note": "R11: retained review and gate surfaces do not create WorkUnit checkpoints"
+    },
+    {
+      "desc": "Record WorkUnit checkpoint rawResponse and failure details as spec-directory development evidence only; do not add new secret collection behavior or a new redaction policy.",
+      "status": "done",
+      "note": "R12: raw responses and failure details stay inside spec-dir checkpoint evidence"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 12,
+    "done": 12,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

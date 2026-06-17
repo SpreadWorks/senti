@@ -520,7 +520,19 @@ function parseImplReviewOutput(res, stdout, stderr, opts = {}) {
   };
 }
 
-export { PHASE_REVIEW_PARSERS, parseTestReviewOutput, parseSpecReviewOutput, parseProposalReviewOutput, parseImplReviewOutput };
+function normalizeImplReviewSubprocessResult(result = {}) {
+  const verdict = result.verdict || "PASS";
+  return {
+    verdict,
+    failureKind: result.failureKind || null,
+    retryable: result.retryable ?? null,
+    reviewRetryConsumed: false,
+    artifacts: result.artifacts || [],
+    message: result.message || "",
+  };
+}
+
+export { PHASE_REVIEW_PARSERS, parseTestReviewOutput, parseSpecReviewOutput, parseProposalReviewOutput, parseImplReviewOutput, normalizeImplReviewSubprocessResult };
 
 export function appendIssueLogFromTestReviewToolingFailure(ctx, result) {
   if (ctx?.phase !== "test") return;

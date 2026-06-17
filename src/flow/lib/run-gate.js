@@ -3688,6 +3688,13 @@ export class RunGateCommand extends FlowCommand {
 }
 
 export default RunGateCommand;
+async function runGatePhaseWithDependencies({ phase, specDir, gateResult }) {
+  const basename = phase === "integration" ? "impl-gate-result.json" : `${phase}-gate-result.json`;
+  fs.mkdirSync(specDir, { recursive: true });
+  fs.writeFileSync(path.join(specDir, basename), `${JSON.stringify(gateResult, null, 2)}\n`);
+  return { changed: [basename] };
+}
+
 export {
   checkSpecText,
   checkSpecJson,
@@ -3704,6 +3711,7 @@ export {
   compactDiffForGuardrailPrompt,
   collectPerFileDiffsForGate,
   buildPerRequirementDiffs,
+  runGatePhaseWithDependencies,
 };
 
 export function appendIssueLogFromGateResult(ctx, result) {

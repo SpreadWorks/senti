@@ -1,0 +1,187 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Introduce dedicated WorkUnit value classes for identity, plan entries, checkpoint records, and resume decisions. These classes enforce required identity fields and status values in constructors and expose behavior for hashing, identity comparison, serialization, and stale detection.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/workunit-primitives.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "Calculate each WorkUnit identity from phase, kind, stable order key, normalized target files, input hash, commandId, resolved provider identity, prompt version, and schema version. Derive `unitId` separately from stable lookup fields: phase, kind, stable order key, and parentUnitId. A checkpoint is reusable only when loaded by `unitId` and the stored full identity exactly matches the planned full identity.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/workunit-primitives.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "Persist WorkUnit checkpoints under the current spec directory at `review-history/work-units/impl-review/<unit-id>.json` with version, phase, kind, unitId, identity, targetFiles, inputHash, provider identity, promptVersion, schemaVersion, status, attemptCount, startedAt, finishedAt, and optional success or failure fields.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/workunit-primitives.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "For loop chunk WorkUnits, reuse a matching success checkpoint without calling the provider, and execute only missing, failed, or stale WorkUnits.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/loop-review-resume.test.js",
+        "tests/workunit-primitives.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "On loop chunk provider success, parse proposals and immediately save a success checkpoint before executing later WorkUnits. On provider failure, timeout, parser failure, or schema failure, immediately save a failed checkpoint and return an impl `TOOLING_FAILURE` result across the `run-review` boundary without writing successful final review artifacts or advancing to the next step.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/loop-review-resume.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "Generate `impl-review.json` and `review.md` only after every required WorkUnit in the current plan is successful, preserving the existing loop proposal conversion to `nonBlockingImprovements` and an empty `blockingFindings` array.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/loop-review-resume.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "Plan, save, and reuse loop cross-check as a WorkUnit when the existing condition holds: at least two chunk summaries exist and reviewCallCount remains below `MAX_LOOP_CALLS`. Cross-check identity is based on the hashes of chunk summaries included in its input.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/cross-check-fallback.test.js"
+      ]
+    },
+    {
+      "id": "R8",
+      "desc": "After the same retryable parent `loop-chunk` WorkUnit has two failed checkpoints, split only that parent chunk into child WorkUnits, one child per group. `provider_failure`, `timeout`, `parser_failure`, and `schema_failure` checkpoints are retryable for this threshold. Fallback splitting is one level only: child WorkUnits are never split again, and child WorkUnit count is bounded by the parent chunk group count. Child WorkUnits include parentUnitId, and aggregation expands successful child results at the parent position without writing a parent success checkpoint.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/cross-check-fallback.test.js"
+      ]
+    },
+    {
+      "id": "R9",
+      "desc": "Add config setting `flow.review.excludePaths` and combine it with default review exclusions through one repository-root-relative path matching decision. Apply exclusions before touched file count, per-file diff collection, and loop review chunk creation.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/review-exclusions.test.js"
+      ]
+    },
+    {
+      "id": "R10",
+      "desc": "Provider failure, timeout, parser failure, and schema failure inside WorkUnit execution are tooling failures and do not increment semantic reviewRetry. Checkpoint I/O failure and invariant violation are non-retryable command failures and do not count toward fallback splitting.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/loop-review-resume.test.js"
+      ]
+    },
+    {
+      "id": "R11",
+      "desc": "Preserve retained public surfaces: single-shot impl-review, impl-gate / integration gate, test-review, draft-review, and spec-review continue through existing paths and do not create WorkUnit checkpoint artifacts.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/retained-surfaces.test.js"
+      ]
+    },
+    {
+      "id": "R12",
+      "desc": "Record WorkUnit checkpoint rawResponse and failure details as spec-directory development evidence only; do not add new secret collection behavior or a new redaction policy.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/workunit-primitives.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/cross-check-fallback.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R7",
+        "R8"
+      ],
+      "testNameIds": [
+        "R7",
+        "R8"
+      ]
+    },
+    {
+      "file": "tests/loop-review-resume.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R4",
+        "R5",
+        "R6",
+        "R10"
+      ],
+      "testNameIds": [
+        "R4",
+        "R5",
+        "R6",
+        "R10"
+      ]
+    },
+    {
+      "file": "tests/retained-surfaces.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R11"
+      ],
+      "testNameIds": [
+        "R11"
+      ]
+    },
+    {
+      "file": "tests/review-exclusions.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R9"
+      ],
+      "testNameIds": [
+        "R9"
+      ]
+    },
+    {
+      "file": "tests/workunit-primitives.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R12"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R12"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,140 @@
+{
+  "devType": "feature",
+  "goal": "must: impl-review loop review の AI provider 呼び出しを WorkUnit として checkpoint / resume できるようにし、途中失敗後の再実行で成功済み chunk と cross-check を再利用する。",
+  "analysis": {
+    "problem": "impl-review loop review は `LOOP_REVIEW_THRESHOLD=10` 以上で複数の AI 呼び出しに分割されるが、現状は同一プロセス内の `Map seen` だけで重複回避している。provider failure、timeout、parser failure、schema failure で途中停止すると、成功済み chunk の構造化状態が spec artifact として残らず、次回 run は再利用単位を判断できない。",
+    "proposedApproach": "must: AI 呼び出し 1 回を WorkUnit として扱う foundation を追加し、責務を identity 計算、checkpoint 読み書き、resume decision、attempt count 更新に限定する。初期適用先は impl-review loop chunk と cross-check だけにし、全 WorkUnit 成功後だけ既存の `impl-review.json` と `review.md` を生成する。",
+    "validation": "既存の `src/flow/commands/review.js` では `runLoopReviewWithDependencies` が chunk ごとに `reviewChunk` を呼び、成功後にまとめて `loopProposalsToImplReviewJson` へ渡す。したがって chunk 単位の checkpoint と最終 aggregation を分離すれば、Issue の root problem である process 間 resume 欠落を直接扱える。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: `src/flow/commands/review.js` の `LOOP_REVIEW_THRESHOLD=10` と `MAX_LOOP_CALLS=16` が loop review の開始条件と最大 chunk call 数を決めている。",
+      "must: `src/flow/commands/review.js` の `runLoopReviewWithDependencies` は `seen = new Map()` で同一 run 内の同一 input hash を再利用するが、checkpoint file は書かない。",
+      "must: `src/flow/commands/review.js` の `runLoopReview` は `REVIEW_EXCLUDE_PATHS` を使って scoped files を除外し、per-file diff、grouping、chunk creation、cross-check を同じ関数群で処理している。",
+      "must: `src/flow/commands/review.js` の `loopProposalsToImplReviewJson` は loop proposal を `nonBlockingImprovements` に変換し、`blockingFindings` は空配列にしている。",
+      "must: `src/flow/lib/run-review.js` と `src/flow/definition.js` は review verdict に基づいて `reviewRetry` を計上し、`TOOLING_FAILURE` は semantic finding と分けて扱う既存経路を持つ。",
+      "should: docs/ より src/ と tests/ の mtime が新しいため、finalize-sync または docs build の evidence で生成 docs の同期を確認する必要がある。"
+    ],
+    "decisionPoints": [
+      "must: WorkUnit checkpoint の identity 一致条件を、Issue に列挙された phase、kind、stable order key、target files、input hash、commandId、provider identity、prompt version、schema version に固定するか。",
+      "must: failed checkpoint は WorkUnit evidence として保存し、identity 不一致の stale checkpoint は reuse 対象外にする。",
+      "must: fallback splitting 後の child WorkUnit は failed parent chunk の位置で aggregation され、初期 chunking policy は変更しない。",
+      "must: `flow.review.excludePaths` の glob を repository root 相対として扱い、default exclusions と local config exclusions に同じ matcher を適用する。",
+      "should: provider failure / timeout / parser failure / schema failure の checkpoint failureKind と既存 reviewStop / TOOLING_FAILURE 経路の関係を spec で明示するか。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 新しい値構造は object literal や pseudo discriminated union ではなく専用 class で表す。",
+      "must: Node.js built-in modules のみを使い、外部依存は追加しない。",
+      "must: `src/` には特定プロジェクト固有の path や環境情報を入れない。",
+      "must: `src/skills/` または `src/presets/` を変更した場合は `senti upgrade` が必要だが、この Issue の主対象は review runtime なので変更が発生した場合だけ適用する。",
+      "must: Issue #394 は 1 つの concern として扱い、勝手に別 spec へ分割しない。"
+    ],
+    "requiresUserJudgment": [
+      "should: 追加の user judgment は現時点で不要。Issue 本文と project rules から draft QA を解決済み。"
+    ],
+    "deferredToSpec": [
+      "must: WorkUnit class、identity class、checkpoint store、runner、aggregator の具体的な module boundary は spec step で既存 code shape に合わせて定義する。",
+      "must: checkpoint artifact schema と unitId generation rule は spec step で testable な JSON contract として定義する。",
+      "must: unit tests と integration-like tests の分担は spec step で requirement-to-test mapping に落とす。",
+      "must: migration parity として、single-shot impl-review、impl-gate / integration gate、test-review / draft-review / spec-review は WorkUnit path に移譲しない保持対象として spec に明記し、各 retained public surface の behavior-level verification を定義する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: impl-review loop review chunk calls を checkpoint / resume 対象にする。",
+      "must: loop review cross-check calls を checkpoint / resume 対象にする。",
+      "must: WorkUnit identity、checkpoint artifact、resume decision、retry count を扱う。",
+      "must: success checkpoint かつ identity 完全一致の WorkUnit は provider call なしで reuse する。",
+      "must: failed、missing、stale WorkUnit は再実行する。",
+      "must: 全 WorkUnit 成功後だけ既存正本の `impl-review.json` と `review.md` を生成する。",
+      "must: retryable な同一 loop chunk failure 2 回後、その chunk だけ child WorkUnit に fallback splitting する。",
+      "must: `flow.review.excludePaths` を config から読めるようにし、default exclusions と同じ判定経路で適用する。"
+    ],
+    "out": [
+      "must: single-shot impl-review の behavior は変更しない。",
+      "must: impl-gate / integration gate には WorkUnit を適用しない。",
+      "must: test-review / draft-review / spec-review には WorkUnit を適用しない。",
+      "must: `.senti/agent-cache` の仕様は変更しない。",
+      "must: semantic review finding の retry budget 仕様は変更しない。",
+      "must: `LOOP_REVIEW_THRESHOLD` / `MAX_LOOP_CALLS` の初期 splitting policy は変更しない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: `senti flow run review` の impl-review path は、loop review 時に中間 checkpoint を書く side effect が増える。",
+    "must: `review-history/work-units/impl-review/<unit-id>.json` が spec directory 配下の新しい intermediate artifact 領域になる。",
+    "must: `impl-review.json` と `review.md` は最終正本として維持し、全 WorkUnit 成功前には成功 artifact として生成しない。",
+    "must: loop proposal は引き続き `nonBlockingImprovements` として扱い、blocking verdict に昇格しない。",
+    "must: default exclusions と `flow.review.excludePaths` は touched file count、per-file diff collection、loop review chunk creation の前に適用される。",
+    "must: single-shot impl-review は existing `runSingleReview` path の保持対象であり、WorkUnit checkpoint を作らず既存の `impl-review.json` / `review.md` generation behavior を維持する。",
+    "must: impl-gate / integration gate は WorkUnit foundation の初期適用外として existing gate commands の保持対象にし、checkpoint directory を読まない behavior を維持する。",
+    "must: test-review / draft-review / spec-review は existing phase-specific review pipeline の保持対象であり、WorkUnit checkpoint を作らない behavior を維持する。",
+    "must: retained public surfaces は behavior-level verification で確認する。single-shot impl-review は threshold 未満 path、gate phases は existing gate command path、non-impl review phases は phase-specific review artifact generation を検証する。",
+    "should: review retry / recovery 表示は tooling failure と semantic FAIL の区別を保つ。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "stale または failed の WorkUnit checkpoint は、must: spec directory の evidence として残す方針でよいですか。",
+      "answer": "must: failed checkpoint は dedicated artifact として保存し、success checkpoint は identity 完全一致時だけ reuse する。identity 不一致の artifact は stale として扱い、reuse しない。最新状態を unitId ごとの checkpoint に反映し、attemptCount と failure fields で状態を追跡する。",
+      "evidence": "Issue #394 の Checkpoint artifact は `status: success / failed / skipped`、`attemptCount`、`failureKind`、`failureReason`、`retryable` を要求している。Resume rules は identity 不一致 artifact を stale として reuse しないと定義している。",
+      "why": "resume 判定の正本を WorkUnit checkpoint に集約すると、成功済み reuse、failed rerun、stale rerun を同じ artifact contract で判定できる。",
+      "considered": "全履歴を別 file として永続追加する案は、Issue の dedicated checkpoint path と foundation の限定責務を超えやすいため spec の主契約にはしない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "fallback splitting で child WorkUnit が増える場合、must: 初回 chunking の `MAX_LOOP_CALLS` は変更せず、failed parent chunk の内部だけを child に展開する扱いでよいですか。",
+      "answer": "must: 初回 chunking の `MAX_LOOP_CALLS` と splitting policy は変更しない。retryable failure が同じ `loop-chunk` で 2 回発生した場合だけ、その parent chunk 内の group を child WorkUnit に分割し、aggregator は child results を parent の位置に展開する。",
+      "evidence": "Issue #394 の Fallback splitting は「same `loop-chunk` WorkUnit fails twice」「split only that WorkUnit」「Do not change the initial overall chunking or `MAX_LOOP_CALLS`」を要求している。",
+      "why": "失敗 chunk だけを局所的に細分化すれば、成功済み WorkUnit reuse と初期分割 policy の不変性を同時に満たせる。",
+      "considered": "全体を再 chunking する案は、既存成功 checkpoint の identity と plan order を壊しやすく、Issue の out-of-scope 条件にも反する。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "`flow.review.excludePaths` は、must: repository root 相対の glob として扱い、default exclusions と local config exclusions を同じ matcher に通す方針でよいですか。",
+      "answer": "must: `flow.review.excludePaths` は repository root 相対の glob として扱い、default exclusions と config exclusions を同じ decision logic に通す。除外は touched file count、per-file diff collection、loop review chunk creation の前に適用する。",
+      "evidence": "Issue #394 の Excluded paths は `flow.review.excludePaths` を config から読むこと、除外を touched file count / per-file diff collection / loop review chunk creation の前に適用すること、default exclusions と local config の除外に同じ decision logic を使うことを要求している。",
+      "why": "fallback diff と loop review で除外判定を共有すると、file count と実際の chunk 対象がずれる不具合を避けられる。",
+      "considered": "既存 `REVIEW_EXCLUDE_PATHS` の prefix check と config glob を別々に処理する案は、同じ path が経路によって対象になったり除外されたりする余地が残る。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "WorkUnit checkpoint の `rawResponse` と failure details は、must: 既存 review artifacts と同じ開発 evidence として spec directory に保存し、新しい secret 収集や追加 redaction は実装しない方針でよいですか。",
+      "answer": "must: `rawResponse` と failure details は既存 review artifacts と同じ開発 evidence として spec directory に保存する。新しい secret 収集機能や追加 redaction policy は導入しない。",
+      "evidence": "Issue #394 の Checkpoint artifact は success 時の `rawResponse` と failure 時の `failureKind` / `failureReason` を要求し、同時に「Do not add functionality that newly collects secret information」と明記している。",
+      "why": "checkpoint は resume のための中間 artifact であり、既存 review artifact と同じ境界に置くことで新しい情報収集面を増やさずに evidence を残せる。",
+      "considered": "rawResponse を保存しない案は、parser failure や schema failure の再現性確認が弱くなるため Issue の artifact 要件と合わない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "follow-up-coverage",
+      "question": "test strategy は、must: WorkUnit identity / store / resume decision を unit test で検証し、impl-review loop の partial failure と rerun aggregation を review command 周辺の integration-like test で検証する方針でよいですか。",
+      "answer": "must: WorkUnit identity、checkpoint store、resume decision、retry/fallback 判定は unit test で検証する。impl-review loop の partial failure、rerun reuse、cross-check reuse、final aggregation は review command 周辺の integration-like test で検証する。must: retained public surfaces として single-shot impl-review、impl-gate / integration gate、test-review / draft-review / spec-review が WorkUnit checkpoint を作らず existing behavior を維持することも behavior-level verification に含める。",
+      "evidence": "Issue #394 の Test considerations は identity 変化、identity 一致時だけの success reuse、failed checkpoint の再実行、chunk 途中失敗時の final artifact 非生成、rerun 後の final artifact 生成、cross-check reuse、fallback splitting、excludePaths、reviewRetry 非消費を列挙している。",
+      "why": "primitive と impl-review behavior を分けて検証すると、foundation の契約破壊と review pipeline の統合破壊を別々に検出できる。retained public surfaces の verification を加えることで migration parity も確認できる。",
+      "considered": "end-to-end AI 実行だけに寄せる案は遅く不安定で、identity や stale 判定の境界条件を十分に網羅しにくい。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [
+    "should: spec step で WorkUnit artifact schema と unitId generation rule を testable に明文化する。",
+    "should: spec step で docs/source freshness の扱いを finalize-sync evidence に含める。"
+  ],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-17T05:25:16Z",
+    "notes": "All draft QA entries are answered from Issue #394, project rules, and existing review code context."
+  }
+}

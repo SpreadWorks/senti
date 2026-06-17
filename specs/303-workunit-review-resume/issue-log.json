@@ -1,0 +1,308 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "qa[1]: invalid category \"edge-cases\"; qa[3]: invalid category \"consumer-contracts\"; qa[4]: invalid category \"test-strategy\"",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-17T05:25:25.480Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[1]: invalid category \"edge-cases\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[3]: invalid category \"consumer-contracts\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[4]: invalid category \"test-strategy\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft-gate rejected three draft QA entries because their categories were not in the allowed schema enum",
+      "trigger": "senti flow run gate --phase draft returned mechanical issues for qa[1], qa[3], and qa[4] categories",
+      "resolution": "replaced edge-cases with implementation-policy, consumer-contracts with risk-migration-policy, and test-strategy with follow-up-coverage",
+      "guardrailCandidate": "draft QA categories must be copied from the allowed schema list before running draft-gate",
+      "taskId": null,
+      "timestamp": "2026-06-17T05:25:42.917Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "要件に「小さな shared foundation」という定量化されない表現があり、実装判定条件としての明確さが不足している。; 既存の公開振る舞い（`senti flow run review` のsingle-shot系、gates系）を維持対象として定義しているが、各振る舞いを新経路にどこで移譲するか／明示的に除外するかのマッピングが本文中にない。; 保持される公開面の検証が、loop 実行関連に偏っており、変更されない経路（single-shot impl-review、impl-gate / integration gate / test-review / draft-review / spec-review）について、new path経由での動作保証（behavior-level verification）が示されていない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-17T05:26:05.716Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content",
+            "locator": "analysis.proposedApproach"
+          },
+          "observed": "要件に「小さな shared foundation」という定量化されない表現があり、実装判定条件としての明確さが不足している。",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "scopeVerification.out[0]"
+          },
+          "observed": "既存の公開振る舞い（`senti flow run review` のsingle-shot系、gates系）を維持対象として定義しているが、各振る舞いを新経路にどこで移譲するか／明示的に除外するかのマッピングが本文中にない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "qa[4].answer"
+          },
+          "observed": "保持される公開面の検証が、loop 実行関連に偏っており、変更されない経路（single-shot impl-review、impl-gate / integration gate / test-review / draft-review / spec-review）について、new path経由での動作保証（behavior-level verification）が示されていない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "要件に「小さな shared foundation」という定量化されない表現があり、実装判定条件としての明確さが不足している。"
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "既存の公開振る舞い（`senti flow run review` のsingle-shot系、gates系）を維持対象として定義しているが、各振る舞いを新経路にどこで移譲するか／明示的に除外するかのマッピングが本文中にない。"
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "保持される公開面の検証が、loop 実行関連に偏っており、変更されない経路（single-shot impl-review、impl-gate / integration gate / test-review / draft-review / spec-review）について、new path経由での動作保証（behavior-level verification）が示されていない。"
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft-gate found ambiguous foundation wording and missing migration parity mapping for retained review and gate public surfaces",
+      "trigger": "senti flow run gate --phase draft returned unambiguous-requirements and migration-parity failures",
+      "resolution": "replaced vague foundation wording with explicit responsibilities and added retained public surface mapping plus behavior-level verification requirements",
+      "guardrailCandidate": "drafts that extract shared foundations must inventory retained public surfaces and define behavior-level parity checks before gate",
+      "taskId": null,
+      "timestamp": "2026-06-17T05:26:46.446Z"
+    },
+    {
+      "step": "spec-repair",
+      "reason": "spec-review found missing stable unitId lookup, impl tooling-failure boundary contract, and retryable WorkUnit failure classification",
+      "trigger": "senti flow run review --phase spec returned FAIL with three blocking findings",
+      "resolution": "updated spec.json and spec-repair.json to define stable unitId lookup, structured impl TOOLING_FAILURE behavior, and retryable failureKind mapping",
+      "guardrailCandidate": "specs for resumable checkpoints must define stable lookup keys, process-boundary failure contracts, and retryable failure classifications",
+      "taskId": null,
+      "timestamp": "2026-06-17T05:35:32.764Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Fallback split rule is unbounded: R8 only states split a failed parent after two retryable failures and does not define a cap or terminal condition for repeated retry/split cycles (e.g., a repeatedly failing chunk repeatedly generating child chunks), so recursive processing depth and total retries are not explicitly bounded.; Spec references spec-local tests but does not mandate that test files under `specs/303-workunit-review-resume/tests/` include `// spec: R<N> ...` headers, so required spec-coverage convention is not explicitly defined in the spec.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-17T05:36:05.712Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements:R8"
+          },
+          "observed": "Fallback split rule is unbounded: R8 only states split a failed parent after two retryable failures and does not define a cap or terminal condition for repeated retry/split cycles (e.g., a repeatedly failing chunk repeatedly generating child chunks), so recursive processing depth and total retries are not explicitly bounded.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks / acceptance_criteria / implementationTargets"
+          },
+          "observed": "Spec references spec-local tests but does not mandate that test files under `specs/303-workunit-review-resume/tests/` include `// spec: R<N> ...` headers, so required spec-coverage convention is not explicitly defined in the spec.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "Fallback split rule is unbounded: R8 only states split a failed parent after two retryable failures and does not define a cap or terminal condition for repeated retry/split cycles (e.g., a repeatedly failing chunk repeatedly generating child chunks), so recursive processing depth and total retries are not explicitly bounded."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "Spec references spec-local tests but does not mandate that test files under `specs/303-workunit-review-resume/tests/` include `// spec: R<N> ...` headers, so required spec-coverage convention is not explicitly defined in the spec."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec-gate found fallback splitting lacked explicit resource bounds and spec-local tests lacked required spec header convention",
+      "trigger": "senti flow run gate returned bounded-resource-usage and spec-test-coverage failures",
+      "resolution": "bounded fallback splitting to one level with child count limited by parent group count and required spec-local test files to include spec headers",
+      "guardrailCandidate": "specs with fallback splitting must define recursion depth and count bounds and must state spec-local test header coverage convention",
+      "taskId": null,
+      "timestamp": "2026-06-17T05:36:49.485Z"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "Spec-local tests failed scenario-validity as invalid_test because missing future modules were imported at file load time.",
+      "trigger": "scenario-validity raw log showed ERR_MODULE_NOT_FOUND and missing named export failures before test bodies executed.",
+      "resolution": "Moved future module and export checks inside test bodies using assertions before dynamic imports or function calls.",
+      "guardrailCandidate": "Spec-local pre-implementation tests should avoid module-load failures and fail from assertions inside requirement test bodies.",
+      "taskId": null,
+      "timestamp": "2026-06-17T05:43:42.228Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Static test review found helper-only and partial-contract coverage for WorkUnit resume requirements.",
+      "trigger": "test-review reported nine blocking findings for R2/R3/R4/R6/R7/R8/R9/R10/R11 behavior coverage.",
+      "resolution": "Expanded spec-local tests to exercise loop checkpoint reuse, final artifacts, cross-check planning, fallback aggregation, exclusions, retry accounting, retained surfaces, and full identity persistence.",
+      "guardrailCandidate": "Spec-local tests for resumable workflows must cover production execution paths and full persistence contracts, not helper existence alone.",
+      "taskId": null,
+      "timestamp": "2026-06-17T05:49:59.335Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Second static test review found remaining contradictions and missing behavior assertions in WorkUnit tests.",
+      "trigger": "test-review reported blockers for R7 cache invalidation, R5 checkpoint ordering, R5/R10 retryable execution kinds, and R8 positive fallback threshold.",
+      "resolution": "Changed cross-check invalidation to alter chunk input identity, added immediate checkpoint and stop assertions, added timeout/parser/schema execution failures, and asserted positive fallback threshold from failed checkpoints.",
+      "guardrailCandidate": "When repairing test-review findings, cover both positive and negative transition conditions and avoid assumptions that contradict earlier resume requirements.",
+      "taskId": null,
+      "timestamp": "2026-06-17T05:53:07.694Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Third static test review found a cross-check count contradiction and missing parser/schema and command-failure coverage.",
+      "trigger": "test-review reported blockers for R6 success checkpoint count, production parser/schema failure paths, and non-retryable command failure behavior.",
+      "resolution": "Adjusted the R6 scenario to avoid cross-check planning, added malformed provider output cases, and asserted checkpoint I/O and invariant failures normalize as non-retryable command failures.",
+      "guardrailCandidate": "Test scenarios that combine requirements must either satisfy all triggered requirements or explicitly disable unrelated trigger conditions.",
+      "taskId": null,
+      "timestamp": "2026-06-17T05:55:58.000Z"
+    },
+    {
+      "step": "implement",
+      "reason": "implement completion validation failed because file-map evidence was missing before marking implement done.",
+      "trigger": "senti flow set step implement done returned IMPLEMENT_COMPLETION_VALIDATION_FAILED with file-map-missing.",
+      "resolution": "Record changed implementation files for every requirement using senti flow set files, then retry implement completion.",
+      "guardrailCandidate": "Implement prompts should align file-map timing with completion validation when the CLI requires mappings before implement done.",
+      "taskId": null,
+      "timestamp": "2026-06-17T06:06:53.066Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "Fallback child split helpers (`shouldFallbackSplit`, `planFallbackChildWorkUnits`, `runFallbackChildWorkUnits`) are present, but there is no flow integration in `runLoopReviewWithDependencies` to trigger splitting after two retryable failures of the same parent, nor aggregate child results into the parent path without writing a parent success checkpoint.; Configurable exclusions are introduced and applied to touched files and loop inputs, but wildcard matching uses `part.replace(/[.*+?^${}()|[\\]\\\\]/g, \"\\\\{{PROMPT}}\")`, which is malformed for regex escaping and is likely to mis-handle/throw on patterns like `*.json`, so one unified exclusion decision is not reliably correct.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-17T06:11:35.095Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R8",
+          "where": null,
+          "observed": "Fallback child split helpers (`shouldFallbackSplit`, `planFallbackChildWorkUnits`, `runFallbackChildWorkUnits`) are present, but there is no flow integration in `runLoopReviewWithDependencies` to trigger splitting after two retryable failures of the same parent, nor aggregate child results into the parent path without writing a parent success checkpoint.",
+          "severity": "blocking",
+          "refs": [
+            "R8"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R9",
+          "where": null,
+          "observed": "Configurable exclusions are introduced and applied to touched files and loop inputs, but wildcard matching uses `part.replace(/[.*+?^${}()|[\\]\\\\]/g, \"\\\\{{PROMPT}}\")`, which is malformed for regex escaping and is likely to mis-handle/throw on patterns like `*.json`, so one unified exclusion decision is not reliably correct.",
+          "severity": "blocking",
+          "refs": [
+            "R9"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R3",
+        "R12",
+        "R2",
+        "R4",
+        "R7",
+        "R5",
+        "R10",
+        "R6",
+        "R11"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R8",
+          "reason": "Fallback child split helpers (`shouldFallbackSplit`, `planFallbackChildWorkUnits`, `runFallbackChildWorkUnits`) are present, but there is no flow integration in `runLoopReviewWithDependencies` to trigger splitting after two retryable failures of the same parent, nor aggregate child results into the parent path without writing a parent success checkpoint."
+        },
+        {
+          "guardrail_id": "R9",
+          "reason": "Configurable exclusions are introduced and applied to touched files and loop inputs, but wildcard matching uses `part.replace(/[.*+?^${}()|[\\]\\\\]/g, \"\\\\{{PROMPT}}\")`, which is malformed for regex escaping and is likely to mis-handle/throw on patterns like `*.json`, so one unified exclusion decision is not reliably correct."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: impl-gate failed R8 fallback integration and R9 wildcard matcher reliability.",
+      "trigger": "impl-gate observations reported missing fallback split integration in runLoopReviewWithDependencies and an unreliable wildcard regex escape.",
+      "resolution": "Integrated fallback child planning/execution into runLoopReviewWithDependencies after two retryable parent failures, and replaced wildcard escaping with a dedicated regex literal escape helper.",
+      "guardrailCandidate": "Gate repairs must address each Observation directly before rerunning integration gate.",
+      "taskId": null,
+      "timestamp": "2026-06-17T06:12:44.649Z"
+    }
+  ]
+}

@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-17T05:51:45.344Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 4,
+    "advisory": 1,
+    "total": 5
+  },
+  "coverageArtifact": "specs/303-workunit-review-resume/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R7 cross-check invalidation contradicts chunk reuse",
+      "target": "specs/303-workunit-review-resume/tests/cross-check-fallback.test.js, test \"R7: loop cross-check is checkpointed and reused by summary hashes\"",
+      "issue": "The final `summaryVersion = \"v2\"` assertion expects `crossCheckCalls` to increase even though the chunk WorkUnit inputs, target files, provider identity, prompt version, and schema version are unchanged. Under R4, the chunk success checkpoints should be reused without calling `reviewChunk`, so the chunk summaries used for the cross-check should remain the cached v1 summaries.",
+      "requiredChange": "Make the final invalidation step change a planned chunk identity, for example by including the version in `buildChunkInput`, then assert the stale chunk reruns and the cross-check reruns from the new summary hashes.",
+      "whyBlocking": "As written, the test encodes an incorrect implementation premise and can reward re-executing cached chunk WorkUnits, contradicting R4 while testing R7."
+    },
+    {
+      "kind": "blocking",
+      "title": "R5 immediate checkpoint ordering is not exercised",
+      "target": "specs/303-workunit-review-resume/tests/loop-review-resume.test.js, test \"R5: later chunk tooling failure preserves earlier success checkpoints without final artifacts\"",
+      "issue": "The test checks checkpoint counts only after the failing run returns. An implementation could defer saving the first successful chunk until failure handling and still pass. The test also has no later chunk or cross-check spy to prove execution stops after the failure.",
+      "requiredChange": "Assert during the second chunk execution that the first success checkpoint already exists, and add a third chunk or cross-check spy asserting no later WorkUnit or next step runs after the failure.",
+      "whyBlocking": "R5 specifically requires saving success checkpoints before executing later WorkUnits and stopping without advancing; the current test would pass without exercising that production behavior."
+    },
+    {
+      "kind": "blocking",
+      "title": "R5/R10 execution coverage misses retryable failure kinds",
+      "target": "specs/303-workunit-review-resume/tests/loop-review-resume.test.js",
+      "issue": "Only `provider_failure` is exercised through WorkUnit execution. `timeout`, `parser_failure`, and `schema_failure` are only partially covered by classification or normalization checks, not by a run that saves a failed checkpoint, suppresses final artifacts, and returns impl `TOOLING_FAILURE` without consuming semantic review retry.",
+      "requiredChange": "Parameterize the WorkUnit execution failure scenario, or add focused tests, for `timeout`, `parser_failure`, and `schema_failure` across the loop review/run-review boundary.",
+      "whyBlocking": "R5 and R10 require these failure kinds to behave as checkpointed tooling failures; there is no corresponding executable spec-local coverage for that behavior."
+    },
+    {
+      "kind": "blocking",
+      "title": "R8 fallback threshold has no positive trigger assertion",
+      "target": "specs/303-workunit-review-resume/tests/cross-check-fallback.test.js, test \"R8: two retryable parent failures split only that parent into one-level bounded children\"",
+      "issue": "`shouldFallbackSplit` is asserted false for one retryable failure, mixed parents, and non-retryable failures, but never asserted true for two retryable failures on the same parent. `planFallbackChildWorkUnits` is called directly, so an implementation where the production threshold never triggers fallback could still satisfy the test.",
+      "requiredChange": "Add a positive assertion or integrated scenario where two retryable failed checkpoints for the same parent cause child WorkUnits to be planned and executed.",
+      "whyBlocking": "R8's core acceptance condition is the two-failure trigger; the current test has a static anti-pattern that can pass without exercising that production decision."
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R9 root-relative matching boundary is light",
+      "target": "specs/303-workunit-review-resume/tests/review-exclusions.test.js",
+      "improvement": "Add a case using absolute paths under the temporary repository root, or paths requiring normalization such as `./generated/client.js`, to prove the matcher really performs one repository-root-relative decision.",
+      "whyNonBlocking": "The current test already covers default plus configured exclusions before touched-file filtering, diff collection, and chunk creation; this would harden an edge of the matcher contract."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/303-workunit-review-resume/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 4,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "78d80c2315439c342ea86bb82562598643e52052c228f6f1392cd4b1de1e6b7d"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "test-002-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R7 cross-check invalidation contradicts chunk reuse",
+      "body": "The final `summaryVersion = \"v2\"` assertion expects `crossCheckCalls` to increase even though the chunk WorkUnit inputs, target files, provider identity, prompt version, and schema version are unchanged. Under R4, the chunk success checkpoints should be reused without calling `reviewChunk`, so the chunk summaries used for the cross-check should remain the cached v1 summaries.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R5 immediate checkpoint ordering is not exercised",
+      "body": "The test checks checkpoint counts only after the failing run returns. An implementation could defer saving the first successful chunk until failure handling and still pass. The test also has no later chunk or cross-check spy to prove execution stops after the failure.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R5/R10 execution coverage misses retryable failure kinds",
+      "body": "Only `provider_failure` is exercised through WorkUnit execution. `timeout`, `parser_failure`, and `schema_failure` are only partially covered by classification or normalization checks, not by a run that saves a failed checkpoint, suppresses final artifacts, and returns impl `TOOLING_FAILURE` without consuming semantic review retry.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R8 fallback threshold has no positive trigger assertion",
+      "body": "`shouldFallbackSplit` is asserted false for one retryable failure, mixed parents, and non-retryable failures, but never asserted true for two retryable failures on the same parent. `planFallbackChildWorkUnits` is called directly, so an implementation where the production threshold never triggers fallback could still satisfy the test.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-non-blocking-005",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "R9 root-relative matching boundary is light",
+      "body": "R9 root-relative matching boundary is light",
+      "category": "unknown"
+    }
+  ]
+}

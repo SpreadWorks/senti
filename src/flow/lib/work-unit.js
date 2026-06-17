@@ -1,0 +1,442 @@
+import crypto from "crypto";
+import fs from "fs";
+import path from "path";
+
+const CHECKPOINT_VERSION = 1;
+const RETRYABLE_FAILURE_KINDS = new Set(["provider_failure", "timeout", "parser_failure", "schema_failure"]);
+const COMMAND_FAILURE_KINDS = new Set(["checkpoint_io_failure", "invariant_violation"]);
+
+function requiredString(value, name) {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new WorkUnitInvariantError(`${name} is required`);
+  }
+  return value.trim();
+}
+
+function optionalParentUnitId(value) {
+  if (value == null) return null;
+  return requiredString(value, "parentUnitId");
+}
+
+function normalizeTargetFile(file) {
+  const normalized = file.split(path.sep).join("/").replace(/^\.\//, "");
+  return requiredString(normalized, "targetFile");
+}
+
+function normalizeTargetFiles(files) {
+  if (!Array.isArray(files) || files.length === 0) {
+    throw new WorkUnitInvariantError("targetFiles is required");
+  }
+  return [...new Set(files.map(normalizeTargetFile))].sort();
+}
+
+function stableJson(value) {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function sha256(value) {
+  return crypto.createHash("sha256").update(value).digest("hex");
+}
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+export class WorkUnitInvariantError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "WorkUnitInvariantError";
+    this.failureKind = "invariant_violation";
+  }
+}
+
+export class WorkUnitToolingFailure extends Error {
+  constructor({ failureKind, message, rawResponse = null, cause = null }) {
+    super(message || failureKind);
+    this.name = "WorkUnitToolingFailure";
+    this.failureKind = requiredString(failureKind, "failureKind");
+    this.rawResponse = rawResponse;
+    if (cause) this.cause = cause;
+  }
+}
+
+export class WorkUnitIdentity {
+  constructor(fields = {}) {
+    this.phase = requiredString(fields.phase, "phase");
+    this.kind = requiredString(fields.kind, "kind");
+    this.stableOrderKey = requiredString(fields.stableOrderKey, "stableOrderKey");
+    this.parentUnitId = optionalParentUnitId(fields.parentUnitId);
+    this.targetFiles = normalizeTargetFiles(fields.targetFiles);
+    this.inputHash = requiredString(fields.inputHash, "inputHash");
+    this.commandId = requiredString(fields.commandId, "commandId");
+    this.providerIdentity = requiredString(fields.providerIdentity, "providerIdentity");
+    this.promptVersion = requiredString(fields.promptVersion, "promptVersion");
+    this.schemaVersion = requiredString(fields.schemaVersion, "schemaVersion");
+    this.unitId = sha256(stableJson({
+      phase: this.phase,
+      kind: this.kind,
+      stableOrderKey: this.stableOrderKey,
+      parentUnitId: this.parentUnitId,
+    })).slice(0, 24);
+  }
+
+  toJSON() {
+    return {
+      phase: this.phase,
+      kind: this.kind,
+      stableOrderKey: this.stableOrderKey,
+      parentUnitId: this.parentUnitId,
+      targetFiles: this.targetFiles,
+      inputHash: this.inputHash,
+      commandId: this.commandId,
+      providerIdentity: this.providerIdentity,
+      promptVersion: this.promptVersion,
+      schemaVersion: this.schemaVersion,
+      unitId: this.unitId,
+    };
+  }
+
+  static fromJSON(data) {
+    return new WorkUnitIdentity(data);
+  }
+
+  matchesFullIdentity(other) {
+    const rhs = other instanceof WorkUnitIdentity ? other : new WorkUnitIdentity(other);
+    return stableJson(this.toJSON()) === stableJson(rhs.toJSON());
+  }
+}
+
+export class WorkUnitPlanEntry {
+  constructor({ identity, input = "", groups = [], execute = null }) {
+    if (!(identity instanceof WorkUnitIdentity)) throw new WorkUnitInvariantError("identity must be WorkUnitIdentity");
+    this.identity = identity;
+    this.input = String(input);
+    this.groups = groups;
+    this.execute = execute;
+  }
+
+  canSplitAgain() {
+    return this.identity.kind === "loop-chunk" && !this.identity.parentUnitId;
+  }
+}
+
+export class WorkUnitCheckpoint {
+  constructor({
+    identity,
+    status,
+    attemptCount = 1,
+    startedAt = nowIso(),
+    finishedAt = nowIso(),
+    success = null,
+    failure = null,
+    rawResponse = null,
+  }) {
+    if (!(identity instanceof WorkUnitIdentity)) throw new WorkUnitInvariantError("identity must be WorkUnitIdentity");
+    if (!["success", "failed"].includes(status)) throw new WorkUnitInvariantError(`invalid status: ${status}`);
+    this.identity = identity;
+    this.status = status;
+    this.attemptCount = attemptCount;
+    this.startedAt = startedAt;
+    this.finishedAt = finishedAt;
+    this.success = success;
+    this.failure = failure;
+    this.rawResponse = rawResponse;
+  }
+
+  get unitId() {
+    return this.identity.unitId;
+  }
+
+  get kind() {
+    return this.identity.kind;
+  }
+
+  toJSON() {
+    const identity = this.identity.toJSON();
+    return {
+      version: CHECKPOINT_VERSION,
+      phase: identity.phase,
+      kind: identity.kind,
+      unitId: identity.unitId,
+      identity,
+      targetFiles: identity.targetFiles,
+      inputHash: identity.inputHash,
+      providerIdentity: identity.providerIdentity,
+      promptVersion: identity.promptVersion,
+      schemaVersion: identity.schemaVersion,
+      status: this.status,
+      attemptCount: this.attemptCount,
+      startedAt: this.startedAt,
+      finishedAt: this.finishedAt,
+      ...(this.rawResponse != null ? { rawResponse: this.rawResponse } : {}),
+      ...(this.success != null ? { success: this.success } : {}),
+      ...(this.failure != null ? { failure: this.failure } : {}),
+    };
+  }
+
+  static fromJSON(data) {
+    return new WorkUnitCheckpoint({
+      identity: WorkUnitIdentity.fromJSON(data.identity),
+      status: data.status,
+      attemptCount: data.attemptCount,
+      startedAt: data.startedAt,
+      finishedAt: data.finishedAt,
+      success: data.success ?? null,
+      failure: data.failure ?? null,
+      rawResponse: data.rawResponse ?? null,
+    });
+  }
+}
+
+export class WorkUnitResumeDecision {
+  constructor({ action, reason = null, checkpoint = null }) {
+    if (!["reuse", "execute"].includes(action)) throw new WorkUnitInvariantError(`invalid resume action: ${action}`);
+    this.action = action;
+    this.reason = reason;
+    this.checkpoint = checkpoint;
+  }
+
+  static fromCheckpoint(plannedIdentity, checkpoint) {
+    if (!checkpoint) return new WorkUnitResumeDecision({ action: "execute", reason: "missing" });
+    if (checkpoint.status !== "success") return new WorkUnitResumeDecision({ action: "execute", reason: "failed", checkpoint });
+    if (!plannedIdentity.matchesFullIdentity(checkpoint.identity)) {
+      return new WorkUnitResumeDecision({ action: "execute", reason: "stale", checkpoint });
+    }
+    return new WorkUnitResumeDecision({ action: "reuse", reason: "success", checkpoint });
+  }
+}
+
+export class WorkUnitCheckpointStore {
+  constructor({ specDir, namespace = "impl-review" }) {
+    this.specDir = requiredString(specDir, "specDir");
+    this.namespace = requiredString(namespace, "namespace");
+  }
+
+  checkpointDir() {
+    return path.join(this.specDir, "review-history", "work-units", this.namespace);
+  }
+
+  checkpointPath(unitId) {
+    return path.join(this.checkpointDir(), `${unitId}.json`);
+  }
+
+  load(identityOrUnitId) {
+    const unitId = typeof identityOrUnitId === "string" ? identityOrUnitId : identityOrUnitId.unitId;
+    const filePath = this.checkpointPath(unitId);
+    if (!fs.existsSync(filePath)) return null;
+    return WorkUnitCheckpoint.fromJSON(JSON.parse(fs.readFileSync(filePath, "utf8")));
+  }
+
+  save(checkpoint) {
+    fs.mkdirSync(this.checkpointDir(), { recursive: true });
+    const filePath = this.checkpointPath(checkpoint.unitId);
+    fs.writeFileSync(filePath, `${JSON.stringify(checkpoint.toJSON(), null, 2)}\n`);
+    return filePath;
+  }
+
+  saveSuccess({ identity, rawResponse = null, success = {} }) {
+    return this.save(new WorkUnitCheckpoint({ identity, status: "success", rawResponse, success }));
+  }
+
+  saveFailed({ identity, unitId = null, failure }) {
+    const checkpointIdentity = identity || new WorkUnitIdentity({
+      phase: "impl-review",
+      kind: "loop-chunk",
+      stableOrderKey: unitId || "unknown",
+      parentUnitId: null,
+      targetFiles: ["unknown"],
+      inputHash: "unknown",
+      commandId: "unknown",
+      providerIdentity: "unknown",
+      promptVersion: "unknown",
+      schemaVersion: "unknown",
+    });
+    return this.save(new WorkUnitCheckpoint({
+      identity: checkpointIdentity,
+      status: "failed",
+      failure: normalizeFailure(failure),
+    }));
+  }
+
+  recordsByStatus(status) {
+    return this.records().filter((record) => record.status === status);
+  }
+
+  recordsByKind(kind) {
+    return this.records().filter((record) => record.kind === kind);
+  }
+
+  recordsByUnitId(unitId) {
+    return this.records().filter((record) => record.unitId === unitId);
+  }
+
+  recordsByNamespace(namespace) {
+    return namespace === this.namespace ? this.records() : [];
+  }
+
+  failuresForUnit(unitId) {
+    return this.recordsByUnitId(unitId).filter((record) => record.status === "failed").map((record) => record.failure);
+  }
+
+  records() {
+    const dir = this.checkpointDir();
+    if (!fs.existsSync(dir)) return [];
+    return fs.readdirSync(dir)
+      .filter((name) => name.endsWith(".json"))
+      .sort()
+      .map((name) => this.load(name.slice(0, -5)));
+  }
+}
+
+class MemoryWorkUnitCheckpointStore extends WorkUnitCheckpointStore {
+  constructor({ specDir = process.cwd(), namespace = "impl-review" } = {}) {
+    super({ specDir, namespace });
+    this.items = [];
+  }
+
+  load(identityOrUnitId) {
+    const unitId = typeof identityOrUnitId === "string" ? identityOrUnitId : identityOrUnitId.unitId;
+    return this.items.filter((record) => record.unitId === unitId).at(-1) || null;
+  }
+
+  save(checkpoint) {
+    this.items.push(checkpoint);
+    return path.join(this.checkpointDir(), `${checkpoint.unitId}.json`);
+  }
+
+  saveFailed({ identity, unitId = null, failure }) {
+    if (identity) return super.saveFailed({ identity, failure });
+    this.items.push({
+      unitId,
+      kind: "loop-chunk",
+      status: "failed",
+      failure: normalizeFailure({ ...failure, unitId }),
+    });
+    return path.join(this.checkpointDir(), `${unitId}.json`);
+  }
+
+  records() {
+    return [...this.items];
+  }
+}
+
+export function createMemoryWorkUnitCheckpointStore(options) {
+  return new MemoryWorkUnitCheckpointStore(options);
+}
+
+export function hashWorkUnitInput(input) {
+  return sha256(String(input));
+}
+
+export function createLoopChunkWorkUnitIdentity({
+  index,
+  parentUnitId = null,
+  targetFiles,
+  input,
+  commandId = "flow.impl.review.propose",
+  providerIdentity = "default",
+  promptVersion = "impl-review-loop-v1",
+  schemaVersion = "impl-review-proposals-v1",
+  kind = parentUnitId ? "loop-chunk-child" : "loop-chunk",
+}) {
+  return new WorkUnitIdentity({
+    phase: "impl-review",
+    kind,
+    stableOrderKey: `chunk-${String(index).padStart(4, "0")}`,
+    parentUnitId,
+    targetFiles,
+    inputHash: hashWorkUnitInput(input),
+    commandId,
+    providerIdentity,
+    promptVersion,
+    schemaVersion,
+  });
+}
+
+export function createCrossCheckWorkUnitIdentity({
+  summaries,
+  commandId = "flow.impl.review.propose",
+  providerIdentity = "default",
+  promptVersion = "impl-review-cross-check-v1",
+  schemaVersion = "impl-review-proposals-v1",
+}) {
+  const summaryHashes = summaries.map((summary) => hashWorkUnitInput(summary.proposals));
+  return new WorkUnitIdentity({
+    phase: "impl-review",
+    kind: "cross-check",
+    stableOrderKey: `cross-check-${hashWorkUnitInput(stableJson(summaryHashes)).slice(0, 16)}`,
+    parentUnitId: null,
+    targetFiles: summaries.map((summary) => summary.file),
+    inputHash: hashWorkUnitInput(stableJson(summaryHashes)),
+    commandId,
+    providerIdentity,
+    promptVersion,
+    schemaVersion,
+  });
+}
+
+function normalizeFailure(failure = {}) {
+  const failureKind = failure.failureKind || "provider_failure";
+  return {
+    ...(failure.unitId ? { unitId: failure.unitId } : {}),
+    failureKind,
+    retryable: RETRYABLE_FAILURE_KINDS.has(failureKind),
+    message: failure.message || failureKind,
+  };
+}
+
+export function classifyWorkUnitFailure(err, options = {}) {
+  const failureKind = options.failureKind || err?.failureKind || (err instanceof WorkUnitInvariantError ? "invariant_violation" : "provider_failure");
+  return {
+    failureKind,
+    retryable: RETRYABLE_FAILURE_KINDS.has(failureKind),
+    toolingFailure: RETRYABLE_FAILURE_KINDS.has(failureKind),
+    commandFailure: COMMAND_FAILURE_KINDS.has(failureKind),
+    message: err?.message || failureKind,
+    rawResponse: err?.rawResponse ?? null,
+  };
+}
+
+export function shouldFallbackSplit(failures = []) {
+  const byUnit = new Map();
+  for (const failure of failures) {
+    if (!failure?.retryable || !RETRYABLE_FAILURE_KINDS.has(failure.failureKind)) continue;
+    const key = failure.unitId || "default";
+    byUnit.set(key, (byUnit.get(key) || 0) + 1);
+  }
+  return [...byUnit.values()].some((count) => count >= 2);
+}
+
+export function planFallbackChildWorkUnits({ parentUnitId, parentStableOrderKey, parentChunk, priorFailures = [] }) {
+  if (!shouldFallbackSplit(priorFailures.map((failure) => ({ ...failure, unitId: failure.unitId || parentUnitId })))) return [];
+  return parentChunk.map((group, index) => new WorkUnitPlanEntry({
+    identity: createLoopChunkWorkUnitIdentity({
+      index,
+      parentUnitId,
+      targetFiles: group.files,
+      input: `${parentStableOrderKey}:${group.files.join(",")}`,
+      kind: "loop-chunk-child",
+    }),
+    groups: [group],
+  }));
+}
+
+export async function runFallbackChildWorkUnits({ checkpointStore, parentUnitId, children, buildChunkInput, reviewChunk }) {
+  const proposals = [];
+  for (const child of children) {
+    const input = buildChunkInput(child.groups);
+    const rawResponse = await reviewChunk(child.groups, input);
+    const proposal = { title: `Check ${child.groups[0].representative}`, file: child.groups[0].representative, body: rawResponse };
+    proposals.push(proposal);
+    checkpointStore.saveSuccess({ identity: child.identity, rawResponse, success: { proposals: [proposal] } });
+  }
+  return { parentUnitId, proposals };
+}
+
+export function shouldUseWorkUnitsForReviewPhase({ phase, mode }) {
+  return phase === "impl" && mode === "loop";
+}

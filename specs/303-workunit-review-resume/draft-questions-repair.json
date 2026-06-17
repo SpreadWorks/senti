@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Removed embedded recommendations and rationale from q1 through q5. Pending question entries remain otherwise unchanged.",
+  "items": [
+    {
+      "title": "1. q1 includes answer/rationale text",
+      "target": "q1",
+      "rationale": "The q1 question was reduced to the checkpoint retention decision only.",
+      "evidence": "draft.json qa[0].question now asks only whether stale or failed WorkUnit checkpoints remain as spec-directory evidence.",
+      "changedFieldPaths": [
+        "qa[0].question"
+      ]
+    },
+    {
+      "title": "2. q2 includes answer/rationale text",
+      "target": "q2",
+      "rationale": "The q2 question was reduced to the fallback splitting and MAX_LOOP_CALLS decision only.",
+      "evidence": "draft.json qa[1].question now asks only whether child WorkUnits expand inside the failed parent chunk without changing initial chunking.",
+      "changedFieldPaths": [
+        "qa[1].question"
+      ]
+    },
+    {
+      "title": "3. q3 includes answer/rationale text",
+      "target": "q3",
+      "rationale": "The q3 question was reduced to the excludePaths glob semantics decision only.",
+      "evidence": "draft.json qa[2].question now asks only whether config and default exclusions use the same repository-root-relative matcher.",
+      "changedFieldPaths": [
+        "qa[2].question"
+      ]
+    },
+    {
+      "title": "4. q4 includes answer/rationale text",
+      "target": "q4",
+      "rationale": "The q4 question was reduced to the rawResponse and failure detail storage decision only.",
+      "evidence": "draft.json qa[3].question now asks only whether checkpoint evidence follows the existing review artifact secret-handling boundary.",
+      "changedFieldPaths": [
+        "qa[3].question"
+      ]
+    },
+    {
+      "title": "5. q5 includes answer/rationale text",
+      "target": "q5",
+      "rationale": "The q5 question was reduced to the test strategy decision only.",
+      "evidence": "draft.json qa[4].question now asks only whether primitive tests and impl-review integration-like tests cover the change.",
+      "changedFieldPaths": [
+        "qa[4].question"
+      ]
+    }
+  ]
+}

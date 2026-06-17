@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "All 3 blocking findings are valid and require direct spec repair before spec-gate.",
+  "items": [
+    {
+      "title": "Define stable WorkUnit checkpoint lookup key",
+      "target": "R2/R3/R4 and checkpoint path",
+      "decision": "apply",
+      "rationale": "The spec needs a stable unitId lookup key that excludes volatile identity fields so stale detection can compare the stored full identity against the planned full identity.",
+      "evidence": "spec-review.json blockingFindings[0] explains that using a full identity hash as unitId would turn changed inputs into missing checkpoints, while using only order would collide across chunk, cross-check, parent, and child units."
+    },
+    {
+      "title": "Specify impl tooling-failure runner contract",
+      "target": "R5/R10 and `src/flow/lib/run-review.js` boundary",
+      "decision": "apply",
+      "rationale": "The spec must define how WorkUnit tooling failures cross the impl review subprocess boundary so failed checkpoints do not become generic subprocess failures or semantic review results.",
+      "evidence": "spec-review.json blockingFindings[1] notes that current impl parsing expects final artifacts and impl lifecycle can increment reviewRetry for impl artifacts."
+    },
+    {
+      "title": "Define retryable WorkUnit failure classification",
+      "target": "R5/R8 checkpoint failure fields",
+      "decision": "apply",
+      "rationale": "Fallback splitting depends on two retryable failures for the same loop-chunk WorkUnit, so checkpoint failureKind values need an explicit retryable mapping.",
+      "evidence": "spec-review.json blockingFindings[2] states that provider, timeout, parser, and schema failures are not yet mapped to chunk-level fallback policy."
+    }
+  ]
+}

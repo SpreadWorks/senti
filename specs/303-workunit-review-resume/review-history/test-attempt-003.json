@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-17T05:54:17.185Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 3,
+    "advisory": 0,
+    "total": 3
+  },
+  "coverageArtifact": "specs/303-workunit-review-resume/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R6 success-count assertion contradicts required cross-check WorkUnit",
+      "target": "specs/303-workunit-review-resume/tests/loop-review-resume.test.js: R6 final review artifacts are produced only after every planned WorkUnit succeeds",
+      "issue": "The test uses two chunk groups with maxLoopCalls set to 4, so the R7 cross-check condition holds and a cross-check WorkUnit is part of the current plan. The test then asserts only two successful checkpoints, which excludes the required cross-check checkpoint.",
+      "requiredChange": "Either make the R6 scenario avoid cross-check planning, for example by using one group or maxLoopCalls that is not above the chunk call count, or update the expected success checkpoint count to include the cross-check WorkUnit.",
+      "whyBlocking": "An implementation that satisfies R7 by planning and checkpointing cross-checks under these conditions would fail this R6 test despite being correct."
+    },
+    {
+      "kind": "blocking",
+      "title": "Parser and schema failure coverage is simulated instead of exercising production parsing",
+      "target": "specs/303-workunit-review-resume/tests/loop-review-resume.test.js: R5 timeout parser and schema failures are checkpointed tooling failures",
+      "issue": "The parser_failure and schema_failure cases are tested by throwing WorkUnitToolingFailure from the reviewChunk dependency. That can pass without validating that successful provider responses are parsed, schema-checked, checkpointed as failures, and returned as TOOLING_FAILURE when the actual parser or schema validation fails.",
+      "requiredChange": "Add at least one parser/schema failure case where reviewChunk returns malformed or schema-invalid provider output and the production parsing/validation path creates the failed checkpoint and TOOLING_FAILURE result.",
+      "whyBlocking": "R5 explicitly covers parser and schema failures after provider execution; the current test can pass while the production parser/schema failure path is unimplemented."
+    },
+    {
+      "kind": "blocking",
+      "title": "Non-retryable command failure behavior is not covered",
+      "target": "specs/303-workunit-review-resume/tests/loop-review-resume.test.js: R10 WorkUnit tooling failures normalize without semantic reviewRetry consumption",
+      "issue": "The test only asserts checkpoint_io_failure and invariant_violation are retryable false and do not trigger fallback splitting. It does not assert they are command failures rather than tooling failures, nor that they avoid semantic reviewRetry consumption across the command/run-review boundary.",
+      "requiredChange": "Add a focused assertion or scenario that checkpoint I/O failure and invariant violation normalize or propagate as non-retryable command failures, distinct from WorkUnit TOOLING_FAILURE, and do not consume semantic reviewRetry.",
+      "whyBlocking": "R10 requires command-failure classification for these failure kinds; the current tests would allow an implementation to classify them as retryable-false tooling failures and still pass."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/303-workunit-review-resume/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "e7714e6d8189e7d3f2150ee79c6bbb2ca00828a3a21fbf2ac39605936bc84a32"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "test-003-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R6 success-count assertion contradicts required cross-check WorkUnit",
+      "body": "The test uses two chunk groups with maxLoopCalls set to 4, so the R7 cross-check condition holds and a cross-check WorkUnit is part of the current plan. The test then asserts only two successful checkpoints, which excludes the required cross-check checkpoint.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-003-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Parser and schema failure coverage is simulated instead of exercising production parsing",
+      "body": "The parser_failure and schema_failure cases are tested by throwing WorkUnitToolingFailure from the reviewChunk dependency. That can pass without validating that successful provider responses are parsed, schema-checked, checkpointed as failures, and returned as TOOLING_FAILURE when the actual parser or schema validation fails.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-003-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Non-retryable command failure behavior is not covered",
+      "body": "The test only asserts checkpoint_io_failure and invariant_violation are retryable false and do not trigger fallback splitting. It does not assert they are command failures rather than tooling failures, nor that they avoid semantic reviewRetry consumption across the command/run-review boundary.",
+      "category": "unknown"
+    }
+  ]
+}

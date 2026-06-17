@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied all 3 spec-review blocking repairs: stable unitId lookup, impl tooling-failure boundary contract, and retryable WorkUnit failure classification.",
+  "items": [
+    {
+      "title": "Define stable WorkUnit checkpoint lookup key",
+      "target": "R2/R3/R4 and checkpoint path",
+      "decision": "applied",
+      "rationale": "The spec now defines `unitId` as a stable lookup key derived from phase, kind, stable order key, and parentUnitId, while full identity remains the stale/reuse comparison input.",
+      "evidence": "spec.json constraints[], requirements R2/R3, acceptance criteria R2/R3, clarifications[], overview.decisions[], and T-1 now describe stable unitId lookup and full identity comparison.",
+      "changedFields": [
+        "constraints[]",
+        "overview.decisions[]",
+        "requirements[1].desc",
+        "requirements[2].desc",
+        "acceptance_criteria[1]",
+        "acceptance_criteria[2]",
+        "clarifications[]",
+        "tasks[0].acceptance",
+        "tasks[0].test_strategy"
+      ]
+    },
+    {
+      "title": "Specify impl tooling-failure runner contract",
+      "target": "R5/R10 and `src/flow/lib/run-review.js` boundary",
+      "decision": "applied",
+      "rationale": "The spec now requires WorkUnit tooling failures to cross the impl review subprocess boundary as structured `TOOLING_FAILURE` results with no final artifacts, no next-step advancement, and no semantic reviewRetry increment.",
+      "evidence": "spec.json constraints[], data_flow[], overview.decisions[], requirements R5/R10, acceptance criteria R5/R10, clarifications[], and T-2 now specify the runner boundary contract.",
+      "changedFields": [
+        "constraints[]",
+        "overview.data_flow[]",
+        "overview.decisions[]",
+        "requirements[4].desc",
+        "requirements[9].desc",
+        "acceptance_criteria[4]",
+        "acceptance_criteria[9]",
+        "clarifications[]",
+        "tasks[1].acceptance",
+        "tasks[1].test_strategy"
+      ]
+    },
+    {
+      "title": "Define retryable WorkUnit failure classification",
+      "target": "R5/R8 checkpoint failure fields",
+      "decision": "applied",
+      "rationale": "The spec now names retryable WorkUnit failure kinds and excludes checkpoint I/O and invariant failures from fallback splitting.",
+      "evidence": "spec.json constraints[], overview.decisions[], requirements R8/R10, acceptance criteria R8/R10, clarifications[], and T-3 now define retryable failureKind mapping.",
+      "changedFields": [
+        "constraints[]",
+        "overview.decisions[]",
+        "requirements[7].desc",
+        "requirements[9].desc",
+        "acceptance_criteria[7]",
+        "acceptance_criteria[9]",
+        "clarifications[]",
+        "tasks[2].acceptance"
+      ]
+    }
+  ]
+}

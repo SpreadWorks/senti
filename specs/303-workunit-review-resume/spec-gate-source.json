@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "bounded-resource-usage",
+      "result": "fail",
+      "reason": "Fallback split rule is unbounded: R8 only states split a failed parent after two retryable failures and does not define a cap or terminal condition for repeated retry/split cycles (e.g., a repeatedly failing chunk repeatedly generating child chunks), so recursive processing depth and total retries are not explicitly bounded.",
+      "category": "code-quality",
+      "title": "Bounded Resource Usage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements:R8"
+          },
+          "observed": "Fallback split rule is unbounded: R8 only states split a failed parent after two retryable failures and does not define a cap or terminal condition for repeated retry/split cycles (e.g., a repeatedly failing chunk repeatedly generating child chunks), so recursive processing depth and total retries are not explicitly bounded.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "fail",
+      "reason": "Spec references spec-local tests but does not mandate that test files under `specs/303-workunit-review-resume/tests/` include `// spec: R<N> ...` headers, so required spec-coverage convention is not explicitly defined in the spec.",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks / acceptance_criteria / implementationTargets"
+          },
+          "observed": "Spec references spec-local tests but does not mandate that test files under `specs/303-workunit-review-resume/tests/` include `// spec: R<N> ...` headers, so required spec-coverage convention is not explicitly defined in the spec.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "bounded-resource-usage",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements:R8"
+      },
+      "observed": "Fallback split rule is unbounded: R8 only states split a failed parent after two retryable failures and does not define a cap or terminal condition for repeated retry/split cycles (e.g., a repeatedly failing chunk repeatedly generating child chunks), so recursive processing depth and total retries are not explicitly bounded.",
+      "severity": "blocking",
+      "refs": [
+        "bounded-resource-usage"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "spec-test-coverage",
+      "where": {
+        "file": "spec.json",
+        "locator": "tasks / acceptance_criteria / implementationTargets"
+      },
+      "observed": "Spec references spec-local tests but does not mandate that test files under `specs/303-workunit-review-resume/tests/` include `// spec: R<N> ...` headers, so required spec-coverage convention is not explicitly defined in the spec.",
+      "severity": "blocking",
+      "refs": [
+        "spec-test-coverage"
+      ]
+    }
+  ]
+}
