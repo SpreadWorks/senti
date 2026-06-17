@@ -1,0 +1,157 @@
+{
+  "version": 1,
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "既存の移行対象となる公開振る舞いのインベントリが不十分で、列挙は影響項目の宣言に留まり、移譲対象の user-facing コマンド/API/hook/生成アーティファクトの網羅的な現状一覧として整理されていない。",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "impactOnExisting"
+          },
+          "observed": "既存の移行対象となる公開振る舞いのインベントリが不十分で、列挙は影響項目の宣言に留まり、移譲対象の user-facing コマンド/API/hook/生成アーティファクトの網羅的な現状一覧として整理されていない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "保持する既存振る舞いを新パスにどの owner へ移譲するか、あるいは明示削除するかの写像が各 public surface ごとに一対一で示されていない。",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "scopeVerification / impactOnExisting"
+          },
+          "observed": "保持する既存振る舞いを新パスにどの owner へ移譲するか、あるいは明示削除するかの写像が各 public surface ごとに一対一で示されていない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "retained public surface ごとの行動レベル検証条件が不足しており、`regression tests` は概念列挙で留まり、各表面（例: plugin source add/update/find/install/setup の結果整合性、update-all updated 判定、JSON output shape）ごとの実証が明示されていない。",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "qa / validation"
+          },
+          "observed": "retained public surface ごとの行動レベル検証条件が不足しており、`regression tests` は概念列挙で留まり、各表面（例: plugin source add/update/find/install/setup の結果整合性、update-all updated 判定、JSON output shape）ごとの実証が明示されていない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "draft-recommend-with-reasoning",
+      "result": "fail",
+      "reason": "質問への推奨回答はあるが、推奨根拠が project docs / guardrail principles / existing code patterns の形式で明示されておらず、要件が要求する根拠提示が不足している。",
+      "category": "code-quality",
+      "title": "Present Recommendations with Reasoning",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "draft-content",
+            "locator": "qa[0]"
+          },
+          "observed": "質問への推奨回答はあるが、推奨根拠が project docs / guardrail principles / existing code patterns の形式で明示されておらず、要件が要求する根拠提示が不足している。",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft-content",
+        "locator": "impactOnExisting"
+      },
+      "observed": "既存の移行対象となる公開振る舞いのインベントリが不十分で、列挙は影響項目の宣言に留まり、移譲対象の user-facing コマンド/API/hook/生成アーティファクトの網羅的な現状一覧として整理されていない。",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft-content",
+        "locator": "scopeVerification / impactOnExisting"
+      },
+      "observed": "保持する既存振る舞いを新パスにどの owner へ移譲するか、あるいは明示削除するかの写像が各 public surface ごとに一対一で示されていない。",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft-content",
+        "locator": "qa / validation"
+      },
+      "observed": "retained public surface ごとの行動レベル検証条件が不足しており、`regression tests` は概念列挙で留まり、各表面（例: plugin source add/update/find/install/setup の結果整合性、update-all updated 判定、JSON output shape）ごとの実証が明示されていない。",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "draft-recommend-with-reasoning",
+      "where": {
+        "file": "draft-content",
+        "locator": "qa[0]"
+      },
+      "observed": "質問への推奨回答はあるが、推奨根拠が project docs / guardrail principles / existing code patterns の形式で明示されておらず、要件が要求する根拠提示が不足している。",
+      "severity": "blocking",
+      "refs": [
+        "draft-recommend-with-reasoning"
+      ]
+    }
+  ]
+}

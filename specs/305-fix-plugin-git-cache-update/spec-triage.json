@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "Two blocking findings are valid and should be repaired in spec.json before spec-gate.",
+  "items": [
+    {
+      "title": "Cache deletion target is not safely specified",
+      "target": "R3 / T-2 dirty managed cache self-heal",
+      "decision": "apply",
+      "rationale": "The spec requires delete/reclone fallback for managed caches but does not yet require path confinement before destructive operations.",
+      "evidence": "spec.json requirements[R3] and task T-2 mention reset/clean/reclone under .senti/plugin-sources/ but do not explicitly require resolved path validation or rejection of unsafe source ids."
+    },
+    {
+      "title": "Resolved tree consistency is not required for metadata consumers",
+      "target": "R1/R2/R5 / src/lib/plugin-registry.js resolveSource consumers",
+      "decision": "apply",
+      "rationale": "The spec requires adopting a resolved commit but does not explicitly require resolved.root or any materialized tree to match that commit before metadata consumers inspect files.",
+      "evidence": "src/lib/plugin-registry.js consumers read plugin.json and validate files from resolved.root in addPluginRepo, findPluginCandidates, installPlugin, and installFromSource; spec.json R1/R2/R5 do not yet state tree/commit consistency."
+    }
+  ]
+}

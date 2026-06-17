@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-17T14:52:48.540Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/305-fix-plugin-git-cache-update/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Unsafe cache rejection test does not prove destructive repair is prevented",
+      "target": "specs/305-fix-plugin-git-cache-update/tests/plugin-git-cache-update.test.js R3 unsafe managed cache source ids are rejected before destructive repair",
+      "issue": "The test only asserts that an unsafe source id throws. It does not create an escaped cache target or sentinel file outside `.senti/plugin-sources/`, so an implementation could still run destructive repair against a path outside the current root and then throw, while this test would pass.",
+      "requiredChange": "Add a spec-local assertion that a path outside the managed plugin-sources directory is not modified when an unsafe/path-traversal source id is processed.",
+      "whyBlocking": "R3 explicitly requires validation before reset/clean and rejection of unsafe path traversal. The current test covers the throw but not the critical no-destructive-operation behavior."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/305-fix-plugin-git-cache-update/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "fc4bae3cb60398d6c2dc0dc88905a5ba484cf95d957d029403d947843d952f23"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "test-003-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Unsafe cache rejection test does not prove destructive repair is prevented",
+      "body": "The test only asserts that an unsafe source id throws. It does not create an escaped cache target or sentinel file outside `.senti/plugin-sources/`, so an implementation could still run destructive repair against a path outside the current root and then throw, while this test would pass.",
+      "category": "unknown"
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-17T15:11:34.804Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "title": "Git metadata can redirect destructive repair outside the cache",
+      "failureMode": "security_or_data_integrity_bug",
+      "file": "src/lib/plugin-registry.js",
+      "issue": "assertManagedGitCachePath verifies that the cache directory path itself is under .senti/plugin-sources, but syncGitUrlSource then trusts any existing dest/.git entry. A cache directory can contain a .git file pointing at an external gitdir whose core.worktree is outside the managed cache; subsequent fetch/reset/clean/checkout calls with cwd=dest will operate on that external worktree even though dest is not a symlink.",
+      "suggestion": "In assertManagedGitCachePath or before cleanGitUrlSourceTree/fetchGitUrlSource, reject .git files or symlinked .git entries, or verify git rev-parse --show-toplevel and the gitdir realpath are confined to the resolved managed cache before running destructive git commands. Reclone the cache only after removing a confirmed safe dest path.",
+      "rationale": "R3 requires reset/clean/delete/reclone self-heal operations to be confined to the current root's .senti/plugin-sources area. Trusting redirected Git metadata allows a config/cache-controlled entry to run destructive repair against an arbitrary external worktree, which is a data integrity bug."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/305-fix-plugin-git-cache-update/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "64c2b38b3e34de63a785d063ee4b77b42634f2d4ca10656815ed9c972ff9dd49"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "impl-004-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Git metadata can redirect destructive repair outside the cache",
+      "body": "assertManagedGitCachePath verifies that the cache directory path itself is under .senti/plugin-sources, but syncGitUrlSource then trusts any existing dest/.git entry. A cache directory can contain a .git file pointing at an external gitdir whose core.worktree is outside the managed cache; subsequent fetch/reset/clean/checkout calls with cwd=dest will operate on that external worktree even though dest is not a symlink.",
+      "category": "security_or_data_integrity_bug"
+    }
+  ]
+}

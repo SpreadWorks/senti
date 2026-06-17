@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-17T15:03:09.905Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "title": "Ignored files can survive managed cache repair",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "src/lib/plugin-registry.js",
+      "requirementId": "R7",
+      "issue": "cleanGitUrlSourceTree uses git clean -fd before and after checkout, which does not remove ignored untracked files. A managed cache can therefore contain files that are not part of the resolved target commit when PluginManifest/validateSourceTree/install paths inspect the source root.",
+      "suggestion": "In cleanGitUrlSourceTree, change both clean invocations to remove ignored files as well, for example git clean -fdx, so the managed cache worktree matches the resolved commit before any source-root reads occur.",
+      "rationale": "R7 requires Git URL resolveSource/syncGitUrlSource to provide a source root matching the resolved target commit before consumers read files. Leaving ignored untracked files behind violates that target-state guarantee and can cause stale or malicious cache contents to influence validation or installation flow."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/305-fix-plugin-git-cache-update/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "63f2e7b114c4c5b5e4f0235b4f4f58fa8fe650308a441b955a11af89905cd075"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "impl-001-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Ignored files can survive managed cache repair",
+      "body": "cleanGitUrlSourceTree uses git clean -fd before and after checkout, which does not remove ignored untracked files. A managed cache can therefore contain files that are not part of the resolved target commit when PluginManifest/validateSourceTree/install paths inspect the source root.",
+      "category": "spec_behavior_contradiction"
+    }
+  ]
+}

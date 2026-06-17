@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied two spec-review repairs: cache path confinement for destructive self-heal and resolved tree consistency for metadata consumers.",
+  "items": [
+    {
+      "title": "Cache deletion target is not safely specified",
+      "target": "R3 / T-2 dirty managed cache self-heal",
+      "decision": "applied",
+      "rationale": "Added explicit path confinement and unsafe source id rejection requirements before reset/clean/delete/reclone operations.",
+      "evidence": "spec.json constraints[], requirements[R3].desc, acceptance_criteria[R3], overview.decisions[], and tasks[T-2] now require validating the cache path under .senti/plugin-sources/ before destructive operations.",
+      "changedFields": [
+        "constraints[]",
+        "overview.decisions[]",
+        "requirements[R3].desc",
+        "acceptance_criteria[]",
+        "tasks[T-2].acceptance",
+        "tasks[T-2].implementation_notes"
+      ]
+    },
+    {
+      "title": "Resolved tree consistency is not required for metadata consumers",
+      "target": "R1/R2/R5 / src/lib/plugin-registry.js resolveSource consumers",
+      "decision": "applied",
+      "rationale": "Added an explicit requirement and acceptance criterion that metadata consumers inspect a tree matching the resolved commit.",
+      "evidence": "spec.json requirements[R7], acceptance_criteria[R7], overview.decisions[], tasks[T-1].acceptance, and tasks[T-4].acceptance now cover source root/materialized tree consistency.",
+      "changedFields": [
+        "overview.decisions[]",
+        "requirements[R7]",
+        "acceptance_criteria[]",
+        "tasks[T-1].acceptance",
+        "tasks[T-4].acceptance"
+      ]
+    }
+  ]
+}

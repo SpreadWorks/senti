@@ -1,0 +1,362 @@
+[senti] scenario-validity tests start
+command: node --test specs/305-fix-plugin-git-cache-update/tests/plugin-git-cache-update.test.js
+[senti] scenario-validity file start command=node specs/305-fix-plugin-git-cache-update/tests/plugin-git-cache-update.test.js
+TAP version 13
+# Subtest: Git URL plugin source cache update
+    # Subtest: R1: update-all adopts the fetched remote default branch instead of stale cache HEAD
+    not ok 1 - R1: update-all adopts the fetched remote default branch instead of stale cache HEAD
+      ---
+      duration_ms: 172.359753
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/specs/305-fix-plugin-git-cache-update/tests/plugin-git-cache-update.test.js:119:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + '79f6051b47aff178d2789f2e0b1125448c990496'
+        - '2514f36b382404d248b81495e7ad2984071292dd'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: '2514f36b382404d248b81495e7ad2984071292dd'
+      actual: '79f6051b47aff178d2789f2e0b1125448c990496'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/specs/305-fix-plugin-git-cache-update/tests/plugin-git-cache-update.test.js:128:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Test.start (node:internal/test_runner/test:944:17)
+        node:internal/test_runner/test:1440:71
+        node:internal/per_context/primordials:464:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:433:3)
+        node:internal/per_context/primordials:464:9
+        Array.map (<anonymous>)
+      ...
+    # Subtest: R2: source.ref branch resolves to the fetched branch commit rather than the stale local branch
+    not ok 2 - R2: source.ref branch resolves to the fetched branch commit rather than the stale local branch
+      ---
+      duration_ms: 218.406107
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/specs/305-fix-plugin-git-cache-update/tests/plugin-git-cache-update.test.js:132:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + 'dd94faf019dc1f1f4a183da3b19649ebfda17289'
+        - '64b20f0436213e122e55e3da0e0846080a0be2da'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: '64b20f0436213e122e55e3da0e0846080a0be2da'
+      actual: 'dd94faf019dc1f1f4a183da3b19649ebfda17289'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/specs/305-fix-plugin-git-cache-update/tests/plugin-git-cache-update.test.js:150:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1442:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+      ...
+    # Subtest: R2: source.ref tag resolves to the fetched tag target commit
+    not ok 3 - R2: source.ref tag resolves to the fetched tag target commit
+      ---
+      duration_ms: 161.108416
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/specs/305-fix-plugin-git-cache-update/tests/plugin-git-cache-update.test.js:154:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        failed to update file:///tmp/senti-plugin-git-cache-Xi9DyC: From file:///tmp/senti-plugin-git-cache-Xi9DyC
+           2f2ce43..9522b1b  main        -> origin/main
+         ! [rejected]        release-tag -> release-tag  (would clobber existing tag)
+        error: Could not fetch origin
+        
+      code: 'ERR_TEST_FAILURE'
+      stack: |-
+        syncGitUrlSource (file:///home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/src/lib/plugin-registry.js:535:27)
+        resolveSource (file:///home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/src/lib/plugin-registry.js:546:31)
+        syncInstalledPlugins (file:///home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/src/lib/plugin-registry.js:713:9)
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/specs/305-fix-plugin-git-cache-update/tests/plugin-git-cache-update.test.js:168:22)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R2: source.ref full SHA resolves after fetch even when the managed cache is dirty
+    not ok 4 - R2: source.ref full SHA resolves after fetch even when the managed cache is dirty
+      ---
+      duration_ms: 134.022799
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/specs/305-fix-plugin-git-cache-update/tests/plugin-git-cache-update.test.js:175:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        failed to checkout plugin ref: exit=1 | error: Your local changes to the following files would be overwritten by checkout:
+        	commands/sample.js
+        Please commit your changes or stash them before you switch branches.
+        Aborting
+        
+      code: 'ERR_TEST_FAILURE'
+      stack: |-
+        assertOk (file:///home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/src/lib/process.js:122:22)
+        runGit (file:///home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/src/lib/plugin-registry.js:502:3)
+        syncGitUrlSource (file:///home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/src/lib/plugin-registry.js:537:19)
+        resolveSource (file:///home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/src/lib/plugin-registry.js:546:31)
+        syncInstalledPlugins (file:///home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/src/lib/plugin-registry.js:713:9)
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/specs/305-fix-plugin-git-cache-update/tests/plugin-git-cache-update.test.js:186:22)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+      ...
+    # Subtest: R3: dirty managed cache is repaired before adopting the resolved target commit
+    not ok 5 - R3: dirty managed cache is repaired before adopting the resolved target commit
+      ---
+      duration_ms: 166.897686
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/specs/305-fix-plugin-git-cache-update/tests/plugin-git-cache-update.test.js:193:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + 'f368b2e60670b01f94fa67e5fa4b8cb649a9e7dd'
+        - '87579a3cda89ae6f105c74f388b1a48e71dde538'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: '87579a3cda89ae6f105c74f388b1a48e71dde538'
+      actual: 'f368b2e60670b01f94fa67e5fa4b8cb649a9e7dd'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/specs/305-fix-plugin-git-cache-update/tests/plugin-git-cache-update.test.js:204:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R3: unsafe managed cache source ids are rejected before destructive repair
+    ok 6 - R3: unsafe managed cache source ids are rejected before destructive repair
+      ---
+      duration_ms: 49.835812
+      type: 'test'
+      ...
+    # Subtest: R3: unrecoverable managed cache is deleted and recloned at the resolved commit
+    not ok 7 - R3: unrecoverable managed cache is deleted and recloned at the resolved commit
+      ---
+      duration_ms: 76.241986
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/specs/305-fix-plugin-git-cache-update/tests/plugin-git-cache-update.test.js:225:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        failed to clone file:///tmp/senti-plugin-git-cache-4OOJj6: fatal: destination path '/tmp/senti-plugin-git-cache-aFCMUT/.senti/plugin-sources/sample-source' already exists and is not an empty directory.
+        
+      code: 'ERR_TEST_FAILURE'
+      stack: |-
+        syncGitUrlSource (file:///home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/src/lib/plugin-registry.js:532:27)
+        resolveSource (file:///home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/src/lib/plugin-registry.js:546:31)
+        syncInstalledPlugins (file:///home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/src/lib/plugin-registry.js:713:9)
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/specs/305-fix-plugin-git-cache-update/tests/plugin-git-cache-update.test.js:233:22)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R4: update-all result reports the new commit and updated true when package commit changes
+    not ok 8 - R4: update-all result reports the new commit and updated true when package commit changes
+      ---
+      duration_ms: 278.533571
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/specs/305-fix-plugin-git-cache-update/tests/plugin-git-cache-update.test.js:241:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        
+          {
+        +   commit: 'f368b2e60670b01f94fa67e5fa4b8cb649a9e7dd',
+        -   commit: '87579a3cda89ae6f105c74f388b1a48e71dde538',
+            previousCommit: 'f368b2e60670b01f94fa67e5fa4b8cb649a9e7dd',
+        +   updated: false
+        -   updated: true
+          }
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        commit: '87579a3cda89ae6f105c74f388b1a48e71dde538'
+        previousCommit: 'f368b2e60670b01f94fa67e5fa4b8cb649a9e7dd'
+        updated: true
+      actual:
+        commit: 'f368b2e60670b01f94fa67e5fa4b8cb649a9e7dd'
+        previousCommit: 'f368b2e60670b01f94fa67e5fa4b8cb649a9e7dd'
+        updated: false
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/specs/305-fix-plugin-git-cache-update/tests/plugin-git-cache-update.test.js:249:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R5: local path plugin source dirty rejection remains unchanged
+    ok 9 - R5: local path plugin source dirty rejection remains unchanged
+      ---
+      duration_ms: 172.793076
+      type: 'test'
+      ...
+    # Subtest: R5: source add persists config and source update reports the fetched resolved commit
+    not ok 10 - R5: source add persists config and source update reports the fetched resolved commit
+      ---
+      duration_ms: 228.67692
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/specs/305-fix-plugin-git-cache-update/tests/plugin-git-cache-update.test.js:283:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + 'cbbb17e5144ee2af78650671f669e3e6f4664ffe'
+        - '014de80a8f30846224e014791e6e3d055d9f6a3e'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: '014de80a8f30846224e014791e6e3d055d9f6a3e'
+      actual: 'cbbb17e5144ee2af78650671f669e3e6f4664ffe'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/specs/305-fix-plugin-git-cache-update/tests/plugin-git-cache-update.test.js:301:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R5: official preset source resolution adopts the fetched Git URL commit
+    not ok 11 - R5: official preset source resolution adopts the fetched Git URL commit
+      ---
+      duration_ms: 202.596307
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/specs/305-fix-plugin-git-cache-update/tests/plugin-git-cache-update.test.js:304:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + '4aa3aefc88034c57053b7fa7065ae14ca39e31b7'
+        - 'fe8e92c2b694aebab2ea874b561675d82f32af3c'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'fe8e92c2b694aebab2ea874b561675d82f32af3c'
+      actual: '4aa3aefc88034c57053b7fa7065ae14ca39e31b7'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/specs/305-fix-plugin-git-cache-update/tests/plugin-git-cache-update.test.js:329:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R7: metadata consumers inspect a tree matching the resolved target commit
+    not ok 12 - R7: metadata consumers inspect a tree matching the resolved target commit
+      ---
+      duration_ms: 158.384163
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/specs/305-fix-plugin-git-cache-update/tests/plugin-git-cache-update.test.js:334:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + 'old-plugin'
+        - 'new-plugin'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'new-plugin'
+      actual: 'old-plugin'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/specs/305-fix-plugin-git-cache-update/tests/plugin-git-cache-update.test.js:353:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R7: install materializes files from the resolved target commit
+    not ok 13 - R7: install materializes files from the resolved target commit
+      ---
+      duration_ms: 154.539864
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/specs/305-fix-plugin-git-cache-update/tests/plugin-git-cache-update.test.js:357:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + 'cbbb17e5144ee2af78650671f669e3e6f4664ffe'
+        - '9370d6fa0b5cbcfb016ad46706fcb5ffbcf823d3'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: '9370d6fa0b5cbcfb016ad46706fcb5ffbcf823d3'
+      actual: 'cbbb17e5144ee2af78650671f669e3e6f4664ffe'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/specs/305-fix-plugin-git-cache-update/tests/plugin-git-cache-update.test.js:375:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    1..13
+not ok 1 - Git URL plugin source cache update
+  ---
+  duration_ms: 2182.510582
+  type: 'suite'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-305-fix-plugin-git-cache-update/specs/305-fix-plugin-git-cache-update/tests/plugin-git-cache-update.test.js:118:1'
+  failureType: 'subtestsFailed'
+  error: '11 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 13
+# suites 1
+# pass 2
+# fail 11
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2203.260687
+Command failed: node specs/305-fix-plugin-git-cache-update/tests/plugin-git-cache-update.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/305-fix-plugin-git-cache-update/tests/plugin-git-cache-update.test.js
+exitCode: 1
+[senti] requirement R1 observed: R1: update-all adopts the fetched remote default branch instead of stale cache HEAD
+[senti] requirement R2 observed: R2: source.ref branch resolves to the fetched branch commit rather than the stale local branch
+[senti] requirement R3 observed: R3: dirty managed cache is repaired before adopting the resolved target commit
+[senti] requirement R4 observed: R4: update-all result reports the new commit and updated true when package commit changes
+[senti] requirement R5 observed: R5: local path plugin source dirty rejection remains unchanged
+[senti] requirement R7 observed: R7: metadata consumers inspect a tree matching the resolved target commit
+[senti] scenario-validity tests end

@@ -1,0 +1,286 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "既存の移行対象となる公開振る舞いのインベントリが不十分で、列挙は影響項目の宣言に留まり、移譲対象の user-facing コマンド/API/hook/生成アーティファクトの網羅的な現状一覧として整理されていない。; 保持する既存振る舞いを新パスにどの owner へ移譲するか、あるいは明示削除するかの写像が各 public surface ごとに一対一で示されていない。; retained public surface ごとの行動レベル検証条件が不足しており、`regression tests` は概念列挙で留まり、各表面（例: plugin source add/update/find/install/setup の結果整合性、update-all updated 判定、JSON output shape）ごとの実証が明示されていない。; 質問への推奨回答はあるが、推奨根拠が project docs / guardrail principles / existing code patterns の形式で明示されておらず、要件が要求する根拠提示が不足している。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-17T14:34:59.781Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "impactOnExisting"
+          },
+          "observed": "既存の移行対象となる公開振る舞いのインベントリが不十分で、列挙は影響項目の宣言に留まり、移譲対象の user-facing コマンド/API/hook/生成アーティファクトの網羅的な現状一覧として整理されていない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "scopeVerification / impactOnExisting"
+          },
+          "observed": "保持する既存振る舞いを新パスにどの owner へ移譲するか、あるいは明示削除するかの写像が各 public surface ごとに一対一で示されていない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "qa / validation"
+          },
+          "observed": "retained public surface ごとの行動レベル検証条件が不足しており、`regression tests` は概念列挙で留まり、各表面（例: plugin source add/update/find/install/setup の結果整合性、update-all updated 判定、JSON output shape）ごとの実証が明示されていない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "draft-content",
+            "locator": "qa[0]"
+          },
+          "observed": "質問への推奨回答はあるが、推奨根拠が project docs / guardrail principles / existing code patterns の形式で明示されておらず、要件が要求する根拠提示が不足している。",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "既存の移行対象となる公開振る舞いのインベントリが不十分で、列挙は影響項目の宣言に留まり、移譲対象の user-facing コマンド/API/hook/生成アーティファクトの網羅的な現状一覧として整理されていない。"
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "保持する既存振る舞いを新パスにどの owner へ移譲するか、あるいは明示削除するかの写像が各 public surface ごとに一対一で示されていない。"
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "retained public surface ごとの行動レベル検証条件が不足しており、`regression tests` は概念列挙で留まり、各表面（例: plugin source add/update/find/install/setup の結果整合性、update-all updated 判定、JSON output shape）ごとの実証が明示されていない。"
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "質問への推奨回答はあるが、推奨根拠が project docs / guardrail principles / existing code patterns の形式で明示されておらず、要件が要求する根拠提示が不足している。"
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate reported missing migration parity inventory, owner mapping, behavior-level verification, and QA recommendation basis",
+      "trigger": "senti flow run gate --phase draft returned FAIL with migration-parity and draft-recommend-with-reasoning observations",
+      "resolution": "expanded draft impact and decision map with public surface inventory, retained behavior mapping, verification requirements, and explicit QA basis",
+      "guardrailCandidate": "drafts that change shared public behavior must include migration parity inventory, owner mapping, and behavior-level verification before gate",
+      "taskId": null,
+      "timestamp": "2026-06-17T14:35:44.310Z"
+    },
+    {
+      "step": "spec-repair",
+      "reason": "spec review found missing cache path confinement and resolved tree consistency requirements",
+      "trigger": "senti flow run review --phase spec returned FAIL with two blocking findings",
+      "resolution": "added path confinement to R3 and T-2, added R7 for resolved tree consistency, updated acceptance criteria and repair audit",
+      "guardrailCandidate": "specs requiring destructive managed-cache repair must state path confinement and tree-to-commit consistency before implementation",
+      "taskId": null,
+      "timestamp": "2026-06-17T14:42:41.296Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test review found stale-cache setup cloned after remote advanced and R2 lacked tag and SHA ref coverage",
+      "trigger": "senti flow run review --phase test returned FAIL with two blocking findings",
+      "resolution": "changed tests to advance remote after cache clone, added source.ref tag coverage, and added full-SHA dirty-cache coverage",
+      "guardrailCandidate": "spec-local cache update tests must create stale caches before advancing the remote and cover each ref kind named by acceptance criteria",
+      "taskId": null,
+      "timestamp": "2026-06-17T14:50:23.672Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test review found missing unrecoverable cache reclone coverage, overstated R5 public behavior coverage, and missing R7 install coverage",
+      "trigger": "second senti flow run review --phase test returned FAIL with three blocking findings",
+      "resolution": "added unrecoverable cache reclone test, source add/update config persistence test, official preset source resolution test, and install materialization test",
+      "guardrailCandidate": "test coverage artifacts must match actual public behavior tests for every preserved surface named in the spec",
+      "taskId": null,
+      "timestamp": "2026-06-17T14:52:24.871Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test review found unsafe path rejection did not prove escaped cache target remained untouched",
+      "trigger": "third senti flow run review --phase test returned FAIL with one blocking finding",
+      "resolution": "added sentinel file assertions outside plugin-sources and verified no .git checkout is created at escaped target",
+      "guardrailCandidate": "unsafe path tests for destructive operations must assert the out-of-scope target remains unmodified, not only that an error is thrown",
+      "taskId": null,
+      "timestamp": "2026-06-17T14:53:25.917Z"
+    },
+    {
+      "step": "implement",
+      "reason": "implement completion failed because file-map entries were missing for testable requirements",
+      "trigger": "senti flow set step implement done returned IMPLEMENT_COMPLETION_VALIDATION_FAILED with file-map-missing",
+      "resolution": "recorded file-map entries for R1 R2 R3 R4 R5 and R7 before retrying implement completion",
+      "guardrailCandidate": "before marking implement done, record file-map entries for every testable requirement",
+      "taskId": null,
+      "timestamp": "2026-06-17T15:00:30.759Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl review found ignored untracked files could survive managed Git cache repair",
+      "trigger": "impl-review blocking finding for R7 reported git clean -fd does not remove ignored files",
+      "resolution": "changed cache cleanup to git clean -fdx and added ignored-file regression coverage",
+      "guardrailCandidate": "managed Git cache repair must remove ignored untracked files before metadata consumers inspect the tree",
+      "taskId": null,
+      "timestamp": "2026-06-17T15:04:18.049Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl review found existing managed cache could keep fetching from an old Git remote",
+      "trigger": "second impl-review blocking finding reported cache origin was not verified against source URL",
+      "resolution": "added origin URL verification with reclone on mismatch and covered same-id URL replacement",
+      "guardrailCandidate": "managed cache identity must include both source id and configured Git URL before fetch or ref resolution",
+      "taskId": null,
+      "timestamp": "2026-06-17T15:06:39.126Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl review found symlinked managed cache path could redirect destructive Git repair outside plugin-sources",
+      "trigger": "third impl-review blocking finding reported path.resolve confinement missed symlink cache directories",
+      "resolution": "added lstat and realpath confinement checks and symlink sentinel regression coverage",
+      "guardrailCandidate": "before destructive managed-cache Git commands, reject symlinked cache paths and verify realpath confinement",
+      "taskId": null,
+      "timestamp": "2026-06-17T15:09:45.744Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl review found redirected Git metadata could make cache repair operate on an external worktree",
+      "trigger": "fourth impl-review blocking finding reported .git file and core worktree redirection were not confined",
+      "resolution": "added .git directory and show-toplevel confinement checks plus redirected gitdir regression coverage",
+      "guardrailCandidate": "managed Git cache validation must confine both filesystem path and Git metadata before fetch reset clean or checkout",
+      "taskId": null,
+      "timestamp": "2026-06-17T15:12:44.724Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "Confined Git metadata validation changed after the previous impl review finding.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "921ccefc19d00c20fce5d61218fc1231fee0f6a6c00b8f835e293d6d0818c35d",
+        "currentHash": "0b6f7ffd7f63adf7d6a615e2ff7e58efaf04f3a1bf2da9ac2bb412fd0f433ddb",
+        "changedPaths": [
+          "specs/305-fix-plugin-git-cache-update/spec.json",
+          "src/lib/plugin-registry.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"Confined Git metadata validation changed after the previous impl review finding.\" --yes",
+      "createdAt": "2026-06-17T15:12:56.624Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl review found confined nested worktree metadata could make returned source root differ from Git top-level",
+      "trigger": "recovered impl-review blocking finding reported show-toplevel under cache but not equal to cache root",
+      "resolution": "required Git top-level realpath to equal the managed cache root and added nested-worktree reclone coverage",
+      "guardrailCandidate": "when returning a managed source root, require Git top-level to equal that exact root rather than merely being under it",
+      "taskId": null,
+      "timestamp": "2026-06-17T15:16:09.472Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-002",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "Git top-level validation now requires exact managed cache root equality.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "0b6f7ffd7f63adf7d6a615e2ff7e58efaf04f3a1bf2da9ac2bb412fd0f433ddb",
+        "currentHash": "038c7e60fe75abe014b97fb6aa1e00dedf8248eda58a33a4efec30d3613626af",
+        "changedPaths": [
+          "specs/305-fix-plugin-git-cache-update/spec.json",
+          "src/lib/plugin-registry.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"Git top-level validation now requires exact managed cache root equality.\" --yes",
+      "createdAt": "2026-06-17T15:16:19.488Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl review found symlinked .senti ancestor could redirect destructive cache creation and repair outside the project",
+      "trigger": "impl-review blocking finding reported .senti symlink was not rejected before plugin-sources mkdir and cache mutation",
+      "resolution": "rejected symlinked .senti paths before mkdir and revalidated managed cache path after creating plugin-sources",
+      "guardrailCandidate": "managed cache confinement checks must validate symlinked ancestors before any directory creation or destructive repair",
+      "taskId": null,
+      "timestamp": "2026-06-17T15:19:16.150Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-003",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "Managed cache validation now rejects symlinked .senti ancestors before mkdir.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "038c7e60fe75abe014b97fb6aa1e00dedf8248eda58a33a4efec30d3613626af",
+        "currentHash": "460360a605c1f84c356d1e80d396dcfd555f5958c20888975efe6f184e9e3700",
+        "changedPaths": [
+          "specs/305-fix-plugin-git-cache-update/spec.json",
+          "src/lib/plugin-registry.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"Managed cache validation now rejects symlinked .senti ancestors before mkdir.\" --yes",
+      "createdAt": "2026-06-17T15:19:25.647Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-06-17T15:25:14.756Z"
+    },
+    {
+      "step": "finalize",
+      "reason": "finalize merge failed because feature branch conflicted with main during squash merge",
+      "trigger": "senti flow run finalize-merge returned merge conflict detected with rebase main recovery hint",
+      "resolution": "will rebase the feature worktree onto main, resolve conflicts, and retry finalize-merge",
+      "guardrailCandidate": "when finalize merge reports conflict, record it before rebasing the feature worktree",
+      "taskId": null,
+      "timestamp": "2026-06-17T15:25:39.465Z"
+    }
+  ]
+}

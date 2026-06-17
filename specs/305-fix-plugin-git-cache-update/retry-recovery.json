@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "Confined Git metadata validation changed after the previous impl review finding.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "921ccefc19d00c20fce5d61218fc1231fee0f6a6c00b8f835e293d6d0818c35d",
+        "currentHash": "0b6f7ffd7f63adf7d6a615e2ff7e58efaf04f3a1bf2da9ac2bb412fd0f433ddb",
+        "changedPaths": [
+          "specs/305-fix-plugin-git-cache-update/spec.json",
+          "src/lib/plugin-registry.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"Confined Git metadata validation changed after the previous impl review finding.\" --yes",
+      "createdAt": "2026-06-17T15:12:56.624Z"
+    },
+    {
+      "id": "recovery-002",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "Git top-level validation now requires exact managed cache root equality.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "0b6f7ffd7f63adf7d6a615e2ff7e58efaf04f3a1bf2da9ac2bb412fd0f433ddb",
+        "currentHash": "038c7e60fe75abe014b97fb6aa1e00dedf8248eda58a33a4efec30d3613626af",
+        "changedPaths": [
+          "specs/305-fix-plugin-git-cache-update/spec.json",
+          "src/lib/plugin-registry.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"Git top-level validation now requires exact managed cache root equality.\" --yes",
+      "createdAt": "2026-06-17T15:16:19.488Z"
+    },
+    {
+      "id": "recovery-003",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "Managed cache validation now rejects symlinked .senti ancestors before mkdir.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "038c7e60fe75abe014b97fb6aa1e00dedf8248eda58a33a4efec30d3613626af",
+        "currentHash": "460360a605c1f84c356d1e80d396dcfd555f5958c20888975efe6f184e9e3700",
+        "changedPaths": [
+          "specs/305-fix-plugin-git-cache-update/spec.json",
+          "src/lib/plugin-registry.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"Managed cache validation now rejects symlinked .senti ancestors before mkdir.\" --yes",
+      "createdAt": "2026-06-17T15:19:25.647Z"
+    }
+  ]
+}

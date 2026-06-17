@@ -1,0 +1,80 @@
+{
+  "devType": "bugfix",
+  "goal": "senti plugin update-all の Git URL source cache 更新で、fetch 後の stale HEAD ではなく解決済み target commit を採用する。",
+  "analysis": {
+    "problem": "既存の Git URL source cache は git fetch --all --tags を実行しても、source.ref 未指定時に checkout を進めず git rev-parse HEAD を読むため、remote 側が進んでいても古い commit を更新後 commit として扱う。dirty cache でも stale HEAD を黙って採用する余地があり、update-all の updated 判定と JSON commit が cache 状態に依存する。",
+    "proposedApproach": "Git URL source cache を managed area として扱い、fetch 後に採用対象 revision を明示的に解決してから cache と install/materialize に使う commit を決める。source.ref 未指定時は remote default branch、指定時は branch / tag / SHA 相当の ref を決定論的に解決する。dirty cache は reset / clean または reclone で管理状態へ戻す。",
+    "validation": "src/plugin.js は update-all で syncInstalledPlugins(root, { update: true }) を呼ぶ。src/lib/plugin-registry.js は update mode で resolveSource() から syncGitUrlSource() を呼び、既存 cache では fetch 後に source.ref がないと HEAD をそのまま読む。Issue #397 の受け入れ条件は behind-remote cache、source.ref 解決、dirty-cache self-heal、JSON updated 判定を明示しており、根本原因に対応している。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "src/plugin.js は plugin update-all で syncInstalledPlugins(root, { update: true }) を呼び、更新がある場合だけ automatic upgrade を実行する。",
+      "src/lib/plugin-registry.js の syncInstalledPlugins() は update mode で resolved.commit を package commit とし、previousCommit と比較して updated を返す。",
+      "src/lib/plugin-registry.js の syncGitUrlSource() は既存 Git URL cache で git fetch --all --tags を実行するが、source.ref 未指定時は checkout / reset をせず HEAD を採用している。",
+      "Git URL source cache は .senti/plugin-sources/<source.id> に置かれ、installFromSource() は Git archive または materialized tree を使って .senti/plugins/<id> に copy する。",
+      "Existing public surfaces: plugin update-all, plugin source add, plugin source update, plugin find, plugin install, setup official preset resolution, .senti/plugin-sources/<source.id>, .senti/plugins/<package.id>, .senti/config.json, and .senti/config.local.json.",
+      "Existing retained behavior: JSON result fields, package install materialization, public/local config overlay handling, local path source dirty rejection, unsupported npm source rejection, and automatic upgrade skip/run decision after update-all."
+    ],
+    "decisionPoints": [
+      "must: source.ref 未指定の Git URL source は fetch 後の remote default branch commit を採用する。",
+      "must: source.ref 指定時は branch / tag / SHA 相当の ref の挙動を spec で定義し、テストで固定する。",
+      "must: dirty Git URL cache は managed area として reset / clean または reclone で self-heal し、dirty 状態の stale HEAD を更新後 commit として返さない。",
+      "must: update-all の JSON result は installed package commit が変わる場合に新しい commit と updated:true を返す。"
+    ],
+    "resolvedByProjectRules": [
+      "must: src/ 以下は npm package として配布されるため、特定ユーザーの plugin id、repository URL、local path を固定値として埋め込まない。",
+      "must: 外部依存を追加せず、Node.js built-in module と既存 runCmd / assertOk / plugin-registry helper の範囲で実装する。",
+      "must: dirty cache の self-heal は .senti/plugin-sources/ 配下の managed cache に限定し、local path source の dirty rejection policy は変更しない。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: remote default branch の解決方法、ref 種別ごとの採用順序、reset / clean と reclone fallback の詳細は spec で requirements と tasks に落とす。",
+      "must: regression tests は behind-remote cache、dirty cache self-heal、source.ref branch / tag / SHA 相当を分けて期待値を固定する。",
+      "must: migration parity mapping は、plugin update-all / plugin source add / plugin source update / plugin find / plugin install / setup official preset resolution の各 public surface を Git URL source resolution owner に対応付け、保持または非変更を spec に明示する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: src/lib/plugin-registry.js の Git URL source cache update path を修正する。",
+      "must: src/plugin.js の update-all の既存 contract を維持し、updated 判定が resolved commit に基づくようにする。",
+      "must: Git URL cache の behind-remote、source.ref 指定、dirty managed cache の regression test を追加する。",
+      "must: file mode difference だけの dirty cache も managed cache として self-heal 対象にする。"
+    ],
+    "out": [
+      "must: local path plugin source の dirty rejection behavior は変更しない。",
+      "must: npm source support は追加しない。",
+      "must: npm publish / dist-tag 操作は行わない。",
+      "must: plugin command の user-facing help 文言は必要がなければ変更しない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: plugin update-all の JSON output は commit / previousCommit / updated の既存 shape を維持し、値だけを正しい resolved commit にする。",
+    "must: plugin source add、plugin source update、plugin find、plugin install、setup official preset resolution の Git URL source 解決は同じ syncGitUrlSource() を通るため、ref 解決と dirty self-heal の新 contract に従う。",
+    "must: local filesystem source は localRepoHead() の既存 dirty rejection と materialized tree hash behavior を維持する。",
+    "must: managed Git URL cache を force update するため、.senti/plugin-sources/ 配下の未コミット変更は保存対象ではなくなる。",
+    "must: Migration parity inventory: plugin update-all は update result と upgrade skip/run decision を保持し、commit value と updated value だけを fetched target commit に合わせる。",
+    "must: Migration parity inventory: plugin source add / update / find / install は source config と installed package materialization の public shape を保持し、Git URL source の resolved commit だけを deterministic target revision に合わせる。",
+    "must: Migration parity inventory: setup official preset resolution は official package mismatch validation と config persistence behavior を保持し、Git URL source resolution は同じ managed cache policy に従う。",
+    "must: Migration parity mapping: .senti/plugin-sources/<source.id> は managed cache owner、.senti/plugins/<package.id> は installed package materialization owner、.senti/config.json と .senti/config.local.json は source/package metadata owner として保持する。",
+    "must: Migration parity verification: update-all JSON shape、source add/update/find/install result consistency、setup official preset install behavior、local path dirty rejection、config overlay persistence を behavior-level tests で確認する。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "must: Issue #397 の目的は、senti plugin update-all の Git URL source cache 更新で fetch 後の stale HEAD ではなく解決済み target commit を採用し、dirty managed cache を self-heal することでよいですか。",
+      "answer": "must: 推奨回答は Yes。Issue #397 の Goal / Scope として、Git URL source cache 更新で stale HEAD を採用しないこと、source.ref の有無に応じて target revision を決定論的に解決すること、dirty managed cache を reset / clean または reclone で self-heal することが確認済み。",
+      "evidence": "Basis: project docs/src/AGENTS.md は plugin-registry.js を src/lib の責務として示す。Basis: guardrail migration-parity は public surface inventory / mapping / behavior-level verification を要求する。Basis: existing code patterns は src/plugin.js update-all と src/lib/plugin-registry.js syncInstalledPlugins()/syncGitUrlSource() が Git URL source resolution を共有していることを示す。ユーザーは intent confirmation で [1] Yes を選択。",
+      "why": "推奨根拠: project docs は plugin registry を既存 owner として示し、guardrail principles は migration parity を要求し、existing code patterns は同じ source resolution path を通すのが最小の behavior change であることを示す。追加のユーザー判断なしに spec 作成へ進める。",
+      "considered": "追加質問で ref 種別ごとの詳細を確認する案は、Issue が branch / tag / SHA 相当の挙動を spec と tests で固定するよう求めており、実装詳細は spec writing で決められるため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-17T14:34:28Z",
+    "notes": "Issue #397 の intent confirmation でユーザーが [1] Yes を選択。未解決の user decision はなし。"
+  }
+}

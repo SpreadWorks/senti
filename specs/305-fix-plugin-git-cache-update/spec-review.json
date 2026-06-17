@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "generatedAt": "2026-06-17T14:40:53.196Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "nonBlocking": 2,
+    "total": 4
+  },
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Cache deletion target is not safely specified",
+      "target": "R3 / T-2 dirty managed cache self-heal",
+      "body": "**Target:** R3 / T-2 dirty managed cache self-heal\n**Issue:** The spec requires deleting and recloning unrecoverable managed Git URL caches, but existing code builds the cache path from config-controlled source.id via .senti/plugin-sources/<source.id> and does not currently validate that id or confine the resolved path before destructive operations.\n**Required change:** Add a spec-level requirement that any reset/clean/delete/reclone self-heal operation must validate or normalize the Git URL cache path and only operate when the resolved path is inside .senti/plugin-sources/ for the current root; unsafe source ids or paths must be rejected.\n**Why blocking:** Without this, implementing the required fallback with fs.rmSync or equivalent can delete paths outside the managed cache when a config contains a path-traversal source.id, making the self-heal behavior unsafe to implement.",
+      "issue": "The spec requires deleting and recloning unrecoverable managed Git URL caches, but existing code builds the cache path from config-controlled source.id via .senti/plugin-sources/<source.id> and does not currently validate that id or confine the resolved path before destructive operations.",
+      "requiredChange": "Add a spec-level requirement that any reset/clean/delete/reclone self-heal operation must validate or normalize the Git URL cache path and only operate when the resolved path is inside .senti/plugin-sources/ for the current root; unsafe source ids or paths must be rejected.",
+      "whyBlocking": "Without this, implementing the required fallback with fs.rmSync or equivalent can delete paths outside the managed cache when a config contains a path-traversal source.id, making the self-heal behavior unsafe to implement."
+    },
+    {
+      "kind": "blocking",
+      "title": "Resolved tree consistency is not required for metadata consumers",
+      "target": "R1/R2/R5 / src/lib/plugin-registry.js resolveSource consumers",
+      "body": "**Target:** R1/R2/R5 / src/lib/plugin-registry.js resolveSource consumers\n**Issue:** Existing addPluginRepo, findPluginCandidates, installPlugin, and installFromSource read plugin.json or validate files from resolved.root, not only from the resolved commit. The spec requires adopting the resolved commit, but does not explicitly require the returned source root or materialized tree to match that commit before those consumers read metadata.\n**Required change:** Add a requirement that Git URL resolveSource/syncGitUrlSource must provide a source root or materialized package tree whose files correspond to the resolved target commit before PluginManifest, validateSourceTree, find, add, or install paths inspect it.\n**Why blocking:** Otherwise an implementation can return a new commit while public commands still validate or discover plugin metadata from stale cache contents, producing mixed old-tree/new-commit behavior that tests cannot reliably define for add/find/install parity.",
+      "issue": "Existing addPluginRepo, findPluginCandidates, installPlugin, and installFromSource read plugin.json or validate files from resolved.root, not only from the resolved commit. The spec requires adopting the resolved commit, but does not explicitly require the returned source root or materialized tree to match that commit before those consumers read metadata.",
+      "requiredChange": "Add a requirement that Git URL resolveSource/syncGitUrlSource must provide a source root or materialized package tree whose files correspond to the resolved target commit before PluginManifest, validateSourceTree, find, add, or install paths inspect it.",
+      "whyBlocking": "Otherwise an implementation can return a new commit while public commands still validate or discover plugin metadata from stale cache contents, producing mixed old-tree/new-commit behavior that tests cannot reliably define for add/find/install parity."
+    }
+  ],
+  "nonBlockingImprovements": [
+    {
+      "kind": "improvement",
+      "title": "Clarify ambiguous ref precedence",
+      "target": "R2",
+      "body": "**Target:** R2\n**Improvement:** Specify the intended behavior when source.ref names collide across branch and tag names, and whether abbreviated SHAs are intentionally out of scope while 40-character SHAs are supported.\n**Why non-blocking:** The main branch, tag, and full-SHA behavior is testable as written; this only improves determinism for edge cases.",
+      "improvement": "Specify the intended behavior when source.ref names collide across branch and tag names, and whether abbreviated SHAs are intentionally out of scope while 40-character SHAs are supported.",
+      "whyNonBlocking": "The main branch, tag, and full-SHA behavior is testable as written; this only improves determinism for edge cases."
+    },
+    {
+      "kind": "improvement",
+      "title": "Improve related-file context",
+      "target": "Codebase Context",
+      "body": "**Target:** Codebase Context\n**Improvement:** List src/lib/plugin-registry.js near the top of related files, since it is the main implementation target and many current related entries are unrelated data-source modules.\n**Why non-blocking:** The spec body already names plugin-registry.js and its relevant functions, so implementation is not blocked.",
+      "improvement": "List src/lib/plugin-registry.js near the top of related files, since it is the main implementation target and many current related entries are unrelated data-source modules.",
+      "whyNonBlocking": "The spec body already names plugin-registry.js and its relevant functions, so implementation is not blocked."
+    }
+  ]
+}

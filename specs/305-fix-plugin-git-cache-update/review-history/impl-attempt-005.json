@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-17T15:15:22.500Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "title": "Confined sub-worktree can still return a mismatched source root",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "src/lib/plugin-registry.js",
+      "requirementId": "R7",
+      "issue": "hasConfinedGitMetadata accepts a Git worktree whose rev-parse --show-toplevel is merely under the cache directory. A managed cache can have .git inside dest but core.worktree pointed at a subdirectory; fetch/reset/checkout then operate on that sub-worktree while syncGitUrlSource returns root: dest, so find/add/install can read stale or untracked plugin.json and package files outside the resolved commit tree.",
+      "suggestion": "In hasConfinedGitMetadata, require the realpath of git rev-parse --show-toplevel to exactly equal the realpath of dest. Treat any non-exact top-level as invalid and reclone before fetch, reset, clean, checkout, or returning { root: dest }.",
+      "rationale": "R7 requires metadata consumers to inspect files from a tree matching the resolved target commit. Allowing a nested worktree recreates the old-tree/new-commit mixed behavior even though the Git metadata is technically confined under the cache directory."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/305-fix-plugin-git-cache-update/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "79fde90736ad06ac5870a0080eab8ae6debdac3ab3aae779db3cede588857603"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 5,
+  "findings": [
+    {
+      "id": "impl-005-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "Confined sub-worktree can still return a mismatched source root",
+      "body": "hasConfinedGitMetadata accepts a Git worktree whose rev-parse --show-toplevel is merely under the cache directory. A managed cache can have .git inside dest but core.worktree pointed at a subdirectory; fetch/reset/checkout then operate on that sub-worktree while syncGitUrlSource returns root: dest, so find/add/install can read stale or untracked plugin.json and package files outside the resolved commit tree.",
+      "category": "spec_behavior_contradiction"
+    }
+  ]
+}

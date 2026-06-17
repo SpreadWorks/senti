@@ -1,0 +1,270 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".senti/output/analysis.json                        |    2 +-\n .../acceptance-review.json                         |   21 +\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-gate-source.json                         |  157 +++\n .../draft-questions-repair.json                    |    8 +\n .../draft-questions-triage.json                    |    8 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   11 +\n specs/305-fix-plugin-git-cache-update/draft.json   |   80 ++\n .../305-fix-plugin-git-cache-update/file-map.json  |   26 +\n specs/305-fix-plugin-git-cache-update/flow.json    | 1215 ++++++++++++++++++++\n .../impl-review.json                               |   28 +\n .../305-fix-plugin-git-cache-update/issue-log.json |  272 +++++\n specs/305-fix-plugin-git-cache-update/issue.md     |  122 ++\n .../plugin-artifacts/workflow/prepare.json         |   10 +\n .../retry-recovery.json                            |   77 ++\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |   14 +\n .../review-history/impl-attempt-001.json           |   52 +\n .../review-history/impl-attempt-001.md             |   23 +\n .../review-history/impl-attempt-002.json           |   51 +\n .../review-history/impl-attempt-002.md             |   22 +\n .../review-history/impl-attempt-003.json           |   51 +\n .../review-history/impl-attempt-003.md             |   22 +\n .../review-history/impl-attempt-004.json           |   51 +\n .../review-history/impl-attempt-004.md             |   22 +\n .../review-history/impl-attempt-005.json           |   52 +\n .../review-history/impl-attempt-005.md             |   23 +\n .../review-history/impl-attempt-006.json           |   51 +\n .../review-history/impl-attempt-006.md             |   22 +\n .../review-history/impl-attempt-007.json           |   31 +\n .../review-history/impl-attempt-007.md             |   16 +\n .../review-history/spec-attempt-001.json           |   93 ++\n .../review-history/spec-attempt-001.md             |   30 +\n .../review-history/test-attempt-001.json           |   66 ++\n .../review-history/test-attempt-001.md             |   24 +\n .../review-history/test-attempt-002.json           |   84 ++\n .../review-history/test-attempt-002.md             |   30 +\n .../review-history/test-attempt-003.json           |   48 +\n .../review-history/test-attempt-003.md             |   18 +\n .../review-history/test-attempt-004.json           |   28 +\n .../review-history/test-attempt-004.md             |   13 +\n specs/305-fix-plugin-git-cache-update/review.md    |   16 +\n .../spec-repair.json                               |   37 +\n .../spec-review.json                               |   49 +\n .../305-fix-plugin-git-cache-update/spec-review.md |   30 +\n .../spec-triage.json                               |   22 +\n specs/305-fix-plugin-git-cache-update/spec.json    |  273 +++++\n specs/305-fix-plugin-git-cache-update/spec.md      |  123 ++\n specs/305-fix-plugin-git-cache-update/tasks/T-1.md |   21 +\n specs/305-fix-plugin-git-cache-update/tasks/T-2.md |   22 +\n specs/305-fix-plugin-git-cache-update/tasks/T-3.md |   21 +\n specs/305-fix-plugin-git-cache-update/tasks/T-4.md |   20 +\n .../test-coverage.json                             |   93 ++\n .../test-review.json                               |   25 +\n .../305-fix-plugin-git-cache-update/test-review.md |   13 +\n .../tests/plugin-git-cache-update.test.js          |  486 ++++++++\n src/lib/plugin-registry.js                         |  152 ++-\n 59 files changed, 4408 insertions(+), 10 deletions(-)",
+      "commits": [
+        "Fix Git plugin source cache updates"
+      ]
+    },
+    "retro": {
+      "total": 6,
+      "done": 6,
+      "partial": 0,
+      "not_done": 0,
+      "not_applicable_count": 0,
+      "na_count": 1,
+      "not_testable_count": 1,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "Git URL source.ref が未指定の source は、fetch 後に remote default branch の commit を解決し、その commit を package commit として採用する。",
+          "status": "done",
+          "note": "R1: update-all adopts the fetched remote default branch instead of stale cache HEAD"
+        },
+        {
+          "desc": "Git URL source.ref が指定された source は、fetch 後に branch / tag / SHA 相当の ref を決定論的に解決し、その resolved commit を採用する。",
+          "status": "done",
+          "note": "R2: source.ref branch resolves to the fetched branch commit rather than the stale local branch"
+        },
+        {
+          "desc": ".senti/plugin-sources/ 配下の Git URL managed cache が dirty の場合、resolved cache path が current root の plugin-sources directory 配下であることを検証してから reset / clean で target state へ戻し、戻せない場合は cache を削除して reclone する。unsafe source id または path traversal は拒否する。",
+          "status": "done",
+          "note": "R3: dirty managed cache is repaired before adopting the resolved target commit"
+        },
+        {
+          "desc": "plugin update-all は installed package commit が変わる場合、JSON result の commit に新しい resolved commit を返し、previousCommit との差分に基づいて updated:true を返す。",
+          "status": "done",
+          "note": "R4: update-all result reports the new commit and updated true when package commit changes"
+        },
+        {
+          "desc": "plugin source add/update/find/install、setup official preset resolution、config persistence、installed package materialization、local path source dirty rejection の existing public behavior を保持する。",
+          "status": "done",
+          "note": "R5: local path plugin source dirty rejection remains unchanged"
+        },
+        {
+          "desc": "Git URL resolveSource/syncGitUrlSource は、PluginManifest、validateSourceTree、find、add、install path が files を読む前に、resolved target commit と一致する source root または materialized package tree を提供する。",
+          "status": "done",
+          "note": "R7: metadata consumers inspect a tree matching the resolved target commit"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 16,
+      "fullLogPath": "specs/305-fix-plugin-git-cache-update/issue-log.json",
+      "importantTotal": 10,
+      "importantShown": 10,
+      "importantOmitted": 0,
+      "recentOtherTotal": 6,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 1,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "draft gate reported missing migration parity inventory, owner mapping, behavior-level verification, and QA recommendation basis",
+          "resolution": "expanded draft impact and decision map with public surface inventory, retained behavior mapping, verification requirements, and explicit QA basis"
+        },
+        {
+          "classification": "important",
+          "step": "spec-repair",
+          "reason": "spec review found missing cache path confinement and resolved tree consistency requirements",
+          "resolution": "added path confinement to R3 and T-2, added R7 for resolved tree consistency, updated acceptance criteria and repair audit"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test review found stale-cache setup cloned after remote advanced and R2 lacked tag and SHA ref coverage",
+          "resolution": "changed tests to advance remote after cache clone, added source.ref tag coverage, and added full-SHA dirty-cache coverage"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test review found missing unrecoverable cache reclone coverage, overstated R5 public behavior coverage, and missing R7 install coverage",
+          "resolution": "added unrecoverable cache reclone test, source add/update config persistence test, official preset source resolution test, and install materialization test"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test review found unsafe path rejection did not prove escaped cache target remained untouched",
+          "resolution": "added sentinel file assertions outside plugin-sources and verified no .git checkout is created at escaped target"
+        },
+        {
+          "classification": "important",
+          "step": "implement",
+          "reason": "implement completion failed because file-map entries were missing for testable requirements",
+          "resolution": "recorded file-map entries for R1 R2 R3 R4 R5 and R7 before retrying implement completion"
+        },
+        {
+          "classification": "important",
+          "step": "retry-recovery",
+          "reason": "Confined Git metadata validation changed after the previous impl review finding.",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "impl-review",
+          "reason": "impl review found confined nested worktree metadata could make returned source root differ from Git top-level",
+          "resolution": "required Git top-level realpath to equal the managed cache root and added nested-worktree reclone coverage"
+        },
+        {
+          "classification": "important",
+          "step": "retry-recovery",
+          "reason": "Git top-level validation now requires exact managed cache root equality.",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "retry-recovery",
+          "reason": "Managed cache validation now rejects symlinked .senti ancestors before mkdir.",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-review",
+          "reason": "impl review found ignored untracked files could survive managed Git cache repair",
+          "resolution": "changed cache cleanup to git clean -fdx and added ignored-file regression coverage"
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-review",
+          "reason": "impl review found existing managed cache could keep fetching from an old Git remote",
+          "resolution": "added origin URL verification with reclone on mismatch and covered same-id URL replacement"
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-review",
+          "reason": "impl review found symlinked managed cache path could redirect destructive Git repair outside plugin-sources",
+          "resolution": "added lstat and realpath confinement checks and symlink sentinel regression coverage"
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-review",
+          "reason": "impl review found redirected Git metadata could make cache repair operate on an external worktree",
+          "resolution": "added .git directory and show-toplevel confinement checks plus redirected gitdir regression coverage"
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-review",
+          "reason": "impl review found symlinked .senti ancestor could redirect destructive cache creation and repair outside the project",
+          "resolution": "rejected symlinked .senti paths before mkdir and revalidated managed cache path after creating plugin-sources"
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 12
+    },
+    "tokenMetrics": {
+      "input": 646259,
+      "output": 71070,
+      "cacheRead": 1646080,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 20,
+      "durationMs": 994643,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 10630
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 12674
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 24662
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 159047
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 14485
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 77813
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 664845
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 30487
+        }
+      ]
+    },
+    "tests": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/305-fix-plugin-git-cache-update/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "specs/305-fix-plugin-git-cache-update/",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/plugin-registry.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/305-fix-plugin-git-cache-update/"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/plugin-registry.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/305-fix-plugin-git-cache-update/"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/plugin-registry.js"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "skipKind": null,
+        "rawOutputPath": "specs/305-fix-plugin-git-cache-update/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    Fix Git plugin source cache updates\n    59 files changed, 4408 insertions(+), 10 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (6 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 12\n    agent calls ................. 20\n    input tokens ................ 646,259\n    output tokens ............... 71,070\n    cache-read tokens ........... 1,646,080\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 994.6s\n      draft-questions-review .... 10.6s\n      draft-coverage-review ..... 12.7s\n      draft-gate ................ 24.7s\n      spec-review ............... 159.0s\n      spec-gate ................. 14.5s\n      test-review ............... 77.8s\n      impl-review ............... 664.8s\n      impl-gate ................. 30.5s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 6  passed 6  failed 0 verdict=pass\n    raw_output: specs/305-fix-plugin-git-cache-update/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=pass\n\n  Issue Log Summary (16 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/305-fix-plugin-git-cache-update/issue-log.json\n\n    Important (10)\n    - [draft-gate] draft gate reported missing migration parity inventory, owner mapping, behavior-level verification, and QA recommendation basis\n    - [spec-repair] spec review found missing cache path confinement and resolved tree consistency requirements\n    - [test-review] test review found stale-cache setup cloned after remote advanced and R2 lacked tag and SHA ref coverage\n    - [test-review] test review found missing unrecoverable cache reclone coverage, overstated R5 public behavior coverage, and missing R7 install coverage\n    - [test-review] test review found unsafe path rejection did not prove escaped cache target remained untouched\n    - [implement] implement completion failed because file-map entries were missing for testable requirements\n    - [retry-recovery] Confined Git metadata validation changed after the previous impl review finding.\n    - [impl-review] impl review found confined nested worktree metadata could make returned source root differ from Git top-level\n    - [retry-recovery] Git top-level validation now requires exact managed cache root equality.\n    - [retry-recovery] Managed cache validation now rejects symlinked .senti ancestors before mkdir.\n\n    Recent Other (5 of 6)\n    - [impl-review] impl review found ignored untracked files could survive managed Git cache repair\n    - [impl-review] impl review found existing managed cache could keep fetching from an old Git remote\n    - [impl-review] impl review found symlinked managed cache path could redirect destructive Git repair outside plugin-sources\n    - [impl-review] impl review found redirected Git metadata could make cache repair operate on an external worktree\n    - [impl-review] impl review found symlinked .senti ancestor could redirect destructive cache creation and repair outside the project\n    ... 1 other issue-log entry omitted"
+}

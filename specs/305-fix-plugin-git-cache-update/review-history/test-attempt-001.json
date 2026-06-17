@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-17T14:48:53.325Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/305-fix-plugin-git-cache-update/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R1 stale cache scenario is not exercised",
+      "target": "specs/305-fix-plugin-git-cache-update/tests/plugin-git-cache-update.test.js R1 test",
+      "issue": "createPluginRepo() creates both first and second commits before cloneCache() runs, so the managed cache is cloned at the latest remote default branch commit. The test can pass without fetching or updating a stale cache HEAD, which is the behavior R1 is meant to prove.",
+      "requiredChange": "Create the managed cache while the remote default branch is still at the old commit, then advance the remote and assert update-all adopts the newly fetched default branch commit.",
+      "whyBlocking": "This is a static anti-pattern that would pass without exercising the required production behavior for unresolved Git URL refs."
+    },
+    {
+      "kind": "blocking",
+      "title": "R2 only covers branch refs",
+      "target": "specs/305-fix-plugin-git-cache-update/tests/plugin-git-cache-update.test.js R2 coverage",
+      "issue": "R2 requires deterministic resolution for branch, tag, and SHA-equivalent refs, but the spec-local test only covers a branch ref.",
+      "requiredChange": "Add spec-local executable coverage for at least tag and SHA ref resolution, including the expected resolved commit.",
+      "whyBlocking": "Parts of the acceptance requirement have no corresponding spec-local regression coverage."
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/305-fix-plugin-git-cache-update/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "c9e683a0c4e80cc6b917914c344347630e6c5a2fe792609279f6b288f8ae83a9"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "test-001-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R1 stale cache scenario is not exercised",
+      "body": "createPluginRepo() creates both first and second commits before cloneCache() runs, so the managed cache is cloned at the latest remote default branch commit. The test can pass without fetching or updating a stale cache HEAD, which is the behavior R1 is meant to prove.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R2 only covers branch refs",
+      "body": "R2 requires deterministic resolution for branch, tag, and SHA-equivalent refs, but the spec-local test only covers a branch ref.",
+      "category": "unknown"
+    }
+  ]
+}

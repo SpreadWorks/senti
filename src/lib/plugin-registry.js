@@ -524,19 +524,153 @@ function checkedOutSourceRoot(root, source) {
   return path.join(pluginSourcesDir(root), source.id);
 }
 
+function assertManagedGitCachePath(root, dest, source) {
+  assertId(source.id, "plugin source id");
+  const rootPath = path.resolve(root);
+  const stateDir = path.resolve(sentiDir(root));
+  const base = path.resolve(pluginSourcesDir(root));
+  const resolved = path.resolve(dest);
+  if (resolved === base || !isUnderPath(resolved, base)) {
+    throw new Error(`unsafe plugin source cache path: ${dest}`);
+  }
+  if (fs.existsSync(stateDir)) {
+    if (fs.lstatSync(stateDir).isSymbolicLink()) {
+      throw new Error(`unsafe plugin source cache path: .senti is a symlink`);
+    }
+    const realRoot = fs.realpathSync(rootPath);
+    const realStateDir = fs.realpathSync(stateDir);
+    if (!isUnderPath(realStateDir, realRoot)) {
+      throw new Error(`unsafe plugin source cache path: .senti escapes project root`);
+    }
+  }
+  if (fs.existsSync(base) && fs.lstatSync(base).isSymbolicLink()) {
+    throw new Error(`unsafe plugin source cache path: plugin-sources is a symlink`);
+  }
+  if (fs.existsSync(dest)) {
+    if (fs.lstatSync(dest).isSymbolicLink()) {
+      throw new Error(`unsafe plugin source cache path: symlink not allowed: ${dest}`);
+    }
+    const realBase = fs.realpathSync(base);
+    const realDest = fs.realpathSync(dest);
+    if (!isUnderPath(realDest, realBase)) {
+      throw new Error(`unsafe plugin source cache path: ${dest}`);
+    }
+  }
+}
+
+function hasConfinedGitMetadata(dest) {
+  const gitPath = path.join(dest, ".git");
+  if (!fs.existsSync(gitPath)) return false;
+  const gitStat = fs.lstatSync(gitPath);
+  if (!gitStat.isDirectory() || gitStat.isSymbolicLink()) {
+    throw new Error(`unsafe plugin source cache path: .git must be a directory under ${dest}`);
+  }
+  const realDest = fs.realpathSync(dest);
+  const realGit = fs.realpathSync(gitPath);
+  if (!isUnderPath(realGit, realDest)) {
+    throw new Error(`unsafe plugin source cache path: .git escapes cache root: ${dest}`);
+  }
+  const result = runCmd("git", ["rev-parse", "--show-toplevel"], { cwd: dest, maxBuffer: 10 * 1024 * 1024 });
+  if (!result.ok) return false;
+  let realTopLevel;
+  try {
+    realTopLevel = fs.realpathSync(result.stdout.trim());
+  } catch (_) {
+    return false;
+  }
+  if (!isUnderPath(realTopLevel, realDest)) {
+    throw new Error(`unsafe plugin source cache path: Git worktree escapes cache root: ${dest}`);
+  }
+  if (realTopLevel !== realDest) return false;
+  return true;
+}
+
+function cloneGitUrlSource(dest, source) {
+  fs.rmSync(dest, { recursive: true, force: true });
+  const result = runCmd("git", ["clone", sourceLocation(source), dest], { maxBuffer: 10 * 1024 * 1024 });
+  if (!result.ok) throw new Error(`failed to clone ${maskPluginSource(sourceLocation(source))}: ${maskPluginSource(result.stderr || result.stdout)}`);
+}
+
+function fetchGitUrlSource(dest, source) {
+  const result = runCmd("git", ["fetch", "--all", "--tags", "--force", "--prune"], { cwd: dest, maxBuffer: 10 * 1024 * 1024 });
+  if (!result.ok) throw new Error(`failed to update ${maskPluginSource(sourceLocation(source))}: ${maskPluginSource(result.stderr || result.stdout)}`);
+}
+
+function hasGitUrlSourceRemote(dest, source) {
+  const result = runCmd("git", ["remote", "get-url", "origin"], { cwd: dest, maxBuffer: 10 * 1024 * 1024 });
+  return result.ok && result.stdout.trim() === sourceLocation(source);
+}
+
+function resolveGitCommit(cwd, ref, context) {
+  return runGit(cwd, ["rev-parse", "--verify", "--end-of-options", `${ref}^{commit}`], context);
+}
+
+function resolveRemoteDefaultCommit(dest) {
+  runGit(dest, ["remote", "set-head", "origin", "--auto"], "failed to resolve plugin remote default branch");
+  const remoteHead = runGit(dest, ["symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"], "failed to read plugin remote default branch");
+  return resolveGitCommit(dest, remoteHead, "failed to resolve plugin remote default branch commit");
+}
+
+function assertSafeGitRef(ref) {
+  if (typeof ref !== "string" || ref.trim() === "" || ref.includes("\0") || ref.startsWith("-")) {
+    throw new Error(`unsafe plugin source ref: ${ref}`);
+  }
+}
+
+function tryResolveGitCommit(cwd, ref) {
+  const result = runCmd("git", ["rev-parse", "--verify", "--end-of-options", `${ref}^{commit}`], { cwd, maxBuffer: 10 * 1024 * 1024 });
+  return result.ok ? result.stdout.trim() : null;
+}
+
+function resolveGitRefCommit(dest, ref) {
+  assertSafeGitRef(ref);
+  if (SHA_RE.test(ref)) return resolveGitCommit(dest, ref, "failed to resolve plugin source SHA ref");
+  const candidates = [
+    `refs/remotes/origin/${ref}`,
+    `refs/tags/${ref}`,
+    ref,
+  ];
+  for (const candidate of candidates) {
+    const commit = tryResolveGitCommit(dest, candidate);
+    if (commit) return commit;
+  }
+  throw new Error(`failed to resolve plugin source ref: ${ref}`);
+}
+
+function resolveGitUrlSourceCommit(dest, source) {
+  return source.ref ? resolveGitRefCommit(dest, source.ref) : resolveRemoteDefaultCommit(dest);
+}
+
+function cleanGitUrlSourceTree(dest, commit) {
+  runGit(dest, ["reset", "--hard"], "failed to reset plugin source cache");
+  runGit(dest, ["clean", "-fdx"], "failed to clean plugin source cache");
+  runGit(dest, ["checkout", "--detach", commit], "failed to checkout plugin source commit");
+  runGit(dest, ["reset", "--hard", commit], "failed to reset plugin source commit");
+  runGit(dest, ["clean", "-fdx"], "failed to clean plugin source cache");
+}
+
 function syncGitUrlSource(root, source) {
   const dest = checkedOutSourceRoot(root, source);
+  assertManagedGitCachePath(root, dest, source);
   fs.mkdirSync(path.dirname(dest), { recursive: true });
-  if (!fs.existsSync(path.join(dest, ".git"))) {
-    const result = runCmd("git", ["clone", sourceLocation(source), dest], { maxBuffer: 10 * 1024 * 1024 });
-    if (!result.ok) throw new Error(`failed to clone ${maskPluginSource(sourceLocation(source))}: ${maskPluginSource(result.stderr || result.stdout)}`);
-  } else {
-    const result = runCmd("git", ["fetch", "--all", "--tags"], { cwd: dest, maxBuffer: 10 * 1024 * 1024 });
-    if (!result.ok) throw new Error(`failed to update ${maskPluginSource(sourceLocation(source))}: ${maskPluginSource(result.stderr || result.stdout)}`);
+  assertManagedGitCachePath(root, dest, source);
+  if (!hasConfinedGitMetadata(dest)) {
+    cloneGitUrlSource(dest, source);
+  } else if (!hasGitUrlSourceRemote(dest, source)) {
+    cloneGitUrlSource(dest, source);
   }
-  if (source.ref) runGit(dest, ["checkout", source.ref], "failed to checkout plugin ref");
-  const commit = runGit(dest, ["rev-parse", "HEAD"], "plugin source must have HEAD");
-  return { root: dest, commit, materialized: false };
+  fetchGitUrlSource(dest, source);
+  const commit = resolveGitUrlSourceCommit(dest, source);
+  try {
+    cleanGitUrlSourceTree(dest, commit);
+    return { root: dest, commit, materialized: false };
+  } catch (_) {
+    cloneGitUrlSource(dest, source);
+    fetchGitUrlSource(dest, source);
+    const reclonedCommit = resolveGitUrlSourceCommit(dest, source);
+    cleanGitUrlSourceTree(dest, reclonedCommit);
+    return { root: dest, commit: reclonedCommit, materialized: false };
+  }
 }
 
 function resolveSource(root, source) {

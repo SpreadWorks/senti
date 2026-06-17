@@ -1,0 +1,49 @@
+{
+  "spec": "specs/305-fix-plugin-git-cache-update/spec.json",
+  "date": "2026-06-17T15:20:53.068Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Git URL source.ref が未指定の source は、fetch 後に remote default branch の commit を解決し、その commit を package commit として採用する。",
+      "status": "done",
+      "note": "R1: update-all adopts the fetched remote default branch instead of stale cache HEAD"
+    },
+    {
+      "desc": "Git URL source.ref が指定された source は、fetch 後に branch / tag / SHA 相当の ref を決定論的に解決し、その resolved commit を採用する。",
+      "status": "done",
+      "note": "R2: source.ref branch resolves to the fetched branch commit rather than the stale local branch"
+    },
+    {
+      "desc": ".senti/plugin-sources/ 配下の Git URL managed cache が dirty の場合、resolved cache path が current root の plugin-sources directory 配下であることを検証してから reset / clean で target state へ戻し、戻せない場合は cache を削除して reclone する。unsafe source id または path traversal は拒否する。",
+      "status": "done",
+      "note": "R3: dirty managed cache is repaired before adopting the resolved target commit"
+    },
+    {
+      "desc": "plugin update-all は installed package commit が変わる場合、JSON result の commit に新しい resolved commit を返し、previousCommit との差分に基づいて updated:true を返す。",
+      "status": "done",
+      "note": "R4: update-all result reports the new commit and updated true when package commit changes"
+    },
+    {
+      "desc": "plugin source add/update/find/install、setup official preset resolution、config persistence、installed package materialization、local path source dirty rejection の existing public behavior を保持する。",
+      "status": "done",
+      "note": "R5: local path plugin source dirty rejection remains unchanged"
+    },
+    {
+      "desc": "Git URL resolveSource/syncGitUrlSource は、PluginManifest、validateSourceTree、find、add、install path が files を読む前に、resolved target commit と一致する source root または materialized package tree を提供する。",
+      "status": "done",
+      "note": "R7: metadata consumers inspect a tree matching the resolved target commit"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 6,
+    "done": 6,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 1,
+    "not_testable_count": 1,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}
