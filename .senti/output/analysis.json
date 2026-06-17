@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-17T09:56:52.913Z",
+  "analyzedAt": "2026-06-17T10:08:37.513Z",
   "package": {
     "entries": [
       {
@@ -5272,7 +5272,7 @@
         "usedBy": null,
         "id": "40e4daa5",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -8093,7 +8093,7 @@
         ],
         "id": "13ddf392",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -8560,7 +8560,7 @@
         ],
         "id": "18d5f63b",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -8622,7 +8622,7 @@
         ],
         "id": "1223c23c",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9760,7 +9760,7 @@
         ],
         "id": "bfaf1dcd",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11003,9 +11003,9 @@
       },
       {
         "file": "src/senti.js",
-        "hash": "c157464477342dcf2cffc016fb8bc168",
+        "hash": "755334d9ffa18aa9def8eee6ba95a67c",
         "lines": 157,
-        "mtime": "2026-06-13T13:38:12.256Z",
+        "mtime": "2026-06-17T10:08:24.650Z",
         "className": "senti",
         "methods": [
           "isHelpRequest",
@@ -11024,22 +11024,9 @@
         "extends": null,
         "usedBy": null,
         "id": "a8608997",
-        "summary": "Acts as the top-level executable that dispatches core namespaces, independent scripts, shared help rendering, and plugin commands. It is the root of the project's multi-surface CLI model.",
-        "detail": "The module inspects raw arguments, special-cases version and help behavior, and forwards eligible help requests through the shared renderer. Namespace commands such as `docs`, `flow`, and `metrics` are routed to dedicated dispatcher scripts, while standalone commands are loaded from direct module paths. If no built-in handler matches, the code attempts plugin command dispatch and prints structured results for plugin-backed execution. Exit handling is centralized so success, help, and failure paths all produce consistent process codes.",
-        "chapter": "project_structure",
-        "role": "Serve as the main CLI dispatcher and help gateway.",
         "enrich": {
-          "processedAt": "2026-06-13T13:40:08.618Z",
           "attempts": 1
-        },
-        "keywords": [
-          "CLI entrypoint",
-          "command dispatch",
-          "plugin fallback",
-          "help routing",
-          "namespace scripts",
-          "top-level executable"
-        ]
+        }
       },
       {
         "file": "src/setup.js",
@@ -11305,5 +11292,5 @@
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-17T09:58:10.943Z"
+  "enrichedAt": "2026-06-17T10:10:30.480Z"
 }
