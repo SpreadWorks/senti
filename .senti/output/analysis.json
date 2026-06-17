@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-17T15:12:54.007Z",
+  "analyzedAt": "2026-06-17T15:27:05.831Z",
   "package": {
     "entries": [
       {
@@ -5272,8 +5272,23 @@
         "usedBy": null,
         "id": "40e4daa5",
         "enrich": {
-          "attempts": 4
-        }
+          "processedAt": "2026-06-17T15:28:02.808Z",
+          "attempts": 5
+        },
+        "summary": "Implements the `finalize-cleanup` flow command that removes temporary Git state after finalization while preserving reports and audit metadata. It also includes forced-cleanup and rescue paths for dirty repositories, orphan commits, and submodule-related failures.",
+        "detail": "The module builds cleanup envelopes with attached report content and warning metadata so callers can surface missing reports and partial failures. It inspects worktree and repository state, gathers dirty-file and submodule diagnostics, and converts Git command failures into bounded, user-facing recovery guidance. For recovery, it snapshots issue-log state, can attempt an automatic rescue through temporary worktrees and cherry-pick operations, and records post-command metadata as JSON artifacts. The command class coordinates normal teardown, forced teardown, plugin lifecycle execution, metadata synchronization from worktree to main repo, and final validation that the worktree and feature branch were removed.",
+        "chapter": "cli_commands",
+        "role": "Finalize cleanup command and Git recovery coordinator",
+        "keywords": [
+          "finalize cleanup",
+          "git worktree removal",
+          "branch deletion",
+          "auto rescue",
+          "cherry-pick recovery",
+          "submodule diagnostics",
+          "issue log",
+          "cleanup metadata"
+        ]
       },
       {
         "file": "src/flow/lib/run-finalize-commit.js",
@@ -8093,8 +8108,23 @@
         ],
         "id": "13ddf392",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-06-17T15:28:02.808Z",
+          "attempts": 4
+        },
+        "summary": "Provides the core agent runtime that resolves provider and profile settings before executing model invocations through subprocesses. It wraps provider calls with caching, retries, logging, and metric persistence.",
+        "detail": "The `Agent` class resolves providers from configuration and built-in profiles, normalizes profile aliases, and prepares invocation arguments including prompt substitution, work-directory injection, environment variables, and optional JSON schema files. Execution is handled through spawned child processes with timeouts, provider-specific output parsing, streaming-event filtering, and exponential-backoff retries. A prompt cache keyed by a stable serialized request identity stores responses under `.senti/agent-cache`, and cache hits can also emit finalize-sidecar metrics when flow context is available. The module also exposes profile-selection helpers and a plugin-facing agent API so plugins can reuse the same invocation and telemetry behavior.",
+        "chapter": "internal_design",
+        "role": "LLM agent runtime and profile resolver",
+        "keywords": [
+          "agent runtime",
+          "provider registry",
+          "profile selection",
+          "prompt cache",
+          "subprocess invocation",
+          "retry backoff",
+          "metrics logging",
+          "plugin agent API"
+        ]
       },
       {
         "file": "src/lib/agents-md.js",
@@ -8560,8 +8590,23 @@
         ],
         "id": "18d5f63b",
         "enrich": {
-          "attempts": 4
-        }
+          "processedAt": "2026-06-17T15:28:02.808Z",
+          "attempts": 5
+        },
+        "summary": "Implements the main CLI dispatch pipeline that parses entry input, runs command hooks, and standardizes command output. It also integrates runtime logging and special handling for finalize-cleanup report metadata.",
+        "detail": "The module splits positional and option arguments using spec-aware parsing rules and supports early help detection for command entries. During dispatch, it temporarily wraps `process.stdout` and `process.stderr` so runtime logs can capture emitted output without changing normal CLI behavior. Successful and failed executions are normalized into envelopes or raw failures, with support for `pre`, `post`, and `onError` hooks, exit-code management, and persisted runtime-log metadata. It also formats finalize-cleanup warning text and persists post-return cleanup metadata so report state remains visible after the command finishes.",
+        "chapter": "project_structure",
+        "role": "CLI dispatcher and runtime envelope bridge",
+        "keywords": [
+          "CLI dispatcher",
+          "argument parsing",
+          "command hooks",
+          "runtime logging",
+          "output envelope",
+          "error handling",
+          "exit code",
+          "finalize cleanup report"
+        ]
       },
       {
         "file": "src/lib/error-preview.js",
@@ -8622,8 +8667,22 @@
         ],
         "id": "1223c23c",
         "enrich": {
-          "attempts": 4
-        }
+          "processedAt": "2026-06-17T15:28:02.808Z",
+          "attempts": 5
+        },
+        "summary": "Defines durable path constants and a resolver that relocates finalize-cleanup artifacts from ephemeral worktrees into stable main-repository locations. It keeps path rewriting confined to expected roots.",
+        "detail": "The resolver tracks both worktree and main-repo roots and becomes active only when both exist and are different directories. It can detect whether a target path belongs to the worktree, compute a safe relative path, and rebuild that path under the main repository. Durable agent-work and metadata surfaces are redirected into fixed locations such as `.senti/agent-work/finalize-cleanup` and spec-scoped directories so cleanup artifacts survive worktree deletion. The module also exposes ownership helpers for deciding where reports, logs, and metadata files should be written.",
+        "chapter": "internal_design",
+        "role": "Finalize-cleanup path relocation helper",
+        "keywords": [
+          "path resolver",
+          "worktree relocation",
+          "durable artifacts",
+          "main repository mapping",
+          "cleanup paths",
+          "safe path containment",
+          "agent work directory"
+        ]
       },
       {
         "file": "src/lib/flow-envelope.js",
@@ -9626,9 +9685,9 @@
       },
       {
         "file": "src/lib/plugin-registry.js",
-        "hash": "7ab10cfd3d47b34840788a0c82aa4c30",
-        "lines": 1170,
-        "mtime": "2026-06-17T09:47:05.416Z",
+        "hash": "9b943b9a4efd8f176019990a1247000f",
+        "lines": 1304,
+        "mtime": "2026-06-17T15:26:48.764Z",
         "className": "plugin-registry",
         "methods": [
           "readProjectConfig",
@@ -9684,6 +9743,18 @@
           "runGit",
           "localRepoHead",
           "checkedOutSourceRoot",
+          "assertManagedGitCachePath",
+          "hasConfinedGitMetadata",
+          "cloneGitUrlSource",
+          "fetchGitUrlSource",
+          "hasGitUrlSourceRemote",
+          "resolveGitCommit",
+          "resolveRemoteDefaultCommit",
+          "assertSafeGitRef",
+          "tryResolveGitCommit",
+          "resolveGitRefCommit",
+          "resolveGitUrlSourceCommit",
+          "cleanGitUrlSourceTree",
           "syncGitUrlSource",
           "resolveSource",
           "nextSourceId",
@@ -9759,9 +9830,24 @@
           "src/upgrade.js"
         ],
         "id": "bfaf1dcd",
+        "summary": "Implements plugin and preset registry management, including manifest loading, source synchronization, installation, and flow-hook execution. The design emphasizes strict filesystem and import safety around extensibility.",
+        "detail": "The module reads project and local plugin configuration, merges overlays, validates identifiers, JSON size limits, relative paths, and package layout, and masks credential-bearing source URLs when reporting sources. It supports both local and Git-backed plugin sources, with guarded cache directories, commit resolution, materialization, deterministic package hashing, and allowlisted file copying into `.senti/plugins`. Registry classes expose manifests, presets, commands, and data sources, while install and sync operations keep configured packages aligned with their resolved sources. For execution, it discovers flow-command hooks, loads snapshot-bound plugin modules, builds artifact-aware plugin contexts, and runs lifecycle hooks that can return warnings, issue-log entries, and follow-up data. The same infrastructure also maintains the official preset package and setup state so built-in preset contributions can be installed or refreshed consistently.",
+        "chapter": "project_structure",
+        "role": "Plugin registry, installer, and hook runner",
         "enrich": {
-          "attempts": 4
-        }
+          "processedAt": "2026-06-17T15:28:02.808Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "plugin registry",
+          "preset system",
+          "manifest validation",
+          "git source sync",
+          "plugin installation",
+          "flow hooks",
+          "artifact context",
+          "official presets"
+        ]
       },
       {
         "file": "src/lib/preparing-flow-store.js",
@@ -11025,8 +11111,24 @@
         "usedBy": null,
         "id": "a8608997",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-06-17T15:28:05.367Z",
+          "attempts": 3
+        },
+        "summary": "Top-level CLI entry point that parses the first subcommand and routes execution to built-in dispatchers, standalone command modules, or plugin-provided commands. It also centralizes version handling and shared help rendering.",
+        "detail": "The module reads raw CLI arguments, handles early exits for version and generic help, and rewrites `process.argv` before dynamically importing the selected script. It separates commands into namespace dispatchers such as `docs` and `flow`, and independent modules such as `setup`, `upgrade`, `presets`, and `plugin`. Before dispatch, it initializes a shared dependency container with flags derived from the current command, including support for `--agent-work-dir` and a special finalize-cleanup mode. Help requests are normalized through helper functions and can be rendered from shared command metadata instead of delegating blindly to subcommands. If no core command matches, the entry point falls back to plugin command resolution and returns structured success or error exit codes.",
+        "chapter": "project_structure",
+        "role": "CLI entrypoint and command dispatcher",
+        "keywords": [
+          "CLI entrypoint",
+          "command dispatcher",
+          "subcommand routing",
+          "dynamic import",
+          "help command",
+          "plugin command",
+          "dependency container",
+          "process.argv rewriting",
+          "Node.js CLI"
+        ]
       },
       {
         "file": "src/setup.js",
@@ -11288,9 +11390,9 @@
     ],
     "summary": {
       "total": 213,
-      "totalMethods": 1934
+      "totalMethods": 1946
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-17T15:13:41.235Z"
+  "enrichedAt": "2026-06-17T15:28:05.367Z"
 }
