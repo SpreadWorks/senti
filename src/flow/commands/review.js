@@ -518,13 +518,13 @@ const IMPL_REVIEW_MEMORY_FIELD_LIMIT = 500;
 
 const IMPL_REVIEW_FINDING_SCHEMA = Object.freeze({
   type: "object",
-  required: ["title", "failureMode", "issue", "suggestion", "rationale"],
+  required: ["title", "failureMode", "file", "requirementId", "issue", "suggestion", "rationale"],
   additionalProperties: false,
   properties: {
     title: { type: "string", minLength: 1 },
     failureMode: { type: "string", minLength: 1 },
-    file: { type: "string" },
-    requirementId: { type: "string" },
+    file: { type: ["string", "null"] },
+    requirementId: { type: ["string", "null"] },
     issue: { type: "string", minLength: 1 },
     suggestion: { type: "string", minLength: 1 },
     rationale: { type: "string", minLength: 1 },
@@ -794,8 +794,9 @@ function buildImplReviewPrompt({ requirementFileMap = {}, diff = "", touchedFile
       "Do not fail the review for non-blocking improvements.",
       "",
       "Return an object with:",
-      "- blockingFindings[] with title, failureMode, issue, suggestion, rationale, and file or requirementId",
-      "- nonBlockingImprovements[] with title, failureMode, file, issue, suggestion, rationale",
+      "- blockingFindings[] with title, failureMode, file, requirementId, issue, suggestion, rationale",
+      "- nonBlockingImprovements[] with title, failureMode, file, requirementId, issue, suggestion, rationale",
+      "- Use null for file or requirementId when it does not apply.",
       "- Use empty arrays when there are no findings in a category.",
     ].join("\n"))
     .setJsonSchema(IMPL_REVIEW_RESPONSE_SCHEMA)

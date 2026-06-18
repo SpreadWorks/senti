@@ -878,6 +878,7 @@ describe("impl review structured artifact helpers", () => {
       blockingFindings: [{
         title: "Missing artifact",
         failureMode: "missing_acceptance_requirement",
+        file: null,
         requirementId: "R4",
         issue: "impl-review.json is not written.",
         suggestion: "Write impl-review.json.",
@@ -887,6 +888,7 @@ describe("impl review structured artifact helpers", () => {
         title: "Optional naming",
         failureMode: "naming",
         file: "src/flow/commands/review.js",
+        requirementId: null,
         issue: "A local variable name could be clearer.",
         suggestion: "Rename it.",
         rationale: "Readability-only.",
@@ -907,6 +909,7 @@ describe("impl review structured artifact helpers", () => {
         {
           title: "Keep missing requirement",
           failureMode: "missing_acceptance_requirement",
+          file: null,
           requirementId: "R4",
           issue: "Missing artifact.",
           suggestion: "Write it.",
@@ -916,6 +919,7 @@ describe("impl review structured artifact helpers", () => {
           title: "Drop outside",
           failureMode: "spec_behavior_contradiction",
           file: "src/outside.js",
+          requirementId: null,
           issue: "Outside diff.",
           suggestion: "Drop it.",
           rationale: "Out of scope.",
@@ -926,6 +930,7 @@ describe("impl review structured artifact helpers", () => {
           title: "Keep advisory",
           failureMode: "refactor",
           file: "src/flow/commands/review.js",
+          requirementId: null,
           issue: "Optional touched-file issue.",
           suggestion: "Optional fix.",
           rationale: "Non-blocking.",
@@ -934,6 +939,7 @@ describe("impl review structured artifact helpers", () => {
           title: "Drop missing file",
           failureMode: "refactor",
           file: "",
+          requirementId: null,
           issue: "No file.",
           suggestion: "Drop it.",
           rationale: "Missing file.",
@@ -958,6 +964,7 @@ describe("impl review structured artifact helpers", () => {
         title: "Optional cleanup",
         failureMode: "refactor",
         file: "src/flow/lib/run-review.js",
+        requirementId: null,
         issue: "A branch could be clearer.",
         suggestion: "Rename the branch.",
         rationale: "Readability-only.",
@@ -988,6 +995,17 @@ describe("impl review structured artifact helpers", () => {
     assert.match(combined, /security_or_data_integrity_bug/);
     assert.match(combined, /touched file/);
     assert.match(combined, /replacement action/);
+    assert.match(combined, /Use null for file or requirementId/);
+  });
+
+  it("uses a strict-compatible JSON schema for optional impl review fields", () => {
+    const prompt = buildImplReviewPrompt();
+    const itemSchema = prompt.jsonSchema.properties.blockingFindings.items;
+    const propertyKeys = Object.keys(itemSchema.properties).sort();
+
+    assert.deepEqual([...itemSchema.required].sort(), propertyKeys);
+    assert.deepEqual(itemSchema.properties.file.type, ["string", "null"]);
+    assert.deepEqual(itemSchema.properties.requirementId.type, ["string", "null"]);
   });
 });
 
