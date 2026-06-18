@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-17T16:50:16.362Z",
+  "analyzedAt": "2026-06-18T16:58:24.237Z",
   "package": {
     "entries": [
       {
@@ -707,9 +707,9 @@
       },
       {
         "file": "src/docs/commands/enrich.js",
-        "hash": "e08e715c4aa4fb12cc5452e9c36ec4d1",
-        "lines": 555,
-        "mtime": "2026-06-09T08:02:50.450Z",
+        "hash": "7862bef31c6af05e473371b6db89f301",
+        "lines": 572,
+        "mtime": "2026-06-18T00:37:27.703Z",
         "className": "enrich",
         "methods": [
           "printHelp",
@@ -762,21 +762,23 @@
           "src/docs/commands/build.js"
         ],
         "id": "abb7e5b3",
-        "summary": "This command enriches raw analysis entries with structured metadata such as summaries, chapters, and related context through AI batching. It is the semantic enhancement stage of the documentation pipeline.",
-        "detail": "The module flattens analysis entries, assigns stable keys, and splits work into token-bounded batches before building prompts that include chapter definitions and source snippets. Responses are parsed through JSON repair helpers, merged back into the analysis structure, and saved incrementally so long runs can preserve progress. It uses configurable concurrency, writes failure dumps for debugging malformed responses, and records per-entry attempt counts. This is the part of the system that turns basic scan output into documentation-ready semantic annotations.",
+        "summary": "Implements the `senti docs enrich` workflow that fills analysis entries with AI-generated metadata. It batches source entries, parses structured responses, and merges enrichment results back into `analysis.json` with progress tracking.",
+        "detail": "The module collects analysis entries across categories, assigns stable `category:index` keys, and splits work into token-limited batches for concurrent processing. It builds enrichment prompts from chapter definitions and source code excerpts, then expects strict JSON output and repairs malformed responses when possible. Parsed enrichment is grouped by entry key and merged into the in-memory analysis while preserving partial progress and attempt counts. The command also writes incremental checkpoints, dumps failed batch responses for debugging, and saves the final enriched analysis to the configured output directory.",
         "chapter": "internal_design",
-        "role": "analysis enrichment pipeline",
+        "role": "AI enrichment command",
         "enrich": {
-          "processedAt": "2026-06-09T11:45:10.652Z",
+          "processedAt": "2026-06-18T16:58:58.570Z",
           "attempts": 1
         },
         "keywords": [
-          "AI enrichment",
-          "batch processing",
+          "enrichment pipeline",
           "analysis metadata",
-          "token limits",
-          "progress save",
-          "JSON repair"
+          "batch processing",
+          "prompt builder",
+          "JSON repair",
+          "concurrency control",
+          "documentation enrichment",
+          "progress checkpoint"
         ]
       },
       {
@@ -841,9 +843,9 @@
       },
       {
         "file": "src/docs/commands/init.js",
-        "hash": "2f414d26125d6f6f93c748c9c98a0ec4",
-        "lines": 284,
-        "mtime": "2026-06-09T08:02:50.450Z",
+        "hash": "769ededec6ec9a4e9ebf94d5665ed2d7",
+        "lines": 294,
+        "mtime": "2026-06-18T00:32:25.712Z",
         "className": "init",
         "methods": [
           "aiFilterChapters",
@@ -874,20 +876,23 @@
           "src/docs/commands/build.js"
         ],
         "id": "62ef800b",
-        "summary": "This command initializes documentation chapters from preset templates and optional AI-based chapter selection. It creates the initial docs skeleton for a project or language.",
-        "detail": "The module resolves preset templates from package and project-local locations, merges them, orders chapters, and can ask an agent to filter chapters based on analysis and purpose. It creates the docs directory when necessary, checks for output conflicts, and writes translated or raw template text to each chapter file. Supporting helpers strip block directives and convert analysis summaries into text for prompt construction. This command is the template-instantiation layer of the docs system.",
-        "chapter": "internal_design",
-        "role": "documentation initializer",
+        "summary": "Provides the `senti docs init` command for generating initial documentation files from resolved templates and analysis data. It can optionally ask an AI agent to narrow the chapter set before writing outputs.",
+        "detail": "The command parses CLI options, loads package and analysis context, resolves template sources, and determines chapter order for the selected documentation type and language. When AI filtering is enabled, it builds a prompt that lists candidate chapters and asks the model to return a reduced set as JSON. It merges translated templates, strips directive blocks, renders chapter content, and ensures the target docs directory exists. Before writing files, it detects output conflicts so existing chapter files are not overwritten unexpectedly.",
+        "chapter": "cli_commands",
+        "role": "documentation scaffold command",
         "enrich": {
-          "processedAt": "2026-06-09T11:45:10.652Z",
+          "processedAt": "2026-06-18T16:58:58.570Z",
           "attempts": 1
         },
         "keywords": [
-          "template initialization",
+          "docs init",
+          "template resolution",
           "chapter selection",
-          "preset templates",
-          "docs scaffold",
-          "AI filtering"
+          "documentation scaffold",
+          "AI chapter filter",
+          "template merge",
+          "file conflict detection",
+          "localized templates"
         ]
       },
       {
@@ -2594,9 +2599,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "62554a765d841fd2f27764a665911323",
-        "lines": 3689,
-        "mtime": "2026-06-17T06:18:33.659Z",
+        "hash": "7ce619d9529aa60a4ec162560d733611",
+        "lines": 3697,
+        "mtime": "2026-06-18T01:04:20.619Z",
         "className": "review",
         "methods": [
           "writeReviewAttemptHistory",
@@ -2833,24 +2838,24 @@
         "extends": "Error",
         "usedBy": null,
         "id": "331cf497",
-        "summary": "Implements the `flow review` command and orchestrates AI-assisted review workflows for implementation, tests, specs, and draft artifacts. It gathers diffs and spec context, builds prompts, validates model output, and writes persistent review reports.",
-        "detail": "This module is the main review pipeline for flow-based work items, combining Git diff collection, requirement mapping, prompt construction, and artifact persistence into one command handler. It supports multiple review phases such as implementation review, test review, spec review, and draft QA/coverage review, each with dedicated parsers, schemas, and markdown/JSON output writers. The implementation includes looped review strategies for large change sets, prompt-size guards, exclusion matching, merge-base resolution, and repair logic for malformed JSON returned by the AI provider. It also tracks review history, normalizes findings into consistent records, and stores structured outputs like `review.md`, `impl-review.json`, `test-review.json`, and `spec-review.json`.",
+        "summary": "Implements the main `flow review` command and its supporting review engines for implementation, test, spec, and draft phases. It orchestrates diff collection, prompt generation, schema validation, retry loops, and artifact persistence for AI-assisted reviews.",
+        "detail": "The module resolves review scope from Git merge bases, changed files, spec mappings, and exclusion rules, then builds phase-specific prompts with guardrails and contextual evidence. It supports both single-shot and looped review strategies, including per-file grouping, cross-checking, proposal expansion, and tooling-failure handling. Multiple structured artifact types are defined for implementation, test, spec, and draft reviews, each with JSON schemas, parsing logic, markdown formatting, and history tracking. The command writes normalized review outputs to spec directories, preserves attempt history, and classifies failures into actionable review results or CLI errors.",
         "chapter": "cli_commands",
-        "role": "CLI orchestrator for multi-phase automated review and review artifact generation in the flow subsystem.",
+        "role": "multi-phase flow review command",
         "enrich": {
-          "processedAt": "2026-06-17T06:19:10.337Z",
+          "processedAt": "2026-06-18T16:58:58.570Z",
           "attempts": 1
         },
         "keywords": [
-          "flow review command",
-          "AI code review",
+          "code review workflow",
           "spec review",
-          "test coverage analysis",
-          "diff inspection",
-          "prompt orchestration",
-          "review artifacts",
-          "JSON schema validation",
-          "draft QA review"
+          "test review",
+          "draft review",
+          "Git diff analysis",
+          "AI review loop",
+          "artifact persistence",
+          "schema validation",
+          "guardrails"
         ]
       },
       {
@@ -3887,9 +3892,9 @@
       },
       {
         "file": "src/flow/lib/get-context.js",
-        "hash": "36f0234985b07db847daffc933b13ae5",
-        "lines": 486,
-        "mtime": "2026-06-09T08:02:50.453Z",
+        "hash": "52d13fb39648a6fbe5da157105f2f79f",
+        "lines": 494,
+        "mtime": "2026-06-18T00:32:17.036Z",
         "className": "get-context",
         "methods": [
           "toSearchResult",
@@ -3937,23 +3942,23 @@
           "src/docs/commands/readme.js"
         ],
         "id": "1261e39f",
-        "enrich": {
-          "processedAt": "2026-06-09T17:07:35.166Z",
-          "attempts": 2
-        },
-        "summary": "Loads analysis artifacts and retrieves relevant codebase context for flow commands. It combines keyword, substring, n-gram, and optional AI-assisted search to rank documentation entries.",
-        "detail": "The module reads `analysis.json`, flattens entries across analysis categories, and filters out low-value fields so results are concise enough for prompt use. It supports direct text matching, keyword expansion, bigram similarity scoring, and an AI keyword-selection path that falls back safely when agent calls or JSON parsing fail. Post-processing promotes likely hub entries and limits result volume, while helper functions expose keyword aggregation and reusable search primitives. As a command implementation, it can also return file contents or assembled context payloads, making it the retrieval layer between generated docs and flow prompts.",
+        "summary": "Supplies context retrieval utilities for flow commands by searching enriched analysis entries and local files. It combines keyword, n-gram, and optional AI-assisted search to surface relevant codebase context.",
+        "detail": "The module loads `analysis.json`, flattens categorized entries, and removes low-value fields before returning context payloads. Search starts with exact text and keyword matching, then falls back to bigram similarity scoring with configurable thresholds and result caps. For AI-assisted mode, it builds a keyword-selection prompt so the model can choose effective search terms from the known analysis vocabulary. Post-processing can promote hub-like entries with many inbound or outbound links, improving context quality for downstream prompts.",
         "chapter": "internal_design",
-        "role": "Context retrieval and search layer",
+        "role": "context search utility",
+        "enrich": {
+          "processedAt": "2026-06-18T16:58:58.570Z",
+          "attempts": 1
+        },
         "keywords": [
-          "context search",
-          "analysis.json",
-          "keyword search",
-          "n-gram search",
-          "semantic retrieval",
-          "prompt context",
-          "documentation index",
-          "fallback search"
+          "context retrieval",
+          "analysis search",
+          "keyword matching",
+          "n-gram similarity",
+          "AI search fallback",
+          "codebase context",
+          "hub entries",
+          "prompt context"
         ]
       },
       {
@@ -4405,9 +4410,9 @@
       },
       {
         "file": "src/flow/lib/observation.js",
-        "hash": "8a9023ddff22ef1efe9a41d60fede558",
+        "hash": "726e910f123906472dae278b3e6bbfd9",
         "lines": 281,
-        "mtime": "2026-06-14T09:22:26.797Z",
+        "mtime": "2026-06-18T00:33:52.047Z",
         "className": "observation",
         "methods": [
           "Observation",
@@ -4438,23 +4443,23 @@
           "src/flow/lib/run-gate.js"
         ],
         "id": "1dd5bb71",
-        "enrich": {
-          "processedAt": "2026-06-15T03:37:22.960Z",
-          "attempts": 4
-        },
-        "summary": "Defines structured observation, diagnosis, and next-action models for review and analysis outputs. It also includes compatibility logic to transform legacy evaluation formats into the newer observation schema.",
-        "detail": "This module validates strongly typed observation objects with controlled keys, normalized location metadata, known failure modes, and severity rules that depend on evidence characteristics such as diff verifiability. It provides immutable-style constructors and serialization helpers for `Observation`, `Diagnosis`, and `NextAction`, including markdown rendering and content hashing for stable identifiers. Special validation enforces that some process-evidence failures must be blocking when they relate to diff-verifiable outputs. To support older producers, the file also maps legacy evaluation entries into modern observations and builds a corresponding next-action structure from them.",
+        "summary": "Defines normalized observation, diagnosis, and next-action models used to represent review findings and prescribed follow-up work. It enforces strict schemas, severity rules, and compatibility with older evaluation formats.",
+        "detail": "The module validates required string fields, rejects unknown properties, normalizes location and reference data, and encodes allowed failure modes and severities. Observation objects include specialized constructors such as process-evidence-missing and compute stable hashes for deduplication or tracking. Severity policy is checked against failure mode semantics, especially for diff-verifiable process evidence. Legacy evaluation records can be converted into the newer `NextAction` structure so older review outputs remain usable.",
         "chapter": "internal_design",
-        "role": "Observation schema and remediation model",
+        "role": "review finding model",
+        "enrich": {
+          "processedAt": "2026-06-18T16:58:58.570Z",
+          "attempts": 1
+        },
         "keywords": [
           "observation model",
-          "diagnosis",
+          "diagnosis object",
           "next action",
-          "failure mode",
           "severity policy",
-          "legacy conversion",
-          "review finding",
-          "evidence validation"
+          "failure modes",
+          "schema normalization",
+          "legacy adapter",
+          "stable hash"
         ]
       },
       {
@@ -5032,9 +5037,9 @@
       },
       {
         "file": "src/flow/lib/run-auto-check.js",
-        "hash": "147ac01d146ebc2b744f1772d438cd73",
+        "hash": "de3645f4550ead3ff130cfc6851ab28e",
         "lines": 339,
-        "mtime": "2026-06-09T08:02:50.454Z",
+        "mtime": "2026-06-18T00:39:57.600Z",
         "className": "run-auto-check",
         "methods": [
           "computeScore",
@@ -5061,7 +5066,8 @@
           "hardGateFailed",
           "composeAutoCheck",
           "runAutoCheckCore",
-          "default"
+          "default",
+          "AUTO_CHECK_SCHEMA"
         ],
         "extends": "FlowCommand",
         "usedBy": [
@@ -5069,23 +5075,23 @@
           "src/flow/lib/set-step.js"
         ],
         "id": "62c43842",
+        "summary": "Implements auto-check scoring for deciding whether a request is safe to run in flow auto mode. It combines static gating with AI scoring across six dimensions and returns a structured verdict.",
+        "detail": "The module defines a strict JSON schema and fallback format for AI scoring, covering buildability, ambiguity, verifiability, scope, target specificity, and precedent. Scores are sanitized, weighted, and evaluated against both a total threshold and hard-gate minimums on critical dimensions. If the AI agent is unavailable or returns invalid output, the command degrades gracefully with empty scores and an explanatory reason. The command wrapper integrates this core logic with prepared flow input resolution and envelope-based failure reporting.",
+        "chapter": "internal_design",
+        "role": "auto-mode readiness evaluator",
         "enrich": {
-          "processedAt": "2026-06-09T17:08:05.013Z",
-          "attempts": 2
+          "processedAt": "2026-06-18T16:58:58.570Z",
+          "attempts": 1
         },
-        "summary": "Runs the auto-check that decides whether a request is suitable for Spec-Driven Development auto mode. It combines static gates with an AI-scored rubric and returns a structured verdict.",
-        "detail": "The command defines an explicit scoring schema with weighted dimensions such as buildability, ambiguity, verifiability, and bounded scope. It includes fallback output instructions for the AI response, then parses and sanitizes returned JSON into a normalized score breakdown. Hard-gate categories are checked separately from the weighted total so certain weak requests can fail even with a decent aggregate score. The exported command and helper functions also support skip verdicts and preparing-run integration, making the feature reusable from both direct command execution and higher-level auto-approval toggles.",
-        "chapter": "cli_commands",
-        "role": "Auto-mode eligibility evaluator for flow requests.",
         "keywords": [
           "auto check",
-          "auto approve",
-          "request scoring",
-          "ai rubric",
-          "static gates",
-          "flow automation",
-          "verdict composition",
-          "spec readiness"
+          "readiness scoring",
+          "hard gates",
+          "weighted evaluation",
+          "AI rubric",
+          "spec buildability",
+          "verifiability check",
+          "auto mode"
         ]
       },
       {
@@ -5504,9 +5510,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "9ee5e84b69bdc7c74d2df479ca6e4d45",
-        "lines": 3785,
-        "mtime": "2026-06-17T06:18:33.660Z",
+        "hash": "60b0dd5fb2a514844669e975bf0389c8",
+        "lines": 3781,
+        "mtime": "2026-06-18T00:39:30.071Z",
         "className": "run-gate",
         "methods": [
           "completeGateArtifactBeforeSemanticEvaluation",
@@ -5731,24 +5737,24 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "Implements the flow gate engine that validates specs, drafts, implementation diffs, and integration artifacts before a phase can advance. It combines static checks, artifact auditing, AI guardrail evaluation, and retry/recovery handling in one command pipeline.",
-        "detail": "This module centralizes gate execution for multiple phases such as draft, spec, task implementation, and integration, mapping each phase to level-specific behavior and artifact files. It gathers inputs from Git diffs, untracked files, spec JSON, draft artifacts, and generated review files, then performs deterministic validation before invoking semantic guardrail evaluation. The AI-facing path builds bounded prompts, parses strict JSON responses against custom schemas, normalizes observations, and converts failures into structured gate reports and next actions. It also maintains retry counters, issue logs, recovery baselines, no-progress detection, prior-failure memory, and deferred retry-exhaustion artifacts so repeated failures can be classified and escalated consistently.",
+        "summary": "Implements the core gate runner for spec, draft, implementation, and integration phases. It validates artifacts, evaluates guardrails, manages retries, and writes gate results and recovery state.",
+        "detail": "This module centralizes the flow gate lifecycle, from preparing phase-specific artifacts to running semantic guardrail evaluation and persisting result envelopes. It combines git diff inspection, draft/spec artifact validation, requirement batching, and prompt construction to support both rule-based and AI-assisted checks. The code also tracks retry history, detects repeated failures or lack of progress, supports deferred exhaustion handling, and stores implementation memory for later prompts. In addition, it manages side effects, issue-log integration, coverage-related retry classification, and result artifact generation for downstream flow steps.",
         "chapter": "internal_design",
-        "role": "Flow gate orchestrator and guardrail evaluator",
+        "role": "Flow gate execution and guardrail evaluation engine",
         "enrich": {
-          "processedAt": "2026-06-17T06:19:21.513Z",
+          "processedAt": "2026-06-18T16:58:45.693Z",
           "attempts": 1
         },
         "keywords": [
-          "flow gate",
+          "gate runner",
           "guardrail evaluation",
-          "spec validation",
-          "implementation diff",
-          "retry recovery",
-          "artifact audit",
-          "JSON schema parsing",
+          "flow validation",
+          "retry handling",
+          "diff analysis",
+          "spec gate",
           "integration gate",
-          "failure escalation"
+          "artifact validation",
+          "AI prompt batching"
         ]
       },
       {
@@ -9907,14 +9913,13 @@
       },
       {
         "file": "src/lib/preset-deploy.js",
-        "hash": "7d1cd4cc6326e20675b5fb8851fc9254",
-        "lines": 61,
-        "mtime": "2026-06-09T08:02:50.462Z",
+        "hash": "d4797b03a99755f84f7c67609e945fca",
+        "lines": 31,
+        "mtime": "2026-06-18T16:58:13.029Z",
         "className": "preset-deploy",
         "methods": [
           "deployPresetCopies",
-          "copyFile",
-          "upsertText"
+          "copyFile"
         ],
         "imports": [
           "fs",
@@ -9929,22 +9934,22 @@
           "src/upgrade.js"
         ],
         "id": "7d5119a2",
-        "summary": "Copies packaged preset assets into a workspace so projects receive guardrails and localized guidance files. It is a deployment helper for preset distribution.",
-        "detail": "The module reads preset assets from the packaged `presets` directory and writes them into project-local `.senti` locations. It copies guardrail JSON files and rewrite rubrics when present, preserving the directory structure under `.senti/presets/<key>`. It also upserts localized `creating_presets.md` guidance into template directories for selected languages. The API returns a summary of deployed copies so calling code can report which preset artifacts were materialized.",
+        "summary": "Copies bundled preset assets into the workspace-specific `.senti` directory. It currently deploys guardrail definitions for selected presets and the base rewrite rubric.",
+        "detail": "The module resolves preset directories relative to the packaged installation and performs simple file-copy deployment into the current work root. It ensures destination directories exist before copying files, keeping the operation filesystem-safe and repeatable. Deployment is selective: guardrail JSON files are copied for any requested preset, while the rewrite rubric is only copied for the `base` preset. The function returns a list of written relative paths so callers can report or track the changes.",
         "chapter": "creating_presets",
-        "role": "Preset asset deployer",
+        "role": "Preset asset deployment helper",
         "enrich": {
-          "processedAt": "2026-06-09T11:46:36.602Z",
+          "processedAt": "2026-06-18T16:58:45.693Z",
           "attempts": 1
         },
         "keywords": [
           "preset deployment",
           "guardrail copy",
-          "workspace scaffolding",
-          "template guidance",
-          "localized assets",
-          "preset artifacts",
-          "project bootstrap"
+          "workspace bootstrap",
+          "preset assets",
+          "rubric file",
+          "filesystem helper",
+          "template installation"
         ]
       },
       {
@@ -10251,13 +10256,14 @@
       },
       {
         "file": "src/lib/schema-validate.js",
-        "hash": "0ee4a8336aa7705d5d6197e8c4b03f41",
-        "lines": 138,
-        "mtime": "2026-06-12T12:05:07.133Z",
+        "hash": "ebf49177f5dce633d5bc86fbc8b4af49",
+        "lines": 143,
+        "mtime": "2026-06-18T00:35:13.477Z",
         "className": "schema-validate",
         "methods": [
           "validateSchema",
           "checkType",
+          "schemaHasType",
           "typeOf"
         ],
         "imports": [],
@@ -10270,21 +10276,22 @@
           "src/lib/spec-json.js"
         ],
         "id": "8bb94bbb",
+        "summary": "Provides a lightweight recursive schema validator for plain JavaScript values. It checks object structure, arrays, primitive types, and required properties while collecting human-readable error paths.",
+        "detail": "The validator walks a value against a schema definition and accumulates errors instead of failing fast, which makes it suitable for configuration and artifact checks. It supports object property validation, array item validation, required field enforcement, and multi-type handling through `type` definitions. Helper functions normalize type checks and schema type matching so the main traversal logic stays compact. The result is a minimal in-repo alternative to external validation libraries.",
+        "chapter": "internal_design",
+        "role": "Recursive schema validation utility",
         "enrich": {
-          "processedAt": "2026-06-13T13:40:08.618Z",
-          "attempts": 3
+          "processedAt": "2026-06-18T16:58:45.693Z",
+          "attempts": 1
         },
-        "summary": "Implements a lightweight recursive schema validator that collects errors instead of throwing immediately. It checks object shape, arrays, primitive types, and required properties.",
-        "detail": "The main `validateSchema` function walks a value against a schema while tracking a path string for precise error messages. It branches by schema kind and returns an accumulated error list so callers can report multiple problems at once. Helper functions isolate type checks and normalize JavaScript runtime values for comparison. The design fits small config or manifest validation tasks without introducing external dependencies.",
-        "chapter": "configuration",
-        "role": "Validate JSON-like configuration data against simple schemas.",
         "keywords": [
           "schema validation",
-          "config validation",
-          "recursive checker",
-          "JSON schema lite",
+          "config validator",
+          "JSON schema-like checker",
+          "type checking",
           "required fields",
-          "type checking"
+          "recursive validation",
+          "error path reporting"
         ]
       },
       {
@@ -11329,9 +11336,9 @@
       },
       {
         "file": "src/upgrade.js",
-        "hash": "508e5232b656261af34a332a724145b3",
-        "lines": 729,
-        "mtime": "2026-06-15T04:14:35.998Z",
+        "hash": "7e0bcf787e70a1b592c6389a3ab6c53f",
+        "lines": 735,
+        "mtime": "2026-06-18T16:58:13.030Z",
         "className": "upgrade",
         "methods": [
           "RenameMigration",
@@ -11382,23 +11389,23 @@
         "extends": null,
         "usedBy": null,
         "id": "a631f658",
-        "summary": "Implements the `senti upgrade` command that migrates legacy naming, refreshes managed skills and presets, and updates config structures safely. The command is designed to be repeatable while preserving user customizations.",
-        "detail": "The module includes a `RenameMigration` engine that renames legacy `senti` paths and text references to `senti`, while skipping excluded directories and avoiding binary files. Upgrade logic can migrate old plugin config namespaces, convert legacy preset directories into a local preset plugin source, ensure official preset support, and refresh both core and plugin-contributed skills. It also validates preset-chain integrity, migrates chapter lists from string arrays to object entries, and records structured upgrade artifacts when a flow is active. The main command supports dry-run mode, logs granular results, and only writes managed or migrated content so repeated runs remain safe.",
+        "summary": "Implements the `senti upgrade` command and the migration logic for legacy naming, config layout, presets, and plugin namespaces. It upgrades both repository files and active flow artifacts while supporting dry runs and structured reporting.",
+        "detail": "The module defines rename rules and migration helpers that rewrite legacy `sdd-forge` identifiers, move directories, rename skill folders, and update text content across eligible files. It also migrates configuration objects, legacy preset directories, plugin source registration, and namespace conventions used by newer releases. The command coordinates logging, artifact writing, official package installation, preset deployment, and gitignore normalization so upgrades leave the workspace in a consistent state. An active flow-aware artifact writer records upgrade outcomes for ongoing workflow runs, and the CLI exits with explicit error handling when migration steps fail.",
         "chapter": "cli_commands",
-        "role": "upgrade and migration command",
+        "role": "Repository upgrade and migration command",
         "enrich": {
-          "processedAt": "2026-06-15T04:16:16.377Z",
+          "processedAt": "2026-06-18T16:58:45.693Z",
           "attempts": 1
         },
         "keywords": [
           "upgrade command",
-          "migration tool",
-          "rename migration",
-          "legacy config upgrade",
-          "skill deployment",
+          "migration utility",
+          "legacy rename",
+          "config migration",
           "preset migration",
-          "dry run",
-          "managed files refresh"
+          "plugin namespace upgrade",
+          "workspace upgrade",
+          "dry run"
         ]
       }
     ],
@@ -11408,5 +11415,5 @@
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-17T16:50:50.155Z"
+  "enrichedAt": "2026-06-18T16:58:58.570Z"
 }
