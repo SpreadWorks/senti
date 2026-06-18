@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-18T16:33:09.421Z",
+  "verdict": "ADVISORY",
+  "counts": {
+    "blocking": 0,
+    "advisory": 1,
+    "total": 1
+  },
+  "coverageArtifact": "specs/307-stop-creating-presets-template/test-coverage.json",
+  "blockingFindings": [],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Avoid mutating source fixture tree",
+      "target": "specs/307-stop-creating-presets-template/tests/deploy-preset-copies.test.js R5",
+      "improvement": "Prefer a spec-local fixture or injected preset source root if the production API supports it, instead of creating and deleting src/presets/spec-307-non-base during the test.",
+      "whyNonBlocking": "The test still exercises production deployPresetCopies behavior and cleans up in a finally block, so it is executable and covers R5, but mutating repo fixtures can make failures leave local residue."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/307-stop-creating-presets-template/test-review.json",
+    "verdict": "ADVISORY",
+    "result": "ADVISORY",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": "implement",
+    "completionKind": "normal",
+    "progressSignature": "858bc73c95607de381d0eba40996eef5da72f83f8c878e633c1c41720cc3dabd"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "test-002-non-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "Avoid mutating source fixture tree",
+      "body": "Avoid mutating source fixture tree",
+      "category": "unknown"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "generatedAt": "2026-06-18T16:26:50.582Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "nonBlocking": 2,
+    "total": 3
+  },
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Full upgrade has a second write path for existing creating_presets.md",
+      "target": "Constraints / R2 / implementationTargets",
+      "body": "**Target:** Constraints / R2 / implementationTargets\n**Issue:** The spec says existing project-local `.senti/templates/*/docs/creating_presets.md` files are user-owned and `upgrade` must not overwrite, append to, delete, or otherwise manage them, but the observable requirement only covers `deployPresetCopies()`. In existing code, `src/upgrade.js` runs `RenameMigration` before `deployPresetCopies()`, and `RenameMigration.listTextTargets()` does not exclude `.senti/templates/*/docs/creating_presets.md`; it can rewrite text in those files when legacy rename tokens are present.\n**Required change:** Either narrow the user-owned invariant to the `deployPresetCopies()` path, or add a requirement and implementation target covering `src/upgrade.js`/`RenameMigration` so full `senti upgrade` leaves `.senti/templates/*/docs/creating_presets.md` unchanged.\n**Why blocking:** An implementation that only removes the `deployPresetCopies()` language loop can satisfy R1/R2 while `senti upgrade` still modifies an existing user-owned `creating_presets.md` through `RenameMigration`, making the stated upgrade-level safety requirement untestable and potentially false.",
+      "issue": "The spec says existing project-local `.senti/templates/*/docs/creating_presets.md` files are user-owned and `upgrade` must not overwrite, append to, delete, or otherwise manage them, but the observable requirement only covers `deployPresetCopies()`. In existing code, `src/upgrade.js` runs `RenameMigration` before `deployPresetCopies()`, and `RenameMigration.listTextTargets()` does not exclude `.senti/templates/*/docs/creating_presets.md`; it can rewrite text in those files when legacy rename tokens are present.",
+      "requiredChange": "Either narrow the user-owned invariant to the `deployPresetCopies()` path, or add a requirement and implementation target covering `src/upgrade.js`/`RenameMigration` so full `senti upgrade` leaves `.senti/templates/*/docs/creating_presets.md` unchanged.",
+      "whyBlocking": "An implementation that only removes the `deployPresetCopies()` language loop can satisfy R1/R2 while `senti upgrade` still modifies an existing user-owned `creating_presets.md` through `RenameMigration`, making the stated upgrade-level safety requirement untestable and potentially false."
+    }
+  ],
+  "nonBlockingImprovements": [
+    {
+      "kind": "improvement",
+      "title": "Mention dead-code cleanup target",
+      "target": "T-1 / src/lib/preset-deploy.js",
+      "body": "**Target:** T-1 / src/lib/preset-deploy.js\n**Improvement:** The spec could explicitly note that removing the language loop likely makes `CREATING_PRESETS_RUBRIC_NOTE` and `upsertText()` unused and eligible for removal in the same file.\n**Why non-blocking:** The implementation target is already clear, and a normal edit can discover the dead code locally.",
+      "improvement": "The spec could explicitly note that removing the language loop likely makes `CREATING_PRESETS_RUBRIC_NOTE` and `upsertText()` unused and eligible for removal in the same file.",
+      "whyNonBlocking": "The implementation target is already clear, and a normal edit can discover the dead code locally."
+    },
+    {
+      "kind": "improvement",
+      "title": "Clarify result path shape",
+      "target": "AC2",
+      "body": "**Target:** AC2\n**Improvement:** AC2 could state whether assertions should treat `deployPresetCopies()` results as absolute paths and normalize with `path.relative()` or suffix checks.\n**Why non-blocking:** Current code returns destination path strings, and the acceptance wording is still testable with path normalization.",
+      "improvement": "AC2 could state whether assertions should treat `deployPresetCopies()` results as absolute paths and normalize with `path.relative()` or suffix checks.",
+      "whyNonBlocking": "Current code returns destination path strings, and the acceptance wording is still testable with path normalization."
+    }
+  ]
+}

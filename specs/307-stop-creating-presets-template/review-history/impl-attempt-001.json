@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-18T16:36:54.858Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "title": "Spec-local regression coverage is missing from the implementation diff",
+      "failureMode": "missing_acceptance_requirement",
+      "requirementId": "R6",
+      "issue": "R6 requires regression tests under `specs/307-stop-creating-presets-template/tests/` proving R1 through R5, but the provided touched file set and diff include only `src/lib/preset-deploy.js` and `src/upgrade.js`; no spec-local test file or assertions are included.",
+      "suggestion": "Add or include `specs/307-stop-creating-presets-template/tests/deploy-preset-copies.test.js` with a `// spec: R1 R2 R3 R4 R5 R6` header and assertions covering the deploy target set, unchanged existing `creating_presets.md`, base guardrail/rubric copies, non-base rubric exclusion, and rename-migration skip behavior.",
+      "rationale": "Without the required spec-local coverage, acceptance requirement R6 is not satisfied, so the implementation cannot proceed under the stated spec even though the production changes address the behavior."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/307-stop-creating-presets-template/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "2ca32cd30b577f7b86d40c09af6984510b78c099c3c61cd27fea46a773211ffe"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "impl-001-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Spec-local regression coverage is missing from the implementation diff",
+      "body": "R6 requires regression tests under `specs/307-stop-creating-presets-template/tests/` proving R1 through R5, but the provided touched file set and diff include only `src/lib/preset-deploy.js` and `src/upgrade.js`; no spec-local test file or assertions are included.",
+      "category": "missing_acceptance_requirement"
+    }
+  ]
+}

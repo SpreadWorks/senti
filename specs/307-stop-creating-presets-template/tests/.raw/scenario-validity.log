@@ -1,0 +1,194 @@
+[senti] scenario-validity tests start
+command: node --test specs/307-stop-creating-presets-template/tests/deploy-preset-copies.test.js
+[senti] scenario-validity file start command=node specs/307-stop-creating-presets-template/tests/deploy-preset-copies.test.js
+TAP version 13
+# Subtest: R1: deployPresetCopies does not create or return project-local creating_presets.md
+not ok 1 - R1: deployPresetCopies does not create or return project-local creating_presets.md
+  ---
+  duration_ms: 4.505024
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-307-stop-creating-presets-template/specs/307-stop-creating-presets-template/tests/deploy-preset-copies.test.js:98:1'
+  failureType: 'testCodeFailure'
+  error: '.senti/templates/ja/docs/creating_presets.md must not be created'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    assertNoCreatingPresetsTarget (file:///home/nakano/workspace/senti/.senti/worktree/feature-307-stop-creating-presets-template/specs/307-stop-creating-presets-template/tests/deploy-preset-copies.test.js:49:12)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-307-stop-creating-presets-template/specs/307-stop-creating-presets-template/tests/deploy-preset-copies.test.js:102:3)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: R2: existing project-local creating_presets.md remains unchanged through upgrade write paths
+not ok 2 - R2: existing project-local creating_presets.md remains unchanged through upgrade write paths
+  ---
+  duration_ms: 7.016316
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-307-stop-creating-presets-template/specs/307-stop-creating-presets-template/tests/deploy-preset-copies.test.js:105:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'user-owned senti note under .senti\n' +
+    +   '\n' +
+    +   '## Guardrail Rewrite Rubric\n' +
+    +   '\n' +
+    +   'プリセットの guardrail を更新するときは guardrail rewrite rubric を使う。\n' +
+    +   '各 guardrail は named violation、diff-verification condition、severity-policy を明示する。\n'
+    - 'user-owned sdd-forge note under .sdd-forge\n'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: |-
+    user-owned sdd-forge note under .sdd-forge
+    
+  actual: |-
+    user-owned senti note under .senti
+    
+    ## Guardrail Rewrite Rubric
+    
+    プリセットの guardrail を更新するときは guardrail rewrite rubric を使う。
+    各 guardrail は named violation、diff-verification condition、severity-policy を明示する。
+    
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-307-stop-creating-presets-template/specs/307-stop-creating-presets-template/tests/deploy-preset-copies.test.js:115:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: R3: deployPresetCopies preserves the base guardrail.json managed copy only
+not ok 3 - R3: deployPresetCopies preserves the base guardrail.json managed copy only
+  ---
+  duration_ms: 2.313772
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-307-stop-creating-presets-template/specs/307-stop-creating-presets-template/tests/deploy-preset-copies.test.js:121:1'
+  failureType: 'testCodeFailure'
+  error: '.senti/templates/ja/docs/creating_presets.md must not be created'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    assertNoCreatingPresetsTarget (file:///home/nakano/workspace/senti/.senti/worktree/feature-307-stop-creating-presets-template/specs/307-stop-creating-presets-template/tests/deploy-preset-copies.test.js:49:12)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-307-stop-creating-presets-template/specs/307-stop-creating-presets-template/tests/deploy-preset-copies.test.js:126:3)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R4: deployPresetCopies preserves the base guardrail rewrite rubric managed copy only
+not ok 4 - R4: deployPresetCopies preserves the base guardrail rewrite rubric managed copy only
+  ---
+  duration_ms: 3.038615
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-307-stop-creating-presets-template/specs/307-stop-creating-presets-template/tests/deploy-preset-copies.test.js:130:1'
+  failureType: 'testCodeFailure'
+  error: '.senti/templates/ja/docs/creating_presets.md must not be created'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    assertNoCreatingPresetsTarget (file:///home/nakano/workspace/senti/.senti/worktree/feature-307-stop-creating-presets-template/specs/307-stop-creating-presets-template/tests/deploy-preset-copies.test.js:49:12)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-307-stop-creating-presets-template/specs/307-stop-creating-presets-template/tests/deploy-preset-copies.test.js:135:3)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R5: deployPresetCopies does not create non-base guardrail rewrite rubric managed copies
+not ok 5 - R5: deployPresetCopies does not create non-base guardrail rewrite rubric managed copies
+  ---
+  duration_ms: 4.174781
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-307-stop-creating-presets-template/specs/307-stop-creating-presets-template/tests/deploy-preset-copies.test.js:139:1'
+  failureType: 'testCodeFailure'
+  error: '.senti/templates/ja/docs/creating_presets.md must not be created'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    assertNoCreatingPresetsTarget (file:///home/nakano/workspace/senti/.senti/worktree/feature-307-stop-creating-presets-template/specs/307-stop-creating-presets-template/tests/deploy-preset-copies.test.js:49:12)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-307-stop-creating-presets-template/specs/307-stop-creating-presets-template/tests/deploy-preset-copies.test.js:150:5)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R6: spec-local regression covers all deployPresetCopies generation targets
+not ok 6 - R6: spec-local regression covers all deployPresetCopies generation targets
+  ---
+  duration_ms: 3.131696
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-307-stop-creating-presets-template/specs/307-stop-creating-presets-template/tests/deploy-preset-copies.test.js:158:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      [
+        '.senti/presets/base/guardrail-rewrite-rubric.md',
+        '.senti/presets/base/guardrail.json',
+    +   '.senti/templates/en/docs/creating_presets.md',
+    +   '.senti/templates/ja/docs/creating_presets.md'
+      ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0: '.senti/presets/base/guardrail-rewrite-rubric.md'
+    1: '.senti/presets/base/guardrail.json'
+  actual:
+    0: '.senti/presets/base/guardrail-rewrite-rubric.md'
+    1: '.senti/presets/base/guardrail.json'
+    2: '.senti/templates/en/docs/creating_presets.md'
+    3: '.senti/templates/ja/docs/creating_presets.md'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-307-stop-creating-presets-template/specs/307-stop-creating-presets-template/tests/deploy-preset-copies.test.js:162:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 0
+# fail 6
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 54.353719
+Command failed: node specs/307-stop-creating-presets-template/tests/deploy-preset-copies.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/307-stop-creating-presets-template/tests/deploy-preset-copies.test.js
+exitCode: 1
+[senti] requirement R1 observed: R1: deployPresetCopies does not create or return project-local creating_presets.md
+[senti] requirement R2 observed: R2: existing project-local creating_presets.md remains unchanged through upgrade write paths
+[senti] requirement R3 observed: R3: deployPresetCopies preserves the base guardrail.json managed copy only
+[senti] requirement R4 observed: R4: deployPresetCopies preserves the base guardrail rewrite rubric managed copy only
+[senti] requirement R5 observed: R5: deployPresetCopies does not create non-base guardrail rewrite rubric managed copies
+[senti] requirement R6 observed: R6: spec-local regression covers all deployPresetCopies generation targets
+[senti] scenario-validity tests end

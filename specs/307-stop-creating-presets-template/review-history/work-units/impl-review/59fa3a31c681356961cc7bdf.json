@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "59fa3a31c681356961cc7bdf",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0003",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/307-stop-creating-presets-template/flow.json",
+      "specs/307-stop-creating-presets-template/impl-review.json",
+      "specs/307-stop-creating-presets-template/issue-log.json"
+    ],
+    "inputHash": "c489c9d0e3924d8589cc86e6c5453a1d4963cb99229a803ec2d498a33d1deb94",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "59fa3a31c681356961cc7bdf"
+  },
+  "targetFiles": [
+    "specs/307-stop-creating-presets-template/flow.json",
+    "specs/307-stop-creating-presets-template/impl-review.json",
+    "specs/307-stop-creating-presets-template/issue-log.json"
+  ],
+  "inputHash": "c489c9d0e3924d8589cc86e6c5453a1d4963cb99229a803ec2d498a33d1deb94",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-06-18T16:44:37.749Z",
+  "finishedAt": "2026-06-18T16:44:37.749Z",
+  "rawResponse": "### 1. Trim Volatile Runtime Telemetry\n**File:** `specs/307-stop-creating-presets-template/flow.json`  \n**Issue:** The file commits extensive transient execution data: repeated `runtimeLog` objects, token metrics, timestamps, provider profiles, and retry counters. This makes the artifact noisy and likely to churn on every run.  \n**Suggestion:** Keep only the stable workflow state needed for review, or replace the detailed `metrics`/`runtimeLog` history with a bounded summary such as final status, blocking counts, and last command result.\n\n### 2. Collapse Repeated Review Failure Text\n**File:** `specs/307-stop-creating-presets-template/issue-log.json`  \n**Issue:** The first entry repeats the same guardrail failure text across `reason`, `observations[].observed`, and `failedEvaluations[].reason`. This duplicates maintenance surface and makes the log harder to scan.  \n**Suggestion:** Store each unique finding once, then have `reason` summarize counts or reference the observation IDs.\n\n### 3. Remove Redundant Verdict Fields\n**File:** `specs/307-stop-creating-presets-template/impl-review.json`  \n**Issue:** The review result is represented multiple times as `verdict`, `contractSummary.verdict`, and `contractSummary.result`, all with the same value. This invites inconsistency if one field changes independently.  \n**Suggestion:** Retain a single canonical result field, or make `contractSummary` reference the top-level `verdict` instead of duplicating it.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Trim Volatile Runtime Telemetry",
+        "body": "**File:** `specs/307-stop-creating-presets-template/flow.json`  \n**Issue:** The file commits extensive transient execution data: repeated `runtimeLog` objects, token metrics, timestamps, provider profiles, and retry counters. This makes the artifact noisy and likely to churn on every run.  \n**Suggestion:** Keep only the stable workflow state needed for review, or replace the detailed `metrics`/`runtimeLog` history with a bounded summary such as final status, blocking counts, and last command result.",
+        "file": "specs/307-stop-creating-presets-template/flow.json"
+      },
+      {
+        "title": "2. Collapse Repeated Review Failure Text",
+        "body": "**File:** `specs/307-stop-creating-presets-template/issue-log.json`  \n**Issue:** The first entry repeats the same guardrail failure text across `reason`, `observations[].observed`, and `failedEvaluations[].reason`. This duplicates maintenance surface and makes the log harder to scan.  \n**Suggestion:** Store each unique finding once, then have `reason` summarize counts or reference the observation IDs.",
+        "file": "specs/307-stop-creating-presets-template/issue-log.json"
+      },
+      {
+        "title": "3. Remove Redundant Verdict Fields",
+        "body": "**File:** `specs/307-stop-creating-presets-template/impl-review.json`  \n**Issue:** The review result is represented multiple times as `verdict`, `contractSummary.verdict`, and `contractSummary.result`, all with the same value. This invites inconsistency if one field changes independently.  \n**Suggestion:** Retain a single canonical result field, or make `contractSummary` reference the top-level `verdict` instead of duplicating it.",
+        "file": "specs/307-stop-creating-presets-template/impl-review.json"
+      }
+    ]
+  }
+}

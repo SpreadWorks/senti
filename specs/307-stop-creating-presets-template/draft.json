@@ -1,0 +1,81 @@
+{
+  "devType": "bugfix",
+  "goal": "must prevent senti upgrade from generating unused project-local .senti/templates/<lang>/docs/creating_presets.md files while preserving base preset guardrail managed-copy syncing.",
+  "analysis": {
+    "problem": "Issue #401 reports that deployPresetCopies() unconditionally writes .senti/templates/<lang>/docs/creating_presets.md for each configured language. The base preset chapters do not include creating_presets.md, so preset validation treats the generated project-local template as an extra unlisted chapter and emits a creating_presets.md not listed in chapters warning after upgrade. Migration parity inventory: retained public surfaces are standard senti upgrade preset-copy side effects for .senti/presets/base/guardrail.json and .senti/presets/base/guardrail-rewrite-rubric.md; removed public side effect is automatic creation or update of .senti/templates/<lang>/docs/creating_presets.md.",
+    "proposedApproach": "Remove project-local creating_presets.md generation from deployPresetCopies(), keep .senti/presets/base/guardrail.json and .senti/presets/base/guardrail-rewrite-rubric.md synced as managed base preset copies, and cover the generation target contract with regression tests. Migration parity mapping: retained managed preset copies remain owned by deployPresetCopies(); removed project-local creating_presets.md generation has no replacement owner because existing files are user-owned and upgrade must not manage them.",
+    "validation": "The approach addresses the root problem because the warning is caused by creating a project-local template that is outside the effective chapter list. Existing docs/preset validation behavior remains unchanged; the generated target set is corrected instead. Migration parity verification must prove deployPresetCopies() returns and writes only the retained base preset managed-copy paths, does not create new project-local creating_presets.md paths for configured languages, and leaves an existing project-local creating_presets.md file byte-for-byte unchanged."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must treat #401 as one bugfix concern: upgrade-generated project-local creating_presets.md creates validation noise.",
+      "must preserve src/lib/preset-deploy.js managed-copy syncing for .senti/presets/base/guardrail.json.",
+      "must preserve src/lib/preset-deploy.js managed-copy syncing for .senti/presets/base/guardrail-rewrite-rubric.md.",
+      "must remove the public upgrade side effect that automatically creates or updates .senti/templates/<lang>/docs/creating_presets.md.",
+      "must treat existing .senti/templates/*/docs/creating_presets.md files as user-owned files with no automatic owner in upgrade.",
+      "must account for src/presets/base/preset.json chapters: overview.md, stack_and_ops.md, project_structure.md, and development.md; creating_presets.md is not listed.",
+      "must respect the project rule that src/ code is packaged for all users and cannot include project-specific assumptions.",
+      "must avoid adding external dependencies; Node.js built-in modules and existing test helpers are sufficient."
+    ],
+    "decisionPoints": [
+      "must decide the deployPresetCopies() output contract: only managed preset copies are generated for this bugfix, not project-local docs templates.",
+      "must decide the user-owned-file contract: existing .senti/templates/*/docs/creating_presets.md files are not created or updated by upgrade.",
+      "must decide regression scope: test deployPresetCopies() generation targets and non-management of an existing project-local creating_presets.md file."
+    ],
+    "resolvedByProjectRules": [
+      "must keep preset chapter validation semantics unchanged because the Issue marks validation changes as out of scope.",
+      "must add regression coverage because the acceptance criteria explicitly require a deployPresetCopies() generation-target test.",
+      "must run senti upgrade after changes to src/skills or src/presets, but this bugfix is expected to touch src/lib and tests only unless implementation reveals otherwise.",
+      "should prefer existing node:test patterns and tmp-dir helpers used by tests/unit rather than adding a new test framework."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must define exact requirements for not creating new project-local creating_presets.md files.",
+      "must define exact requirements for leaving existing project-local creating_presets.md files unchanged.",
+      "must define exact requirements for preserving base guardrail managed-copy syncing.",
+      "should define whether rubric syncing is explicitly base-only when deployPresetCopies() receives other preset keys.",
+      "should define targeted test commands for the new regression coverage."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must remove automatic generation of .senti/templates/<lang>/docs/creating_presets.md from the upgrade preset-copy path.",
+      "must preserve copying .senti/presets/base/guardrail.json from src/presets/base/guardrail.json.",
+      "must preserve copying .senti/presets/base/guardrail-rewrite-rubric.md from src/presets/base/guardrail-rewrite-rubric.md.",
+      "must add regression tests for deployPresetCopies() output targets.",
+      "must make clear through spec or test evidence that existing project-local creating_presets.md files are user-owned and not managed by upgrade."
+    ],
+    "out": [
+      "must not improve or rewrite the content of creating_presets.md itself.",
+      "must not change the content of guardrail-rewrite-rubric.md.",
+      "must not change the overall preset chapter validation specification.",
+      "must not introduce project-specific assumptions under src/."
+    ]
+  },
+  "impactOnExisting": [
+    "must keep standard upgrade behavior for base preset managed copies intact.",
+    "must stop adding a new project-local creating_presets.md side effect during standard upgrade.",
+      "must ensure validatePresetChain() emits no creating_presets.md not listed in chapters warning for files generated by deployPresetCopies() during standard upgrade because deployPresetCopies() must not generate that file.",
+      "should leave warnings for user-created extra project-local templates governed by the existing validatePresetChain() logic.",
+      "should not affect docs/creating_presets.md or docs/ja/creating_presets.md in the repository documentation tree."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "Should Issue #401 be implemented as a bugfix that removes automatic project-local creating_presets.md generation while preserving base guardrail managed-copy syncing?",
+      "answer": "Recommendation based on existing code patterns and Issue #401: Yes. The accepted preflight summary for #401 scopes the fix to deployPresetCopies() generation targets, preserving base guardrail managed copies and excluding creating_presets.md content, guardrail rubric content, and preset validation semantics.",
+      "evidence": "User selected auto option [1] after the preflight summary. Issue #401 acceptance criteria require no new .senti/templates/<lang>/docs/creating_presets.md, preserved base guardrail copies, deployPresetCopies() regression tests, and user-owned treatment for existing project-local creating_presets.md.",
+      "why": "This captures the user-approved intent before spec writing and leaves no unresolved draft-time user decision.",
+      "considered": "Changing validatePresetChain() to suppress creating_presets.md warnings was rejected because Issue #401 marks preset chapter validation changes as out of scope.",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-18T16:17:00Z",
+    "notes": "Preflight summary approved by user selection [1] with autoApprove enabled."
+  }
+}

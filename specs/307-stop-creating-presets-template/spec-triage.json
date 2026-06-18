@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "One blocking finding is valid and should be repaired by expanding the spec from deployPresetCopies-only preservation to full upgrade preservation for existing project-local creating_presets.md files.",
+  "items": [
+    {
+      "title": "Full upgrade has a second write path for existing creating_presets.md",
+      "target": "Constraints / R2 / implementationTargets",
+      "decision": "apply",
+      "rationale": "The finding is still blocking because the spec states an upgrade-level user-owned invariant, but R2 and implementation targets only cover deployPresetCopies(). Existing source shows RenameMigration runs before deployPresetCopies() and can rewrite text targets outside the deploy helper.",
+      "evidence": "`src/upgrade.js` calls `new RenameMigration(root).run({ dryRun })` before `deployPresetCopies()`. `RenameMigration.listTextTargets()` walks project files and does not exclude `.senti/templates/*/docs/creating_presets.md`."
+    }
+  ]
+}

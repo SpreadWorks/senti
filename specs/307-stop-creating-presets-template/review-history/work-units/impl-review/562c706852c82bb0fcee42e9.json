@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "562c706852c82bb0fcee42e9",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0012",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/307-stop-creating-presets-template/test-result-review.md",
+      "specs/307-stop-creating-presets-template/test-review.json",
+      "specs/307-stop-creating-presets-template/tests/.raw/scenario-validity.log"
+    ],
+    "inputHash": "c0307cbabecdde8bf835f2551b9560b0c190259e8b107e4a873bb7440a83beb6",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "562c706852c82bb0fcee42e9"
+  },
+  "targetFiles": [
+    "specs/307-stop-creating-presets-template/test-result-review.md",
+    "specs/307-stop-creating-presets-template/test-review.json",
+    "specs/307-stop-creating-presets-template/tests/.raw/scenario-validity.log"
+  ],
+  "inputHash": "c0307cbabecdde8bf835f2551b9560b0c190259e8b107e4a873bb7440a83beb6",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-06-18T16:42:09.063Z",
+  "finishedAt": "2026-06-18T16:42:09.063Z",
+  "rawResponse": "### 1. Remove or Clearly Mark Stale Failure Evidence\n**File:** `specs/307-stop-creating-presets-template/tests/.raw/scenario-validity.log`  \n**Issue:** This raw log records a fully failing test run, while `test-result-review.md` reports the final verdict as pass. As written, the artifact looks like current evidence and conflicts with the pass summary.  \n**Suggestion:** Replace this log with the final passing scenario-validity run, or rename/annotate it explicitly as pre-fix failure evidence if it must be retained.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove or Clearly Mark Stale Failure Evidence",
+        "body": "**File:** `specs/307-stop-creating-presets-template/tests/.raw/scenario-validity.log`  \n**Issue:** This raw log records a fully failing test run, while `test-result-review.md` reports the final verdict as pass. As written, the artifact looks like current evidence and conflicts with the pass summary.  \n**Suggestion:** Replace this log with the final passing scenario-validity run, or rename/annotate it explicitly as pre-fix failure evidence if it must be retained.",
+        "file": "specs/307-stop-creating-presets-template/tests/.raw/scenario-validity.log"
+      }
+    ]
+  }
+}

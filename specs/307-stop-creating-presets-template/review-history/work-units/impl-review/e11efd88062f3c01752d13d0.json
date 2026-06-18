@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "e11efd88062f3c01752d13d0",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-579cd1007841d023",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/307-stop-creating-presets-template/draft-coverage-repair.json",
+      "specs/307-stop-creating-presets-template/draft-review-questions.json",
+      "specs/307-stop-creating-presets-template/flow.json",
+      "specs/307-stop-creating-presets-template/issue.md",
+      "specs/307-stop-creating-presets-template/review-history/spec-attempt-001.json",
+      "specs/307-stop-creating-presets-template/review-history/test-attempt-001.md",
+      "specs/307-stop-creating-presets-template/scenario-validity-result.json",
+      "specs/307-stop-creating-presets-template/spec-triage.json",
+      "specs/307-stop-creating-presets-template/test-coverage.json",
+      "specs/307-stop-creating-presets-template/test-result-review.md",
+      "specs/307-stop-creating-presets-template/tests/.raw/test-execution.log",
+      "src/upgrade.js"
+    ],
+    "inputHash": "579cd1007841d0230dfe39a557b6b26bd7d4e54491b96cab23f102e95e1ba83d",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "e11efd88062f3c01752d13d0"
+  },
+  "targetFiles": [
+    "specs/307-stop-creating-presets-template/draft-coverage-repair.json",
+    "specs/307-stop-creating-presets-template/draft-review-questions.json",
+    "specs/307-stop-creating-presets-template/flow.json",
+    "specs/307-stop-creating-presets-template/issue.md",
+    "specs/307-stop-creating-presets-template/review-history/spec-attempt-001.json",
+    "specs/307-stop-creating-presets-template/review-history/test-attempt-001.md",
+    "specs/307-stop-creating-presets-template/scenario-validity-result.json",
+    "specs/307-stop-creating-presets-template/spec-triage.json",
+    "specs/307-stop-creating-presets-template/test-coverage.json",
+    "specs/307-stop-creating-presets-template/test-result-review.md",
+    "specs/307-stop-creating-presets-template/tests/.raw/test-execution.log",
+    "src/upgrade.js"
+  ],
+  "inputHash": "579cd1007841d0230dfe39a557b6b26bd7d4e54491b96cab23f102e95e1ba83d",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-06-18T16:45:03.402Z",
+  "finishedAt": "2026-06-18T16:45:03.402Z",
+  "rawResponse": "### 1. Canonicalize Spec Scope\n**File:** `specs/307-stop-creating-presets-template/spec.md`  \n**Issue:** `spec.md` duplicates `spec.json` and both contain the same scope inconsistency: constraints mention only `src/lib` and tests while targets/tasks include `src/upgrade.js`.  \n**Suggestion:** Make `spec.json` the canonical source, generate or shorten `spec.md`, and update both to explicitly include `src/upgrade.js`.\n\n### 2. Align Repair Source Naming\n**File:** `specs/307-stop-creating-presets-template/spec-repair.json`  \n**Issue:** `sourceReview` points to `spec-triage.json`, but the reviewed artifact set also includes `spec-review.json`, creating unclear provenance across repair/review files.  \n**Suggestion:** Point `sourceReview` at the actual canonical review artifact, likely `spec-review.json`, or document why triage is the intended source.\n\n### 3. Standardize Finding Schemas\n**File:** `specs/307-stop-creating-presets-template/review-history/spec-attempt-001.json`  \n**Issue:** Multiple review artifacts duplicate findings across grouped arrays and canonical arrays, while fields differ between copies (`requiredChange`, `origin`, `failureKind`, body text).  \n**Suggestion:** Use one shared finding schema with a single `findings` array, then derive blocking/advisory/spec/test groupings from fields like `severity` and `category`.\n\n### 4. Avoid JSON/Markdown Review Drift\n**File:** `specs/307-stop-creating-presets-template/review-history/spec-attempt-001.md`  \n**Issue:** Markdown review artifacts duplicate structured JSON review artifacts across spec and test attempts, creating parallel sources of truth.  \n**Suggestion:** Generate Markdown from JSON during reporting, or keep only JSON checked in and treat Markdown as disposable output.\n\n### 5. Centralize Test Evidence\n**File:** `specs/307-stop-creating-presets-template/test-execute-result.json`  \n**Issue:** Test execution evidence is repeated across `test-execute-result.json`, `scenario-validity-result.json`, `test-coverage.json`, and raw logs, with some artifacts describing skipped or failed runs while reviews report pass.  \n**Suggestion:** Introduce shared run/evidence IDs with one canonical final execution record, and have coverage, validity, and review files reference that record.\n\n### 6. Normalize Generated Artifact Policy\n**File:** `specs/307-stop-creating-presets-template/flow.json`  \n**Issue:** Several files commit volatile or no-op generated state: runtime telemetry, timestamps, empty triage/repair arrays, and raw logs with timing data. This creates repeated churn across artifact types.  \n**Suggestion:** Define a consistent artifact contract: omit empty no-op files when possible, strip volatile runtime fields, and keep only stable review evidence.\n\n### 7. Resolve API Surface vs Behavior\n**File:** `src/lib/preset-deploy.js`  \n**Issue:** `deployPresetCopies` still accepts `languages`, but the behavior being specified and tested no longer creates language-specific `creating_presets.md` copies. This can mislead callers and tests across files.  \n**Suggestion:** Remove `languages` from the public parameter shape if unused, or keep it with an explicit compatibility comment and tests proving it no longer affects deployment.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Canonicalize Spec Scope",
+        "body": "**File:** `specs/307-stop-creating-presets-template/spec.md`  \n**Issue:** `spec.md` duplicates `spec.json` and both contain the same scope inconsistency: constraints mention only `src/lib` and tests while targets/tasks include `src/upgrade.js`.  \n**Suggestion:** Make `spec.json` the canonical source, generate or shorten `spec.md`, and update both to explicitly include `src/upgrade.js`.",
+        "file": "specs/307-stop-creating-presets-template/spec.md"
+      },
+      {
+        "title": "2. Align Repair Source Naming",
+        "body": "**File:** `specs/307-stop-creating-presets-template/spec-repair.json`  \n**Issue:** `sourceReview` points to `spec-triage.json`, but the reviewed artifact set also includes `spec-review.json`, creating unclear provenance across repair/review files.  \n**Suggestion:** Point `sourceReview` at the actual canonical review artifact, likely `spec-review.json`, or document why triage is the intended source.",
+        "file": "specs/307-stop-creating-presets-template/spec-repair.json"
+      },
+      {
+        "title": "3. Standardize Finding Schemas",
+        "body": "**File:** `specs/307-stop-creating-presets-template/review-history/spec-attempt-001.json`  \n**Issue:** Multiple review artifacts duplicate findings across grouped arrays and canonical arrays, while fields differ between copies (`requiredChange`, `origin`, `failureKind`, body text).  \n**Suggestion:** Use one shared finding schema with a single `findings` array, then derive blocking/advisory/spec/test groupings from fields like `severity` and `category`.",
+        "file": "specs/307-stop-creating-presets-template/review-history/spec-attempt-001.json"
+      },
+      {
+        "title": "4. Avoid JSON/Markdown Review Drift",
+        "body": "**File:** `specs/307-stop-creating-presets-template/review-history/spec-attempt-001.md`  \n**Issue:** Markdown review artifacts duplicate structured JSON review artifacts across spec and test attempts, creating parallel sources of truth.  \n**Suggestion:** Generate Markdown from JSON during reporting, or keep only JSON checked in and treat Markdown as disposable output.",
+        "file": "specs/307-stop-creating-presets-template/review-history/spec-attempt-001.md"
+      },
+      {
+        "title": "5. Centralize Test Evidence",
+        "body": "**File:** `specs/307-stop-creating-presets-template/test-execute-result.json`  \n**Issue:** Test execution evidence is repeated across `test-execute-result.json`, `scenario-validity-result.json`, `test-coverage.json`, and raw logs, with some artifacts describing skipped or failed runs while reviews report pass.  \n**Suggestion:** Introduce shared run/evidence IDs with one canonical final execution record, and have coverage, validity, and review files reference that record.",
+        "file": "specs/307-stop-creating-presets-template/test-execute-result.json"
+      },
+      {
+        "title": "6. Normalize Generated Artifact Policy",
+        "body": "**File:** `specs/307-stop-creating-presets-template/flow.json`  \n**Issue:** Several files commit volatile or no-op generated state: runtime telemetry, timestamps, empty triage/repair arrays, and raw logs with timing data. This creates repeated churn across artifact types.  \n**Suggestion:** Define a consistent artifact contract: omit empty no-op files when possible, strip volatile runtime fields, and keep only stable review evidence.",
+        "file": "specs/307-stop-creating-presets-template/flow.json"
+      },
+      {
+        "title": "7. Resolve API Surface vs Behavior",
+        "body": "**File:** `src/lib/preset-deploy.js`  \n**Issue:** `deployPresetCopies` still accepts `languages`, but the behavior being specified and tested no longer creates language-specific `creating_presets.md` copies. This can mislead callers and tests across files.  \n**Suggestion:** Remove `languages` from the public parameter shape if unused, or keep it with an explicit compatibility comment and tests proving it no longer affects deployment.",
+        "file": "src/lib/preset-deploy.js"
+      }
+    ]
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "d7e860f04f301bf9cac6a177",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0007",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/307-stop-creating-presets-template/review-history/test-attempt-001.md",
+      "specs/307-stop-creating-presets-template/review-history/test-attempt-002.json",
+      "specs/307-stop-creating-presets-template/review-history/test-attempt-002.md",
+      "specs/307-stop-creating-presets-template/test-review.md"
+    ],
+    "inputHash": "2b04f992394c141a5491ec1fe7dd188243829d9026eabfcadfb2b00e430d07e0",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "d7e860f04f301bf9cac6a177"
+  },
+  "targetFiles": [
+    "specs/307-stop-creating-presets-template/review-history/test-attempt-001.md",
+    "specs/307-stop-creating-presets-template/review-history/test-attempt-002.json",
+    "specs/307-stop-creating-presets-template/review-history/test-attempt-002.md",
+    "specs/307-stop-creating-presets-template/test-review.md"
+  ],
+  "inputHash": "2b04f992394c141a5491ec1fe7dd188243829d9026eabfcadfb2b00e430d07e0",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-06-18T16:40:18.691Z",
+  "finishedAt": "2026-06-18T16:40:18.691Z",
+  "rawResponse": "### 1. Remove duplicated finding payload\n**File:** `specs/307-stop-creating-presets-template/review-history/test-attempt-002.json`\n**Issue:** The same advisory appears in both `advisoryFindings` and `findings`, but the `findings` copy drops useful fields and repeats `\"Avoid mutating source fixture tree\"` as both `title` and `body`.\n**Suggestion:** Keep one canonical representation, or make `findings` a derived summary with meaningful `body`, `target`, and category fields to avoid divergence.\n\n### 2. Normalize review artifact formats\n**File:** `specs/307-stop-creating-presets-template/review-history/test-attempt-002.md`\n**Issue:** `test-attempt-002.md` duplicates the same advisory content already stored structurally in `test-attempt-002.json`, creating two sources that can drift.\n**Suggestion:** If both formats are required, ensure the Markdown is generated from the JSON artifact rather than maintained independently. If not required, keep only the JSON artifact.\n\n### 3. Add trailing newline\n**File:** `specs/307-stop-creating-presets-template/review-history/test-attempt-001.md`\n**Issue:** The file has no trailing newline, which is inconsistent with typical text-file conventions and can create noisy diffs later.\n**Suggestion:** Add a final newline at EOF.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove duplicated finding payload",
+        "body": "**File:** `specs/307-stop-creating-presets-template/review-history/test-attempt-002.json`\n**Issue:** The same advisory appears in both `advisoryFindings` and `findings`, but the `findings` copy drops useful fields and repeats `\"Avoid mutating source fixture tree\"` as both `title` and `body`.\n**Suggestion:** Keep one canonical representation, or make `findings` a derived summary with meaningful `body`, `target`, and category fields to avoid divergence.",
+        "file": "specs/307-stop-creating-presets-template/review-history/test-attempt-002.json"
+      },
+      {
+        "title": "2. Normalize review artifact formats",
+        "body": "**File:** `specs/307-stop-creating-presets-template/review-history/test-attempt-002.md`\n**Issue:** `test-attempt-002.md` duplicates the same advisory content already stored structurally in `test-attempt-002.json`, creating two sources that can drift.\n**Suggestion:** If both formats are required, ensure the Markdown is generated from the JSON artifact rather than maintained independently. If not required, keep only the JSON artifact.",
+        "file": "specs/307-stop-creating-presets-template/review-history/test-attempt-002.md"
+      },
+      {
+        "title": "3. Add trailing newline",
+        "body": "**File:** `specs/307-stop-creating-presets-template/review-history/test-attempt-001.md`\n**Issue:** The file has no trailing newline, which is inconsistent with typical text-file conventions and can create noisy diffs later.\n**Suggestion:** Add a final newline at EOF.",
+        "file": "specs/307-stop-creating-presets-template/review-history/test-attempt-001.md"
+      }
+    ]
+  }
+}

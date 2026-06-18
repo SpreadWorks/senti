@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied one spec repair: existing project-local creating_presets.md preservation now covers the full upgrade rename migration path as well as deployPresetCopies().",
+  "items": [
+    {
+      "title": "Full upgrade has a second write path for existing creating_presets.md",
+      "target": "Constraints / R2 / implementationTargets",
+      "decision": "applied",
+      "rationale": "Expanded the spec from deployPresetCopies-only preservation to full upgrade preservation by naming RenameMigration as a module, adding source verification, updating R2 and acceptance criteria, adding `src/upgrade.js` as an implementation target, and adding a dedicated task for the rename migration exclusion.",
+      "evidence": "`spec.json` now includes `src/upgrade.js` in overview/modules and implementationTargets, R2 covers full `senti upgrade` and legacy rename tokens, AC7 covers the rename migration behavior, and T-3 owns the migration-path implementation.",
+      "changedFields": [
+        "scope.in",
+        "overview.modules",
+        "overview.data_flow",
+        "overview.decisions",
+        "requirements[1].desc",
+        "acceptance_criteria",
+        "implementationTargets",
+        "tasks"
+      ]
+    }
+  ]
+}

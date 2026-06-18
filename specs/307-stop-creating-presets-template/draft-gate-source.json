@@ -1,0 +1,157 @@
+{
+  "version": 1,
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "unambiguous-requirements",
+      "result": "fail",
+      "reason": "The requirement is to 'reduce validation warning noise without hiding legitimate warnings', which uses qualitative wording (noise/legitimate) without measurable acceptance criteria.",
+      "category": "code-quality",
+      "title": "Unambiguous Requirements",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content",
+            "locator": "impactOnExisting[2]"
+          },
+          "observed": "The requirement is to 'reduce validation warning noise without hiding legitimate warnings', which uses qualitative wording (noise/legitimate) without measurable acceptance criteria.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "The same requirement relies on subjective phrasing ('reduce warning noise') and does not define an objective test condition that independent reviewers could apply consistently.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content",
+            "locator": "impactOnExisting[2]"
+          },
+          "observed": "The same requirement relies on subjective phrasing ('reduce warning noise') and does not define an objective test condition that independent reviewers could apply consistently.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "draft-recommend-with-reasoning",
+      "result": "fail",
+      "reason": "The question response provides an answer but does not state the required basis category (project docs/, guardrail principles, or existing code patterns) before recommendation.",
+      "category": "code-quality",
+      "title": "Present Recommendations with Reasoning",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "content",
+            "locator": "qa[0]"
+          },
+          "observed": "The question response provides an answer but does not state the required basis category (project docs/, guardrail principles, or existing code patterns) before recommendation.",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "The draft does not define explicit migration parity documentation before implementation: no inventory of all affected public surfaces and no mapped/verified migration path for each retained or removed behavior beyond a high-level mention of preserving two managed copies and test intent.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "analysis.problem"
+          },
+          "observed": "The draft does not define explicit migration parity documentation before implementation: no inventory of all affected public surfaces and no mapped/verified migration path for each retained or removed behavior beyond a high-level mention of preserving two managed copies and test intent.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "unambiguous-requirements",
+      "where": {
+        "file": "content",
+        "locator": "impactOnExisting[2]"
+      },
+      "observed": "The requirement is to 'reduce validation warning noise without hiding legitimate warnings', which uses qualitative wording (noise/legitimate) without measurable acceptance criteria.",
+      "severity": "blocking",
+      "refs": [
+        "unambiguous-requirements"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "content",
+        "locator": "impactOnExisting[2]"
+      },
+      "observed": "The same requirement relies on subjective phrasing ('reduce warning noise') and does not define an objective test condition that independent reviewers could apply consistently.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "draft-recommend-with-reasoning",
+      "where": {
+        "file": "content",
+        "locator": "qa[0]"
+      },
+      "observed": "The question response provides an answer but does not state the required basis category (project docs/, guardrail principles, or existing code patterns) before recommendation.",
+      "severity": "blocking",
+      "refs": [
+        "draft-recommend-with-reasoning"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "content",
+        "locator": "analysis.problem"
+      },
+      "observed": "The draft does not define explicit migration parity documentation before implementation: no inventory of all affected public surfaces and no mapped/verified migration path for each retained or removed behavior beyond a high-level mention of preserving two managed copies and test intent.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    }
+  ]
+}

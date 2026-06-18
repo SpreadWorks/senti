@@ -184,6 +184,7 @@ export class RenameMigration {
       .filter((file) => !this.isLegacyManagedFile(file))
       .filter((file) => !this.isLegacySkillFile(file))
       .filter((file) => !this.isMigrationSource(file))
+      .filter((file) => !this.isProjectLocalCreatingPresetsGuide(file))
       .filter((file) => this.isTextFile(file));
   }
 
@@ -228,6 +229,11 @@ export class RenameMigration {
   isMigrationSource(file) {
     const rel = path.relative(this.root, file).split(path.sep).join("/");
     return rel === "src/upgrade.js";
+  }
+
+  isProjectLocalCreatingPresetsGuide(file) {
+    const rel = path.relative(this.root, file).split(path.sep).join("/");
+    return /^\.senti\/templates\/[^/]+\/docs\/creating_presets\.md$/.test(rel);
   }
 
   isLegacyManagedFile(file) {

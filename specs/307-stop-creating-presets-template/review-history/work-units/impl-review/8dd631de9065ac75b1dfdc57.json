@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "8dd631de9065ac75b1dfdc57",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0014",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/upgrade.js"
+    ],
+    "inputHash": "bbefa356a3e380b18e54b83fb034704e48806bbad6a7d4371a6e0e1b6dfdc130",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "8dd631de9065ac75b1dfdc57"
+  },
+  "targetFiles": [
+    "src/upgrade.js"
+  ],
+  "inputHash": "bbefa356a3e380b18e54b83fb034704e48806bbad6a7d4371a6e0e1b6dfdc130",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-06-18T16:42:49.450Z",
+  "finishedAt": "2026-06-18T16:42:49.450Z",
+  "rawResponse": "I’ll inspect the touched file so the proposals line up with the surrounding patterns instead of judging the diff in isolation.`src/upgrade.js` is not directly under the current `.tmp` directory, so I’m locating the actual checkout layout before commenting on the file.The local workspace doesn’t expose the repository file here, so I’ll base the review on the supplied diff and keep every proposal scoped to `src/upgrade.js` as required.### 1. Centralize Relative Path Normalization\n**File:** `src/upgrade.js`  \n**Issue:** `isProjectLocalCreatingPresetsGuide()` repeats the same relative-path normalization already used by nearby helpers like `isMigrationSource()` and `isLegacyManagedFile()`.  \n**Suggestion:** Add a small helper such as `relativeUnixPath(file)` and reuse it across these methods to reduce duplication and keep path matching behavior consistent.\n\n### 2. Name the Exclusion by Behavior\n**File:** `src/upgrade.js`  \n**Issue:** `isProjectLocalCreatingPresetsGuide()` is accurate but slightly ambiguous in the context of rename migration filtering; it does not make clear that the method exists to preserve user/project-local template docs from token replacement.  \n**Suggestion:** Rename it to something like `isProtectedCreatingPresetsGuide()` or `isUserTemplateCreatingPresetsGuide()` so the filter reads as an intentional preservation rule.",
+  "success": {
+    "proposals": [
+      {
+        "title": "I’ll inspect the touched file so the proposals line up with the surrounding patterns instead of judging the diff in isolation.`src/upgrade.js` is not directly under the current `.tmp` directory, so I’m locating the actual checkout layout before commenting on the file.The local workspace doesn’t expose the repository file here, so I’ll base the review on the supplied diff and keep every proposal scoped to `src/upgrade.js` as required.### 1. Centralize Relative Path Normalization",
+        "body": "**File:** `src/upgrade.js`  \n**Issue:** `isProjectLocalCreatingPresetsGuide()` repeats the same relative-path normalization already used by nearby helpers like `isMigrationSource()` and `isLegacyManagedFile()`.  \n**Suggestion:** Add a small helper such as `relativeUnixPath(file)` and reuse it across these methods to reduce duplication and keep path matching behavior consistent.",
+        "file": "src/upgrade.js"
+      },
+      {
+        "title": "2. Name the Exclusion by Behavior",
+        "body": "**File:** `src/upgrade.js`  \n**Issue:** `isProjectLocalCreatingPresetsGuide()` is accurate but slightly ambiguous in the context of rename migration filtering; it does not make clear that the method exists to preserve user/project-local template docs from token replacement.  \n**Suggestion:** Rename it to something like `isProtectedCreatingPresetsGuide()` or `isUserTemplateCreatingPresetsGuide()` so the filter reads as an intentional preservation rule.",
+        "file": "src/upgrade.js"
+      }
+    ]
+  }
+}

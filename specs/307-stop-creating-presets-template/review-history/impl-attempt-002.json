@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-18T16:45:56.176Z",
+  "verdict": "ADVISORY",
+  "summary": {
+    "blocking": 0,
+    "nonBlocking": 1,
+    "total": 1
+  },
+  "blockingFindings": [],
+  "nonBlockingImprovements": [
+    {
+      "title": "Test mutates repository preset fixtures",
+      "failureMode": "test_side_effect",
+      "file": "specs/307-stop-creating-presets-template/tests/deploy-preset-copies.test.js",
+      "requirementId": "R5",
+      "issue": "The R5 test creates and later removes `src/presets/spec-307-non-base` inside the repository tree, so an interrupted or parallel test run can leave behind or remove workspace files outside the temp project root.",
+      "suggestion": "Replace the `fs.mkdirSync(presetDir...)` fixture branch in the R5 test with an assertion against an existing non-base preset fixture, or refactor `deployPresetCopies` to accept an injectable presets directory for the test and create the non-base preset under `makeTempRoot()`.",
+      "rationale": "The production behavior appears aligned with the acceptance requirements, but tests should not mutate source fixtures when the same scenario can be exercised from an isolated temporary directory."
+    }
+  ],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/307-stop-creating-presets-template/impl-review.json",
+    "verdict": "ADVISORY",
+    "result": "ADVISORY",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": "impl-gate",
+    "completionKind": "normal",
+    "progressSignature": "1e303ede1a43ccf67eb6a8b63cf88821ae4c5c789bd49a6f8757e1799060666e"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "impl-002-non-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "Test mutates repository preset fixtures",
+      "body": "The R5 test creates and later removes `src/presets/spec-307-non-base` inside the repository tree, so an interrupted or parallel test run can leave behind or remove workspace files outside the temp project root.",
+      "category": "test_side_effect"
+    }
+  ]
+}
