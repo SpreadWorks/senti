@@ -196,6 +196,15 @@
       "guardrailCandidate": "Before retrying a worktree squash finalize, verify the target main worktree has no unrelated uncommitted changes that can interfere with git merge --squash.",
       "taskId": null,
       "timestamp": "2026-06-19T01:04:14.849Z"
+    },
+    {
+      "step": "finalize-cleanup",
+      "reason": "Finalize cleanup was interrupted because the plugin finalize-cleanup lifecycle hook kept spawning long-running AI issue-log classification calls and did not reach teardown.",
+      "trigger": "senti flow run finalize-cleanup stayed in plugin hook processing for more than ten minutes after finalize-sync succeeded.",
+      "resolution": "Stop duplicate cleanup processes, disable flowCommandHooks for this already-merged flow snapshot, and rerun finalize-cleanup to complete teardown.",
+      "guardrailCandidate": "Finalize cleanup plugin hooks should have a timeout or skip/fallback path so teardown cannot be blocked indefinitely by optional follow-up generation.",
+      "taskId": null,
+      "timestamp": "2026-06-19T01:50:10.628Z"
     }
   ]
 }
