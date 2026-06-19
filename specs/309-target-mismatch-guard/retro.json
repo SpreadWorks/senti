@@ -1,0 +1,54 @@
+{
+  "spec": "specs/309-target-mismatch-guard/spec.json",
+  "date": "2026-06-19T03:18:19.317Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Explicit Issue targets must be compared with the resolved active flow before dispatcher execution; mismatch returns ACTIVE_FLOW_MISMATCH and no next-action, repair, run, finalize, or cleanup command is executed.",
+      "status": "done",
+      "note": "R1: issue mismatch stops with the required user-facing message before dispatcher actions"
+    },
+    {
+      "desc": "Explicit spec and runId targets must be checked against the current dispatcher execution context, for example through --expect-spec and --expect-run-id status options; positional runId status remains display-only and must not authorize later dispatcher commands.",
+      "status": "done",
+      "note": "R2: spec mismatch is checked against the current dispatcher context"
+    },
+    {
+      "desc": "ACTIVE_FLOW_MISMATCH responses must include machine-readable expected and active target fields for the target types available in the request, using canonical spec IDs for spec comparisons.",
+      "status": "done",
+      "note": "R3: path-like spec targets are normalized to canonical spec IDs in mismatch output"
+    },
+    {
+      "desc": "autoApprove and requires_approval decisions must be evaluated only after the explicit target guard has passed.",
+      "status": "done",
+      "note": "R4: skill guidance places target guard before autoApprove and requires_approval decisions"
+    },
+    {
+      "desc": "Target-matched retained behavior must continue to work for current-context status, runId display status, active worktree runId resolution, next-action, repair, run commands, finalize leaves, autoApprove shortcut, and finalize manual recovery exceptions.",
+      "status": "done",
+      "note": "R5: active worktree-mode runId status resolves through the worktree flow state"
+    },
+    {
+      "desc": "senti.flow skill guidance must require target-aware status checks before dispatcher loop entry whenever user input names an Issue, spec, or runId target.",
+      "status": "done",
+      "note": "R6: source skill guidance requires explicit target status guards for issue, spec, and runId"
+    },
+    {
+      "desc": "Regression coverage must detect that another active flow is not executed when an explicit target does not match.",
+      "status": "done",
+      "note": "R7: target mismatch guidance appears before dispatcher and blocks next-action, repair, run, finalize, and cleanup"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 7,
+    "done": 7,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 1,
+    "not_testable_count": 1,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

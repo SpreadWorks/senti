@@ -1,0 +1,405 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".../acceptance-review-evidence.json                |   13 +\n .../acceptance-review.json                         |   33 +\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-gate-source.json                         |   83 ++\n .../draft-questions-repair.json                    |    8 +\n .../draft-questions-triage.json                    |    8 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   11 +\n specs/309-target-mismatch-guard/draft.json         |  126 ++\n specs/309-target-mismatch-guard/file-map.json      |   58 +\n specs/309-target-mismatch-guard/flow-findings.json |   16 +\n specs/309-target-mismatch-guard/flow.json          | 1564 ++++++++++++++++++++\n specs/309-target-mismatch-guard/impl-review.json   |   28 +\n specs/309-target-mismatch-guard/issue-log.json     |  474 ++++++\n specs/309-target-mismatch-guard/issue.md           |   92 ++\n .../plugin-artifacts/workflow/prepare.json         |   10 +\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |   14 +\n .../review-history/impl-attempt-001.json           |   31 +\n .../review-history/impl-attempt-001.md             |   16 +\n .../review-history/impl-attempt-002.json           |   31 +\n .../review-history/impl-attempt-002.md             |   16 +\n .../review-history/impl-attempt-003.json           |   31 +\n .../review-history/impl-attempt-003.md             |   16 +\n .../review-history/spec-attempt-001.json           |   75 +\n .../review-history/spec-attempt-001.md             |   25 +\n .../review-history/test-attempt-001.json           |   70 +\n .../review-history/test-attempt-001.md             |   24 +\n .../review-history/test-attempt-002.json           |  108 ++\n .../review-history/test-attempt-002.md             |   33 +\n .../review-history/test-attempt-003.json           |   90 ++\n .../review-history/test-attempt-003.md             |   30 +\n .../review-history/test-attempt-004.json           |   70 +\n .../review-history/test-attempt-004.md             |   24 +\n .../review-history/test-attempt-005.json           |   50 +\n .../review-history/test-attempt-005.md             |   18 +\n .../impl-review/0bdf3b707356690edf741e13.json      |   36 +\n .../impl-review/635b54e59ef6bd709a49df1c.json      |   37 +\n .../impl-review/75f4871091a34c2fc78b9a8b.json      |   47 +\n specs/309-target-mismatch-guard/review.md          |   16 +\n .../spec-gate-source.json                          |   19 +\n specs/309-target-mismatch-guard/spec-repair.json   |   41 +\n specs/309-target-mismatch-guard/spec-review.json   |   41 +\n specs/309-target-mismatch-guard/spec-review.md     |   25 +\n specs/309-target-mismatch-guard/spec-triage.json   |   22 +\n specs/309-target-mismatch-guard/spec.json          |  267 ++++\n specs/309-target-mismatch-guard/spec.md            |  126 ++\n specs/309-target-mismatch-guard/tasks/T-1.md       |   23 +\n specs/309-target-mismatch-guard/tasks/T-2.md       |   21 +\n specs/309-target-mismatch-guard/tasks/T-3.md       |   21 +\n specs/309-target-mismatch-guard/test-coverage.json |  123 ++\n specs/309-target-mismatch-guard/test-review.json   |   37 +\n specs/309-target-mismatch-guard/test-review.md     |   18 +\n .../tests/skill-placement.test.js                  |   46 +\n .../tests/target-mismatch-guard.test.js            |  261 ++++\n .../tests/target-retained-behavior.test.js         |  160 ++\n src/docs/commands/init.js                          |   15 +-\n src/flow/commands/review.js                        |    6 +\n src/flow/lib/base-command.js                       |   13 +-\n src/flow/lib/flow-context.js                       |   14 +-\n src/flow/lib/get-status.js                         |   69 +-\n src/flow/lib/run-start-task.js                     |    2 +\n src/flow/registry.js                               |   50 +-\n src/lib/dispatcher.js                              |   22 +\n src/lib/flow-manager.js                            |    3 +-\n src/lib/flow-target-guard.js                       |  120 ++\n src/senti.js                                       |    2 +-\n src/skills/partials/core-principle.md              |    3 +\n src/skills/senti.flow/SKILL.md                     |   10 +-\n 70 files changed, 4970 insertions(+), 83 deletions(-)",
+      "commits": [
+        "fix: guard flow target mismatches"
+      ]
+    },
+    "retro": {
+      "total": 7,
+      "done": 7,
+      "partial": 0,
+      "not_done": 0,
+      "not_applicable_count": 0,
+      "na_count": 1,
+      "not_testable_count": 1,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "Explicit Issue targets must be compared with the resolved active flow before dispatcher execution; mismatch returns ACTIVE_FLOW_MISMATCH and no next-action, repair, run, finalize, or cleanup command is executed.",
+          "status": "done",
+          "note": "R1: issue mismatch stops with the required user-facing message before dispatcher actions"
+        },
+        {
+          "desc": "Explicit spec and runId targets must be checked against the current dispatcher execution context, for example through --expect-spec and --expect-run-id status options; positional runId status remains display-only and must not authorize later dispatcher commands.",
+          "status": "done",
+          "note": "R2: spec mismatch is checked against the current dispatcher context"
+        },
+        {
+          "desc": "ACTIVE_FLOW_MISMATCH responses must include machine-readable expected and active target fields for the target types available in the request, using canonical spec IDs for spec comparisons.",
+          "status": "done",
+          "note": "R3: path-like spec targets are normalized to canonical spec IDs in mismatch output"
+        },
+        {
+          "desc": "autoApprove and requires_approval decisions must be evaluated only after the explicit target guard has passed.",
+          "status": "done",
+          "note": "R4: skill guidance places target guard before autoApprove and requires_approval decisions"
+        },
+        {
+          "desc": "Target-matched retained behavior must continue to work for current-context status, runId display status, active worktree runId resolution, next-action, repair, run commands, finalize leaves, autoApprove shortcut, and finalize manual recovery exceptions.",
+          "status": "done",
+          "note": "R5: active worktree-mode runId status resolves through the worktree flow state"
+        },
+        {
+          "desc": "senti.flow skill guidance must require target-aware status checks before dispatcher loop entry whenever user input names an Issue, spec, or runId target.",
+          "status": "done",
+          "note": "R6: source skill guidance requires explicit target status guards for issue, spec, and runId"
+        },
+        {
+          "desc": "Regression coverage must detect that another active flow is not executed when an explicit target does not match.",
+          "status": "done",
+          "note": "R7: target mismatch guidance appears before dispatcher and blocks next-action, repair, run, finalize, and cleanup"
+        }
+      ]
+    },
+    "upgrade": {
+      "result": "success-updated",
+      "summary": {
+        "skills": {
+          "updated": 0,
+          "unchanged": 6,
+          "removed": 0
+        },
+        "presets": {
+          "copied": 2
+        },
+        "plugins": {
+          "changed": true
+        },
+        "config": {
+          "changed": false
+        },
+        "rename": {
+          "changed": 3
+        }
+      },
+      "rawLogPath": "tests/.raw/upgrade.log"
+    },
+    "issueLog": {
+      "count": 26,
+      "fullLogPath": "specs/309-target-mismatch-guard/issue-log.json",
+      "importantTotal": 13,
+      "importantShown": 10,
+      "importantOmitted": 3,
+      "recentOtherTotal": 13,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 8,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "Retained behavior `senti flow get status` (current-context display) is listed in migration inventory, but the draft does not define a behavior-level acceptance check proving this retained status behavior still works through the new misma...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "draft gate failed migration parity because retained status, run, finalize, and autoApprove behaviors lacked behavior-level verification entries",
+          "resolution": "added explicit behavior-level verification entries for current-context status, runId status, target-matched next-action, run command, finalize leaf commands, autoApprove shortcut, and manual recovery exception"
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "draft gate failed because the draft mixed the issue reproduction example #403 with issue #404 and omitted repair path parity verification",
+          "resolution": "generalized the reproduction example to #N and added repair path inventory, mismatch-stop coverage, and retained behavior verification entries"
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "spec gate failed because implementationTargets listed shared tests as primary coverage instead of spec-local tests with spec headers",
+          "resolution": "changed implementationTargets and task test strategies to require spec-local tests under specs/309-target-mismatch-guard/tests with spec headers, leaving shared tests as supplemental only"
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "spec gate mechanical validation failed because spec.json had a missing comma after the T-3 test_strategy field",
+          "resolution": "added the missing comma after tasks[T-3].test_strategy"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test review failed because tests only checked status and static guidance, and did not prove dispatcher commands stop before mutating a mismatched active flow",
+          "resolution": "added executable next-action mismatch coverage and a positional-runId display-only negative authorization test"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test review still failed because R7 header coverage was missing, dispatcher path coverage omitted run repair finalize paths, and spec canonicalization was not tested",
+          "resolution": "added R7 to the coverage header, added executable mismatch checks for next-action start-task reopen-draft and finalize-cleanup, and added path-like spec target canonicalization coverage"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test review still failed because repair command coverage was missing, R5 retained behavior coverage covered only worktree runId lookup, and guidance checks allowed scattered token matches",
+          "resolution": "added run review repair-path mismatch coverage, added matched retained behavior checks for status next-action run repair finalize and autoApprove paths, and strengthened guidance tests to inspect one coherent entry block"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "test review still failed because spec target dispatcher coverage and run-command runId mismatch coverage were missing",
+          "resolution": "added next-action --expect-spec mismatch coverage and start-task --expect-run-id mismatch coverage with unchanged active-flow step assertions"
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "fix: regenerated missing upgrade-result.json after test-execute cleanup",
+          "resolution": "reran node src/senti.js upgrade in the active worktree and restored the generatedOutputs evidence artifact, then reverted unrelated rename migration side effects"
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "This new test is spec-relevant to requirement R8 but is placed under `tests/unit` without a `// spec: ...` header, so required spec-local coverage under `specs/309-target-mismatch-guard/tests` is missing for R8.",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: removed non-spec-local helper unit test for R8 evidence",
+          "resolution": "removed the helper unit test and kept R8 as non-testable process evidence through upgrade-result.json generatedOutputs"
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "This diff introduces R8-related implementation changes (e.g., `src/upgrade.js` + skill guidance sync behavior) but no added/updated spec test file includes `// spec: R8` in its header, so required spec-local coverage for that requirement...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: added spec-local R8 coverage for generated skill outputs",
+          "resolution": "removed testable=false from R8, added generated-skill-output.test.js with // spec: R8, updated file-map, test-execute, test-result-review, and impl-review artifacts"
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: added executable R4 approval mismatch coverage and restored artifacts",
+          "resolution": "added an approval-step mismatch test proving ACTIVE_FLOW_MISMATCH occurs before requires_approval or autoApprove outcome, regenerated test artifacts, restored scenario-validity and upgrade evidence"
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 11,
+      "question": 0,
+      "issueLog": 18
+    },
+    "tokenMetrics": {
+      "input": 649644,
+      "output": 128308,
+      "cacheRead": 1943424,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 29,
+      "durationMs": 697145,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 6919
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 11048
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 37458
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 175376
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 28121
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 107881
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 109551
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 220791
+        }
+      ]
+    },
+    "tests": {
+      "total": 7,
+      "passed": 7,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/309-target-mismatch-guard/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "specs/309-target-mismatch-guard/",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/commands/review.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/base-command.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/flow-context.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/get-status.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-start-task.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/registry.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/dispatcher.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/flow-manager.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/flow-target-guard.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/senti.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/309-target-mismatch-guard/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/review.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/base-command.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/flow-context.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/get-status.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-start-task.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/dispatcher.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-manager.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/lib/flow-target-guard.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/senti.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/309-target-mismatch-guard/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/review.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/base-command.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/flow-context.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/get-status.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-start-task.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/dispatcher.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-manager.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/lib/flow-target-guard.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/senti.js"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "skipKind": null,
+        "rawOutputPath": "specs/309-target-mismatch-guard/tests/.raw/final-regression-attempt-002.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    fix: guard flow target mismatches\n    70 files changed, 4970 insertions(+), 83 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (7 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 11\n    Q&A ......................... 0\n    issue-log ................... 18\n    agent calls ................. 29\n    input tokens ................ 649,644\n    output tokens ............... 128,308\n    cache-read tokens ........... 1,943,424\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 697.1s\n      draft-questions-review .... 6.9s\n      draft-coverage-review ..... 11.0s\n      draft-gate ................ 37.5s\n      spec-review ............... 175.4s\n      spec-gate ................. 28.1s\n      test-review ............... 107.9s\n      impl-review ............... 109.6s\n      impl-gate ................. 220.8s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 7  passed 7  failed 0 verdict=pass\n    raw_output: specs/309-target-mismatch-guard/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=pass\n\n  Issue Log Summary (26 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/309-target-mismatch-guard/issue-log.json\n\n    Important (10 of 13)\n    - [draft-gate] Retained behavior `senti flow get status` (current-context display) is listed in migration inventory, but the draft does not define a behavior-level acceptance check proving this retained status behavior still works through the new misma...\n    - [draft-gate] draft gate failed migration parity because retained status, run, finalize, and autoApprove behaviors lacked behavior-level verification entries\n    - [draft-gate] draft gate failed because the draft mixed the issue reproduction example #403 with issue #404 and omitted repair path parity verification\n    - [spec-gate] spec gate failed because implementationTargets listed shared tests as primary coverage instead of spec-local tests with spec headers\n    - [spec-gate] spec gate mechanical validation failed because spec.json had a missing comma after the T-3 test_strategy field\n    - [test-review] test review failed because tests only checked status and static guidance, and did not prove dispatcher commands stop before mutating a mismatched active flow\n    - [test-review] test review still failed because R7 header coverage was missing, dispatcher path coverage omitted run repair finalize paths, and spec canonicalization was not tested\n    - [test-review] test review still failed because repair command coverage was missing, R5 retained behavior coverage covered only worktree runId lookup, and guidance checks allowed scattered token matches\n    - [test-review] test review still failed because spec target dispatcher coverage and run-command runId mismatch coverage were missing\n    - [impl-gate] fix: regenerated missing upgrade-result.json after test-execute cleanup\n    ... 3 important issue-log entries omitted\n\n    Recent Other (5 of 13)\n    - [spec-gate] This new test is spec-relevant to requirement R8 but is placed under `tests/unit` without a `// spec: ...` header, so required spec-local coverage under `specs/309-target-mismatch-guard/tests` is missing for R8.\n    - [impl-gate] fix: removed non-spec-local helper unit test for R8 evidence\n    - [spec-gate] This diff introduces R8-related implementation changes (e.g., `src/upgrade.js` + skill guidance sync behavior) but no added/updated spec test file includes `// spec: R8` in its header, so required spec-local coverage for that requirement...\n    - [impl-gate] fix: added spec-local R8 coverage for generated skill outputs\n    - [impl-gate] fix: added executable R4 approval mismatch coverage and restored artifacts\n    ... 8 other issue-log entries omitted"
+}

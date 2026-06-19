@@ -13,6 +13,11 @@ import { findLatestInProgressLeaf, resolveMaxAttempts } from "../definition.js";
 import { flattenSteps } from "./step-tree.js";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
+import {
+  FlowTargetExpectation,
+  buildTargetMismatchEnvelope,
+  targetMismatchEnvelopeForInput,
+} from "../../lib/flow-target-guard.js";
 import { buildReviewStopView, reviewPhaseForStepId } from "./review-failure.js";
 import { resolveGateRecoveryDisplayPhase } from "./gate-recovery-display.js";
 import { countReviewRetry } from "./run-review.js";
@@ -205,41 +210,6 @@ function validateRunId(runId) {
   return runId;
 }
 
-function validateExpectedIssue(raw) {
-  if (raw == null) return null;
-  const issue = Number(raw);
-  if (!Number.isSafeInteger(issue) || issue < 1) {
-    return Envelope.fail(
-      "get",
-      "status",
-      "ARGS_ERROR",
-      `--expect-issue must be a positive integer: ${raw}`,
-    );
-  }
-  return issue;
-}
-
-function activeFlowMismatch(expectedIssue, status, expectedRunId = null) {
-  if (expectedIssue == null || !status?.active) return null;
-  const activeIssue = status.issue == null ? null : Number(status.issue);
-  if (activeIssue === expectedIssue) return null;
-  return Envelope.fail(
-    "get",
-    "status",
-    "ACTIVE_FLOW_MISMATCH",
-    [
-      `Requested Issue #${expectedIssue}, but resolved active flow is Issue #${activeIssue ?? "none"}.`,
-      "Stop before dispatching next-action, flow run, or finalize-cleanup.",
-    ],
-    {
-      expectedIssue,
-      activeIssue,
-      expectedRunId,
-      activeRunId: status.runId || null,
-    },
-  );
-}
-
 function buildStatusOutput(state, root, options = {}) {
   const details = options.details === true;
   const phase = state.steps ? derivePhase(state) : null;
@@ -302,13 +272,18 @@ function buildStatusOutput(state, root, options = {}) {
 
 export default class GetStatusCommand extends FlowCommand {
   constructor() {
-    super({ requiresFlow: false });
+    super({ requiresFlow: false, targetGuard: false });
   }
 
   execute(ctx) {
     const runId = validateRunId(ctx.runId);
-    const expectedIssue = validateExpectedIssue(ctx.expectIssue);
-    if (expectedIssue instanceof Envelope) return expectedIssue;
+    const currentContextMismatch = targetMismatchEnvelopeForInput({
+      type: "get",
+      key: "status",
+      input: { expectSpec: ctx.expectSpec, expectRunId: ctx.expectRunId },
+      flowState: ctx.flowState,
+    });
+    if (currentContextMismatch) return currentContextMismatch;
     const options = { details: ctx.details === true };
 
     if (runId) {
@@ -318,16 +293,26 @@ export default class GetStatusCommand extends FlowCommand {
         throw new Error(`RUN_ID_NOT_FOUND: ${runId}`);
       }
       const status = buildStatusOutput(state, ctx.root, options);
-      return activeFlowMismatch(expectedIssue, status, runId) || status;
+      try {
+        const expectation = new FlowTargetExpectation({ expectIssue: ctx.expectIssue });
+        const mismatch = expectation.mismatchAgainst(state);
+        return mismatch ? buildTargetMismatchEnvelope({ type: "get", key: "status", data: mismatch }) : status;
+      } catch (err) {
+        return Envelope.fail("get", "status", "ARGS_ERROR", err.message);
+      }
     }
 
     // Default: context-based resolution. No active flow is a normal state,
     // not an error — consumers discriminate via the `active` field.
     if (!ctx.flowState) {
-      const status = { active: false };
-      return activeFlowMismatch(expectedIssue, status) || status;
+      return { active: false };
     }
     const status = buildStatusOutput(ctx.flowState, ctx.root, options);
-    return activeFlowMismatch(expectedIssue, status) || status;
+    return targetMismatchEnvelopeForInput({
+      type: "get",
+      key: "status",
+      input: ctx,
+      flowState: ctx.flowState,
+    }) || status;
   }
 }

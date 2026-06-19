@@ -410,7 +410,8 @@ export class FlowManager {
     const activeFlows = this._activeFlows.load();
     const limit = Math.min(activeFlows.length, PREPARING_SCAN_LIMIT);
     for (let i = 0; i < limit; i++) {
-      const state = this._store.loadReadOnly(activeFlows[i].spec);
+      const resolved = this._loadActiveFlowState(activeFlows[i].spec);
+      const state = resolved?.state || this._store.loadReadOnly(activeFlows[i].spec);
       if (state?.runId === runId) return state;
     }
     const preparing = this._preparing.load(runId);

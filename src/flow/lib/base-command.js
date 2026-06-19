@@ -15,6 +15,7 @@
 
 import { Command } from "../../lib/command.js";
 import { resolveFlowContext } from "./flow-context.js";
+import { targetMismatchEnvelopeForInput } from "../../lib/flow-target-guard.js";
 
 export class FlowCommand extends Command {
   /** All flow commands emit JSON envelopes. */
@@ -24,9 +25,10 @@ export class FlowCommand extends Command {
    * @param {Object} [options]
    * @param {boolean} [options.requiresFlow=true] - Whether this command requires an active flow
    */
-  constructor({ requiresFlow = true } = {}) {
+  constructor({ requiresFlow = true, targetGuard = true } = {}) {
     super();
     this.requiresFlow = requiresFlow;
+    this.targetGuard = targetGuard;
   }
 
   /**
@@ -42,6 +44,15 @@ export class FlowCommand extends Command {
     const ctx = { ...resolveFlowContext(container), ...input };
     if (this.requiresFlow && !ctx.flowState) {
       throw new Error("no active flow (flow.json not found)");
+    }
+    if (this.targetGuard) {
+      const mismatch = targetMismatchEnvelopeForInput({
+        type: input._envelopeType || "run",
+        key: input._envelopeKey || "flow",
+        input,
+        flowState: ctx.flowState,
+      });
+      if (mismatch) return mismatch;
     }
     return this.execute(ctx);
   }

@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-19T02:25:51.218Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 3,
+    "advisory": 0,
+    "total": 3
+  },
+  "coverageArtifact": "specs/309-target-mismatch-guard/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Missing executable coverage for repair command guard",
+      "target": "specs/309-target-mismatch-guard/tests/target-mismatch-guard.test.js",
+      "issue": "R1 requires a mismatched explicit Issue target to prevent repair command execution, but the executable dispatcher-path test covers next-action, start-task, reopen-draft, and finalize-cleanup only. The skill text test merely checks that the word \"repair\" appears in guidance and would pass even if the production repair command still executed against another active flow.",
+      "requiredChange": "Add a spec-local executable test case for the actual repair command path with --expect-issue mismatch, asserting ACTIVE_FLOW_MISMATCH and no active-flow mutation.",
+      "whyBlocking": "This leaves a named acceptance requirement path without corresponding regression coverage, so implementation could miss the repair guard while tests still pass.",
+      "origin": "R1",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R5 retained behavior coverage is incomplete",
+      "target": "specs/309-target-mismatch-guard/tests/target-retained-behavior.test.js",
+      "issue": "R5 requires retained behavior for current-context status, runId display status, active worktree runId resolution, next-action, repair, run commands, finalize leaves, autoApprove shortcut, and finalize manual recovery exceptions. The test file only covers active worktree-mode runId status resolution.",
+      "requiredChange": "Add spec-local retained-behavior tests for the remaining R5 behaviors, at minimum exercising matched current-context status, positional runId display status, matched next-action, matched repair/run command paths, finalize leaves, autoApprove shortcut, and finalize manual recovery exception behavior.",
+      "whyBlocking": "The requirement-to-test artifact marks R5 covered, but the actual test file covers only one subcase. Regressions in the other retained behaviors could pass unnoticed.",
+      "origin": "R5",
+      "failureKind": "coverage_artifact_contradiction"
+    },
+    {
+      "kind": "blocking",
+      "title": "R6/R7 guidance tests are too weak to prove target-aware status checks",
+      "target": "specs/309-target-mismatch-guard/tests/skill-placement.test.js",
+      "issue": "The guidance tests assert only scattered token presence and relative placement of ACTIVE_FLOW_MISMATCH. They do not verify that user-named Issue, spec, or runId targets require target-aware status checks before dispatcher loop entry, so the tests could pass with unrelated mentions of --expect-issue, --expect-spec, --expect-run-id, and ACTIVE_FLOW_MISMATCH.",
+      "requiredChange": "Strengthen the static guidance test to assert a coherent entry guidance block that ties each explicit target type to the corresponding status guard before dispatcher entry and states that mismatch stops before dispatcher commands.",
+      "whyBlocking": "R6 is a documentation/skill-guidance requirement; if the static test can pass on unrelated keyword mentions, it does not exercise the required production guidance behavior.",
+      "origin": "R6",
+      "failureKind": "static_antipattern"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/309-target-mismatch-guard/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "bb6853fb62f114667281d5781393c59c4af6327053410d2b7a9ffd8a0b8f2366"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "test-003-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Missing executable coverage for repair command guard",
+      "body": "R1 requires a mismatched explicit Issue target to prevent repair command execution, but the executable dispatcher-path test covers next-action, start-task, reopen-draft, and finalize-cleanup only. The skill text test merely checks that the word \"repair\" appears in guidance and would pass even if the production repair command still executed against another active flow.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-003-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R5 retained behavior coverage is incomplete",
+      "body": "R5 requires retained behavior for current-context status, runId display status, active worktree runId resolution, next-action, repair, run commands, finalize leaves, autoApprove shortcut, and finalize manual recovery exceptions. The test file only covers active worktree-mode runId status resolution.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-003-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R6/R7 guidance tests are too weak to prove target-aware status checks",
+      "body": "The guidance tests assert only scattered token presence and relative placement of ACTIVE_FLOW_MISMATCH. They do not verify that user-named Issue, spec, or runId targets require target-aware status checks before dispatcher loop entry, so the tests could pass with unrelated mentions of --expect-issue, --expect-spec, --expect-run-id, and ACTIVE_FLOW_MISMATCH.",
+      "category": "unknown"
+    }
+  ]
+}

@@ -18,6 +18,7 @@ import { parseArgs as cliParseArgs } from "./cli.js";
 import { Command } from "./command.js";
 import { Envelope } from "./flow-envelope.js";
 import { RuntimeLogBlockWriter } from "./runtime-log.js";
+import { targetMismatchEnvelopeForInput } from "./flow-target-guard.js";
 
 function throwUnexpected(extras) {
   const unknownOpt = extras.find((v) => typeof v === "string" && v.startsWith("-"));
@@ -371,6 +372,25 @@ export async function dispatch({
     return;
   }
 
+  const targetMismatch = entry.targetGuard === false
+    ? null
+    : buildHookCtx
+      ? targetMismatchEnvelopeForInput({
+          type: envelopeType || "run",
+          key: envelopeKey || "?",
+          input,
+          flowState: hookCtx.flowState,
+        })
+      : null;
+  if (targetMismatch) {
+    attachRuntimeLog(targetMismatch, runtimeLog?.metadata);
+    writeOut(JSON.stringify(targetMismatch.toJSON(), null, 2) + "\n");
+    setExit(1);
+    closeRuntimeLog();
+    if (restoreStreams) restoreStreams();
+    return;
+  }
+
   // 5. pre
   if (entry.pre) {
     try {
@@ -389,6 +409,8 @@ export async function dispatch({
   let caught;
   try {
     const cmd = new CommandClass();
+    input._envelopeType = envelopeType;
+    input._envelopeKey = envelopeKey;
     result = await cmd.run(container, input);
   } catch (err) {
     caught = err;

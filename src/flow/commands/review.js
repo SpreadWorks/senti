@@ -667,6 +667,12 @@ function parseImplReviewJsonOutput(raw) {
   } catch {
     parsed = JSON.parse(repairJson(candidate));
   }
+  if (Array.isArray(parsed) && parsed.length === 0) {
+    parsed = {
+      blockingFindings: [],
+      nonBlockingImprovements: [],
+    };
+  }
   const errors = validateSchema(parsed, IMPL_REVIEW_RESPONSE_SCHEMA);
   if (errors.length > 0) {
     throw new Error(`impl review output failed schema validation: ${errors.join("; ")}`);

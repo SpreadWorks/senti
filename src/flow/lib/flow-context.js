@@ -19,13 +19,23 @@ import path from "path";
 import { specIdFromPath, STATE_FILE } from "../../lib/flow-helpers.js";
 
 function resolveAuthorityFlowState(container, baseFlowManager, mainRoot) {
+  const paths = container.get("paths");
   const cwdState = baseFlowManager.load();
   if (!cwdState) {
+    const resolved = typeof baseFlowManager.resolveActiveFlow === "function"
+      ? baseFlowManager.resolveActiveFlow(null)
+      : null;
+    if (resolved) {
+      const activeRoot = resolved.worktreePath || paths.root;
+      const activeFm = resolved.worktreePath
+        ? baseFlowManager.forRoot(resolved.worktreePath, { specId: resolved.specId })
+        : baseFlowManager.forRoot(paths.root, { specId: resolved.specId });
+      return { flowManager: activeFm, flowState: resolved.state, authorityRoot: activeRoot };
+    }
     return { flowManager: baseFlowManager, flowState: null, authorityRoot: null };
   }
 
   const inWorktree = container.get("inWorktree");
-  const paths = container.get("paths");
 
   if (inWorktree && cwdState.worktree && mainRoot) {
     const specId = specIdFromPath(cwdState.spec);
@@ -49,7 +59,7 @@ export function resolveFlowContext(container) {
   const mainRoot = container.get("mainRoot");
   const { flowManager, flowState, authorityRoot } = resolveAuthorityFlowState(container, baseFlowManager, mainRoot);
   return {
-    root: paths.root,
+    root: authorityRoot || paths.root,
     mainRoot,
     config: container.get("config"),
     flowManager,

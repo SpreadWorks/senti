@@ -73,17 +73,10 @@ async function aiFilterChapters(chapters, analysis, agent, _root, purpose) {
   pb.setRules(ruleLines.join("\n"));
 
   pb.setJsonSchema({
-    type: "object",
-    properties: {
-      chapters: {
-        type: "array",
-        items: { type: "string" },
-      },
-    },
-    required: ["chapters"],
-    additionalProperties: false,
+    type: "array",
+    items: { type: "string" },
   });
-  pb.setFmtFallback('Reply with ONLY a JSON object containing a chapters array. Example: {"chapters":["overview.md","commands.md"]}');
+  pb.setFmtFallback('Reply with ONLY a JSON array of chapter filenames. Example: ["overview.md","commands.md"]');
 
   pb.addUserPrompt("## Project analysis summary", summary);
   pb.addUserPrompt("## Available chapters", chapterList);
@@ -112,7 +105,7 @@ async function aiFilterChapters(chapters, analysis, agent, _root, purpose) {
   let selected;
   try {
     const parsed = JSON.parse(cleaned);
-    selected = Array.isArray(parsed) ? parsed : parsed?.chapters;
+    selected = Array.isArray(parsed) ? parsed : null;
   } catch (_) {
     logger.log("[init] WARN: AI response is not valid JSON, skipping AI filter.");
     logger.log(`[init]   response: ${cleaned.slice(0, 200)}`);

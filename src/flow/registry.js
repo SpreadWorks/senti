@@ -35,6 +35,8 @@ import { loadIssueLog, saveIssueLog } from "./lib/set-issue-log.js";
  * for finalize leaves (per spec 251 design principle).
  */
 const FLOW_RUN_RUNTIME_OPTIONS = ["--agent-work-dir"];
+const FLOW_TARGET_GUARD_OPTIONS = ["--expect-issue", "--expect-spec", "--expect-run-id"];
+const FLOW_RUN_OPTIONS = [...FLOW_RUN_RUNTIME_OPTIONS, ...FLOW_TARGET_GUARD_OPTIONS];
 const RETRY_HELP_GATE_PHASES = Object.freeze(["task-impl", "integration"]);
 const RETRY_HELP_REVIEW_PHASES = Object.freeze(["draft", "draft-questions", "draft-coverage", "spec", "test", "impl"]);
 export const DRAFT_REVIEW_REGISTRY_RESPONSIBILITY_BOUNDARY = Object.freeze({
@@ -472,16 +474,19 @@ export const FLOW_COMMANDS = {
     status: {
       helpKey: "flow.get.status",
       requiresFlow: false,
+      targetGuard: false,
       command: () => import("./lib/get-status.js"),
-      args: { positional: ["runId"], flags: ["--details"], options: ["--expect-issue"] },
+      args: { positional: ["runId"], flags: ["--details"], options: FLOW_TARGET_GUARD_OPTIONS },
       help: [
-        "Usage: senti flow get status [runId] [--details] [--expect-issue <number>]",
+        "Usage: senti flow get status [runId] [--details] [--expect-issue <number>] [--expect-spec <spec>] [--expect-run-id <runId>]",
         "",
         "Return active flow state for the current execution context.",
         "If no active flow exists, returns { active: false }.",
         "If runId is provided, resolve by runId instead of context.",
         "  --details  Include audit fields such as request, notes, metrics, and history.",
         "  --expect-issue <number>  Fail with ACTIVE_FLOW_MISMATCH when the resolved flow belongs to another Issue.",
+        "  --expect-spec <spec>     Fail with ACTIVE_FLOW_MISMATCH when the current context is another spec.",
+        "  --expect-run-id <runId>  Fail with ACTIVE_FLOW_MISMATCH when the current context is another runId.",
         "Use `senti flow resume` to discover or recover active flows.",
       ].join("\n"),
     },
@@ -527,8 +532,9 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.get.next-action",
       requiresFlow: false,
       command: () => import("./lib/get-next-action.js"),
+      args: { options: FLOW_TARGET_GUARD_OPTIONS },
       help: [
-        "Usage: senti flow get next-action",
+        "Usage: senti flow get next-action [--expect-issue <number>] [--expect-spec <spec>] [--expect-run-id <runId>]",
         "",
         "Return the next AI/skill action for the current in_progress step.",
         "Dispatches from static context rules; the response carries an inline",
@@ -745,7 +751,7 @@ export const FLOW_COMMANDS = {
       },
       command: () => import("./lib/run-gate.js"),
       args: {
-        options: ["--spec", "--phase", ...FLOW_RUN_RUNTIME_OPTIONS],
+        options: ["--spec", "--phase", ...FLOW_RUN_OPTIONS],
         flags: ["--skip-guardrail"],
       },
       help: [
@@ -785,7 +791,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-review.js"),
       args: {
         flags: ["--dry-run", "--skip-confirm"],
-        options: ["--phase", ...FLOW_RUN_RUNTIME_OPTIONS],
+        options: ["--phase", ...FLOW_RUN_OPTIONS],
       },
       help: [
         "Usage: senti flow run review [options]",
@@ -842,7 +848,7 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.run.impl-confirm",
       runtimeLog: { stepMetadata: false },
       command: () => import("./lib/run-impl-confirm.js"),
-      args: { options: ["--mode", ...FLOW_RUN_RUNTIME_OPTIONS] },
+      args: { options: ["--mode", ...FLOW_RUN_OPTIONS] },
       help: [
         "Usage: senti flow run impl-confirm [options]",
         "",
@@ -860,7 +866,7 @@ export const FLOW_COMMANDS = {
       runtimeLog: { stepId: "finalize-commit" },
       command: () => import("./lib/run-finalize-commit.js"),
       args: {
-        options: ["--message", ...FLOW_RUN_RUNTIME_OPTIONS],
+        options: ["--message", ...FLOW_RUN_OPTIONS],
       },
       help: [
         "Usage: senti flow run finalize-commit [options]",
@@ -888,7 +894,7 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.run.finalize-merge",
       runtimeLog: { stepId: "finalize-merge" },
       command: () => import("./lib/run-finalize-merge.js"),
-      args: { options: [...FLOW_RUN_RUNTIME_OPTIONS] },
+      args: { options: [...FLOW_RUN_OPTIONS] },
       help: [
         "Usage: senti flow run finalize-merge",
         "",
@@ -917,7 +923,7 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.run.finalize-sync",
       runtimeLog: { stepId: "finalize-sync" },
       command: () => import("./lib/run-finalize-sync.js"),
-      args: { options: [...FLOW_RUN_RUNTIME_OPTIONS] },
+      args: { options: [...FLOW_RUN_OPTIONS] },
       help: [
         "Usage: senti flow run finalize-sync",
         "",
@@ -940,7 +946,7 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.run.finalize-cleanup",
       runtimeLog: { stepMetadata: false },
       command: () => import("./lib/run-finalize-cleanup.js"),
-      args: { flags: ["--auto-rescue", "--force"], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
+      args: { flags: ["--auto-rescue", "--force"], options: [...FLOW_RUN_OPTIONS] },
       help: [
         "Usage: senti flow run finalize-cleanup [--auto-rescue | --force]",
         "",
@@ -989,7 +995,7 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.run.reopen-draft",
       runtimeLog: { stepMetadata: false },
       command: () => import("./lib/run-reopen-draft.js"),
-      args: { options: ["--reason", ...FLOW_RUN_RUNTIME_OPTIONS] },
+      args: { options: ["--reason", ...FLOW_RUN_OPTIONS] },
       help: [
         "Usage: senti flow run reopen-draft [--reason <text>]",
         "",
@@ -1004,7 +1010,7 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.run.start-task",
       runtimeLog: { stepMetadata: false },
       command: () => import("./lib/run-start-task.js"),
-      args: { options: ["--task-id", ...FLOW_RUN_RUNTIME_OPTIONS] },
+      args: { options: ["--task-id", ...FLOW_RUN_OPTIONS] },
       help: [
         "Usage: senti flow run start-task --task-id <id>",
         "",
@@ -1017,7 +1023,7 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.run.complete-task",
       runtimeLog: { stepMetadata: false },
       command: () => import("./lib/run-complete-task.js"),
-      args: { options: ["--task-id", ...FLOW_RUN_RUNTIME_OPTIONS] },
+      args: { options: ["--task-id", ...FLOW_RUN_OPTIONS] },
       help: [
         "Usage: senti flow run complete-task [--task-id <id>]",
         "",
@@ -1030,7 +1036,7 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.run.update-overview",
       runtimeLog: { stepMetadata: false },
       command: () => import("./lib/run-update-overview.js"),
-      args: { options: ["--json", ...FLOW_RUN_RUNTIME_OPTIONS] },
+      args: { options: ["--json", ...FLOW_RUN_OPTIONS] },
       help: [
         "Usage: senti flow run update-overview --json '<additions>'",
         "",
@@ -1048,7 +1054,7 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.run.lint",
       runtimeLog: { stepMetadata: false },
       command: () => import("./lib/run-lint.js"),
-      args: { options: ["--base", ...FLOW_RUN_RUNTIME_OPTIONS] },
+      args: { options: ["--base", ...FLOW_RUN_OPTIONS] },
       help: [
         "Usage: senti flow run lint [options]",
         "",
@@ -1062,7 +1068,7 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.run.test-execute",
       runtimeLog: { stepId: "test-execute" },
       command: () => import("./lib/run-test-execute.js"),
-      args: { flags: [], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
+      args: { flags: [], options: [...FLOW_RUN_OPTIONS] },
       help: [
         "Usage: senti flow run test-execute",
         "",
@@ -1084,7 +1090,7 @@ export const FLOW_COMMANDS = {
       internal: true,
       requiresFlow: true,
       command: () => import("./lib/run-scenario-validity.js"),
-      args: { flags: [], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
+      args: { flags: [], options: [...FLOW_RUN_OPTIONS] },
       help: [
         "Usage: senti flow run scenario-validity",
         "",
@@ -1100,7 +1106,7 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.run.test-result-review",
       runtimeLog: { stepId: "test-result-review" },
       command: () => import("./lib/run-test-result-review.js"),
-      args: { flags: [], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
+      args: { flags: [], options: [...FLOW_RUN_OPTIONS] },
       help: [
         "Usage: senti flow run test-result-review",
         "",
@@ -1121,7 +1127,7 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.run.retro",
       runtimeLog: { stepId: "retro" },
       command: () => import("./lib/run-retro.js"),
-      args: { flags: ["--force", "--dry-run"], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
+      args: { flags: ["--force", "--dry-run"], options: [...FLOW_RUN_OPTIONS] },
       help: [
         "Usage: senti flow run retro [options]",
         "",
@@ -1141,7 +1147,7 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.run.final-regression",
       runtimeLog: { stepId: "final-regression" },
       command: () => import("./lib/run-final-regression.js"),
-      args: { flags: [], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
+      args: { flags: [], options: [...FLOW_RUN_OPTIONS] },
       help: [
         "Usage: senti flow run final-regression",
         "",
@@ -1165,7 +1171,7 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.run.acceptance-review",
       runtimeLog: { stepId: "acceptance-review" },
       command: () => import("./lib/run-acceptance-review.js"),
-      args: { flags: [], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
+      args: { flags: [], options: [...FLOW_RUN_OPTIONS] },
       help: [
         "Usage: senti flow run acceptance-review",
         "",
@@ -1178,7 +1184,7 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.run.report",
       runtimeLog: { stepMetadata: false },
       command: () => import("./lib/run-report.js"),
-      args: { flags: ["--dry-run"], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
+      args: { flags: ["--dry-run"], options: [...FLOW_RUN_OPTIONS] },
       help: [
         "Usage: senti flow run report [options]",
         "",

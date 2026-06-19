@@ -107,7 +107,7 @@ initContainer({
   entryCommand: rawArgs.join(" "),
   agentWorkDirOverride,
   finalizeCleanupDurablePaths: enableFinalizeCleanupDurablePaths,
-  allowInvalidConfig: subCmd === "upgrade" || !CORE_ENTRY_COMMANDS.has(subCmd),
+  allowInvalidConfig: subCmd === "flow" || subCmd === "upgrade" || !CORE_ENTRY_COMMANDS.has(subCmd),
 });
 
 if (NAMESPACE_SCRIPTS[subCmd]) {

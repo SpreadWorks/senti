@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied both spec-review repairs: separated current-context target guards from display lookups and required worktree-mode runId resolution.",
+  "items": [
+    {
+      "title": "RunId/spec lookup is conflated with execution-context guarding",
+      "target": "R2, R7, Acceptance Criteria, T-1/T-2",
+      "decision": "applied",
+      "rationale": "The spec now requires --expect-spec and --expect-run-id style checks against the current dispatcher context and marks positional runId status as display-only.",
+      "evidence": "spec.json requirements[R2], acceptance_criteria, clarifications, overview.data_flow, and T-1 now distinguish current-context assertions from runId display lookup.",
+      "changedFields": [
+        "overview.data_flow[0].text",
+        "overview.decisions",
+        "requirements[R2].desc",
+        "requirements[R3].desc",
+        "acceptance_criteria",
+        "clarifications[2].a",
+        "tasks[T-1].acceptance",
+        "tasks[T-1].implementation_notes",
+        "tasks[T-1].test_strategy"
+      ]
+    },
+    {
+      "title": "RunId target behavior omits active worktree resolution",
+      "target": "R2, R5, T-1, src/lib/flow-manager.js",
+      "decision": "applied",
+      "rationale": "The spec now requires active worktree-mode runId lookup/guard behavior and tests for that compatibility path.",
+      "evidence": "spec.json requirements[R5], acceptance_criteria, overview.decisions, and T-1 now require active worktree flow.json resolution through active-flow registry/worktree state.",
+      "changedFields": [
+        "overview.decisions",
+        "requirements[R5].desc",
+        "acceptance_criteria",
+        "tasks[T-1].acceptance",
+        "tasks[T-1].implementation_notes",
+        "tasks[T-1].test_strategy"
+      ]
+    }
+  ]
+}

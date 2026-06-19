@@ -1,0 +1,267 @@
+{
+  "goal": "Prevent Spec-Driven Development flow entry from executing an active flow that does not match an explicitly requested Issue, spec, or runId target.",
+  "scope": {
+    "in": [
+      "Add or complete CLI-side target-aware status guards for explicit Issue, spec, and runId targets.",
+      "Update senti.flow skill guidance so explicit targets are checked before dispatcher, next-action, repair, run, finalize, or cleanup execution.",
+      "Ensure autoApprove and requires_approval never bypass target mismatch checks.",
+      "Add regression coverage that proves mismatch stops have no flow execution side effects and target-matched retained behavior still works.",
+      "Run senti upgrade if src/skills or preset templates change."
+    ],
+    "out": [
+      "Do not redesign flow lifecycle step ordering.",
+      "Do not change GitHub Issue fetch, board workflow, npm publish, or release behavior.",
+      "Do not change finalize-cleanup orphan commit or squash recovery policy.",
+      "Do not perform a broad active-flow registry format migration beyond the minimum target lookup data needed for this fix."
+    ]
+  },
+  "constraints": [
+    "No external npm dependencies.",
+    "Source under src/ must not contain project- or environment-specific values.",
+    "Validate user-supplied target values at the CLI entry boundary.",
+    "Treat target mismatch as a safety guard, not as an approval policy.",
+    "When skill prompt placement changes, tests must assert both old unsafe placement removal and new safe placement presence.",
+    "If src/skills or src/presets change, run senti upgrade and keep the generated skill or preset outputs in sync."
+  ],
+  "design_principles": [
+    "Prefer a machine-readable CLI stop over prose-only skill guidance.",
+    "Keep current-context status display available for callers that do not specify an explicit target.",
+    "Use existing FlowManager and get-status resolution paths instead of introducing a parallel flow lookup system."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/flow/lib/get-status.js owns target-aware status output and ACTIVE_FLOW_MISMATCH envelopes for resolved flow state."
+      },
+      {
+        "text": "src/lib/flow-manager.js owns active flow, spec, and runId resolution; new target checks should reuse these resolution paths."
+      },
+      {
+        "text": "src/skills/senti.flow/SKILL.md and its source partials own the agent entry procedure before dispatcher execution."
+      },
+      {
+        "text": "tests/unit/flow and skill placement tests own regression coverage for CLI mismatch guards and generated guidance."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "User input with explicit target -> skill parses target -> skill runs current-context expectation guard -> mismatch stops before next-action/repair/run/finalize; match continues to dispatcher."
+      },
+      {
+        "text": "CLI status guard resolves current flow or requested runId/spec, compares expected target fields, and returns ACTIVE_FLOW_MISMATCH without mutating flow state."
+      },
+      {
+        "text": "Target-matched flows continue through existing next-action, repair, run, approval, and finalize paths with unchanged post hooks and artifacts."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] get-status already has Issue mismatch support.",
+        "evidence": "src/flow/lib/get-status.js validates --expect-issue and activeFlowMismatch returns ACTIVE_FLOW_MISMATCH with expectedIssue, activeIssue, expectedRunId, and activeRunId."
+      },
+      {
+        "text": "[VERIFY] get-status has a runId lookup path.",
+        "evidence": "src/flow/registry.js registers `senti flow get status [runId]`; src/flow/lib/get-status.js resolves runId with ctx.flowManager.resolveByRunId before context-based status."
+      },
+      {
+        "text": "[CORRECTION] runId lookup status is display-only for explicit target entry safety.",
+        "evidence": "next-action/run/finalize commands execute against ctx.flowState, so target safety requires --expect-run-id against current context before dispatcher execution."
+      },
+      {
+        "text": "[CORRECTION] runId lookup must include active worktree flow state.",
+        "evidence": "src/lib/flow-manager.js _loadActiveFlowState redirects active worktree specs to .senti/worktree, while resolveByRunId currently scans active entries with main-root loadReadOnly."
+      },
+      {
+        "text": "[VERIFY] active flow fallback can select the wrong target when only one active flow exists.",
+        "evidence": "src/lib/flow-manager.js resolveActiveFlow loads the single active registry entry or scan result when no explicit selectSpecId is provided."
+      },
+      {
+        "text": "Target mismatch guard belongs in both layers.",
+        "evidence": "Issue #404 asks to clarify responsibility. CLI owns machine-readable mismatch validation; skill owns invoking that validation before dispatcher execution."
+      },
+      {
+        "text": "Migration parity is required because entry behavior is being guarded, not removed.",
+        "evidence": "Retained surfaces include status display, runId status, next-action, repair, run commands, finalize leaves, autoApprove shortcut, and manual recovery exceptions."
+      }
+    ]
+  },
+  "background": "Issue #404 reports that an explicit flow target can be ignored when another active flow is present. If the skill enters the dispatcher based only on active: true, a different session's flow can receive next-action, repair, finalize, or cleanup operations. The existing CLI has partial Issue mismatch support in get-status, but the entry procedure must use it before any action that can mutate or advance a flow.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Explicit Issue targets must be compared with the resolved active flow before dispatcher execution; mismatch returns ACTIVE_FLOW_MISMATCH and no next-action, repair, run, finalize, or cleanup command is executed.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "Explicit spec and runId targets must be checked against the current dispatcher execution context, for example through --expect-spec and --expect-run-id status options; positional runId status remains display-only and must not authorize later dispatcher commands.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "ACTIVE_FLOW_MISMATCH responses must include machine-readable expected and active target fields for the target types available in the request, using canonical spec IDs for spec comparisons.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "autoApprove and requires_approval decisions must be evaluated only after the explicit target guard has passed.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "Target-matched retained behavior must continue to work for current-context status, runId display status, active worktree runId resolution, next-action, repair, run commands, finalize leaves, autoApprove shortcut, and finalize manual recovery exceptions.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "senti.flow skill guidance must require target-aware status checks before dispatcher loop entry whenever user input names an Issue, spec, or runId target.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "desc": "Regression coverage must detect that another active flow is not executed when an explicit target does not match.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R8",
+      "desc": "Generated installed skill output must stay in sync with any src/skills guidance change.",
+      "priority": "must",
+      "status": "done",
+      "testable": false
+    }
+  ],
+  "acceptance_criteria": [
+    "When an active flow for Issue A exists and the entry target is Issue B, target-aware status returns ACTIVE_FLOW_MISMATCH before get-next-action is called.",
+    "When mismatch occurs, flow.json step status, notes, metrics, and finalize artifacts for the active flow are unchanged except for allowed status/runtime log reads.",
+    "When the target Issue matches the active flow, get-next-action returns the active step envelope as before.",
+    "When positional runId status is requested for display, the response comes from that runId even if a different context has an active flow, but this display path is not used as permission to run dispatcher commands.",
+    "When --expect-run-id or --expect-spec is used, the comparison is made against the current dispatcher execution context and fails if that context is a different active flow.",
+    "When a runId belongs to an active worktree-mode flow, runId display status and runId expectation guards resolve the worktree flow.json through the active-flow registry/worktree path.",
+    "When a target-matched flow reaches a representative run command or repair path, the command acts on the matched flow and does not fail with target mismatch.",
+    "When a target-matched flow reaches finalize leaves, existing finalize preconditions and recovery envelopes are still reachable.",
+    "When autoApprove is true on a target-matched flow, normal approval auto-selection remains available after the target guard passes.",
+    "When finalize-cleanup reports ORPHAN_COMMITS_DETECTED or SQUASH_BASELINE_* on a target-matched flow, manual recovery remains required even if autoApprove is true.",
+    "Skill placement tests prove old guidance that permits naked active-flow continuation is absent and new explicit-target guard guidance is present.",
+    "If src/skills changed, senti upgrade updates generated skill files and the diff includes the synced output."
+  ],
+  "clarifications": [
+    {
+      "q": "Should mismatch be recoverable by auto approval?",
+      "a": "No. It is a safety stop before approval policy. The user can resume the existing active flow explicitly, but the mismatched request must not advance it."
+    },
+    {
+      "q": "Should current-context `senti flow get status` be removed?",
+      "a": "No. It remains the default display when no explicit target is supplied. Target-aware guards are used only when the entry request names a target."
+    },
+    {
+      "q": "Is the CLI or skill responsible for validation?",
+      "a": "Both have bounded roles. CLI returns machine-readable mismatch results against the current execution context; skill parses the user's target and must call the guard before dispatcher execution."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Skill-only prose stop",
+      "reason": "Rejected because other CLI entry paths and tests would not have a machine-readable mismatch contract."
+    },
+    {
+      "option": "Always require --spec for every flow command",
+      "reason": "Rejected because it would break current-context status and normal single-flow continuation behavior."
+    },
+    {
+      "option": "Let user approval override target mismatch",
+      "reason": "Rejected because mismatch is a safety guard protecting another session's flow, not a normal approval decision."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "ACTIVE_FLOW_MISMATCH",
+    "get-status",
+    "expect-issue",
+    "expect-spec",
+    "expect-run-id",
+    "resolveActiveFlow",
+    "resolveByRunId",
+    "next-action",
+    "autoApprove",
+    "senti.flow",
+    "finalize-cleanup",
+    "target mismatch"
+  ],
+  "implementationTargets": [
+    "src/flow/lib/get-status.js",
+    "src/flow/registry.js",
+    "src/lib/flow-manager.js",
+    "src/skills/senti.flow/SKILL.md",
+    "src/skills/partials/core-principle.md",
+    "specs/309-target-mismatch-guard/tests/target-mismatch-guard.test.js",
+    "specs/309-target-mismatch-guard/tests/target-retained-behavior.test.js",
+    "specs/309-target-mismatch-guard/tests/skill-placement.test.js"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Add target status guards",
+      "goal": "Complete CLI-side target comparison for Issue, spec, and runId targets. The command must return ACTIVE_FLOW_MISMATCH before any mutating flow action can be selected.",
+      "acceptance": [
+        "Issue mismatch returns ACTIVE_FLOW_MISMATCH with expectedIssue and activeIssue.",
+        "Spec mismatch against current execution context returns ACTIVE_FLOW_MISMATCH with expectedSpec and activeSpec.",
+        "RunId mismatch against current execution context returns ACTIVE_FLOW_MISMATCH with expectedRunId and activeRunId.",
+        "Positional runId status remains a display lookup and is not used as dispatcher authorization.",
+        "Active worktree-mode runId lookup resolves flow.json through active-flow registry/worktree state.",
+        "Target match preserves current status envelope fields."
+      ],
+      "implementation_notes": "Reuse get-status and FlowManager resolution. Keep default current-context status behavior unchanged when no explicit expected target is provided. Treat --expect-* options as current-context assertions; keep positional runId as display-only. Ensure resolveByRunId can load active worktree flow state.",
+      "test_strategy": "Spec-local tests with `// spec: R<N>` headers for get-status target mismatch, target match, current-context status, positional runId status lookup, worktree-mode runId lookup, and expectation checks against current context. Shared unit tests may be updated only as supplemental contract coverage.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Guard flow entry guidance",
+      "goal": "Update senti.flow guidance so explicit targets are validated before dispatcher loop entry and before autoApprove or requires_approval can permit execution.",
+      "acceptance": [
+        "Guidance names Issue, spec, and runId target checks.",
+        "Guidance says mismatch stops before next-action, repair, run, finalize, and cleanup.",
+        "Guidance says autoApprove and requires_approval do not bypass mismatch stops.",
+        "Generated installed skill output reflects the source guidance after upgrade."
+      ],
+      "implementation_notes": "Prefer editing shared partials when the unsafe rule is generated into multiple skill files. Run senti upgrade after src/skills changes.",
+      "test_strategy": "Spec-local skill text placement assertions with `// spec: R<N>` headers for old unsafe wording removal and new target guard wording presence. Shared tests may be updated only as supplemental coverage.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-3",
+      "title": "Cover retained behavior",
+      "goal": "Add regression coverage proving mismatch stops have no side effects and target-matched retained behavior still works.",
+      "acceptance": [
+        "Mismatch test proves get-next-action is not executed for another active flow.",
+        "Mismatch test proves representative run, repair, and finalize cleanup paths are not executed for another active flow.",
+        "Target-match tests cover next-action, run command, repair path, finalize leaf precondition or recovery, and autoApprove shortcut.",
+        "Manual recovery exception remains visible for finalize-cleanup target-match scenarios."
+      ],
+      "implementation_notes": "Use spec-local tests with `// spec: R<N>` headers and update shared unit tests where command contracts change.",
+      "test_strategy": "Spec-local tests with `// spec: R<N>` headers for issue target mismatch and retained behavior. Shared unit tests may be updated only when production command contracts change.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-06-19T02:20:02.830Z",
+    "notes": "auto-approved after spec-gate PASS for Issue #404"
+  }
+}

@@ -56,3 +56,5 @@ export class RunStartTaskCommand extends FlowCommand {
     });
   }
 }
+
+export default RunStartTaskCommand;

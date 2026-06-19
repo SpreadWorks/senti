@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "Both blocking findings are valid and should be applied in spec-repair.",
+  "items": [
+    {
+      "title": "RunId/spec lookup is conflated with execution-context guarding",
+      "target": "R2, R7, Acceptance Criteria, T-1/T-2",
+      "decision": "apply",
+      "rationale": "The finding identifies a real safety gap: resolving a requested runId/spec for display is not enough if the subsequent dispatcher commands still execute against the current context.",
+      "evidence": "spec.json currently says runId status should return the requested runId even if a different context has an active flow, but next-action/run/finalize commands execute against ctx.flowState."
+    },
+    {
+      "title": "RunId target behavior omits active worktree resolution",
+      "target": "R2, R5, T-1, src/lib/flow-manager.js",
+      "decision": "apply",
+      "rationale": "The finding identifies a compatibility path required by this flow model: active worktree flow.json can live in the worktree, so runId guard/status must resolve worktree-mode active flows.",
+      "evidence": "src/lib/flow-manager.js resolveByRunId scans active registry entries with loadReadOnly, while _loadActiveFlowState contains the worktree redirect behavior."
+    }
+  ]
+}

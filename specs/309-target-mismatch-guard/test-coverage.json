@@ -1,0 +1,123 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Explicit Issue targets must be compared with the resolved active flow before dispatcher execution; mismatch returns ACTIVE_FLOW_MISMATCH and no next-action, repair, run, finalize, or cleanup command is executed.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/target-mismatch-guard.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "Explicit spec and runId targets must be checked against the current dispatcher execution context, for example through --expect-spec and --expect-run-id status options; positional runId status remains display-only and must not authorize later dispatcher commands.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/target-mismatch-guard.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "ACTIVE_FLOW_MISMATCH responses must include machine-readable expected and active target fields for the target types available in the request, using canonical spec IDs for spec comparisons.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/target-mismatch-guard.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "autoApprove and requires_approval decisions must be evaluated only after the explicit target guard has passed.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/target-mismatch-guard.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "Target-matched retained behavior must continue to work for current-context status, runId display status, active worktree runId resolution, next-action, repair, run commands, finalize leaves, autoApprove shortcut, and finalize manual recovery exceptions.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/target-retained-behavior.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "senti.flow skill guidance must require target-aware status checks before dispatcher loop entry whenever user input names an Issue, spec, or runId target.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/skill-placement.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "Regression coverage must detect that another active flow is not executed when an explicit target does not match.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/skill-placement.test.js",
+        "tests/target-mismatch-guard.test.js"
+      ]
+    },
+    {
+      "id": "R8",
+      "desc": "Generated installed skill output must stay in sync with any src/skills guidance change.",
+      "testable": false,
+      "status": "not_testable",
+      "files": []
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/skill-placement.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R6",
+        "R7"
+      ],
+      "testNameIds": [
+        "R6",
+        "R7"
+      ]
+    },
+    {
+      "file": "tests/target-mismatch-guard.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R7"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R7"
+      ]
+    },
+    {
+      "file": "tests/target-retained-behavior.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R5"
+      ],
+      "testNameIds": [
+        "R5"
+      ]
+    }
+  ]
+}

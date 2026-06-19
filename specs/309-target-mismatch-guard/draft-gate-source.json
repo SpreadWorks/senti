@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "Issue reference is inconsistent: this section uses `$senti.flow #403` while all other sections and requirements target `#404`, so the spec scope is not objectively specific.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "draft-content",
+            "locator": "analysis.problem"
+          },
+          "observed": "Issue reference is inconsistent: this section uses `$senti.flow #403` while all other sections and requirements target `#404`, so the spec scope is not objectively specific.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "Behavior-level migration verification coverage omits the `repair` command path, even though scope explicitly mentions `repair` as an operation affected by target-mismatch stopping; a retained public surface remains without explicit verification through the new flow path.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "deferredToSpec"
+          },
+          "observed": "Behavior-level migration verification coverage omits the `repair` command path, even though scope explicitly mentions `repair` as an operation affected by target-mismatch stopping; a retained public surface remains without explicit verification through the new flow path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "draft-content",
+        "locator": "analysis.problem"
+      },
+      "observed": "Issue reference is inconsistent: this section uses `$senti.flow #403` while all other sections and requirements target `#404`, so the spec scope is not objectively specific.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft-content",
+        "locator": "deferredToSpec"
+      },
+      "observed": "Behavior-level migration verification coverage omits the `repair` command path, even though scope explicitly mentions `repair` as an operation affected by target-mismatch stopping; a retained public surface remains without explicit verification through the new flow path.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    }
+  ]
+}

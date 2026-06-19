@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-19T02:24:29.809Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 3,
+    "advisory": 1,
+    "total": 4
+  },
+  "coverageArtifact": "specs/309-target-mismatch-guard/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Test name lacks matching header id",
+      "target": "tests/target-mismatch-guard.test.js:R7",
+      "issue": "The file has a 'R7: ...' test name but the header does not declare R7.",
+      "requiredChange": "Add R7 to the file header or rename the test.",
+      "whyBlocking": "The coverage artifact omits a requirement referenced by executable tests.",
+      "origin": "test-coverage",
+      "failureKind": "test_name_without_header"
+    },
+    {
+      "kind": "blocking",
+      "title": "R1 dispatcher command coverage is incomplete",
+      "target": "specs/309-target-mismatch-guard/tests/target-mismatch-guard.test.js",
+      "issue": "R1 requires mismatched explicit Issue targets to prevent next-action, repair, run, finalize, and cleanup command execution, but the executable regression coverage only exercises status and next-action. The repair, run, finalize, and cleanup dispatcher paths are only mentioned in skill guidance text checks, which can pass without exercising production behavior.",
+      "requiredChange": "Add the smallest executable regression coverage that invokes mismatched explicit issue targets for the missing dispatcher commands, or otherwise proves those command paths are not executed under ACTIVE_FLOW_MISMATCH.",
+      "whyBlocking": "This leaves required acceptance behavior untested for several command paths that could still execute another active flow despite the guard.",
+      "origin": "R1",
+      "failureKind": "missing_regression_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R3 canonical spec comparison is not exercised",
+      "target": "specs/309-target-mismatch-guard/tests/target-mismatch-guard.test.js",
+      "issue": "R3 requires ACTIVE_FLOW_MISMATCH responses to use canonical spec IDs for spec comparisons, but the spec mismatch test passes an already-canonical value and does not prove path-like or non-canonical spec input is normalized before reporting/comparison.",
+      "requiredChange": "Add or adjust a spec mismatch assertion to use a non-canonical spec target form and assert expectedSpec/activeSpec are reported as canonical spec IDs.",
+      "whyBlocking": "An implementation could compare/report raw spec input and still pass the current tests while violating the canonical spec ID requirement.",
+      "origin": "R3",
+      "failureKind": "missing_regression_coverage"
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Coverage artifact has stale R7 file mapping",
+      "target": "Requirement-to-Test Coverage Artifact",
+      "improvement": "Update R7's requirement files list to include tests/target-mismatch-guard.test.js, or remove the R7 test name from that file if it is not intended to count there.",
+      "whyNonBlocking": "The detailed file section already exposes the mismatch, and executable R7 coverage exists; this is a traceability cleanup rather than a test design blocker."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/309-target-mismatch-guard/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "2920682d35ebda1219a8841acbae72d92d21b389b06477086c93d13ab68d1794"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "test-002-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Test name lacks matching header id",
+      "body": "The file has a 'R7: ...' test name but the header does not declare R7.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R1 dispatcher command coverage is incomplete",
+      "body": "R1 requires mismatched explicit Issue targets to prevent next-action, repair, run, finalize, and cleanup command execution, but the executable regression coverage only exercises status and next-action. The repair, run, finalize, and cleanup dispatcher paths are only mentioned in skill guidance text checks, which can pass without exercising production behavior.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R3 canonical spec comparison is not exercised",
+      "body": "R3 requires ACTIVE_FLOW_MISMATCH responses to use canonical spec IDs for spec comparisons, but the spec mismatch test passes an already-canonical value and does not prove path-like or non-canonical spec input is normalized before reporting/comparison.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-non-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "Coverage artifact has stale R7 file mapping",
+      "body": "Coverage artifact has stale R7 file mapping",
+      "category": "unknown"
+    }
+  ]
+}

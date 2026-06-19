@@ -1,0 +1,242 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/309-target-mismatch-guard/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/309-target-mismatch-guard/tests/target-mismatch-guard.test.js",
+        "test_name": "R1: issue mismatch stops with the required user-facing message before dispatcher actions",
+        "command": "node --test specs/309-target-mismatch-guard/tests/skill-placement.test.js specs/309-target-mismatch-guard/tests/target-mismatch-guard.test.js specs/309-target-mismatch-guard/tests/target-retained-behavior.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 150
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/309-target-mismatch-guard/tests/target-mismatch-guard.test.js",
+        "test_name": "R2: spec mismatch is checked against the current dispatcher context",
+        "command": "node --test specs/309-target-mismatch-guard/tests/skill-placement.test.js specs/309-target-mismatch-guard/tests/target-mismatch-guard.test.js specs/309-target-mismatch-guard/tests/target-retained-behavior.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 150
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/309-target-mismatch-guard/tests/target-mismatch-guard.test.js",
+        "test_name": "R3: path-like spec targets are normalized to canonical spec IDs in mismatch output",
+        "command": "node --test specs/309-target-mismatch-guard/tests/skill-placement.test.js specs/309-target-mismatch-guard/tests/target-mismatch-guard.test.js specs/309-target-mismatch-guard/tests/target-retained-behavior.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 150
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/309-target-mismatch-guard/tests/target-mismatch-guard.test.js",
+        "test_name": "R4: skill guidance places target guard before autoApprove and requires_approval decisions",
+        "command": "node --test specs/309-target-mismatch-guard/tests/skill-placement.test.js specs/309-target-mismatch-guard/tests/target-mismatch-guard.test.js specs/309-target-mismatch-guard/tests/target-retained-behavior.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 150
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/309-target-mismatch-guard/tests/target-retained-behavior.test.js",
+        "test_name": "R5: active worktree-mode runId status resolves through the worktree flow state",
+        "command": "node --test specs/309-target-mismatch-guard/tests/skill-placement.test.js specs/309-target-mismatch-guard/tests/target-mismatch-guard.test.js specs/309-target-mismatch-guard/tests/target-retained-behavior.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 150
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/309-target-mismatch-guard/tests/skill-placement.test.js",
+        "test_name": "R6: source skill guidance requires explicit target status guards for issue, spec, and runId",
+        "command": "node --test specs/309-target-mismatch-guard/tests/skill-placement.test.js specs/309-target-mismatch-guard/tests/target-mismatch-guard.test.js specs/309-target-mismatch-guard/tests/target-retained-behavior.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 150
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/309-target-mismatch-guard/tests/skill-placement.test.js",
+        "test_name": "R7: target mismatch guidance appears before dispatcher and blocks next-action, repair, run, finalize, and cleanup",
+        "command": "node --test specs/309-target-mismatch-guard/tests/skill-placement.test.js specs/309-target-mismatch-guard/tests/target-mismatch-guard.test.js specs/309-target-mismatch-guard/tests/target-retained-behavior.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 150
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": false,
+    "result": "skipped",
+    "mode": "none",
+    "category": "full-regression-deferred",
+    "reason": "full project regression deferred to final-regression",
+    "classified_paths": [
+      {
+        "path": "specs/309-target-mismatch-guard/",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/commands/review.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/base-command.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/flow-context.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/get-status.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/run-start-task.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/registry.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/lib/dispatcher.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/lib/flow-manager.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/lib/flow-target-guard.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/senti.js",
+        "category": "full-regression-deferred"
+      }
+    ],
+    "trigger_relevant_changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/309-target-mismatch-guard/"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/commands/review.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/base-command.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/flow-context.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/get-status.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-start-task.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/registry.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/dispatcher.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/flow-manager.js"
+      },
+      {
+        "status": "untracked",
+        "path": "src/lib/flow-target-guard.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/senti.js"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/309-target-mismatch-guard/"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/commands/review.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/base-command.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/flow-context.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/get-status.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-start-task.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/registry.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/dispatcher.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/flow-manager.js"
+      },
+      {
+        "status": "untracked",
+        "path": "src/lib/flow-target-guard.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/senti.js"
+      }
+    ]
+  }
+}

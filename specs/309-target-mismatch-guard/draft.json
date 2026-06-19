@@ -1,0 +1,126 @@
+{
+  "devType": "bugfix",
+  "goal": "must: 明示 target 付きで Spec-Driven Development flow を開始または再開したとき、別 session の active flow を誤って dispatcher / run / finalize 対象として実行しないようにする。",
+  "analysis": {
+    "problem": "must: `$senti.flow #N` のように user が Issue / spec / runId を明示しても、entry 処理が active: true の flow を継続対象として扱うと、指定 target と異なる flow の next-action、repair、finalize、cleanup を実行できてしまう。",
+    "proposedApproach": "must: 明示 target がある entry では、dispatcher に入る前に active flow の issue / spec / runId と要求 target を照合する。CLI 側は ACTIVE_FLOW_MISMATCH 相当の machine-readable stop を返し、skill 側はこの status guard を autoApprove や requires_approval より前に実行する。",
+    "validation": "must: Issue #404 は再現手順、停止条件、受け入れ条件を明示している。src/flow/lib/get-status.js には --expect-issue による ACTIVE_FLOW_MISMATCH の既存実装があり、src/lib/flow-manager.js は active flow 解決を owns しているため、root problem は CLI status guard と skill entry guidance の不足として検証できる。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #404 は、明示 target と active flow の issue / spec / runId を dispatcher 前に照合することを要求している。",
+      "must: Issue #404 は、不一致時に status check 以外の flow operations を実行しないことを要求している。",
+      "must: Issue #404 は、autoApprove: true または requires_approval: false でも target match check をスキップしないことを要求している。",
+      "must: src/flow/lib/get-status.js は --expect-issue 指定時に ACTIVE_FLOW_MISMATCH を返し、next-action / flow run / finalize-cleanup 前に停止する message を持つ。",
+      "must: src/flow/registry.js は `senti flow get status [runId] [--details] [--expect-issue <number>]` を public command として登録している。",
+      "must: src/lib/flow-manager.js の resolveActiveFlow は、flowState がなければ active registry や scan result から単一 active flow を解決する。",
+      "must: Migration parity inventory: runId なし `senti flow get status` は current context の active status 表示として保持する。",
+      "must: Migration parity inventory: `senti flow get status <runId>` は runId による active / preparing flow lookup として保持する。",
+      "must: Migration parity inventory: `senti flow get next-action`、repair path、`senti flow run ...`、finalize leaf commands は target mismatch がない active flow では従来どおり動作する。",
+      "must: Migration parity inventory: autoApprove の通常 auto-selection と finalize-cleanup orphan / squash recovery の manual exception は保持する。"
+    ],
+    "decisionPoints": [
+      "must: target mismatch は承認 policy ではなく safety guard として扱い、requires_approval や autoApprove の判定より前に置く。",
+      "must: CLI 側は Issue mismatch を ACTIVE_FLOW_MISMATCH として返す既存 get-status path を owner とし、必要なら spec / runId mismatch も同じ責務境界に追加する。",
+      "must: skill 側は user input に #number / spec / runId の明示 target がある場合、dispatcher loop の前に target-aware status guard を実行する責務を持つ。",
+      "must: active: true だけで continuation target とみなさず、同一 target であることを先に確認する。",
+      "must: mismatch message は、要求 target、resolved active target、既存 flow が別 session で作業中の可能性を user-facing に示す。",
+      "must: Migration parity mapping: current-context status 表示は get-status default path が owner となる。",
+      "must: Migration parity mapping: Issue target guard は get-status --expect-issue と skill entry pre-dispatch procedure が owner となる。",
+      "must: Migration parity mapping: runId target guard は get-status runId path と FlowManager.resolveByRunId が owner となる。",
+      "must: Migration parity mapping: spec target guard は FlowManager.resolveActiveFlow の selectSpecId path または同等の CLI status guard が owner となる。"
+    ],
+    "resolvedByProjectRules": [
+      "must: Issue は 1 つの concern として扱い、別 spec への分割提案はしない。",
+      "must: 外部 npm dependency は追加しない。",
+      "must: src/ 以下には特定 project / environment 固有の情報を入れない。",
+      "must: internal interface は過剰防御せず、CLI entry boundary で user target validation を行う。",
+      "must: src/skills/ または src/presets/ を変更した場合は senti upgrade を実行して生成済み skill / preset へ反映する。",
+      "must: prompt guidance movement を行う場合は、旧 placement の削除と新 placement の存在を regression assertion で検証する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: Issue target、spec target、runId target の parsing boundary と照合 method を spec requirements に具体化する。",
+      "must: get-status の既存 --expect-issue を拡張するか、skill 手順だけで使うかを spec tasks に具体化する。",
+      "must: skill 側の entry guidance で、target-aware status guard が autoApprove check より前に実行されることを明記する。",
+      "must: mismatch stop の regression test は、別 Issue active flow が存在するときに next-action / repair / run / finalize-cleanup が呼ばれないことを検証する。",
+      "must: retained public behavior ごとに behavior-level verification を置き、help text や registration だけを parity evidence にしない。",
+      "must: Migration parity verification: runId なし `senti flow get status` は、明示 target guard を使わない current-context status display として active flow の issue / spec / runId / autoApprove を返すことを確認する。",
+      "must: Migration parity verification: `senti flow get status <runId>` は、別 active context が存在しても指定 runId の flow state を返すことを確認する。",
+      "must: Migration parity verification: target match 済みの active flow では、`senti flow get next-action` が現在 step の envelope を返し、target mismatch error を出さないことを確認する。",
+      "must: Migration parity verification: target match 済みの repair path では、draft/spec/test/impl review repair または retry recovery が従来どおり対象 flow にだけ作用し、target mismatch guard で誤停止しないことを確認する。",
+      "must: Migration parity verification: target match 済みの active flow では、代表的な `senti flow run ...` command が従来どおり active flow に対して実行されることを確認する。",
+      "must: Migration parity verification: target match 済みの finalize phase では、finalize leaf commands が従来の precondition / recovery behavior に到達し、target mismatch guard で誤停止しないことを確認する。",
+      "must: Migration parity verification: target match 済みかつ autoApprove: true の通常 approval path は choice id=1 auto-selection として保持されることを確認する。",
+      "must: Migration parity verification: finalize-cleanup の ORPHAN_COMMITS_DETECTED、SQUASH_BASELINE_*、FORCED_ORPHAN_* は autoApprove: true でも manual recovery prompt として保持されることを確認する。",
+      "must: source が docs より新しい状態を踏まえ、docs と source が矛盾する場合は source を正として spec に反映する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: `$senti.flow #N` のような Issue target 指定時、active flow の issue が異なる場合は dispatcher loop に入らず停止する。",
+      "must: spec id または runId が明示された場合も、resolved active flow と同一 target であることを確認してから継続する。",
+      "must: mismatch 時は status check 以外の flow commands、next-action、repair、finalize、cleanup を実行しない。",
+      "must: autoApprove: true と requires_approval: false は target mismatch stop を迂回できない。",
+      "must: CLI-side と skill-side の責務境界を spec に明記する。",
+      "must: regression coverage は別 active flow を誤実行しないことを検出する。",
+      "must: src/skills/ の guidance を変更する場合は senti upgrade evidence を残す。"
+    ],
+    "out": [
+      "must: flow lifecycle 全体の step ordering 再設計は対象外。",
+      "must: GitHub Issue fetch、board workflow、release / npm publish の変更は対象外。",
+      "must: finalize-cleanup の orphan commit recovery policy や squash recovery choice の semantics は変更しない。",
+      "must: active-flow registry file format の大規模 migration は対象外。ただし target lookup に必要な最小変更は scope 内とする。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: senti.flow skill の entry path に影響する。明示 target がある場合は active: true のみで dispatcher loop へ進まない。",
+    "must: `senti flow get status` の current-context 表示用途は保持し、明示 target guard が必要な場面だけ target-aware option または runId lookup を使う。",
+      "must: `senti flow get next-action`、repair path、`senti flow run ...` は、target match 済みの active flow では従来どおり実行される。",
+    "must: autoApprove の通常承認 shortcut は保持するが、target mismatch guard より前には評価しない。",
+    "must: finalize-cleanup の manual recovery exception は保持し、target mismatch がない場合のみ従来の orphan / squash recovery prompt に到達する。",
+      "must: Migration parity impact: retained public behavior は command registration ではなく、actual envelope / artifact / step behavior で検証する。",
+      "must: Migration parity impact: current-context status、runId status、target-matched next-action、target-matched repair path、target-matched run command、target-matched finalize leaf、autoApprove shortcut、manual recovery exception は別々の retained behavior として検証する。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "must: 明示 target と active flow が一致しない場合、どの時点で停止する user-facing behavior として定義しますか。",
+      "answer": "must: dispatcher loop、next-action、repair、finalize、cleanup の前に停止する。status check 以外は実行せず、要求 target と resolved active target の不一致を表示する。",
+      "evidence": "Issue #404 Expected Behavior and Acceptance Criteria require comparing explicit target with active issue/spec/runId before dispatcher, and require no flow operations other than status checks on mismatch.",
+      "why": "active: true だけで継続すると別 session の flow を変更できるため、対象確定は step approval ではなく pre-dispatch safety guard として扱う必要がある。",
+      "considered": "mismatch を user approval で上書き可能にする案は、別 session の作業を誤って進める risk を残すため除外する。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "must: target mismatch validation の責務は skill 側と CLI 側のどちらに置きますか。",
+      "answer": "must: CLI 側は target-aware status guard と machine-readable mismatch error を owns し、skill 側は user input の明示 target を parse して dispatcher 前にその guard を必ず呼ぶ責務を持つ。",
+      "evidence": "src/flow/lib/get-status.js already implements ACTIVE_FLOW_MISMATCH for --expect-issue; Issue #404 asks to clarify whether the validation responsibility belongs to skill side or CLI side.",
+      "why": "skill guidance だけでは別 client や将来の entry path で抜け道が残る。CLI envelope が mismatch を表現し、skill はその guard を入口で使う分担にすると検証可能になる。",
+      "considered": "skill 側だけで停止文言を追加する案は、CLI command を直接呼ぶ path と regression test の machine-readable stop が弱いため除外する。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "must: regression coverage はどの behavior を検出対象にしますか。",
+      "answer": "must: mismatch stop に加え、current-context status、runId status、target-matched next-action、target-matched repair path、target-matched run command、target-matched finalize leaf、autoApprove shortcut、manual recovery exception の retained behavior をそれぞれ behavior-level に検証する。",
+      "evidence": "Issue #404 Acceptance Criteria explicitly require that another active flow's next action is not executed when `$senti.flow #N` is run, and that mismatch is not skipped by autoApprove or requires_approval.",
+      "why": "単に error code を返すだけでは、危険な command が先に走ってから失敗していないことを保証できない。また retained behavior ごとの parity check がないと、mismatch guard 追加で通常 status / run / finalize / autoApprove path を壊しても検出できない。",
+      "considered": "mismatch stop だけを検証する案は root bug の再発検知には有効だが、migration parity guardrail が要求する retained public behavior の検証として不足するため除外する。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-19T02:05:00.000Z",
+    "notes": "autoApprove: user accepted the preflight Goal/Scope for Issue #404; Issue content and source context resolve the draft decisions without unresolved user judgment."
+  }
+}
