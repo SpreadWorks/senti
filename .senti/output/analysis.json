@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-19T14:53:49.131Z",
+  "analyzedAt": "2026-06-19T15:27:35.208Z",
   "package": {
     "entries": [
       {
@@ -8270,9 +8270,9 @@
       },
       {
         "file": "src/lib/command-registry.js",
-        "hash": "6bfaf8072059410b32420182f6adfd9a",
+        "hash": "fede113c31f09753b92eacf1f58d7845",
         "lines": 435,
-        "mtime": "2026-06-17T08:37:50.713Z",
+        "mtime": "2026-06-19T15:27:25.789Z",
         "className": "command-registry",
         "methods": [
           "CommandHelpMetadata",
@@ -8308,23 +8308,22 @@
           "src/spec.js"
         ],
         "id": "0d680f4f",
-        "summary": "Defines the command metadata model and central registry for core and flow commands. It normalizes help content, flattens subcommand trees, and exports aggregated command maps used by the CLI.",
-        "detail": "The file introduces `CommandHelpMetadata` to represent commands with nested subcommands, help text, aliases, and lookup helpers. `CoreCommandMetadataRegistry` provides traversal utilities for resolving a command path, listing visible commands, and flattening the full command tree for documentation or dispatch support. Helper functions extract concise summaries and option lists from flow help text, including fallback handling for missing sections. It also decorates flow command entries with output metadata and exports grouped command collections such as docs, check, metrics, spec, hook, and the merged `allCommands` map.",
+        "summary": "This module builds the CLI command metadata tree and exposes registries for core and flow commands. It also normalizes command entries so help text and dispatch metadata can be consumed consistently.",
+        "detail": "The file defines `CommandHelpMetadata` for nested command help, including lookup across subcommand paths and flattening of the full command tree. `CoreCommandMetadataRegistry` wraps top-level entries and provides search and enumeration helpers for command discovery. Helper functions extract summaries and option lists from flow help text, falling back to defaults when needed. The module then decorates imported flow commands, constructs raw command descriptors for built-in command groups, and exports aggregated command maps for the rest of the CLI layer.",
         "chapter": "cli_commands",
-        "role": "Core CLI command metadata registry and help aggregation layer",
+        "role": "Central command metadata registry for built-in and flow-related CLI commands.",
         "enrich": {
-          "processedAt": "2026-06-17T08:38:40.353Z",
+          "processedAt": "2026-06-19T15:28:03.168Z",
           "attempts": 1
         },
         "keywords": [
           "command registry",
           "CLI metadata",
-          "subcommand tree",
-          "help summary",
+          "subcommands",
+          "help text",
           "command lookup",
           "flow commands",
-          "command aliases",
-          "option parsing"
+          "command discovery"
         ]
       },
       {
@@ -9775,9 +9774,9 @@
       },
       {
         "file": "src/lib/plugin-registry.js",
-        "hash": "9b943b9a4efd8f176019990a1247000f",
-        "lines": 1304,
-        "mtime": "2026-06-17T15:26:48.764Z",
+        "hash": "fe12f5e36c3f77653367773cfe1b02b8",
+        "lines": 1388,
+        "mtime": "2026-06-19T15:27:25.789Z",
         "className": "plugin-registry",
         "methods": [
           "readProjectConfig",
@@ -9793,6 +9792,8 @@
           "updatePluginRepos",
           "findPluginCandidates",
           "installPlugin",
+          "planInstalledPluginUpdates",
+          "updateInstalledPlugin",
           "syncInstalledPlugins",
           "listInstalledPlugins",
           "setPluginEnabled",
@@ -9854,6 +9855,8 @@
           "copyAllowlistedFiles",
           "validateSourceTree",
           "installFromSource",
+          "enabledInstalledPackages",
+          "resolveInstalledPluginUpdate",
           "buildPluginApi",
           "validateHookClass",
           "pluginConfigFor",
@@ -9894,6 +9897,8 @@
           "updatePluginRepos",
           "findPluginCandidates",
           "installPlugin",
+          "planInstalledPluginUpdates",
+          "updateInstalledPlugin",
           "syncInstalledPlugins",
           "listInstalledPlugins",
           "setPluginEnabled",
@@ -9920,23 +9925,23 @@
           "src/upgrade.js"
         ],
         "id": "bfaf1dcd",
-        "summary": "Implements plugin and preset registry management, including manifest loading, source synchronization, installation, and flow-hook execution. The design emphasizes strict filesystem and import safety around extensibility.",
-        "detail": "The module reads project and local plugin configuration, merges overlays, validates identifiers, JSON size limits, relative paths, and package layout, and masks credential-bearing source URLs when reporting sources. It supports both local and Git-backed plugin sources, with guarded cache directories, commit resolution, materialization, deterministic package hashing, and allowlisted file copying into `.senti/plugins`. Registry classes expose manifests, presets, commands, and data sources, while install and sync operations keep configured packages aligned with their resolved sources. For execution, it discovers flow-command hooks, loads snapshot-bound plugin modules, builds artifact-aware plugin contexts, and runs lifecycle hooks that can return warnings, issue-log entries, and follow-up data. The same infrastructure also maintains the official preset package and setup state so built-in preset contributions can be installed or refreshed consistently.",
+        "summary": "This module is the core plugin and preset management layer for the project. It handles plugin discovery, installation, validation, configuration merging, command dispatch, and flow hook execution.",
+        "detail": "The implementation is defensive: it validates IDs, paths, JSON size, symlink behavior, Git refs, and import boundaries to keep plugin packages confined and safe to load. It reads project and local plugin configuration, merges package entries, resolves plugin sources from local paths or Git repositories, and materializes installs into the managed `.senti` area. `PluginManifest` and `PluginRegistry` expose presets, data sources, and commands contributed by plugin packages, while helper routines support updates, enablement toggles, and official preset bootstrapping. The same module also defines the runtime plugin API for flow hooks and plugin commands, builds execution context and artifact helpers, snapshots hook metadata, and runs lifecycle hooks around flow commands.",
         "chapter": "project_structure",
-        "role": "Plugin registry, installer, and hook runner",
+        "role": "Plugin system backend covering source management, manifests, registry assembly, and runtime hook execution.",
         "enrich": {
-          "processedAt": "2026-06-17T15:28:02.808Z",
+          "processedAt": "2026-06-19T15:28:03.168Z",
           "attempts": 1
         },
         "keywords": [
           "plugin registry",
           "preset system",
-          "manifest validation",
-          "git source sync",
           "plugin installation",
-          "flow hooks",
-          "artifact context",
-          "official presets"
+          "Git source sync",
+          "hook lifecycle",
+          "manifest validation",
+          "plugin commands",
+          "artifact storage"
         ]
       },
       {
@@ -10868,9 +10873,9 @@
       },
       {
         "file": "src/plugin.js",
-        "hash": "6c3c6d1f37db7bacce4fe8d45a67b5b7",
-        "lines": 226,
-        "mtime": "2026-06-17T08:37:50.714Z",
+        "hash": "f1b5dba89bcf6161819d907a12d1c84e",
+        "lines": 282,
+        "mtime": "2026-06-19T15:27:25.789Z",
         "className": "plugin",
         "methods": [
           "renderPluginList",
@@ -10886,9 +10891,14 @@
           "runAutomaticUpgrade",
           "upgradeResultLine",
           "outputPluginOperationWithUpgrade",
-          "formatLine"
+          "formatLine",
+          "bulkUpdateAccepted",
+          "promptBulkUpdate",
+          "outputBulkUpdateCandidates",
+          "upgradeForUpdateResults"
         ],
         "imports": [
+          "fs",
           "./lib/cli.js",
           "./lib/constants.js",
           "./lib/process.js",
@@ -10902,23 +10912,22 @@
         "extends": null,
         "usedBy": null,
         "id": "ae80e38f",
-        "summary": "Provides the top-level `plugin` CLI command entrypoint and user-facing output formatting. It parses subcommands and flags, triggers optional upgrades, and renders plugin operation results in text or JSON.",
-        "detail": "The file contains small argument utilities for detecting JSON mode, suppressing upgrades, stripping flags, and extracting reference arguments. It centralizes output formatting so plugin list and operation responses can be emitted consistently for both human-readable and machine-readable use cases. An automatic upgrade helper invokes the upgrade command with environment wiring and feeds the result into combined reporting logic. The exported `main` function routes plugin subcommands, prints help for unsupported paths, and exits with the standard error code when command execution or upgrade handling fails.",
+        "summary": "This file implements the `plugin` CLI command entrypoint and user-facing output helpers. It parses plugin subcommands, formats results, and optionally runs automatic upgrades after plugin operations.",
+        "detail": "The module provides small argument helpers to detect JSON mode, skip-upgrade mode, reference arguments, and flag-stripped positional input. It centralizes output formatting for list views, operation results, migration guidance, and bulk update prompts so terminal and JSON responses stay consistent. After plugin add, install, update, or source-related actions, it can trigger an automatic upgrade command and merge that outcome into the final response or exit code. The exported `main` function dispatches the `plugin` command tree, prints contextual help for incomplete invocations, and throws explicit errors for unknown subcommands.",
         "chapter": "cli_commands",
-        "role": "Plugin CLI entrypoint and result rendering layer",
+        "role": "CLI dispatcher and formatter for plugin management commands.",
         "enrich": {
-          "processedAt": "2026-06-17T08:38:40.353Z",
+          "processedAt": "2026-06-19T15:28:03.168Z",
           "attempts": 1
         },
         "keywords": [
           "plugin CLI",
-          "argument parsing",
+          "subcommand parser",
           "JSON output",
           "automatic upgrade",
-          "subcommand routing",
-          "error exit code",
-          "help printer",
-          "operation formatter"
+          "bulk update",
+          "command entrypoint",
+          "terminal formatting"
         ]
       },
       {
@@ -11481,9 +11490,9 @@
     ],
     "summary": {
       "total": 214,
-      "totalMethods": 1982
+      "totalMethods": 1990
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-19T09:55:27.218Z"
+  "enrichedAt": "2026-06-19T15:28:03.168Z"
 }
