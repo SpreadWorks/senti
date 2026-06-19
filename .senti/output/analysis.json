@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-19T06:07:34.318Z",
+  "analyzedAt": "2026-06-19T09:54:54.002Z",
   "package": {
     "entries": [
       {
@@ -2538,14 +2538,15 @@
       },
       {
         "file": "src/flow/commands/report.js",
-        "hash": "dfee6eca283ccaeea9f83a4d110e45af",
-        "lines": 512,
-        "mtime": "2026-06-15T13:47:44.729Z",
+        "hash": "35a6cbfe0ba685ea2143820a5e583840",
+        "lines": 540,
+        "mtime": "2026-06-19T09:54:43.009Z",
         "className": "report",
         "methods": [
           "generateReport",
           "saveReport",
           "capReportField",
+          "finalRegressionHumanSummary",
           "issueLogPathForSpec",
           "lowerText",
           "textIncludesAny",
@@ -2577,23 +2578,23 @@
         "extends": null,
         "usedBy": null,
         "id": "5f80ffd2",
+        "summary": "Generates structured flow reports and renders them into a readable text report. It consolidates task results, requirement coverage, issue-log summaries, and metrics into bounded output suitable for persistence.",
+        "detail": "This module assembles per-task report rows by reading step outcomes, artifact-derived statuses, and linked requirement identifiers from the flow state. It normalizes report fields with character limits, derives human-readable summaries for final regression results, and classifies issue-log entries into important versus secondary groups based on failure signals and review-related terms. The formatter builds grouped sections with counts, omission markers, and totals so large logs stay readable. It also provides a save helper that writes `report.json` into the spec directory with stable pretty-printed JSON output.",
+        "chapter": "internal_design",
+        "role": "Flow report generation and formatting",
         "enrich": {
-          "processedAt": "2026-06-17T03:32:38.393Z",
-          "attempts": 3
+          "processedAt": "2026-06-19T09:55:27.218Z",
+          "attempts": 1
         },
-        "summary": "Implements report generation and persistence for flow executions, including task rows, totals, and issue-log summaries. It converts execution state into both structured JSON data and formatted text output.",
-        "detail": "The module builds report rows from task state, step status, requirement coverage, and artifact-derived results, while capping long fields to keep output readable. It classifies issue-log entries into important and secondary groups using failure terms, origin steps, and signal-based heuristics, then limits how many entries are shown in each section. Report text is assembled with formatter helpers, section dividers, and compact summary labels so the same data can be consumed by humans and automation. A save helper resolves the spec directory, creates it when needed, and writes a normalized `report.json` file.",
-        "chapter": "cli_commands",
-        "role": "Flow reporting and issue-log summarization module",
         "keywords": [
           "report generation",
-          "status summary",
-          "issue log",
-          "task metrics",
-          "formatted output",
-          "JSON report",
-          "failure classification",
-          "progress report"
+          "status report",
+          "issue log summary",
+          "task results",
+          "requirement coverage",
+          "metrics totals",
+          "text formatter",
+          "flow reporting"
         ]
       },
       {
@@ -3648,9 +3649,9 @@
       },
       {
         "file": "src/flow/lib/flow-judgment-contract.js",
-        "hash": "92970c5498d6a6e5ca6332d99c777a75",
-        "lines": 693,
-        "mtime": "2026-06-15T13:47:44.729Z",
+        "hash": "5a9f100b11585507bbd16a31238cc4b9",
+        "lines": 707,
+        "mtime": "2026-06-19T09:54:43.009Z",
         "className": "flow-judgment-contract",
         "methods": [
           "repoRelative",
@@ -3736,23 +3737,23 @@
           "src/flow/registry.js"
         ],
         "id": "f336678e",
-        "enrich": {
-          "processedAt": "2026-06-17T03:32:38.393Z",
-          "attempts": 3
-        },
-        "summary": "Defines the completion judgment contract used to decide whether a flow step may be marked complete. It normalizes review artifacts, computes fingerprints, validates policies, and supports explicit override evidence.",
-        "detail": "The module models completion data with classes such as `FlowJudgmentContract`, `JudgmentContractSummary`, `StepCompletionPolicy`, and validator-oriented result objects. It uses stable serialization and SHA-256 fingerprints to create deterministic progress signatures, making validation and change tracking reproducible. Validation logic checks requested step transitions against step-specific policies, artifact-backed contracts, deferred finding evidence, and optional completion override files stored in the spec directory. It also provides factory functions that translate different review artifacts into a common contract shape and envelope helpers that return structured failure or success decisions.",
+        "summary": "Defines the contract model used to judge whether flow steps can be marked complete. It standardizes validation rules, override evidence, deferred findings handling, and step-specific completion policies.",
+        "detail": "The module builds immutable contract objects from review and regression artifacts, capturing verdicts, failure kinds, blocking findings, and next actions in a normalized form. It uses stable serialization and SHA-256 fingerprints to derive progress signatures and compare evidence deterministically across transitions. Completion validation applies default or custom policies, supports explicit override files, and can accept deferred findings when artifact evidence proves the failure is intentionally tracked elsewhere. Utility functions map spec directories to step artifacts, load and save override evidence, and wrap validation outcomes in flow envelopes for command-layer consumers.",
         "chapter": "internal_design",
-        "role": "Completion validation and step-judgment contract layer",
+        "role": "Step completion contract and validation framework",
+        "enrich": {
+          "processedAt": "2026-06-19T09:55:27.218Z",
+          "attempts": 1
+        },
         "keywords": [
-          "completion contract",
-          "step validation",
-          "judgment policy",
+          "completion validation",
+          "judgment contract",
           "override evidence",
+          "deferred findings",
+          "step policy",
           "artifact normalization",
           "progress signature",
-          "workflow gate",
-          "review findings"
+          "flow state transitions"
         ]
       },
       {
@@ -4253,9 +4254,9 @@
       },
       {
         "file": "src/flow/lib/get-status.js",
-        "hash": "f312a837994be48a752ee5f65fbdae28",
-        "lines": 319,
-        "mtime": "2026-06-19T03:34:14.328Z",
+        "hash": "de6bdfdc4a315990ba7d7cc0253e4705",
+        "lines": 343,
+        "mtime": "2026-06-19T09:54:43.010Z",
         "className": "get-status",
         "methods": [
           "buildMetricsSummary",
@@ -4267,12 +4268,15 @@
           "resolveActiveStepMaxAttempts",
           "buildStatusReviewViews",
           "buildStatusRetryRecoveryView",
+          "buildFinalRegressionStatus",
           "buildStatusGateViews",
           "validateRunId",
           "buildStatusOutput"
         ],
         "imports": [
           "../../lib/flow-helpers.js",
+          "node:fs",
+          "node:path",
           "../../lib/agent-metrics.js",
           "../../lib/constants.js",
           "../../lib/spec-json.js",
@@ -4286,7 +4290,8 @@
           "./run-review.js",
           "./retry-recovery.js",
           "./task-scope.js",
-          "./flow-findings.js"
+          "./flow-findings.js",
+          "./test-artifacts.js"
         ],
         "exports": [
           "buildMetricsSummary",
@@ -4300,21 +4305,23 @@
           "src/flow/lib/get-qa-count.js"
         ],
         "id": "9aca938f",
-        "summary": "Builds structured status output for the current flow, including progress, metrics, and recovery hints. It also exposes a flow command that returns envelopes for valid and invalid status requests.",
-        "detail": "The module aggregates token and activity metrics by phase and provider, then derives totals for reporting. It computes the active step, attempt limits, review-stop views, gate-stop views, and retry-recovery data from the flow state. Status generation also includes deferred findings summaries and bounded broad-mode history so the output remains readable. The command validates run identifiers, handles inactive flows safely, and returns mismatch envelopes when the requested target does not match the active flow state.",
-        "chapter": "cli_commands",
-        "role": "Flow status snapshot builder",
+        "summary": "Builds the status view for a flow run, including metrics, retry context, gate and review recovery state, and final regression information. It powers the status command by turning raw state and artifacts into a normalized response envelope.",
+        "detail": "This module aggregates agent metrics by phase and provider, then derives report totals for token usage and activity counters. It resolves the active leaf step, computes maximum attempts, and constructs specialized status subviews for review stops, gate recovery, retry recovery, and deferred findings. When a final regression result file exists, it validates the artifact and exposes a compact status block with outcome, failure classification, and next-action guidance. The exported command class validates run identifiers, detects target mismatches, and returns consistent success or failure envelopes for callers.",
+        "chapter": "internal_design",
+        "role": "Flow status aggregation and command output",
         "enrich": {
-          "processedAt": "2026-06-19T03:35:18.335Z",
+          "processedAt": "2026-06-19T09:55:27.218Z",
           "attempts": 1
         },
         "keywords": [
           "status command",
-          "progress report",
-          "token metrics",
-          "recovery hints",
-          "run validation",
-          "flow state summary"
+          "metrics summary",
+          "token counters",
+          "retry recovery",
+          "gate status",
+          "review status",
+          "final regression status",
+          "flow envelope"
         ]
       },
       {
@@ -5132,9 +5139,9 @@
       },
       {
         "file": "src/flow/lib/run-final-regression.js",
-        "hash": "70aebd63836704b5330d9ef2f8ef64c1",
-        "lines": 873,
-        "mtime": "2026-06-15T16:20:37.614Z",
+        "hash": "7cdc8284e7da5d92299973dc724e05f4",
+        "lines": 1258,
+        "mtime": "2026-06-19T09:54:43.010Z",
         "className": "run-final-regression",
         "methods": [
           "repoRelative",
@@ -5149,8 +5156,15 @@
           "commandIdentityEqual",
           "fingerprintSet",
           "fingerprintSetsEqual",
+          "failureCategoryFor",
+          "failureNatureFor",
+          "recordAndProceedEligibleFor",
+          "nextRecommendedActionFor",
+          "failureSummaryFor",
           "testExecuteArtifactPath",
           "currentChangedFilesWithFingerprints",
+          "finalRegressionGeneratedPath",
+          "finalRegressionFreshnessFiles",
           "coveredByTestExecuteDecision",
           "isCurrentSpecArtifactPath",
           "isExplicitDocsPath",
@@ -5176,7 +5190,16 @@
           "nextFinalRegressionAttempt",
           "latestAttemptIndex",
           "previousFinalRegressionFailures",
-          "recordFinalRegressionFailure"
+          "sameCommandIdentityEntry",
+          "countFixAttempts",
+          "recordFinalRegressionFailure",
+          "recordAndProceedInput",
+          "validateRecordAndProceedInput",
+          "recordAndProceedFailure",
+          "readCurrentFinalRegressionArtifact",
+          "failedRecordedArtifact",
+          "currentRecordAndProceedEvidence",
+          "validateRecordAndProceedFreshness"
         ],
         "imports": [
           "fs",
@@ -5197,23 +5220,22 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "49364661",
-        "enrich": {
-          "processedAt": "2026-06-17T03:32:38.393Z",
-          "attempts": 2
-        },
-        "summary": "Runs and records the final regression phase, including skip decisions, attempt tracking, failure classification, and artifact generation. It determines whether failures are caused by the current change, pre-existing conditions, or execution environment issues.",
-        "detail": "The module defines structured domain objects for regression decisions, process metadata, skip proof, and result artifacts so the final regression step produces consistent machine-readable output. It analyzes changed files, test-execute coverage, path risk categories, and project policy conditions to decide whether regression can be skipped or must run. When execution fails, it gathers bounded evidence from logs and process output, classifies the failure with text-based heuristics and changed-file attribution, and records issue-log entries for historical tracking. It also manages numbered raw attempt logs, enforces scan and attempt limits, and writes the final regression result artifact under the resolved spec directory.",
+        "summary": "Runs the final regression phase, classifies failures, and decides whether the system should rerun, record, skip, or proceed. It combines process execution, evidence capture, change-scope analysis, and issue-log integration into one regression orchestration module.",
+        "detail": "The implementation defines a detailed taxonomy of failure kinds, categories, and recommended next actions, then maps raw process errors and output text into those classes with pattern-based classifiers. It compares command identity, changed-file fingerprints, prior attempts, and related test-execute artifacts to distinguish current-change failures from pre-existing or environment-driven failures. Skip decisions can be driven by project policy, explicit coverage evidence, or path-risk analysis, while failure evidence is bounded and normalized to avoid oversized artifacts. The command persists attempt logs and validated regression result artifacts, records failures into the issue log, and supports a guarded record-and-proceed flow when explicit evidence is fresh and acceptable.",
         "chapter": "internal_design",
-        "role": "Final regression execution, skip analysis, and failure attribution module",
+        "role": "Final regression execution and failure decision engine",
+        "enrich": {
+          "processedAt": "2026-06-19T09:55:27.218Z",
+          "attempts": 1
+        },
         "keywords": [
           "final regression",
           "failure classification",
+          "record and proceed",
           "skip decision",
-          "changed files",
-          "test coverage reuse",
-          "attempt log",
-          "artifact writing",
-          "issue tracking",
+          "change scope analysis",
+          "artifact validation",
+          "issue log integration",
           "process execution"
         ]
       },
@@ -5998,9 +6020,9 @@
       },
       {
         "file": "src/flow/lib/run-report.js",
-        "hash": "ea3dccb72938cb49ab1bd6b56488ac62",
-        "lines": 99,
-        "mtime": "2026-06-05T01:04:48.619Z",
+        "hash": "cb75b688e1082c83f8dd353cee607cda",
+        "lines": 130,
+        "mtime": "2026-06-19T09:54:43.010Z",
         "className": "run-report",
         "methods": [
           "buildUpgradeReportDataFromArtifacts",
@@ -6026,23 +6048,23 @@
           "src/flow/lib/run-finalize.js"
         ],
         "id": "43872d6b",
-        "summary": "Builds report inputs from stored artifacts and exposes the flow command that materializes report output. It bridges artifact validation with command-level report generation.",
-        "detail": "The module reads upgrade artifacts from the spec directory, validates their schema, and converts them into report-friendly data when present. `RunReportCommand` extends the base flow command abstraction and requires core state such as `baseBranch` and `state.spec` before proceeding. During execution it checks for optional test and retro artifacts, loads issue-log information, collects Git summary context, and delegates final report creation to `generateReport` and `saveReport`. Its returned change set is scoped to the spec-local `report.json`, which keeps report generation explicit within the flow command system.",
+        "summary": "Implements the report command that gathers flow artifacts and writes the final report output. It acts as the orchestration layer around report assembly, upgrade data extraction, and repository change reporting.",
+        "detail": "This module reads upgrade artifacts, validates them, and converts them into concise report-ready data such as result, summary, and changed-file counts. The command class checks required flow configuration like `baseBranch`, locates the spec directory, and discovers whether related artifacts such as test execution, test result review, retro output, and final regression results are present. It then collects git summary information and issue-log data, passes the combined inputs into the report generator, and persists the resulting JSON report. The command returns a change list pointing at the generated `report.json`, making it easy for the surrounding flow system to track report output as a produced artifact.",
         "chapter": "cli_commands",
-        "role": "Flow command adapter for report generation",
+        "role": "Report command orchestration",
         "enrich": {
-          "processedAt": "2026-06-05T01:05:31.344Z",
+          "processedAt": "2026-06-19T09:55:27.218Z",
           "attempts": 1
         },
         "keywords": [
-          "run-report",
-          "flow command",
-          "artifact loading",
-          "upgrade result",
-          "git summary",
+          "run report",
           "report command",
-          "spec artifacts",
-          "command orchestration"
+          "artifact aggregation",
+          "upgrade report",
+          "git summary",
+          "report.json",
+          "flow command",
+          "spec artifacts"
         ]
       },
       {
@@ -7301,9 +7323,9 @@
       },
       {
         "file": "src/flow/lib/test-artifacts.js",
-        "hash": "f637b721fb697de919743af309efa10d",
-        "lines": 1465,
-        "mtime": "2026-06-15T16:20:37.615Z",
+        "hash": "675b95bdaab835f2c8229d104c66c641",
+        "lines": 1560,
+        "mtime": "2026-06-19T09:54:43.010Z",
         "className": "test-artifacts",
         "methods": [
           "matchUpgradeRequiredSourcePaths",
@@ -7364,6 +7386,7 @@
           "assertScenarioValiditySummaryEntry",
           "validateRegression",
           "validateFinalRegressionFailureKind",
+          "validateFinalRegressionRecordAndProceed",
           "validateFinalRegressionSkipKind",
           "completionFailure",
           "completionSuccess",
@@ -7456,6 +7479,7 @@
         "extends": null,
         "usedBy": [
           "src/flow/lib/flow-judgment-contract.js",
+          "src/flow/lib/get-status.js",
           "src/flow/lib/run-final-regression.js",
           "src/flow/lib/run-finalize-commit.js",
           "src/flow/lib/run-finalize.js",
@@ -7470,25 +7494,24 @@
           "src/upgrade.js"
         ],
         "id": "0b1b96b3",
-        "summary": "This module manages flow test artifacts, including file paths, schema checks, evidence validation, and trust gating. It centralizes how execution, review, regression, upgrade, and scenario-validity artifacts are read, written, completed, and verified.",
-        "detail": "The file defines a large set of artifact constants, size limits, line-count limits, and path patterns used to keep test outputs bounded and predictable. It validates multiple JSON artifacts such as test execution results, test reviews, upgrade results, scenario-validity results, and final regression outputs, with strict checks for membership, ranges, stale data, and required evidence. It also contains artifact collection and cleanup helpers for durable, temporary, excluded, and rebuildable files, plus file-map and requirement-summary utilities. A major responsibility is trust enforcement: it scans for placeholders, checks explicit permission files, verifies required trust inputs, and fails closed when artifact evidence is incomplete, stale, or suspicious.",
+        "summary": "Provides the shared artifact model for flow test runs, including file names, path patterns, and strict validation helpers. It is responsible for reading, writing, completing, and trust-checking test, review, upgrade, and regression artifacts.",
+        "detail": "The module defines canonical artifact locations, size limits, line limits, and bounded readers so test outputs cannot grow without control or be parsed loosely. It validates multiple artifact schemas such as test execution results, scenario validity reports, upgrade results, final regression records, file maps, and placeholder permission files, with detailed structural and semantic checks. It also manages artifact lifecycle operations such as collecting existing files from glob patterns, deleting rebuildable artifacts, writing temporary summaries, and deriving durable pathspecs for commits. A separate trust layer scans artifacts for placeholder content, verifies required supporting files, and proves that integration evidence matches current repository state before downstream gates rely on it.",
         "chapter": "internal_design",
-        "role": "Artifact validation and trust enforcement layer for the flow system",
+        "role": "Central artifact validation and trust layer for flow test outputs.",
         "enrich": {
-          "processedAt": "2026-06-15T16:21:20.972Z",
+          "processedAt": "2026-06-19T09:55:21.554Z",
           "attempts": 1
         },
         "keywords": [
           "test artifacts",
           "artifact validation",
-          "evidence verification",
-          "trust gate",
-          "placeholder detection",
           "regression evidence",
-          "scenario validity",
+          "raw log parsing",
+          "placeholder detection",
           "upgrade result",
+          "scenario validity",
           "file map",
-          "raw log parsing"
+          "trust contract"
         ]
       },
       {
@@ -7548,9 +7571,9 @@
       },
       {
         "file": "src/flow/lib/test-regression.js",
-        "hash": "0eb0701270b5872c6436afbd0a975a8d",
-        "lines": 546,
-        "mtime": "2026-06-15T16:20:37.615Z",
+        "hash": "367fca1ff1e5afd2acc6d3812a8f9556",
+        "lines": 547,
+        "mtime": "2026-06-19T09:54:43.010Z",
         "className": "test-regression",
         "methods": [
           "formatElapsedMs",
@@ -7626,25 +7649,23 @@
           "src/flow/lib/test-artifacts.js"
         ],
         "id": "2980d983",
-        "summary": "This module plans and executes project regression testing based on changed files and repository configuration. It discovers a safe test command, classifies change scope, and provides process-level execution helpers.",
-        "detail": "The code models parsed commands, command identity, regression classification, and execution plans with small dedicated classes. It discovers supported regression commands from config and common project files, rejects shell-heavy command strings, and normalizes them into argv plus environment variables for safe execution. It classifies changed files into trigger-relevant and non-trigger categories using repository analysis, spec-driven artifact paths, documentation paths, and project test paths, then derives targeted, full, or skipped regression behavior from policy. It also fingerprints changed files, formats elapsed time, captures detailed child-process results, and exposes timeout and heartbeat defaults for long-running test commands.",
+        "summary": "Implements project regression planning and execution for the flow system. It discovers a supported test command, classifies changed files, and decides whether regression should run in targeted, full, or skipped mode.",
+        "detail": "The module models parsed commands and command identities so regression runs can be compared, fingerprinted, and audited consistently. It inspects repository metadata such as package scripts, Composer settings, Makefiles, and configured command sources to discover a safe executable command without accepting shell control syntax. It classifies changed files against project analysis data, documentation paths, generated spec artifacts, and non-trigger files to determine whether a change is test-relevant. It also provides process execution utilities with timeout and heartbeat settings, plus helpers for interpreting exit status and normalizing output lines.",
         "chapter": "internal_design",
-        "role": "Regression command discovery, change classification, and process execution helper",
+        "role": "Regression command discovery, change classification, and process execution logic.",
         "enrich": {
-          "processedAt": "2026-06-15T16:21:20.972Z",
+          "processedAt": "2026-06-19T09:55:21.554Z",
           "attempts": 1
         },
         "keywords": [
           "regression testing",
-          "changed files",
           "test command discovery",
-          "command parsing",
+          "changed file classification",
           "targeted regression",
           "full regression",
-          "process execution",
-          "file fingerprinting",
-          "test timeout",
-          "change classification"
+          "process timeout",
+          "command parsing",
+          "file fingerprint"
         ]
       },
       {
@@ -7727,9 +7748,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "e9664c200fb47866989a5fb60d0b6a75",
-        "lines": 1216,
-        "mtime": "2026-06-19T03:34:14.328Z",
+        "hash": "13a74432916e29fa69078735cc0438b7",
+        "lines": 1224,
+        "mtime": "2026-06-19T09:54:43.011Z",
         "className": "registry",
         "methods": [
           "assertDraftReviewRegistryHookBoundary",
@@ -7768,22 +7789,23 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "summary": "Defines the central registry of flow subcommands and coordinates lifecycle side effects around command execution. It ties command dispatch to hooks, step-state updates, review routing, and finalization behaviors.",
-        "detail": "The registry declares shared runtime and target-guard options, helper functions for deriving active phases, and boundaries for draft-review responsibilities. It contains a lifecycle adapter that applies post-command actions such as gate side effects, review hooks, merge finalization, retry counters, and issue-log updates. Command handlers use this layer to keep state transitions, artifact validation, and plugin hooks consistent across the flow subsystem. The result is a single dispatch surface that connects CLI entry points with flow state management and extension hooks.",
-        "chapter": "project_structure",
-        "role": "Central flow command registry and lifecycle coordinator",
+        "summary": "Defines the `senti flow` command registry and ties command execution to flow lifecycle side effects. It centralizes command routing, active-step tracking, review and gate coordination, and final artifact validation.",
+        "detail": "The module derives active phases and step IDs from flow state, then maps CLI commands to registry handlers that run the requested operation and apply lifecycle actions around success or failure. It contains adapter logic for retry counters, step status updates, issue-log writes, review hooks, finalize hooks, and merge-related bookkeeping, while tolerating some runtime update failures without crashing the main command path. It also resolves runtime log ownership across gate, review, and draft-review phases so logs attach to the correct active step. Several registry handlers perform strict post-command validation by loading and validating generated JSON artifacts such as test execution, review, and final regression results.",
+        "chapter": "cli_commands",
+        "role": "Flow CLI registry and lifecycle orchestration layer.",
         "enrich": {
-          "processedAt": "2026-06-19T03:35:18.335Z",
+          "processedAt": "2026-06-19T09:55:21.554Z",
           "attempts": 1
         },
         "keywords": [
-          "command registry",
-          "dispatch table",
+          "CLI registry",
+          "flow commands",
           "lifecycle hooks",
-          "flow orchestration",
           "step status",
-          "plugin hooks",
-          "review routing"
+          "review routing",
+          "gate phase",
+          "finalize flow",
+          "artifact validation"
         ]
       },
       {
@@ -10562,9 +10584,9 @@
       },
       {
         "file": "src/lib/test-command-sources.js",
-        "hash": "552ad74efed9abaaee927c1a61437c99",
+        "hash": "3e4ef14f47d551690d653f0d0c73aa4a",
         "lines": 71,
-        "mtime": "2026-05-16T08:19:57.848Z",
+        "mtime": "2026-06-19T09:54:43.011Z",
         "className": "test-command-sources",
         "methods": [
           "TestCommandSource",
@@ -10580,21 +10602,22 @@
         "extends": null,
         "usedBy": null,
         "id": "10bbe237",
+        "summary": "Defines the abstraction for candidate test command sources and the logic for choosing one. It collects possible command providers and returns the highest-priority valid source or raises an explicit selection error.",
+        "detail": "The module introduces a `TestCommandSource` type to represent a discovered test command together with metadata needed for precedence and diagnostics. It gathers candidate sources from the supported inputs passed by callers and normalizes them into a comparable list. Selection logic orders those candidates and returns the winning source, making command resolution deterministic across configuration and auto-discovered sources. When no acceptable source exists, it surfaces a structured failure instead of leaving downstream regression code to guess.",
+        "chapter": "configuration",
+        "role": "Test command source collection and precedence resolution.",
         "enrich": {
-          "processedAt": "2026-05-19T04:50:12.342Z",
-          "attempts": 6
+          "processedAt": "2026-06-19T09:55:21.554Z",
+          "attempts": 1
         },
-        "summary": "Models candidate test-command sources and resolves the best one to execute. It encapsulates collection and deterministic source selection.",
-        "detail": "`TestCommandSource` represents each source as an explicit object rather than ad-hoc literals. `collectTestCommandSources` builds an ordered candidate set from available project signals. `selectTestCommandSource` applies prioritization, returns the top-ranked source, and throws when selection cannot be resolved safely. The pattern keeps test-command choice logic centralized and easier to extend.",
-        "chapter": "development",
-        "role": "Test command source modeling and priority-based selector.",
         "keywords": [
-          "test command selection",
-          "source prioritization",
+          "test command source",
+          "command precedence",
+          "configuration source",
+          "source selection",
+          "test runner config",
           "command discovery",
-          "execution strategy",
-          "fallback resolution",
-          "build/test integration"
+          "priority resolution"
         ]
       },
       {
@@ -11458,9 +11481,9 @@
     ],
     "summary": {
       "total": 214,
-      "totalMethods": 1963
+      "totalMethods": 1982
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-19T05:32:24.511Z"
+  "enrichedAt": "2026-06-19T09:55:27.218Z"
 }
