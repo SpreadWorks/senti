@@ -379,7 +379,7 @@
             },
             {
               "id": "finalize-merge",
-              "status": "in_progress",
+              "status": "done",
               "startedAt": "2026-06-19T01:00:43.593Z",
               "runtimeLog": {
                 "runId": "9faba7ff-0f21-4e44-a0d8-0ee5aa5714d0",
@@ -389,17 +389,29 @@
                 "startedAt": "2026-06-19T01:03:07.910Z",
                 "endedAt": "2026-06-19T01:03:10.192Z",
                 "exitCode": 1
-              }
+              },
+              "finishedAt": "2026-06-19T01:32:38.201Z"
             },
             {
               "id": "finalize-sync",
-              "status": "pending",
-              "finishedAt": "2026-06-19T01:03:10.181Z"
+              "status": "done",
+              "finishedAt": "2026-06-19T01:33:28.347Z",
+              "startedAt": "2026-06-19T01:32:38.201Z",
+              "runtimeLog": {
+                "runId": "9faba7ff-0f21-4e44-a0d8-0ee5aa5714d0",
+                "sequence": 91,
+                "attempt": 1,
+                "command": "flow run finalize-sync",
+                "startedAt": "2026-06-19T01:32:46.446Z",
+                "endedAt": "2026-06-19T01:33:28.350Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-cleanup",
-              "status": "pending",
-              "finishedAt": "2026-06-19T01:03:10.189Z"
+              "status": "done",
+              "finishedAt": "2026-06-19T01:49:45.621Z",
+              "startedAt": "2026-06-19T01:33:28.347Z"
             }
           ]
         }
@@ -438,26 +450,7 @@
   },
   "worktree": true,
   "plugins": {
-    "flowCommandHooks": [
-      {
-        "apiVersion": 1,
-        "pluginId": "workflow",
-        "module": "hooks/finalize-cleanup.js",
-        "className": "WorkflowFinalizeCleanupHook",
-        "command": "finalize-cleanup",
-        "hook": "post",
-        "priority": 0
-      },
-      {
-        "apiVersion": 1,
-        "pluginId": "workflow",
-        "module": "hooks/prepare.js",
-        "className": "WorkflowPrepareHook",
-        "command": "prepare",
-        "hook": "post",
-        "priority": 0
-      }
-    ]
+    "flowCommandHooks": []
   },
   "metrics": [
     {
@@ -1189,6 +1182,13 @@
       "delta": 1,
       "taskId": null,
       "ts": "2026-06-19T01:04:14.866Z"
+    },
+    {
+      "phase": "finalize",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-06-19T01:49:14.562Z"
     }
   ],
   "notes": [
@@ -1212,6 +1212,8 @@
     "updatedAt": "2026-06-19T00:57:23.834Z"
   },
   "state": {
-    "finalizedAt": "2026-06-19T01:00:43.439Z"
+    "finalizedAt": "2026-06-19T01:00:43.439Z",
+    "mergeStrategy": "squash",
+    "featureBranchSquashedSha": "7e3e149349ddec69665135540c41ce3ad0d3e646"
   }
 }
