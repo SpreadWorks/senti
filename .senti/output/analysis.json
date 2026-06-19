@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-19T01:32:48.542Z",
+  "analyzedAt": "2026-06-19T03:34:30.415Z",
   "package": {
     "entries": [
       {
@@ -843,9 +843,9 @@
       },
       {
         "file": "src/docs/commands/init.js",
-        "hash": "769ededec6ec9a4e9ebf94d5665ed2d7",
-        "lines": 294,
-        "mtime": "2026-06-18T00:32:25.712Z",
+        "hash": "2028a626ba33ffe57f9c84a01de9511d",
+        "lines": 287,
+        "mtime": "2026-06-19T03:34:14.326Z",
         "className": "init",
         "methods": [
           "aiFilterChapters",
@@ -876,23 +876,21 @@
           "src/docs/commands/build.js"
         ],
         "id": "62ef800b",
-        "summary": "Implements the `senti docs init` command that generates initial documentation chapter files from templates and analysis data. It can optionally ask an AI model to filter the template set to the most relevant chapters for the project.",
-        "detail": "The command resolves template sources from built-in, preset, and project-local directories, merges them, and determines output order before writing files into the docs directory. It loads package metadata and analysis content so templates can be translated and rendered with project-specific context. An optional AI filtering step builds a prompt from chapter candidates and analysis summaries, then parses a JSON selection to reduce the chapter set. The implementation also checks for output conflicts, creates missing directories, and writes each rendered chapter as UTF-8 text.",
+        "summary": "Initializes project documentation files from built-in and local templates. It can narrow the generated chapters using analysis context and optional AI filtering.",
+        "detail": "The command parses CLI arguments, loads translation strings, and resolves both packaged and project-local documentation templates for the selected language. It builds documentation context from analysis data, merges and orders templates, and can translate or filter chapters before output. Generated chapter text is cleaned with directive stripping and written into the docs directory. The implementation also creates missing directories and checks for file conflicts before overwriting output.",
         "chapter": "cli_commands",
-        "role": "Documentation bootstrap command that materializes chapter files from templates.",
+        "role": "Documentation initialization command",
         "enrich": {
-          "processedAt": "2026-06-19T01:33:26.682Z",
+          "processedAt": "2026-06-19T03:35:18.335Z",
           "attempts": 1
         },
         "keywords": [
           "docs init",
-          "template generation",
-          "chapter scaffolding",
-          "documentation bootstrap",
-          "AI chapter selection",
+          "documentation scaffolding",
           "template merge",
-          "project docs",
-          "file generation"
+          "chapter generation",
+          "localized templates",
+          "analysis-driven docs"
         ]
       },
       {
@@ -2599,9 +2597,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "7ce619d9529aa60a4ec162560d733611",
-        "lines": 3697,
-        "mtime": "2026-06-18T01:04:20.619Z",
+        "hash": "da660a3ad23a99de8e42cd25267c31c4",
+        "lines": 3703,
+        "mtime": "2026-06-19T03:34:14.327Z",
         "className": "review",
         "methods": [
           "writeReviewAttemptHistory",
@@ -2838,24 +2836,23 @@
         "extends": "Error",
         "usedBy": null,
         "id": "331cf497",
-        "summary": "Implements the `senti flow review` command and its supporting review pipeline for implementation, spec, test, and draft review phases. It orchestrates diff collection, AI prompt construction, schema validation, artifact persistence, retry loops, and review history tracking.",
-        "detail": "The module resolves review scope from Git state, spec files, task files, and exclusion rules, then builds targeted inputs for multiple review modes including implementation, tests, spec quality, and draft QA. It defines structured schemas and parser classes for review findings, validates AI responses, repairs malformed JSON when possible, and filters findings against touched files and requirement IDs. For large changes it can switch to loop-based review, chunk diffs, reuse cached work-unit outputs, and aggregate proposals across groups before writing `impl-review.json` and `review.md`. The implementation also records per-attempt history, handles tooling-failure verdicts, supports guardrails and phase-specific prompts, and emits dedicated artifacts for test and spec review outputs.",
+        "summary": "Implements the `flow review` command and its full review pipeline across implementation, test, spec, and draft phases. It combines git diff collection, AI prompting, schema validation, retry loops, and artifact persistence.",
+        "detail": "The module gathers review inputs from specs, requirement maps, touched files, and git diffs, then scopes analysis with exclusion rules and merge-base resolution. It builds specialized prompts for multiple review phases, including large-diff loop review, test coverage review, specification review, and draft QA or coverage review. AI responses are parsed through strict schemas with repair fallbacks, then filtered against touched files and requirement IDs to reduce irrelevant findings. Results are written as Markdown and JSON artifacts, with history snapshots, tooling-failure handling, and retry logic for unstable outputs.",
         "chapter": "cli_commands",
-        "role": "Comprehensive flow review command coordinating multi-phase AI-assisted code and spec review.",
+        "role": "Multi-phase flow review orchestrator",
         "enrich": {
-          "processedAt": "2026-06-19T01:33:26.682Z",
+          "processedAt": "2026-06-19T03:35:18.335Z",
           "attempts": 1
         },
         "keywords": [
-          "flow review",
           "code review",
-          "spec review",
-          "test review",
-          "draft review",
-          "diff analysis",
-          "review artifacts",
+          "flow review",
+          "git diff analysis",
+          "AI prompt orchestration",
           "schema validation",
-          "AI review loop"
+          "review artifacts",
+          "retry loop",
+          "test coverage review"
         ]
       },
       {
@@ -3240,16 +3237,17 @@
       },
       {
         "file": "src/flow/lib/base-command.js",
-        "hash": "7b1de284ec72b6ef871202e3052b6f96",
-        "lines": 61,
-        "mtime": "2026-05-20T03:32:53.766Z",
+        "hash": "84a9394e088fd9a1eacbc59358d75508",
+        "lines": 72,
+        "mtime": "2026-06-19T03:34:14.327Z",
         "className": "base-command",
         "methods": [
           "FlowCommand"
         ],
         "imports": [
           "../../lib/command.js",
-          "./flow-context.js"
+          "./flow-context.js",
+          "../../lib/flow-target-guard.js"
         ],
         "exports": [
           "FlowCommand",
@@ -3266,6 +3264,7 @@
           "src/flow/lib/get-qa-count.js",
           "src/flow/lib/get-resolve-context.js",
           "src/flow/lib/get-status.js",
+          "src/flow/lib/run-acceptance-review.js",
           "src/flow/lib/run-auto-check.js",
           "src/flow/lib/run-complete-task.js",
           "src/flow/lib/run-final-regression.js",
@@ -3288,6 +3287,7 @@
           "src/flow/lib/run-test-execute.js",
           "src/flow/lib/run-test-result-review.js",
           "src/flow/lib/run-update-overview.js",
+          "src/flow/lib/set-acceptance-decision.js",
           "src/flow/lib/set-approval.js",
           "src/flow/lib/set-auto.js",
           "src/flow/lib/set-broad.js",
@@ -3302,26 +3302,23 @@
           "src/flow/lib/set-retry.js",
           "src/flow/lib/set-step.js",
           "src/flow/lib/set-summary.js",
-          "src/lib/dispatcher.js",
-          "src/flow/lib/run-acceptance-review.js",
-          "src/flow/lib/set-acceptance-decision.js"
+          "src/lib/dispatcher.js"
         ],
         "id": "83f60bd3",
-        "summary": "`FlowCommand` is an abstract flow-specific command base that centralizes context resolution before execution. It enforces subclass implementation of the actual command behavior.",
-        "detail": "The class extends a generic `Command` and integrates `resolveFlowContext` to obtain the active flow state. If no active `flow.json` context is found, it throws a hard error to stop execution early. After context resolution, control is delegated to `execute(ctx)`, making subclasses responsible for domain logic only. The module also re-exports `resolveExplicitTaskOption` to standardize task option handling across command implementations.",
-        "chapter": "cli_commands",
-        "role": "Abstract base command for flow subcommands",
+        "summary": "Provides the base class for flow-aware commands. It resolves flow context before execution and enforces subclass implementation.",
+        "detail": "The class extends the generic command abstraction and adds flow-specific setup through `resolveFlowContext`. It throws immediately when no active flow can be found, which keeps downstream commands from running without state. Once context is prepared, it delegates to an `execute` method that subclasses must implement. The module also re-exports explicit task option resolution so flow commands can share consistent option handling.",
+        "chapter": "project_structure",
+        "role": "Base class for flow-aware commands",
         "enrich": {
-          "processedAt": "2026-05-20T03:34:35.997Z",
+          "processedAt": "2026-06-19T03:35:18.335Z",
           "attempts": 1
         },
         "keywords": [
-          "command pattern",
-          "abstract base class",
-          "flow context resolution",
-          "subcommand execution",
-          "task option parsing",
-          "CLI routing"
+          "base command",
+          "flow context",
+          "command abstraction",
+          "flow.json guard",
+          "shared CLI infrastructure"
         ]
       },
       {
@@ -3509,9 +3506,9 @@
       },
       {
         "file": "src/flow/lib/flow-context.js",
-        "hash": "52067fb201449b98082919ffe6ef5b43",
-        "lines": 62,
-        "mtime": "2026-05-29T01:18:50.614Z",
+        "hash": "36a91ed92fafa25e8bf951917b1c688d",
+        "lines": 72,
+        "mtime": "2026-06-19T03:34:14.327Z",
         "className": "flow-context",
         "methods": [
           "resolveFlowContext",
@@ -3534,21 +3531,21 @@
           "src/flow/lib/base-command.js"
         ],
         "id": "e296da98",
-        "enrich": {
-          "processedAt": "2026-05-29T02:08:40.284Z",
-          "attempts": 3
-        },
-        "summary": "Resolves authoritative flow context between the current workspace and the main repository. It selects the correct flow manager and state source based on spec identity and state-file presence.",
-        "detail": "The module derives a spec ID from the current flow state and checks whether an authoritative state exists under the main repository path. If a main-repo state is present, it returns that manager/state pair and marks the authority root accordingly. Otherwise, it falls back to the current working flow manager and state. This pattern centralizes context resolution for commands that must behave consistently across worktrees. The exported context object carries both runtime paths and the chosen authority metadata.",
+        "summary": "Resolves the active flow context and authoritative flow state for flow commands. It chooses between current-directory state and main-repository state when both may exist.",
+        "detail": "The resolver inspects the current paths and flow manager, then determines whether an active flow exists in the local working area or in the main repository. It uses spec identifiers and the flow state file to locate the correct owning root for the current task. When a matching authoritative state is found, it returns the selected flow manager, state object, and authority root. The exported context object also includes the container, resolved root, and path metadata needed by higher-level flow commands.",
         "chapter": "internal_design",
         "role": "Flow context resolver",
+        "enrich": {
+          "processedAt": "2026-06-19T03:35:18.335Z",
+          "attempts": 1
+        },
         "keywords": [
-          "worktree context",
-          "authority resolution",
-          "flow state selection",
-          "spec id mapping",
-          "main repository fallback",
-          "state file lookup"
+          "flow context",
+          "state resolution",
+          "authority root",
+          "flow manager",
+          "spec state",
+          "workspace routing"
         ]
       },
       {
@@ -4253,9 +4250,9 @@
       },
       {
         "file": "src/flow/lib/get-status.js",
-        "hash": "b72df3b3eb57e8525076a604d9945014",
-        "lines": 334,
-        "mtime": "2026-06-17T16:50:05.501Z",
+        "hash": "f312a837994be48a752ee5f65fbdae28",
+        "lines": 319,
+        "mtime": "2026-06-19T03:34:14.328Z",
         "className": "get-status",
         "methods": [
           "buildMetricsSummary",
@@ -4269,8 +4266,6 @@
           "buildStatusRetryRecoveryView",
           "buildStatusGateViews",
           "validateRunId",
-          "validateExpectedIssue",
-          "activeFlowMismatch",
           "buildStatusOutput"
         ],
         "imports": [
@@ -4282,6 +4277,7 @@
           "./step-tree.js",
           "./base-command.js",
           "../../lib/flow-envelope.js",
+          "../../lib/flow-target-guard.js",
           "./review-failure.js",
           "./gate-recovery-display.js",
           "./run-review.js",
@@ -4301,24 +4297,21 @@
           "src/flow/lib/get-qa-count.js"
         ],
         "id": "9aca938f",
-        "summary": "Implements the flow status command and assembles a normalized status payload for active or historical runs. It also derives review, gate, retry, and metrics views while validating run and issue expectations.",
-        "detail": "The module builds aggregated activity and token metrics with fixed counter keys, zero-filled defaults, and provider or phase buckets for reporting. It resolves active execution context from flow state and flattened step trees, including max-attempt handling, latest in-progress leaf detection, and spec-derived requirements. It composes status-specific views for review stops, gate recovery, retry recovery, bounded broad-mode history, and deferred findings summaries so the caller gets a richer operational snapshot. It also validates run IDs and expected issue references, returning envelope-based failures when the requested status does not match the active flow before exposing the logic through a FlowCommand subclass.",
+        "summary": "Builds structured status output for the current flow, including progress, metrics, and recovery hints. It also exposes a flow command that returns envelopes for valid and invalid status requests.",
+        "detail": "The module aggregates token and activity metrics by phase and provider, then derives totals for reporting. It computes the active step, attempt limits, review-stop views, gate-stop views, and retry-recovery data from the flow state. Status generation also includes deferred findings summaries and bounded broad-mode history so the output remains readable. The command validates run identifiers, handles inactive flows safely, and returns mismatch envelopes when the requested target does not match the active flow state.",
         "chapter": "cli_commands",
-        "role": "Flow status aggregation and validation command",
+        "role": "Flow status snapshot builder",
         "enrich": {
-          "processedAt": "2026-06-17T16:50:50.155Z",
+          "processedAt": "2026-06-19T03:35:18.335Z",
           "attempts": 1
         },
         "keywords": [
-          "flow status",
-          "run status",
-          "metrics summary",
-          "token counters",
-          "review stop",
-          "retry recovery",
-          "gate failure",
-          "step tree",
-          "issue validation"
+          "status command",
+          "progress report",
+          "token metrics",
+          "recovery hints",
+          "run validation",
+          "flow state summary"
         ]
       },
       {
@@ -6304,9 +6297,9 @@
       },
       {
         "file": "src/flow/lib/run-start-task.js",
-        "hash": "ad513c34d0e0f3bcb83a2b782ab87df1",
-        "lines": 59,
-        "mtime": "2026-04-24T08:12:50.734Z",
+        "hash": "39c40ef938b02ba7015cee38c820ecd9",
+        "lines": 61,
+        "mtime": "2026-06-19T03:34:14.328Z",
         "className": "run-start-task",
         "methods": [
           "RunStartTaskCommand"
@@ -6317,25 +6310,26 @@
           "../../lib/flow-envelope.js"
         ],
         "exports": [
-          "RunStartTaskCommand"
+          "RunStartTaskCommand",
+          "default"
         ],
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "b75e33b3",
-        "summary": "This command starts a specific task inside the active flow. It validates task identity and status transition prerequisites.",
-        "detail": "It returns typed `Envelope.fail` results for missing IDs, absent active flow, unknown tasks, and invalid transitions. On success, it updates task status and emits `Envelope.ok` with normalized metadata. The class is intentionally focused on command-level orchestration. State mutation details are delegated to flow management utilities.",
+        "summary": "Starts a specific task inside the active flow. It validates the requested task and returns structured success or failure envelopes.",
+        "detail": "The command inherits flow-context behavior from `FlowCommand` and expects a `--task-id` argument. It checks that an active flow exists and that the referenced task is known before attempting any state transition. When validation fails, it returns explicit envelope error codes for missing task IDs, missing flows, or unknown tasks. On success, it delegates to `FlowManager` to start the task and returns the resulting task data in a normalized response envelope.",
         "chapter": "cli_commands",
-        "role": "cli",
+        "role": "Task start command for flow execution",
         "enrich": {
-          "processedAt": "2026-04-24T08:14:03.566Z",
+          "processedAt": "2026-06-19T03:35:18.335Z",
           "attempts": 1
         },
         "keywords": [
           "start task",
-          "task id validation",
           "flow command",
-          "status transition",
-          "Envelope response"
+          "task activation",
+          "envelope response",
+          "task validation"
         ]
       },
       {
@@ -7731,9 +7725,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "2dbf1c1ab024eae4d5655984cc321755",
-        "lines": 1210,
-        "mtime": "2026-06-17T16:50:05.501Z",
+        "hash": "e9664c200fb47866989a5fb60d0b6a75",
+        "lines": 1216,
+        "mtime": "2026-06-19T03:34:14.328Z",
         "className": "registry",
         "methods": [
           "assertDraftReviewRegistryHookBoundary",
@@ -7772,25 +7766,22 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "summary": "Defines the flow command registry and lifecycle orchestration layer for the CLI. It maps commands to handlers, applies post-command side effects, and coordinates review, gate, finalize, and issue-log behaviors.",
-        "detail": "The file centralizes flow command wiring in a FLOW_COMMANDS registry, pairing handlers with help text, validation logic, and command-specific execution paths. It uses helper resolvers to derive the active phase, locate runtime log step IDs, choose draft-review and gate routes, and operate against the main repository flow manager when needed. Several wrapper functions perform step-status and issue-log mutations defensively, logging skipped lifecycle updates for recoverable situations while still rethrowing unexpected failures. A RegistryLifecycleAdapter encapsulates side effects such as gate actions, finalize hooks, merge outcome updates, plugin hook dispatch, and retry counter maintenance after command execution. The registry also validates artifacts under the spec directory for test and final-regression workflows, enforcing expected JSON schemas and acceptable pass or skipped outcomes.",
+        "summary": "Defines the central registry of flow subcommands and coordinates lifecycle side effects around command execution. It ties command dispatch to hooks, step-state updates, review routing, and finalization behaviors.",
+        "detail": "The registry declares shared runtime and target-guard options, helper functions for deriving active phases, and boundaries for draft-review responsibilities. It contains a lifecycle adapter that applies post-command actions such as gate side effects, review hooks, merge finalization, retry counters, and issue-log updates. Command handlers use this layer to keep state transitions, artifact validation, and plugin hooks consistent across the flow subsystem. The result is a single dispatch surface that connects CLI entry points with flow state management and extension hooks.",
         "chapter": "project_structure",
         "role": "Central flow command registry and lifecycle coordinator",
         "enrich": {
-          "processedAt": "2026-06-17T16:50:50.155Z",
+          "processedAt": "2026-06-19T03:35:18.335Z",
           "attempts": 1
         },
         "keywords": [
           "command registry",
-          "CLI dispatch",
+          "dispatch table",
           "lifecycle hooks",
           "flow orchestration",
-          "plugin hooks",
           "step status",
-          "issue log",
-          "gate routing",
-          "finalize workflow",
-          "artifact validation"
+          "plugin hooks",
+          "review routing"
         ]
       },
       {
@@ -8565,9 +8556,9 @@
       },
       {
         "file": "src/lib/dispatcher.js",
-        "hash": "e57da9940f2e36d9879f766fec14eada",
-        "lines": 481,
-        "mtime": "2026-06-17T09:47:05.416Z",
+        "hash": "4ca6a2c2f7ddb105692ea2ee68072ca9",
+        "lines": 503,
+        "mtime": "2026-06-19T03:34:14.328Z",
         "className": "dispatcher",
         "methods": [
           "parseEntryInput",
@@ -8592,7 +8583,8 @@
           "./cli.js",
           "./command.js",
           "./flow-envelope.js",
-          "./runtime-log.js"
+          "./runtime-log.js",
+          "./flow-target-guard.js"
         ],
         "exports": [
           "parseEntryInput",
@@ -8608,23 +8600,23 @@
           "src/spec.js"
         ],
         "id": "18d5f63b",
-        "enrich": {
-          "processedAt": "2026-06-17T15:28:02.808Z",
-          "attempts": 5
-        },
-        "summary": "Implements the main CLI dispatch pipeline that parses entry input, runs command hooks, and standardizes command output. It also integrates runtime logging and special handling for finalize-cleanup report metadata.",
-        "detail": "The module splits positional and option arguments using spec-aware parsing rules and supports early help detection for command entries. During dispatch, it temporarily wraps `process.stdout` and `process.stderr` so runtime logs can capture emitted output without changing normal CLI behavior. Successful and failed executions are normalized into envelopes or raw failures, with support for `pre`, `post`, and `onError` hooks, exit-code management, and persisted runtime-log metadata. It also formats finalize-cleanup warning text and persists post-return cleanup metadata so report state remains visible after the command finishes.",
+        "summary": "Implements the shared command dispatcher that parses entry-specific arguments and runs command lifecycle hooks. It also normalizes output handling across raw text, JSON envelopes, runtime logs, and failures.",
+        "detail": "This module splits CLI arguments according to each entry's declared flags and options, while preserving positional arguments and rejecting unknown or incomplete options. The main dispatch routine wraps stdout and stderr writers, temporarily suppresses process-capture side effects, and coordinates pre, run, post, and error hooks on command entries. It attaches runtime-log metadata to envelopes, derives run and flow identifiers from hook context, and persists finalize-cleanup metadata after command completion. Failure paths are funneled through a common emitter that can serialize structured envelopes, set exit codes, and display cleanup warnings when reports are missing.",
         "chapter": "project_structure",
-        "role": "CLI dispatcher and runtime envelope bridge",
+        "role": "Shared CLI dispatch and envelope execution layer",
+        "enrich": {
+          "processedAt": "2026-06-19T03:35:39.982Z",
+          "attempts": 1
+        },
         "keywords": [
-          "CLI dispatcher",
+          "dispatcher",
+          "command lifecycle",
           "argument parsing",
-          "command hooks",
-          "runtime logging",
-          "output envelope",
+          "runtime log",
+          "envelope output",
           "error handling",
-          "exit code",
-          "finalize cleanup report"
+          "stdout stderr",
+          "CLI routing"
         ]
       },
       {
@@ -8719,7 +8711,8 @@
         "extends": null,
         "usedBy": [
           "src/lib/dispatcher.js",
-          "src/lib/plugin-registry.js"
+          "src/lib/plugin-registry.js",
+          "src/lib/flow-target-guard.js"
         ],
         "id": "4f01cb50",
         "summary": "Defines the envelope abstraction used for consistent command success/failure payloads and process exit signaling. It standardizes the JSON shape exchanged across CLI modules.",
@@ -8791,7 +8784,8 @@
           "src/lib/active-flow-registry.js",
           "src/lib/flow-manager.js",
           "src/lib/flow-store.js",
-          "src/lib/preparing-flow-store.js"
+          "src/lib/preparing-flow-store.js",
+          "src/lib/flow-target-guard.js"
         ],
         "id": "09ff0ab4",
         "summary": "Defines shared flow constants and helpers for phase, step, and task state management. It centralizes the basic workflow vocabulary used by the flow subsystem.",
@@ -8814,9 +8808,9 @@
       },
       {
         "file": "src/lib/flow-manager.js",
-        "hash": "fcc82acb54ad593ccb4e9de0279ae2d3",
-        "lines": 421,
-        "mtime": "2026-06-09T08:02:50.461Z",
+        "hash": "d2918d6e4386bad5ad6488b471f2301d",
+        "lines": 422,
+        "mtime": "2026-06-19T03:34:14.328Z",
         "className": "flow-manager",
         "methods": [
           "FlowManager"
@@ -8841,21 +8835,22 @@
           "src/lib/container.js"
         ],
         "id": "3d2ed4c0",
-        "summary": "Coordinates higher-level workflow operations on top of flow storage and repository state. It exposes convenience methods for loading, scanning, and selecting active flows.",
-        "detail": "The `FlowManager` delegates persistence to `FlowStore` while adding bound-spec helpers for common mutations such as step status, runtime log, metrics, and task progression. It scans flow state from the main repository, worktrees, and Git branches, with limits and error reporting for malformed state files. The manager also resolves preparing-flow inputs, tracks the last finalized spec, and selects active flows by spec or worktree context. This layer is the operational entry point for command code that needs workflow awareness without direct filesystem handling.",
+        "summary": "Provides the central manager for reading, updating, scanning, and resolving flow state across the main repository and worktrees. It acts as the orchestration layer above flow stores, registries, and preparation state.",
+        "detail": "The class delegates most mutations to underlying store objects, including step status updates, runtime log attachment, task completion, metrics aggregation, and merge outcomes, while automatically applying a bound spec identifier when present. It exposes helpers to inspect the current task and active step from loaded state, and to resolve inputs for preparing flows. For discovery, it scans `specs` directories in the main root and in worktrees, reads `flow.json` state files, handles malformed JSON defensively, and enforces scan limits to avoid unbounded traversal. It also tracks the last finalized spec, validates active-flow selections, and probes expected worktree locations when reconstructing flow context.",
         "chapter": "internal_design",
-        "role": "Workflow coordinator",
+        "role": "Flow state orchestration and repository/worktree resolver",
         "enrich": {
-          "processedAt": "2026-06-09T11:46:36.602Z",
+          "processedAt": "2026-06-19T03:35:39.982Z",
           "attempts": 1
         },
         "keywords": [
           "flow manager",
+          "state store",
+          "worktree",
           "active flow",
-          "worktree state",
-          "flow scanning",
-          "spec selection",
-          "workflow coordination",
+          "flow scan",
+          "task tracking",
+          "spec resolution",
           "runtime metrics"
         ]
       },
@@ -8978,6 +8973,58 @@
           "flow.json",
           "schema enforcement",
           "spec artifacts"
+        ]
+      },
+      {
+        "file": "src/lib/flow-target-guard.js",
+        "hash": "b08ba7fa2c24d1db01783d0ccdfb05ee",
+        "lines": 121,
+        "mtime": "2026-06-19T03:34:14.328Z",
+        "className": "flow-target-guard",
+        "methods": [
+          "FlowTargetExpectation",
+          "buildTargetMismatchEnvelope",
+          "targetMismatchEnvelopeForInput",
+          "normalizedToken",
+          "normalizedIssue",
+          "normalizedSpec",
+          "normalizedRunId",
+          "activeIssueOf",
+          "activeSpecOf",
+          "activeRunIdOf",
+          "mismatchSummary"
+        ],
+        "imports": [
+          "./flow-helpers.js",
+          "./flow-envelope.js"
+        ],
+        "exports": [
+          "FlowTargetExpectation",
+          "buildTargetMismatchEnvelope",
+          "targetMismatchEnvelopeForInput"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/lib/dispatcher.js"
+        ],
+        "id": "e8f31d59",
+        "summary": "Validates caller expectations about the currently targeted flow and produces structured mismatch envelopes when they do not align. It supports issue, spec, and run-id targeting with normalized comparisons.",
+        "detail": "The module normalizes input tokens with length and emptiness checks, parses issue numbers as positive integers, and canonicalizes spec identifiers through `specIdFromPath`. A `FlowTargetExpectation` value object stores the expected selectors and can report whether no targeting constraints were provided. Comparison helpers extract the active issue, spec, and run ID from flow state, then generate precise mismatch summaries for whichever field conflicts. When validation fails or active state does not match, the module returns a standardized failure envelope rather than throwing into the caller's normal control flow.",
+        "chapter": "internal_design",
+        "role": "Flow target validation and mismatch envelope builder",
+        "enrich": {
+          "processedAt": "2026-06-19T03:35:39.982Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "target guard",
+          "flow validation",
+          "issue matching",
+          "spec matching",
+          "run id",
+          "input normalization",
+          "failure envelope",
+          "CLI safety"
         ]
       },
       {
@@ -11109,9 +11156,9 @@
       },
       {
         "file": "src/senti.js",
-        "hash": "755334d9ffa18aa9def8eee6ba95a67c",
+        "hash": "d70a1368d18c0837ef6cd1d01864d67d",
         "lines": 157,
-        "mtime": "2026-06-17T10:08:24.650Z",
+        "mtime": "2026-06-19T03:34:14.328Z",
         "className": "senti",
         "methods": [
           "isHelpRequest",
@@ -11130,24 +11177,23 @@
         "extends": null,
         "usedBy": null,
         "id": "a8608997",
+        "summary": "Defines the top-level `senti` CLI entrypoint that routes subcommands, help requests, and standalone scripts. It is responsible for mapping command namespaces to the correct executable module and exit behavior.",
+        "detail": "The script inspects raw process arguments, detects global help requests, and reroutes help handling through a shared renderer or command-specific help metadata when available. It maintains mappings for namespaced command groups and independent commands, then rewrites `process.argv` before dynamically importing the appropriate script module. Core entry commands are funneled through the dispatcher-based command system, while some utilities execute via dedicated `main()` functions. It consistently terminates with explicit exit codes for success, handled command results, and error cases, making it the root coordinator for the CLI surface.",
+        "chapter": "cli_commands",
+        "role": "Top-level CLI router and command bootstrapper",
         "enrich": {
-          "processedAt": "2026-06-17T15:28:05.367Z",
-          "attempts": 3
+          "processedAt": "2026-06-19T03:35:39.982Z",
+          "attempts": 1
         },
-        "summary": "Top-level CLI entry point that parses the first subcommand and routes execution to built-in dispatchers, standalone command modules, or plugin-provided commands. It also centralizes version handling and shared help rendering.",
-        "detail": "The module reads raw CLI arguments, handles early exits for version and generic help, and rewrites `process.argv` before dynamically importing the selected script. It separates commands into namespace dispatchers such as `docs` and `flow`, and independent modules such as `setup`, `upgrade`, `presets`, and `plugin`. Before dispatch, it initializes a shared dependency container with flags derived from the current command, including support for `--agent-work-dir` and a special finalize-cleanup mode. Help requests are normalized through helper functions and can be rendered from shared command metadata instead of delegating blindly to subcommands. If no core command matches, the entry point falls back to plugin command resolution and returns structured success or error exit codes.",
-        "chapter": "project_structure",
-        "role": "CLI entrypoint and command dispatcher",
         "keywords": [
           "CLI entrypoint",
-          "command dispatcher",
           "subcommand routing",
+          "help system",
           "dynamic import",
-          "help command",
-          "plugin command",
-          "dependency container",
-          "process.argv rewriting",
-          "Node.js CLI"
+          "exit code",
+          "command bootstrap",
+          "namespace scripts",
+          "process argv"
         ]
       },
       {
@@ -11409,10 +11455,10 @@
       }
     ],
     "summary": {
-      "total": 213,
-      "totalMethods": 1954
+      "total": 214,
+      "totalMethods": 1963
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-19T01:33:26.682Z"
+  "enrichedAt": "2026-06-19T03:35:39.982Z"
 }
