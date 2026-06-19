@@ -65,7 +65,7 @@ const AUTO_CHECK_RULES = `Score the following request on six dimensions (0/1/2 e
 Also include a temporary goal field. The goal is the concrete outcome this request asks the flow to achieve. If no concrete goal can be derived, output null.
 Also include a reason field (short string, under 200 chars, Japanese).`;
 
-const AUTO_CHECK_SCHEMA = {
+export const AUTO_CHECK_SCHEMA = {
   type: "object",
   properties: {
     specBuildability: { type: "integer" },
@@ -74,7 +74,7 @@ const AUTO_CHECK_SCHEMA = {
     scopeBoundedness: { type: "integer" },
     targetSpecificity: { type: "integer" },
     precedent: { type: "integer" },
-    goal: { anyOf: [{ type: "string" }, { type: "null" }] },
+    goal: { type: ["string", "null"] },
     reason: { type: "string" },
   },
   required: ["specBuildability", "ambiguity", "verifiability", "scopeBoundedness", "targetSpecificity", "precedent", "goal", "reason"],

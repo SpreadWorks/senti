@@ -148,6 +148,8 @@ describe("buildEnrichPrompt", () => {
     assert.ok(prompt.includes("overview"));
     assert.ok(prompt.includes("internal_design"));
     assert.ok(prompt.includes("Output format"));
+    assert.ok(prompt.includes("\"entries\""));
+    assert.ok(prompt.includes("category"));
     assert.ok(prompt.includes("JSON"));
   });
 
@@ -176,6 +178,32 @@ describe("parseEnrichResponse", () => {
     const json = JSON.stringify({ modules: [{ index: 0, summary: "test" }] });
     const result = parseEnrichResponse(json);
     assert.deepEqual(result, { modules: [{ index: 0, summary: "test" }] });
+  });
+
+  it("converts structured entries into grouped enrichment", () => {
+    const json = JSON.stringify({
+      entries: [{
+        category: "modules",
+        index: 0,
+        summary: "test",
+        detail: "detail",
+        chapter: "overview",
+        role: "lib",
+        keywords: ["test"],
+        app: null,
+      }],
+    });
+    const result = parseEnrichResponse(json);
+    assert.deepEqual(result, {
+      modules: [{
+        index: 0,
+        summary: "test",
+        detail: "detail",
+        chapter: "overview",
+        role: "lib",
+        keywords: ["test"],
+      }],
+    });
   });
 
   it("strips markdown fences", () => {

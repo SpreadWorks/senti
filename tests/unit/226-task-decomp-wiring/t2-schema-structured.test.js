@@ -171,12 +171,9 @@ describe("T-2: spec.json tasks[*] schema restructuring", () => {
       !taskSchema.required.includes("parent"),
       "parent must not be in required",
     );
-    // Schema uses anyOf with string and null
+    // Schema uses a strict-compatible union type with string and null.
     const parentSchema = taskSchema.properties.parent;
-    assert.ok(parentSchema.anyOf, "parent should use anyOf");
-    const types = parentSchema.anyOf.map((s) => s.type);
-    assert.ok(types.includes("string"), "parent anyOf should include string");
-    assert.ok(types.includes("null"), "parent anyOf should include null");
+    assert.deepEqual(parentSchema.type, ["string", "null"]);
     // Valid task with string parent
     const task1 = validTask({ parent: "T0" });
     const errors1 = validateSchema(task1, taskSchema, "task");

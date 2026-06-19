@@ -76,11 +76,18 @@ function collectAllKeywords(analysis, limit = 2000) {
  * @returns {string} Prompt text
  */
 const KEYWORD_SELECTION_SCHEMA = {
-  type: "array",
-  items: { type: "string" },
+  type: "object",
+  properties: {
+    keywords: {
+      type: "array",
+      items: { type: "string" },
+    },
+  },
+  required: ["keywords"],
+  additionalProperties: false,
 };
 
-const KEYWORD_SELECTION_FMT_FALLBACK = 'Return ONLY a JSON array of selected keywords. No explanation, no markdown fences.\nExample output: ["auth", "認証", "session", "login"]';
+const KEYWORD_SELECTION_FMT_FALLBACK = 'Return ONLY a JSON object with a keywords array. No explanation, no markdown fences.\nExample output: {"keywords":["auth","認証","session","login"]}';
 
 function buildKeywordSelectionPrompt(keywords, query) {
   const pb = _buildKeywordSelectionPb(keywords, query);
@@ -265,11 +272,12 @@ async function aiSearch(allEntries, analysis, query, _root) {
     return fallbackSearch(allEntries, query);
   }
 
-  // Parse AI response as JSON array of keywords
+  // Parse AI response as JSON object containing selected keywords.
   let selectedKeywords;
   try {
     const cleaned = response.trim().replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "");
-    selectedKeywords = JSON.parse(cleaned);
+    const parsed = JSON.parse(cleaned);
+    selectedKeywords = Array.isArray(parsed) ? parsed : parsed?.keywords;
     if (!Array.isArray(selectedKeywords)) return fallbackSearch(allEntries, query);
   } catch (err) {
     process.stderr.write(`[senti] context aiSearch JSON parse failed: ${err.message}\n`);

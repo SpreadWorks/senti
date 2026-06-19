@@ -72,8 +72,18 @@ async function aiFilterChapters(chapters, analysis, agent, _root, purpose) {
   if (audienceRule) ruleLines.push(audienceRule);
   pb.setRules(ruleLines.join("\n"));
 
-  pb.setJsonSchema({ type: "array", items: { type: "string" } });
-  pb.setFmtFallback('Reply with ONLY a JSON array of filenames. Example: ["overview.md", "commands.md"]');
+  pb.setJsonSchema({
+    type: "object",
+    properties: {
+      chapters: {
+        type: "array",
+        items: { type: "string" },
+      },
+    },
+    required: ["chapters"],
+    additionalProperties: false,
+  });
+  pb.setFmtFallback('Reply with ONLY a JSON object containing a chapters array. Example: {"chapters":["overview.md","commands.md"]}');
 
   pb.addUserPrompt("## Project analysis summary", summary);
   pb.addUserPrompt("## Available chapters", chapterList);
@@ -93,7 +103,7 @@ async function aiFilterChapters(chapters, analysis, agent, _root, purpose) {
     return chapters;
   }
 
-  // JSON 配列をパース（コードフェンスがあれば除去）
+  // JSON オブジェクトをパース（コードフェンスがあれば除去）
   let cleaned = response.trim();
   if (cleaned.startsWith("```")) {
     cleaned = cleaned.replace(/^```[a-z]*\n?/, "").replace(/\n?```$/, "").trim();
@@ -101,7 +111,8 @@ async function aiFilterChapters(chapters, analysis, agent, _root, purpose) {
 
   let selected;
   try {
-    selected = JSON.parse(cleaned);
+    const parsed = JSON.parse(cleaned);
+    selected = Array.isArray(parsed) ? parsed : parsed?.chapters;
   } catch (_) {
     logger.log("[init] WARN: AI response is not valid JSON, skipping AI filter.");
     logger.log(`[init]   response: ${cleaned.slice(0, 200)}`);
@@ -109,7 +120,7 @@ async function aiFilterChapters(chapters, analysis, agent, _root, purpose) {
   }
 
   if (!Array.isArray(selected)) {
-    logger.log("[init] WARN: AI response is not an array, skipping AI filter.");
+    logger.log("[init] WARN: AI response does not contain a chapters array, skipping AI filter.");
     return chapters;
   }
 
@@ -280,4 +291,3 @@ export default class DocsInitCommand extends Command {
     return runInit(ctx.docsCtx, ctx._rawArgs || []);
   }
 }
-

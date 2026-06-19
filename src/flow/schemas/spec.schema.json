@@ -164,12 +164,7 @@
           },
           "implementation_notes": { "type": "string", "maxLength": 5000 },
           "test_strategy": { "type": "string", "maxLength": 2000 },
-          "parent": {
-            "anyOf": [
-              { "type": "string", "minLength": 1, "maxLength": 100 },
-              { "type": "null" }
-            ]
-          },
+          "parent": { "type": ["string", "null"], "minLength": 1, "maxLength": 100 },
           "origin": { "type": "string", "enum": ["plan"] },
           "added_round": { "type": "integer", "minimum": 0 },
           "status": { "type": "string", "enum": ["pending", "in_progress", "done", "skipped"] }

@@ -73,6 +73,12 @@ describe("buildKeywordSelectionPrompt", () => {
     const prompt = buildKeywordSelectionPrompt(["a", "b"], "test");
     assert.ok(prompt.length > 0);
   });
+
+  it("asks for an object root response", () => {
+    const prompt = buildKeywordSelectionPrompt(["auth", "login"], "auth bug");
+    assert.match(prompt, /keywords array/);
+    assert.match(prompt, /\{"keywords":\[/);
+  });
 });
 
 describe("fallbackSearch", () => {

@@ -40,7 +40,7 @@ function normalizeWhere(where) {
   assertNoExtraKeys(where, WHERE_KEYS, "where");
   const file = requireString(where.file, "where.file");
   const normalized = { file };
-  if (where.locator !== undefined) {
+  if (where.locator != null) {
     normalized.locator = requireString(where.locator, "where.locator");
   }
   return normalized;

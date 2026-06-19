@@ -123,7 +123,7 @@ function splitIntoBatches(entries, maxTokens) {
 const ENRICH_FMT_FALLBACK = [
   "## Output format",
   "Return a JSON object with the following structure:",
-  '{"<category>": [{"index": 0, "summary": "...", "detail": "...", "chapter": "...", "role": "...", "keywords": [...]}]}',
+  '{"entries": [{"category": "modules", "index": 0, "summary": "...", "detail": "...", "chapter": "...", "role": "...", "keywords": [...], "app": null}]}',
   "Return ONLY valid JSON, no markdown fences, no explanation text.",
 ].join("\n");
 
@@ -168,7 +168,8 @@ function _buildEnrichPromptBuilder(chapters, batchEntries, opts) {
 
   // Monorepo app assignment (optional)
   const monorepoApps = opts?.monorepoApps;
-  if (Array.isArray(monorepoApps) && monorepoApps.length > 0) {
+  const hasMonorepoApps = Array.isArray(monorepoApps) && monorepoApps.length > 0;
+  if (hasMonorepoApps) {
     const appLines = [
       "This is a monorepo. Assign each entry to one of these apps based on its file path:",
     ];
@@ -181,42 +182,48 @@ function _buildEnrichPromptBuilder(chapters, batchEntries, opts) {
 
   // JSON schema for structured output
   const schemaProperties = {
+    category: { type: "string" },
     index: { type: "integer" },
     summary: { type: "string" },
     detail: { type: "string" },
     chapter: { type: "string" },
     role: { type: "string", enum: ["controller", "model", "lib", "config", "cli", "middleware", "test", "migration", "route", "view", "other"] },
     keywords: { type: "array", items: { type: "string" } },
+    app: { type: ["string", "null"] },
   };
-  const requiredFields = ["index", "summary", "detail", "chapter", "role", "keywords"];
-  if (monorepoApps) {
-    schemaProperties.app = { type: "string" };
-  }
+  const requiredFields = ["category", "index", "summary", "detail", "chapter", "role", "keywords", "app"];
   pb.setJsonSchema({
     type: "object",
-    additionalProperties: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: schemaProperties,
-        required: requiredFields,
-        additionalProperties: false,
+    properties: {
+      entries: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: schemaProperties,
+          required: requiredFields,
+          additionalProperties: false,
+        },
       },
     },
+    required: ["entries"],
+    additionalProperties: false,
   });
   pb.setFmtFallback(ENRICH_FMT_FALLBACK);
 
   // Rules
   const ruleLines = [
     "- Return ONLY valid JSON, no markdown fences, no explanation text.",
-    "- Group entries by category in the output.",
+    "- Return entries in the top-level `entries` array.",
+    "- The `category` field must match the original category in the target file marker.",
     "- The `index` field must match the original index provided above.",
     "- `summary` should be concise (1-2 sentences).",
     "- `detail`: 3-5 sentences summarizing key implementation patterns and logic.",
     "- `chapter` must be one of the available chapter names (without .md extension).",
   ];
-  if (monorepoApps) {
-    ruleLines.push("- `app` must be one of the monorepo app names listed above (omit if file does not belong to any app).");
+  if (hasMonorepoApps) {
+    ruleLines.push("- `app` must be one of the monorepo app names listed above, or null if file does not belong to any app.");
+  } else {
+    ruleLines.push("- `app` must be null.");
   }
   const LANG_NAMES = { en: "English", ja: "Japanese", zh: "Chinese", ko: "Korean", fr: "French", de: "German", es: "Spanish", pt: "Portuguese", it: "Italian", ru: "Russian" };
   const lang = opts?.lang || "en";
@@ -236,7 +243,17 @@ function _buildEnrichPromptBuilder(chapters, batchEntries, opts) {
  */
 function parseEnrichResponse(response) {
   try {
-    return JSON.parse(repairJson(response));
+    const parsed = JSON.parse(repairJson(response));
+    if (!Array.isArray(parsed?.entries)) return parsed;
+    const grouped = {};
+    for (const entry of parsed.entries) {
+      const category = typeof entry?.category === "string" ? entry.category : "";
+      if (!category) continue;
+      if (!grouped[category]) grouped[category] = [];
+      const { category: _category, app, ...rest } = entry;
+      grouped[category].push(app == null ? rest : { ...rest, app });
+    }
+    return grouped;
   } catch (_) {
     return null;
   }

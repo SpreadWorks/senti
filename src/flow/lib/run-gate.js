@@ -1137,18 +1137,13 @@ export const GUARDRAIL_ARTICLE_EVAL_SCHEMA = {
           failureMode: { type: "string", enum: ["guardrail-violation"] },
           requirementRef: { type: "string" },
           where: {
-            anyOf: [
-              { type: "null" },
-              {
-                type: "object",
-                properties: {
-                  file: { type: "string" },
-                  locator: { type: "string" },
-                },
-                required: ["file"],
-                additionalProperties: false,
-              },
-            ],
+            type: ["object", "null"],
+            properties: {
+              file: { type: "string" },
+              locator: { type: ["string", "null"] },
+            },
+            required: ["file", "locator"],
+            additionalProperties: false,
           },
           observed: { type: "string" },
         },
@@ -1185,8 +1180,9 @@ export const IMPL_REQUIREMENT_EVAL_SCHEMA = {
 export const GUARDRAIL_FMT_FALLBACK = [
   "OUTPUT FORMAT — strictly required:",
   "Return a single JSON object matching this shape:",
-  '  {"observations":[{"failureMode":"guardrail-violation","requirementRef":"<guardrail id>","where":{"file":"<path or artifact>","locator":"<optional locator>"},"observed":"<concrete violation>"}]}',
+  '  {"observations":[{"failureMode":"guardrail-violation","requirementRef":"<guardrail id>","where":{"file":"<path or artifact>","locator":"<locator or null>"},"observed":"<concrete violation>"}]}',
   "  - Include one observation per concrete FAIL occurrence/edit location.",
+  "  - Use null for where.locator when it does not apply.",
   "  - If every listed guardrail passes, return {\"observations\":[]}.",
   "Output MUST be valid JSON. No preamble, no trailing commentary, no Markdown prose — JSON only.",
 ].join("\n");

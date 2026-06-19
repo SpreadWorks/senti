@@ -288,9 +288,17 @@ describe("test-review spec-local file scope", () => {
     assert.match(combined, /one-shot static test reviewer/);
     assert.match(combined, /blockingFindings\[\]/);
     assert.match(combined, /advisoryFindings\[\]/);
+    assert.match(combined, /origin/);
+    assert.match(combined, /failureKind/);
+    assert.match(combined, /Use null for origin or failureKind/);
     assert.match(combined, /Do not fail for advisory findings/);
     assert.match(combined, /does not auto-fix tests/i);
     assert.match(combined, /Requirement-to-Test Coverage Artifact/);
+
+    const itemSchema = prompt.jsonSchema.properties.blockingFindings.items;
+    assert.deepEqual([...itemSchema.required].sort(), Object.keys(itemSchema.properties).sort());
+    assert.deepEqual(itemSchema.properties.origin.type, ["string", "null"]);
+    assert.deepEqual(itemSchema.properties.failureKind.type, ["string", "null"]);
   });
 
   it("parses JSON test review findings and rejects markdown gap output", () => {

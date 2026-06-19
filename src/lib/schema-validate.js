@@ -48,21 +48,21 @@ export function validateSchema(value, schema, path = "") {
   }
 
   // string constraints
-  if (schema.type === "string") {
+  if (schemaHasType(schema, "string") && typeof value === "string") {
     if (schema.minLength != null && value.length < schema.minLength) {
       errors.push(`${path || "(root)"}: minLength ${schema.minLength}, got ${value.length}`);
     }
   }
 
   // number / integer constraints
-  if (schema.type === "number" || schema.type === "integer") {
+  if ((schemaHasType(schema, "number") || schemaHasType(schema, "integer")) && typeof value === "number") {
     if (schema.minimum != null && value < schema.minimum) {
       errors.push(`${path || "(root)"}: minimum ${schema.minimum}, got ${value}`);
     }
   }
 
   // array constraints
-  if (schema.type === "array") {
+  if (schemaHasType(schema, "array") && Array.isArray(value)) {
     if (schema.minItems != null && value.length < schema.minItems) {
       errors.push(`${path || "(root)"}: minItems ${schema.minItems}, got ${value.length}`);
     }
@@ -74,7 +74,7 @@ export function validateSchema(value, schema, path = "") {
   }
 
   // object constraints
-  if (schema.type === "object") {
+  if (schemaHasType(schema, "object") && value !== null && typeof value === "object" && !Array.isArray(value)) {
     // required
     if (schema.required) {
       for (const key of schema.required) {
@@ -118,6 +118,7 @@ export function validateSchema(value, schema, path = "") {
 }
 
 function checkType(value, type) {
+  if (Array.isArray(type)) return type.some((oneType) => checkType(value, oneType));
   switch (type) {
     case "string": return typeof value === "string";
     case "number": return typeof value === "number";
@@ -128,6 +129,10 @@ function checkType(value, type) {
     case "null": return value === null;
     default: return true;
   }
+}
+
+function schemaHasType(schema, type) {
+  return schema.type === type || (Array.isArray(schema.type) && schema.type.includes(type));
 }
 
 function typeOf(value) {

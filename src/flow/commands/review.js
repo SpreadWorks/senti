@@ -1606,7 +1606,7 @@ const TEST_REVIEW_TRUNCATION_SUFFIX = " [truncated]";
 
 const TEST_REVIEW_BLOCKING_ITEM_SCHEMA = Object.freeze({
   type: "object",
-  required: ["title", "target", "issue", "requiredChange", "whyBlocking"],
+  required: ["title", "target", "issue", "requiredChange", "whyBlocking", "origin", "failureKind"],
   additionalProperties: false,
   properties: {
     title: { type: "string", minLength: 1 },
@@ -1614,8 +1614,8 @@ const TEST_REVIEW_BLOCKING_ITEM_SCHEMA = Object.freeze({
     issue: { type: "string", minLength: 1 },
     requiredChange: { type: "string", minLength: 1 },
     whyBlocking: { type: "string", minLength: 1 },
-    origin: { type: "string" },
-    failureKind: { type: "string" },
+    origin: { type: ["string", "null"] },
+    failureKind: { type: ["string", "null"] },
   },
 });
 
@@ -1883,8 +1883,9 @@ function buildTestReviewPrompt(requirements, coverageArtifact, testFiles) {
       "Runtime pass/fail belongs to scenario-validity, test-execute, test-result-review, impl-gate, and final-regression.",
       "",
       "Return JSON only. The response object must contain:",
-      "- blockingFindings[] with title, target, issue, requiredChange, whyBlocking",
+      "- blockingFindings[] with title, target, issue, requiredChange, whyBlocking, origin, failureKind",
       "- advisoryFindings[] with title, target, improvement, whyNonBlocking",
+      "- Use null for origin or failureKind when it does not apply.",
       "- Use empty arrays when there are no findings in a category.",
     ].join("\n"))
     .setJsonSchema(TEST_REVIEW_RESPONSE_SCHEMA)
@@ -1904,6 +1905,12 @@ function parseTestReviewJsonOutput(raw) {
     parsed = JSON.parse(repairJson(candidate));
   }
   parsed = normalizeReviewResponseArrays(parsed, ["blockingFindings", "advisoryFindings"]);
+  for (const item of parsed.blockingFindings) {
+    if (item && typeof item === "object") {
+      if (!Object.prototype.hasOwnProperty.call(item, "origin")) item.origin = null;
+      if (!Object.prototype.hasOwnProperty.call(item, "failureKind")) item.failureKind = null;
+    }
+  }
   const errors = validateSchema(parsed, TEST_REVIEW_RESPONSE_SCHEMA);
   if (errors.length > 0) {
     throw new Error(`test review output failed schema validation: ${errors.join("; ")}`);

@@ -8,6 +8,8 @@ import { initGitRepo, commitAll } from "../../helpers/git-repo.js";
 import { writeStubAgentScript, stubAgentConfig } from "../../helpers/stub-agent.js";
 import { makeFlowManager } from "../../helpers/flow-setup.js";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
+import { AUTO_CHECK_SCHEMA } from "../../../src/flow/lib/run-auto-check.js";
+import { validateSchema } from "../../../src/lib/schema-validate.js";
 
 const CMD = path.join(process.cwd(), "src/senti.js");
 
@@ -186,5 +188,32 @@ describe("flow run auto-check CLI", () => {
     assert.equal(a.autoCheck, undefined, "non-targeted preparing flow must remain untouched");
     assert.ok(b.autoCheck, "targeted preparing flow must receive the verdict");
     assert.equal(b.autoCheck.eligible, true);
+  });
+});
+
+describe("auto-check structured output schema", () => {
+  it("accepts a null goal while requiring all strict schema properties", () => {
+    assert.deepEqual(AUTO_CHECK_SCHEMA.required, [
+      "specBuildability",
+      "ambiguity",
+      "verifiability",
+      "scopeBoundedness",
+      "targetSpecificity",
+      "precedent",
+      "goal",
+      "reason",
+    ]);
+
+    const errors = validateSchema({
+      specBuildability: 2,
+      ambiguity: 2,
+      verifiability: 2,
+      scopeBoundedness: 2,
+      targetSpecificity: 1,
+      precedent: 1,
+      goal: null,
+      reason: "bounded request",
+    }, AUTO_CHECK_SCHEMA);
+    assert.deepEqual(errors, []);
   });
 });

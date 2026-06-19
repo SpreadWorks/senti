@@ -49,6 +49,33 @@ describe("validateSchema", () => {
       const errors = validateSchema({}, { type: "array" });
       assert.equal(errors.length, 1);
     });
+
+    it("validates union type arrays", () => {
+      assert.equal(validateSchema("x", { type: ["string", "null"] }).length, 0);
+      assert.equal(validateSchema(null, { type: ["string", "null"] }).length, 0);
+      const errors = validateSchema(123, { type: ["string", "null"] });
+      assert.equal(errors.length, 1);
+      assert.match(errors[0], /string,null/);
+    });
+
+    it("validates object constraints for nullable object union", () => {
+      const schema = {
+        type: ["object", "null"],
+        properties: {
+          file: { type: "string" },
+          locator: { type: ["string", "null"] },
+        },
+        required: ["file", "locator"],
+        additionalProperties: false,
+      };
+
+      assert.equal(validateSchema(null, schema).length, 0);
+      assert.equal(validateSchema({ file: "a.js", locator: null }, schema).length, 0);
+
+      const errors = validateSchema({ file: "a.js" }, schema);
+      assert.equal(errors.length, 1);
+      assert.match(errors[0], /locator/);
+    });
   });
 
   describe("required", () => {

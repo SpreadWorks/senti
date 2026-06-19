@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
+  GUARDRAIL_ARTICLE_EVAL_SCHEMA,
   parseGuardrailArticleEvaluation,
   parseImplRequirementEvaluation,
   EvaluationSchemaError,
@@ -40,6 +41,28 @@ describe("parseGuardrailArticleEvaluation", () => {
     }) + "\n```";
     const result = parseGuardrailArticleEvaluation(resp, ["g1"]);
     assert.equal(result.length, 0);
+  });
+
+  it("accepts structured observations with null locator", () => {
+    const resp = JSON.stringify({
+      observations: [{
+        failureMode: "guardrail-violation",
+        requirementRef: "g1",
+        where: { file: "spec.json", locator: null },
+        observed: "missing required section",
+      }],
+    });
+    const result = parseGuardrailArticleEvaluation(resp, ["g1"]);
+    assert.equal(result.length, 1);
+    assert.deepEqual(result[0].where, { file: "spec.json" });
+  });
+
+  it("uses a strict-compatible schema for observation locations", () => {
+    const whereObject = GUARDRAIL_ARTICLE_EVAL_SCHEMA
+      .properties.observations.items.properties.where;
+    assert.deepEqual(whereObject.type, ["object", "null"]);
+    assert.deepEqual([...whereObject.required].sort(), Object.keys(whereObject.properties).sort());
+    assert.deepEqual(whereObject.properties.locator.type, ["string", "null"]);
   });
 
   it("throws on non-JSON free text", () => {
