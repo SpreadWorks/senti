@@ -18,13 +18,19 @@ import fs from "fs";
 import path from "path";
 import { specIdFromPath, STATE_FILE } from "../../lib/flow-helpers.js";
 
-function resolveAuthorityFlowState(container, baseFlowManager, mainRoot) {
+function resolveAuthorityFlowState(container, baseFlowManager, mainRoot, options = {}) {
   const paths = container.get("paths");
   const cwdState = baseFlowManager.load();
   if (!cwdState) {
-    const resolved = typeof baseFlowManager.resolveActiveFlow === "function"
-      ? baseFlowManager.resolveActiveFlow(null)
-      : null;
+    let resolved = null;
+    try {
+      resolved = typeof baseFlowManager.resolveActiveFlow === "function"
+        ? baseFlowManager.resolveActiveFlow(null)
+        : null;
+    } catch (err) {
+      if (!options.allowMissingActive) throw err;
+      return { flowManager: baseFlowManager, flowState: null, authorityRoot: null, flowResolutionError: err };
+    }
     if (resolved) {
       const activeRoot = resolved.worktreePath || paths.root;
       const activeFm = resolved.worktreePath
@@ -32,7 +38,7 @@ function resolveAuthorityFlowState(container, baseFlowManager, mainRoot) {
         : baseFlowManager.forRoot(paths.root, { specId: resolved.specId });
       return { flowManager: activeFm, flowState: resolved.state, authorityRoot: activeRoot };
     }
-    return { flowManager: baseFlowManager, flowState: null, authorityRoot: null };
+    return { flowManager: baseFlowManager, flowState: null, authorityRoot: null, flowResolutionError: null };
   }
 
   const inWorktree = container.get("inWorktree");
@@ -50,14 +56,19 @@ function resolveAuthorityFlowState(container, baseFlowManager, mainRoot) {
       }
     }
   }
-  return { flowManager: baseFlowManager, flowState: cwdState, authorityRoot: paths.root };
+  return { flowManager: baseFlowManager, flowState: cwdState, authorityRoot: paths.root, flowResolutionError: null };
 }
 
-export function resolveFlowContext(container) {
+export function resolveFlowContext(container, options = {}) {
   const paths = container.get("paths");
   const baseFlowManager = container.get("flowManager");
   const mainRoot = container.get("mainRoot");
-  const { flowManager, flowState, authorityRoot } = resolveAuthorityFlowState(container, baseFlowManager, mainRoot);
+  const { flowManager, flowState, authorityRoot, flowResolutionError } = resolveAuthorityFlowState(
+    container,
+    baseFlowManager,
+    mainRoot,
+    options,
+  );
   return {
     root: authorityRoot || paths.root,
     mainRoot,
@@ -67,5 +78,6 @@ export function resolveFlowContext(container) {
     specId: flowState ? specIdFromPath(flowState.spec) : null,
     inWorktree: container.get("inWorktree"),
     authorityRoot,
+    flowResolutionError,
   };
 }

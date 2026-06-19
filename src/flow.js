@@ -51,7 +51,7 @@ async function run(entry, argv, envelopeType, envelopeKey, helpPathOverride) {
     envelopeType,
     envelopeKey,
     runtimeLog,
-    buildHookCtx: (c) => resolveFlowContext(c),
+    buildHookCtx: (c) => resolveFlowContext(c, { allowMissingActive: resolvedEntry.requiresFlow === false }),
   });
 }
 

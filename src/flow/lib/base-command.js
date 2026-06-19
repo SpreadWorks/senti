@@ -41,7 +41,7 @@ export class FlowCommand extends Command {
    */
   async run(container, input = {}) {
     this.container = container;
-    const ctx = { ...resolveFlowContext(container), ...input };
+    const ctx = { ...resolveFlowContext(container, { allowMissingActive: !this.requiresFlow }), ...input };
     if (this.requiresFlow && !ctx.flowState) {
       throw new Error("no active flow (flow.json not found)");
     }
