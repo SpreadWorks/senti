@@ -1,0 +1,157 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "Migration parity inventory includes `senti docs build`, but the listed behavior-level parity checks do not include any verification for `senti docs build` behavior after the root-argument fix.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[4]"
+          },
+          "observed": "Migration parity inventory includes `senti docs build`, but the listed behavior-level parity checks do not include any verification for `senti docs build` behavior after the root-argument fix.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "Migration parity inventory includes `docs init`, but acceptance criteria only verify a subset of behavior and provide no behavior-level verification that `docs init` remains unchanged through this migration path.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[4]"
+          },
+          "observed": "Migration parity inventory includes `docs init`, but acceptance criteria only verify a subset of behavior and provide no behavior-level verification that `docs init` remains unchanged through this migration path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "Migration parity inventory includes `docs readme`, but the spec has no behavior-level check showing retained `docs readme` behavior is preserved via the new path.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[4]"
+          },
+          "observed": "Migration parity inventory includes `docs readme`, but the spec has no behavior-level check showing retained `docs readme` behavior is preserved via the new path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "Migration parity inventory includes the `resolveChaptersOrder` API surface, yet there is no acceptance criterion that verifies retained `resolveChaptersOrder` behavior through the new ownership/path.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[4]"
+          },
+          "observed": "Migration parity inventory includes the `resolveChaptersOrder` API surface, yet there is no acceptance criterion that verifies retained `resolveChaptersOrder` behavior through the new ownership/path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "spec.json",
+        "locator": "acceptance_criteria[4]"
+      },
+      "observed": "Migration parity inventory includes `senti docs build`, but the listed behavior-level parity checks do not include any verification for `senti docs build` behavior after the root-argument fix.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "spec.json",
+        "locator": "acceptance_criteria[4]"
+      },
+      "observed": "Migration parity inventory includes `docs init`, but acceptance criteria only verify a subset of behavior and provide no behavior-level verification that `docs init` remains unchanged through this migration path.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "spec.json",
+        "locator": "acceptance_criteria[4]"
+      },
+      "observed": "Migration parity inventory includes `docs readme`, but the spec has no behavior-level check showing retained `docs readme` behavior is preserved via the new path.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "spec.json",
+        "locator": "acceptance_criteria[4]"
+      },
+      "observed": "Migration parity inventory includes the `resolveChaptersOrder` API surface, yet there is no acceptance criterion that verifies retained `resolveChaptersOrder` behavior through the new ownership/path.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    }
+  ]
+}

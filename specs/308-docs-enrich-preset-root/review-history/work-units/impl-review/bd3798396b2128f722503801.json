@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "bd3798396b2128f722503801",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0005",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/308-docs-enrich-preset-root/review-history/impl-attempt-001.json",
+      "specs/308-docs-enrich-preset-root/review-history/impl-attempt-001.md",
+      "specs/308-docs-enrich-preset-root/review-history/spec-attempt-001.json",
+      "specs/308-docs-enrich-preset-root/review.md"
+    ],
+    "inputHash": "ca6730d6c4641917062eb2e92c8db22933f445b0e2269bbf2001cea434d3da12",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "bd3798396b2128f722503801"
+  },
+  "targetFiles": [
+    "specs/308-docs-enrich-preset-root/review-history/impl-attempt-001.json",
+    "specs/308-docs-enrich-preset-root/review-history/impl-attempt-001.md",
+    "specs/308-docs-enrich-preset-root/review-history/spec-attempt-001.json",
+    "specs/308-docs-enrich-preset-root/review.md"
+  ],
+  "inputHash": "ca6730d6c4641917062eb2e92c8db22933f445b0e2269bbf2001cea434d3da12",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-06-19T00:50:53.709Z",
+  "finishedAt": "2026-06-19T00:50:53.709Z",
+  "rawResponse": "### 1. Avoid storing duplicate review content\n**File:** `specs/308-docs-enrich-preset-root/review-history/impl-attempt-001.json`\n**Issue:** The same finding metadata is duplicated across `blockingFindings` and `findings`, including title, phase/source/attempt context, and issue body content. This increases drift risk if one representation is updated without the other.\n**Suggestion:** Keep one canonical finding list and derive the summary-specific shape from it, or store only references/IDs in the secondary section if both views are required by the workflow schema.\n\n### 2. Avoid maintaining parallel Markdown and JSON manually\n**File:** `specs/308-docs-enrich-preset-root/review-history/impl-attempt-001.md`\n**Issue:** The Markdown file repeats the same review content already stored in `impl-attempt-001.json`. If these are both persisted artifacts, they can diverge.\n**Suggestion:** Prefer generating the Markdown from the JSON artifact, or clearly mark this file as generated and ensure it is produced by the same review-history writer.\n\n### 3. Consolidate duplicated improvement text\n**File:** `specs/308-docs-enrich-preset-root/review-history/spec-attempt-001.json`\n**Issue:** Each non-blocking improvement stores the same content in `body`, `improvement`, `whyNonBlocking`, and again in `findings.body`. This is redundant and makes later edits error-prone.\n**Suggestion:** Store structured fields once, then render `body` from those fields when needed. If `findings` is required for compatibility, keep only IDs or normalized references there.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Avoid storing duplicate review content",
+        "body": "**File:** `specs/308-docs-enrich-preset-root/review-history/impl-attempt-001.json`\n**Issue:** The same finding metadata is duplicated across `blockingFindings` and `findings`, including title, phase/source/attempt context, and issue body content. This increases drift risk if one representation is updated without the other.\n**Suggestion:** Keep one canonical finding list and derive the summary-specific shape from it, or store only references/IDs in the secondary section if both views are required by the workflow schema.",
+        "file": "specs/308-docs-enrich-preset-root/review-history/impl-attempt-001.json"
+      },
+      {
+        "title": "2. Avoid maintaining parallel Markdown and JSON manually",
+        "body": "**File:** `specs/308-docs-enrich-preset-root/review-history/impl-attempt-001.md`\n**Issue:** The Markdown file repeats the same review content already stored in `impl-attempt-001.json`. If these are both persisted artifacts, they can diverge.\n**Suggestion:** Prefer generating the Markdown from the JSON artifact, or clearly mark this file as generated and ensure it is produced by the same review-history writer.",
+        "file": "specs/308-docs-enrich-preset-root/review-history/impl-attempt-001.md"
+      },
+      {
+        "title": "3. Consolidate duplicated improvement text",
+        "body": "**File:** `specs/308-docs-enrich-preset-root/review-history/spec-attempt-001.json`\n**Issue:** Each non-blocking improvement stores the same content in `body`, `improvement`, `whyNonBlocking`, and again in `findings.body`. This is redundant and makes later edits error-prone.\n**Suggestion:** Store structured fields once, then render `body` from those fields when needed. If `findings` is required for compatibility, keep only IDs or normalized references there.",
+        "file": "specs/308-docs-enrich-preset-root/review-history/spec-attempt-001.json"
+      }
+    ]
+  }
+}

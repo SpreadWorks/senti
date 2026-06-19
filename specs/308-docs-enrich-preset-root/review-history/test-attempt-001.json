@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-19T00:40:53.820Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 3,
+    "advisory": 0,
+    "total": 3
+  },
+  "coverageArtifact": "specs/308-docs-enrich-preset-root/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R2 does not exercise docs enrich behavior",
+      "target": "specs/308-docs-enrich-preset-root/tests/enrich-preset-root.test.js",
+      "issue": "The R2 test calls resolveChaptersOrder directly and then checks enrich.js with a regex. It never invokes docs enrich against a project whose .senti/config.json type references a registry preset, and it never asserts that valid registry entries avoid Preset not found warnings.",
+      "requiredChange": "Add an executable spec-local regression that runs the docs enrich path for the fixture project and asserts registry preset chapters resolve without Preset not found warnings.",
+      "whyBlocking": "R2 is an acceptance requirement about docs enrich behavior and warning output, but the current test can pass without exercising that production behavior.",
+      "origin": "R2",
+      "failureKind": "missing-regression-coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R3 fallback behavior is not covered",
+      "target": "specs/308-docs-enrich-preset-root/tests/enrich-preset-root.test.js",
+      "issue": "The R3 test only checks source text for init/readme/enrich resolver calls. It does not verify plugin registry loading remains unchanged or that genuinely unknown presets still use the existing builtin fallback behavior.",
+      "requiredChange": "Add the smallest executable regression covering the unchanged unknown-preset fallback behavior, and registry loading if it is affected by the bugfix surface.",
+      "whyBlocking": "R3 explicitly requires unchanged behavior for fallback and registry loading, but the current coverage artifact marks it covered without tests for those behaviors.",
+      "origin": "R3",
+      "failureKind": "missing-regression-coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "Source regex tests can pass without production behavior",
+      "target": "specs/308-docs-enrich-preset-root/tests/enrich-preset-root.test.js",
+      "issue": "The tests assert implementation by matching source text, including calls that could appear in dead code, comments, or otherwise not affect runtime behavior. This is used as the primary coverage for R1 and part of R2/R3.",
+      "requiredChange": "Replace or supplement the regex assertions with runtime tests that observe docs enrich using the project root when resolving ctx.type preset chapters.",
+      "whyBlocking": "This is a static anti-pattern that can pass without exercising the production behavior required by the spec.",
+      "origin": "R1",
+      "failureKind": "static-test-antipattern"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/308-docs-enrich-preset-root/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "0fdcfcdf7471786c7e6559a592774204daabbaa0acfa6cc70da9bc49f18c61b7"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "test-001-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R2 does not exercise docs enrich behavior",
+      "body": "The R2 test calls resolveChaptersOrder directly and then checks enrich.js with a regex. It never invokes docs enrich against a project whose .senti/config.json type references a registry preset, and it never asserts that valid registry entries avoid Preset not found warnings.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R3 fallback behavior is not covered",
+      "body": "The R3 test only checks source text for init/readme/enrich resolver calls. It does not verify plugin registry loading remains unchanged or that genuinely unknown presets still use the existing builtin fallback behavior.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Source regex tests can pass without production behavior",
+      "body": "The tests assert implementation by matching source text, including calls that could appear in dead code, comments, or otherwise not affect runtime behavior. This is used as the primary coverage for R1 and part of R2/R3.",
+      "category": "unknown"
+    }
+  ]
+}

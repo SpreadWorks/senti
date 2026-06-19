@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "8f9989ffa3d7b3b10d110c35",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-7aa7d5eafcb452f4",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/308-docs-enrich-preset-root/draft.json",
+      "specs/308-docs-enrich-preset-root/impl-review.json",
+      "specs/308-docs-enrich-preset-root/review-history/impl-attempt-001.json",
+      "specs/308-docs-enrich-preset-root/review-history/spec-attempt-001.md",
+      "specs/308-docs-enrich-preset-root/review-history/test-attempt-002.json",
+      "specs/308-docs-enrich-preset-root/review-history/test-attempt-003.md",
+      "specs/308-docs-enrich-preset-root/spec-review.json",
+      "specs/308-docs-enrich-preset-root/tests/enrich-preset-root.test.js"
+    ],
+    "inputHash": "7aa7d5eafcb452f4c07a7cb3f1a9052b19bd2f16960d06dafad8ab850eea0137",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "8f9989ffa3d7b3b10d110c35"
+  },
+  "targetFiles": [
+    "specs/308-docs-enrich-preset-root/draft.json",
+    "specs/308-docs-enrich-preset-root/impl-review.json",
+    "specs/308-docs-enrich-preset-root/review-history/impl-attempt-001.json",
+    "specs/308-docs-enrich-preset-root/review-history/spec-attempt-001.md",
+    "specs/308-docs-enrich-preset-root/review-history/test-attempt-002.json",
+    "specs/308-docs-enrich-preset-root/review-history/test-attempt-003.md",
+    "specs/308-docs-enrich-preset-root/spec-review.json",
+    "specs/308-docs-enrich-preset-root/tests/enrich-preset-root.test.js"
+  ],
+  "inputHash": "7aa7d5eafcb452f4c07a7cb3f1a9052b19bd2f16960d06dafad8ab850eea0137",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-06-19T00:55:26.938Z",
+  "finishedAt": "2026-06-19T00:55:26.938Z",
+  "rawResponse": "### 1. Normalize review finding artifacts\n**File:** `specs/308-docs-enrich-preset-root/review-history/*.json`\n**Issue:** Review findings are duplicated across JSON fields (`findings`, `blockingFindings`, `body`, structured fields) and again in parallel Markdown files. This creates multiple sources of truth across spec, impl, and test review artifacts.\n**Suggestion:** Make JSON the canonical artifact, store each finding once with stable IDs, and generate Markdown plus blocking/non-blocking views from that data.\n\n### 2. Centralize generated workflow metadata\n**File:** `specs/308-docs-enrich-preset-root/*.json`\n**Issue:** Several workflow artifacts persist repeated derived data: requirement file mappings, observations, command metadata, metrics, and review history summaries. The repetition appears across files and can drift when one producer changes shape.\n**Suggestion:** Define one canonical schema per concept and have secondary views reference IDs or be generated at render time.\n\n### 3. Fix Markdown generation conventions\n**File:** `specs/308-docs-enrich-preset-root/**/*.md`\n**Issue:** Multiple Markdown artifacts are missing trailing newlines, suggesting inconsistent writer behavior across generated review/history files.\n**Suggestion:** Update the Markdown artifact writer to always terminate files with a newline, then regenerate affected files.\n\n### 4. Align spec progress source of truth\n**File:** `specs/308-docs-enrich-preset-root/spec.json`\n**Issue:** Requirement status and task status encode overlapping progress state, and the summaries show they can disagree (`requirements` done while implementation tasks remain pending).\n**Suggestion:** Choose one progress source of truth, preferably task state, and derive requirement status from it or remove duplicated requirement-level status.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Normalize review finding artifacts",
+        "body": "**File:** `specs/308-docs-enrich-preset-root/review-history/*.json`\n**Issue:** Review findings are duplicated across JSON fields (`findings`, `blockingFindings`, `body`, structured fields) and again in parallel Markdown files. This creates multiple sources of truth across spec, impl, and test review artifacts.\n**Suggestion:** Make JSON the canonical artifact, store each finding once with stable IDs, and generate Markdown plus blocking/non-blocking views from that data.",
+        "file": "specs/308-docs-enrich-preset-root/review-history/*.json"
+      },
+      {
+        "title": "2. Centralize generated workflow metadata",
+        "body": "**File:** `specs/308-docs-enrich-preset-root/*.json`\n**Issue:** Several workflow artifacts persist repeated derived data: requirement file mappings, observations, command metadata, metrics, and review history summaries. The repetition appears across files and can drift when one producer changes shape.\n**Suggestion:** Define one canonical schema per concept and have secondary views reference IDs or be generated at render time.",
+        "file": "specs/308-docs-enrich-preset-root/*.json"
+      },
+      {
+        "title": "3. Fix Markdown generation conventions",
+        "body": "**File:** `specs/308-docs-enrich-preset-root/**/*.md`\n**Issue:** Multiple Markdown artifacts are missing trailing newlines, suggesting inconsistent writer behavior across generated review/history files.\n**Suggestion:** Update the Markdown artifact writer to always terminate files with a newline, then regenerate affected files.",
+        "file": "specs/308-docs-enrich-preset-root/**/*.md"
+      },
+      {
+        "title": "4. Align spec progress source of truth",
+        "body": "**File:** `specs/308-docs-enrich-preset-root/spec.json`\n**Issue:** Requirement status and task status encode overlapping progress state, and the summaries show they can disagree (`requirements` done while implementation tasks remain pending).\n**Suggestion:** Choose one progress source of truth, preferably task state, and derive requirement status from it or remove duplicated requirement-level status.",
+        "file": "specs/308-docs-enrich-preset-root/spec.json"
+      }
+    ]
+  }
+}

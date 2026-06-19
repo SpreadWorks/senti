@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "635b54e59ef6bd709a49df1c",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0002",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/308-docs-enrich-preset-root/draft.json",
+      "specs/308-docs-enrich-preset-root/file-map.json",
+      "specs/308-docs-enrich-preset-root/flow.json"
+    ],
+    "inputHash": "f3bb1ecab1d1062eab266ebcfac8b70109d92f7102ca9cf0459ad5935a436588",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "635b54e59ef6bd709a49df1c"
+  },
+  "targetFiles": [
+    "specs/308-docs-enrich-preset-root/draft.json",
+    "specs/308-docs-enrich-preset-root/file-map.json",
+    "specs/308-docs-enrich-preset-root/flow.json"
+  ],
+  "inputHash": "f3bb1ecab1d1062eab266ebcfac8b70109d92f7102ca9cf0459ad5935a436588",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-06-19T00:55:02.747Z",
+  "finishedAt": "2026-06-19T00:55:02.747Z",
+  "rawResponse": "### 1. Collapse repeated requirement file mappings\n**File:** `specs/308-docs-enrich-preset-root/file-map.json`  \n**Issue:** `R1`, `R2`, and `R3` all map to the exact same two files, which duplicates data and makes future edits easier to miss.  \n**Suggestion:** If the flow schema supports it, represent the shared file set once and reference it from each requirement, or generate this file from a single shared mapping source.\n\n### 2. Trim volatile runtime noise from committed flow state\n**File:** `specs/308-docs-enrich-preset-root/flow.json`  \n**Issue:** The `metrics` array stores many detailed agent/runtime token records. This creates large, noisy diffs and can grow without an obvious bound during repeated review or retry cycles.  \n**Suggestion:** Persist only the latest/summary metrics needed by the workflow, or add an explicit retention cap for per-phase runtime entries to satisfy bounded-resource-usage expectations.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Collapse repeated requirement file mappings",
+        "body": "**File:** `specs/308-docs-enrich-preset-root/file-map.json`  \n**Issue:** `R1`, `R2`, and `R3` all map to the exact same two files, which duplicates data and makes future edits easier to miss.  \n**Suggestion:** If the flow schema supports it, represent the shared file set once and reference it from each requirement, or generate this file from a single shared mapping source.",
+        "file": "specs/308-docs-enrich-preset-root/file-map.json"
+      },
+      {
+        "title": "2. Trim volatile runtime noise from committed flow state",
+        "body": "**File:** `specs/308-docs-enrich-preset-root/flow.json`  \n**Issue:** The `metrics` array stores many detailed agent/runtime token records. This creates large, noisy diffs and can grow without an obvious bound during repeated review or retry cycles.  \n**Suggestion:** Persist only the latest/summary metrics needed by the workflow, or add an explicit retention cap for per-phase runtime entries to satisfy bounded-resource-usage expectations.",
+        "file": "specs/308-docs-enrich-preset-root/flow.json"
+      }
+    ]
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "devType": "bugfix",
+  "goal": "must make docs enrich resolve preset chapter order with the current project root so plugin registry presets in .senti/config.json type are available during senti docs build.",
+  "analysis": {
+    "problem": "Issue #402 reports that senti docs build --verbose emits [presets] resolveChain failed warnings for plugin registry presets such as coding-rule, document, and senti-plugin during the docs enrich step. The root cause is that runEnrich in src/docs/commands/enrich.js calls resolveChaptersOrder(type, undefined) without the project root, so resolveChainSafe only sees builtin presets and cannot load registry contributions for the current project.",
+    "proposedApproach": "Pass the current docs context root into resolveChaptersOrder from docs enrich, matching the existing docs init and docs readme preset resolution path. Keep plugin registry loading, preset definitions, and chapter merge behavior unchanged.",
+    "validation": "Source inspection confirms docs enrich destructures root from ctx but does not pass it to resolveChaptersOrder, while src/docs/commands/init.js and src/docs/commands/readme.js call resolveChaptersOrder(type, configChapters, root). resolveChaptersOrder forwards projectRoot to resolveChainSafe in src/docs/lib/template-merger.js, and resolveChainSafe uses src/lib/presets.js registry lookup only when a project root is provided. The fix addresses the root problem because the missing project root is the boundary between builtin-only resolution and project plugin registry resolution."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must treat Issue #402 as one bugfix concern: docs enrich preset chapter order resolution must include plugin registry presets configured for the current project.",
+      "must preserve existing docs init and docs readme behavior, which already pass root into resolveChaptersOrder.",
+      "must preserve resolveChaptersOrder semantics: config chapters override preset chapters, and preset chains are resolved through resolveChainSafe.",
+      "must preserve plugin registry loading in src/lib/presets.js without introducing a separate docs enrich registry path.",
+      "must avoid hardcoding senti-workflow-plugin, coding-rule, document, or senti-plugin as project-specific values in src/ code.",
+      "must avoid adding external dependencies; this can be implemented with existing function parameters and tests.",
+      "must not alter docs scan, docs text, docs init, docs readme, or preset definition content except as required for regression coverage."
+    ],
+    "decisionPoints": [
+      "must decide that docs enrich uses the same project-root-aware chapter order resolution path as docs init/readme.",
+      "must decide regression coverage for the failing case: plugin registry preset configured in project type resolves during docs enrich without falling back to builtin-only behavior.",
+      "should verify the reported project-level behavior with a project whose .senti/config.json type contains registry presets, while keeping production code generic."
+    ],
+    "resolvedByProjectRules": [
+      "must keep src/ free of project-specific assumptions; tests may use temporary fixture projects instead of embedding local workspace paths.",
+      "must add or update tests without weakening existing scenarios.",
+      "must use existing Node.js built-in modules and node:test patterns.",
+      "should keep the implementation small because the target API already accepts projectRoot."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must define exact acceptance criteria for warning removal and chapter resolution parity.",
+      "must define the targeted unit or integration test shape for docs enrich root propagation.",
+      "should define whether project-level verification uses the local senti-workflow-plugin workspace as manual evidence in addition to automated tests."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must update docs enrich so resolveChaptersOrder receives the current project root.",
+      "must ensure plugin registry presets listed in .senti/config.json type resolve during docs enrich.",
+      "must ensure senti docs build --verbose no longer emits Preset not found warnings for registry presets that are visible to senti presets list.",
+      "must keep docs init and docs readme preset resolution behavior unchanged.",
+      "should include regression coverage proving docs enrich uses project-root-aware preset resolution."
+    ],
+    "out": [
+      "must not change plugin registry discovery, plugin installation, or registry manifest parsing.",
+      "must not change builtin preset definitions or registry preset definitions.",
+      "must not hardcode local project names, preset names, or workspace paths in src/.",
+      "should not broaden docs build behavior beyond the enrich preset resolution bug."
+    ]
+  },
+  "impactOnExisting": [
+    "must retain docs enrich static chapter mapping, docs.exclude filtering, batching, AI prompt generation, and analysis.json update behavior.",
+    "must retain builtin-only behavior when no project root or no registry presets are available, including resolveChainSafe fallback behavior for genuinely unknown presets.",
+    "must align docs enrich with existing docs init/readme behavior for project-root-aware preset resolution.",
+    "should reduce verbose warning noise for valid registry presets without hiding warnings for invalid preset names."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "Issue #402 の目的は、docs enrich の章順解決で project root を渡し、plugin registry preset を docs init/readme と同じ経路で解決する bugfix として扱うことでよいか。",
+      "answer": "はい。must: docs enrich は resolveChaptersOrder に current project root を渡し、.senti/config.json の type に含まれる plugin registry preset を Preset not found 警告なしに解決する。must: plugin registry loading や preset definition は変更しない。",
+      "evidence": "User selected auto option [1] after the preflight summary for Issue #402. Source inspection: src/docs/commands/enrich.js calls resolveChaptersOrder(type, undefined); src/docs/commands/init.js and src/docs/commands/readme.js call resolveChaptersOrder(type, configChapters, root); src/docs/lib/template-merger.js passes projectRoot to resolveChainSafe.",
+      "why": "The preflight summary was approved by the user with auto mode. The Issue already identifies the missing root argument as the cause, and source inspection confirms that this is the only inconsistent docs command path for chapter order resolution.",
+      "considered": "Changing src/lib/presets.js registry lookup or adding docs enrich-specific registry handling was rejected because resolveChaptersOrder already supports projectRoot and init/readme already use that existing path.",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-19T00:31:31Z",
+    "notes": "Preflight summary approved by user selection [1] with autoApprove enabled."
+  }
+}

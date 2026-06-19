@@ -1,0 +1,201 @@
+{
+  "entries": [
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The spec changes existing docs-enrich preset-resolution behavior (root-aware registry lookup) but provides no migration-parity section: no inventory of existing public behavior being replaced, no mapping of retained behavior to new owners or explicit removal decisions, and no behavior-level verification checklist for retained public surfaces before/after the change.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-19T00:37:14.579Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec-content"
+          },
+          "observed": "The spec changes existing docs-enrich preset-resolution behavior (root-aware registry lookup) but provides no migration-parity section: no inventory of existing public behavior being replaced, no mapping of retained behavior to new owners or explicit removal decisions, and no behavior-level verification checklist for retained public surfaces before/after the change.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The spec changes existing docs-enrich preset-resolution behavior (root-aware registry lookup) but provides no migration-parity section: no inventory of existing public behavior being replaced, no mapping of retained behavior to new owners or explicit removal decisions, and no behavior-level verification checklist for retained public surfaces before/after the change."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "Spec gate failed because migration parity inventory and behavior-level verification were missing from spec.json.",
+      "trigger": "senti flow run gate reported migration-parity guardrail violation for docs enrich resolver behavior change.",
+      "resolution": "Added migration parity inventory, retained behavior mapping, and behavior-level verification acceptance criteria to spec.json.",
+      "guardrailCandidate": "When spec changes existing command behavior, include migration parity inventory and retained behavior verification before spec gate.",
+      "taskId": null,
+      "timestamp": "2026-06-19T00:37:36.526Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Migration parity inventory includes `senti docs build`, but the listed behavior-level parity checks do not include any verification for `senti docs build` behavior after the root-argument fix.; Migration parity inventory includes `docs init`, but acceptance criteria only verify a subset of behavior and provide no behavior-level verification that `docs init` remains unchanged through this migration path.; Migration parity inventory includes `docs readme`, but the spec has no behavior-level check showing retained `docs readme` behavior is preserved via the new path.; Migration parity inventory includes the `resolveChaptersOrder` API surface, yet there is no acceptance criterion that verifies retained `resolveChaptersOrder` behavior through the new ownership/path.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-19T00:37:52.308Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[4]"
+          },
+          "observed": "Migration parity inventory includes `senti docs build`, but the listed behavior-level parity checks do not include any verification for `senti docs build` behavior after the root-argument fix.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[4]"
+          },
+          "observed": "Migration parity inventory includes `docs init`, but acceptance criteria only verify a subset of behavior and provide no behavior-level verification that `docs init` remains unchanged through this migration path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[4]"
+          },
+          "observed": "Migration parity inventory includes `docs readme`, but the spec has no behavior-level check showing retained `docs readme` behavior is preserved via the new path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[4]"
+          },
+          "observed": "Migration parity inventory includes the `resolveChaptersOrder` API surface, yet there is no acceptance criterion that verifies retained `resolveChaptersOrder` behavior through the new ownership/path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "Migration parity inventory includes `senti docs build`, but the listed behavior-level parity checks do not include any verification for `senti docs build` behavior after the root-argument fix."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "Migration parity inventory includes `docs init`, but acceptance criteria only verify a subset of behavior and provide no behavior-level verification that `docs init` remains unchanged through this migration path."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "Migration parity inventory includes `docs readme`, but the spec has no behavior-level check showing retained `docs readme` behavior is preserved via the new path."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "Migration parity inventory includes the `resolveChaptersOrder` API surface, yet there is no acceptance criterion that verifies retained `resolveChaptersOrder` behavior through the new ownership/path."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "Spec gate required behavior-level migration parity checks for each retained public surface named in the inventory.",
+      "trigger": "Second spec gate run reported missing parity checks for senti docs build, docs init, docs readme, and resolveChaptersOrder.",
+      "resolution": "Expanded acceptance criteria with explicit behavior-level parity verification for docs build, init, readme, and resolveChaptersOrder.",
+      "guardrailCandidate": "Migration parity inventories should be paired with one explicit behavior-level verification criterion for every retained public surface.",
+      "taskId": null,
+      "timestamp": "2026-06-19T00:38:05.407Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Test review failed because the first spec-local tests used source regex checks instead of exercising docs enrich runtime behavior.",
+      "trigger": "senti flow run review --phase test reported R2/R3 behavior coverage gaps and static regex anti-patterns.",
+      "resolution": "Replaced regex-focused tests with runtime DocsEnrichCommand execution against a temporary registry preset project and explicit fallback verification.",
+      "guardrailCandidate": "Spec-local tests for command behavior should execute the command path or a command class seam, not rely on source regex assertions.",
+      "taskId": null,
+      "timestamp": "2026-06-19T00:42:42.479Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Test review required explicit docs init and docs readme parity coverage for R3 retained behavior.",
+      "trigger": "Second test review run reported R3 did not cover docs init/readme preset resolution behavior.",
+      "resolution": "Added executable docs init and docs readme checks using the same temporary registry preset project and templates.",
+      "guardrailCandidate": "When R3 claims retained command behavior, spec-local tests should execute each retained command surface named by the requirement.",
+      "taskId": null,
+      "timestamp": "2026-06-19T00:44:18.509Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Impl review failed because the new spec-local regression file was untracked and absent from the review diff input.",
+      "trigger": "senti flow run review reported missing R2 spec-local regression coverage even though the test file existed in the working tree.",
+      "resolution": "Staged src/docs/commands/enrich.js and specs/308-docs-enrich-preset-root so the implementation review can inspect the spec-local regression artifact.",
+      "guardrailCandidate": "Before impl review, ensure new spec-local test files are tracked or staged so diff-based review inputs include acceptance coverage.",
+      "taskId": null,
+      "timestamp": "2026-06-19T00:49:14.644Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Impl review tooling failed because staged generated spec artifacts expanded the diff and produced invalid nonBlockingImprovements schema output.",
+      "trigger": "senti flow run review exited with impl review output failed schema validation after reviewing 44 files and 44 proposals.",
+      "resolution": "Unstaged generated artifacts and used intent-to-add only for the new spec-local test so review input contains production change plus acceptance test coverage.",
+      "guardrailCandidate": "Before AI impl review, keep generated flow artifacts out of the staged diff and expose only production changes plus relevant new spec-local tests.",
+      "taskId": null,
+      "timestamp": "2026-06-19T00:55:57.701Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-06-19T01:01:04.041Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Finalize merge failed because the feature branch conflicted with current main during the squash merge attempt.",
+      "trigger": "senti flow run finalize-merge returned Merge conflict detected and instructed to run git rebase main in the worktree.",
+      "resolution": "Record the merge failure, rebase the feature branch onto main inside the flow worktree, then retry finalize-merge.",
+      "guardrailCandidate": "When finalize merge reports a conflict, record the failure and rebase only inside the active flow worktree before retrying finalize.",
+      "taskId": null,
+      "timestamp": "2026-06-19T01:01:33.689Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-06-19T01:03:10.174Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Finalize merge retried after a clean rebase but failed again because the squash merge route could not apply onto the current main worktree state.",
+      "trigger": "senti flow run finalize-merge returned Merge conflict detected immediately after git rebase main reported the feature branch was up to date.",
+      "resolution": "Keep the flow worktree clean, preserve retry evidence, and require the main worktree to be cleaned or committed before retrying finalize-merge.",
+      "guardrailCandidate": "Before retrying a worktree squash finalize, verify the target main worktree has no unrelated uncommitted changes that can interfere with git merge --squash.",
+      "taskId": null,
+      "timestamp": "2026-06-19T01:04:14.849Z"
+    }
+  ]
+}

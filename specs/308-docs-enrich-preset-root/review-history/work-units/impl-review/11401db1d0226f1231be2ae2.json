@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "11401db1d0226f1231be2ae2",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0009",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/308-docs-enrich-preset-root/spec-review.json",
+      "specs/308-docs-enrich-preset-root/spec.json",
+      "specs/308-docs-enrich-preset-root/spec.md"
+    ],
+    "inputHash": "bc9c286a75a8f175b4b9d1a55387ca8945c66359608211f8bb00a4e8b9b765d3",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "11401db1d0226f1231be2ae2"
+  },
+  "targetFiles": [
+    "specs/308-docs-enrich-preset-root/spec-review.json",
+    "specs/308-docs-enrich-preset-root/spec.json",
+    "specs/308-docs-enrich-preset-root/spec.md"
+  ],
+  "inputHash": "bc9c286a75a8f175b4b9d1a55387ca8945c66359608211f8bb00a4e8b9b765d3",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-06-19T00:52:07.536Z",
+  "finishedAt": "2026-06-19T00:52:07.536Z",
+  "rawResponse": "### 1. Align Implementation Status Fields\n**File:** `specs/308-docs-enrich-preset-root/spec.json`  \n**Issue:** Requirements are marked `\"status\": \"done\"` while both implementation tasks remain `\"pending\"`, which makes the spec state internally inconsistent.  \n**Suggestion:** Keep requirement status as pending/not-started until the implementation and regression test are complete, or remove per-requirement status if task status is the source of truth.\n\n### 2. Remove Empty Open Questions Placeholder\n**File:** `specs/308-docs-enrich-preset-root/spec.md`  \n**Issue:** `## Open Questions` contains only `- [ ]`, which is dead placeholder content and adds noise.  \n**Suggestion:** Replace it with `- None` or omit the section until a real question exists.\n\n### 3. Avoid Duplicated Review Text\n**File:** `specs/308-docs-enrich-preset-root/spec-review.json`  \n**Issue:** Each improvement stores the same content twice: once composed inside `body`, and again in structured fields like `improvement` and `whyNonBlocking`. This creates duplicate maintenance points.  \n**Suggestion:** Prefer structured fields as canonical data and derive `body` at render time, or keep only `body` if the JSON is intended as a rendered artifact.\n\n### 4. Add Explicit Resource Bounds To The Spec\n**File:** `specs/308-docs-enrich-preset-root/spec.json`  \n**Issue:** The spec mentions AI enrich batching and registry-preset regression fixtures, but does not state explicit bounds for batch size, fixture size, or warning/output scanning. This leaves the bounded-resource-usage guardrail implicit.  \n**Suggestion:** Add a constraint or acceptance criterion requiring the regression fixture and enrich path verification to use bounded fixture counts and bounded output/assertion scanning, preserving existing AI batching limits.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Align Implementation Status Fields",
+        "body": "**File:** `specs/308-docs-enrich-preset-root/spec.json`  \n**Issue:** Requirements are marked `\"status\": \"done\"` while both implementation tasks remain `\"pending\"`, which makes the spec state internally inconsistent.  \n**Suggestion:** Keep requirement status as pending/not-started until the implementation and regression test are complete, or remove per-requirement status if task status is the source of truth.",
+        "file": "specs/308-docs-enrich-preset-root/spec.json"
+      },
+      {
+        "title": "2. Remove Empty Open Questions Placeholder",
+        "body": "**File:** `specs/308-docs-enrich-preset-root/spec.md`  \n**Issue:** `## Open Questions` contains only `- [ ]`, which is dead placeholder content and adds noise.  \n**Suggestion:** Replace it with `- None` or omit the section until a real question exists.",
+        "file": "specs/308-docs-enrich-preset-root/spec.md"
+      },
+      {
+        "title": "3. Avoid Duplicated Review Text",
+        "body": "**File:** `specs/308-docs-enrich-preset-root/spec-review.json`  \n**Issue:** Each improvement stores the same content twice: once composed inside `body`, and again in structured fields like `improvement` and `whyNonBlocking`. This creates duplicate maintenance points.  \n**Suggestion:** Prefer structured fields as canonical data and derive `body` at render time, or keep only `body` if the JSON is intended as a rendered artifact.",
+        "file": "specs/308-docs-enrich-preset-root/spec-review.json"
+      },
+      {
+        "title": "4. Add Explicit Resource Bounds To The Spec",
+        "body": "**File:** `specs/308-docs-enrich-preset-root/spec.json`  \n**Issue:** The spec mentions AI enrich batching and registry-preset regression fixtures, but does not state explicit bounds for batch size, fixture size, or warning/output scanning. This leaves the bounded-resource-usage guardrail implicit.  \n**Suggestion:** Add a constraint or acceptance criterion requiring the regression fixture and enrich path verification to use bounded fixture counts and bounded output/assertion scanning, preserving existing AI batching limits.",
+        "file": "specs/308-docs-enrich-preset-root/spec.json"
+      }
+    ]
+  }
+}

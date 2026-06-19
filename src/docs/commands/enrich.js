@@ -405,7 +405,7 @@ async function runEnrich(ctx, rawArgs) {
   }
 
   // Get chapter list from preset
-  const presetChapterNames = resolveChaptersOrder(type, undefined);
+  const presetChapterNames = resolveChaptersOrder(type, undefined, root);
   if (presetChapterNames.length === 0) {
     logger.log("WARN: no chapters defined in preset, skipping enrich.");
     return;

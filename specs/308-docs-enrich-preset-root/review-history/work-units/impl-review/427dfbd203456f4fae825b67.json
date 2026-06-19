@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "427dfbd203456f4fae825b67",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0008",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/308-docs-enrich-preset-root/review-history/test-attempt-003.md",
+      "specs/308-docs-enrich-preset-root/scenario-validity-result.json",
+      "specs/308-docs-enrich-preset-root/spec-gate-source.json",
+      "specs/308-docs-enrich-preset-root/test-review.md"
+    ],
+    "inputHash": "7cfd683df5ba81662de9d68cb48927f781bbef8d08e43a5fb530d5d05b8d8a8b",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "427dfbd203456f4fae825b67"
+  },
+  "targetFiles": [
+    "specs/308-docs-enrich-preset-root/review-history/test-attempt-003.md",
+    "specs/308-docs-enrich-preset-root/scenario-validity-result.json",
+    "specs/308-docs-enrich-preset-root/spec-gate-source.json",
+    "specs/308-docs-enrich-preset-root/test-review.md"
+  ],
+  "inputHash": "7cfd683df5ba81662de9d68cb48927f781bbef8d08e43a5fb530d5d05b8d8a8b",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-06-19T00:51:46.429Z",
+  "finishedAt": "2026-06-19T00:51:46.429Z",
+  "rawResponse": "### 1. Remove duplicated observation payloads\n**File:** `specs/308-docs-enrich-preset-root/spec-gate-source.json`  \n**Issue:** Each guardrail violation is stored once under `evaluations[*].observations` and again under top-level `observations`, duplicating the same data and creating drift risk.  \n**Suggestion:** Keep a single canonical observations list, or make one view derived by the producer instead of persisted twice.\n\n### 2. Avoid repeated command metadata per scenario\n**File:** `specs/308-docs-enrich-preset-root/scenario-validity-result.json`  \n**Issue:** The same `command` value is repeated at the top level and inside every `summary[*].evidence`, which makes the artifact noisier and harder to maintain.  \n**Suggestion:** Keep `command` only at the top level when all scenarios share it; reserve per-scenario `evidence.command` for overrides or distinct commands.\n\n### 3. Add trailing newline\n**File:** `specs/308-docs-enrich-preset-root/review-history/test-attempt-003.md`  \n**Issue:** The Markdown file has no trailing newline, which is inconsistent with common repository formatting and can produce noisy diffs.  \n**Suggestion:** End the file with a newline.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove duplicated observation payloads",
+        "body": "**File:** `specs/308-docs-enrich-preset-root/spec-gate-source.json`  \n**Issue:** Each guardrail violation is stored once under `evaluations[*].observations` and again under top-level `observations`, duplicating the same data and creating drift risk.  \n**Suggestion:** Keep a single canonical observations list, or make one view derived by the producer instead of persisted twice.",
+        "file": "specs/308-docs-enrich-preset-root/spec-gate-source.json"
+      },
+      {
+        "title": "2. Avoid repeated command metadata per scenario",
+        "body": "**File:** `specs/308-docs-enrich-preset-root/scenario-validity-result.json`  \n**Issue:** The same `command` value is repeated at the top level and inside every `summary[*].evidence`, which makes the artifact noisier and harder to maintain.  \n**Suggestion:** Keep `command` only at the top level when all scenarios share it; reserve per-scenario `evidence.command` for overrides or distinct commands.",
+        "file": "specs/308-docs-enrich-preset-root/scenario-validity-result.json"
+      },
+      {
+        "title": "3. Add trailing newline",
+        "body": "**File:** `specs/308-docs-enrich-preset-root/review-history/test-attempt-003.md`  \n**Issue:** The Markdown file has no trailing newline, which is inconsistent with common repository formatting and can produce noisy diffs.  \n**Suggestion:** End the file with a newline.",
+        "file": "specs/308-docs-enrich-preset-root/review-history/test-attempt-003.md"
+      }
+    ]
+  }
+}

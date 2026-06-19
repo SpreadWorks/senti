@@ -1,0 +1,213 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".senti/output/analysis.json                        |  213 +---\n .../acceptance-review.json                         |   21 +\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-questions-repair.json                    |    8 +\n .../draft-questions-triage.json                    |    8 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   11 +\n specs/308-docs-enrich-preset-root/draft.json       |   77 ++\n specs/308-docs-enrich-preset-root/file-map.json    |   14 +\n specs/308-docs-enrich-preset-root/flow.json        | 1181 ++++++++++++++++++++\n specs/308-docs-enrich-preset-root/impl-review.json |   28 +\n specs/308-docs-enrich-preset-root/issue-log.json   |  173 +++\n specs/308-docs-enrich-preset-root/issue.md         |   10 +\n .../plugin-artifacts/workflow/prepare.json         |   10 +\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |   14 +\n .../review-history/impl-attempt-001.json           |   51 +\n .../review-history/impl-attempt-001.md             |   22 +\n .../review-history/impl-attempt-002.json           |   31 +\n .../review-history/impl-attempt-002.md             |   16 +\n .../review-history/spec-attempt-001.json           |   54 +\n .../review-history/spec-attempt-001.md             |   19 +\n .../review-history/test-attempt-001.json           |   90 ++\n .../review-history/test-attempt-001.md             |   30 +\n .../review-history/test-attempt-002.json           |   50 +\n .../review-history/test-attempt-002.md             |   18 +\n .../review-history/test-attempt-003.json           |   28 +\n .../review-history/test-attempt-003.md             |   13 +\n .../impl-review/018870d7c819e46bcb116c71.json      |   40 +\n .../impl-review/0bdf3b707356690edf741e13.json      |   40 +\n .../impl-review/11401db1d0226f1231be2ae2.json      |   61 +\n .../impl-review/1960ca02f83db43a597ac346.json      |   71 ++\n .../impl-review/2802ea34b3003a0b446168d0.json      |   40 +\n .../impl-review/427dfbd203456f4fae825b67.json      |   58 +\n .../impl-review/562c706852c82bb0fcee42e9.json      |   40 +\n .../impl-review/591b4feebb7073ebc2e7b66d.json      |   58 +\n .../impl-review/59fa3a31c681356961cc7bdf.json      |   51 +\n .../impl-review/635b54e59ef6bd709a49df1c.json      |   51 +\n .../impl-review/71c912a6e0a91726721c1ffd.json      |   71 ++\n .../impl-review/75f4871091a34c2fc78b9a8b.json      |   40 +\n .../impl-review/8f9989ffa3d7b3b10d110c35.json      |   71 ++\n .../impl-review/bd3798396b2128f722503801.json      |   58 +\n .../impl-review/c43a47f76d207c075c9f3648.json      |   40 +\n .../impl-review/d7e860f04f301bf9cac6a177.json      |   46 +\n .../impl-review/d85e17476af5711ba3ad8791.json      |   59 +\n specs/308-docs-enrich-preset-root/review.md        |   16 +\n .../spec-gate-source.json                          |  157 +++\n specs/308-docs-enrich-preset-root/spec-review.json |   30 +\n specs/308-docs-enrich-preset-root/spec-review.md   |   19 +\n specs/308-docs-enrich-preset-root/spec.json        |  184 +++\n specs/308-docs-enrich-preset-root/spec.md          |  100 ++\n specs/308-docs-enrich-preset-root/tasks/T-1.md     |   19 +\n specs/308-docs-enrich-preset-root/tasks/T-2.md     |   19 +\n .../308-docs-enrich-preset-root/test-coverage.json |   53 +\n specs/308-docs-enrich-preset-root/test-review.json |   25 +\n specs/308-docs-enrich-preset-root/test-review.md   |   13 +\n .../tests/enrich-preset-root.test.js               |  213 ++++\n src/docs/commands/enrich.js                        |    2 +-\n 59 files changed, 3795 insertions(+), 181 deletions(-)",
+      "commits": [
+        "fix: resolve docs enrich registry presets"
+      ]
+    },
+    "retro": {
+      "total": 3,
+      "done": 3,
+      "partial": 0,
+      "not_done": 0,
+      "not_applicable_count": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "docs enrich must call resolveChaptersOrder with the current project root when resolving preset chapter names from ctx.type.",
+          "status": "done",
+          "note": "R1: docs enrich uses the current project root when building chapter prompts"
+        },
+        {
+          "desc": "A project whose .senti/config.json type references plugin registry presets must resolve those presets during docs enrich without Preset not found warnings for valid registry entries.",
+          "status": "done",
+          "note": "R2: docs enrich resolves valid registry presets without Preset not found warnings"
+        },
+        {
+          "desc": "docs init, docs readme, plugin registry loading, and builtin fallback behavior for genuinely unknown presets must remain unchanged by this bugfix.",
+          "status": "done",
+          "note": "R3: root-aware enrich behavior coexists with existing resolver fallback"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 8,
+      "fullLogPath": "specs/308-docs-enrich-preset-root/issue-log.json",
+      "importantTotal": 4,
+      "importantShown": 4,
+      "importantOmitted": 0,
+      "recentOtherTotal": 4,
+      "recentOtherShown": 4,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "Spec gate failed because migration parity inventory and behavior-level verification were missing from spec.json.",
+          "resolution": "Added migration parity inventory, retained behavior mapping, and behavior-level verification acceptance criteria to spec.json."
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Test review failed because the first spec-local tests used source regex checks instead of exercising docs enrich runtime behavior.",
+          "resolution": "Replaced regex-focused tests with runtime DocsEnrichCommand execution against a temporary registry preset project and explicit fallback verification."
+        },
+        {
+          "classification": "important",
+          "step": "impl-review",
+          "reason": "Impl review failed because the new spec-local regression file was untracked and absent from the review diff input.",
+          "resolution": "Staged src/docs/commands/enrich.js and specs/308-docs-enrich-preset-root so the implementation review can inspect the spec-local regression artifact."
+        },
+        {
+          "classification": "important",
+          "step": "impl-review",
+          "reason": "Impl review tooling failed because staged generated spec artifacts expanded the diff and produced invalid nonBlockingImprovements schema output.",
+          "resolution": "Unstaged generated artifacts and used intent-to-add only for the new spec-local test so review input contains production change plus acceptance test coverage."
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "The spec changes existing docs-enrich preset-resolution behavior (root-aware registry lookup) but provides no migration-parity section: no inventory of existing public behavior being replaced, no mapping of retained behavior to new owner...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "Migration parity inventory includes `senti docs build`, but the listed behavior-level parity checks do not include any verification for `senti docs build` behavior after the root-argument fix.; Migration parity inventory includes `docs i...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "Spec gate required behavior-level migration parity checks for each retained public surface named in the inventory.",
+          "resolution": "Expanded acceptance criteria with explicit behavior-level parity verification for docs build, init, readme, and resolveChaptersOrder."
+        },
+        {
+          "classification": "recent-other",
+          "step": "test-review",
+          "reason": "Test review required explicit docs init and docs readme parity coverage for R3 retained behavior.",
+          "resolution": "Added executable docs init and docs readme checks using the same temporary registry preset project and templates."
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 6
+    },
+    "tokenMetrics": {
+      "input": 629724,
+      "output": 54940,
+      "cacheRead": 415232,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 33,
+      "durationMs": 629084,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 5085
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 7639
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 12153
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 73920
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 42121
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 56629
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 419930
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 11607
+        }
+      ]
+    },
+    "tests": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/308-docs-enrich-preset-root/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "specs/308-docs-enrich-preset-root/",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/docs/commands/enrich.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/308-docs-enrich-preset-root/"
+          },
+          {
+            "status": "modified",
+            "path": "src/docs/commands/enrich.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/308-docs-enrich-preset-root/"
+          },
+          {
+            "status": "modified",
+            "path": "src/docs/commands/enrich.js"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "skipKind": null,
+        "rawOutputPath": "specs/308-docs-enrich-preset-root/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    fix: resolve docs enrich registry presets\n    59 files changed, 3795 insertions(+), 181 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (3 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 6\n    agent calls ................. 33\n    input tokens ................ 629,724\n    output tokens ............... 54,940\n    cache-read tokens ........... 415,232\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 629.1s\n      draft-questions-review .... 5.1s\n      draft-coverage-review ..... 7.6s\n      draft-gate ................ 12.2s\n      spec-review ............... 73.9s\n      spec-gate ................. 42.1s\n      test-review ............... 56.6s\n      impl-review ............... 419.9s\n      impl-gate ................. 11.6s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 3  passed 3  failed 0 verdict=pass\n    raw_output: specs/308-docs-enrich-preset-root/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=pass\n\n  Issue Log Summary (8 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/308-docs-enrich-preset-root/issue-log.json\n\n    Important (4)\n    - [spec-gate] Spec gate failed because migration parity inventory and behavior-level verification were missing from spec.json.\n    - [test-review] Test review failed because the first spec-local tests used source regex checks instead of exercising docs enrich runtime behavior.\n    - [impl-review] Impl review failed because the new spec-local regression file was untracked and absent from the review diff input.\n    - [impl-review] Impl review tooling failed because staged generated spec artifacts expanded the diff and produced invalid nonBlockingImprovements schema output.\n\n    Recent Other (4)\n    - [spec-gate] The spec changes existing docs-enrich preset-resolution behavior (root-aware registry lookup) but provides no migration-parity section: no inventory of existing public behavior being replaced, no mapping of retained behavior to new owner...\n    - [spec-gate] Migration parity inventory includes `senti docs build`, but the listed behavior-level parity checks do not include any verification for `senti docs build` behavior after the root-argument fix.; Migration parity inventory includes `docs i...\n    - [spec-gate] Spec gate required behavior-level migration parity checks for each retained public surface named in the inventory.\n    - [test-review] Test review required explicit docs init and docs readme parity coverage for R3 retained behavior."
+}

@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "59fa3a31c681356961cc7bdf",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0003",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/308-docs-enrich-preset-root/impl-review.json",
+      "specs/308-docs-enrich-preset-root/issue-log.json",
+      "specs/308-docs-enrich-preset-root/issue.md"
+    ],
+    "inputHash": "5717e44defc9e59ff11bf5b322e038ec44105be51d8d83b40d6d9dbd48e85940",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "59fa3a31c681356961cc7bdf"
+  },
+  "targetFiles": [
+    "specs/308-docs-enrich-preset-root/impl-review.json",
+    "specs/308-docs-enrich-preset-root/issue-log.json",
+    "specs/308-docs-enrich-preset-root/issue.md"
+  ],
+  "inputHash": "5717e44defc9e59ff11bf5b322e038ec44105be51d8d83b40d6d9dbd48e85940",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-06-19T00:50:21.062Z",
+  "finishedAt": "2026-06-19T00:50:21.062Z",
+  "rawResponse": "### 1. Resolve Conflicting Duplicate Diff Content\n**File:** `specs/308-docs-enrich-preset-root/issue-log.json`  \n**Issue:** The same new file appears twice in the supplied diff with different contents. One version includes the final `impl-review` entry, while the other stops after `test-review`, making the intended final artifact ambiguous.  \n**Suggestion:** Keep a single canonical version of `issue-log.json` in the change set. If the `impl-review` failure/resolution is part of the workflow history, retain that entry consistently.\n\n### 2. Add Final Newline\n**File:** `specs/308-docs-enrich-preset-root/issue.md`  \n**Issue:** The file ends without a trailing newline.  \n**Suggestion:** Add a trailing newline to match normal text-file conventions and avoid noisy diffs later.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Resolve Conflicting Duplicate Diff Content",
+        "body": "**File:** `specs/308-docs-enrich-preset-root/issue-log.json`  \n**Issue:** The same new file appears twice in the supplied diff with different contents. One version includes the final `impl-review` entry, while the other stops after `test-review`, making the intended final artifact ambiguous.  \n**Suggestion:** Keep a single canonical version of `issue-log.json` in the change set. If the `impl-review` failure/resolution is part of the workflow history, retain that entry consistently.",
+        "file": "specs/308-docs-enrich-preset-root/issue-log.json"
+      },
+      {
+        "title": "2. Add Final Newline",
+        "body": "**File:** `specs/308-docs-enrich-preset-root/issue.md`  \n**Issue:** The file ends without a trailing newline.  \n**Suggestion:** Add a trailing newline to match normal text-file conventions and avoid noisy diffs later.",
+        "file": "specs/308-docs-enrich-preset-root/issue.md"
+      }
+    ]
+  }
+}

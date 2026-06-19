@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-19T00:48:21.417Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "title": "Missing spec-local regression coverage",
+      "failureMode": "missing_acceptance_requirement",
+      "requirementId": "R2",
+      "issue": "The implementation only updates src/docs/commands/enrich.js and does not include the required spec-local regression coverage under specs/308-docs-enrich-preset-root/tests/enrich-preset-root.test.js to show registry presets resolve during docs enrich without valid Preset not found warnings.",
+      "suggestion": "Add or update specs/308-docs-enrich-preset-root/tests/enrich-preset-root.test.js with a regression that fails when runEnrich omits the root argument from resolveChaptersOrder and passes after the fix.",
+      "rationale": "R2 requires behavior for plugin registry presets during docs enrich, and the acceptance criteria explicitly require spec-local coverage that fails against the previous missing-root behavior. Without that artifact, an acceptance requirement remains unimplemented."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/308-docs-enrich-preset-root/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "e5e30997da186ca43dcc9e4ca416c8b409fd09bed692dd61f138d906d5c71d81"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "impl-001-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Missing spec-local regression coverage",
+      "body": "The implementation only updates src/docs/commands/enrich.js and does not include the required spec-local regression coverage under specs/308-docs-enrich-preset-root/tests/enrich-preset-root.test.js to show registry presets resolve during docs enrich without valid Preset not found warnings.",
+      "category": "missing_acceptance_requirement"
+    }
+  ]
+}
