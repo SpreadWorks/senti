@@ -1,0 +1,129 @@
+{
+  "devType": "feature",
+  "goal": "must: Implement Issue #403 so final-regression failures can be classified, recorded, and conditionally advanced without being reported as passed.",
+  "analysis": {
+    "problem": "final-regression currently writes a failure artifact and returns FINAL_REGRESSION_FAILED, while the registry post-hook only completes the step for pass or skipped. This can leave a flow stuck even when the failure is existing, out of scope, or caused by the execution environment rather than the current diff.",
+    "proposedApproach": "Extend the final-regression failure contract so eligible failures preserve evidence, expose a record-and-proceed decision, and allow the flow to advance while the artifact, status, and report still show that final regression did not pass.",
+    "validation": "Issue #403 requires classification, evidence, auto/manual recommendation ordering, and clear non-pass display. Existing code already centralizes final-regression execution in src/flow/lib/run-final-regression.js, schema validation in src/flow/lib/test-artifacts.js, step completion in src/flow/registry.js, and final report rendering in src/flow/commands/report.js, so the approach addresses the stuck workflow at the owning final-regression boundary."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #403 defines record-and-proceed as eligible only for existing, out-of-scope, environment, sandbox, timeout, dependency, flaky-suspected, or otherwise non-current-flow failures.",
+      "must: Existing src/flow/lib/run-final-regression.js already writes final-regression-result.json, retained tests/.raw/final-regression-attempt-*.log files, failureKind, retryable, nextAction, changedFiles, process metadata, and issue-log entries.",
+      "must: Existing src/flow/registry.js final-regression post-hook only marks the step done when artifact.result and command result are pass or skipped.",
+      "must: Existing src/flow/prompts/impl/final-regression.md tells the agent to stop on unattributed existing and most infrastructure-like failures rather than offering a proceed path.",
+      "must: Existing src/flow/commands/report.js displays final regression result, skipKind, and failureKind, but Issue #403 requires record-and-proceed and remaining risk to be visible as non-pass.",
+      "must: Migration parity inventory covers public surfaces: senti flow run final-regression CLI behavior, final-regression-result.json artifact, tests/.raw/final-regression-attempt-*.log retained logs, final-regression next-action schema fields, registry post-hook step completion, impl/final-regression prompt instructions, status/report rendering, and issue-log evidence entries.",
+      "must: Migration parity retained behavior includes pass advancement, skipped advancement, command discovery, raw log retention, changed file snapshotting, process metadata capture, failureKind classification, retryable/nextAction signaling, and fail-closed handling for current-diff or workflow-integrity failures."
+    ],
+    "decisionPoints": [
+      "must: Define the artifact contract for a failure that was recorded and allowed to proceed without changing result from fail to pass.",
+      "must: Define which failure kinds are eligible for record-and-proceed and which must remain fix-or-stop.",
+      "must: Define the recommendation ordering for first failure versus repeated failure after a fix attempt, including auto mode behavior.",
+      "must: Define how final summary, report, and status distinguish pass, skipped, failed-stop, and failed-recorded-proceed states."
+    ],
+    "resolvedByProjectRules": [
+      "must: Keep this issue as one spec because project guardrails prohibit splitting a user-defined issue.",
+      "must: Use dedicated classes for meaningful values rather than object-literal discriminated unions when adding production data structures.",
+      "must: Do not add external dependencies; implementation must use Node.js built-in modules only.",
+      "must: Source code under src/ must remain project-agnostic and must not embed environment-specific values."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: The spec should decide whether to preserve existing internal failureKind values, add Issue #403 category aliases, or migrate the artifact schema without breaking existing validation paths.",
+      "must: The spec should decide exact artifact field names, status wording, and report text after evaluating existing schemas and report data collection.",
+      "must: The spec should map each retained public final-regression behavior to its owner: run-final-regression for execution and artifact writing, test-artifacts for validation, registry post-hook for step advancement, impl prompt for agent action, next-action schema for envelope shape, report/status code for display, and issue-log code for historical failure evidence.",
+      "must: The spec should state that no existing public final-regression behavior is intentionally removed; eligible failed-recorded-proceed is an added outcome and current pass/skipped/fail-closed behavior remains.",
+      "must: The spec should decide test coverage across runner, schema, next-action, prompt, report, auto recommendation paths, and retained pass/skipped/current-diff fail-closed parity."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: final-regression failure classification and next-action handling.",
+      "must: final-regression-result artifact fields needed to show non-pass record-and-proceed evidence.",
+      "must: step completion behavior that advances after an eligible recorded failure without treating it as pass.",
+      "must: auto mode and manual recommendation ordering for first failure and repeated eligible failure.",
+      "must: final summary, report, and status display of failed-recorded-proceed state and remaining risk.",
+      "must: migration parity for retained final-regression CLI, artifact, raw log, schema, prompt, status, report, post-hook, and issue-log behavior.",
+      "should: prompt and schema updates that keep agent behavior aligned with the artifact contract."
+    ],
+    "out": [
+      "must: npm publish or dist-tag operations.",
+      "must: changing unrelated workflow steps except where they consume final-regression status, report, or next-action data.",
+      "must: allowing record-and-proceed for failures caused by the current diff, broken workflow state, or inability to write required artifacts.",
+      "must: treating any failed final-regression outcome as pass."
+    ]
+  },
+  "impactOnExisting": [
+    "must: Existing pass and skipped final-regression outcomes must keep advancing to finalize-commit.",
+    "must: Existing current-diff and invalid project-test failures must remain repair-or-stop paths and must not become record-and-proceed eligible.",
+    "must: Existing final-regression raw attempt logs and final-regression-result.json validation must remain durable evidence for every run.",
+    "must: Migration parity verification must include behavior-level checks that pass still completes final-regression, skipped still completes final-regression with proof, current-diff failure does not record-and-proceed, eligible environment or existing failure can record-and-proceed with result still fail, and final report/status do not display the recorded failure as pass.",
+    "must: Migration parity verification must include artifact-level checks for failed command, exit code, raw log path, failure summary, current diff relationship, fix attempts, record-and-proceed selection, remaining risk, and next recommended action.",
+    "should: Existing final report readers should get additional non-pass risk fields without losing current result, skipKind, and failureKind display.",
+    "should: Existing auto mode behavior should follow the recommended next action rather than repeatedly stopping at the same eligible failure."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "Should the spec treat record-and-proceed as a non-pass final-regression outcome that may advance to finalize only when the failure is classified as outside the current diff or execution-environment related? record-and-proceed means the workflow records the failure evidence and advances, while reports still show final regression failed.",
+      "answer": "must: Yes. The spec must treat record-and-proceed as a failed final-regression outcome that can advance only for eligible non-current-diff or execution-environment failures, and it must never mark the regression as passed.",
+      "evidence": "Issue #403 Purpose says existing, out-of-scope, and environment-related failures should be eligible for record-and-proceed after preserving evidence, and choosing record-and-proceed must not treat the result as passed.",
+      "why": "This directly resolves the stuck workflow while preserving the safety boundary against hiding regressions caused by the current diff.",
+      "considered": "Treating the outcome as skipped or pass was rejected because Issue #403 explicitly says record-and-proceed must not make the regression look successful.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "Should status and final report display record-and-proceed as distinct from pass and skipped, including failure kind, failed command, raw log path, fix attempts, remaining risk, and next recommended action?",
+      "answer": "must: Yes. Status and final report must clearly show that final-regression did not pass, that record-and-proceed was selected, and the failure evidence, fix attempts, remaining risk, and next recommended action.",
+      "evidence": "Issue #403 Recording Requirements list failed command, exit code, raw log path, failure summary, current diff relationship, fix attempts, record-and-proceed selection, remaining risk, and next recommended action. Display Requirements require final summary, report, and status to clearly show non-pass.",
+      "why": "A distinct display state prevents reviewers from mistaking a recorded failure for pass or skipped while still allowing flow progress.",
+      "considered": "Only showing result=fail and failureKind was rejected because src/flow/commands/report.js currently prints a compact Final regression line and Issue #403 requires more explicit record-and-proceed risk information.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "Should user-visible summaries use the Issue #403 failure categories such as existing_failure, out_of_scope, environment, sandbox, timeout, dependency, and flaky_suspected when explaining why a failed final-regression was recorded and allowed to proceed?",
+      "answer": "must: Yes for user-visible summaries. The spec should require user-facing status and reports to use Issue #403 category names, while exact internal artifact migration or mapping can be specified from the existing schema during spec writing.",
+      "evidence": "Issue #403 Recording Requirements names failure kinds caused_by_current_change, existing_failure, out_of_scope, environment, sandbox, timeout, dependency, and flaky_suspected. Existing src/flow/lib/test-artifacts.js validates older final-regression failureKind values such as unattributed_existing_failure, infra_failure, sandbox_restriction, permission_error, child_process_eperm, dependency_failure, and invalid_project_test.",
+      "why": "User-facing category names should match the issue contract, but the spec needs source-aware detail before deciding whether artifact values are renamed or mapped.",
+      "considered": "Forcing an immediate artifact value rename in draft was rejected because schema migration details belong in the spec after inspecting all consumers.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "Should the first failure recommend fix-and-rerun when repair is plausible, then recommend record-and-proceed after a fix attempt still leaves an eligible non-current-diff failure?",
+      "answer": "must: Yes. The first failure should recommend fix-and-rerun, and a repeated eligible failure after a fix attempt should recommend record-and-proceed. Auto mode must select the current recommended option.",
+      "evidence": "Issue #403 Expected Behavior gives recommended order on first failure as fix then record, and after attempting a fix as record then fix. It also states auto mode automatically selects the recommended option.",
+      "why": "The ordering attempts repair before carrying risk forward, then avoids leaving the workflow stuck after a repeated eligible failure.",
+      "considered": "Always recommending record-and-proceed first was rejected because Issue #403 requires current-diff regressions to be fixed or stopped.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "Should record-and-proceed remain unavailable when final-regression cannot write required artifacts, schema validation fails, workflow state is inconsistent, or the failure is linked to the current diff?",
+      "answer": "must: Yes. record-and-proceed must be unavailable for current-diff regressions, broken workflow internal state, failed artifact generation or validation, and any condition that collapses assumptions for later finalize steps.",
+      "evidence": "Issue #403 Failures That Must Not Allow record-and-proceed lists current-diff failures, broken core spec behavior, build or artifact generation failure, required state or artifact write failure, and broken workflow internal state. Non-Goals also reject forcing progress when workflow assumptions are broken.",
+      "why": "This keeps record-and-proceed as an evidence-preserving escape for out-of-scope or environment failures, not a bypass for unsafe flow state.",
+      "considered": "Offering record-and-proceed for all failures was rejected because it would hide regressions and could corrupt finalize assumptions.",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-19T06:13:12+00:00",
+    "notes": "All draft QA entries were answered from Issue #403 and verified source context; no unresolved user decision remains."
+  }
+}

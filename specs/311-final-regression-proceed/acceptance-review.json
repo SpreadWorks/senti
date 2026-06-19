@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "goalSatisfactionScore": 1,
+  "requirementAlignmentScore": 1,
+  "implementationQualityScore": 1,
+  "acceptanceScore": 1,
+  "thresholds": {
+    "goalSatisfactionPass": 0.9,
+    "requirementAlignmentPass": 0.9,
+    "implementationQualityPass": 0.8
+  },
+  "mechanicalBlockers": [],
+  "hardBlockers": [],
+  "attempt": 1,
+  "findings": [],
+  "deferredFindings": [
+    {
+      "findingId": "DF-1",
+      "sourceStep": "test-review",
+      "sourceArtifact": "test-review.json",
+      "sourceFindingId": "review-finding-1",
+      "finalDisposition": "fixed",
+      "evidenceRefs": [
+        "tests/final-regression-report-and-prompt.test.js",
+        "test-execute-result.json",
+        "impl-gate-result.json"
+      ]
+    },
+    {
+      "findingId": "DF-2",
+      "sourceStep": "test-review",
+      "sourceArtifact": "test-review.json",
+      "sourceFindingId": "review-finding-2",
+      "finalDisposition": "fixed",
+      "evidenceRefs": [
+        "tests/final-regression-record-and-proceed.test.js",
+        "test-execute-result.json",
+        "impl-gate-result.json"
+      ]
+    },
+    {
+      "findingId": "DF-3",
+      "sourceStep": "test-review",
+      "sourceArtifact": "test-review.json",
+      "sourceFindingId": "review-finding-3",
+      "finalDisposition": "fixed",
+      "evidenceRefs": [
+        "tests/final-regression-report-and-prompt.test.js",
+        "test-execute-result.json",
+        "impl-gate-result.json"
+      ]
+    },
+    {
+      "findingId": "DF-4",
+      "sourceStep": "impl-review",
+      "sourceArtifact": "impl-review.json",
+      "sourceFindingId": "review-finding-1",
+      "finalDisposition": "fixed",
+      "evidenceRefs": [
+        "tests/final-regression-record-and-proceed.test.js",
+        "impl-gate-result.json"
+      ]
+    },
+    {
+      "findingId": "DF-5",
+      "sourceStep": "impl-review",
+      "sourceArtifact": "impl-review.json",
+      "sourceFindingId": "review-finding-2",
+      "finalDisposition": "fixed",
+      "evidenceRefs": [
+        "tests/final-regression-record-and-proceed.test.js",
+        "src/flow/lib/run-final-regression.js",
+        "impl-gate-result.json"
+      ]
+    },
+    {
+      "findingId": "DF-6",
+      "sourceStep": "impl-review",
+      "sourceArtifact": "impl-review.json",
+      "sourceFindingId": "review-finding-3",
+      "finalDisposition": "fixed",
+      "evidenceRefs": [
+        "tests/final-regression-report-and-prompt.test.js",
+        "src/flow/lib/run-report.js",
+        "impl-gate-result.json"
+      ]
+    }
+  ],
+  "requirementAmendmentProposals": [],
+  "userDecision": null,
+  "blockedDecision": null,
+  "verdict": "pass"
+}

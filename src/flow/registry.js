@@ -1147,9 +1147,9 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.run.final-regression",
       runtimeLog: { stepId: "final-regression" },
       command: () => import("./lib/run-final-regression.js"),
-      args: { flags: [], options: [...FLOW_RUN_OPTIONS] },
+      args: { flags: ["--record-and-proceed"], options: [...FLOW_RUN_OPTIONS] },
       help: [
-        "Usage: senti flow run final-regression",
+        "Usage: senti flow run final-regression [--record-and-proceed]",
         "",
         "Run the full project-level regression command after retro and before finalize.",
         "Persists specs/<spec>/final-regression-result.json and specs/<spec>/tests/.raw/final-regression-attempt-<N>.log (zero-padded to at least three digits).",
@@ -1159,10 +1159,18 @@ export const FLOW_COMMANDS = {
         const { readJsonStrict, validateFinalRegressionResult } = await import("./lib/test-artifacts.js");
         const specDir = path.dirname(path.resolve(ctx.root, ctx.flowState.spec));
         const artifact = validateFinalRegressionResult(readJsonStrict(path.join(specDir, "final-regression-result.json")));
+        const failedRecorded = artifact.result === "fail"
+          && result?.result === "fail"
+          && result?.failedRecorded === true
+          && artifact.completed === true
+          && artifact.selectedAction === "record-and-proceed"
+          && artifact.recordAndProceed?.validated === true
+          && artifact.nextAction === "finalize-commit";
         const completed = (artifact.result === "pass" && result?.result === "pass")
-          || (artifact.result === "skipped" && result?.result === "skipped");
+          || (artifact.result === "skipped" && result?.result === "skipped")
+          || failedRecorded;
         if (!completed) {
-          throw new Error("final-regression result is not pass or skipped");
+          throw new Error("final-regression result is not pass, skipped, or failed-recorded");
         }
         tryUpdateStepStatus(ctx, "final-regression", "done");
       },

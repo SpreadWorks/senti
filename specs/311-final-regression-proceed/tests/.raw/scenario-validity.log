@@ -1,0 +1,616 @@
+[senti] scenario-validity tests start
+command: node --test specs/311-final-regression-proceed/tests/final-regression-contract.test.js specs/311-final-regression-proceed/tests/final-regression-record-and-proceed.test.js specs/311-final-regression-proceed/tests/final-regression-report-and-prompt.test.js specs/311-final-regression-proceed/tests/final-regression-schema.test.js
+[senti] scenario-validity file start command=node specs/311-final-regression-proceed/tests/final-regression-contract.test.js
+TAP version 13
+# Subtest: Issue 403 final-regression completion contract
+    # Subtest: R5: failed-recorded artifacts keep result fail and carry validated record-and-proceed evidence
+    ok 1 - R5: failed-recorded artifacts keep result fail and carry validated record-and-proceed evidence
+      ---
+      duration_ms: 0.904285
+      type: 'test'
+      ...
+    # Subtest: R6: completion policy accepts validated failed-recorded and rejects ordinary failed artifacts
+    not ok 2 - R6: completion policy accepts validated failed-recorded and rejects ordinary failed artifacts
+      ---
+      duration_ms: 2.471292
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-contract.test.js:71:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + 'inconsistent'
+        - 'normal'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'normal'
+      actual: 'inconsistent'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-contract.test.js:77:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1442:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+      ...
+    # Subtest: R6: registry post-hook accepts only pass, skipped, or validated failed-recorded final-regression artifacts
+    not ok 3 - R6: registry post-hook accepts only pass, skipped, or validated failed-recorded final-regression artifacts
+      ---
+      duration_ms: 2.863694
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-contract.test.js:98:3'
+      failureType: 'testCodeFailure'
+      error: 'final-regression result is not pass or skipped'
+      code: 'ERR_TEST_FAILURE'
+      stack: |-
+        post (file:///home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/src/flow/registry.js:1165:17)
+        async TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-contract.test.js:117:7)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R10: this spec-local file declares coverage headers and R-prefixed tests for completion policy
+    ok 4 - R10: this spec-local file declares coverage headers and R-prefixed tests for completion policy
+      ---
+      duration_ms: 0.614723
+      type: 'test'
+      ...
+    1..4
+not ok 1 - Issue 403 final-regression completion contract
+  ---
+  duration_ms: 8.650083
+  type: 'suite'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-contract.test.js:59:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 2
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 22.822755
+Command failed: node specs/311-final-regression-proceed/tests/final-regression-contract.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/311-final-regression-proceed/tests/final-regression-contract.test.js
+[senti] scenario-validity file start command=node specs/311-final-regression-proceed/tests/final-regression-record-and-proceed.test.js
+TAP version 13
+# Subtest: Issue 403 final-regression record-and-proceed runner behavior
+    # Subtest: R1: failed artifacts separate assertion failures from execution failures and expose Issue 403 categories
+    not ok 1 - R1: failed artifacts separate assertion failures from execution failures and expose Issue 403 categories
+      ---
+      duration_ms: 59.21878
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-record-and-proceed.test.js:97:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + undefined
+        - 'assertion'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'assertion'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-record-and-proceed.test.js:104:12)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1442:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+      ...
+    # Subtest: R2: current-diff and invalid project-test failures are not eligible for record-and-proceed
+    not ok 2 - R2: current-diff and invalid project-test failures are not eligible for record-and-proceed
+      ---
+      duration_ms: 44.489505
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-record-and-proceed.test.js:124:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + undefined
+        - 'caused_by_current_change'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'caused_by_current_change'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-record-and-proceed.test.js:136:12)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R3: eligible failures keep result fail while exposing record-and-proceed eligibility
+    not ok 3 - R3: eligible failures keep result fail while exposing record-and-proceed eligibility
+      ---
+      duration_ms: 47.886162
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-record-and-proceed.test.js:262:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + undefined
+        - 'existing_failure'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'existing_failure'
+      operator: 'strictEqual'
+      stack: |-
+        assertFailedRecordedEvidence (file:///home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-record-and-proceed.test.js:85:10)
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-record-and-proceed.test.js:269:5)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R4: record-and-proceed preserves failure evidence and writes distinct selected and recommended actions
+    not ok 4 - R4: record-and-proceed preserves failure evidence and writes distinct selected and recommended actions
+      ---
+      duration_ms: 72.979729
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-record-and-proceed.test.js:306:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        
+        'skipped' !== 'fail'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'fail'
+      actual: 'skipped'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-record-and-proceed.test.js:325:12)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R5: record-and-proceed rejects stale failed artifacts by command identity or changed-file fingerprints
+    not ok 5 - R5: record-and-proceed rejects stale failed artifacts by command identity or changed-file fingerprints
+      ---
+      duration_ms: 45.013508
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-record-and-proceed.test.js:343:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + undefined
+        - false
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: false
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-record-and-proceed.test.js:362:12)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R5: CLI --record-and-proceed validates current failed artifact and returns post-hook completion envelope
+    not ok 6 - R5: CLI --record-and-proceed validates current failed artifact and returns post-hook completion envelope
+      ---
+      duration_ms: 437.427295
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-record-and-proceed.test.js:414:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        
+        false !== true
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-record-and-proceed.test.js:430:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R7: repeated identical failures keep fixAttempts at zero, while post-failure changes recommend record-and-proceed
+    not ok 7 - R7: repeated identical failures keep fixAttempts at zero, while post-failure changes recommend record-and-proceed
+      ---
+      duration_ms: 54.961678
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-record-and-proceed.test.js:440:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        
+        'skipped' !== 'fail'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'fail'
+      actual: 'skipped'
+      operator: 'strictEqual'
+      stack: |-
+        assertFailedRecordedEvidence (file:///home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-record-and-proceed.test.js:84:10)
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-record-and-proceed.test.js:446:5)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R9: pass, current-diff fail-closed, raw log, changed files, process, retry, nextAction, and issue-log parity remain intact
+    not ok 8 - R9: pass, current-diff fail-closed, raw log, changed files, process, retry, nextAction, and issue-log parity remain intact
+      ---
+      duration_ms: 57.24857
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-record-and-proceed.test.js:530:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        + actual - expected
+        
+        + undefined
+        - 'caused_by_current_change'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 'caused_by_current_change'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-record-and-proceed.test.js:550:12)
+        process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R10: this spec-local file declares coverage headers and R-prefixed tests for the runner contract
+    ok 9 - R10: this spec-local file declares coverage headers and R-prefixed tests for the runner contract
+      ---
+      duration_ms: 1.95189
+      type: 'test'
+      ...
+    1..9
+not ok 1 - Issue 403 final-regression record-and-proceed runner behavior
+  ---
+  duration_ms: 823.513889
+  type: 'suite'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-record-and-proceed.test.js:93:1'
+  failureType: 'subtestsFailed'
+  error: '8 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 9
+# suites 1
+# pass 1
+# fail 8
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 832.071333
+[senti] final-regression command: sh final-regression-fixture.sh
+[senti] final-regression raw log: specs/001-record-proceed/tests/.raw/final-regression-attempt-001.log
+[senti] final-regression result artifact: specs/001-record-proceed/final-regression-result.json
+[senti] final-regression wrote raw log: specs/001-record-proceed/tests/.raw/final-regression-attempt-001.log
+[senti] final-regression command: sh final-regression-fixture.sh
+[senti] final-regression raw log: specs/001-record-proceed/tests/.raw/final-regression-attempt-001.log
+[senti] final-regression result artifact: specs/001-record-proceed/final-regression-result.json
+[senti] final-regression wrote raw log: specs/001-record-proceed/tests/.raw/final-regression-attempt-001.log
+[senti] final-regression command: sh final-regression-fixture.sh
+[senti] final-regression raw log: specs/001-record-proceed/tests/.raw/final-regression-attempt-001.log
+[senti] final-regression result artifact: specs/001-record-proceed/final-regression-result.json
+[senti] final-regression wrote raw log: specs/001-record-proceed/tests/.raw/final-regression-attempt-001.log
+[senti] final-regression command: sh final-regression-fixture.sh
+[senti] final-regression raw log: specs/001-record-proceed/tests/.raw/final-regression-attempt-001.log
+[senti] final-regression result artifact: specs/001-record-proceed/final-regression-result.json
+[senti] final-regression wrote raw log: specs/001-record-proceed/tests/.raw/final-regression-attempt-001.log
+[senti] final-regression command: sh final-regression-fixture.sh
+[senti] final-regression raw log: specs/001-record-proceed/tests/.raw/final-regression-attempt-002.log
+[senti] final-regression result artifact: specs/001-record-proceed/final-regression-result.json
+[senti] final-regression wrote raw log: specs/001-record-proceed/tests/.raw/final-regression-attempt-002.log
+[senti] final-regression command: sh final-regression-fixture.sh
+[senti] final-regression raw log: specs/001-record-proceed/tests/.raw/final-regression-attempt-001.log
+[senti] final-regression result artifact: specs/001-record-proceed/final-regression-result.json
+[senti] final-regression wrote raw log: specs/001-record-proceed/tests/.raw/final-regression-attempt-001.log
+[senti] final-regression command: sh final-regression-fixture.sh
+[senti] final-regression raw log: specs/001-record-proceed/tests/.raw/final-regression-attempt-001.log
+[senti] final-regression command: sh final-regression-fixture.sh
+[senti] final-regression raw log: specs/001-record-proceed/tests/.raw/final-regression-attempt-002.log
+[senti] final-regression result artifact: specs/001-record-proceed/final-regression-result.json
+[senti] final-regression wrote raw log: specs/001-record-proceed/tests/.raw/final-regression-attempt-002.log
+exitCode: 1
+[senti] scenario-validity file end command=node specs/311-final-regression-proceed/tests/final-regression-record-and-proceed.test.js
+[senti] scenario-validity file start command=node specs/311-final-regression-proceed/tests/final-regression-report-and-prompt.test.js
+TAP version 13
+# Subtest: Issue 403 final-regression report and prompt behavior
+    # Subtest: R4: report JSON preserves selected action, remaining risk, and next recommended action
+    ok 1 - R4: report JSON preserves selected action, remaining risk, and next recommended action
+      ---
+      duration_ms: 23.136317
+      type: 'test'
+      ...
+    # Subtest: R4: final report data is assembled from the persisted failed-recorded artifact
+    not ok 2 - R4: final report data is assembled from the persisted failed-recorded artifact
+      ---
+      duration_ms: 39.872042
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-report-and-prompt.test.js:92:3'
+      failureType: 'testCodeFailure'
+      error: "Cannot read properties of null (reading 'finalRegression')"
+      code: 'ERR_TEST_FAILURE'
+      name: 'TypeError'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-report-and-prompt.test.js:112:66)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R7: final-regression prompt documents fixAttempts recommendations and auto selection
+    not ok 3 - R7: final-regression prompt documents fixAttempts recommendations and auto selection
+      ---
+      duration_ms: 1.853769
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-report-and-prompt.test.js:124:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        The input did not match the regular expression /fixAttempts/. Input:
+        
+        '   - Run `senti flow run final-regression`.\n' +
+          '   - This step is the only default full project regression point. Do not run full project regression from `test-execute`, `impl-review`, `impl-gate`, or `retro`.\n' +
+          '   - Outcomes:\n' +
+          '     - `executed`: project regression command ran and `final-regression-result.json` has `result: "pass"` or `result: "fail"`.\n' +
+          '     - `covered_by_test_execute_full_regression`: command did not run because same-flow `test-execute-result.json` already has fresh full/pass evidence with exact command identity and changed-file fingerprints.\n' +
+          '     - `risk_based_static_proof`: command did not run because every changed path is explicitly non-runtime and required static/evidence checks passed.\n' +
+          '     - `skipped_by_project_policy`: command did not run because no supported project-level regression command source exists.\n' +
+          '   - On PASS or SKIPPED, the registry post-hook marks `final-regression` done and the flow proceeds to `finalize-commit`.\n' +
+          '   - Skipped artifacts MUST include `version`, `completed`, `result`, `failureKind`, `skipKind`, `reason`, `command`, `commandSource`, `rawOutputPath`, `rawOutputLines`, `process`, `changedFiles`, `retryable`, `nextAction`, and `proof`.\n' +
+          '   - For skipped artifacts, `process.started` is `false`, `process.exitCode` / `signal` / `spawnError` are `null`, `process.timedOut` is `false`, and `rawOutputPath` points to a retained `tests/.raw/final-regression-attempt-*.log` decision log.\n' +
+          '   - `proof.kind` must equal `skipKind`. Covered-by-test-execute proof contains `reusedArtifactPath`, `commandIdentity`, `changedFileFingerprints`, and `staleCheck`. Risk-based proof contains `allowlistClassifications`, `checkedSensitivePathClasses`, `failClosedDecision`, `upgradeEvidencePath`, and `testExecuteEvidencePath`. Project-policy proof contains `commandDiscovery.checkedSources`, `supportedCommandFound: false`, `invalidConfiguredCommand: false`, and `reason`.\n' +
+          '   - On FAIL, read `specs/<spec>/final-regression-result.json`, the attempt log at `rawOutputPath`, and the fields `result`, `failureKind`, `retryable`, and `nextAction` as independent signals; do not infer one from another. Attempt logs use durable retained path pattern `tests/.raw/final-regression-attempt-*.log`; do not delete or overwrite prior attempt logs.\n' +
+          '   - Use `failureKind` to choose handling, and always honor `nextAction: "stop"` when present:\n' +
+          '     - `caused_by_current_change` → repair the regression, run spec-local evidence as needed, then rerun `final-regression`.\n' +
+          '     - `invalid_project_test` → repair the project test command or test contract, then rerun `final-regression`.\n' +
+          '     - `unattributed_existing_failure` → stop and ask the user whether to record or split out the unattributed existing project-test failure.\n' +
+          '     - Any other `failureKind` → stop; do not enter the implementation repair loop.\n' +
+          '   - `retryable` tells whether the runner still permits an automated rerun. If `retryable: false`, do not rerun final-regression unless a later user decision or repair step changes the evidence.\n' +
+          '   - Treat `final-regression-result.json` as current-run only. Historical failures stay in `issue-log.json`.\n' +
+          '   - Final-regression is capped at 2 consecutive failed attempts; on the 2nd failure the runner returns `nextAction: "stop"`. When that arrives, STOP and return control to the user.\n'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: |-
+           - Run `senti flow run final-regression`.
+           - This step is the only default full project regression point. Do not run full project regression from `test-execute`, `impl-review`, `impl-gate`, or `retro`.
+           - Outcomes:
+             - `executed`: project regression command ran and `final-regression-result.json` has `result: "pass"` or `result: "fail"`.
+             - `covered_by_test_execute_full_regression`: command did not run because same-flow `test-execute-result.json` already has fresh full/pass evidence with exact command identity and changed-file fingerprints.
+             - `risk_based_static_proof`: command did not run because every changed path is explicitly non-runtime and required static/evidence checks passed.
+             - `skipped_by_project_policy`: command did not run because no supported project-level regression command source exists.
+           - On PASS or SKIPPED, the registry post-hook marks `final-regression` done and the flow proceeds to `finalize-commit`.
+           - Skipped artifacts MUST include `version`, `completed`, `result`, `failureKind`, `skipKind`, `reason`, `command`, `commandSource`, `rawOutputPath`, `rawOutputLines`, `process`, `changedFiles`, `retryable`, `nextAction`, and `proof`.
+           - For skipped artifacts, `process.started` is `false`, `process.exitCode` / `signal` / `spawnError` are `null`, `process.timedOut` is `false`, and `rawOutputPath` points to a retained `tests/.raw/final-regression-attempt-*.log` decision log.
+           - `proof.kind` must equal `skipKind`. Covered-by-test-execute proof contains `reusedArtifactPath`, `commandIdentity`, `changedFileFingerprints`, and `staleCheck`. Risk-based proof contains `allowlistClassifications`, `checkedSensitivePathClasses`, `failClosedDecision`, `upgradeEvidencePath`, and `testExecuteEvidencePath`. Project-policy proof contains `commandDiscovery.checkedSources`, `supportedCommandFound: false`, `invalidConfiguredCommand: false`, and `reason`.
+           - On FAIL, read `specs/<spec>/final-regression-result.json`, the attempt log at `rawOutputPath`, and the fields `result`, `failureKind`, `retryable`, and `nextAction` as independent signals; do not infer one from another. Attempt logs use durable retained path pattern `tests/.raw/final-regression-attempt-*.log`; do not delete or overwrite prior attempt logs.
+           - Use `failureKind` to choose handling, and always honor `nextAction: "stop"` when present:
+             - `caused_by_current_change` → repair the regression, run spec-local evidence as needed, then rerun `final-regression`.
+             - `invalid_project_test` → repair the project test command or test contract, then rerun `final-regression`.
+             - `unattributed_existing_failure` → stop and ask the user whether to record or split out the unattributed existing project-test failure.
+             - Any other `failureKind` → stop; do not enter the implementation repair loop.
+           - `retryable` tells whether the runner still permits an automated rerun. If `retryable: false`, do not rerun final-regression unless a later user decision or repair step changes the evidence.
+           - Treat `final-regression-result.json` as current-run only. Historical failures stay in `issue-log.json`.
+           - Final-regression is capped at 2 consecutive failed attempts; on the 2nd failure the runner returns `nextAction: "stop"`. When that arrives, STOP and return control to the user.
+        
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-report-and-prompt.test.js:127:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R8: report text displays failed-recorded as non-pass with category, raw log, risk, selected action, and recommendation
+    not ok 4 - R8: report text displays failed-recorded as non-pass with category, raw log, risk, selected action, and recommendation
+      ---
+      duration_ms: 0.680204
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-report-and-prompt.test.js:133:3'
+      failureType: 'testCodeFailure'
+      error: 'The "string" argument must be of type string. Received type undefined (undefined)'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-report-and-prompt.test.js:144:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R8: status data displays failed-recorded as non-pass with required details
+    not ok 5 - R8: status data displays failed-recorded as non-pass with required details
+      ---
+      duration_ms: 2.542173
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-report-and-prompt.test.js:159:3'
+      failureType: 'testCodeFailure'
+      error: "Cannot read properties of undefined (reading 'result')"
+      code: 'ERR_TEST_FAILURE'
+      name: 'TypeError'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-report-and-prompt.test.js:191:43)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R8: report command loads failed-recorded artifact into report JSON and human text
+    not ok 6 - R8: report command loads failed-recorded artifact into report JSON and human text
+      ---
+      duration_ms: 36.969547
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-report-and-prompt.test.js:205:3'
+      failureType: 'testCodeFailure'
+      error: "Cannot read properties of null (reading 'finalRegression')"
+      code: 'ERR_TEST_FAILURE'
+      name: 'TypeError'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-report-and-prompt.test.js:226:49)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R10: this spec-local file declares coverage headers and R-prefixed tests for display and prompt behavior
+    ok 7 - R10: this spec-local file declares coverage headers and R-prefixed tests for display and prompt behavior
+      ---
+      duration_ms: 0.613083
+      type: 'test'
+      ...
+    1..7
+not ok 1 - Issue 403 final-regression report and prompt behavior
+  ---
+  duration_ms: 108.135148
+  type: 'suite'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-report-and-prompt.test.js:80:1'
+  failureType: 'subtestsFailed'
+  error: '5 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 7
+# suites 1
+# pass 2
+# fail 5
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 127.150763
+Command failed: node specs/311-final-regression-proceed/tests/final-regression-report-and-prompt.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/311-final-regression-proceed/tests/final-regression-report-and-prompt.test.js
+[senti] scenario-validity file start command=node specs/311-final-regression-proceed/tests/final-regression-schema.test.js
+TAP version 13
+# Subtest: Issue 403 final-regression artifact schema
+    # Subtest: R2: schema rejects ordinary failed artifacts marked complete without validated record-and-proceed evidence
+    not ok 1 - R2: schema rejects ordinary failed artifacts marked complete without validated record-and-proceed evidence
+      ---
+      duration_ms: 1.709529
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-schema.test.js:54:3'
+      failureType: 'testCodeFailure'
+      error: 'Missing expected exception.'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      operator: 'throws'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-schema.test.js:55:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Test.start (node:internal/test_runner/test:944:17)
+        node:internal/test_runner/test:1440:71
+        node:internal/per_context/primordials:464:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:433:3)
+        node:internal/per_context/primordials:464:9
+        Array.map (<anonymous>)
+      ...
+    # Subtest: R5: schema accepts failed-recorded artifacts while preserving result fail
+    ok 2 - R5: schema accepts failed-recorded artifacts while preserving result fail
+      ---
+      duration_ms: 0.250562
+      type: 'test'
+      ...
+    # Subtest: R6: schema rejects invalid failed-recorded action combinations
+    not ok 3 - R6: schema rejects invalid failed-recorded action combinations
+      ---
+      duration_ms: 0.423202
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-schema.test.js:69:3'
+      failureType: 'testCodeFailure'
+      error: 'Missing expected exception.'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      operator: 'throws'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-schema.test.js:70:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R10: schema rejects missing evidence, invalid recommendations, and ordinary fail completion
+    not ok 4 - R10: schema rejects missing evidence, invalid recommendations, and ordinary fail completion
+      ---
+      duration_ms: 0.300441
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-schema.test.js:78:3'
+      failureType: 'testCodeFailure'
+      error: 'Missing expected exception.'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      operator: 'throws'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-schema.test.js:79:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    1..4
+not ok 1 - Issue 403 final-regression artifact schema
+  ---
+  duration_ms: 4.226622
+  type: 'suite'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-311-final-regression-proceed/specs/311-final-regression-proceed/tests/final-regression-schema.test.js:53:1'
+  failureType: 'subtestsFailed'
+  error: '3 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 4
+# suites 1
+# pass 1
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 18.205332
+Command failed: node specs/311-final-regression-proceed/tests/final-regression-schema.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/311-final-regression-proceed/tests/final-regression-schema.test.js
+exitCode: 1
+[senti] requirement R1 observed: R1: failed artifacts separate assertion failures from execution failures and expose Issue 403 categories
+[senti] requirement R2 observed: R2: current-diff and invalid project-test failures are not eligible for record-and-proceed
+[senti] requirement R3 observed: R3: eligible failures keep result fail while exposing record-and-proceed eligibility
+[senti] requirement R4 observed: R4: record-and-proceed preserves failure evidence and writes distinct selected and recommended actions
+[senti] requirement R5 observed: R5: failed-recorded artifacts keep result fail and carry validated record-and-proceed evidence
+[senti] requirement R6 observed: R6: completion policy accepts validated failed-recorded and rejects ordinary failed artifacts
+[senti] requirement R7 observed: R7: repeated identical failures keep fixAttempts at zero, while post-failure changes recommend record-and-proceed
+[senti] requirement R8 observed: R8: report text displays failed-recorded as non-pass with category, raw log, risk, selected action, and recommendation
+[senti] requirement R9 observed: R9: pass, current-diff fail-closed, raw log, changed files, process, retry, nextAction, and issue-log parity remain intact
+[senti] requirement R10 observed: R10: this spec-local file declares coverage headers and R-prefixed tests for completion policy
+[senti] scenario-validity tests end

@@ -1,0 +1,168 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-19T08:24:34.087Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 6,
+    "advisory": 1,
+    "total": 7
+  },
+  "coverageArtifact": "specs/311-final-regression-proceed/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R2 only covers current-diff ineligibility",
+      "target": "specs/311-final-regression-proceed/tests/final-regression-record-and-proceed.test.js",
+      "issue": "The R2 test exercises caused_by_current_change ineligibility, but does not provide spec-local coverage for invalid project-test behavior tied to the current diff, broken workflow state, missing artifact evidence, artifact write failure, or schema validation failure blocking record-and-proceed.",
+      "requiredChange": "Add focused R2 test coverage for the remaining ineligible failure modes, or split them into shared unit tests referenced by a spec-local R2 test that verifies record-and-proceed stays unavailable for each mode.",
+      "whyBlocking": "R2 explicitly requires these failure classes to keep the flow on fix-or-stop behavior; several acceptance cases currently have no corresponding test coverage.",
+      "origin": "R2",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R3 lacks explicit out_of_scope and flaky_suspected evidence coverage",
+      "target": "specs/311-final-regression-proceed/tests/final-regression-record-and-proceed.test.js",
+      "issue": "R3 covers ordinary existing_failure eligibility, but does not verify that out_of_scope and flaky_suspected become eligible only when record-and-proceed selection supplies explicit non-empty evidence.",
+      "requiredChange": "Add R3 tests that attempt record-and-proceed for out_of_scope and flaky_suspected with non-empty evidence and assert eligibility/validation while preserving result=\"fail\"; include rejection coverage for missing evidence if not covered under R2.",
+      "whyBlocking": "R3 specifically includes explicitly evidenced out_of_scope and flaky_suspected as eligible categories, and that gated behavior is not covered.",
+      "origin": "R3",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R5 command-identity stale rejection is untested",
+      "target": "specs/311-final-regression-proceed/tests/final-regression-record-and-proceed.test.js",
+      "issue": "The R5 stale-artifact test only mutates changed-file fingerprints before record-and-proceed. It does not verify stale rejection when the current command identity differs from the command identity stored on the failed artifact.",
+      "requiredChange": "Add an R5 case that records a failed artifact, changes the final-regression command identity, runs --record-and-proceed, and expects FINAL_REGRESSION_RECORD_AND_PROCEED_STALE or the equivalent rejection.",
+      "whyBlocking": "R5 defines stale as either command identity or changed-file fingerprints differing; one of the two required stale paths has no coverage.",
+      "origin": "R5",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R7 scan limit and raw-log non-read behavior are uncovered",
+      "target": "specs/311-final-regression-proceed/tests/final-regression-record-and-proceed.test.js",
+      "issue": "The R7 test covers identical fingerprints and a changed fingerprint, but does not assert that fixAttempts scans at most the latest 10,000 failure records or that the calculation does not read raw log contents.",
+      "requiredChange": "Add R7 unit or integration coverage that constrains the scan to the latest 10,000 records and detects accidental raw log reads during fixAttempts calculation.",
+      "whyBlocking": "R7 explicitly requires both the 10,000-record bound and no raw-log reads; these are critical performance and design constraints with no test coverage.",
+      "origin": "R7",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R8 status and human-summary surfaces are not covered",
+      "target": "specs/311-final-regression-proceed/tests/final-regression-report-and-prompt.test.js",
+      "issue": "The R8 test covers generateReport JSON/text, but does not cover status output or other human-readable summary surfaces that must display failed-recorded final-regression as not passed with the required details.",
+      "requiredChange": "Add R8 coverage for the status command/output and any separate human-readable summary surface that reports final-regression state, asserting failed-recorded remains non-pass and includes category, raw log path, fix attempts, remaining risk, selected action, and nextRecommendedAction.",
+      "whyBlocking": "R8 names status, final report, report JSON, and human-readable summaries; only report JSON/text are currently tested.",
+      "origin": "R8",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R10 shared schema coverage is missing",
+      "target": "specs/311-final-regression-proceed/tests/final-regression-contract.test.js, specs/311-final-regression-proceed/tests/final-regression-record-and-proceed.test.js, specs/311-final-regression-proceed/tests/final-regression-report-and-prompt.test.js",
+      "issue": "The tests invoke validateFinalRegressionResult on happy-path artifacts, but there is no shared unit test asserting the final-regression schema accepts the new failed-recorded fields and rejects invalid combinations such as validated failed-recorded without required evidence, invalid nextRecommendedAction, or ordinary fail marked complete.",
+      "requiredChange": "Add shared schema tests for the new final-regression artifact fields and invalid combinations required by R5/R6/R8/R10.",
+      "whyBlocking": "R10 requires shared unit tests to cover schema behavior where appropriate, and schema validation failures are part of the acceptance behavior for this feature.",
+      "origin": "R10",
+      "failureKind": "missing_coverage"
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R1 execution fixture is text-simulated",
+      "target": "specs/311-final-regression-proceed/tests/final-regression-record-and-proceed.test.js",
+      "improvement": "The R1 execution-failure branch uses a normal shell script that prints \"spawn EPERM\" and exits 1. A more direct fixture using an actual spawn error, timeout, or sandbox-denied execution would better prove execution classification.",
+      "whyNonBlocking": "The test still exercises production classification using source-backed stderr evidence, but a more realistic fixture would reduce ambiguity."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/311-final-regression-proceed/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 6,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "ee540df85cd1cb4d755bd6edaca21bc83686a67dc10efef382aef705d44b5738"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "test-001-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R2 only covers current-diff ineligibility",
+      "body": "The R2 test exercises caused_by_current_change ineligibility, but does not provide spec-local coverage for invalid project-test behavior tied to the current diff, broken workflow state, missing artifact evidence, artifact write failure, or schema validation failure blocking record-and-proceed.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R3 lacks explicit out_of_scope and flaky_suspected evidence coverage",
+      "body": "R3 covers ordinary existing_failure eligibility, but does not verify that out_of_scope and flaky_suspected become eligible only when record-and-proceed selection supplies explicit non-empty evidence.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R5 command-identity stale rejection is untested",
+      "body": "The R5 stale-artifact test only mutates changed-file fingerprints before record-and-proceed. It does not verify stale rejection when the current command identity differs from the command identity stored on the failed artifact.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R7 scan limit and raw-log non-read behavior are uncovered",
+      "body": "The R7 test covers identical fingerprints and a changed fingerprint, but does not assert that fixAttempts scans at most the latest 10,000 failure records or that the calculation does not read raw log contents.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-005",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R8 status and human-summary surfaces are not covered",
+      "body": "The R8 test covers generateReport JSON/text, but does not cover status output or other human-readable summary surfaces that must display failed-recorded final-regression as not passed with the required details.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-006",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R10 shared schema coverage is missing",
+      "body": "The tests invoke validateFinalRegressionResult on happy-path artifacts, but there is no shared unit test asserting the final-regression schema accepts the new failed-recorded fields and rejects invalid combinations such as validated failed-recorded without required evidence, invalid nextRecommendedAction, or ordinary fail marked complete.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-non-blocking-007",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "R1 execution fixture is text-simulated",
+      "body": "R1 execution fixture is text-simulated",
+      "category": "unknown"
+    }
+  ]
+}

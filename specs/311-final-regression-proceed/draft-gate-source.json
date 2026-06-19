@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "The draft does not define an explicit inventory of existing public behavior that will be moved/replaced or the exact public surfaces (commands/APIs/hooks/config/artifacts/side effects) affected by record-and-proceed changes.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "migration-parity.inventory"
+          },
+          "observed": "The draft does not define an explicit inventory of existing public behavior that will be moved/replaced or the exact public surfaces (commands/APIs/hooks/config/artifacts/side effects) affected by record-and-proceed changes.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "There is no mapping from each retained final-regression behavior to a new owner/entry path, and no explicit decision for any behavior removed as part of the migration plan.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "migration-parity.mapping"
+          },
+          "observed": "There is no mapping from each retained final-regression behavior to a new owner/entry path, and no explicit decision for any behavior removed as part of the migration plan.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "No behavior-level parity acceptance criteria are defined for retained public final-regression surfaces; requirements rely on intention lists and QA answers without explicit verification steps proving each retained behavior works through the new path.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "migration-parity.verification"
+          },
+          "observed": "No behavior-level parity acceptance criteria are defined for retained public final-regression surfaces; requirements rely on intention lists and QA answers without explicit verification steps proving each retained behavior works through the new path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "content",
+        "locator": "migration-parity.inventory"
+      },
+      "observed": "The draft does not define an explicit inventory of existing public behavior that will be moved/replaced or the exact public surfaces (commands/APIs/hooks/config/artifacts/side effects) affected by record-and-proceed changes.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "content",
+        "locator": "migration-parity.mapping"
+      },
+      "observed": "There is no mapping from each retained final-regression behavior to a new owner/entry path, and no explicit decision for any behavior removed as part of the migration plan.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "content",
+        "locator": "migration-parity.verification"
+      },
+      "observed": "No behavior-level parity acceptance criteria are defined for retained public final-regression surfaces; requirements rely on intention lists and QA answers without explicit verification steps proving each retained behavior works through the new path.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    }
+  ]
+}

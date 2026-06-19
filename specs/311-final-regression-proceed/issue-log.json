@@ -1,0 +1,195 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The draft does not define an explicit inventory of existing public behavior that will be moved/replaced or the exact public surfaces (commands/APIs/hooks/config/artifacts/side effects) affected by record-and-proceed changes.; There is no mapping from each retained final-regression behavior to a new owner/entry path, and no explicit decision for any behavior removed as part of the migration plan.; No behavior-level parity acceptance criteria are defined for retained public final-regression surfaces; requirements rely on intention lists and QA answers without explicit verification steps proving each retained behavior works through the new path.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-19T06:13:33.409Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "migration-parity.inventory"
+          },
+          "observed": "The draft does not define an explicit inventory of existing public behavior that will be moved/replaced or the exact public surfaces (commands/APIs/hooks/config/artifacts/side effects) affected by record-and-proceed changes.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "migration-parity.mapping"
+          },
+          "observed": "There is no mapping from each retained final-regression behavior to a new owner/entry path, and no explicit decision for any behavior removed as part of the migration plan.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "migration-parity.verification"
+          },
+          "observed": "No behavior-level parity acceptance criteria are defined for retained public final-regression surfaces; requirements rely on intention lists and QA answers without explicit verification steps proving each retained behavior works through the new path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft does not define an explicit inventory of existing public behavior that will be moved/replaced or the exact public surfaces (commands/APIs/hooks/config/artifacts/side effects) affected by record-and-proceed changes."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "There is no mapping from each retained final-regression behavior to a new owner/entry path, and no explicit decision for any behavior removed as part of the migration plan."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "No behavior-level parity acceptance criteria are defined for retained public final-regression surfaces; requirements rely on intention lists and QA answers without explicit verification steps proving each retained behavior works through the new path."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate failed because migration parity inventory mapping and behavior-level verification were missing from draft.json",
+      "trigger": "senti flow run gate --phase draft reported three migration-parity blocking observations",
+      "resolution": "added public surface inventory retained behavior mapping owner mapping and parity verification requirements to draft.json",
+      "guardrailCandidate": "when a draft changes an existing workflow outcome include migration parity inventory mapping and behavior-level verification before draft gate",
+      "taskId": null,
+      "timestamp": "2026-06-19T06:14:05.586Z"
+    },
+    {
+      "step": "spec-review",
+      "reason": "spec review failed because failed-recorded completion stale evidence out-of-scope flaky classification and fix attempt state were underspecified",
+      "trigger": "senti flow run review --phase spec reported four blocking findings",
+      "resolution": "updated spec.json and spec-repair.json with flow-judgment-contract policy stale checks category boundaries and fixAttempts rules",
+      "guardrailCandidate": "when adding a proceed path define completion policy owners freshness evidence category criteria and recommendation state before spec review",
+      "taskId": null,
+      "timestamp": "2026-06-19T06:27:31.354Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The requirement says the first *plausible* repair should be recommended, but does not define an objective rule for what counts as plausible in this clause itself.; The constraint requires all edits/tests to run inside the active worktree path, which is an execution-flow/process condition that cannot be decided from unified diff + test execution summary alone.; R7 allows repeated final-regression attempts and fixAttempts accumulation but defines no explicit upper bound on retry attempts or on the number/depth of prior artifacts scanned to compute that value.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-19T06:28:21.312Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scope.in[3]"
+          },
+          "observed": "The requirement says the first *plausible* repair should be recommended, but does not define an objective rule for what counts as plausible in this clause itself.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "req-diff-verifiability",
+          "where": {
+            "file": "spec.json",
+            "locator": "constraints[8]"
+          },
+          "observed": "The constraint requires all edits/tests to run inside the active worktree path, which is an execution-flow/process condition that cannot be decided from unified diff + test execution summary alone.",
+          "severity": "blocking",
+          "refs": [
+            "req-diff-verifiability"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[6].desc"
+          },
+          "observed": "R7 allows repeated final-regression attempts and fixAttempts accumulation but defines no explicit upper bound on retry attempts or on the number/depth of prior artifacts scanned to compute that value.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The requirement says the first *plausible* repair should be recommended, but does not define an objective rule for what counts as plausible in this clause itself."
+        },
+        {
+          "guardrail_id": "req-diff-verifiability",
+          "reason": "The constraint requires all edits/tests to run inside the active worktree path, which is an execution-flow/process condition that cannot be decided from unified diff + test execution summary alone."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "R7 allows repeated final-regression attempts and fixAttempts accumulation but defines no explicit upper bound on retry attempts or on the number/depth of prior artifacts scanned to compute that value."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec gate failed on ambiguous plausible wording worktree process-only constraint and unbounded fixAttempts scan",
+      "trigger": "senti flow run gate --phase spec reported unambiguous req-diff-verifiability and bounded-resource violations",
+      "resolution": "removed plausible wording removed process-only worktree constraint and bounded fixAttempts scan to latest 10000 failure records without raw log reads",
+      "guardrailCandidate": "spec gate repairs should remove process-only constraints and define objective bounded data paths for recommendation state",
+      "taskId": null,
+      "timestamp": "2026-06-19T06:29:05.421Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: refreshed failing test evidence and corrected record-and-proceed freshness validation",
+      "resolution": "Spec-local tests now pass for R1-R10; record-and-proceed freshness excludes workflow-generated metadata, and explicit invalid test.command values fail closed instead of being skipped.",
+      "taskId": null,
+      "timestamp": "2026-06-19T09:14:22.797Z"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "dependency_failure",
+      "reason": "final-regression failed: dependency_failure",
+      "command": "node tests/run.js",
+      "rawOutputPath": "specs/311-final-regression-proceed/tests/.raw/final-regression-attempt-001.log",
+      "retryable": false,
+      "nextAction": "stop",
+      "timestamp": "2026-06-19T09:20:18.188Z"
+    },
+    {
+      "step": "final-regression",
+      "reason": "fix: corrected shared unit schema fixture after final-regression failure",
+      "resolution": "Focused unit test tests/unit/flow/final-regression-record-and-proceed.test.js now passes; rerunning final-regression with changed evidence.",
+      "taskId": null,
+      "timestamp": "2026-06-19T09:21:14.708Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase failed: working tree has uncommitted changes. Commit or discard changes in the worktree before retrying finalize.",
+      "timestamp": "2026-06-19T09:54:14.742Z"
+    }
+  ]
+}

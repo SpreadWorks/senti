@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "All four blocking findings are valid and should be repaired in spec.json: completion contract owner, stale-check basis, out-of-scope/flaky criteria, and fix-attempt recommendation state.",
+  "items": [
+    {
+      "title": "Completion contract target is missing for failed-recorded advancement",
+      "target": "Overview Modules / R6 / src/flow/lib/flow-judgment-contract.js",
+      "decision": "apply",
+      "rationale": "The review identifies an existing completion policy owner that must allow the new failed-recorded completion state.",
+      "evidence": "src/flow/lib/flow-judgment-contract.js currently defines final-regression completion policy with failureKind null and nextAction finalize-commit; registry post-hook uses step completion validation."
+    },
+    {
+      "title": "Stale artifact rejection has no observable validation basis",
+      "target": "R5 / Acceptance Criteria R5",
+      "decision": "apply",
+      "rationale": "The spec must define durable evidence and comparison rules so implementation and tests can distinguish current failed evidence from stale failed evidence.",
+      "evidence": "R5 requires stale rejection but current spec does not define command identity or changed-file fingerprint comparison for record-and-proceed."
+    },
+    {
+      "title": "Out-of-scope and flaky classification criteria are undefined",
+      "target": "R1 / R3 / Acceptance Criteria R1-R3",
+      "decision": "apply",
+      "rationale": "The spec should either define source-backed category criteria or narrow automatic classification to categories with current evidence.",
+      "evidence": "Existing classification inputs are command/discovery errors, process output, timeout/signal/exit status, changed-file references, and classifyRegression change scope."
+    },
+    {
+      "title": "Fix-attempt recommendation state has no data path",
+      "target": "R4 / R7 / Data Flow: Auto/manual behavior",
+      "decision": "apply",
+      "rationale": "The recommendation order and auto behavior need a persisted fix-attempt signal to be deterministic and testable.",
+      "evidence": "Existing code can count prior final-regression issue-log failures but does not distinguish repair attempts from repeated reruns."
+    }
+  ]
+}

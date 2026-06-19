@@ -179,6 +179,15 @@ export class StepCompletionPolicy {
   allowsNormal(contract) {
     if (!(contract instanceof FlowJudgmentContract)) throw new Error("contract must be a FlowJudgmentContract");
     if (contract.targetStep !== this.stepId) return false;
+    if (this.stepId === "final-regression") {
+      if (contract.verdict === "pass" || contract.verdict === "skipped") {
+        return contract.failureKind === null && contract.nextAction === "finalize-commit";
+      }
+      return contract.verdict === "fail"
+        && contract.blockingCount === 0
+        && typeof contract.failureKind === "string"
+        && contract.nextAction === "finalize-commit";
+    }
     if (!this.allowedVerdicts.includes(contract.verdict)) return false;
     if (this.requireNoBlocking && contract.blockingCount !== 0) return false;
     if (this.requiredFailureKind !== undefined && contract.failureKind !== this.requiredFailureKind) return false;
@@ -487,7 +496,12 @@ export function contractFromTestResultReviewArtifact(artifact, opts = {}) {
 }
 
 export function contractFromFinalRegressionArtifact(artifact, opts = {}) {
-  const blockingFindings = artifact.result === "pass" || artifact.result === "skipped"
+  const failedRecorded = artifact.result === "fail"
+    && artifact.completed === true
+    && artifact.selectedAction === "record-and-proceed"
+    && artifact.recordAndProceed?.validated === true
+    && artifact.nextAction === "finalize-commit";
+  const blockingFindings = artifact.result === "pass" || artifact.result === "skipped" || failedRecorded
     ? []
     : [{ failureKind: artifact.failureKind, nextAction: artifact.nextAction }];
   return new FlowJudgmentContract({

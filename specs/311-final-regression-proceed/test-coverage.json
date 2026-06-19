@@ -1,0 +1,181 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Final-regression failure artifacts must distinguish assertion-like project test failures from execution failures and must record a user-visible failure category using Issue #403 categories. Automatic categories are limited to source-backed evidence: caused_by_current_change, existing_failure, environment, sandbox, timeout, and dependency. out_of_scope and flaky_suspected may be recorded only during record-and-proceed selection with explicit non-empty evidence.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/final-regression-record-and-proceed.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "When a failure is classified as caused_by_current_change, invalid project-test behavior tied to the current diff, broken workflow state, missing artifact evidence, artifact write failure, or schema validation failure, record-and-proceed must be unavailable and the flow must stay on fix-or-stop behavior.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/final-regression-record-and-proceed.test.js",
+        "tests/final-regression-schema.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "When a failure is classified as existing_failure, environment, sandbox, timeout, dependency, or explicitly evidenced out_of_scope or flaky_suspected, and required evidence is present, the artifact must mark it as eligible for record-and-proceed while keeping `result: \"fail\"`.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/final-regression-record-and-proceed.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "A record-and-proceed selection must preserve failed command, exit code, raw log path, failure summary, current diff relationship, fix attempt count, selected action, remaining risk, nextAction, and a distinct nextRecommendedAction in final-regression-result.json and final report data. nextAction remains the flow transition field; nextRecommendedAction is the user/auto recommendation and is one of fix-and-rerun, record-and-proceed, or stop.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/final-regression-record-and-proceed.test.js",
+        "tests/final-regression-report-and-prompt.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "`senti flow run final-regression --record-and-proceed` must validate the current failed final-regression artifact, reject ineligible or stale failures, record selectedAction=record-and-proceed, keep `result: \"fail\"`, and return an envelope that allows the final-regression post-hook to mark the step done. Stale means the current command identity or current changed-file fingerprints differ from the durable values stored on the failed artifact.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/final-regression-contract.test.js",
+        "tests/final-regression-record-and-proceed.test.js",
+        "tests/final-regression-schema.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "The final-regression registry post-hook and src/flow/lib/flow-judgment-contract.js completion policy must mark the step done only for pass, skipped, or validated failed-recorded artifacts; they must not complete for ordinary fail artifacts or any artifact that failed validation.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/final-regression-contract.test.js",
+        "tests/final-regression-schema.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "Prompt handling must recommend fix-and-rerun when fixAttempts is 0 for an eligible failure, recommend record-and-proceed when fixAttempts is greater than 0 and the failure is still eligible and non-current-diff, and in auto mode select the recommended action. fixAttempts counts observable post-failure repairs by comparing changed-file fingerprints between failed final-regression attempts for the same command identity; identical-fingerprint reruns do not count. The calculation must scan at most the latest 10,000 final-regression failure records for the active spec and must not read raw log contents.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/final-regression-record-and-proceed.test.js",
+        "tests/final-regression-report-and-prompt.test.js"
+      ]
+    },
+    {
+      "id": "R8",
+      "desc": "Status, final report, report JSON, and human-readable summaries must display failed-recorded final-regression as not passed, including failure category, raw log path, fix attempts, remaining risk, selected action, and next recommended action.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/final-regression-report-and-prompt.test.js"
+      ]
+    },
+    {
+      "id": "R9",
+      "desc": "Migration parity must preserve existing pass completion, skipped completion with proof, raw attempt log retention, changed file snapshots, process metadata, retryable/nextAction fields, issue-log failure entries, and current-diff fail-closed behavior.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/final-regression-record-and-proceed.test.js"
+      ]
+    },
+    {
+      "id": "R10",
+      "desc": "Spec-local tests under specs/311-final-regression-proceed/tests/ must cover R1 through R9 with `// spec: R<N>` headers, and shared unit tests must cover production final-regression runner, schema, registry, prompt, and report behavior where appropriate.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/final-regression-contract.test.js",
+        "tests/final-regression-record-and-proceed.test.js",
+        "tests/final-regression-report-and-prompt.test.js",
+        "tests/final-regression-schema.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/final-regression-contract.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R5",
+        "R6",
+        "R10"
+      ],
+      "testNameIds": [
+        "R5",
+        "R6",
+        "R10"
+      ]
+    },
+    {
+      "file": "tests/final-regression-record-and-proceed.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R7",
+        "R9",
+        "R10"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R7",
+        "R9",
+        "R10"
+      ]
+    },
+    {
+      "file": "tests/final-regression-report-and-prompt.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R4",
+        "R7",
+        "R8",
+        "R10"
+      ],
+      "testNameIds": [
+        "R4",
+        "R7",
+        "R8",
+        "R10"
+      ]
+    },
+    {
+      "file": "tests/final-regression-schema.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R2",
+        "R5",
+        "R6",
+        "R10"
+      ],
+      "testNameIds": [
+        "R2",
+        "R5",
+        "R6",
+        "R10"
+      ]
+    }
+  ]
+}

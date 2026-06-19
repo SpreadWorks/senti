@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-19T08:58:55.299Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "title": "Record-and-proceed flag is still not registered on final-regression",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/registry.js",
+      "requirementId": "R5",
+      "issue": "The diff adds `--record-and-proceed` to the `scenario-validity` command args, but `final-regression` still has `args: { flags: [], options: [...] }` even though its help text advertises `senti flow run final-regression [--record-and-proceed]`.",
+      "suggestion": "Move `--record-and-proceed` into `FLOW_COMMANDS.final-regression.args.flags` and remove it from the unrelated `scenario-validity` args entry.",
+      "rationale": "`RunFinalRegressionCommand.execute` only enters the record-and-proceed path when `ctx.recordAndProceed` is set. If the final-regression command does not accept the flag, the required record-and-proceed workflow cannot be invoked through the documented CLI command."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/311-final-regression-proceed/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "1ff04d9cc1d79975ffa7ff8a663e1cd6008140f1b8d51389756c170645063f84"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "impl-002-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Record-and-proceed flag is still not registered on final-regression",
+      "body": "The diff adds `--record-and-proceed` to the `scenario-validity` command args, but `final-regression` still has `args: { flags: [], options: [...] }` even though its help text advertises `senti flow run final-regression [--record-and-proceed]`.",
+      "category": "missing_acceptance_requirement"
+    }
+  ]
+}

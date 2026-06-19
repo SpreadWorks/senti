@@ -17,7 +17,7 @@ export function collectTestCommandSources({
   makefileTestTarget = null,
 } = {}) {
   const sources = [];
-  if (configuredTestCommand) {
+  if (configuredTestCommand !== null && configuredTestCommand !== undefined) {
     sources.push(new TestCommandSource({
       priority: 10,
       kind: "config",

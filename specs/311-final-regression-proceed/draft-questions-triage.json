@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "All five repair targets are valid question-shape fixes: remove recommendation wording from pending questions and reframe q3 away from implementation details.",
+  "items": [
+    {
+      "title": "1. q1 includes a recommendation",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "The pending question should contain only the question text. The recommendation phrase is not needed to preserve the user decision.",
+      "evidence": "draft.json qa[0].question starts with recommendation wording before asking about record-and-proceed as a non-pass outcome."
+    },
+    {
+      "title": "2. q2 includes a recommendation",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "The pending question should ask about the user-visible display requirement without embedding the suggested answer.",
+      "evidence": "draft.json qa[1].question starts with recommendation wording before asking about status and final report display."
+    },
+    {
+      "title": "3. q3 includes a recommendation and internal implementation detail",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "The user decision should be about visible classification naming, while internal artifact compatibility can be decided by project patterns during spec writing.",
+      "evidence": "draft.json qa[2].question asks whether to keep current internal failureKind values in existing artifacts."
+    },
+    {
+      "title": "4. q4 includes a recommendation",
+      "target": "q4",
+      "decision": "apply",
+      "rationale": "The pending question should ask about recommendation ordering without leading with the preferred answer.",
+      "evidence": "draft.json qa[3].question starts with recommendation wording before asking about first and repeated failure behavior."
+    },
+    {
+      "title": "5. q5 includes a recommendation",
+      "target": "q5",
+      "decision": "apply",
+      "rationale": "The pending question should ask about fail-closed boundaries without embedding the recommended answer.",
+      "evidence": "draft.json qa[4].question starts with recommendation wording before asking about workflow integrity exclusions."
+    }
+  ]
+}

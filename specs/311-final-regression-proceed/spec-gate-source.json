@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "unambiguous-requirements",
+      "result": "fail",
+      "reason": "The requirement says the first *plausible* repair should be recommended, but does not define an objective rule for what counts as plausible in this clause itself.",
+      "category": "code-quality",
+      "title": "Unambiguous Requirements",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scope.in[3]"
+          },
+          "observed": "The requirement says the first *plausible* repair should be recommended, but does not define an objective rule for what counts as plausible in this clause itself.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "req-diff-verifiability",
+      "result": "fail",
+      "reason": "The constraint requires all edits/tests to run inside the active worktree path, which is an execution-flow/process condition that cannot be decided from unified diff + test execution summary alone.",
+      "category": "process",
+      "title": "REQ Diff-Verifiability",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "req-diff-verifiability",
+          "where": {
+            "file": "spec.json",
+            "locator": "constraints[8]"
+          },
+          "observed": "The constraint requires all edits/tests to run inside the active worktree path, which is an execution-flow/process condition that cannot be decided from unified diff + test execution summary alone.",
+          "severity": "blocking",
+          "refs": [
+            "req-diff-verifiability"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "bounded-resource-usage",
+      "result": "fail",
+      "reason": "R7 allows repeated final-regression attempts and fixAttempts accumulation but defines no explicit upper bound on retry attempts or on the number/depth of prior artifacts scanned to compute that value.",
+      "category": "code-quality",
+      "title": "Bounded Resource Usage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[6].desc"
+          },
+          "observed": "R7 allows repeated final-regression attempts and fixAttempts accumulation but defines no explicit upper bound on retry attempts or on the number/depth of prior artifacts scanned to compute that value.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "unambiguous-requirements",
+      "where": {
+        "file": "spec.json",
+        "locator": "scope.in[3]"
+      },
+      "observed": "The requirement says the first *plausible* repair should be recommended, but does not define an objective rule for what counts as plausible in this clause itself.",
+      "severity": "blocking",
+      "refs": [
+        "unambiguous-requirements"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "req-diff-verifiability",
+      "where": {
+        "file": "spec.json",
+        "locator": "constraints[8]"
+      },
+      "observed": "The constraint requires all edits/tests to run inside the active worktree path, which is an execution-flow/process condition that cannot be decided from unified diff + test execution summary alone.",
+      "severity": "blocking",
+      "refs": [
+        "req-diff-verifiability"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "bounded-resource-usage",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements[6].desc"
+      },
+      "observed": "R7 allows repeated final-regression attempts and fixAttempts accumulation but defines no explicit upper bound on retry attempts or on the number/depth of prior artifacts scanned to compute that value.",
+      "severity": "blocking",
+      "refs": [
+        "bounded-resource-usage"
+      ]
+    }
+  ]
+}

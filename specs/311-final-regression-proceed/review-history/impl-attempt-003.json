@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-19T09:02:04.092Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "title": "Auto-approved record-and-proceed still returns a failed run envelope",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/run-final-regression.js",
+      "requirementId": "R7",
+      "issue": "When autoApprove is true and an eligible repeated final-regression failure recommends record-and-proceed, FinalRegressionArtifact marks the failed artifact completed with selectedAction=record-and-proceed and nextAction=finalize-commit, but execute() still falls through the generic fail branch and returns Envelope.fail(\"FINAL_REGRESSION_FAILED\"). That result does not include failedRecorded=true and will not allow the final-regression post-hook to advance the step.",
+      "suggestion": "In RunFinalRegressionCommand.execute, after building the artifact/envelope artifacts, branch on a validated failed-recorded artifact before the generic failure return and return the same success-shaped failedRecorded/finalize-commit envelope used by recordAndProceed().",
+      "rationale": "R7 requires auto mode to select the recommended action automatically. With the current return path, auto mode records a completed failed-recorded artifact but the command result still behaves as an ordinary failure, so the workflow remains blocked instead of proceeding."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/311-final-regression-proceed/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "6a9413fce05ee506dce66c36b2242e46608518c4d0a3e6cf311a0904a58a41d6"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "impl-003-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Auto-approved record-and-proceed still returns a failed run envelope",
+      "body": "When autoApprove is true and an eligible repeated final-regression failure recommends record-and-proceed, FinalRegressionArtifact marks the failed artifact completed with selectedAction=record-and-proceed and nextAction=finalize-commit, but execute() still falls through the generic fail branch and returns Envelope.fail(\"FINAL_REGRESSION_FAILED\"). That result does not include failedRecorded=true and will not allow the final-regression post-hook to advance the step.",
+      "category": "missing_acceptance_requirement"
+    }
+  ]
+}

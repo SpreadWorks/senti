@@ -260,8 +260,9 @@ export function discoverRegressionCommand(root, config = {}) {
   const pkg = readJsonIfExists(path.join(root, "package.json"));
   const composer = readJsonIfExists(path.join(root, "composer.json"));
   const makefileTestTarget = extractMakeTestTarget(readMakefile(path.join(root, "Makefile")));
+  const configuredTestCommand = Object.hasOwn(config?.test || {}, "command") ? config.test.command : null;
   const source = selectTestCommandSource(collectTestCommandSources({
-    configuredTestCommand: config?.test?.command || null,
+    configuredTestCommand,
     scripts: pkg?.scripts || null,
     composerScripts: composer?.scripts || null,
     makefileTestTarget,

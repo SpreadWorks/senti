@@ -9,12 +9,16 @@
    - Skipped artifacts MUST include `version`, `completed`, `result`, `failureKind`, `skipKind`, `reason`, `command`, `commandSource`, `rawOutputPath`, `rawOutputLines`, `process`, `changedFiles`, `retryable`, `nextAction`, and `proof`.
    - For skipped artifacts, `process.started` is `false`, `process.exitCode` / `signal` / `spawnError` are `null`, `process.timedOut` is `false`, and `rawOutputPath` points to a retained `tests/.raw/final-regression-attempt-*.log` decision log.
    - `proof.kind` must equal `skipKind`. Covered-by-test-execute proof contains `reusedArtifactPath`, `commandIdentity`, `changedFileFingerprints`, and `staleCheck`. Risk-based proof contains `allowlistClassifications`, `checkedSensitivePathClasses`, `failClosedDecision`, `upgradeEvidencePath`, and `testExecuteEvidencePath`. Project-policy proof contains `commandDiscovery.checkedSources`, `supportedCommandFound: false`, `invalidConfiguredCommand: false`, and `reason`.
-   - On FAIL, read `specs/<spec>/final-regression-result.json`, the attempt log at `rawOutputPath`, and the fields `result`, `failureKind`, `retryable`, and `nextAction` as independent signals; do not infer one from another. Attempt logs use durable retained path pattern `tests/.raw/final-regression-attempt-*.log`; do not delete or overwrite prior attempt logs.
+   - On FAIL, read `specs/<spec>/final-regression-result.json`, the attempt log at `rawOutputPath`, and the fields `result`, `failureKind`, `failureCategory`, `recordAndProceed`, `fixAttempts`, `retryable`, `nextAction`, and `nextRecommendedAction` as independent signals; do not infer one from another. Attempt logs use durable retained path pattern `tests/.raw/final-regression-attempt-*.log`; do not delete or overwrite prior attempt logs.
    - Use `failureKind` to choose handling, and always honor `nextAction: "stop"` when present:
      - `caused_by_current_change` → repair the regression, run spec-local evidence as needed, then rerun `final-regression`.
      - `invalid_project_test` → repair the project test command or test contract, then rerun `final-regression`.
-     - `unattributed_existing_failure` → stop and ask the user whether to record or split out the unattributed existing project-test failure.
+     - Eligible non-current-diff failures with `recordAndProceed.eligible: true` and `fixAttempts: 0` → choose `fix-and-rerun`, make an in-scope repair attempt, then rerun `final-regression`.
+     - Eligible non-current-diff failures with `recordAndProceed.eligible: true`, `fixAttempts > 0`, and `nextRecommendedAction: "record-and-proceed"` → run `senti flow run final-regression --record-and-proceed`; the artifact must keep `result: "fail"`.
+     - Explicit `out_of_scope` and `flaky_suspected` record-and-proceed selections require non-empty evidence and remaining risk text.
+     - In autoApprove mode, select the recommended action automatically: `fix-and-rerun`, `record-and-proceed`, or `stop`.
+     - In manual mode, present `nextRecommendedAction` first and keep record-and-proceed visibly failed; never describe it as pass or skipped.
      - Any other `failureKind` → stop; do not enter the implementation repair loop.
    - `retryable` tells whether the runner still permits an automated rerun. If `retryable: false`, do not rerun final-regression unless a later user decision or repair step changes the evidence.
    - Treat `final-regression-result.json` as current-run only. Historical failures stay in `issue-log.json`.
-   - Final-regression is capped at 2 consecutive failed attempts; on the 2nd failure the runner returns `nextAction: "stop"`. When that arrives, STOP and return control to the user.
+   - Final-regression failure handling is driven by `nextRecommendedAction` and `nextAction`; when `nextAction: "stop"` arrives, STOP and return control to the user.

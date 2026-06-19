@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Applied five question-shape repairs by removing recommendation wording and reframing q3 around user-visible category display.",
+  "items": [
+    {
+      "title": "1. q1 includes a recommendation",
+      "target": "q1",
+      "rationale": "Removed the leading recommendation phrase while preserving the record-and-proceed goal confirmation question.",
+      "evidence": "draft.json qa[0].question now starts directly with the question about record-and-proceed as a non-pass final-regression outcome.",
+      "changedFieldPaths": ["qa[0].question"]
+    },
+    {
+      "title": "2. q2 includes a recommendation",
+      "target": "q2",
+      "rationale": "Removed the leading recommendation phrase while preserving the status and final report display question.",
+      "evidence": "draft.json qa[1].question now starts directly with the question about record-and-proceed display.",
+      "changedFieldPaths": ["qa[1].question"]
+    },
+    {
+      "title": "3. q3 includes a recommendation and internal implementation detail",
+      "target": "q3",
+      "rationale": "Reframed the question to ask only about user-visible failure category wording and removed internal artifact compatibility details.",
+      "evidence": "draft.json qa[2].question now asks whether summaries should use Issue #403 failure categories.",
+      "changedFieldPaths": ["qa[2].question"]
+    },
+    {
+      "title": "4. q4 includes a recommendation",
+      "target": "q4",
+      "rationale": "Removed the leading recommendation phrase while preserving the first-failure versus repeated-failure ordering question.",
+      "evidence": "draft.json qa[3].question now starts directly with the recommendation ordering question.",
+      "changedFieldPaths": ["qa[3].question"]
+    },
+    {
+      "title": "5. q5 includes a recommendation",
+      "target": "q5",
+      "rationale": "Removed the leading recommendation phrase while preserving the fail-closed boundary question.",
+      "evidence": "draft.json qa[4].question now starts directly with the record-and-proceed exclusion question.",
+      "changedFieldPaths": ["qa[4].question"]
+    }
+  ]
+}

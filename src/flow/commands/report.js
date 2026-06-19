@@ -36,6 +36,21 @@ function capReportField(value) {
   return `${text.slice(0, MAX_REPORT_FIELD_CHARS - 3)}...`;
 }
 
+function finalRegressionHumanSummary(result) {
+  if (!result) return null;
+  const parts = [
+    `result=${result.result}`,
+    result.failureCategory ? `failureCategory=${result.failureCategory}` : null,
+    result.failureKind ? `failureKind=${result.failureKind}` : null,
+    result.rawOutputPath ? `raw_output=${result.rawOutputPath}` : null,
+    Number.isInteger(result.fixAttempts) ? `fixAttempts=${result.fixAttempts}` : null,
+    result.selectedAction ? `selectedAction=${result.selectedAction}` : null,
+    result.nextRecommendedAction ? `nextRecommendedAction=${result.nextRecommendedAction}` : null,
+    result.remainingRisk ? `remainingRisk=${result.remainingRisk}` : null,
+  ].filter(Boolean);
+  return parts.map(capReportField).join(" ");
+}
+
 function issueLogPathForSpec(specPath) {
   if (!specPath) return null;
   return path.join(path.dirname(specPath), "issue-log.json");
@@ -203,7 +218,10 @@ export function generateReport(input) {
       invalidReason: testResultReview?.invalidReason || null,
       rawOutputPath: testExecute?.rawOutputPath || null,
       projectRegression: testExecute?.projectRegression || null,
-      finalRegression: finalRegression || null,
+      finalRegression: finalRegression ? {
+        ...finalRegression,
+        humanSummary: finalRegression.humanSummary || finalRegressionHumanSummary(finalRegression),
+      } : null,
     };
   }
 
@@ -442,7 +460,17 @@ function formatText(data) {
     }
     if (t.finalRegression) {
       const r = t.finalRegression;
-      lines.push(`    Final regression: result=${r.result}${r.skipKind ? ` skipKind=${r.skipKind}` : ""}${r.failureKind ? ` failureKind=${r.failureKind}` : ""}`);
+      lines.push([
+        `    Final regression: result=${r.result}`,
+        r.skipKind ? `skipKind=${r.skipKind}` : null,
+        r.failureKind ? `failureKind=${r.failureKind}` : null,
+        r.failureCategory ? `failureCategory=${r.failureCategory}` : null,
+        r.rawOutputPath ? `raw_output=${r.rawOutputPath}` : null,
+        Number.isInteger(r.fixAttempts) ? `fixAttempts=${r.fixAttempts}` : null,
+        r.selectedAction ? `selectedAction=${r.selectedAction}` : null,
+        r.nextRecommendedAction ? `nextRecommendedAction=${r.nextRecommendedAction}` : null,
+        r.remainingRisk ? `remainingRisk=${r.remainingRisk}` : null,
+      ].filter(Boolean).join(" "));
     }
   } else {
     lines.push("    No test data");

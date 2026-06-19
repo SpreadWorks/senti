@@ -18,8 +18,11 @@ import { generateReport, saveReport } from "../commands/report.js";
 import { loadIssueLog } from "./set-issue-log.js";
 import { FlowCommand } from "./base-command.js";
 import {
+  FINAL_REGRESSION_RESULT_FILE,
   UPGRADE_RESULT_FILE,
   buildTestResultsFromArtifacts,
+  readJsonStrict,
+  validateFinalRegressionResult,
   validateUpgradeResultArtifact,
 } from "./test-artifacts.js";
 import { readRetroResultIfExists } from "./retro-artifacts.js";
@@ -65,6 +68,34 @@ export class RunReportCommand extends FlowCommand {
     // Shared loader preserves results.testExecute.projectRegression for report rendering.
     if (hasTestExecuteResult || hasTestResultReview) {
       Object.assign(results, buildTestResultsFromArtifacts(specDir));
+    }
+    const finalRegressionPath = path.join(specDir, FINAL_REGRESSION_RESULT_FILE);
+    if (!results.finalRegression && fs.existsSync(finalRegressionPath)) {
+      const finalRegression = validateFinalRegressionResult(readJsonStrict(finalRegressionPath));
+      results.finalRegression = {
+        status: "done",
+        result: finalRegression.result,
+        failureKind: finalRegression.failureKind,
+        failureCategory: finalRegression.failureCategory || null,
+        failureNature: finalRegression.failureNature || null,
+        skipKind: finalRegression.skipKind || null,
+        rawOutputPath: finalRegression.rawOutputPath,
+        command: finalRegression.command,
+        process: finalRegression.process,
+        exitCode: finalRegression.process?.exitCode ?? null,
+        failureSummary: finalRegression.failureSummary || null,
+        currentDiffRelationship: finalRegression.currentDiffRelationship || null,
+        changedFiles: finalRegression.changedFiles || [],
+        changedFileFingerprints: finalRegression.changedFileFingerprints || [],
+        fixAttempts: finalRegression.fixAttempts ?? null,
+        selectedAction: finalRegression.selectedAction || null,
+        remainingRisk: finalRegression.remainingRisk || null,
+        retryable: finalRegression.retryable,
+        nextAction: finalRegression.nextAction,
+        nextRecommendedAction: finalRegression.nextRecommendedAction || null,
+        recordAndProceed: finalRegression.recordAndProceed || null,
+        humanSummary: finalRegression.humanSummary || null,
+      };
     }
     const upgrade = buildUpgradeReportDataFromArtifacts(specDir);
     if (upgrade) results.upgrade = upgrade;

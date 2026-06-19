@@ -59,6 +59,35 @@ const FAILURE_NEXT_ACTION = Object.freeze({
   [FAILURE_KINDS.CHILD_PROCESS_EPERM]: "stop",
   [FAILURE_KINDS.INVALID_PROJECT_TEST]: "test-repair",
 });
+const FAILURE_CATEGORIES = Object.freeze({
+  CURRENT_CHANGE: "caused_by_current_change",
+  EXISTING: "existing_failure",
+  ENVIRONMENT: "environment",
+  SANDBOX: "sandbox",
+  TIMEOUT: "timeout",
+  DEPENDENCY: "dependency",
+  OUT_OF_SCOPE: "out_of_scope",
+  FLAKY_SUSPECTED: "flaky_suspected",
+});
+const NEXT_RECOMMENDED_ACTIONS = Object.freeze({
+  FIX_AND_RERUN: "fix-and-rerun",
+  RECORD_AND_PROCEED: "record-and-proceed",
+  STOP: "stop",
+});
+const RECORD_AND_PROCEED_CATEGORIES = new Set([
+  FAILURE_CATEGORIES.EXISTING,
+  FAILURE_CATEGORIES.ENVIRONMENT,
+  FAILURE_CATEGORIES.SANDBOX,
+  FAILURE_CATEGORIES.TIMEOUT,
+  FAILURE_CATEGORIES.DEPENDENCY,
+  FAILURE_CATEGORIES.OUT_OF_SCOPE,
+  FAILURE_CATEGORIES.FLAKY_SUSPECTED,
+]);
+const EXPLICIT_RECORD_CATEGORIES = new Set([
+  FAILURE_CATEGORIES.OUT_OF_SCOPE,
+  FAILURE_CATEGORIES.FLAKY_SUSPECTED,
+]);
+const FIX_ATTEMPT_SCAN_LIMIT = 10_000;
 const FINAL_REGRESSION_ATTEMPT_FILE_RE = /^final-regression-attempt-(\d+)\.log$/;
 const MAX_FINAL_REGRESSION_ATTEMPTS = 10_000;
 const MAX_FINAL_REGRESSION_RAW_DIR_SCAN_ENTRIES = 10_000;
@@ -148,6 +177,38 @@ class FinalRegressionDecision {
   }
 }
 
+class FinalRegressionFailureProfile {
+  constructor({ failureKind, process, fixAttempts, autoApprove = false, canValidateProceed = true }) {
+    this.failureKind = failureKind;
+    this.failureCategory = failureCategoryFor(failureKind);
+    this.failureNature = failureNatureFor(failureKind, process);
+    this.fixAttempts = fixAttempts;
+    this.recordAndProceedEligible = canValidateProceed && recordAndProceedEligibleFor(this.failureCategory, failureKind);
+    this.nextRecommendedAction = nextRecommendedActionFor({
+      failureKind,
+      eligible: this.recordAndProceedEligible,
+      fixAttempts,
+    });
+    this.selectedAction = autoApprove ? this.nextRecommendedAction : null;
+    Object.freeze(this);
+  }
+
+  recordAndProceedEvidence() {
+    const validated = this.selectedAction === NEXT_RECOMMENDED_ACTIONS.RECORD_AND_PROCEED;
+    return {
+      eligible: this.recordAndProceedEligible,
+      validated,
+      evidence: validated ? `autoApprove selected record-and-proceed for ${this.failureCategory}` : null,
+    };
+  }
+
+  remainingRisk() {
+    return this.selectedAction === NEXT_RECOMMENDED_ACTIONS.RECORD_AND_PROCEED
+      ? `final-regression remains failed; category=${this.failureCategory}`
+      : null;
+  }
+}
+
 class FinalRegressionProcess {
   constructor(result) {
     this.started = Boolean(result?.started);
@@ -195,12 +256,19 @@ class FinalRegressionArtifact {
     skipKind = null,
     reason = null,
     proof = null,
+    commandIdentity = null,
+    changedFileFingerprints = [],
+    failureProfile = null,
+    failureSummary = null,
+    selectedAction = null,
+    remainingRisk = null,
   }) {
     if (!["pass", "fail", "skipped"].includes(result)) throw new Error("final-regression result must be pass, fail, or skipped");
     if (!(decision instanceof FinalRegressionDecision)) throw new Error("final-regression decision is required");
     if (result === "skipped" && !Object.values(SKIP_KINDS).includes(skipKind)) throw new Error("final-regression skipped artifact requires skipKind");
     this.version = "1";
-    this.completed = result === "pass" || result === "skipped";
+    const autoRecorded = result === "fail" && failureProfile?.selectedAction === NEXT_RECOMMENDED_ACTIONS.RECORD_AND_PROCEED;
+    this.completed = result === "pass" || result === "skipped" || autoRecorded;
     this.result = result;
     this.failureKind = decision.failureKind;
     this.skipKind = skipKind;
@@ -211,8 +279,19 @@ class FinalRegressionArtifact {
     this.rawOutputLines = rawOutputLines;
     this.process = process;
     this.changedFiles = Object.freeze([...(changedFiles || [])]);
-    this.retryable = decision.retryable;
-    this.nextAction = decision.nextAction;
+    this.commandIdentity = commandIdentity;
+    this.changedFileFingerprints = Object.freeze(fingerprintSet(changedFileFingerprints));
+    this.retryable = autoRecorded ? false : decision.retryable;
+    this.nextAction = autoRecorded ? "finalize-commit" : decision.nextAction;
+    this.nextRecommendedAction = failureProfile?.nextRecommendedAction || (result === "fail" ? NEXT_RECOMMENDED_ACTIONS.STOP : null);
+    this.failureCategory = failureProfile?.failureCategory || null;
+    this.failureNature = failureProfile?.failureNature || null;
+    this.fixAttempts = failureProfile?.fixAttempts ?? 0;
+    this.recordAndProceed = failureProfile?.recordAndProceedEvidence() || null;
+    this.selectedAction = selectedAction ?? failureProfile?.selectedAction ?? null;
+    this.remainingRisk = remainingRisk || failureProfile?.remainingRisk() || null;
+    this.failureSummary = failureSummary;
+    this.currentDiffRelationship = this.failureCategory === FAILURE_CATEGORIES.CURRENT_CHANGE ? "current-diff" : "non-current-diff";
     this.proof = proof;
     Object.freeze(this);
   }
@@ -231,8 +310,19 @@ class FinalRegressionArtifact {
       rawOutputLines: this.rawOutputLines,
       process: this.process.toJSON(),
       changedFiles: this.changedFiles,
+      ...(this.commandIdentity ? { commandIdentity: this.commandIdentity } : {}),
+      changedFileFingerprints: this.changedFileFingerprints,
       retryable: this.retryable,
       nextAction: this.nextAction,
+      ...(this.nextRecommendedAction ? { nextRecommendedAction: this.nextRecommendedAction } : {}),
+      ...(this.failureCategory ? { failureCategory: this.failureCategory } : {}),
+      ...(this.failureNature ? { failureNature: this.failureNature } : {}),
+      ...(this.result === "fail" ? { fixAttempts: this.fixAttempts } : {}),
+      ...(this.recordAndProceed ? { recordAndProceed: this.recordAndProceed } : {}),
+      ...(this.selectedAction ? { selectedAction: this.selectedAction } : {}),
+      ...(this.remainingRisk ? { remainingRisk: this.remainingRisk } : {}),
+      ...(this.failureSummary ? { failureSummary: this.failureSummary } : {}),
+      ...(this.result === "fail" ? { currentDiffRelationship: this.currentDiffRelationship } : {}),
       ...(this.proof ? { proof: this.proof.toJSON() } : {}),
     };
   }
@@ -244,9 +334,12 @@ class FinalRegressionArtifact {
       completed: this.completed,
       result: this.result,
       failureKind: this.failureKind,
+      ...(this.failureCategory ? { failureCategory: this.failureCategory } : {}),
       ...(this.skipKind ? { skipKind: this.skipKind } : {}),
       retryable: this.retryable,
       nextAction: this.nextAction,
+      ...(this.nextRecommendedAction ? { nextRecommendedAction: this.nextRecommendedAction } : {}),
+      ...(this.selectedAction ? { selectedAction: this.selectedAction } : {}),
     };
   }
 }
@@ -361,12 +454,63 @@ function fingerprintSetsEqual(a, b) {
   return JSON.stringify(fingerprintSet(a)) === JSON.stringify(fingerprintSet(b));
 }
 
+function failureCategoryFor(failureKind) {
+  if (failureKind === FAILURE_KINDS.CURRENT_CHANGE) return FAILURE_CATEGORIES.CURRENT_CHANGE;
+  if (failureKind === FAILURE_KINDS.UNATTRIBUTED_EXISTING) return FAILURE_CATEGORIES.EXISTING;
+  if (failureKind === FAILURE_KINDS.TIMEOUT) return FAILURE_CATEGORIES.TIMEOUT;
+  if (failureKind === FAILURE_KINDS.DEPENDENCY) return FAILURE_CATEGORIES.DEPENDENCY;
+  if (failureKind === FAILURE_KINDS.SANDBOX || failureKind === FAILURE_KINDS.CHILD_PROCESS_EPERM) return FAILURE_CATEGORIES.SANDBOX;
+  if (failureKind === FAILURE_KINDS.PERMISSION || failureKind === FAILURE_KINDS.INFRA || failureKind === FAILURE_KINDS.INVALID_PROJECT_TEST) {
+    return FAILURE_CATEGORIES.ENVIRONMENT;
+  }
+  return FAILURE_CATEGORIES.ENVIRONMENT;
+}
+
+function failureNatureFor(failureKind, process) {
+  if (failureKind === FAILURE_KINDS.UNATTRIBUTED_EXISTING || failureKind === FAILURE_KINDS.CURRENT_CHANGE) return "assertion";
+  if (process?.started === false || process?.spawnError || process?.timedOut) return "execution";
+  return "execution";
+}
+
+function recordAndProceedEligibleFor(category, failureKind) {
+  if (failureKind === FAILURE_KINDS.INVALID_PROJECT_TEST || failureKind === FAILURE_KINDS.CURRENT_CHANGE) return false;
+  return RECORD_AND_PROCEED_CATEGORIES.has(category);
+}
+
+function nextRecommendedActionFor({ failureKind, eligible, fixAttempts }) {
+  if (!eligible) return FAILURE_NEXT_ACTION[failureKind] === "stop" ? NEXT_RECOMMENDED_ACTIONS.STOP : NEXT_RECOMMENDED_ACTIONS.FIX_AND_RERUN;
+  return fixAttempts > 0 ? NEXT_RECOMMENDED_ACTIONS.RECORD_AND_PROCEED : NEXT_RECOMMENDED_ACTIONS.FIX_AND_RERUN;
+}
+
+function failureSummaryFor(result, failureKind) {
+  const lines = processOutputLines(result).filter((line) => String(line).trim().length > 0);
+  const text = lines.slice(0, 8).join("\n").trim();
+  return boundedText(text || `final-regression failed: ${failureKind}`, 2000);
+}
+
 function testExecuteArtifactPath(specDir) {
   return path.join(specDir, "test-execute-result.json");
 }
 
 function currentChangedFilesWithFingerprints(root, changedFiles) {
   return withChangedFileFingerprints(root, changedFiles);
+}
+
+function finalRegressionGeneratedPath(filePath, state) {
+  const specDirRelative = path.posix.dirname(state.spec.split(path.sep).join("/"));
+  return filePath === `${specDirRelative}/final-regression-result.json`
+    || filePath === `${specDirRelative}/issue-log.json`
+    || filePath === `${specDirRelative}/flow.json`
+    || filePath === ".senti/.active-flow"
+    || filePath.startsWith(".tmp/logs/")
+    || filePath.startsWith(`${specDirRelative}/tests/.raw/final-regression-attempt-`);
+}
+
+function finalRegressionFreshnessFiles(changedFiles, state) {
+  return (changedFiles || []).filter((entry) => {
+    const filePath = changedFilePath(entry);
+    return filePath && !finalRegressionGeneratedPath(filePath.split(path.sep).join("/"), state);
+  });
 }
 
 function coveredByTestExecuteDecision({ root, specDir, testExecute, commandIdentity, triggerRelevantChangedFiles }) {
@@ -684,20 +828,111 @@ function previousFinalRegressionFailures(root, state) {
   return issueLog.entries.filter((entry) => entry.step === "final-regression" && entry.result === "fail");
 }
 
+function sameCommandIdentityEntry(entry, commandIdentity) {
+  return commandIdentityEqual(entry.commandIdentity, commandIdentity);
+}
+
+function countFixAttempts({ failures, commandIdentity, currentFingerprints }) {
+  const latest = failures.slice(-FIX_ATTEMPT_SCAN_LIMIT).filter((entry) => sameCommandIdentityEntry(entry, commandIdentity));
+  const seen = new Set();
+  for (const entry of latest) {
+    const fingerprints = Array.isArray(entry.changedFileFingerprints) ? entry.changedFileFingerprints : [];
+    if (!fingerprintSetsEqual(fingerprints, currentFingerprints)) {
+      seen.add(JSON.stringify(fingerprintSet(fingerprints)));
+    }
+  }
+  return seen.size;
+}
+
 function recordFinalRegressionFailure(root, state, artifact) {
   const issueLog = loadIssueLog(root, state.spec);
   issueLog.entries.push({
     step: "final-regression",
     result: "fail",
     failureKind: artifact.failureKind,
+    failureCategory: artifact.failureCategory,
     reason: `final-regression failed: ${artifact.failureKind}`,
     command: artifact.command,
+    commandIdentity: artifact.commandIdentity,
+    changedFileFingerprints: artifact.changedFileFingerprints,
     rawOutputPath: artifact.rawOutputPath,
+    fixAttempts: artifact.fixAttempts,
     retryable: artifact.retryable,
     nextAction: artifact.nextAction,
+    nextRecommendedAction: artifact.nextRecommendedAction,
     timestamp: new Date().toISOString(),
   });
   saveIssueLog(root, state.spec, issueLog);
+}
+
+function recordAndProceedInput(ctx) {
+  return ctx.recordAndProceedEvidence || {
+    category: ctx.recordAndProceedCategory,
+    evidence: ctx.recordAndProceedEvidenceText || ctx.evidence,
+    remainingRisk: ctx.remainingRisk,
+  };
+}
+
+function validateRecordAndProceedInput(input, fallbackCategory) {
+  const explicitCategory = typeof input?.category === "string" && input.category.length > 0;
+  const category = explicitCategory ? input.category : fallbackCategory;
+  const explicitEvidence = typeof input?.evidence === "string" && input.evidence.trim().length > 0;
+  const explicitRisk = typeof input?.remainingRisk === "string" && input.remainingRisk.trim().length > 0;
+  const evidence = explicitEvidence ? input.evidence : `record-and-proceed selected for ${category}`;
+  const remainingRisk = explicitRisk ? input.remainingRisk : `final-regression remains failed; category=${category}`;
+  if (!RECORD_AND_PROCEED_CATEGORIES.has(category)) {
+    throw new Error(`record-and-proceed category invalid: ${category}`);
+  }
+  if (EXPLICIT_RECORD_CATEGORIES.has(category) && (!explicitEvidence || !explicitRisk)) {
+    throw new Error("record-and-proceed evidence is required for explicit category");
+  }
+  return { category, evidence, remainingRisk };
+}
+
+function recordAndProceedFailure(code, message, data = {}) {
+  return Envelope.fail("run", "final-regression", code, message, data);
+}
+
+function readCurrentFinalRegressionArtifact(resultPath) {
+  if (!fs.existsSync(resultPath) || fs.statSync(resultPath).isDirectory()) {
+    return { error: "missing" };
+  }
+  try {
+    return { artifact: validateFinalRegressionResult(JSON.parse(fs.readFileSync(resultPath, "utf8"))) };
+  } catch (err) {
+    return { error: "invalid", message: err.message };
+  }
+}
+
+function failedRecordedArtifact(artifact) {
+  return artifact?.result === "fail"
+    && artifact.completed === true
+    && artifact.selectedAction === NEXT_RECOMMENDED_ACTIONS.RECORD_AND_PROCEED
+    && artifact.recordAndProceed?.validated === true
+    && artifact.nextAction === "finalize-commit";
+}
+
+function currentRecordAndProceedEvidence({ root, state, config, specDir }) {
+  const changedFiles = finalRegressionFreshnessFiles(
+    expandChangedFileEntries(root, listRegressionChangedFiles({ root, state })),
+    state,
+  );
+  const rootCommand = discoverRegressionCommand(root, config);
+  const commandIdentity = commandIdentityFor(rootCommand).toJSON();
+  const changedFileFingerprints = fingerprintSet(currentChangedFilesWithFingerprints(root, changedFiles));
+  return {
+    changedFiles,
+    command: rootCommand.toString(),
+    commandSource: commandIdentity.commandSource,
+    commandIdentity,
+    changedFileFingerprints,
+    resultPath: path.join(specDir, FINAL_REGRESSION_RESULT_FILE),
+  };
+}
+
+function validateRecordAndProceedFreshness(artifact, current) {
+  return commandIdentityEqual(artifact.commandIdentity, current.commandIdentity)
+    && fingerprintSetsEqual(artifact.changedFileFingerprints, current.changedFileFingerprints);
 }
 
 export default class RunFinalRegressionCommand extends FlowCommand {
@@ -706,9 +941,13 @@ export default class RunFinalRegressionCommand extends FlowCommand {
     const state = ctx.flowState;
     const config = ctx.config || {};
     const specDir = resolveSpecDir(path.resolve(root, state.spec));
-    const attemptPath = nextFinalRegressionAttempt(specDir);
     const resultPath = path.join(specDir, FINAL_REGRESSION_RESULT_FILE);
     const resultPathRelative = repoRelative(root, resultPath);
+    if (ctx.recordAndProceed) {
+      return this.recordAndProceed(ctx, { specDir, resultPath, resultPathRelative });
+    }
+
+    const attemptPath = nextFinalRegressionAttempt(specDir);
     const rawOutputPathRelative = repoRelative(root, attemptPath);
 
     const rawLines = [];
@@ -725,16 +964,21 @@ export default class RunFinalRegressionCommand extends FlowCommand {
     let result;
     let resultStatus;
     let failureKind;
+    let commandIdentity = null;
     let discoveryError = null;
     let skipDecision = null;
     let commandSource = null;
 
     if (rootOk) {
-      changedFiles = expandChangedFileEntries(root, listRegressionChangedFiles({ root, state }));
+        changedFiles = finalRegressionFreshnessFiles(
+          expandChangedFileEntries(root, listRegressionChangedFiles({ root, state })),
+          state,
+        );
       try {
         rootCommand = discoverRegressionCommand(root, config);
         commandText = rootCommand.toString();
-        commandSource = commandIdentityFor(rootCommand).commandSource;
+        commandIdentity = commandIdentityFor(rootCommand).toJSON();
+        commandSource = commandIdentity.commandSource;
         skipDecision = finalRegressionSkipDecision({ root, state, config, specDir, changedFiles, rootCommand });
         if (skipDecision) {
           result = {
@@ -798,6 +1042,20 @@ export default class RunFinalRegressionCommand extends FlowCommand {
       : resultStatus === "skipped"
         ? FinalRegressionDecision.skipped()
         : FinalRegressionDecision.fail(failureKind, previousFailures.length);
+    const fingerprintedChangedFiles = skipDecision?.changedFiles || currentChangedFilesWithFingerprints(root, changedFiles);
+    const failureProfile = resultStatus === "fail"
+      ? new FinalRegressionFailureProfile({
+        failureKind,
+        process: new FinalRegressionProcess(result),
+        fixAttempts: countFixAttempts({
+          failures: previousFailures,
+          commandIdentity,
+          currentFingerprints: fingerprintedChangedFiles,
+        }),
+        autoApprove: state.autoApprove === true,
+        canValidateProceed: Boolean(commandIdentity) && rootOk,
+      })
+      : null;
 
     let range;
     if (resultStatus === "skipped") {
@@ -832,11 +1090,15 @@ export default class RunFinalRegressionCommand extends FlowCommand {
       rawOutputPath: rawOutputPathRelative,
       rawOutputLines: range,
       process: new FinalRegressionProcess(result),
-      changedFiles: skipDecision?.changedFiles || changedFiles,
+      changedFiles: fingerprintedChangedFiles,
       decision,
       skipKind: skipDecision?.skipKind || null,
       reason: skipDecision?.reason || null,
       proof: skipDecision?.proof || null,
+      commandIdentity,
+      changedFileFingerprints: fingerprintedChangedFiles,
+      failureProfile,
+      failureSummary: resultStatus === "fail" ? failureSummaryFor(result, failureKind) : null,
     });
     const json = artifact.toJSON();
     json.contractSummary = contractFromFinalRegressionArtifact(json, {
@@ -861,6 +1123,24 @@ export default class RunFinalRegressionCommand extends FlowCommand {
     writeFinalRegressionProgressLine(`result artifact: ${resultPathRelative}`);
     writeFinalRegressionProgressLine(`wrote raw log: ${rawOutputPathRelative}`);
     recordFinalRegressionFailure(root, state, json);
+    if (failedRecordedArtifact(json)) {
+      return {
+        result: "fail",
+        failedRecorded: true,
+        changed: [
+          resultPathRelative,
+          rawOutputPathRelative,
+        ],
+        artifacts: {
+          ...envelopeArtifacts,
+          completed: true,
+          nextAction: "finalize-commit",
+          nextRecommendedAction: NEXT_RECOMMENDED_ACTIONS.RECORD_AND_PROCEED,
+          selectedAction: NEXT_RECOMMENDED_ACTIONS.RECORD_AND_PROCEED,
+        },
+        next: "finalize-commit",
+      };
+    }
     return Envelope.fail(
       "run",
       "final-regression",
@@ -868,5 +1148,110 @@ export default class RunFinalRegressionCommand extends FlowCommand {
       `final-regression failed (${failureKind}); nextAction=${decision.nextAction}`,
       envelopeArtifacts,
     );
+  }
+
+  recordAndProceed(ctx, { specDir, resultPath, resultPathRelative }) {
+    const { root } = ctx;
+    const state = ctx.flowState;
+    const config = ctx.config || {};
+    const read = readCurrentFinalRegressionArtifact(resultPath);
+    if (read.error === "missing") {
+      return recordAndProceedFailure(
+        "FINAL_REGRESSION_RECORD_AND_PROCEED_MISSING_ARTIFACT",
+        "final-regression failed artifact is missing",
+      );
+    }
+    if (read.error === "invalid") {
+      return recordAndProceedFailure(
+        "FINAL_REGRESSION_RECORD_AND_PROCEED_INVALID_ARTIFACT",
+        `final-regression failed artifact is invalid: ${read.message}`,
+      );
+    }
+    const artifact = read.artifact;
+    if (artifact.result !== "fail" || artifact.recordAndProceed?.eligible !== true) {
+      return recordAndProceedFailure(
+        "FINAL_REGRESSION_RECORD_AND_PROCEED_INELIGIBLE",
+        "final-regression artifact is not eligible for record-and-proceed",
+      );
+    }
+    let current;
+    try {
+      current = currentRecordAndProceedEvidence({ root, state, config, specDir });
+    } catch (err) {
+      return recordAndProceedFailure(
+        "FINAL_REGRESSION_RECORD_AND_PROCEED_INELIGIBLE",
+        `final-regression current evidence cannot be validated: ${err.message}`,
+      );
+    }
+    if (!validateRecordAndProceedFreshness(artifact, current)) {
+      return recordAndProceedFailure(
+        "FINAL_REGRESSION_RECORD_AND_PROCEED_STALE",
+        "final-regression failed artifact is stale",
+      );
+    }
+
+    let input;
+    try {
+      input = validateRecordAndProceedInput(recordAndProceedInput(ctx), artifact.failureCategory);
+    } catch (err) {
+      return recordAndProceedFailure(
+        "FINAL_REGRESSION_RECORD_AND_PROCEED_INVALID_EVIDENCE",
+        err.message,
+      );
+    }
+
+    const category = input.category || artifact.failureCategory;
+    if (!RECORD_AND_PROCEED_CATEGORIES.has(category)) {
+      return recordAndProceedFailure(
+        "FINAL_REGRESSION_RECORD_AND_PROCEED_INELIGIBLE",
+        `final-regression category is not eligible: ${category}`,
+      );
+    }
+    const json = {
+      ...artifact,
+      completed: true,
+      result: "fail",
+      failureCategory: category,
+      selectedAction: NEXT_RECOMMENDED_ACTIONS.RECORD_AND_PROCEED,
+      remainingRisk: input.remainingRisk,
+      retryable: false,
+      nextAction: "finalize-commit",
+      nextRecommendedAction: NEXT_RECOMMENDED_ACTIONS.RECORD_AND_PROCEED,
+      recordAndProceed: {
+        eligible: true,
+        validated: true,
+        evidence: input.evidence,
+      },
+      command: current.command,
+      commandSource: current.commandSource,
+      commandIdentity: current.commandIdentity,
+      changedFiles: current.changedFiles,
+      changedFileFingerprints: current.changedFileFingerprints,
+      currentDiffRelationship: category === FAILURE_CATEGORIES.CURRENT_CHANGE ? "current-diff" : "non-current-diff",
+    };
+    json.contractSummary = contractFromFinalRegressionArtifact(json, {
+      artifactPath: resultPathRelative,
+    }).summary.toJSON();
+    validateFinalRegressionResult(json);
+    fs.writeFileSync(resultPath, JSON.stringify(json, null, 2) + "\n");
+    const artifacts = {
+      result_path: resultPathRelative,
+      raw_output_path: json.rawOutputPath,
+      completed: true,
+      result: "fail",
+      failureKind: json.failureKind,
+      failureCategory: json.failureCategory,
+      retryable: false,
+      nextAction: "finalize-commit",
+      nextRecommendedAction: NEXT_RECOMMENDED_ACTIONS.RECORD_AND_PROCEED,
+      selectedAction: NEXT_RECOMMENDED_ACTIONS.RECORD_AND_PROCEED,
+    };
+    return {
+      result: "fail",
+      failedRecorded: true,
+      changed: [resultPathRelative],
+      artifacts,
+      next: "finalize-commit",
+    };
   }
 }

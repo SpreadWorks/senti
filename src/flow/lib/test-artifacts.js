@@ -738,6 +738,85 @@ function validateFinalRegressionFailureKind(result) {
   }
 }
 
+function validateFinalRegressionRecordAndProceed(result) {
+  const recommended = ["fix-and-rerun", "record-and-proceed", "stop"];
+  if (Object.hasOwn(result, "nextRecommendedAction") && !recommended.includes(result.nextRecommendedAction)) {
+    throw new Error(`final-regression nextRecommendedAction invalid: ${result.nextRecommendedAction}`);
+  }
+  if (!Array.isArray(result.changedFileFingerprints)) {
+    throw new Error("final-regression changedFileFingerprints must be array");
+  }
+  if (result.result !== "fail") {
+    if (result.completed === true && result.selectedAction === "record-and-proceed") {
+      throw new Error("final-regression record-and-proceed is only valid on fail");
+    }
+    return;
+  }
+  if (typeof result.failureCategory !== "string" || result.failureCategory.length === 0) {
+    throw new Error("final-regression failureCategory is required on fail");
+  }
+  if (![
+    "caused_by_current_change",
+    "existing_failure",
+    "environment",
+    "sandbox",
+    "timeout",
+    "dependency",
+    "out_of_scope",
+    "flaky_suspected",
+  ].includes(result.failureCategory)) {
+    throw new Error(`final-regression failureCategory invalid: ${result.failureCategory}`);
+  }
+  if (!["assertion", "execution"].includes(result.failureNature)) {
+    throw new Error("final-regression failureNature must be assertion or execution");
+  }
+  if (!Number.isInteger(result.fixAttempts) || result.fixAttempts < 0) {
+    throw new Error("final-regression fixAttempts must be a non-negative integer");
+  }
+  if (result.recordAndProceed?.eligible === true || result.completed === true) {
+    if (!result.commandIdentity || typeof result.commandIdentity !== "object" || Array.isArray(result.commandIdentity)) {
+      throw new Error("final-regression commandIdentity is required on eligible fail");
+    }
+    for (const field of ["command", "commandSource", "argv", "env", "source", "metadata", "resolvedScriptDigest", "resolvedConfigDigest"]) {
+      if (!Object.hasOwn(result.commandIdentity, field)) throw new Error(`final-regression commandIdentity missing ${field}`);
+    }
+    if (!Array.isArray(result.commandIdentity.argv) || result.commandIdentity.argv.some((entry) => typeof entry !== "string")) {
+      throw new Error("final-regression commandIdentity.argv must be string array");
+    }
+  }
+  if (!result.recordAndProceed || typeof result.recordAndProceed !== "object" || Array.isArray(result.recordAndProceed)) {
+    throw new Error("final-regression record-and-proceed evidence is required on fail");
+  }
+  if (typeof result.recordAndProceed.eligible !== "boolean") {
+    throw new Error("final-regression record-and-proceed eligible must be boolean");
+  }
+  if (typeof result.recordAndProceed.validated !== "boolean") {
+    throw new Error("final-regression record-and-proceed validated must be boolean");
+  }
+  if (result.completed === true) {
+    if (result.selectedAction !== "record-and-proceed") {
+      throw new Error("final-regression completed fail requires selectedAction=record-and-proceed");
+    }
+    if (result.nextAction !== "finalize-commit") {
+      throw new Error("final-regression completed failed-recorded nextAction must be finalize-commit");
+    }
+    if (result.nextRecommendedAction !== "record-and-proceed") {
+      throw new Error("final-regression completed failed-recorded nextRecommendedAction must be record-and-proceed");
+    }
+    if (result.recordAndProceed.eligible !== true || result.recordAndProceed.validated !== true) {
+      throw new Error("final-regression completed fail requires validated failed-recorded record-and-proceed evidence");
+    }
+    if (typeof result.recordAndProceed.evidence !== "string" || result.recordAndProceed.evidence.trim().length === 0) {
+      throw new Error("final-regression record-and-proceed evidence must be non-empty");
+    }
+    if (typeof result.remainingRisk !== "string" || result.remainingRisk.trim().length === 0) {
+      throw new Error("final-regression remainingRisk is required for record-and-proceed");
+    }
+  } else if (result.selectedAction === "record-and-proceed") {
+    throw new Error("final-regression record-and-proceed selection requires completed fail");
+  }
+}
+
 function validateFinalRegressionSkipKind(result) {
   if (result.result !== "skipped") {
     if (Object.hasOwn(result, "skipKind")) throw new Error("final-regression skipKind is only valid on skipped");
@@ -826,6 +905,7 @@ export function validateFinalRegressionResult(result) {
   assertProcessMetadata(result.process, "final-regression.process");
   validateFinalRegressionFailureKind(result);
   validateFinalRegressionSkipKind(result);
+  validateFinalRegressionRecordAndProceed(result);
   return result;
 }
 
@@ -987,10 +1067,25 @@ export function buildTestResultsFromArtifacts(specDir) {
             status: "done",
             result: finalRegression.result,
             failureKind: finalRegression.failureKind,
+            failureCategory: finalRegression.failureCategory || null,
+            failureNature: finalRegression.failureNature || null,
             skipKind: finalRegression.skipKind || null,
             rawOutputPath: finalRegression.rawOutputPath,
+            command: finalRegression.command,
+            process: finalRegression.process,
+            exitCode: finalRegression.process?.exitCode ?? null,
+            failureSummary: finalRegression.failureSummary || null,
+            currentDiffRelationship: finalRegression.currentDiffRelationship || null,
+            changedFiles: finalRegression.changedFiles || [],
+            changedFileFingerprints: finalRegression.changedFileFingerprints || [],
+            fixAttempts: finalRegression.fixAttempts ?? null,
+            selectedAction: finalRegression.selectedAction || null,
+            remainingRisk: finalRegression.remainingRisk || null,
             retryable: finalRegression.retryable,
             nextAction: finalRegression.nextAction,
+            nextRecommendedAction: finalRegression.nextRecommendedAction || null,
+            recordAndProceed: finalRegression.recordAndProceed || null,
+            humanSummary: finalRegression.humanSummary || null,
           },
         }
       : {}),

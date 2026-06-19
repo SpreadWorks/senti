@@ -1,0 +1,348 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".senti/output/analysis.json                        |    2 +-\n .../acceptance-review-evidence.json                |   57 +\n .../acceptance-review.json                         |   93 ++\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-gate-source.json                         |  120 ++\n .../draft-questions-repair.json                    |   43 +\n .../draft-questions-triage.json                    |   43 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   47 +\n specs/311-final-regression-proceed/draft.json      |  129 ++\n specs/311-final-regression-proceed/file-map.json   |   76 ++\n .../flow-findings.json                             |   71 ++\n specs/311-final-regression-proceed/flow.json       | 1345 ++++++++++++++++++++\n .../311-final-regression-proceed/impl-review.json  |   59 +\n specs/311-final-regression-proceed/issue-log.json  |  190 +++\n specs/311-final-regression-proceed/issue.md        |  228 ++++\n .../plugin-artifacts/workflow/prepare.json         |   10 +\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |  101 ++\n .../review-history/impl-attempt-001.json           |   90 ++\n .../review-history/impl-attempt-001.md             |   39 +\n .../review-history/impl-attempt-002.json           |   52 +\n .../review-history/impl-attempt-002.md             |   23 +\n .../review-history/impl-attempt-003.json           |   52 +\n .../review-history/impl-attempt-003.md             |   23 +\n .../review-history/impl-attempt-004.json           |   90 ++\n .../review-history/impl-attempt-004.md             |   39 +\n .../review-history/spec-attempt-001.json           |  131 ++\n .../review-history/spec-attempt-001.md             |   42 +\n .../review-history/test-attempt-001.json           |  168 +++\n .../review-history/test-attempt-001.md             |   51 +\n .../review-history/test-attempt-002.json           |   88 ++\n .../review-history/test-attempt-002.md             |   27 +\n .../review-history/test-attempt-003.json           |  128 ++\n .../review-history/test-attempt-003.md             |   39 +\n .../review-history/test-attempt-004.json           |   88 ++\n .../review-history/test-attempt-004.md             |   27 +\n .../review-history/test-attempt-005.json           |   90 ++\n .../review-history/test-attempt-005.md             |   30 +\n specs/311-final-regression-proceed/review.md       |   39 +\n .../spec-gate-source.json                          |  120 ++\n .../311-final-regression-proceed/spec-repair.json  |   40 +\n .../311-final-regression-proceed/spec-review.json  |   67 +\n specs/311-final-regression-proceed/spec-review.md  |   42 +\n .../311-final-regression-proceed/spec-triage.json  |   36 +\n specs/311-final-regression-proceed/spec.json       |  393 ++++++\n specs/311-final-regression-proceed/spec.md         |  168 +++\n specs/311-final-regression-proceed/tasks/T-1.md    |   20 +\n specs/311-final-regression-proceed/tasks/T-2.md    |   20 +\n specs/311-final-regression-proceed/tasks/T-3.md    |   20 +\n specs/311-final-regression-proceed/tasks/T-4.md    |   20 +\n .../test-coverage.json                             |  181 +++\n .../311-final-regression-proceed/test-review.json  |   59 +\n specs/311-final-regression-proceed/test-review.md  |   30 +\n .../tests/final-regression-contract.test.js        |  152 +++\n .../final-regression-record-and-proceed.test.js    |  575 +++++++++\n .../final-regression-report-and-prompt.test.js     |  248 ++++\n .../tests/final-regression-schema.test.js          |   90 ++\n src/flow/commands/report.js                        |   32 +-\n src/flow/lib/flow-judgment-contract.js             |   16 +-\n src/flow/lib/get-status.js                         |   24 +\n src/flow/lib/run-final-regression.js               |  399 +++++-\n src/flow/lib/run-report.js                         |   31 +\n src/flow/lib/test-artifacts.js                     |   95 ++\n src/flow/lib/test-regression.js                    |    3 +-\n src/flow/prompts/impl/final-regression.md          |   10 +-\n src/flow/registry.js                               |   16 +-\n src/lib/test-command-sources.js                    |    2 +-\n .../final-regression-record-and-proceed.test.js    |  159 +++\n 70 files changed, 7059 insertions(+), 20 deletions(-)",
+      "commits": [
+        "feat: support final-regression record-and-proceed"
+      ]
+    },
+    "retro": {
+      "total": 10,
+      "done": 10,
+      "partial": 0,
+      "not_done": 0,
+      "not_applicable_count": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "Final-regression failure artifacts must distinguish assertion-like project test failures from execution failures and must record a user-visible failure category using Issue #403 categories. Automatic categories are limited to source-backed evidence: caused_by_current_change, existing_failure, environment, sandbox, timeout, and dependency. out_of_scope and flaky_suspected may be recorded only during record-and-proceed selection with explicit non-empty evidence.",
+          "status": "done",
+          "note": "R1: failed artifacts separate assertion failures from execution failures and expose Issue 403 categories"
+        },
+        {
+          "desc": "When a failure is classified as caused_by_current_change, invalid project-test behavior tied to the current diff, broken workflow state, missing artifact evidence, artifact write failure, or schema validation failure, record-and-proceed must be unavailable and the flow must stay on fix-or-stop behavior.",
+          "status": "done",
+          "note": "R2: current-diff and invalid project-test failures are not eligible for record-and-proceed"
+        },
+        {
+          "desc": "When a failure is classified as existing_failure, environment, sandbox, timeout, dependency, or explicitly evidenced out_of_scope or flaky_suspected, and required evidence is present, the artifact must mark it as eligible for record-and-proceed while keeping `result: \"fail\"`.",
+          "status": "done",
+          "note": "R3: eligible failures keep result fail while exposing record-and-proceed eligibility"
+        },
+        {
+          "desc": "A record-and-proceed selection must preserve failed command, exit code, raw log path, failure summary, current diff relationship, fix attempt count, selected action, remaining risk, nextAction, and a distinct nextRecommendedAction in final-regression-result.json and final report data. nextAction remains the flow transition field; nextRecommendedAction is the user/auto recommendation and is one of fix-and-rerun, record-and-proceed, or stop.",
+          "status": "done",
+          "note": "R4: record-and-proceed preserves failure evidence and writes distinct selected and recommended actions"
+        },
+        {
+          "desc": "`senti flow run final-regression --record-and-proceed` must validate the current failed final-regression artifact, reject ineligible or stale failures, record selectedAction=record-and-proceed, keep `result: \"fail\"`, and return an envelope that allows the final-regression post-hook to mark the step done. Stale means the current command identity or current changed-file fingerprints differ from the durable values stored on the failed artifact.",
+          "status": "done",
+          "note": "R5: failed-recorded artifacts keep result fail and carry validated record-and-proceed evidence"
+        },
+        {
+          "desc": "The final-regression registry post-hook and src/flow/lib/flow-judgment-contract.js completion policy must mark the step done only for pass, skipped, or validated failed-recorded artifacts; they must not complete for ordinary fail artifacts or any artifact that failed validation.",
+          "status": "done",
+          "note": "R6: completion policy accepts validated failed-recorded and rejects ordinary failed artifacts"
+        },
+        {
+          "desc": "Prompt handling must recommend fix-and-rerun when fixAttempts is 0 for an eligible failure, recommend record-and-proceed when fixAttempts is greater than 0 and the failure is still eligible and non-current-diff, and in auto mode select the recommended action. fixAttempts counts observable post-failure repairs by comparing changed-file fingerprints between failed final-regression attempts for the same command identity; identical-fingerprint reruns do not count. The calculation must scan at most the latest 10,000 final-regression failure records for the active spec and must not read raw log contents.",
+          "status": "done",
+          "note": "R7: repeated identical failures keep fixAttempts at zero, while post-failure changes recommend record-and-proceed"
+        },
+        {
+          "desc": "Status, final report, report JSON, and human-readable summaries must display failed-recorded final-regression as not passed, including failure category, raw log path, fix attempts, remaining risk, selected action, and next recommended action.",
+          "status": "done",
+          "note": "R8: report text displays failed-recorded as non-pass with category, raw log, risk, selected action, and recommendation"
+        },
+        {
+          "desc": "Migration parity must preserve existing pass completion, skipped completion with proof, raw attempt log retention, changed file snapshots, process metadata, retryable/nextAction fields, issue-log failure entries, and current-diff fail-closed behavior.",
+          "status": "done",
+          "note": "R9: pass, current-diff fail-closed, raw log, changed files, process, retry, nextAction, and issue-log parity remain intact"
+        },
+        {
+          "desc": "Spec-local tests under specs/311-final-regression-proceed/tests/ must cover R1 through R9 with `// spec: R<N>` headers, and shared unit tests must cover production final-regression runner, schema, registry, prompt, and report behavior where appropriate.",
+          "status": "done",
+          "note": "R10: this spec-local file declares coverage headers and R-prefixed tests for completion policy"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 8,
+      "fullLogPath": "specs/311-final-regression-proceed/issue-log.json",
+      "importantTotal": 6,
+      "importantShown": 6,
+      "importantOmitted": 0,
+      "recentOtherTotal": 2,
+      "recentOtherShown": 2,
+      "recentOtherOmitted": 0,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "draft gate failed because migration parity inventory mapping and behavior-level verification were missing from draft.json",
+          "resolution": "added public surface inventory retained behavior mapping owner mapping and parity verification requirements to draft.json"
+        },
+        {
+          "classification": "important",
+          "step": "spec-review",
+          "reason": "spec review failed because failed-recorded completion stale evidence out-of-scope flaky classification and fix attempt state were underspecified",
+          "resolution": "updated spec.json and spec-repair.json with flow-judgment-contract policy stale checks category boundaries and fixAttempts rules"
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "spec gate failed on ambiguous plausible wording worktree process-only constraint and unbounded fixAttempts scan",
+          "resolution": "removed plausible wording removed process-only worktree constraint and bounded fixAttempts scan to latest 10000 failure records without raw log reads"
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "fix: refreshed failing test evidence and corrected record-and-proceed freshness validation",
+          "resolution": "Spec-local tests now pass for R1-R10; record-and-proceed freshness excludes workflow-generated metadata, and explicit invalid test.command values fail closed instead of being skipped."
+        },
+        {
+          "classification": "important",
+          "step": "final-regression",
+          "reason": "final-regression failed: dependency_failure",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "final-regression",
+          "reason": "fix: corrected shared unit schema fixture after final-regression failure",
+          "resolution": "Focused unit test tests/unit/flow/final-regression-record-and-proceed.test.js now passes; rerunning final-regression with changed evidence."
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "The draft does not define an explicit inventory of existing public behavior that will be moved/replaced or the exact public surfaces (commands/APIs/hooks/config/artifacts/side effects) affected by record-and-proceed changes.; There is no...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "The requirement says the first *plausible* repair should be recommended, but does not define an objective rule for what counts as plausible in this clause itself.; The constraint requires all edits/tests to run inside the active worktree...",
+          "resolution": null
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 2,
+      "question": 0,
+      "issueLog": 5
+    },
+    "tokenMetrics": {
+      "input": 875790,
+      "output": 129559,
+      "cacheRead": 2741248,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 34,
+      "durationMs": 1018762,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 15856
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 8716
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 18576
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 165404
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 40431
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 140947
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 472710
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 156122
+        }
+      ]
+    },
+    "tests": {
+      "total": 10,
+      "passed": 10,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/311-final-regression-proceed/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "specs/311-final-regression-proceed/",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/commands/report.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/flow-judgment-contract.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/get-status.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-final-regression.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-report.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/test-artifacts.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/test-regression.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/registry.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/test-command-sources.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/final-regression-record-and-proceed.test.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/311-final-regression-proceed/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/report.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/flow-judgment-contract.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/get-status.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-final-regression.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-report.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-artifacts.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-regression.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/test-command-sources.js"
+          },
+          {
+            "status": "untracked",
+            "path": "tests/unit/flow/final-regression-record-and-proceed.test.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/311-final-regression-proceed/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/report.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/flow-judgment-contract.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/get-status.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-final-regression.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-report.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-artifacts.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-regression.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/test-command-sources.js"
+          },
+          {
+            "status": "untracked",
+            "path": "tests/unit/flow/final-regression-record-and-proceed.test.js"
+          }
+        ]
+      },
+      "finalRegression": null
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: support final-regression record-and-proceed\n    70 files changed, 7059 insertions(+), 20 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (10 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 2\n    Q&A ......................... 0\n    issue-log ................... 5\n    agent calls ................. 34\n    input tokens ................ 875,790\n    output tokens ............... 129,559\n    cache-read tokens ........... 2,741,248\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 1018.8s\n      draft-questions-review .... 15.9s\n      draft-coverage-review ..... 8.7s\n      draft-gate ................ 18.6s\n      spec-review ............... 165.4s\n      spec-gate ................. 40.4s\n      test-review ............... 140.9s\n      impl-review ............... 472.7s\n      impl-gate ................. 156.1s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 10  passed 10  failed 0 verdict=pass\n    raw_output: specs/311-final-regression-proceed/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n\n  Issue Log Summary (8 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/311-final-regression-proceed/issue-log.json\n\n    Important (6)\n    - [draft-gate] draft gate failed because migration parity inventory mapping and behavior-level verification were missing from draft.json\n    - [spec-review] spec review failed because failed-recorded completion stale evidence out-of-scope flaky classification and fix attempt state were underspecified\n    - [spec-gate] spec gate failed on ambiguous plausible wording worktree process-only constraint and unbounded fixAttempts scan\n    - [impl-gate] fix: refreshed failing test evidence and corrected record-and-proceed freshness validation\n    - [final-regression] final-regression failed: dependency_failure\n    - [final-regression] fix: corrected shared unit schema fixture after final-regression failure\n\n    Recent Other (2)\n    - [draft-gate] The draft does not define an explicit inventory of existing public behavior that will be moved/replaced or the exact public surfaces (commands/APIs/hooks/config/artifacts/side effects) affected by record-and-proceed changes.; There is no...\n    - [spec-gate] The requirement says the first *plausible* repair should be recommended, but does not define an objective rule for what counts as plausible in this clause itself.; The constraint requires all edits/tests to run inside the active worktree..."
+}

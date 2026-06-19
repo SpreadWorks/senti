@@ -6,6 +6,8 @@
  */
 
 import { derivePhase } from "../../lib/flow-helpers.js";
+import fs from "node:fs";
+import path from "node:path";
 import { normalizeAgentMetricDimension } from "../../lib/agent-metrics.js";
 import { BROAD_MODE_HISTORY_MAX_ENTRIES } from "../../lib/constants.js";
 import { loadSpecRequirements } from "../../lib/spec-json.js";
@@ -24,6 +26,7 @@ import { countReviewRetry } from "./run-review.js";
 import { buildStateRetryRecoveryView, resolveRecoveryMaxAttempts } from "./retry-recovery.js";
 import { buildBoundedBroadModeHistory } from "./task-scope.js";
 import { buildDeferredFindingsSummary, specDirFromFlowState } from "./flow-findings.js";
+import { validateFinalRegressionResult } from "./test-artifacts.js";
 
 /** Token sub-fields that the Logger / flow-store emit per agent entry. */
 export const TOKEN_KEYS = ["input", "output", "cacheRead", "cacheCreation"];
@@ -182,6 +185,25 @@ function buildStatusRetryRecoveryView(root, flowState, input) {
   });
 }
 
+function buildFinalRegressionStatus(root, state) {
+  if (!state?.spec) return null;
+  const resultPath = path.join(path.dirname(path.resolve(root, state.spec)), "final-regression-result.json");
+  if (!fs.existsSync(resultPath)) return null;
+  const artifact = validateFinalRegressionResult(JSON.parse(fs.readFileSync(resultPath, "utf8")));
+  return {
+    result: artifact.result,
+    completed: artifact.completed,
+    failureKind: artifact.failureKind,
+    failureCategory: artifact.failureCategory || null,
+    rawOutputPath: artifact.rawOutputPath,
+    fixAttempts: artifact.fixAttempts ?? null,
+    selectedAction: artifact.selectedAction || null,
+    remainingRisk: artifact.remainingRisk || null,
+    nextAction: artifact.nextAction,
+    nextRecommendedAction: artifact.nextRecommendedAction || null,
+  };
+}
+
 function buildStatusGateViews(state, active, root) {
   if (!active || !active.id.endsWith("-gate")) return null;
   const resolvedMaxAttempts = resolveActiveStepMaxAttempts(state, active);
@@ -233,6 +255,7 @@ function buildStatusOutput(state, root, options = {}) {
   const deferredFindings = state.spec
     ? buildDeferredFindingsSummary({ specDir: specDirFromFlowState(root, state) })
     : { count: 0, sourceSteps: [], artifactPath: "flow-findings.json" };
+  const finalRegression = buildFinalRegressionStatus(root, state);
 
   const output = {
     active: true,
@@ -248,6 +271,7 @@ function buildStatusOutput(state, root, options = {}) {
     requirements,
     requirementsProgress: { done: doneReqs, total: totalReqs },
     ...(deferredFindings.count > 0 && { deferredFindings }),
+    ...(finalRegression && { finalRegression }),
     ...(retryRecovery && { retryRecovery }),
     mergeStrategy: state.mergeStrategy || null,
     autoApprove,
