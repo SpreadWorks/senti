@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-19T04:47:04.487Z",
+  "analyzedAt": "2026-06-19T05:31:07.272Z",
   "package": {
     "entries": [
       {
@@ -2457,7 +2457,24 @@
         "exports": [],
         "extends": null,
         "usedBy": null,
-        "id": "1ab08f2b"
+        "id": "1ab08f2b",
+        "summary": "CLI entrypoint for `senti flow` that routes top-level groups and subcommands through the shared dispatcher. It also prints help text and targeted suggestions for invalid flow commands.",
+        "detail": "The module initializes the shared dependency container, slices `process.argv`, and interprets the first token as the flow command group. A local `run()` helper normalizes the command entry, sets envelope metadata, suppresses runtime logging for `get runtime-log`, and injects `resolveFlowContext()` into the dispatcher hook context. The dispatcher logic special-cases top-level `resume` and `prepare`, then handles grouped `get`, `set`, and `run` commands by resolving a second-level key. Error cases are fail-closed with explicit stderr messages and `EXIT_ERROR`, while help requests exit cleanly with status 0.",
+        "chapter": "cli_commands",
+        "role": "CLI dispatcher",
+        "enrich": {
+          "processedAt": "2026-06-19T05:32:24.511Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "flow CLI",
+          "command routing",
+          "dispatcher",
+          "subcommands",
+          "argument parsing",
+          "help output",
+          "process exit codes"
+        ]
       },
       {
         "file": "src/flow/commands/merge.js",
@@ -3288,7 +3305,24 @@
           "src/flow/lib/set-summary.js",
           "src/lib/dispatcher.js"
         ],
-        "id": "83f60bd3"
+        "id": "83f60bd3",
+        "summary": "Abstract base class for flow commands that turns parsed dispatcher input into a resolved flow execution context. It centralizes active-flow enforcement and target validation before subclasses execute.",
+        "detail": "`FlowCommand` extends the generic `Command` base and declares envelope output as the default mode for all flow commands. Its constructor exposes `requiresFlow` and `targetGuard` switches so individual commands can opt out of active-flow checks or target validation. The `run()` method stores the container, merges `resolveFlowContext()` output with parsed CLI input, and throws if a required `flow.json` state is missing. Before delegating to `execute(ctx)`, it optionally runs `targetMismatchEnvelopeForInput()` and returns a structured mismatch envelope instead of proceeding.",
+        "chapter": "project_structure",
+        "role": "Flow command base class",
+        "enrich": {
+          "processedAt": "2026-06-19T05:32:24.511Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "base command",
+          "command abstraction",
+          "flow context",
+          "envelope output",
+          "target guard",
+          "active flow validation",
+          "dispatcher integration"
+        ]
       },
       {
         "file": "src/flow/lib/check-tasks-monotonic.js",
@@ -3499,13 +3533,30 @@
           "src/flow.js",
           "src/flow/lib/base-command.js"
         ],
-        "id": "e296da98"
+        "id": "e296da98",
+        "summary": "Resolves the execution context for flow commands and chooses which flow state is authoritative. It handles the handoff from a worktree-local `flow.json` to the main repository copy after merge-related steps.",
+        "detail": "The module first loads flow state from the current root and, when none exists, optionally asks the flow manager to resolve an active flow from elsewhere. If the command is running inside a worktree and the main repository now contains `specs/<id>/flow.json`, it switches authority to the main root and reloads state there. Otherwise it keeps the current root as the active authority and returns the cwd-side state. The exported `resolveFlowContext()` function packages the chosen root, config, flow manager, flow state, spec id, worktree status, and any resolution error into one plain context object.",
+        "chapter": "project_structure",
+        "role": "Flow context resolver",
+        "enrich": {
+          "processedAt": "2026-06-19T05:32:24.511Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "context resolution",
+          "authority root",
+          "worktree flow",
+          "main repo state",
+          "flow manager",
+          "spec id",
+          "runtime context"
+        ]
       },
       {
         "file": "src/flow/lib/flow-findings.js",
-        "hash": "5f250fe72231d07776b814b06031e434",
-        "lines": 335,
-        "mtime": "2026-06-14T08:44:32.742Z",
+        "hash": "b0b354e3a1c4ff191c85e4e248c55fc2",
+        "lines": 356,
+        "mtime": "2026-06-19T05:30:57.662Z",
         "className": "flow-findings",
         "methods": [
           "normalizeSourceArtifactPath",
@@ -3577,23 +3628,22 @@
           "src/flow/lib/run-review.js"
         ],
         "id": "1c664aa8",
-        "enrich": {
-          "processedAt": "2026-06-15T03:37:22.960Z",
-          "attempts": 5
-        },
-        "summary": "Implements the persistent flow-findings model used to record, defer, mirror, and summarize workflow findings. It also enforces strict validation around source artifact references and acceptance dispositions.",
-        "detail": "This module defines the `flow-findings.json` artifact, limits for entry counts and field sizes, and normalization rules for finding metadata such as source artifact paths and final dispositions. It protects integrity by requiring relative paths inside the spec directory, rejecting copied long-form detail fields, and bounding readable artifact size before loading source evidence. The implementation supports appending deferred findings, generating summaries, extracting blocking observations from review artifacts, and resolving retry-exhaustion outcomes into deferred semantic findings. It also mirrors final acceptance dispositions back into stored deferred findings so later flow stages can track closure or risk decisions consistently.",
+        "summary": "Defines the `flow-findings.json` artifact and the utilities used to defer unresolved findings after retries are exhausted. It validates schema fields, protects spec-local file access, and maintains mirrored final dispositions.",
+        "detail": "The module models findings with immutable `FlowFinding` and `FlowFindingsArtifact` classes, enforcing strict checks for strings, integers, booleans, and accepted final-disposition values. Path helpers normalize source artifact references, reject absolute or escaping paths, and limit reads to bounded JSON files inside the spec directory. Append and read/write helpers support id generation, round tracking, deduplication by source reference, and safe persistence of deferred findings. Extraction helpers inspect multiple artifact shapes such as failed evaluations, blocking observations, review findings, comments, and proposals to produce stable source finding ids. Higher-level functions convert retry exhaustion into deferred findings summaries and can mirror later disposition updates back into `flow-findings.json`.",
         "chapter": "internal_design",
-        "role": "Deferred finding registry and evidence linkage layer",
+        "role": "Deferred findings artifact manager",
+        "enrich": {
+          "processedAt": "2026-06-19T05:32:24.511Z",
+          "attempts": 1
+        },
         "keywords": [
           "flow findings",
-          "deferred issue",
-          "acceptance disposition",
-          "artifact reference",
-          "spec directory",
-          "review evidence",
+          "deferred findings",
+          "artifact schema",
           "retry exhaustion",
-          "finding summary"
+          "path normalization",
+          "spec directory",
+          "final disposition"
         ]
       },
       {
@@ -6075,9 +6125,9 @@
       },
       {
         "file": "src/flow/lib/run-review.js",
-        "hash": "6dbb7f447d784ce2427a0d5027c25449",
-        "lines": 712,
-        "mtime": "2026-06-17T06:18:33.660Z",
+        "hash": "83329937ab0b18b9cb1e06a322b700a8",
+        "lines": 714,
+        "mtime": "2026-06-19T05:30:57.662Z",
         "className": "run-review",
         "methods": [
           "countReviewRetry",
@@ -6160,24 +6210,23 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "d4e97204",
-        "summary": "Runs the flow review command across draft, spec, test, and implementation phases and turns subprocess output into structured review results. It manages retry policy, verdict parsing, recovery state, and phase routing for downstream flow steps.",
-        "detail": "This module wraps review execution in a `RunReviewCommand` class and dispatches to phase-specific parsers for draft proposals, spec review, test review, and implementation review. It interprets verdict markers such as PASS, ADVISORY, FAIL, and TOOLING_FAILURE, extracts counts and artifact paths from subprocess output, and converts failures into envelope-compatible results. The code includes bounded retry logic for flaky subprocesses, persistent retry accounting per phase, and recovery triggers that store baselines or defer exhaustion when structured coverage failures are detected. It also contains flow-specific routing helpers that decide the next step after a review, including reset behavior for downstream implementation evidence when review proposals require rework.",
-        "chapter": "internal_design",
-        "role": "Flow review command runner and verdict parser",
+        "summary": "Implements `flow run review`, orchestrating the review subprocess, phase-specific result parsing, and retry or recovery behavior. It is the main control layer for draft, spec, test, and implementation review phases.",
+        "detail": "The module maps review phases to flow node ids and artifact filenames, counts persisted `reviewRetry` metrics, and resolves maximum attempts from the flow definition. When retries are exhausted, it can convert purely semantic review failures into deferred findings instead of immediately hard-stopping the flow. Phase parsers extract verdicts, counts, changed artifact paths, retry phases, and next-step routing from subprocess stderr, while implementation review additionally reads the generated JSON artifact. `runCmdWithRetry()` handles bounded mechanical subprocess retries with delay and `ReviewFailure` classification. `RunReviewCommand.execute()` validates the requested phase, enforces task-scope rules for implementation review, clears or persists stop state, invokes `flow/commands/review.js`, and returns normalized envelope-style results for downstream flow control.",
+        "chapter": "cli_commands",
+        "role": "Review command orchestrator",
         "enrich": {
-          "processedAt": "2026-06-17T06:19:21.513Z",
+          "processedAt": "2026-06-19T05:32:24.511Z",
           "attempts": 1
         },
         "keywords": [
           "review command",
-          "verdict parsing",
-          "subprocess retry",
-          "flow review",
+          "retry policy",
+          "subprocess orchestration",
+          "phase parser",
           "implementation review",
-          "spec review",
-          "draft review",
-          "recovery baseline",
-          "tooling failure"
+          "task scope",
+          "recovery state",
+          "quality gate"
         ]
       },
       {
@@ -11413,5 +11462,5 @@
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-19T03:35:39.982Z"
+  "enrichedAt": "2026-06-19T05:32:24.511Z"
 }
