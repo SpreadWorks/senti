@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "`update-all` の既存挙動を新規 `update [name]` パスへ移行する前提が示されているが、移行対象の既存パブリック振る舞いの棚卸（既存 command/API/side effect などの一覧）が明示されていない。",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "analysis.problem"
+          },
+          "observed": "`update-all` の既存挙動を新規 `update [name]` パスへ移行する前提が示されているが、移行対象の既存パブリック振る舞いの棚卸（既存 command/API/side effect などの一覧）が明示されていない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "`update-all` の扱いを削除へ寄せる旨はあるが、保持される/移管される既存公開振る舞い（全件更新結果の意味論、ヘルプ表示、既存利用者への互換性影響）ごとの新所有者対応と、各保持面の動作検証観点が一対一で定義されていない。",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "qa.q3"
+          },
+          "observed": "`update-all` の扱いを削除へ寄せる旨はあるが、保持される/移管される既存公開振る舞い（全件更新結果の意味論、ヘルプ表示、既存利用者への互換性影響）ごとの新所有者対応と、各保持面の動作検証観点が一対一で定義されていない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "content",
+        "locator": "analysis.problem"
+      },
+      "observed": "`update-all` の既存挙動を新規 `update [name]` パスへ移行する前提が示されているが、移行対象の既存パブリック振る舞いの棚卸（既存 command/API/side effect などの一覧）が明示されていない。",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "content",
+        "locator": "qa.q3"
+      },
+      "observed": "`update-all` の扱いを削除へ寄せる旨はあるが、保持される/移管される既存公開振る舞い（全件更新結果の意味論、ヘルプ表示、既存利用者への互換性影響）ごとの新所有者対応と、各保持面の動作検証観点が一対一で定義されていない。",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    }
+  ]
+}

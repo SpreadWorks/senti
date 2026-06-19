@@ -48,7 +48,8 @@ describe("help", () => {
     assert.match(result, /Subcommands:/);
     assert.match(result, /source\s+Manage plugin sources/);
     assert.match(result, /find\s+Find installable plugin packages/);
-    assert.match(result, /update-all\s+Update all installed plugin packages/);
+    assert.match(result, /update\s+Update installed plugin packages/);
+    assert.doesNotMatch(result, /update-all/);
   });
 
   it("prints plugin command options via CLI", () => {

@@ -189,7 +189,7 @@ const pluginSubcommands = [
   ["list", "List installed plugin packages", "Usage: senti plugin list [--json]", { flags: ["--json"] }, ["--json", "-h, --help"]],
   ["enable", "Enable an installed plugin package", "Usage: senti plugin enable <id>", { positional: ["id"] }, ["-h, --help"]],
   ["disable", "Disable an installed plugin package", "Usage: senti plugin disable <id>", { positional: ["id"] }, ["-h, --help"]],
-  ["update-all", "Update all installed plugin packages", "Usage: senti plugin update-all [--json] [--no-upgrade]", { flags: ["--json", "--no-upgrade"] }, ["--json", "--no-upgrade", "-h, --help"]],
+  ["update", "Update installed plugin packages", "Usage: senti plugin update [name] [--json] [--no-upgrade]", { positional: ["name"], flags: ["--json", "--no-upgrade"] }, ["--json", "--no-upgrade", "-h, --help"]],
   ["sync", "Sync installed plugin packages", "Usage: senti plugin sync [--json]", { flags: ["--json"] }, ["--json", "-h, --help"]],
 ].map(([name, summary, usage, args, options, subcommands]) => new CommandHelpMetadata({
   name: `plugin ${name}`,

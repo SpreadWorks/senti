@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "fail",
+      "reason": "The spec requires spec-local tests but does not state that required coverage files must be placed under specs/<specid>/tests/, only that spec-local CLI tests should exist.",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[3].acceptance[0]"
+          },
+          "observed": "The spec requires spec-local tests but does not state that required coverage files must be placed under specs/<specid>/tests/, only that spec-local CLI tests should exist.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "bounded-resource-usage",
+      "result": "fail",
+      "reason": "Bulk update is defined as processing all enabled installed plugin packages, but no explicit upper bound is specified for package count/size/depth, leaving bulk data loading behavior unbounded.",
+      "category": "code-quality",
+      "title": "Bounded Resource Usage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[0].desc"
+          },
+          "observed": "Bulk update is defined as processing all enabled installed plugin packages, but no explicit upper bound is specified for package count/size/depth, leaving bulk data loading behavior unbounded.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "The spec states `update-all` is not preserved for compatibility, but does not define explicit compatibility expectations or concrete behavior-level verification outcomes for the removed `update-all` surface beyond a generic note that impact should be tested.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "clarifications[1].a"
+          },
+          "observed": "The spec states `update-all` is not preserved for compatibility, but does not define explicit compatibility expectations or concrete behavior-level verification outcomes for the removed `update-all` surface beyond a generic note that impact should be tested.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "spec-test-coverage",
+      "where": {
+        "file": "spec.json",
+        "locator": "tasks[3].acceptance[0]"
+      },
+      "observed": "The spec requires spec-local tests but does not state that required coverage files must be placed under specs/<specid>/tests/, only that spec-local CLI tests should exist.",
+      "severity": "blocking",
+      "refs": [
+        "spec-test-coverage"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "bounded-resource-usage",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements[0].desc"
+      },
+      "observed": "Bulk update is defined as processing all enabled installed plugin packages, but no explicit upper bound is specified for package count/size/depth, leaving bulk data loading behavior unbounded.",
+      "severity": "blocking",
+      "refs": [
+        "bounded-resource-usage"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "spec.json",
+        "locator": "clarifications[1].a"
+      },
+      "observed": "The spec states `update-all` is not preserved for compatibility, but does not define explicit compatibility expectations or concrete behavior-level verification outcomes for the removed `update-all` surface beyond a generic note that impact should be tested.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,124 @@
+{
+  "devType": "feature",
+  "goal": "senti plugin update を引数なしで実行した場合に、インストール済み plugin 全件の更新候補を表示し、明示確認後にのみ一括更新する。",
+  "analysis": {
+    "problem": "現状の plugin CLI は `senti plugin sync` と既存の `senti plugin update-all` を持つが、Issue #406 が求める npm / pnpm 風の `update [name]` 形ではない。移行対象の既存公開振る舞いは、`update-all` の全件更新実行、更新結果表示、更新後の automatic upgrade、help 表示である。引数なし更新は一括更新になり得るため、確認なしに更新するとユーザーの plugin state を変更するリスクがある。",
+    "proposedApproach": "`senti plugin update` を追加し、引数なしでは全 plugin の更新候補を表示してから `Update all installed plugins? [y/N]` 相当の確認を行う。`y` / `yes` の場合だけ既存の全件更新処理を実行し、それ以外は更新しない。`senti plugin update <name>` は単一 plugin の更新として扱い、一括更新確認を出さない。既存 `update-all` の保持対象の振る舞いは `update` 引数なしへ移管し、通常の command surface と help は `update [name]` を所有者にする。",
+    "validation": "Issue #406 は対象コマンド、入力ごとの期待挙動、スコープ外を明示している。`src/plugin.js` には既存の `syncInstalledPlugins(root, { update: true })` を使う `update-all` 分岐があり、`src/lib/plugin-registry.js` は更新時に `previousCommit` と `updated` を返すため、候補表示と更新実行の仕様化が可能。`src/lib/command-registry.js` と `tests/e2e/help.test.js` は plugin help 表示への影響を示す。移行 parity は、全件更新結果、automatic upgrade 条件、help 表示、旧 command の user-visible impact をそれぞれ acceptance criteria と CLI テストで検証する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #406 は `senti plugin update` 引数なしで全 plugin の更新候補を表示し、更新前に確認することを求めている。",
+      "must: Issue #406 は `senti plugin update <name>` を単一 plugin 更新として扱い、一括更新確認を表示しないことを求めている。",
+      "must: 確認入力は `y` / `yes` のみ更新実行、`Enter` / `n` / `no` / その他は更新しない。",
+      "must: `src/plugin.js` には既存の `update-all` 分岐があり、全件更新は `syncInstalledPlugins(root, { update: true })` と automatic upgrade の実行条件で実装されている。",
+      "must: `src/lib/plugin-registry.js` の `syncInstalledPlugins` は update 時に `previousCommit` と `updated` を返す。",
+      "must: Issue #406 の out of scope は新規 bulk command 追加を禁じる。既存 `update-all` は今回の新 UX に統合し、通常の利用面は `update [name]` に寄せる。",
+      "should: 更新候補が 0 件の場合は、更新する対象がないため確認を出さずに終了する。",
+      "must: migration inventory は `update-all` command route、全件 package update semantics、更新結果表示、automatic upgrade 条件、plugin help metadata、既存利用者への command surface 影響である。"
+    ],
+    "decisionPoints": [
+      "must: 引数なし `update` で更新候補を表示した後、確認前に plugin package の実体を変更しないこと。",
+      "must: 単一 plugin 更新の対象指定、出力、automatic upgrade の実行条件を既存の plugin operation と矛盾なく定義すること。",
+      "must: 既存 `update-all` の保持対象の振る舞いを `update` 引数なしへ移管し、旧 command surface の扱いと user-visible impact を spec で明確にすること。alpha 版ポリシー上は後方互換維持を前提にしない。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 外部依存を追加しない。Node.js 組み込みモジュールだけで確認入力と CLI 動作を実装する。",
+      "must: `src/` に特定プロジェクトや環境固有の情報を含めない。",
+      "must: 既存パターンが複数箇所で繰り返される場合は共通ヘルパーに抽出する。",
+      "must: alpha 版ポリシーにより、旧フォーマットや非推奨パスを保持するためだけの後方互換コードは書かない。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: 具体的な CLI help 文言、JSON 出力形状、確認入力処理、no-update 時の automatic upgrade skip 条件は spec で受け入れ条件に落とし込む。",
+      "must: テストは CLI 経由で引数なし確認入力、拒否入力、単一 plugin 更新、help 表示を検証する。",
+      "must: migration parity verification は、`update` 引数なしが既存 `update-all` 相当の全件更新結果と automatic upgrade 条件を保持すること、help が新しい owner を示すこと、旧 command を削除または非公開化する場合の user-visible error/help 影響を検証すること。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: `senti plugin update` 引数なしで全 installed plugin の更新候補を確認して表示する。",
+      "must: `senti plugin update` 引数なしでは、実際の更新前に確認プロンプトを表示する。",
+      "must: 確認入力が `y` または `yes` の場合のみ全 plugin を更新する。",
+      "must: 確認入力が `Enter`、`n`、`no`、その他の場合は更新しない。",
+      "must: `senti plugin update <name>` は指定 plugin のみ更新し、一括更新確認を表示しない。",
+      "must: 一括更新専用の新規コマンドを追加しない。"
+    ],
+    "out": [
+      "must: interactive な対象選択 UI は追加しない。",
+      "must: dry-run は追加しない。",
+      "must: `--all` option は追加しない。",
+      "must: 更新対象の詳細な subset 指定は追加しない。",
+      "must: 一括更新のためだけの新規 command は追加しない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: `src/plugin.js` の plugin subcommand routing が影響を受ける。",
+    "must: `src/lib/command-registry.js` の plugin help metadata が影響を受ける。",
+    "must: `tests/e2e/help.test.js` の plugin subcommand help 期待値が影響を受ける。",
+    "must: 既存の installed plugin sync/update 処理は、新しい `update` 経路からも同じ package update semantics を保つ。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "must: `senti plugin update` 引数なしを、全 installed plugin の更新候補表示と確認後の一括更新として扱う、という Goal でよいか。",
+      "answer": "must: はい。Issue #406 の Goal と Expected Behavior は、引数なし `senti plugin update` を全 installed plugin の候補確認と確認後の一括更新として扱うことを求めている。",
+      "evidence": "Issue #406 Goal: `senti plugin update` can check all installed plugins for update candidates; Expected Behavior: lists update candidates and shows confirmation before performing updates.",
+      "why": "must: Issue 本文が目的と対象コマンドを明示しており、別 spec に分ける必要のない単一 concern として扱うため。",
+      "considered": "`update-all` だけを維持する案は、Issue #406 の npm / pnpm-style `update [name]` に近づける目的を満たさない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "must: `senti plugin update` 引数なしでは、確認入力が `y` または `yes` の場合だけ更新し、`Enter`、`n`、`no`、その他の入力では更新しない挙動でよいか。",
+      "answer": "must: はい。`y` / `yes` のみ承認として扱い、`Enter`、`n`、`no`、その他は拒否として更新しない。",
+      "evidence": "Issue #406 Expected Behavior: Updates all plugins only if `y` or `yes` is entered; does not update for `Enter`, `n`, `no`, or anything else.",
+      "why": "must: 一括更新は複数 plugin の commit pin を変更し得るため、明示承認だけを更新条件にする必要がある。",
+      "considered": "空入力を承認として扱う案は `[y/N]` の N default と矛盾するため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "must: 既存の `senti plugin update-all` は、alpha 版ポリシーに従って今回の変更で削除または通常 help から外す扱いにしてよいか。",
+      "answer": "must: はい。既存 `update-all` の全件更新結果、updated 判定、previousCommit 表示、automatic upgrade 条件は `senti plugin update` 引数なしへ移管する。通常 help と新しい公開 UX の所有者は `senti plugin update [name]` にし、旧 command を削除または非公開化する場合は user-visible impact を spec に明記する。",
+      "evidence": "Issue #406 Out of Scope: Adding a new command equivalent to `update-all`. Project rule: alpha 版ポリシーでは後方互換コードを書かない。`src/plugin.js` と `src/lib/command-registry.js` には既存 `update-all` がある。",
+      "why": "must: Issue の目的は別 command を増やさず `update [name]` に寄せること。migration parity として、保持する既存公開振る舞いは新 owner に対応付け、旧 surface の変更は user-visible impact として明示する必要がある。alpha 版では旧経路維持より、公開 command surface の一貫性を優先できる。",
+      "considered": "`update-all` を完全互換 alias として残す案は、後方互換コード保持になりやすく、Issue の command surface 簡素化とずれる。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "should: 更新候補が 0 件の場合は、候補なしを表示して確認を出さずに終了する挙動でよいか。",
+      "answer": "should: はい。更新候補が 0 件なら、更新する対象がないことを表示して確認を出さずに終了する。",
+      "evidence": "Issue #406 は `Lists update candidates` と `before performing updates` の確認を求める。`src/plugin.js` の既存 `update-all` は更新結果に updated がない場合 `upgradeSkip(\"no package updates\")` を使う。",
+      "why": "should: 実行する更新がない場合は destructive な変更が発生しないため、確認プロンプトは不要。候補なしの表示を受け入れ条件に含めれば挙動は検証可能になる。",
+      "considered": "候補 0 件でも確認を出す案は、実行する更新がない状態で確認だけを求めるため UX が冗長になる。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "follow-up-coverage",
+      "question": "must: CLI 経由のテストで、引数なし `update` の承認入力、拒否入力、単一 plugin 更新、help 表示を検証する方針でよいか。",
+      "answer": "must: はい。CLI 経由で confirmation stdin と command routing を検証し、help 表示も更新する。",
+      "evidence": "`tests/e2e/help.test.js` は plugin subcommand help を検証している。`src/plugin.js` は command routing と user-facing output を担当している。",
+      "why": "must: この変更は CLI の user-visible behavior なので、関数単位だけでなく実際の command invocation と stdin 応答を検証する必要がある。",
+      "considered": "registry 関数だけの unit test では、一括確認の有無や `<name>` 指定時に確認が出ないことを十分に検証できない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-19T14:57:46Z",
+    "notes": "autoApprove: Issue #406 の本文、既存コード、project rules から未解決の user decision がないため承認。"
+  }
+}

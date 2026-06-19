@@ -1,0 +1,153 @@
+{
+  "verdict": "pass",
+  "issues": [],
+  "nextAction": {
+    "diagnosis": {
+      "summary": "No blocking observations.",
+      "observations": []
+    },
+    "prescription": "retro"
+  },
+  "level": "integration",
+  "phase": "integration",
+  "evaluations": [
+    {
+      "guardrail_id": "R1",
+      "result": "pass",
+      "reason": "`plugin update` without an id now builds `planInstalledPluginUpdates()` and prints plan results before `plan.apply()`, and enabled-package count validation is preserved in the shared helper.",
+      "title": "R1",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R2",
+      "result": "pass",
+      "reason": "A prompt is shown for bulk mode and the plan is applied only when input trimmed/lowercased equals `y`/`yes`; other inputs skip `plan.apply()`.",
+      "title": "R2",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R3",
+      "result": "pass",
+      "reason": "When bulk confirmation is declined (empty, `n/no`, or other text), code returns before `plan.apply()`, so package commits and installed files are unchanged.",
+      "title": "R3",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R4",
+      "result": "pass",
+      "reason": "`plugin update <name>` now resolves a single named package via `updateInstalledPlugin` and directly applies that entry; no bulk prompt is shown.",
+      "title": "R4",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R5",
+      "result": "pass",
+      "reason": "Bulk behavior now uses enabled-package filtering, preserves update result shape and reporting hooks, and keeps no-upgrade/no-updates logic via `upgradeForUpdateResults` mirroring prior update-all behavior.",
+      "title": "R5",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R7",
+      "result": "pass",
+      "reason": "When no enabled package has an update, it returns early with `upgradeSkip('no package updates')` and never calls the bulk confirmation prompt.",
+      "title": "R7",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R6",
+      "result": "pass",
+      "reason": "`src/lib/command-registry.js` now advertises `plugin update [name]` instead of `plugin update-all`, and `src/plugin.js` only handles `command === \"update\"` (no compatibility `update-all` path). Added/updated e2e tests verify help no longer includes `update-all` and that invoking `plugin update-all` fails with `unknown plugin command: update-all` while leaving package commit unchanged.",
+      "title": "R6",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": []
+    },
+    {
+      "guardrail_id": "no-overengineering",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "code-quality",
+      "title": "Avoid Overengineering",
+      "observations": []
+    }
+  ],
+  "reasons": [
+    {
+      "verdict": "PASS",
+      "detail": "R1 — `plugin update` without an id now builds `planInstalledPluginUpdates()` and prints plan results before `plan.apply()`, and enabled-package count validation is preserved in the shared helper.",
+      "guardrail_id": "R1",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R2 — A prompt is shown for bulk mode and the plan is applied only when input trimmed/lowercased equals `y`/`yes`; other inputs skip `plan.apply()`.",
+      "guardrail_id": "R2",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R3 — When bulk confirmation is declined (empty, `n/no`, or other text), code returns before `plan.apply()`, so package commits and installed files are unchanged.",
+      "guardrail_id": "R3",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R4 — `plugin update <name>` now resolves a single named package via `updateInstalledPlugin` and directly applies that entry; no bulk prompt is shown.",
+      "guardrail_id": "R4",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R5 — Bulk behavior now uses enabled-package filtering, preserves update result shape and reporting hooks, and keeps no-upgrade/no-updates logic via `upgradeForUpdateResults` mirroring prior update-all behavior.",
+      "guardrail_id": "R5",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R7 — When no enabled package has an update, it returns early with `upgradeSkip('no package updates')` and never calls the bulk confirmation prompt.",
+      "guardrail_id": "R7",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R6 — `src/lib/command-registry.js` now advertises `plugin update [name]` instead of `plugin update-all`, and `src/plugin.js` only handles `command === \"update\"` (no compatibility `update-all` path). Added/updated e2e tests verify help no longer includes `update-all` and that invoking `plugin update-all` fails with `unknown plugin command: update-all` while leaving package commit unchanged.",
+      "guardrail_id": "R6",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Spec Test Coverage — no observations emitted",
+      "guardrail_id": "spec-test-coverage",
+      "category": "testing"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Avoid Overengineering — no observations emitted",
+      "guardrail_id": "no-overengineering",
+      "category": "code-quality"
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "impl-gate",
+    "artifactPath": "specs/312-plugin-bulk-update/impl-gate-result.json",
+    "verdict": "pass",
+    "result": "pass",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": {
+      "diagnosis": {
+        "summary": "No blocking observations.",
+        "observations": []
+      },
+      "prescription": "retro"
+    },
+    "completionKind": "normal",
+    "progressSignature": "5407bd6cabead7154a5e1c61b98652bf0d99fa91321bd0e363f7a1b1338c80e0"
+  }
+}

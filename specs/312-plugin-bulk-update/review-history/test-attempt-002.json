@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-19T15:13:16.301Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/312-plugin-bulk-update/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R5 automatic upgrade behavior is not covered",
+      "target": "specs/312-plugin-bulk-update/tests/plugin-update-cli.test.js",
+      "issue": "All bulk update tests invoke `senti plugin update` with `--no-upgrade`, so the spec-local tests never exercise the retained automatic upgrade run/skip behavior required by R5. The coverage artifact marks R5 covered, but the actual tests only verify the explicit no-upgrade bypass.",
+      "requiredChange": "Add spec-local coverage for `senti plugin update` without `--no-upgrade` that verifies the retained automatic upgrade behavior after an accepted bulk update, including the relevant run/skip condition expected from existing bulk update behavior.",
+      "whyBlocking": "R5 is a must requirement and a critical retained public behavior has no executable regression test coverage.",
+      "origin": "R5",
+      "failureKind": "missing_coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/312-plugin-bulk-update/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "984dddea13403916699dd9f255c1f20482fed1060e32fdd46df5e1fd2d1fbdfb"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "test-002-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R5 automatic upgrade behavior is not covered",
+      "body": "All bulk update tests invoke `senti plugin update` with `--no-upgrade`, so the spec-local tests never exercise the retained automatic upgrade run/skip behavior required by R5. The coverage artifact marks R5 covered, but the actual tests only verify the explicit no-upgrade bypass.",
+      "category": "unknown"
+    }
+  ]
+}

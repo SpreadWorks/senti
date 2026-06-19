@@ -1,0 +1,205 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "qa[4]: invalid category \"test-strategy\"",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-19T14:58:18.322Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[4]: invalid category \"test-strategy\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate rejected qa category test-strategy because it is not in the allowed draft QA category enum",
+      "trigger": "senti flow run gate --phase draft reported qa[4]: invalid category test-strategy",
+      "resolution": "changed q5 category to follow-up-coverage, which is an accepted draft QA category",
+      "guardrailCandidate": "when authoring draft QA, select only categories from the explicit draft QA enum",
+      "taskId": null,
+      "timestamp": "2026-06-19T14:58:30.174Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "`update-all` の既存挙動を新規 `update [name]` パスへ移行する前提が示されているが、移行対象の既存パブリック振る舞いの棚卸（既存 command/API/side effect などの一覧）が明示されていない。; `update-all` の扱いを削除へ寄せる旨はあるが、保持される/移管される既存公開振る舞い（全件更新結果の意味論、ヘルプ表示、既存利用者への互換性影響）ごとの新所有者対応と、各保持面の動作検証観点が一対一で定義されていない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-19T14:58:52.160Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "analysis.problem"
+          },
+          "observed": "`update-all` の既存挙動を新規 `update [name]` パスへ移行する前提が示されているが、移行対象の既存パブリック振る舞いの棚卸（既存 command/API/side effect などの一覧）が明示されていない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "qa.q3"
+          },
+          "observed": "`update-all` の扱いを削除へ寄せる旨はあるが、保持される/移管される既存公開振る舞い（全件更新結果の意味論、ヘルプ表示、既存利用者への互換性影響）ごとの新所有者対応と、各保持面の動作検証観点が一対一で定義されていない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "`update-all` の既存挙動を新規 `update [name]` パスへ移行する前提が示されているが、移行対象の既存パブリック振る舞いの棚卸（既存 command/API/side effect などの一覧）が明示されていない。"
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "`update-all` の扱いを削除へ寄せる旨はあるが、保持される/移管される既存公開振る舞い（全件更新結果の意味論、ヘルプ表示、既存利用者への互換性影響）ごとの新所有者対応と、各保持面の動作検証観点が一対一で定義されていない。"
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate migration-parity review found update-all behavior migration was missing an explicit public behavior inventory and owner mapping",
+      "trigger": "senti flow run gate --phase draft returned migration-parity failures for analysis.problem and qa.q3",
+      "resolution": "added migration inventory, mapped retained update-all behavior to update without arguments, and added verification expectations for help and user-visible impact",
+      "guardrailCandidate": "when a draft changes an existing public command, include migration inventory, new owner mapping, and behavior-level verification before gate",
+      "taskId": null,
+      "timestamp": "2026-06-19T14:59:41.219Z"
+    },
+    {
+      "step": "spec-repair",
+      "reason": "spec review found blocking gaps for non-mutating bulk planning, disabled package scope, and json prompt stream behavior",
+      "trigger": "senti flow run review --phase spec returned three blocking findings",
+      "resolution": "updated spec.json with plan/apply split, enabled-only bulk scope, stderr prompt contract for json mode, and wrote spec-repair audit",
+      "guardrailCandidate": "when a spec adds confirmation before mutation, explicitly define non-mutating planning, excluded targets, and output streams",
+      "taskId": null,
+      "timestamp": "2026-06-19T15:05:49.329Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The spec requires spec-local tests but does not state that required coverage files must be placed under specs/<specid>/tests/, only that spec-local CLI tests should exist.; Bulk update is defined as processing all enabled installed plugin packages, but no explicit upper bound is specified for package count/size/depth, leaving bulk data loading behavior unbounded.; The spec states `update-all` is not preserved for compatibility, but does not define explicit compatibility expectations or concrete behavior-level verification outcomes for the removed `update-all` surface beyond a generic note that impact should be tested.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-19T15:06:21.820Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[3].acceptance[0]"
+          },
+          "observed": "The spec requires spec-local tests but does not state that required coverage files must be placed under specs/<specid>/tests/, only that spec-local CLI tests should exist.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[0].desc"
+          },
+          "observed": "Bulk update is defined as processing all enabled installed plugin packages, but no explicit upper bound is specified for package count/size/depth, leaving bulk data loading behavior unbounded.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "clarifications[1].a"
+          },
+          "observed": "The spec states `update-all` is not preserved for compatibility, but does not define explicit compatibility expectations or concrete behavior-level verification outcomes for the removed `update-all` surface beyond a generic note that impact should be tested.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "The spec requires spec-local tests but does not state that required coverage files must be placed under specs/<specid>/tests/, only that spec-local CLI tests should exist."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "Bulk update is defined as processing all enabled installed plugin packages, but no explicit upper bound is specified for package count/size/depth, leaving bulk data loading behavior unbounded."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The spec states `update-all` is not preserved for compatibility, but does not define explicit compatibility expectations or concrete behavior-level verification outcomes for the removed `update-all` surface beyond a generic note that impact should be tested."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec gate found missing explicit spec-local test path, missing bulk resource bound, and incomplete update-all removal compatibility expectations",
+      "trigger": "senti flow run gate failed spec-test-coverage, bounded-resource-usage, and migration-parity guardrails",
+      "resolution": "updated spec.json with specs/312-plugin-bulk-update/tests path, MAX_ENABLED_PLUGIN_PACKAGES bound, and update-all unknown-command non-mutating compatibility behavior",
+      "guardrailCandidate": "when removing a public command while adding bulk behavior, specify old-route behavior, bounded processing limits, and exact spec-local test paths",
+      "taskId": null,
+      "timestamp": "2026-06-19T15:07:13.849Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test review found missing coverage for normalized confirmation acceptance and explicit refusal values",
+      "trigger": "senti flow run review --phase test returned two blocking missing-regression-test findings",
+      "resolution": "updated spec-local test to accept trimmed uppercase YES and to reject empty, n, no, and unrelated input without mutation",
+      "guardrailCandidate": "when a requirement enumerates accepted and rejected user inputs, tests must cover normalization and every rejection class",
+      "taskId": null,
+      "timestamp": "2026-06-19T15:11:53.801Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test review found R5 retained automatic upgrade behavior was not covered because all bulk tests used no-upgrade",
+      "trigger": "second senti flow run review --phase test returned missing_coverage for R5 automatic upgrade behavior",
+      "resolution": "added spec-local R5 coverage for accepted bulk update running upgrade once and no-candidate bulk update skipping upgrade",
+      "guardrailCandidate": "when preserving existing behavior with optional bypass flags, include at least one test without the bypass flag",
+      "taskId": null,
+      "timestamp": "2026-06-19T15:14:13.318Z"
+    },
+    {
+      "step": "implement",
+      "reason": "implement completion initially failed because requirement file-map entries were missing",
+      "trigger": "senti flow set step implement done returned IMPLEMENT_COMPLETION_VALIDATION_FAILED file-map-missing",
+      "resolution": "recorded changed file mappings for R1 through R7 with senti flow set files",
+      "guardrailCandidate": "before completing implement, record file-map entries for every testable requirement",
+      "taskId": null,
+      "timestamp": "2026-06-19T15:19:33.774Z"
+    }
+  ]
+}

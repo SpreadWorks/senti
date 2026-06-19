@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import fs from "fs";
 import { repoRoot } from "./lib/cli.js";
 import { EXIT_ERROR } from "./lib/constants.js";
 import { runCmd } from "./lib/process.js";
@@ -9,9 +10,11 @@ import {
   installPlugin,
   listInstalledPlugins,
   maskPluginSource,
+  planInstalledPluginUpdates,
   readProjectConfig,
   setPluginEnabled,
   syncInstalledPlugins,
+  updateInstalledPlugin,
   updatePluginRepos,
 } from "./lib/plugin-registry.js";
 
@@ -99,14 +102,14 @@ function upgradeResultLine(upgrade) {
   return `upgrade failed: ${upgrade.error}`;
 }
 
-function outputPluginOperationWithUpgrade(pluginResult, upgrade, { json, key }) {
+function outputPluginOperationWithUpgrade(pluginResult, upgrade, { json, key, suppressItems = false }) {
   const value = key === "packages"
     ? { packages: pluginResult, upgrade }
     : { package: pluginResult, upgrade };
   if (json) {
     console.log(JSON.stringify(value, null, 2));
   } else {
-    output(pluginResult, false);
+    if (!suppressItems) output(pluginResult, false);
     console.log(upgradeResultLine(upgrade));
   }
   if (upgrade.ran && !upgrade.succeeded) process.exit(EXIT_ERROR);
@@ -136,6 +139,30 @@ function formatLine(value) {
   if (value.id && value.status) return `${value.id} ${value.status} ${value.commit || ""}`.trim();
   if (value.id && value.source) return `${value.id} source=${typeof value.source === "string" ? maskPluginSource(value.source) : value.source.id} ${value.commit || ""}`.trim();
   return JSON.stringify(value);
+}
+
+function bulkUpdateAccepted(input) {
+  const value = String(input || "").trim().toLowerCase();
+  return value === "y" || value === "yes";
+}
+
+function promptBulkUpdate() {
+  process.stderr.write("Update all installed plugins? [y/N] ");
+  return bulkUpdateAccepted(fs.readFileSync(0, "utf8"));
+}
+
+function outputBulkUpdateCandidates(results, json) {
+  if (json) {
+    process.stderr.write(`${JSON.stringify({ packages: results }, null, 2)}\n`);
+    return;
+  }
+  output(results, false);
+}
+
+function upgradeForUpdateResults(root, results, rest) {
+  if (hasNoUpgrade(rest)) return upgradeSkip("no-upgrade option present");
+  if (!results.some((result) => result.updated)) return upgradeSkip("no package updates");
+  return runAutomaticUpgrade(root);
 }
 
 export async function main() {
@@ -203,17 +230,46 @@ export async function main() {
       output(syncInstalledPlugins(root), hasJson(rest));
       return;
     }
-    if (command === "update-all") {
-      const results = syncInstalledPlugins(root, { update: true });
-      let upgrade;
-      if (hasNoUpgrade(rest)) {
-        upgrade = upgradeSkip("no-upgrade option present");
-      } else if (!results.some((result) => result.updated)) {
-        upgrade = upgradeSkip("no package updates");
-      } else {
-        upgrade = runAutomaticUpgrade(root);
+    if (command === "update") {
+      if (rest.includes("-h") || rest.includes("--help")) {
+        await printHelp(root, ["plugin", "update"]);
+        return;
       }
-      outputPluginOperationWithUpgrade(results, upgrade, { json: hasJson(rest), key: "packages" });
+      const id = stripFlags(rest)[0];
+      if (id) {
+        const result = updateInstalledPlugin(root, id);
+        const upgrade = upgradeForUpdateResults(root, [result], rest);
+        outputPluginOperationWithUpgrade(result, upgrade, { json: hasJson(rest), key: "package" });
+        return;
+      }
+
+      const plan = planInstalledPluginUpdates(root);
+      const plannedResults = plan.toResults();
+      if (!plan.hasUpdates) {
+        outputPluginOperationWithUpgrade(plannedResults, upgradeSkip("no package updates"), {
+          json: hasJson(rest),
+          key: "packages",
+        });
+        return;
+      }
+
+      outputBulkUpdateCandidates(plannedResults, hasJson(rest));
+      if (!promptBulkUpdate()) {
+        outputPluginOperationWithUpgrade(plannedResults, upgradeSkip("update declined"), {
+          json: hasJson(rest),
+          key: "packages",
+          suppressItems: true,
+        });
+        return;
+      }
+
+      const results = plan.apply(root);
+      const upgrade = upgradeForUpdateResults(root, results, rest);
+      outputPluginOperationWithUpgrade(results, upgrade, {
+        json: hasJson(rest),
+        key: "packages",
+        suppressItems: true,
+      });
       return;
     }
 

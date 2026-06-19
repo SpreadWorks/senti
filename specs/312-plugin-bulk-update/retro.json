@@ -1,0 +1,54 @@
+{
+  "spec": "specs/312-plugin-bulk-update/spec.json",
+  "date": "2026-06-19T15:22:52.362Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "`senti plugin update` without a plugin name must compute and display enabled installed plugin update candidates via a non-mutating plan before any package state is changed, while preserving the existing enabled-package count bound.",
+      "status": "done",
+      "note": "R1: bulk update lists candidates from a non-mutating plan before refusal leaves state unchanged"
+    },
+    {
+      "desc": "`senti plugin update` without a plugin name must ask for bulk confirmation and apply the prepared enabled-package update plan only when the answer is `y` or `yes` after trimming and case normalization.",
+      "status": "done",
+      "note": "R2: accepted bulk update applies the enabled-package plan"
+    },
+    {
+      "desc": "`senti plugin update` without a plugin name must leave plugin package state unchanged when the answer is empty, `n`, `no`, or any other value.",
+      "status": "done",
+      "note": "R3: refused bulk update does not mutate commits or installed files"
+    },
+    {
+      "desc": "`senti plugin update <name>` must update only the named installed plugin and must not display the bulk update confirmation.",
+      "status": "done",
+      "note": "R4: single update only updates the named installed plugin without bulk confirmation"
+    },
+    {
+      "desc": "The retained public behavior of existing bulk update must be available through `senti plugin update` without args, including disabled-package exclusion, result rendering, and automatic upgrade skip/run conditions.",
+      "status": "done",
+      "note": "R5: migrated bulk update excludes disabled packages and preserves result metadata"
+    },
+    {
+      "desc": "The plugin help metadata must advertise `senti plugin update [name]`; `senti plugin update-all` must not be preserved as a compatibility route and must fail without updating when invoked.",
+      "status": "done",
+      "note": "R6: help advertises update and update-all fails without updating"
+    },
+    {
+      "desc": "When no enabled installed plugin has a newer candidate, `senti plugin update` without args should report that no package updates are available and should not show the bulk confirmation prompt.",
+      "status": "done",
+      "note": "R7: no-candidate bulk update reports no updates without prompting"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 7,
+    "done": 7,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied spec repairs for non-mutating bulk planning, disabled-package behavior, and JSON prompt stream.",
+  "items": [
+    {
+      "title": "Bulk candidate planning lacks a non-mutating integration point",
+      "target": "R1/R2, Overview Data Flow, src/lib/plugin-registry.js:837",
+      "decision": "applied",
+      "rationale": "Specified a non-mutating bulk plan phase and separate apply phase, and updated task notes so implementation cannot use the mutating update helper before confirmation.",
+      "evidence": "spec.json constraints[5], overview.data_flow[0], overview.decisions[2], requirements R1/R2, AC1/AC2, and T-1/T-2 now require non-mutating planning before confirmation.",
+      "changedFields": [
+        "constraints",
+        "overview.data_flow[0]",
+        "overview.decisions",
+        "requirements[0].desc",
+        "requirements[1].desc",
+        "acceptance_criteria[0]",
+        "acceptance_criteria[1]",
+        "tasks[0]",
+        "tasks[1]"
+      ]
+    },
+    {
+      "title": "Scope conflicts with existing disabled-package behavior",
+      "target": "R1/R2/R5/AC8, src/lib/plugin-registry.js:841",
+      "decision": "applied",
+      "rationale": "Clarified that bulk update candidates are enabled installed packages only, preserving the existing `enabled !== false` behavior.",
+      "evidence": "spec.json scope.in, constraints, overview.decisions, requirements R1/R2/R5/R7, AC1/AC8, clarifications, and task notes now state disabled packages are excluded.",
+      "changedFields": [
+        "scope.in",
+        "constraints",
+        "overview.decisions",
+        "requirements[0].desc",
+        "requirements[1].desc",
+        "requirements[4].desc",
+        "requirements[6].desc",
+        "acceptance_criteria[0]",
+        "acceptance_criteria[7]",
+        "clarifications",
+        "tasks[0]",
+        "tasks[2]"
+      ]
+    },
+    {
+      "title": "JSON-mode confirmation stream is unspecified",
+      "target": "R2/AC2/AC8, src/plugin.js outputPluginOperationWithUpgrade",
+      "decision": "applied",
+      "rationale": "Specified that prompts and refusal/status text go to stderr in JSON mode so stdout remains parseable JSON.",
+      "evidence": "spec.json constraints, overview.decisions, AC9, clarifications, and T-2 acceptance/implementation notes now define the JSON stream contract.",
+      "changedFields": [
+        "constraints",
+        "overview.decisions",
+        "acceptance_criteria",
+        "clarifications",
+        "tasks[1]"
+      ]
+    }
+  ]
+}

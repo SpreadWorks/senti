@@ -834,13 +834,97 @@ export function installPlugin(root, id) {
   throw new Error(`plugin not found: ${id}`);
 }
 
+class InstalledPluginUpdateEntry {
+  constructor(pkg, source, resolved) {
+    this.id = pkg.id;
+    this.sourceId = source.id;
+    this.source = source;
+    this.sourceRoot = resolved.root;
+    this.sourceMaterialized = resolved.materialized;
+    this.previousCommit = pkg.commit;
+    this.commit = resolved.commit;
+    if (!SHA_RE.test(this.commit)) throw new Error(`plugin package ${pkg.id} must have a pinned commit`);
+  }
+
+  get updated() {
+    return this.previousCommit !== this.commit;
+  }
+
+  toResult() {
+    return {
+      id: this.id,
+      source: this.sourceId,
+      commit: this.commit,
+      previousCommit: this.previousCommit,
+      updated: this.updated,
+    };
+  }
+
+  apply(root) {
+    installFromSource(root, this.source, this.sourceRoot, this.commit, {
+      updateExisting: true,
+      sourceMaterialized: this.sourceMaterialized,
+    });
+  }
+}
+
+class InstalledPluginUpdatePlan {
+  constructor(entries) {
+    this.entries = entries;
+  }
+
+  get hasUpdates() {
+    return this.entries.some((entry) => entry.updated);
+  }
+
+  toResults() {
+    return this.entries.map((entry) => entry.toResult());
+  }
+
+  apply(root) {
+    for (const entry of this.entries) entry.apply(root);
+    return this.toResults();
+  }
+}
+
+function enabledInstalledPackages(config) {
+  const packages = config.plugin.packages.filter((pkg) => pkg.enabled !== false);
+  if (packages.length > MAX_ENABLED_PLUGIN_PACKAGES) throw new Error(`enabled plugin packages exceed ${MAX_ENABLED_PLUGIN_PACKAGES}`);
+  return packages;
+}
+
+function resolveInstalledPluginUpdate(root, sources, pkg) {
+  const source = sources.get(pkg.source);
+  if (!source) throw new Error(`plugin source not found for package ${pkg.id}: ${pkg.source}`);
+  const resolved = resolveSource(root, source);
+  const manifest = PluginManifest.fromRoot(resolved.root);
+  if (manifest.name !== pkg.id) throw new Error(`plugin source ${source.id} resolved ${manifest.name}, expected ${pkg.id}`);
+  return new InstalledPluginUpdateEntry(pkg, source, resolved);
+}
+
+export function planInstalledPluginUpdates(root) {
+  const config = readPluginOperationConfig(root);
+  const sources = new Map(config.plugin.sources.map((source) => [source.id, source]));
+  return new InstalledPluginUpdatePlan(
+    enabledInstalledPackages(config).map((pkg) => resolveInstalledPluginUpdate(root, sources, pkg)),
+  );
+}
+
+export function updateInstalledPlugin(root, id) {
+  const config = readPluginOperationConfig(root);
+  const pkg = config.plugin.packages.find((entry) => entry.id === id);
+  if (!pkg) throw new Error(`installed plugin not found: ${id}`);
+  const sources = new Map(config.plugin.sources.map((source) => [source.id, source]));
+  const entry = resolveInstalledPluginUpdate(root, sources, pkg);
+  entry.apply(root);
+  return entry.toResult();
+}
+
 export function syncInstalledPlugins(root, { update = false } = {}) {
   const config = readPluginOperationConfig(root);
   const sources = new Map(config.plugin.sources.map((source) => [source.id, source]));
-  const enabledPackages = config.plugin.packages.filter((pkg) => pkg.enabled !== false);
-  if (enabledPackages.length > MAX_ENABLED_PLUGIN_PACKAGES) throw new Error(`enabled plugin packages exceed ${MAX_ENABLED_PLUGIN_PACKAGES}`);
   const results = [];
-  for (const pkg of enabledPackages) {
+  for (const pkg of enabledInstalledPackages(config)) {
     const source = sources.get(pkg.source);
     if (!source) throw new Error(`plugin source not found for package ${pkg.id}: ${pkg.source}`);
     const resolved = update || source.type === "local"

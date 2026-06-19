@@ -1,0 +1,778 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".senti/output/analysis.json                        |   2 +-\n .../312-plugin-bulk-update/acceptance-review.json  |  21 +\n .../draft-coverage-repair.json                     |   8 +\n .../draft-coverage-triage.json                     |   8 +\n .../312-plugin-bulk-update/draft-gate-source.json  |  83 ++\n .../draft-questions-repair.json                    |   8 +\n .../draft-questions-triage.json                    |   8 +\n .../draft-review-coverage.json                     |  11 +\n .../draft-review-questions.json                    |  11 +\n specs/312-plugin-bulk-update/draft.json            | 124 +++\n specs/312-plugin-bulk-update/file-map.json         |  38 +\n specs/312-plugin-bulk-update/flow.json             | 889 +++++++++++++++++++++\n specs/312-plugin-bulk-update/impl-review.json      |  37 +\n specs/312-plugin-bulk-update/issue-log.json        | 205 +++++\n specs/312-plugin-bulk-update/issue.md              |  88 ++\n .../plugin-artifacts/workflow/prepare.json         |  10 +\n .../review-history/draft-coverage-attempt-001.json |  14 +\n .../draft-questions-attempt-001.json               |  14 +\n .../review-history/impl-attempt-001.json           |  51 ++\n .../review-history/impl-attempt-001.md             |  22 +\n .../review-history/spec-attempt-001.json           |  75 ++\n .../review-history/spec-attempt-001.md             |  28 +\n .../review-history/test-attempt-001.json           |  70 ++\n .../review-history/test-attempt-001.md             |  24 +\n .../review-history/test-attempt-002.json           |  50 ++\n .../review-history/test-attempt-002.md             |  18 +\n .../review-history/test-attempt-003.json           |  47 ++\n .../review-history/test-attempt-003.md             |  16 +\n specs/312-plugin-bulk-update/review.md             |  22 +\n specs/312-plugin-bulk-update/spec-gate-source.json | 120 +++\n specs/312-plugin-bulk-update/spec-repair.json      |  61 ++\n specs/312-plugin-bulk-update/spec-review.json      |  41 +\n specs/312-plugin-bulk-update/spec-review.md        |  28 +\n specs/312-plugin-bulk-update/spec-triage.json      |  29 +\n specs/312-plugin-bulk-update/spec.json             | 287 +++++++\n specs/312-plugin-bulk-update/spec.md               | 135 ++++\n specs/312-plugin-bulk-update/tasks/T-1.md          |  20 +\n specs/312-plugin-bulk-update/tasks/T-2.md          |  21 +\n specs/312-plugin-bulk-update/tasks/T-3.md          |  20 +\n specs/312-plugin-bulk-update/tasks/T-4.md          |  20 +\n specs/312-plugin-bulk-update/test-coverage.json    |  97 +++\n specs/312-plugin-bulk-update/test-review.json      |  33 +\n specs/312-plugin-bulk-update/test-review.md        |  16 +\n .../tests/plugin-update-cli.test.js                | 295 +++++++\n src/lib/command-registry.js                        |   2 +-\n src/lib/plugin-registry.js                         |  90 ++-\n src/plugin.js                                      |  80 +-\n tests/e2e/help.test.js                             |   3 +-\n 48 files changed, 3382 insertions(+), 18 deletions(-)",
+      "commits": [
+        "feat: feature/312-plugin-bulk-update"
+      ]
+    },
+    "retro": {
+      "total": 7,
+      "done": 7,
+      "partial": 0,
+      "not_done": 0,
+      "not_applicable_count": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "`senti plugin update` without a plugin name must compute and display enabled installed plugin update candidates via a non-mutating plan before any package state is changed, while preserving the existing enabled-package count bound.",
+          "status": "done",
+          "note": "R1: bulk update lists candidates from a non-mutating plan before refusal leaves state unchanged"
+        },
+        {
+          "desc": "`senti plugin update` without a plugin name must ask for bulk confirmation and apply the prepared enabled-package update plan only when the answer is `y` or `yes` after trimming and case normalization.",
+          "status": "done",
+          "note": "R2: accepted bulk update applies the enabled-package plan"
+        },
+        {
+          "desc": "`senti plugin update` without a plugin name must leave plugin package state unchanged when the answer is empty, `n`, `no`, or any other value.",
+          "status": "done",
+          "note": "R3: refused bulk update does not mutate commits or installed files"
+        },
+        {
+          "desc": "`senti plugin update <name>` must update only the named installed plugin and must not display the bulk update confirmation.",
+          "status": "done",
+          "note": "R4: single update only updates the named installed plugin without bulk confirmation"
+        },
+        {
+          "desc": "The retained public behavior of existing bulk update must be available through `senti plugin update` without args, including disabled-package exclusion, result rendering, and automatic upgrade skip/run conditions.",
+          "status": "done",
+          "note": "R5: migrated bulk update excludes disabled packages and preserves result metadata"
+        },
+        {
+          "desc": "The plugin help metadata must advertise `senti plugin update [name]`; `senti plugin update-all` must not be preserved as a compatibility route and must fail without updating when invoked.",
+          "status": "done",
+          "note": "R6: help advertises update and update-all fails without updating"
+        },
+        {
+          "desc": "When no enabled installed plugin has a newer candidate, `senti plugin update` without args should report that no package updates are available and should not show the bulk confirmation prompt.",
+          "status": "done",
+          "note": "R7: no-candidate bulk update reports no updates without prompting"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 10,
+      "fullLogPath": "specs/312-plugin-bulk-update/issue-log.json",
+      "importantTotal": 3,
+      "importantShown": 3,
+      "importantOmitted": 0,
+      "recentOtherTotal": 7,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 2,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "draft gate migration-parity review found update-all behavior migration was missing an explicit public behavior inventory and owner mapping",
+          "resolution": "added migration inventory, mapped retained update-all behavior to update without arguments, and added verification expectations for help and user-visible impact"
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "spec gate found missing explicit spec-local test path, missing bulk resource bound, and incomplete update-all removal compatibility expectations",
+          "resolution": "updated spec.json with specs/312-plugin-bulk-update/tests path, MAX_ENABLED_PLUGIN_PACKAGES bound, and update-all unknown-command non-mutating compatibility behavior"
+        },
+        {
+          "classification": "important",
+          "step": "implement",
+          "reason": "implement completion initially failed because requirement file-map entries were missing",
+          "resolution": "recorded changed file mappings for R1 through R7 with senti flow set files"
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "`update-all` の既存挙動を新規 `update [name]` パスへ移行する前提が示されているが、移行対象の既存パブリック振る舞いの棚卸（既存 command/API/side effect などの一覧）が明示されていない。; `update-all` の扱いを削除へ寄せる旨はあるが、保持される/移管される既存公開振る舞い（全件更新結果の意味論、ヘルプ表示、既存利用者への互換性影響）ごとの新所有者対応と、各保持面の動作検証観点が一対一で定義されていない。",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-repair",
+          "reason": "spec review found blocking gaps for non-mutating bulk planning, disabled package scope, and json prompt stream behavior",
+          "resolution": "updated spec.json with plan/apply split, enabled-only bulk scope, stderr prompt contract for json mode, and wrote spec-repair audit"
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "The spec requires spec-local tests but does not state that required coverage files must be placed under specs/<specid>/tests/, only that spec-local CLI tests should exist.; Bulk update is defined as processing all enabled installed plugi...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "test-review",
+          "reason": "test review found missing coverage for normalized confirmation acceptance and explicit refusal values",
+          "resolution": "updated spec-local test to accept trimmed uppercase YES and to reject empty, n, no, and unrelated input without mutation"
+        },
+        {
+          "classification": "recent-other",
+          "step": "test-review",
+          "reason": "test review found R5 retained automatic upgrade behavior was not covered because all bulk tests used no-upgrade",
+          "resolution": "added spec-local R5 coverage for accepted bulk update running upgrade once and no-candidate bulk update skipping upgrade"
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 3,
+      "question": 0,
+      "issueLog": 7
+    },
+    "tokenMetrics": {
+      "input": 301358,
+      "output": 50258,
+      "cacheRead": 614784,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 14,
+      "durationMs": 406446,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 12784
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 12099
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 28325
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 136139
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 26682
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 48850
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 114403
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 27164
+        }
+      ]
+    },
+    "tests": {
+      "total": 7,
+      "passed": 7,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/312-plugin-bulk-update/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "specs/312-plugin-bulk-update/",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/command-registry.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/plugin-registry.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/plugin.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/e2e/help.test.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/command-registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/plugin-registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/plugin.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/help.test.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/command-registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/plugin-registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/plugin.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/help.test.js"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "failureCategory": null,
+        "failureNature": null,
+        "skipKind": null,
+        "rawOutputPath": "specs/312-plugin-bulk-update/tests/.raw/final-regression-attempt-001.log",
+        "command": "node tests/run.js",
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        },
+        "exitCode": 0,
+        "failureSummary": null,
+        "currentDiffRelationship": null,
+        "changedFiles": [
+          {
+            "status": "modified",
+            "path": ".senti/output/analysis.json",
+            "fingerprint": "0c8aaf31b88e4afcc7dbf9fb8c7c079e7aa2693a46c1b999889bacdbbd07048e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/acceptance-review.json",
+            "fingerprint": "505864be5ada25597f539d7ba056f376a284ae8196e64c3407484b28ff5d445a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/draft-coverage-repair.json",
+            "fingerprint": "d25ca494e4f0d93106042b193f2e36c4c55ca217ca57d944c54b4acf3164a170"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/draft-coverage-triage.json",
+            "fingerprint": "d3294c0dd8647e9d14311d6bc479b10fe8c3468bb934341c6b9a3bd3e629c2ff"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/draft-gate-source.json",
+            "fingerprint": "5e14b4aaa19749ebcccf39521b472bea83c8cbce26e310b859d78e0be7ef3b83"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/draft-questions-repair.json",
+            "fingerprint": "5399c55727d3e32b7859dd898d9d526b3db0f968157cdaa789ef7ccb08ce30a0"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/draft-questions-triage.json",
+            "fingerprint": "d3e2d9df25714582edc49bf66e96a6d1f6a5a0f6c5c595eadec9649de51d380c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/draft-review-coverage.json",
+            "fingerprint": "c3e2af69eafd8df1d7509119fabb6b1846bc413a4041a93ec79c73240a971ee1"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/draft-review-questions.json",
+            "fingerprint": "ce37855d654d38aac97b2d59073106ccc03a89604a95ff57893397033b1bbde4"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/draft.json",
+            "fingerprint": "3361c7a8428328b5baae7296b4573fe97ea8426cd77d6492cb64e6c976b12792"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/file-map.json",
+            "fingerprint": "ec62e37040c651c13cebc6b061d34b60f9cc559402cbde615a14dc452e143aa4"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/impl-gate-result.json",
+            "fingerprint": "5ff785b2192fd20ac862d0e88386e0eb3736589081227b284dd7bb79e6edf94d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/impl-review.json",
+            "fingerprint": "01ecf25a3640b3d333f2ee0c0a129b666c4b1f08e4ff3112635a4a47d7eb7d0e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/issue.md",
+            "fingerprint": "60bff2e84d44222946437ba9a0095461cb111eec7bbb3d3e1fe6498038e73062"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/plugin-artifacts/workflow/prepare.json",
+            "fingerprint": "e1f8199b50bf32a525b4072d635efd4706d23c97b7038f0e2739318142e7cbce"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/retro.json",
+            "fingerprint": "f61e0e3e8cba3d90716ff324525e1e77a9cb925410b2ad7d3d5155aa09b720ce"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/review-history/draft-coverage-attempt-001.json",
+            "fingerprint": "cd70402ed5a2544c4921fc8d8456d7fc42efef1989459efb2866211a89c730d5"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/review-history/draft-questions-attempt-001.json",
+            "fingerprint": "c724b1066c1844a8802ce0885441336ab86d0761367f2f8ea533f2f08c4a92de"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/review-history/impl-attempt-001.json",
+            "fingerprint": "91eb32e8269c8c4732ed5cb60d1913c3bec5fd0cf908fc12066498761c54be44"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/review-history/impl-attempt-001.md",
+            "fingerprint": "dc49eb562679ae7382e0fd454a850c8fae8d1530ecf33a55f1e7832f8a85670c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/review-history/spec-attempt-001.json",
+            "fingerprint": "1a6b9043402d7e42e4c22ce626710026c816f146caca6dfe12c6557a8978b12d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/review-history/spec-attempt-001.md",
+            "fingerprint": "9bb1572500e77ef37b93619480174be5fd2f0be55b245527e36dc383c50f809f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/review-history/test-attempt-001.json",
+            "fingerprint": "909aee83adb0761f0e48939f67d1dba07c565d9c4821d76d47cd98b02779e8c7"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/review-history/test-attempt-001.md",
+            "fingerprint": "4ee35f7e5b90d0143a0185918582d0b6c86a82130128ec04ba951106a0482ee8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/review-history/test-attempt-002.json",
+            "fingerprint": "8d749c3563e5994ddc8efc7be12d6aaff193b252fb18eb454ec022efd402f104"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/review-history/test-attempt-002.md",
+            "fingerprint": "ac48e7e6c49f970ec91ad1486bc64a28eac3b822eb84ecd6ec86d6e44f87bffb"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/review-history/test-attempt-003.json",
+            "fingerprint": "425dde6ba04dd24543c55807c515bfaa4a8ccbf2a94bf93788a73f7bacbd5904"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/review-history/test-attempt-003.md",
+            "fingerprint": "ed8dec11afb80caa65fb3e913434cd37eec184ea708ecdf0960af939e3b5a47c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/review.md",
+            "fingerprint": "dc49eb562679ae7382e0fd454a850c8fae8d1530ecf33a55f1e7832f8a85670c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/scenario-validity-result.json",
+            "fingerprint": "995e49bea46d05329b4fcdcef001b2efe6c0339505236f83ac4ec3f9df97bdaa"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/spec-gate-source.json",
+            "fingerprint": "ca9f910173303fa89f9dfaa420eab54967b9ab1a7c1a894313c973fb4a02ed75"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/spec-repair.json",
+            "fingerprint": "e7b1b81cb3bd6672712b88b4c3281c0ba2d7b091bb467449bbdd01f09f6d15e6"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/spec-review.json",
+            "fingerprint": "6d1cae9c7036e6626e6dd19c31cf8ec32c31bbb133e30b4ac4050752773d7212"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/spec-review.md",
+            "fingerprint": "9bb1572500e77ef37b93619480174be5fd2f0be55b245527e36dc383c50f809f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/spec-triage.json",
+            "fingerprint": "98d6bf389c33bfd8cad43095739b0d005489ba618f36fe7acff685edd0cd9de3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/spec.json",
+            "fingerprint": "ffd2fae9950cd50b48784a860e59cea08d605e3aa900e66ab7e43a94561da0d9"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/spec.md",
+            "fingerprint": "adf113e52326642084216e5fa6773d8fbc00ff53fcdf1700cb4530f3e429ef98"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/tasks/T-1.md",
+            "fingerprint": "6beb0d2c3067193e4ec2cc6e312bb7b24fe085253aaaad0157ca41600e26db8b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/tasks/T-2.md",
+            "fingerprint": "9d30eed18cf71c719958a8a013711cf393f0e1c0be802e287b3cfd7e153e3b94"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/tasks/T-3.md",
+            "fingerprint": "2bee89bea865c39f327fbff83c602f7a75dc3b223ecd566b5585eaa4620defb0"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/tasks/T-4.md",
+            "fingerprint": "8f7c021e2f861093450c018b9de92530623140c77c0c712fc5ea29552326899a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/test-coverage.json",
+            "fingerprint": "c60a9824292ec03d56a8c2f5f75d61763f9bf67d6624cb72a75ed311fe9c455f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/test-execute-result.json",
+            "fingerprint": "8007a4e0374ed916d14cfdf75643ffbbec718735c0d6ffbdc0d955991c0eb2a3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/test-result-review.json",
+            "fingerprint": "3abe40a8e94b9090a291b812dce7a33062241cf7940734af85e5d97f65356c2b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/test-result-review.md",
+            "fingerprint": "82a41ff76cf801d7c94d718b3f25e0843f2396e3a9c8278ee5b3668993075735"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/test-review.json",
+            "fingerprint": "b2c0713b64044b52f8ea23b17bfd6413c5b103c7ad210ecbf8d50f3be456f330"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/test-review.md",
+            "fingerprint": "ed8dec11afb80caa65fb3e913434cd37eec184ea708ecdf0960af939e3b5a47c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/tests/.raw/scenario-validity.log",
+            "fingerprint": "d45fb9f3a52bfa2082289ec98f35bd42b267c983a4216f1b4700d72810693350"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/tests/.raw/test-execution.log",
+            "fingerprint": "826af7b965310973e1912959c08ffd1b612993b25c8cc3db7f1a14333939f474"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/312-plugin-bulk-update/tests/plugin-update-cli.test.js",
+            "fingerprint": "25f397245d37eb63804b5994906c765d2340487dbe53bdc96ff6b4987390f38f"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/command-registry.js",
+            "fingerprint": "230540c0a31384930bd77dee0cd2103a6cd723b0f206bb98ec49388135bf2af9"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/plugin-registry.js",
+            "fingerprint": "3ec860ec1e1f1f1a9b1f468b180a9df9bcb959e462ff4511efd9b3d9b75048ea"
+          },
+          {
+            "status": "modified",
+            "path": "src/plugin.js",
+            "fingerprint": "91bdf10f0f3eba7d9259c907f023dfc5c25e003c26cc45c9da67c90637a21092"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/help.test.js",
+            "fingerprint": "4b45f37d5985aaae1c2fbfb998c375ea13952a8f9c60435be9591826fce4f1e7"
+          }
+        ],
+        "changedFileFingerprints": [
+          {
+            "path": ".senti/output/analysis.json",
+            "fingerprint": "0c8aaf31b88e4afcc7dbf9fb8c7c079e7aa2693a46c1b999889bacdbbd07048e"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/acceptance-review.json",
+            "fingerprint": "505864be5ada25597f539d7ba056f376a284ae8196e64c3407484b28ff5d445a"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/draft-coverage-repair.json",
+            "fingerprint": "d25ca494e4f0d93106042b193f2e36c4c55ca217ca57d944c54b4acf3164a170"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/draft-coverage-triage.json",
+            "fingerprint": "d3294c0dd8647e9d14311d6bc479b10fe8c3468bb934341c6b9a3bd3e629c2ff"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/draft-gate-source.json",
+            "fingerprint": "5e14b4aaa19749ebcccf39521b472bea83c8cbce26e310b859d78e0be7ef3b83"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/draft-questions-repair.json",
+            "fingerprint": "5399c55727d3e32b7859dd898d9d526b3db0f968157cdaa789ef7ccb08ce30a0"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/draft-questions-triage.json",
+            "fingerprint": "d3e2d9df25714582edc49bf66e96a6d1f6a5a0f6c5c595eadec9649de51d380c"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/draft-review-coverage.json",
+            "fingerprint": "c3e2af69eafd8df1d7509119fabb6b1846bc413a4041a93ec79c73240a971ee1"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/draft-review-questions.json",
+            "fingerprint": "ce37855d654d38aac97b2d59073106ccc03a89604a95ff57893397033b1bbde4"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/draft.json",
+            "fingerprint": "3361c7a8428328b5baae7296b4573fe97ea8426cd77d6492cb64e6c976b12792"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/file-map.json",
+            "fingerprint": "ec62e37040c651c13cebc6b061d34b60f9cc559402cbde615a14dc452e143aa4"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/impl-gate-result.json",
+            "fingerprint": "5ff785b2192fd20ac862d0e88386e0eb3736589081227b284dd7bb79e6edf94d"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/impl-review.json",
+            "fingerprint": "01ecf25a3640b3d333f2ee0c0a129b666c4b1f08e4ff3112635a4a47d7eb7d0e"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/issue.md",
+            "fingerprint": "60bff2e84d44222946437ba9a0095461cb111eec7bbb3d3e1fe6498038e73062"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/plugin-artifacts/workflow/prepare.json",
+            "fingerprint": "e1f8199b50bf32a525b4072d635efd4706d23c97b7038f0e2739318142e7cbce"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/retro.json",
+            "fingerprint": "f61e0e3e8cba3d90716ff324525e1e77a9cb925410b2ad7d3d5155aa09b720ce"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/review-history/draft-coverage-attempt-001.json",
+            "fingerprint": "cd70402ed5a2544c4921fc8d8456d7fc42efef1989459efb2866211a89c730d5"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/review-history/draft-questions-attempt-001.json",
+            "fingerprint": "c724b1066c1844a8802ce0885441336ab86d0761367f2f8ea533f2f08c4a92de"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/review-history/impl-attempt-001.json",
+            "fingerprint": "91eb32e8269c8c4732ed5cb60d1913c3bec5fd0cf908fc12066498761c54be44"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/review-history/impl-attempt-001.md",
+            "fingerprint": "dc49eb562679ae7382e0fd454a850c8fae8d1530ecf33a55f1e7832f8a85670c"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/review-history/spec-attempt-001.json",
+            "fingerprint": "1a6b9043402d7e42e4c22ce626710026c816f146caca6dfe12c6557a8978b12d"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/review-history/spec-attempt-001.md",
+            "fingerprint": "9bb1572500e77ef37b93619480174be5fd2f0be55b245527e36dc383c50f809f"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/review-history/test-attempt-001.json",
+            "fingerprint": "909aee83adb0761f0e48939f67d1dba07c565d9c4821d76d47cd98b02779e8c7"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/review-history/test-attempt-001.md",
+            "fingerprint": "4ee35f7e5b90d0143a0185918582d0b6c86a82130128ec04ba951106a0482ee8"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/review-history/test-attempt-002.json",
+            "fingerprint": "8d749c3563e5994ddc8efc7be12d6aaff193b252fb18eb454ec022efd402f104"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/review-history/test-attempt-002.md",
+            "fingerprint": "ac48e7e6c49f970ec91ad1486bc64a28eac3b822eb84ecd6ec86d6e44f87bffb"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/review-history/test-attempt-003.json",
+            "fingerprint": "425dde6ba04dd24543c55807c515bfaa4a8ccbf2a94bf93788a73f7bacbd5904"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/review-history/test-attempt-003.md",
+            "fingerprint": "ed8dec11afb80caa65fb3e913434cd37eec184ea708ecdf0960af939e3b5a47c"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/review.md",
+            "fingerprint": "dc49eb562679ae7382e0fd454a850c8fae8d1530ecf33a55f1e7832f8a85670c"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/scenario-validity-result.json",
+            "fingerprint": "995e49bea46d05329b4fcdcef001b2efe6c0339505236f83ac4ec3f9df97bdaa"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/spec-gate-source.json",
+            "fingerprint": "ca9f910173303fa89f9dfaa420eab54967b9ab1a7c1a894313c973fb4a02ed75"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/spec-repair.json",
+            "fingerprint": "e7b1b81cb3bd6672712b88b4c3281c0ba2d7b091bb467449bbdd01f09f6d15e6"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/spec-review.json",
+            "fingerprint": "6d1cae9c7036e6626e6dd19c31cf8ec32c31bbb133e30b4ac4050752773d7212"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/spec-review.md",
+            "fingerprint": "9bb1572500e77ef37b93619480174be5fd2f0be55b245527e36dc383c50f809f"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/spec-triage.json",
+            "fingerprint": "98d6bf389c33bfd8cad43095739b0d005489ba618f36fe7acff685edd0cd9de3"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/spec.json",
+            "fingerprint": "ffd2fae9950cd50b48784a860e59cea08d605e3aa900e66ab7e43a94561da0d9"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/spec.md",
+            "fingerprint": "adf113e52326642084216e5fa6773d8fbc00ff53fcdf1700cb4530f3e429ef98"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/tasks/T-1.md",
+            "fingerprint": "6beb0d2c3067193e4ec2cc6e312bb7b24fe085253aaaad0157ca41600e26db8b"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/tasks/T-2.md",
+            "fingerprint": "9d30eed18cf71c719958a8a013711cf393f0e1c0be802e287b3cfd7e153e3b94"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/tasks/T-3.md",
+            "fingerprint": "2bee89bea865c39f327fbff83c602f7a75dc3b223ecd566b5585eaa4620defb0"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/tasks/T-4.md",
+            "fingerprint": "8f7c021e2f861093450c018b9de92530623140c77c0c712fc5ea29552326899a"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/test-coverage.json",
+            "fingerprint": "c60a9824292ec03d56a8c2f5f75d61763f9bf67d6624cb72a75ed311fe9c455f"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/test-execute-result.json",
+            "fingerprint": "8007a4e0374ed916d14cfdf75643ffbbec718735c0d6ffbdc0d955991c0eb2a3"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/test-result-review.json",
+            "fingerprint": "3abe40a8e94b9090a291b812dce7a33062241cf7940734af85e5d97f65356c2b"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/test-result-review.md",
+            "fingerprint": "82a41ff76cf801d7c94d718b3f25e0843f2396e3a9c8278ee5b3668993075735"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/test-review.json",
+            "fingerprint": "b2c0713b64044b52f8ea23b17bfd6413c5b103c7ad210ecbf8d50f3be456f330"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/test-review.md",
+            "fingerprint": "ed8dec11afb80caa65fb3e913434cd37eec184ea708ecdf0960af939e3b5a47c"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/tests/.raw/scenario-validity.log",
+            "fingerprint": "d45fb9f3a52bfa2082289ec98f35bd42b267c983a4216f1b4700d72810693350"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/tests/.raw/test-execution.log",
+            "fingerprint": "826af7b965310973e1912959c08ffd1b612993b25c8cc3db7f1a14333939f474"
+          },
+          {
+            "path": "specs/312-plugin-bulk-update/tests/plugin-update-cli.test.js",
+            "fingerprint": "25f397245d37eb63804b5994906c765d2340487dbe53bdc96ff6b4987390f38f"
+          },
+          {
+            "path": "src/lib/command-registry.js",
+            "fingerprint": "230540c0a31384930bd77dee0cd2103a6cd723b0f206bb98ec49388135bf2af9"
+          },
+          {
+            "path": "src/lib/plugin-registry.js",
+            "fingerprint": "3ec860ec1e1f1f1a9b1f468b180a9df9bcb959e462ff4511efd9b3d9b75048ea"
+          },
+          {
+            "path": "src/plugin.js",
+            "fingerprint": "91bdf10f0f3eba7d9259c907f023dfc5c25e003c26cc45c9da67c90637a21092"
+          },
+          {
+            "path": "tests/e2e/help.test.js",
+            "fingerprint": "4b45f37d5985aaae1c2fbfb998c375ea13952a8f9c60435be9591826fce4f1e7"
+          }
+        ],
+        "fixAttempts": null,
+        "selectedAction": null,
+        "remainingRisk": null,
+        "retryable": false,
+        "nextAction": "finalize-commit",
+        "nextRecommendedAction": null,
+        "recordAndProceed": null,
+        "humanSummary": "result=pass raw_output=specs/312-plugin-bulk-update/tests/.raw/final-regression-attempt-001.log"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/312-plugin-bulk-update\n    48 files changed, 3382 insertions(+), 18 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (7 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 3\n    Q&A ......................... 0\n    issue-log ................... 7\n    agent calls ................. 14\n    input tokens ................ 301,358\n    output tokens ............... 50,258\n    cache-read tokens ........... 614,784\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 406.4s\n      draft-questions-review .... 12.8s\n      draft-coverage-review ..... 12.1s\n      draft-gate ................ 28.3s\n      spec-review ............... 136.1s\n      spec-gate ................. 26.7s\n      test-review ............... 48.9s\n      impl-review ............... 114.4s\n      impl-gate ................. 27.2s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 7  passed 7  failed 0 verdict=pass\n    raw_output: specs/312-plugin-bulk-update/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=pass raw_output=specs/312-plugin-bulk-update/tests/.raw/final-regression-attempt-001.log\n\n  Issue Log Summary (10 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/312-plugin-bulk-update/issue-log.json\n\n    Important (3)\n    - [draft-gate] draft gate migration-parity review found update-all behavior migration was missing an explicit public behavior inventory and owner mapping\n    - [spec-gate] spec gate found missing explicit spec-local test path, missing bulk resource bound, and incomplete update-all removal compatibility expectations\n    - [implement] implement completion initially failed because requirement file-map entries were missing\n\n    Recent Other (5 of 7)\n    - [draft-gate] `update-all` の既存挙動を新規 `update [name]` パスへ移行する前提が示されているが、移行対象の既存パブリック振る舞いの棚卸（既存 command/API/side effect などの一覧）が明示されていない。; `update-all` の扱いを削除へ寄せる旨はあるが、保持される/移管される既存公開振る舞い（全件更新結果の意味論、ヘルプ表示、既存利用者への互換性影響）ごとの新所有者対応と、各保持面の動作検証観点が一対一で定義されていない。\n    - [spec-repair] spec review found blocking gaps for non-mutating bulk planning, disabled package scope, and json prompt stream behavior\n    - [spec-gate] The spec requires spec-local tests but does not state that required coverage files must be placed under specs/<specid>/tests/, only that spec-local CLI tests should exist.; Bulk update is defined as processing all enabled installed plugi...\n    - [test-review] test review found missing coverage for normalized confirmation acceptance and explicit refusal values\n    - [test-review] test review found R5 retained automatic upgrade behavior was not covered because all bulk tests used no-upgrade\n    ... 2 other issue-log entries omitted"
+}

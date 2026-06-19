@@ -1,0 +1,170 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/312-plugin-bulk-update/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/312-plugin-bulk-update/tests/plugin-update-cli.test.js",
+        "test_name": "R1: bulk update lists candidates from a non-mutating plan before refusal leaves state unchanged",
+        "command": "node --test specs/312-plugin-bulk-update/tests/plugin-update-cli.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 69
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/312-plugin-bulk-update/tests/plugin-update-cli.test.js",
+        "test_name": "R2: accepted bulk update applies the enabled-package plan",
+        "command": "node --test specs/312-plugin-bulk-update/tests/plugin-update-cli.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 69
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/312-plugin-bulk-update/tests/plugin-update-cli.test.js",
+        "test_name": "R3: refused bulk update does not mutate commits or installed files",
+        "command": "node --test specs/312-plugin-bulk-update/tests/plugin-update-cli.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 69
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/312-plugin-bulk-update/tests/plugin-update-cli.test.js",
+        "test_name": "R4: single update only updates the named installed plugin without bulk confirmation",
+        "command": "node --test specs/312-plugin-bulk-update/tests/plugin-update-cli.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 69
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/312-plugin-bulk-update/tests/plugin-update-cli.test.js",
+        "test_name": "R5: migrated bulk update excludes disabled packages and preserves result metadata",
+        "command": "node --test specs/312-plugin-bulk-update/tests/plugin-update-cli.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 69
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/312-plugin-bulk-update/tests/plugin-update-cli.test.js",
+        "test_name": "R6: help advertises update and update-all fails without updating",
+        "command": "node --test specs/312-plugin-bulk-update/tests/plugin-update-cli.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 69
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/312-plugin-bulk-update/tests/plugin-update-cli.test.js",
+        "test_name": "R7: no-candidate bulk update reports no updates without prompting",
+        "command": "node --test specs/312-plugin-bulk-update/tests/plugin-update-cli.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 69
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": false,
+    "result": "skipped",
+    "mode": "none",
+    "category": "full-regression-deferred",
+    "reason": "full project regression deferred to final-regression",
+    "classified_paths": [
+      {
+        "path": "specs/312-plugin-bulk-update/",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/lib/command-registry.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/lib/plugin-registry.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/plugin.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/e2e/help.test.js",
+        "category": "full-regression-deferred"
+      }
+    ],
+    "trigger_relevant_changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/312-plugin-bulk-update/"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/command-registry.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/plugin-registry.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/plugin.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/e2e/help.test.js"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/312-plugin-bulk-update/"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/command-registry.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/plugin-registry.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/plugin.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/e2e/help.test.js"
+      }
+    ]
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "generatedAt": "2026-06-19T15:04:03.629Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 3,
+    "nonBlocking": 0,
+    "total": 3
+  },
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Bulk candidate planning lacks a non-mutating integration point",
+      "target": "R1/R2, Overview Data Flow, src/lib/plugin-registry.js:837",
+      "body": "**Target:** R1/R2, Overview Data Flow, src/lib/plugin-registry.js:837\n**Issue:** The spec requires displaying installed-plugin update candidates before confirmation and before any package state changes, but the verified existing helper named in the spec context, syncInstalledPlugins(root, { update: true }), resolves and immediately calls installFromSource before returning previousCommit/updated metadata. findPluginCandidates is also not a replacement because it lists installable source candidates rather than installed package update candidates.\n**Required change:** Specify a non-mutating installed-plugin update planning path in src/lib/plugin-registry.js, or explicitly require splitting the existing bulk update into plan and apply phases, with plugin.js displaying the plan before applying it only after accepted confirmation.\n**Why blocking:** Without this correction, the natural implementation target mutates plugin config/files before the prompt, violating the no-update-before-confirmation requirement and making AC1/AC2 impossible to test correctly.",
+      "issue": "The spec requires displaying installed-plugin update candidates before confirmation and before any package state changes, but the verified existing helper named in the spec context, syncInstalledPlugins(root, { update: true }), resolves and immediately calls installFromSource before returning previousCommit/updated metadata. findPluginCandidates is also not a replacement because it lists installable source candidates rather than installed package update candidates.",
+      "requiredChange": "Specify a non-mutating installed-plugin update planning path in src/lib/plugin-registry.js, or explicitly require splitting the existing bulk update into plan and apply phases, with plugin.js displaying the plan before applying it only after accepted confirmation.",
+      "whyBlocking": "Without this correction, the natural implementation target mutates plugin config/files before the prompt, violating the no-update-before-confirmation requirement and making AC1/AC2 impossible to test correctly."
+    },
+    {
+      "kind": "blocking",
+      "title": "Scope conflicts with existing disabled-package behavior",
+      "target": "R1/R2/R5/AC8, src/lib/plugin-registry.js:841",
+      "body": "**Target:** R1/R2/R5/AC8, src/lib/plugin-registry.js:841\n**Issue:** The spec repeatedly says bulk update checks or updates all installed plugins, while existing update-all behavior uses syncInstalledPlugins, which filters to packages where enabled !== false. R5 also says retained bulk behavior must migrate to update without args, so it is unclear whether disabled installed packages must remain excluded or now become update candidates.\n**Required change:** State whether disabled installed plugin packages are excluded from bulk update candidates to preserve existing update-all behavior, or explicitly call out the intentional behavior change to include disabled packages.\n**Why blocking:** Implementation and tests cannot determine whether a disabled installed package should be left untouched or updated, and choosing the wrong behavior either breaks retained behavior or fails the new all-installed wording.",
+      "issue": "The spec repeatedly says bulk update checks or updates all installed plugins, while existing update-all behavior uses syncInstalledPlugins, which filters to packages where enabled !== false. R5 also says retained bulk behavior must migrate to update without args, so it is unclear whether disabled installed packages must remain excluded or now become update candidates.",
+      "requiredChange": "State whether disabled installed plugin packages are excluded from bulk update candidates to preserve existing update-all behavior, or explicitly call out the intentional behavior change to include disabled packages.",
+      "whyBlocking": "Implementation and tests cannot determine whether a disabled installed package should be left untouched or updated, and choosing the wrong behavior either breaks retained behavior or fails the new all-installed wording."
+    },
+    {
+      "kind": "blocking",
+      "title": "JSON-mode confirmation stream is unspecified",
+      "target": "R2/AC2/AC8, src/plugin.js outputPluginOperationWithUpgrade",
+      "body": "**Target:** R2/AC2/AC8, src/plugin.js outputPluginOperationWithUpgrade\n**Issue:** Existing plugin operations support --json by writing machine-parseable JSON to stdout. The spec requires a bulk confirmation prompt and also preserves JSON output fields, but it does not say where the prompt is written or how --json output remains parseable.\n**Required change:** Specify the confirmation prompt/output channel for --json bulk updates, for example prompt and refusal/status text on stderr while stdout remains the final JSON object.\n**Why blocking:** If the prompt is printed to stdout, --json output becomes invalid; if it is suppressed or embedded differently, tests and consumers cannot know the intended contract.",
+      "issue": "Existing plugin operations support --json by writing machine-parseable JSON to stdout. The spec requires a bulk confirmation prompt and also preserves JSON output fields, but it does not say where the prompt is written or how --json output remains parseable.",
+      "requiredChange": "Specify the confirmation prompt/output channel for --json bulk updates, for example prompt and refusal/status text on stderr while stdout remains the final JSON object.",
+      "whyBlocking": "If the prompt is printed to stdout, --json output becomes invalid; if it is suppressed or embedded differently, tests and consumers cannot know the intended contract."
+    }
+  ],
+  "nonBlockingImprovements": []
+}

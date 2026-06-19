@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "All three spec-review blocking findings are valid and should be repaired in spec.json before spec-gate.",
+  "items": [
+    {
+      "title": "Bulk candidate planning lacks a non-mutating integration point",
+      "target": "R1/R2, Overview Data Flow, src/lib/plugin-registry.js:837",
+      "decision": "apply",
+      "rationale": "The spec currently references retained bulk update behavior but does not require a non-mutating plan phase. That would let implementation use the existing mutating syncInstalledPlugins update path before confirmation.",
+      "evidence": "spec.json overview.data_flow[0] says candidate check resolves and computes candidates, but requirements and tasks do not name a non-mutating registry helper or plan/apply split."
+    },
+    {
+      "title": "Scope conflicts with existing disabled-package behavior",
+      "target": "R1/R2/R5/AC8, src/lib/plugin-registry.js:841",
+      "decision": "apply",
+      "rationale": "The spec says all installed plugins while also preserving update-all behavior. Existing bulk update excludes disabled packages, so the spec must state disabled packages remain excluded.",
+      "evidence": "spec.json scope.in and R1/R2/R5 use all installed plugin wording; source context for syncInstalledPlugins filters packages where enabled !== false."
+    },
+    {
+      "title": "JSON-mode confirmation stream is unspecified",
+      "target": "R2/AC2/AC8, src/plugin.js outputPluginOperationWithUpgrade",
+      "decision": "apply",
+      "rationale": "The spec preserves JSON output semantics but does not define prompt stream behavior. Without this, --json stdout can become invalid when prompting.",
+      "evidence": "spec.json AC8 preserves JSON fields, but constraints and acceptance criteria do not require prompts/status text to avoid stdout in --json mode."
+    }
+  ]
+}
