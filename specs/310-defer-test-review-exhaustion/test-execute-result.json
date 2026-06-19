@@ -1,0 +1,172 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/310-defer-test-review-exhaustion/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js",
+        "test_name": "R1: demo",
+        "command": "node --test specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 83
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js",
+        "test_name": "R2: deferred entry contains required test-review retry exhaustion metadata",
+        "command": "node --test specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 83
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js",
+        "test_name": "R3: semantic deferral marks test-review complete through the flow manager",
+        "command": "node --test specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 83
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js",
+        "test_name": "R4: post-hook deferral shares the same source artifact and finding id as pre-check deferral",
+        "command": "node --test specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 83
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js",
+        "test_name": "R5: tooling and structured coverage failures stay outside semantic carryover while semantic failures still defer",
+        "command": "node --test specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 83
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js",
+        "test_name": "R6: unchanged-evidence recovery state does not block final semantic carryover",
+        "command": "node --test specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 83
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js",
+        "test_name": "R7: repeated carryover for the same source finding does not append duplicates",
+        "command": "node --test specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 83
+        }
+      }
+    },
+    {
+      "id": "R8",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js",
+        "test_name": "R8: acceptance-review receives deferred findings created by the post-hook path",
+        "command": "node --test specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 83
+        }
+      }
+    },
+    {
+      "id": "R9",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js",
+        "test_name": "R9: post-hook carryover preserves reviewRetry evidence for manual retry reset workflows",
+        "command": "node --test specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 83
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": false,
+    "result": "skipped",
+    "mode": "none",
+    "category": "full-regression-deferred",
+    "reason": "full project regression deferred to final-regression",
+    "classified_paths": [
+      {
+        "path": "specs/310-defer-test-review-exhaustion/",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/flow-findings.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/run-review.js",
+        "category": "full-regression-deferred"
+      }
+    ],
+    "trigger_relevant_changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/310-defer-test-review-exhaustion/"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/flow-findings.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-review.js"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/310-defer-test-review-exhaustion/"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/flow-findings.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-review.js"
+      }
+    ]
+  }
+}

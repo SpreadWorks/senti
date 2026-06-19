@@ -197,10 +197,30 @@ export function appendDeferredFlowFinding({
 }) {
   const specDir = specDirFromFlowState(root, flowState);
   const existing = readFlowFindingsArtifact(specDir);
+  const normalizedSourceArtifact = normalizeSourceArtifactPath(sourceArtifact);
+  const existingIndex = existing.entries.findIndex((entry) => (
+    entry.sourceStep === sourceStep
+      && entry.sourceArtifact === normalizedSourceArtifact
+      && entry.sourceFindingId === sourceFindingId
+  ));
+  if (existingIndex >= 0) {
+    const current = existing.entries[existingIndex];
+    const entry = new FlowFinding({
+      ...current.toJSON(),
+      retryExhausted: true,
+      attempts,
+      round: round ?? attempts,
+      completionKind: "deferred",
+      finalDisposition: current.finalDisposition ?? finalDisposition,
+    });
+    const entries = existing.entries.map((item, index) => (index === existingIndex ? entry : item));
+    writeFlowFindingsArtifact(specDir, new FlowFindingsArtifact({ entries }));
+    return entry;
+  }
   const entry = new FlowFinding({
     findingId: nextFindingId(existing),
     sourceStep,
-    sourceArtifact,
+    sourceArtifact: normalizedSourceArtifact,
     sourceFindingId,
     retryExhausted: true,
     attempts,
@@ -304,6 +324,7 @@ export function deferExhaustedSemanticFindings({
     sourceFindingId: stableSourceFindingId(sourceStep, finding, index),
     attempts,
     round: attempts,
+    finalDisposition: "still_open",
   }));
   return {
     completed: true,

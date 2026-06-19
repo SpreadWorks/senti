@@ -351,10 +351,12 @@ export function updateReviewRetryCounter(ctx, result) {
   const payload = isPass
     ? { phase: persistedPhase, counter: "reviewRetry", delta: 0, reset: true }
     : { phase: persistedPhase, counter: "reviewRetry", delta: 1 };
-  if (!isPass && attemptsBefore + 1 >= maxAttempts) {
-    mutateReviewRecoveryState(ctx, persistedPhase, REVIEW_RECOVERY_TRIGGER_VERDICT_FAIL);
-  }
   mgr.appendMetric(payload, { taskId: null }); // R19: explicit flow-scope
+  if (!isPass && attemptsBefore + 1 >= maxAttempts) {
+    const deferred = tryDeferReviewRetryExhaustion(ctx, persistedPhase, attemptsBefore + 1);
+    if (!deferred) mutateReviewRecoveryState(ctx, persistedPhase, REVIEW_RECOVERY_TRIGGER_VERDICT_FAIL);
+    return;
+  }
   if (isPass && typeof mgr.mutate === "function") {
     mgr.mutate((state) => clearReviewStopState(state, persistedPhase));
   }

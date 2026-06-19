@@ -1,0 +1,179 @@
+{
+  "verdict": "pass",
+  "issues": [],
+  "nextAction": {
+    "diagnosis": {
+      "summary": "No blocking observations.",
+      "observations": []
+    },
+    "prescription": "retro"
+  },
+  "level": "integration",
+  "phase": "integration",
+  "evaluations": [
+    {
+      "guardrail_id": "R1",
+      "result": "pass",
+      "reason": "Final-fail branch now invokes `tryDeferReviewRetryExhaustion(ctx, persistedPhase, attemptsBefore + 1)` before fallback, which is the new final-fail carryover path; diff plus added test checks flow-findings.json is created in that same command lifecycle.",
+      "title": "R1",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R3",
+      "result": "pass",
+      "reason": "The same final-fail path is reused to mark the review phase complete via existing traversal/defer logic, and the added test verifies `test-review` becomes `done` and `next-action` moves to later steps.",
+      "title": "R3",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R5",
+      "result": "pass",
+      "reason": "Final exhaustion still falls back to `mutateReviewRecoveryState` when deferral does not apply; added tests assert TOOLING_FAILURE and structured coverage-header failures do not produce deferred entries, preserving prior recovery behavior.",
+      "title": "R5",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R6",
+      "result": "pass",
+      "reason": "`tryDeferReviewRetryExhaustion` is called regardless of existing `retryRecovery` fields (no new guard added), and the added test with `recoveryPossible: false` + `unchanged-evidence` still expects deferred carryover.",
+      "title": "R6",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R9",
+      "result": "pass",
+      "reason": "`appendMetric` now executes before the final-fail conditional return, so review retry evidence is still recorded; added test checks tenth `reviewRetry` metric remains and deferred finding exists, indicating manual retry-reset evidence is not removed.",
+      "title": "R9",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R2",
+      "result": "pass",
+      "reason": "Deferred flow findings are now written with normalized source artifact metadata, retry/attempt/round, completionKind=deferred, and finalDisposition set to still_open; defer path reads test-review.json and only carries semantic (non-tooling/non-structured coverage) findings at retry exhaustion.",
+      "title": "R2",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R7",
+      "result": "pass",
+      "reason": "appendDeferredFlowFinding now updates an existing entry when sourceStep/sourceArtifact/sourceFindingId already exists instead of appending, preventing duplicate deferred records across repeated carryover/pre-check invocations.",
+      "title": "R7",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R8",
+      "result": "pass",
+      "reason": "Acceptance review now derives deferred findings directly from flow-findings, maps blocking finalDisposition to blocked and still_open to amend_required, and applyAcceptanceReviewResult transitions to user_decision_required with nextAction=user_decision and targetStep=implement after the non-pass review round progression.",
+      "title": "R8",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R4",
+      "result": "pass",
+      "reason": "Post-hook failure path now calls `tryDeferReviewRetryExhaustion`, the same helper used by pre-check; it uses shared source artifact mapping/finding extraction, reuse of semantic-only exclusion checks, and common step completion (`updateStepStatus` to done).",
+      "title": "R4",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": []
+    },
+    {
+      "guardrail_id": "no-overengineering",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "code-quality",
+      "title": "Avoid Overengineering",
+      "observations": []
+    }
+  ],
+  "reasons": [
+    {
+      "verdict": "PASS",
+      "detail": "R1 — Final-fail branch now invokes `tryDeferReviewRetryExhaustion(ctx, persistedPhase, attemptsBefore + 1)` before fallback, which is the new final-fail carryover path; diff plus added test checks flow-findings.json is created in that same command lifecycle.",
+      "guardrail_id": "R1",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R3 — The same final-fail path is reused to mark the review phase complete via existing traversal/defer logic, and the added test verifies `test-review` becomes `done` and `next-action` moves to later steps.",
+      "guardrail_id": "R3",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R5 — Final exhaustion still falls back to `mutateReviewRecoveryState` when deferral does not apply; added tests assert TOOLING_FAILURE and structured coverage-header failures do not produce deferred entries, preserving prior recovery behavior.",
+      "guardrail_id": "R5",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R6 — `tryDeferReviewRetryExhaustion` is called regardless of existing `retryRecovery` fields (no new guard added), and the added test with `recoveryPossible: false` + `unchanged-evidence` still expects deferred carryover.",
+      "guardrail_id": "R6",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R9 — `appendMetric` now executes before the final-fail conditional return, so review retry evidence is still recorded; added test checks tenth `reviewRetry` metric remains and deferred finding exists, indicating manual retry-reset evidence is not removed.",
+      "guardrail_id": "R9",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R2 — Deferred flow findings are now written with normalized source artifact metadata, retry/attempt/round, completionKind=deferred, and finalDisposition set to still_open; defer path reads test-review.json and only carries semantic (non-tooling/non-structured coverage) findings at retry exhaustion.",
+      "guardrail_id": "R2",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R7 — appendDeferredFlowFinding now updates an existing entry when sourceStep/sourceArtifact/sourceFindingId already exists instead of appending, preventing duplicate deferred records across repeated carryover/pre-check invocations.",
+      "guardrail_id": "R7",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R8 — Acceptance review now derives deferred findings directly from flow-findings, maps blocking finalDisposition to blocked and still_open to amend_required, and applyAcceptanceReviewResult transitions to user_decision_required with nextAction=user_decision and targetStep=implement after the non-pass review round progression.",
+      "guardrail_id": "R8",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R4 — Post-hook failure path now calls `tryDeferReviewRetryExhaustion`, the same helper used by pre-check; it uses shared source artifact mapping/finding extraction, reuse of semantic-only exclusion checks, and common step completion (`updateStepStatus` to done).",
+      "guardrail_id": "R4",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Spec Test Coverage — no observations emitted",
+      "guardrail_id": "spec-test-coverage",
+      "category": "testing"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Avoid Overengineering — no observations emitted",
+      "guardrail_id": "no-overengineering",
+      "category": "code-quality"
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "impl-gate",
+    "artifactPath": "specs/310-defer-test-review-exhaustion/impl-gate-result.json",
+    "verdict": "pass",
+    "result": "pass",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": {
+      "diagnosis": {
+        "summary": "No blocking observations.",
+        "observations": []
+      },
+      "prescription": "retro"
+    },
+    "completionKind": "normal",
+    "progressSignature": "bf78bb0606fa8ac1fc5522690b7b9fb5059554ee13cc9c334edbfb15997c6509"
+  }
+}

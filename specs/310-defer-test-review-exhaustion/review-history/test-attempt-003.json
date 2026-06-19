@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-19T05:04:54.346Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/310-defer-test-review-exhaustion/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R2 does not verify unresolved blocking filtering",
+      "target": "specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js",
+      "issue": "R2 requires post-hook deferred entries to be created from unresolved blocking findings, but the test only supplies a single unresolved blocking finding and never proves resolved or non-blocking findings are excluded. An implementation that defers advisory/resolved findings as well would still pass the current test.",
+      "requiredChange": "Add a spec-local R2 assertion with at least one non-blocking or resolved finding alongside the blocking finding and assert only the unresolved blocking finding is carried into flow-findings.json.",
+      "whyBlocking": "This leaves part of a must requirement without executable coverage and permits an incorrect carryover implementation to pass.",
+      "origin": "R2",
+      "failureKind": "missing_acceptance_requirement"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/310-defer-test-review-exhaustion/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "d52acced274c4a7d72fb250ac72a18cdc36363718e445620f1e9499ebe2ae43a"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "test-003-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R2 does not verify unresolved blocking filtering",
+      "body": "R2 requires post-hook deferred entries to be created from unresolved blocking findings, but the test only supplies a single unresolved blocking finding and never proves resolved or non-blocking findings are excluded. An implementation that defers advisory/resolved findings as well would still pass the current test.",
+      "category": "unknown"
+    }
+  ]
+}

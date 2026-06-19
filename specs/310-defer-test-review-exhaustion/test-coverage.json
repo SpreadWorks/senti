@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "When flow-scope test-review returns a semantic FAIL and attemptsBefore + 1 is greater than or equal to maxAttempts, the review post-hook must create or update flow-findings.json during that same command lifecycle.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/test-review-post-hook-deferral.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "The post-hook deferred entries must be created from unresolved blocking findings in the latest test-review.json and include findingId, sourceStep=test-review, sourceArtifact=test-review.json, sourceFindingId, retryExhausted=true, attempts, round, completionKind=deferred, and finalDisposition=still_open.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/test-review-post-hook-deferral.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "After semantic deferral in the final FAIL post-hook, test-review must be marked complete through the existing done traversal model so get status does not leave test-review in_progress and get next-action can return implement or a later step.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/test-review-post-hook-deferral.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "The final FAIL post-hook semantic deferral must reuse the existing semantic deferral helpers or an equivalent shared helper so pre-check and post-hook carryover use the same source artifact, finding id, exclusion, and step-completion behavior.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/test-review-post-hook-deferral.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "TOOLING_FAILURE and structured test-review coverage/header failures must remain excluded from semantic deferred carryover and continue to require tooling recovery, structured coverage recovery, or existing override behavior.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/test-review-post-hook-deferral.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "Semantic exhaustion carryover must run even when retryRecovery.recoveryPossible=false or unchanged-evidence would prevent a retry reset, because the carryover is the final retry-exhaustion state transition rather than another retry attempt.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/test-review-post-hook-deferral.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "The carryover path must not create duplicate deferred entries for the same sourceStep, sourceArtifact, and sourceFindingId when pre-check or repeated invocations encounter an already-carried finding.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/test-review-post-hook-deferral.test.js"
+      ]
+    },
+    {
+      "id": "R8",
+      "desc": "Acceptance-review must recognize test-review deferred findings from flow-findings.json in deferredFindings; still_open findings may produce amend_required under current policy, blocking findings produce blocked, and explicit user-decision state must produce user_decision_required with nextAction=user_decision and targetStep=implement.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/test-review-post-hook-deferral.test.js"
+      ]
+    },
+    {
+      "id": "R9",
+      "desc": "Existing manual review retry reset behavior must remain available for review phases and must not be removed or weakened by the post-hook carryover implementation.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/test-review-post-hook-deferral.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/test-review-post-hook-deferral.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9"
+      ]
+    }
+  ]
+}

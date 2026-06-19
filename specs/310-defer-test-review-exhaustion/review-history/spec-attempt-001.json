@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "generatedAt": "2026-06-19T04:58:43.701Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "nonBlocking": 2,
+    "total": 3
+  },
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Specify acceptance-review routing fields for user-decision deferred findings",
+      "target": "R7 / Acceptance Criteria: acceptance-review verdict for still_open deferred findings",
+      "body": "**Target:** R7 / Acceptance Criteria: acceptance-review verdict for still_open deferred findings\n**Issue:** The spec requires still_open deferred findings to produce user_decision_required, but the existing acceptance-review artifact contract requires every non-pass verdict to carry a valid nextAction and targetStep. Current code validates nextAction against amend/repair/user_decision and targetStep against the allowed flow targets, and user_decision_required is only derivable when nextAction is user_decision or explicit user-decision state is present.\n**Required change:** Extend R7 or its acceptance criteria to state the required nextAction and targetStep for still_open deferred findings when acceptance-review emits user_decision_required, for example nextAction=user_decision and the intended targetStep such as implement.\n**Why blocking:** Without these mandatory artifact fields, an implementation can set the requested verdict but still produce an invalid acceptance-review.json, and tests cannot unambiguously assert the valid downstream state transition or user-decision path.",
+      "issue": "The spec requires still_open deferred findings to produce user_decision_required, but the existing acceptance-review artifact contract requires every non-pass verdict to carry a valid nextAction and targetStep. Current code validates nextAction against amend/repair/user_decision and targetStep against the allowed flow targets, and user_decision_required is only derivable when nextAction is user_decision or explicit user-decision state is present.",
+      "requiredChange": "Extend R7 or its acceptance criteria to state the required nextAction and targetStep for still_open deferred findings when acceptance-review emits user_decision_required, for example nextAction=user_decision and the intended targetStep such as implement.",
+      "whyBlocking": "Without these mandatory artifact fields, an implementation can set the requested verdict but still produce an invalid acceptance-review.json, and tests cannot unambiguously assert the valid downstream state transition or user-decision path."
+    }
+  ],
+  "nonBlockingImprovements": [
+    {
+      "kind": "improvement",
+      "title": "Mention lifecycle dispatcher files",
+      "target": "Overview / Modules",
+      "body": "**Target:** Overview / Modules\n**Improvement:** Add src/flow/definition.js and src/flow/registry.js as related verification surfaces because review post-hook action ordering currently runs through resolveReviewLifecycle and RegistryLifecycleAdapter before updateReviewRetryCounter is called.\n**Why non-blocking:** The spec already names src/flow/lib/run-review.js as the primary implementation target, and the behavior can still be implemented there without changing the dispatcher files.",
+      "improvement": "Add src/flow/definition.js and src/flow/registry.js as related verification surfaces because review post-hook action ordering currently runs through resolveReviewLifecycle and RegistryLifecycleAdapter before updateReviewRetryCounter is called.",
+      "whyNonBlocking": "The spec already names src/flow/lib/run-review.js as the primary implementation target, and the behavior can still be implemented there without changing the dispatcher files."
+    },
+    {
+      "kind": "improvement",
+      "title": "Clarify TOOLING_FAILURE exhaustion wording",
+      "target": "Acceptance Criteria: TOOLING_FAILURE case",
+      "body": "**Target:** Acceptance Criteria: TOOLING_FAILURE case\n**Improvement:** Reword the TOOLING_FAILURE acceptance criterion to avoid implying TOOLING_FAILURE consumes reviewRetry in the post-hook path; existing behavior skips retry metric consumption for TOOLING_FAILURE and records tooling recovery instead.\n**Why non-blocking:** The scope and requirements already clearly exclude TOOLING_FAILURE from semantic deferral, so implementers can preserve the existing recovery path despite the wording.",
+      "improvement": "Reword the TOOLING_FAILURE acceptance criterion to avoid implying TOOLING_FAILURE consumes reviewRetry in the post-hook path; existing behavior skips retry metric consumption for TOOLING_FAILURE and records tooling recovery instead.",
+      "whyNonBlocking": "The scope and requirements already clearly exclude TOOLING_FAILURE from semantic deferral, so implementers can preserve the existing recovery path despite the wording."
+    }
+  ],
+  "sourceArtifact": "spec-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "spec-001-blocking-001",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Specify acceptance-review routing fields for user-decision deferred findings",
+      "body": "**Target:** R7 / Acceptance Criteria: acceptance-review verdict for still_open deferred findings\n**Issue:** The spec requires still_open deferred findings to produce user_decision_required, but the existing acceptance-review artifact contract requires every non-pass verdict to carry a valid nextAction and targetStep. Current code validates nextAction against amend/repair/user_decision and targetStep against the allowed flow targets, and user_decision_required is only derivable when nextAction is user_decision or explicit user-decision state is present.\n**Required change:** Extend R7 or its acceptance criteria to state the required nextAction and targetStep for still_open deferred findings when acceptance-review emits user_decision_required, for example nextAction=user_decision and the intended targetStep such as implement.\n**Why blocking:** Without these mandatory artifact fields, an implementation can set the requested verdict but still produce an invalid acceptance-review.json, and tests cannot unambiguously assert the valid downstream state transition or user-decision path.",
+      "category": "unknown"
+    },
+    {
+      "id": "spec-001-non-blocking-002",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "Mention lifecycle dispatcher files",
+      "body": "**Target:** Overview / Modules\n**Improvement:** Add src/flow/definition.js and src/flow/registry.js as related verification surfaces because review post-hook action ordering currently runs through resolveReviewLifecycle and RegistryLifecycleAdapter before updateReviewRetryCounter is called.\n**Why non-blocking:** The spec already names src/flow/lib/run-review.js as the primary implementation target, and the behavior can still be implemented there without changing the dispatcher files.",
+      "category": "unknown"
+    },
+    {
+      "id": "spec-001-non-blocking-003",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "Clarify TOOLING_FAILURE exhaustion wording",
+      "body": "**Target:** Acceptance Criteria: TOOLING_FAILURE case\n**Improvement:** Reword the TOOLING_FAILURE acceptance criterion to avoid implying TOOLING_FAILURE consumes reviewRetry in the post-hook path; existing behavior skips retry metric consumption for TOOLING_FAILURE and records tooling recovery instead.\n**Why non-blocking:** The scope and requirements already clearly exclude TOOLING_FAILURE from semantic deferral, so implementers can preserve the existing recovery path despite the wording.",
+      "category": "unknown"
+    }
+  ]
+}

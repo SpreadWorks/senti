@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "One blocking finding is valid and should be repaired by specifying acceptance-review routing fields for still_open user-decision deferred findings.",
+  "items": [
+    {
+      "title": "Specify acceptance-review routing fields for user-decision deferred findings",
+      "target": "R7 / Acceptance Criteria: acceptance-review verdict for still_open deferred findings",
+      "decision": "apply",
+      "rationale": "R7 asks acceptance-review to emit user_decision_required for still_open deferred findings but does not specify the required nextAction and targetStep fields needed for a valid non-pass acceptance-review artifact.",
+      "evidence": "spec.json requirements[6].desc and acceptance_criteria[7] mention user_decision_required but do not name nextAction=user_decision or targetStep=implement."
+    }
+  ]
+}

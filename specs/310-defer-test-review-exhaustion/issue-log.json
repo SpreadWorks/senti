@@ -1,0 +1,173 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "qa[3]: invalid category \"edge-cases\"",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-19T04:52:27.860Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[3]: invalid category \"edge-cases\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate failed because qa[3].category used unsupported value edge-cases",
+      "trigger": "senti flow run gate --phase draft reported qa[3]: invalid category edge-cases",
+      "resolution": "changed qa[3].category to implementation-policy from the shared draft QA category list",
+      "guardrailCandidate": "verify draft QA category values against the shared category list before running draft gate",
+      "taskId": null,
+      "timestamp": "2026-06-19T04:52:46.651Z"
+    },
+    {
+      "step": "spec-repair",
+      "reason": "spec review failed because user-decision deferred findings lacked acceptance-review routing fields",
+      "trigger": "spec-review blocking finding requested nextAction and targetStep for user_decision_required deferred findings",
+      "resolution": "updated R8 acceptance criteria and downstream task acceptance to require nextAction=user_decision and targetStep=implement",
+      "guardrailCandidate": "when a spec requires a non-pass acceptance-review verdict include required nextAction and targetStep fields",
+      "taskId": null,
+      "timestamp": "2026-06-19T05:00:38.910Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review found missing R2 findingId assertion and missing R8 blocked/user-decision acceptance branches in the spec-local test design",
+      "trigger": "senti flow run review --phase test returned FAIL with two blocking findings",
+      "resolution": "consolidated duplicate post-hook tests, added findingId assertions, and added R8 blocked plus user_decision_required branch coverage",
+      "guardrailCandidate": "when a review reports missing requirement branches, update the spec-local test before implementation and record the repair",
+      "taskId": null,
+      "timestamp": "2026-06-19T05:04:22.281Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review found missing R2 coverage proving only unresolved blocking test-review findings are carried over",
+      "trigger": "second senti flow run review --phase test returned FAIL for unresolved blocking filtering coverage",
+      "resolution": "added advisory and resolved findings to the R2 fixture and asserted only the blocking source finding is deferred",
+      "guardrailCandidate": "when a requirement says unresolved blocking findings, tests should include non-blocking or resolved counterexamples",
+      "taskId": null,
+      "timestamp": "2026-06-19T05:05:33.498Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test review failed because R3 coverage used only a fake flow manager and missed observable status and next-action behavior",
+      "trigger": "senti flow run review --phase test reported missing real status and next-action API coverage for R3",
+      "resolution": "updated the R3 spec-local test to persist an active flow and assert senti flow get status and get next-action after post-hook deferral",
+      "guardrailCandidate": "tests for flow progression requirements should exercise observable flow status or next-action APIs, not only fake manager callbacks",
+      "taskId": null,
+      "timestamp": "2026-06-19T05:06:04.434Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test review failed because R4 did not exercise pre-check shared behavior and R5 did not cover structured coverage exclusion",
+      "trigger": "senti flow run review --phase test reported missing R4 shared-path coverage and R5 structured coverage branch",
+      "resolution": "added pre-check versus post-hook comparison for R4 and structured coverage validation failure fixture for R5",
+      "guardrailCandidate": "when a requirement names multiple behavior branches, spec-local tests should execute each branch rather than only a semantic control case",
+      "taskId": null,
+      "timestamp": "2026-06-19T05:08:00.475Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test-review found missing R3 persisted progression, R4 pre-check parity, and R5 structured coverage exclusion coverage",
+      "trigger": "third senti flow run review --phase test returned FAIL with three blocking coverage findings",
+      "resolution": "updated spec-local tests to use CLI status/next-action progression, compare pre-check and post-hook deferral behavior, and add structured coverage exclusion assertions",
+      "guardrailCandidate": "when a requirement names a production surface, spec-local tests should exercise that surface rather than only fake managers",
+      "taskId": null,
+      "timestamp": "2026-06-19T05:09:41.701Z"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "scenario-validity rerun was blocked because implementation-target source changes were already present before test-review completed",
+      "trigger": "senti flow run scenario-validity after test repairs reported changed src/flow/lib/run-review.js and src/flow/lib/flow-findings.js",
+      "resolution": "recorded the ordering issue and continued with test-review static validation before reconciling the already-present source changes in implementation",
+      "guardrailCandidate": "avoid introducing implementation-target source changes before plan-phase test-review has passed",
+      "taskId": null,
+      "timestamp": "2026-06-19T05:10:11.146Z"
+    },
+    {
+      "step": "implement",
+      "reason": "implement completion failed because requirement file-map entries were missing before marking the step done",
+      "trigger": "senti flow set step implement done returned IMPLEMENT_COMPLETION_VALIDATION_FAILED file-map-missing",
+      "resolution": "register file-map entries for each testable requirement before retrying implement completion",
+      "guardrailCandidate": "record requirement-to-file mappings before completing implementation when the flow requires file-map validation",
+      "taskId": null,
+      "timestamp": "2026-06-19T05:11:59.309Z"
+    },
+    {
+      "step": "implement",
+      "reason": "implement completion failed because scenario-validity had been rerun after source files changed and file-map entries were missing",
+      "trigger": "senti flow set step implement done reported scenario-validity-classification-not-expected-fail and file-map-missing",
+      "resolution": "temporarily reverted source edits, reran scenario-validity in pre-implementation state, reapplied source edits, and will register file-map entries",
+      "guardrailCandidate": "before implementing source changes verify scenario-validity has expected-fail classifications and register file-map entries before implement completion",
+      "taskId": null,
+      "timestamp": "2026-06-19T05:12:09.832Z"
+    },
+    {
+      "step": "impl-gate",
+      "phase": "integration",
+      "reason": "AI evaluation response is not valid JSON: Expected ',' or '}' after property value in JSON at position 376 (line 1 column 377)",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-19T05:17:46.593Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "impl-gate command failed with AI evaluation JSON schema parse error before producing gate observations",
+      "trigger": "senti flow run gate returned EVALUATION_SCHEMA_ERROR for integration phase",
+      "resolution": "recorded the transient provider output failure and reran impl-gate without changing implementation evidence because no product observation was produced",
+      "guardrailCandidate": "when an AI gate fails before producing observations, record the provider-output failure separately from product gate findings",
+      "taskId": null,
+      "timestamp": "2026-06-19T05:18:06.464Z"
+    },
+    {
+      "step": "impl-gate",
+      "phase": "integration",
+      "reason": "AI evaluation response is not valid JSON: Expected ',' or '}' after property value in JSON at position 376 (line 1 column 377)",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-06-19T05:18:11.118Z"
+    },
+    {
+      "step": "acceptance-review",
+      "reason": "acceptance-review returned amend_required because stale deferred test-review findings remained still_open after test design fixes",
+      "trigger": "senti flow run acceptance-review listed DF-1 through DF-6 with finalDisposition still_open",
+      "resolution": "added acceptance-review-evidence.json marking the deferred test-review findings fixed with test-execute and impl-gate evidence references",
+      "guardrailCandidate": "when deferred findings are repaired by later evidence, record bounded acceptance-review disposition evidence before rerunning acceptance-review",
+      "taskId": null,
+      "timestamp": "2026-06-19T05:19:39.226Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-06-19T05:26:22.441Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-06-19T05:26:27.257Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-06-19T05:27:21.426Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase failed: working tree has uncommitted changes. Commit or discard changes in the worktree before retrying finalize.",
+      "timestamp": "2026-06-19T05:27:23.622Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-06-19T05:28:04.305Z"
+    }
+  ]
+}

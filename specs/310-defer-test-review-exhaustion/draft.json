@@ -1,0 +1,104 @@
+{
+  "devType": "bugfix",
+  "goal": "test-review の semantic FAIL が maxAttempts に到達した時点で、未解決 findings を deferred findings として flow-findings.json に引き継ぎ、test-review を次工程へ進められる完了状態にする。",
+  "analysis": {
+    "problem": "Issue #405 は、test-review の semantic FAIL が retry exhaustion に達した瞬間に deferred carryover が保証されず、flow-findings.json が生成されないため test-review が in_progress に残り、acceptance-review が未解決 findings を受け取れない問題を扱う。",
+    "proposedApproach": "run review --phase test の post-hook / state transition 側で semantic exhaustion を検知し、既存の deferred findings 記録機構へ引き継ぐ。TOOLING_FAILURE と structured coverage failure は semantic deferral の対象外とする。",
+    "validation": "Issue 本文は対象ファイル、除外条件、entry metadata、status / next-action / acceptance-review の期待挙動を列挙している。context search では flow-findings、acceptance-review artifacts、retry recovery、review command が関連領域として確認でき、表層の表示修正ではなく状態遷移保証を追加する必要がある。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #405 states that the CLI state transition must create or update flow-findings.json when test-review semantic FAIL reaches maxAttempts.",
+      "must: Issue #405 states that deferred entries include finalDisposition: still_open and retry exhaustion metadata.",
+      "must: Issue #405 states that TOOLING_FAILURE and structured coverage failures are excluded from semantic deferral.",
+      "must: context search identifies src/flow/lib/flow-findings.js as the deferred finding registry and src/flow/lib/acceptance-review-artifacts.js as the downstream reader for deferred findings."
+    ],
+    "decisionPoints": [
+      "must: Define whether test-review deferred completion is user-visible as done-equivalent status only, or whether an explicit completion kind must also be exposed in status / next-action output.",
+      "must: Define how acceptance-review should present unresolved deferred findings: user_decision_required, explicit blocker, or both depending on finalDisposition.",
+      "should: Define whether duplicate deferred entries from repeated CLI invocations are updated in place or ignored when the same source finding is already carried over."
+    ],
+    "resolvedByProjectRules": [
+      "must: External dependencies are not allowed; the change must use existing Node.js built-ins and local modules.",
+      "must: The Issue is one concern and must not be split into multiple specs.",
+      "must: The alpha policy allows removing obsolete behavior if needed, but this bugfix should preserve existing manual retry reset behavior from Issue #405."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: Specify concrete requirement IDs for post-hook carryover, metadata shape, exclusions, unchanged-evidence behavior, duplicate handling, status progression, and downstream acceptance-review recognition.",
+      "must: Specify test scenarios that fail before implementation and pass after implementation, including semantic exhaustion, TOOLING_FAILURE exclusion, unchanged-evidence carryover, and downstream recognition."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: Add the state transition guarantee for test-review semantic retry exhaustion in the flow review lifecycle.",
+      "must: Persist unresolved blocking findings from the latest test-review artifact into flow-findings.json with retry exhaustion metadata.",
+      "must: Treat the exhausted semantic test-review as deferred completion so mainline flow can proceed to implement or later steps.",
+      "must: Verify acceptance-review reads and reflects deferred findings from flow-findings.json.",
+      "must: Preserve TOOLING_FAILURE and structured coverage failure recovery behavior as non-deferred paths."
+    ],
+    "out": [
+      "must: Do not redesign the full review retry system beyond the retry exhaustion carryover guarantee.",
+      "must: Do not change npm dependencies or introduce new external packages.",
+      "must: Do not change unrelated flow phases except where necessary for status / next-action / acceptance-review recognition."
+    ]
+  },
+  "impactOnExisting": [
+    "must: Existing test-review PASS and ADVISORY behavior must continue to complete without creating semantic deferred findings.",
+    "must: Existing TOOLING_FAILURE behavior must continue to require tooling recovery or recorded issue-log evidence rather than consuming semantic deferral.",
+    "must: Existing manual retry reset behavior must remain available after this change.",
+    "should: Existing pre-check deferral behavior should remain compatible with the new post-hook guarantee and avoid duplicate flow-findings entries."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "must: Issue #405 の goal を、test-review の semantic FAIL が maxAttempts に到達した同一実行内で flow-findings.json を作成または更新し、test-review を deferred 完了として次工程へ進めることに限定してよいですか。semantic FAIL は、TOOLING_FAILURE ではない review FAIL を指します。",
+      "answer": "must: この bugfix の goal は、semantic FAIL の maxAttempts 到達時に同一実行内で deferred carryover を保証し、test-review を deferred 完了として次工程へ進めることに限定する。",
+      "evidence": "Issue #405 Expected Fix 1, 2, 4 and Acceptance Criteria state that flow-findings.json is generated without additional manual agent work and test-review does not remain in_progress.",
+      "why": "Issue #405 は get-status / get-next-action の表示改善ではなく、run review --phase test の post-hook / state transition 側で状態を保証することを primary guarantee としている。",
+      "considered": "追加 review 実行時の pre-check だけで deferral する案は、Issue #405 の問題である同一実行内の保証不足を解決しないため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "must: still_open の deferred findings は acceptance-review で user_decision_required として扱い、明示的な blocking disposition がある場合だけ blocked として扱う方針でよいですか。user_decision_required は、人間の最終判断が必要な状態を表します。",
+      "answer": "must: still_open は acceptance-review でユーザー判断が必要な未解決状態として扱い、blocking disposition が明示されている場合は blocked として扱う。",
+      "evidence": "Issue #405 Current Behavior says acceptance-review already treats still_open as amend_required and blocking as blocked. Expected Fix 6 allows unresolved deferred findings to be user_decision_required or an explicit blocker.",
+      "why": "still_open は最終 disposition を downstream acceptance-review に委譲するための初期状態であり、即時 blocking と同一視するとユーザー判断委譲の目的が失われる。",
+      "considered": "still_open を常に blocked とする案は、Issue #405 の final disposition delegation と合わないため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "must: status / next-action の受け入れ条件は、新しい表示文言の追加ではなく、test-review が in_progress に残らず implement 以降へ進める機械状態を検証対象にしてよいですか。",
+      "answer": "must: status / next-action の受け入れ条件は、test-review が in_progress に残らず、get next-action が implement 以降を返せる機械状態を検証対象にする。",
+      "evidence": "Issue #405 Acceptance Criteria require status to show a state that can proceed and next-action to return implement or a later step. Implementation Approach says get-next-action guidance may improve if needed, but state guarantee belongs to run review post-hook.",
+      "why": "この spec の主目的は状態遷移保証であり、表示文言追加は必要な場合の副次対応に留めるのが scope を狭く保てる。",
+      "considered": "新しい deferred wording を必須表示要件にする案は、Issue #405 の acceptance criteria に明示されておらず、表示変更がなくても機械状態で検証できるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "must: 同じ sourceFindingId がすでに flow-findings.json に存在する場合は、重複 entry を増やさず既存 entry を維持または更新する要件にしてよいですか。sourceFindingId は review artifact 内の finding を識別する値です。",
+      "answer": "must: 同じ sourceFindingId と source artifact の deferred entry が既に存在する場合は、重複 entry を増やさず既存 entry の維持または更新で扱う。",
+      "evidence": "Issue #405 Implementation Approach explicitly says to pay attention to duplicate records and ordering of metrics appends.",
+      "why": "重複 entry が増えると acceptance-review の deferredFindings に同一 finding が複数反映され、ユーザー判断や blocker 集計が不安定になる。",
+      "considered": "毎回 append する案は実装が単純だが、Issue #405 の duplicate records への注意と downstream recognition の安定性に反するため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-19T04:52:17Z",
+    "notes": "Auto mode accepted the issue-derived draft decisions; draft coverage review found no blocking user decision."
+  }
+}

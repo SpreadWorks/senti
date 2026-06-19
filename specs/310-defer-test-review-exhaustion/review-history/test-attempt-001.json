@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-19T05:03:00.645Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "advisory": 1,
+    "total": 3
+  },
+  "coverageArtifact": "specs/310-defer-test-review-exhaustion/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R2 missing findingId assertion",
+      "target": "specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js and specs/310-defer-test-review-exhaustion/tests/test-review-posthook-deferral.test.js",
+      "issue": "R2 requires deferred entries to include a findingId, but the tests only assert sourceStep, sourceArtifact, sourceFindingId, retryExhausted, attempts, round, completionKind, and finalDisposition. An implementation could omit entry.findingId entirely and still satisfy these tests.",
+      "requiredChange": "Add a spec-local R2 assertion that each deferred entry has a non-empty findingId distinct from or otherwise valid alongside sourceFindingId.",
+      "whyBlocking": "This is a must requirement with no executable coverage for one required field in the persisted deferred entry.",
+      "origin": "R2",
+      "failureKind": "missing_acceptance_requirement"
+    },
+    {
+      "kind": "blocking",
+      "title": "R8 does not cover blocked or user-decision acceptance outcomes",
+      "target": "specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js and specs/310-defer-test-review-exhaustion/tests/test-review-posthook-deferral.test.js",
+      "issue": "R8 requires acceptance-review to recognize deferred findings such that still_open may produce amend_required, blocking findings produce blocked, and explicit user-decision state produces user_decision_required with nextAction=user_decision and targetStep=implement. The tests only cover still_open deferred findings and amend_required recognition.",
+      "requiredChange": "Add R8 coverage for a blocking deferred finding producing blocked and an explicit user-decision deferred state producing user_decision_required with nextAction=user_decision and targetStep=implement.",
+      "whyBlocking": "Two required R8 behavioral branches have no corresponding spec-local tests, so implementation could ignore blocking and user-decision deferred states while passing the suite.",
+      "origin": "R8",
+      "failureKind": "missing_acceptance_requirement"
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Duplicate post-hook suites",
+      "target": "specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js and specs/310-defer-test-review-exhaustion/tests/test-review-posthook-deferral.test.js",
+      "improvement": "Consider consolidating the overlapping post-hook deferral suites or clearly separating their scopes in names and assertions.",
+      "whyNonBlocking": "Both suites are executable and provide useful coverage, but much of the same behavior is asserted twice from similar fixtures."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/310-defer-test-review-exhaustion/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "e6e57d6853e385ad9b62f4a397190466f72b0f8e2ae2f3702bae897adbb985fc"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "test-001-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R2 missing findingId assertion",
+      "body": "R2 requires deferred entries to include a findingId, but the tests only assert sourceStep, sourceArtifact, sourceFindingId, retryExhausted, attempts, round, completionKind, and finalDisposition. An implementation could omit entry.findingId entirely and still satisfy these tests.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R8 does not cover blocked or user-decision acceptance outcomes",
+      "body": "R8 requires acceptance-review to recognize deferred findings such that still_open may produce amend_required, blocking findings produce blocked, and explicit user-decision state produces user_decision_required with nextAction=user_decision and targetStep=implement. The tests only cover still_open deferred findings and amend_required recognition.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-non-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "Duplicate post-hook suites",
+      "body": "Duplicate post-hook suites",
+      "category": "unknown"
+    }
+  ]
+}

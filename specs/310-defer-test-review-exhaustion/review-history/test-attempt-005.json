@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-19T05:07:59.499Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 3,
+    "advisory": 1,
+    "total": 4
+  },
+  "coverageArtifact": "specs/310-defer-test-review-exhaustion/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R3 does not exercise persisted status or next-action progression",
+      "target": "specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js test \"R3: semantic deferral marks test-review complete through the flow manager\"",
+      "issue": "The test uses a fake flowManager and only asserts the in-memory updateStepStatus call. It does not exercise the existing done traversal model through persisted flow state, get status, or get next-action, so it could pass while production status still leaves test-review in_progress or next-action remains stuck before implement.",
+      "requiredChange": "Change the R3 test to use the real flow manager/status traversal surface and assert that get status no longer reports test-review in_progress and get next-action returns implement or a later valid step after final semantic deferral.",
+      "whyBlocking": "R3 explicitly requires observable status and next-action progression after deferred completion; the current test has no corresponding spec-local coverage for that production behavior.",
+      "origin": "R3",
+      "failureKind": "missing_requirement_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R4 shared deferral behavior is not actually covered",
+      "target": "specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js test \"R4: post-hook deferral shares the same source artifact and finding id as pre-check deferral\"",
+      "issue": "The test only runs the post-hook path and checks sourceArtifact/sourceFindingId constants. It never exercises the pre-check deferral path or compares exclusion and step-completion behavior between pre-check and post-hook carryover.",
+      "requiredChange": "Add focused R4 coverage that exercises both pre-check deferral and final FAIL post-hook deferral for the same semantic finding, then asserts matching source artifact, finding id, exclusion behavior, and step-completion behavior.",
+      "whyBlocking": "R4 requires shared or equivalent behavior across pre-check and post-hook carryover; the current test could pass with a divergent post-hook-only implementation.",
+      "origin": "R4",
+      "failureKind": "insufficient_requirement_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R5 lacks structured coverage/header failure exclusion coverage",
+      "target": "specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js test \"R5: tooling and structured coverage failures stay outside semantic carryover while semantic failures still defer\"",
+      "issue": "The test covers TOOLING_FAILURE exclusion but does not create a structured test-review coverage/header failure, despite the test name and R5 requirement covering that branch.",
+      "requiredChange": "Add a structured coverage/header failure case, such as a failing test-coverage.json validation or a blocking finding with origin/failureKind identifying coverage/header failure, and assert it does not create a deferred flow finding.",
+      "whyBlocking": "R5 requires structured coverage/header failures to remain excluded from semantic deferred carryover; that required branch has no executable spec-local test coverage.",
+      "origin": "R5",
+      "failureKind": "missing_requirement_coverage"
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R9 manual retry reset behavior is only indirectly checked",
+      "target": "specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js test \"R9: post-hook carryover preserves reviewRetry evidence for manual retry reset workflows\"",
+      "improvement": "Strengthen R9 by invoking or referencing the existing manual review retry reset command/helper and asserting it can still clear reviewRetry state after post-hook carryover.",
+      "whyNonBlocking": "R9 is a should requirement, and the current test at least preserves retry evidence; direct reset coverage would improve confidence without blocking implementation."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/310-defer-test-review-exhaustion/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "c51e9dcad5321a4a55a928bd1f87625c81ea6678e96d3baf173d43de2cd013fc"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 5,
+  "findings": [
+    {
+      "id": "test-005-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "R3 does not exercise persisted status or next-action progression",
+      "body": "The test uses a fake flowManager and only asserts the in-memory updateStepStatus call. It does not exercise the existing done traversal model through persisted flow state, get status, or get next-action, so it could pass while production status still leaves test-review in_progress or next-action remains stuck before implement.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-005-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "R4 shared deferral behavior is not actually covered",
+      "body": "The test only runs the post-hook path and checks sourceArtifact/sourceFindingId constants. It never exercises the pre-check deferral path or compares exclusion and step-completion behavior between pre-check and post-hook carryover.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-005-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "R5 lacks structured coverage/header failure exclusion coverage",
+      "body": "The test covers TOOLING_FAILURE exclusion but does not create a structured test-review coverage/header failure, despite the test name and R5 requirement covering that branch.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-005-non-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "non-blocking",
+      "title": "R9 manual retry reset behavior is only indirectly checked",
+      "body": "R9 manual retry reset behavior is only indirectly checked",
+      "category": "unknown"
+    }
+  ]
+}

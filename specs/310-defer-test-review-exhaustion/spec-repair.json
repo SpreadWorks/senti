@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Specified routing fields for explicit user-decision deferred finding handling while preserving source-verified still_open behavior.",
+  "items": [
+    {
+      "title": "Specify acceptance-review routing fields for user-decision deferred findings",
+      "target": "R7 / Acceptance Criteria: acceptance-review verdict for still_open deferred findings",
+      "decision": "applied",
+      "rationale": "The current spec already preserves source-verified still_open as amend_required, so the repair specifies the required nextAction and targetStep for the explicit user-decision state mentioned by R8.",
+      "evidence": "spec.json requirements[7].desc, acceptance_criteria[7], and tasks[3].acceptance[2] now specify nextAction=user_decision and targetStep=implement for user_decision_required.",
+      "changedFields": [
+        "requirements[7].desc",
+        "acceptance_criteria[7]",
+        "tasks[3].acceptance[2]"
+      ]
+    }
+  ]
+}

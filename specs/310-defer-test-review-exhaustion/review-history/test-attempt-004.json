@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-19T05:06:29.976Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/310-defer-test-review-exhaustion/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Structured coverage/header exclusion is not tested",
+      "target": "specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js R5",
+      "issue": "R5 requires structured test-review coverage/header failures to remain excluded from semantic deferred carryover, but the test only exercises TOOLING_FAILURE exclusion plus a semantic control finding.",
+      "requiredChange": "Add a spec-local R5 test or extend the existing R5 test to create a structured coverage/header failure artifact and assert it does not create a deferred flow finding.",
+      "whyBlocking": "The coverage artifact marks R5 covered, but a required behavior branch has no executable coverage.",
+      "origin": "R5",
+      "failureKind": "missing_requirement_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "Shared semantic deferral behavior is not actually covered",
+      "target": "specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js R4",
+      "issue": "The R4 test only checks post-hook sourceArtifact and sourceFindingId values; it does not exercise the pre-check deferral path or compare exclusion and step-completion behavior between pre-check and post-hook carryover.",
+      "requiredChange": "Add focused R4 coverage that exercises both pre-check and post-hook semantic deferral paths, or otherwise proves the shared helper behavior for source artifact, finding id, exclusion, and step completion.",
+      "whyBlocking": "R4 explicitly requires shared or equivalent behavior across paths, and the current test could pass with duplicated post-hook-only constants while the paths diverge.",
+      "origin": "R4",
+      "failureKind": "insufficient_requirement_coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/310-defer-test-review-exhaustion/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "946a0eb7068591bfc13648af09b0ea2583045d8777352ccc4503820c953a7614"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "test-004-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Structured coverage/header exclusion is not tested",
+      "body": "R5 requires structured test-review coverage/header failures to remain excluded from semantic deferred carryover, but the test only exercises TOOLING_FAILURE exclusion plus a semantic control finding.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-004-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Shared semantic deferral behavior is not actually covered",
+      "body": "The R4 test only checks post-hook sourceArtifact and sourceFindingId values; it does not exercise the pre-check deferral path or compare exclusion and step-completion behavior between pre-check and post-hook carryover.",
+      "category": "unknown"
+    }
+  ]
+}

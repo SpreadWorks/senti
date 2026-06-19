@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-06-19T03:34:30.415Z",
+  "analyzedAt": "2026-06-19T04:47:04.487Z",
   "package": {
     "entries": [
       {
@@ -2439,9 +2439,9 @@
       },
       {
         "file": "src/flow.js",
-        "hash": "47e42c62281caeb9a4beab1e3f83c4c7",
+        "hash": "020cdba7fb184f594f0edf15201e4cb3",
         "lines": 105,
-        "mtime": "2026-06-09T08:02:50.452Z",
+        "mtime": "2026-06-19T04:47:00.494Z",
         "className": "flow",
         "methods": [
           "run",
@@ -2457,23 +2457,7 @@
         "exports": [],
         "extends": null,
         "usedBy": null,
-        "id": "1ab08f2b",
-        "enrich": {
-          "processedAt": "2026-06-11T02:27:40.580Z",
-          "attempts": 3
-        },
-        "summary": "This is the entry module for the `flow` command group and its subcommand dispatcher. It parses top-level arguments, resolves the execution context, and forwards control to registered flow commands.",
-        "detail": "The module initializes the shared container, constructs a flow-specific context, and invokes the generic dispatcher with the appropriate envelope metadata. It supports grouped commands such as `resume` and `prepare-spec` with dedicated routing, while falling back to registry-based lookup for other commands. Exit behavior is explicit, using success and error codes rather than relying on uncaught control flow. The structure mirrors the broader multi-layer CLI architecture used throughout the project.",
-        "chapter": "cli_commands",
-        "role": "flow CLI entrypoint",
-        "keywords": [
-          "flow CLI",
-          "command dispatcher",
-          "subcommand routing",
-          "process exit codes",
-          "command registry",
-          "execution context"
-        ]
+        "id": "1ab08f2b"
       },
       {
         "file": "src/flow/commands/merge.js",
@@ -3237,9 +3221,9 @@
       },
       {
         "file": "src/flow/lib/base-command.js",
-        "hash": "84a9394e088fd9a1eacbc59358d75508",
+        "hash": "091787f1414e7ba58c3c86f272e3d3c7",
         "lines": 72,
-        "mtime": "2026-06-19T03:34:14.327Z",
+        "mtime": "2026-06-19T04:47:00.496Z",
         "className": "base-command",
         "methods": [
           "FlowCommand"
@@ -3304,22 +3288,7 @@
           "src/flow/lib/set-summary.js",
           "src/lib/dispatcher.js"
         ],
-        "id": "83f60bd3",
-        "summary": "Provides the base class for flow-aware commands. It resolves flow context before execution and enforces subclass implementation.",
-        "detail": "The class extends the generic command abstraction and adds flow-specific setup through `resolveFlowContext`. It throws immediately when no active flow can be found, which keeps downstream commands from running without state. Once context is prepared, it delegates to an `execute` method that subclasses must implement. The module also re-exports explicit task option resolution so flow commands can share consistent option handling.",
-        "chapter": "project_structure",
-        "role": "Base class for flow-aware commands",
-        "enrich": {
-          "processedAt": "2026-06-19T03:35:18.335Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "base command",
-          "flow context",
-          "command abstraction",
-          "flow.json guard",
-          "shared CLI infrastructure"
-        ]
+        "id": "83f60bd3"
       },
       {
         "file": "src/flow/lib/check-tasks-monotonic.js",
@@ -3506,9 +3475,9 @@
       },
       {
         "file": "src/flow/lib/flow-context.js",
-        "hash": "36a91ed92fafa25e8bf951917b1c688d",
-        "lines": 72,
-        "mtime": "2026-06-19T03:34:14.327Z",
+        "hash": "7aeaac20f8c2d810714a9b1cf94fe4bb",
+        "lines": 84,
+        "mtime": "2026-06-19T04:47:00.497Z",
         "className": "flow-context",
         "methods": [
           "resolveFlowContext",
@@ -3530,23 +3499,7 @@
           "src/flow.js",
           "src/flow/lib/base-command.js"
         ],
-        "id": "e296da98",
-        "summary": "Resolves the active flow context and authoritative flow state for flow commands. It chooses between current-directory state and main-repository state when both may exist.",
-        "detail": "The resolver inspects the current paths and flow manager, then determines whether an active flow exists in the local working area or in the main repository. It uses spec identifiers and the flow state file to locate the correct owning root for the current task. When a matching authoritative state is found, it returns the selected flow manager, state object, and authority root. The exported context object also includes the container, resolved root, and path metadata needed by higher-level flow commands.",
-        "chapter": "internal_design",
-        "role": "Flow context resolver",
-        "enrich": {
-          "processedAt": "2026-06-19T03:35:18.335Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "flow context",
-          "state resolution",
-          "authority root",
-          "flow manager",
-          "spec state",
-          "workspace routing"
-        ]
+        "id": "e296da98"
       },
       {
         "file": "src/flow/lib/flow-findings.js",
