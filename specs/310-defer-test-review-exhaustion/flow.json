@@ -414,27 +414,37 @@
             },
             {
               "id": "finalize-merge",
-              "status": "in_progress",
+              "status": "done",
               "startedAt": "2026-06-19T05:26:12.343Z",
               "runtimeLog": {
                 "runId": "7d002f57-970e-414b-aabe-51457924c96e",
-                "sequence": 191,
+                "sequence": 3,
                 "attempt": 1,
                 "command": "flow run finalize-merge",
-                "startedAt": "2026-06-19T05:28:02.004Z",
-                "endedAt": "2026-06-19T05:28:04.327Z",
-                "exitCode": 1
-              }
+                "startedAt": "2026-06-19T05:32:15.842Z",
+                "endedAt": "2026-06-19T05:32:18.171Z",
+                "exitCode": 0
+              },
+              "finishedAt": "2026-06-19T05:33:57.066Z"
             },
             {
               "id": "finalize-sync",
-              "status": "pending",
-              "finishedAt": "2026-06-19T05:28:04.314Z"
+              "status": "done",
+              "finishedAt": "2026-06-19T05:32:26.482Z",
+              "runtimeLog": {
+                "runId": "7d002f57-970e-414b-aabe-51457924c96e",
+                "sequence": 2,
+                "attempt": 1,
+                "command": "flow run finalize-sync",
+                "startedAt": "2026-06-19T05:31:05.679Z",
+                "endedAt": "2026-06-19T05:32:26.485Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-cleanup",
-              "status": "pending",
-              "finishedAt": "2026-06-19T05:28:04.323Z"
+              "status": "done",
+              "finishedAt": "2026-06-19T05:45:16.330Z"
             }
           ]
         }
@@ -474,15 +484,6 @@
   "worktree": true,
   "plugins": {
     "flowCommandHooks": [
-      {
-        "apiVersion": 1,
-        "pluginId": "workflow",
-        "module": "hooks/finalize-cleanup.js",
-        "className": "WorkflowFinalizeCleanupHook",
-        "command": "finalize-cleanup",
-        "hook": "post",
-        "priority": 0
-      },
       {
         "apiVersion": 1,
         "pluginId": "workflow",
@@ -1331,6 +1332,8 @@
     "updatedAt": "2026-06-19T05:22:35.154Z"
   },
   "state": {
-    "finalizedAt": "2026-06-19T05:26:12.166Z"
+    "finalizedAt": "2026-06-19T05:26:12.166Z",
+    "mergeStrategy": "squash",
+    "featureBranchSquashedSha": "54c4594a1e4e1a93b41f55aaf20548ea383be6a6"
   }
 }
