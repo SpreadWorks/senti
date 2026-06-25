@@ -1,12 +1,12 @@
 {
-  "analyzedAt": "2026-06-19T15:27:35.208Z",
+  "analyzedAt": "2026-06-25T14:58:48.740Z",
   "package": {
     "entries": [
       {
         "file": "package.json",
-        "hash": "d5bd239a20db9150a83fa246a53a29a5",
+        "hash": "4d5a228db9547822224f4fc14954f9d0",
         "lines": 41,
-        "mtime": "2026-06-15T03:11:49.950Z",
+        "mtime": "2026-06-25T07:54:09.465Z",
         "packageDeps": {
           "dependencies": {},
           "devDependencies": {}
@@ -23,23 +23,23 @@
         "composerScripts": null,
         "makefileTest": null,
         "id": "451a9f25",
-        "summary": "Defines the Senti package as an ESM-based CLI tool and library entry point. It also declares runtime requirements, publish scope, and test commands.",
-        "detail": "The manifest identifies the project as `@spreadworks/senti`, a spec-driven development tool focused on automated documentation generation. It exposes `src/senti.js` both as the `senti` executable and the package export, which makes the same module serve CLI and import use cases. The package is published with only the `src/` tree while explicitly excluding preset test fixtures from the package payload. It requires Node.js 18.19.0 or newer, pins `pnpm` as the package manager, and defines multiple test scopes for unit, end-to-end, acceptance, agent, and full test runs.",
+        "summary": "This package manifest defines Senti as an ESM-based Node.js CLI for spec-driven documentation tooling. It exposes a single `senti` entry point, packages the `src/` tree, and defines test scripts for multiple scopes.",
+        "detail": "The manifest declares `@spreadworks/senti` as a module package and maps both `bin` and `exports` to `src/senti.js`, indicating one primary runtime entry. It restricts distributable files to the source directory while excluding preset test fixtures from published output. The engine requirement enforces Node.js 18.19.0 or newer, which signals reliance on modern platform APIs. Test automation is organized through a shared runner with unit, end-to-end, acceptance, agent, and full-suite modes. Repository, license, package manager, and keyword metadata position the project as a standalone developer tool with reproducible installs.",
         "chapter": "stack_and_ops",
-        "role": "Package manifest and CLI distribution definition",
+        "role": "package manifest",
         "enrich": {
-          "processedAt": "2026-06-15T03:37:22.960Z",
+          "processedAt": "2026-06-25T14:59:18.117Z",
           "attempts": 1
         },
         "keywords": [
-          "package manifest",
           "Node.js CLI",
-          "ES module",
-          "npm package",
-          "pnpm",
-          "runtime requirements",
+          "package manifest",
+          "ES modules",
+          "spec-driven development",
+          "documentation tooling",
           "test scripts",
-          "distribution config"
+          "npm package",
+          "command-line tool"
         ]
       }
     ],
@@ -4254,9 +4254,9 @@
       },
       {
         "file": "src/flow/lib/get-status.js",
-        "hash": "de6bdfdc4a315990ba7d7cc0253e4705",
-        "lines": 343,
-        "mtime": "2026-06-19T09:54:43.010Z",
+        "hash": "1fbf928ec5ccbf228d9d4841efea74a9",
+        "lines": 348,
+        "mtime": "2026-06-25T07:28:34.300Z",
         "className": "get-status",
         "methods": [
           "buildMetricsSummary",
@@ -4305,23 +4305,23 @@
           "src/flow/lib/get-qa-count.js"
         ],
         "id": "9aca938f",
-        "summary": "Builds the status view for a flow run, including metrics, retry context, gate and review recovery state, and final regression information. It powers the status command by turning raw state and artifacts into a normalized response envelope.",
-        "detail": "This module aggregates agent metrics by phase and provider, then derives report totals for token usage and activity counters. It resolves the active leaf step, computes maximum attempts, and constructs specialized status subviews for review stops, gate recovery, retry recovery, and deferred findings. When a final regression result file exists, it validates the artifact and exposes a compact status block with outcome, failure classification, and next-action guidance. The exported command class validates run identifiers, detects target mismatches, and returns consistent success or failure envelopes for callers.",
+        "summary": "This module builds detailed flow status responses for active or completed runs. It aggregates metrics, validates run identifiers, and composes review, retry, gate, and regression views into a single status payload.",
+        "detail": "The file combines persisted flow state with helper utilities that derive phases, flatten step trees, resolve attempt limits, and normalize agent metric dimensions. It summarizes token usage and activity counters by folding metric entries into structured buckets, then converts those into report totals for display. Additional helpers assemble specialized status sections such as review-stop context, retry recovery guidance, gate recovery display, bounded broad-mode history, findings summaries, and final regression results loaded from disk. The command class wraps this logic behind a `FlowCommand` interface, returning success payloads when the run matches the requested target and structured envelope failures for argument errors or missing runs. It also detects target mismatches and emits typed envelope responses instead of raw exceptions for command-facing error handling.",
         "chapter": "internal_design",
-        "role": "Flow status aggregation and command output",
+        "role": "flow status command",
         "enrich": {
-          "processedAt": "2026-06-19T09:55:27.218Z",
+          "processedAt": "2026-06-25T14:59:18.117Z",
           "attempts": 1
         },
         "keywords": [
-          "status command",
+          "flow status",
+          "run state",
           "metrics summary",
-          "token counters",
           "retry recovery",
-          "gate status",
-          "review status",
-          "final regression status",
-          "flow envelope"
+          "review stop",
+          "gate recovery",
+          "regression result",
+          "command envelope"
         ]
       },
       {
@@ -6069,14 +6069,20 @@
       },
       {
         "file": "src/flow/lib/run-resume.js",
-        "hash": "0c083226ac0c81e8429bee5a8a7f72d3",
-        "lines": 28,
-        "mtime": "2026-05-06T14:00:46.636Z",
+        "hash": "75323489a570164612681240c0177342",
+        "lines": 109,
+        "mtime": "2026-06-25T14:58:35.911Z",
         "className": "run-resume",
-        "methods": [],
+        "methods": [
+          "tryBuildActiveContext",
+          "buildContinuationGuidance",
+          "selectedPayload"
+        ],
         "imports": [
           "./base-command.js",
-          "./resolve-context-envelope.js"
+          "./resolve-context-envelope.js",
+          "../../lib/flow-envelope.js",
+          "../../lib/flow-helpers.js"
         ],
         "exports": [
           "default"
@@ -6084,21 +6090,22 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "abe5ac21",
-        "summary": "Implements the run resume command returning the resolved flow context envelope to drive skill re-entry after compaction.",
-        "detail": "RunResumeCommand is a thin wrapper around buildResolvedFlowContext that returns the same envelope used by status/resume consumers. Inheriting from FlowCommand provides the standard envelope contract. The command lets the flow-resume skill restore branch, worktree, spec, requirement, and step context after a context compaction event without re-deriving from scratch.",
-        "chapter": "internal_design",
-        "role": "flow-command",
+        "summary": "This command module prepares resume information for an interrupted or resumable flow run. It builds continuation guidance and returns a filtered payload describing the candidate context selected for resumption.",
+        "detail": "The implementation centers on small helpers that attempt to materialize an active context, derive user-facing continuation guidance, and shape the selected candidate into a stable response object. It uses `buildResolvedFlowContext` to enrich raw context data and falls back safely when resolution fails. The command class extends `FlowCommand` and returns `Envelope.fail` responses for invalid resume conditions rather than throwing uncontrolled errors. Successful responses include structured fields that describe what can continue and how it should be resumed. The use of `specIdFromPath` suggests the command also normalizes spec identity from filesystem-oriented flow data before packaging the result.",
+        "chapter": "cli_commands",
+        "role": "flow resume command",
         "enrich": {
-          "processedAt": "2026-05-07T00:18:30.711Z",
+          "processedAt": "2026-06-25T14:59:18.117Z",
           "attempts": 1
         },
         "keywords": [
-          "run-resume",
-          "flow resume",
-          "context envelope",
-          "buildResolvedFlowContext",
-          "compaction recovery",
-          "skill re-entry"
+          "resume flow",
+          "continuation guidance",
+          "active context",
+          "flow command",
+          "envelope error",
+          "spec selection",
+          "run recovery"
         ]
       },
       {
@@ -8831,12 +8838,16 @@
       },
       {
         "file": "src/lib/flow-manager.js",
-        "hash": "d2918d6e4386bad5ad6488b471f2301d",
-        "lines": 422,
-        "mtime": "2026-06-19T03:34:14.328Z",
+        "hash": "875cb49efe738af69528606cfb5d3391",
+        "lines": 531,
+        "mtime": "2026-06-25T14:58:35.911Z",
         "className": "flow-manager",
         "methods": [
-          "FlowManager"
+          "FlowScanEntry",
+          "FlowScanResult",
+          "RecoveryFlowCandidate",
+          "FlowManager",
+          "recoveryCandidateRank"
         ],
         "imports": [
           "fs",
@@ -8851,6 +8862,9 @@
           "../flow/lib/step-tree.js"
         ],
         "exports": [
+          "FlowScanEntry",
+          "FlowScanResult",
+          "RecoveryFlowCandidate",
           "FlowManager"
         ],
         "extends": null,
@@ -8858,23 +8872,23 @@
           "src/lib/container.js"
         ],
         "id": "3d2ed4c0",
-        "summary": "Provides the central manager for reading, updating, scanning, and resolving flow state across the main repository and worktrees. It acts as the orchestration layer above flow stores, registries, and preparation state.",
-        "detail": "The class delegates most mutations to underlying store objects, including step status updates, runtime log attachment, task completion, metrics aggregation, and merge outcomes, while automatically applying a bound spec identifier when present. It exposes helpers to inspect the current task and active step from loaded state, and to resolve inputs for preparing flows. For discovery, it scans `specs` directories in the main root and in worktrees, reads `flow.json` state files, handles malformed JSON defensively, and enforces scan limits to avoid unbounded traversal. It also tracks the last finalized spec, validates active-flow selections, and probes expected worktree locations when reconstructing flow context.",
+        "summary": "This module manages persisted flow state, active-flow discovery, and recovery candidate selection across the main workspace and feature worktrees. It acts as the central orchestration layer over flow storage, preparation state, and scan-based recovery logic.",
+        "detail": "`FlowManager` delegates most direct state mutations to `FlowStore`, including step status changes, runtime logs, merge outcomes, task completion, and metric accumulation, while applying bound spec defaults when needed. It also coordinates with `PreparingFlowStore` and `ActiveFlowRegistry` to resolve pending inputs and track active flow ownership. The scanning logic walks `specs/*/flow.json` in the main root and worktree locations, parses persisted state, deduplicates entries, and caps results with explicit scan limits to avoid unbounded traversal. Recovery helpers rank candidates, determine whether a flow is stale or orphaned, and resolve the most appropriate workspace path for reopening or continuing work. The surrounding data classes encapsulate scan entries, scan results, and recovery candidates so higher-level commands can consume structured flow metadata instead of raw filesystem reads.",
         "chapter": "internal_design",
-        "role": "Flow state orchestration and repository/worktree resolver",
+        "role": "flow state manager",
         "enrich": {
-          "processedAt": "2026-06-19T03:35:39.982Z",
+          "processedAt": "2026-06-25T14:59:18.117Z",
           "attempts": 1
         },
         "keywords": [
           "flow manager",
-          "state store",
-          "worktree",
-          "active flow",
-          "flow scan",
-          "task tracking",
-          "spec resolution",
-          "runtime metrics"
+          "state persistence",
+          "worktree scan",
+          "recovery candidate",
+          "active flow registry",
+          "flow store",
+          "spec state",
+          "workspace recovery"
         ]
       },
       {
@@ -11490,9 +11504,9 @@
     ],
     "summary": {
       "total": 214,
-      "totalMethods": 1990
+      "totalMethods": 1997
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-19T15:28:03.168Z"
+  "enrichedAt": "2026-06-25T14:59:18.117Z"
 }
