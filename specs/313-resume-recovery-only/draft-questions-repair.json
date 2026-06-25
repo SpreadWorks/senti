@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Rewrote all 5 pending QA questions to remove embedded recommendations, rationale, definitions, and command instructions while preserving the decision topic.",
+  "items": [
+    {
+      "title": "1. q1 includes a recommended answer and rationale",
+      "target": "q1",
+      "rationale": "Removed the recommendation prefix and explanatory definition, leaving only the decision about whether `resume --spec` selects discovery candidates.",
+      "evidence": "draft.json qa[0].question is now a direct question about `resume --spec <specId>` selection behavior.",
+      "changedFieldPaths": [
+        "qa[0].question"
+      ]
+    },
+    {
+      "title": "2. q2 includes a recommended answer and rationale",
+      "target": "q2",
+      "rationale": "Removed the recommendation prefix and guarded-continuation explanation, leaving only the target identity priority question.",
+      "evidence": "draft.json qa[1].question is now a direct question about `runId` versus `spec` plus `worktreePath` identity.",
+      "changedFieldPaths": [
+        "qa[1].question"
+      ]
+    },
+    {
+      "title": "3. q3 includes a recommended answer and rationale",
+      "target": "q3",
+      "rationale": "Removed the recommendation prefix and finalized-flow definition, leaving only the finalized-flow continuation behavior question.",
+      "evidence": "draft.json qa[2].question is now a direct question about blocking continuation for finalized flows.",
+      "changedFieldPaths": [
+        "qa[2].question"
+      ]
+    },
+    {
+      "title": "4. q4 includes a recommended answer and instruction",
+      "target": "q4",
+      "rationale": "Removed the recommendation prefix and concrete command example, leaving only the skill-guidance behavior question.",
+      "evidence": "draft.json qa[3].question is now a direct question about target-guarded confirmation guidance.",
+      "changedFieldPaths": [
+        "qa[3].question"
+      ]
+    },
+    {
+      "title": "5. q5 includes a recommended acceptance plan",
+      "target": "q5",
+      "rationale": "Removed the proposed acceptance plan, leaving only the e2e worktree recovery coverage decision.",
+      "evidence": "draft.json qa[4].question is now a direct question about adding e2e worktree recovery coverage.",
+      "changedFieldPaths": [
+        "qa[4].question"
+      ]
+    }
+  ]
+}

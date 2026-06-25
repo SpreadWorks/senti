@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-25T14:48:30.216Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "title": "Orphan worktree candidates can be hidden by stale main entries",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/lib/flow-manager.js",
+      "requirementId": "R3",
+      "issue": "`_scanAllFlowsResult()` uses a single `seen` set keyed only by `specId` across main-root, worktree, and branch discovery. Because the main-root scan runs first and adds `seen` for every `specs/<id>` entry even when it is stale or has no usable execution root, a matching worktree candidate with the same spec id is skipped before `_recoveryStateFor()` can classify it as `orphan-worktree`.",
+      "suggestion": "In `_scanAllFlowsResult()`, do not let a main-root `specId` suppress worktree discovery for the same spec. Track discovery identity by location plus spec id, or prefer continuable worktree entries over display-only main entries when building recovery candidates.",
+      "rationale": "Resume recovery must surface continuable orphan worktrees. Hiding the worktree candidate behind a stale main entry prevents recovery from proceeding even though the required run state and execution root may exist in the worktree."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/313-resume-recovery-only/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "22fe5f179b88e8192fe1bb3d901dc171b3c3b7a9df7ac668c26f1b9eb6bc6807"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "impl-002-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Orphan worktree candidates can be hidden by stale main entries",
+      "body": "`_scanAllFlowsResult()` uses a single `seen` set keyed only by `specId` across main-root, worktree, and branch discovery. Because the main-root scan runs first and adds `seen` for every `specs/<id>` entry even when it is stale or has no usable execution root, a matching worktree candidate with the same spec id is skipped before `_recoveryStateFor()` can classify it as `orphan-worktree`.",
+      "category": "missing_acceptance_requirement"
+    }
+  ]
+}

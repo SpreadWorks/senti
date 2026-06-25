@@ -5,27 +5,40 @@ description: Resume Spec-Driven Development flow after context compaction. Outpu
 
 # Spec-Driven Development Flow Resume
 
-Use this skill when context has been lost (e.g. after compaction) and you need to resume an in-progress Spec-Driven Development flow.
+Use this skill when context has been lost (e.g. after compaction) and you need recovery context for an in-progress Spec-Driven Development flow.
 
 ## Procedure
 
 1. Run `senti flow resume` and read the output.
-   - If it reports "no active flow", tell the user there is no flow to resume and stop.
-   - If it reports "multiple active flows", ask the user which spec to resume and re-run with `senti flow resume --spec <specId>`.
+   - Read `data.recoveryCandidates`.
+   - If no candidates are listed, tell the user there is no recoverable flow candidate and stop.
+   - If one candidate is clearly intended and has `continuable: true`, re-run with `senti flow resume --spec <specId>`.
+   - If multiple candidates are listed, ask the user which spec to recover and re-run with `senti flow resume --spec <specId>`.
 
 2. Display the resume summary to the user in a concise format:
-   - What was being worked on (Request)
-   - Current progress (phase, step, completed steps)
-   - Key notes/decisions made so far
+   - Candidate `specId`
+   - Candidate state (`active`, `stale`, `finalized`, `orphan-worktree`, or `branch-only`)
+   - `runId` presence
+   - `execution root` / `worktreePath` presence
+   - Current progress and notes when the selected candidate envelope includes them
 
-3. Read `spec.json` (path shown in the summary) to understand full requirements. Treat `spec.md` as a generated human-readable view only.
+3. If `senti flow resume --spec <specId>` returns `ok: false`, stop safely.
+   - `RESUME_TARGET_NOT_CONTINUABLE` means the candidate is display-only.
+   - Do not continue with only spec + worktreePath when `runId` is missing.
+   - Do not continue finalized, stale, or branch-only candidates.
 
-4. Tell the user the exact step to resume from, and the skill to invoke:
-   - Mainline phases (`plan` / `impl` / `finalize`) → run `/senti.flow` (the consolidated skill inspects state and resumes from the correct step automatically).
-   - `sync` → run `/senti.flow-sync`.
+4. If the selected candidate is continuable, use the guarded continuation contract.
+   - Change to the selected `execution root` before continuing.
+   - Run `senti flow get status --expect-run-id <runId>` from that root.
+   - If status returns `ACTIVE_FLOW_MISMATCH`, stop. Do not run next-action or any flow run command.
+   - Otherwise continue dispatcher work from the same root and include `--expect-run-id <runId>` on target-aware commands such as:
+     - `senti flow get next-action --expect-run-id <runId>`
+     - `senti flow run <step> --expect-run-id <runId>`
+
+5. Read `spec.json` from the selected execution root to understand full requirements. Treat `spec.md` as a generated human-readable view only.
 
 ## Notes
 
 - This skill is read-only. It does not modify any files or state.
-- The resume command reads flow.json and spec.json to reconstruct context; draft.json may be used for draft-phase context.
-- After running this skill, the user should invoke the appropriate flow skill to continue.
+- The resume command performs recovery discovery. It does not register display-only candidates as active flows.
+- Normal continuation is valid only after `runId` and execution root are both known and the target guard passes.

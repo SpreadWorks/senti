@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "bounded-resource-usage",
+      "result": "fail",
+      "reason": "Recovery behavior introduces/retains broad flow discovery via `scanAllFlows()` but the spec defines no explicit limits on candidate count, traversal depth/size, or retry count for discovery bulk loading, leaving processing potentially unbounded.",
+      "category": "code-quality",
+      "title": "Bounded Resource Usage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec-content",
+            "locator": "requirements.R1 and overview.decisions"
+          },
+          "observed": "Recovery behavior introduces/retains broad flow discovery via `scanAllFlows()` but the spec defines no explicit limits on candidate count, traversal depth/size, or retry count for discovery bulk loading, leaving processing potentially unbounded.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "`R6` names retained public surfaces but the spec does not provide a concrete inventory of current public behavior by surface (including commands/APIs/hooks/config entries/side effects) before the migration and therefore lacks the required migration inventory step.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec-content",
+            "locator": "requirements.R6"
+          },
+          "observed": "`R6` names retained public surfaces but the spec does not provide a concrete inventory of current public behavior by surface (including commands/APIs/hooks/config entries/side effects) before the migration and therefore lacks the required migration inventory step.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "The spec asks for parity checks at a high level but does not map each retained surface to a new owner or explicit removal decision, and its listed test coverage is not one behavior-level verification per retained public surface required by the rule.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec-content",
+            "locator": "acceptance_criteria[9] and tasks.T-5.acceptance"
+          },
+          "observed": "The spec asks for parity checks at a high level but does not map each retained surface to a new owner or explicit removal decision, and its listed test coverage is not one behavior-level verification per retained public surface required by the rule.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "bounded-resource-usage",
+      "where": {
+        "file": "spec-content",
+        "locator": "requirements.R1 and overview.decisions"
+      },
+      "observed": "Recovery behavior introduces/retains broad flow discovery via `scanAllFlows()` but the spec defines no explicit limits on candidate count, traversal depth/size, or retry count for discovery bulk loading, leaving processing potentially unbounded.",
+      "severity": "blocking",
+      "refs": [
+        "bounded-resource-usage"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "spec-content",
+        "locator": "requirements.R6"
+      },
+      "observed": "`R6` names retained public surfaces but the spec does not provide a concrete inventory of current public behavior by surface (including commands/APIs/hooks/config entries/side effects) before the migration and therefore lacks the required migration inventory step.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "spec-content",
+        "locator": "acceptance_criteria[9] and tasks.T-5.acceptance"
+      },
+      "observed": "The spec asks for parity checks at a high level but does not map each retained surface to a new owner or explicit removal decision, and its listed test coverage is not one behavior-level verification per retained public surface required by the rule.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    }
+  ]
+}

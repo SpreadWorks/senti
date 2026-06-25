@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "No migration inventory is defined for existing public behavior before behavior changes; the draft does not list affected user-facing commands/APIs/hooks/config entries and side effects that are being moved/replaced.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "scopeVerification"
+          },
+          "observed": "No migration inventory is defined for existing public behavior before behavior changes; the draft does not list affected user-facing commands/APIs/hooks/config entries and side effects that are being moved/replaced.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "No mapping is provided from retained flow-management behaviors to a new owner or explicit removal decisions, despite normal continuation, discovery, and status/next-action/run command paths being affected.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "scopeVerification.in"
+          },
+          "observed": "No mapping is provided from retained flow-management behaviors to a new owner or explicit removal decisions, despite normal continuation, discovery, and status/next-action/run command paths being affected.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "No behavior-level verification is documented per retained public surface to prove parity through the new path; the draft includes intent questions but no explicit acceptance evidence for each retained surface.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "qa"
+          },
+          "observed": "No behavior-level verification is documented per retained public surface to prove parity through the new path; the draft includes intent questions but no explicit acceptance evidence for each retained surface.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "content",
+        "locator": "scopeVerification"
+      },
+      "observed": "No migration inventory is defined for existing public behavior before behavior changes; the draft does not list affected user-facing commands/APIs/hooks/config entries and side effects that are being moved/replaced.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "content",
+        "locator": "scopeVerification.in"
+      },
+      "observed": "No mapping is provided from retained flow-management behaviors to a new owner or explicit removal decisions, despite normal continuation, discovery, and status/next-action/run command paths being affected.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "content",
+        "locator": "qa"
+      },
+      "observed": "No behavior-level verification is documented per retained public surface to prove parity through the new path; the draft includes intent questions but no explicit acceptance evidence for each retained surface.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    }
+  ]
+}

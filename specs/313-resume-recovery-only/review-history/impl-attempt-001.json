@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-25T14:47:30.890Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "title": "Local stale flows are classified as branch-only",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "src/lib/flow-manager.js",
+      "requirementId": "R2",
+      "issue": "`_scanAllFlowsResult()` assigns `mode: \"branch\"` to local `specs/<id>/flow.json` files whenever `featureBranch !== baseBranch`, and `_recoveryStateFor()` then labels every such unregistered local candidate as `branch-only`. This collapses stale local candidates into the branch-only state instead of classifying stale and branch-only candidates separately.",
+      "suggestion": "Change `_recoveryStateFor()` so `branch-only` is returned only for candidates discovered from the branch traversal, for example when `entry.location` starts with `branch:`; let unregistered local candidates fall through to `stale`.",
+      "rationale": "R2 requires recovery discovery to classify stale and branch-only candidates separately. Branch-only should represent a candidate found only from `feature/*` branch discovery, while a local unregistered flow in `specs/` should remain a stale/display-only candidate."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/313-resume-recovery-only/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "91bcec0c252766b8d828801a6a86c465745f11b2127d14d12d01805fbaa0804b"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "impl-001-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Local stale flows are classified as branch-only",
+      "body": "`_scanAllFlowsResult()` assigns `mode: \"branch\"` to local `specs/<id>/flow.json` files whenever `featureBranch !== baseBranch`, and `_recoveryStateFor()` then labels every such unregistered local candidate as `branch-only`. This collapses stale local candidates into the branch-only state instead of classifying stale and branch-only candidates separately.",
+      "category": "spec_behavior_contradiction"
+    }
+  ]
+}

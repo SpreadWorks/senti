@@ -1,0 +1,237 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "No migration inventory is defined for existing public behavior before behavior changes; the draft does not list affected user-facing commands/APIs/hooks/config entries and side effects that are being moved/replaced.; No mapping is provided from retained flow-management behaviors to a new owner or explicit removal decisions, despite normal continuation, discovery, and status/next-action/run command paths being affected.; No behavior-level verification is documented per retained public surface to prove parity through the new path; the draft includes intent questions but no explicit acceptance evidence for each retained surface.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-25T09:58:21.206Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "scopeVerification"
+          },
+          "observed": "No migration inventory is defined for existing public behavior before behavior changes; the draft does not list affected user-facing commands/APIs/hooks/config entries and side effects that are being moved/replaced.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "scopeVerification.in"
+          },
+          "observed": "No mapping is provided from retained flow-management behaviors to a new owner or explicit removal decisions, despite normal continuation, discovery, and status/next-action/run command paths being affected.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "qa"
+          },
+          "observed": "No behavior-level verification is documented per retained public surface to prove parity through the new path; the draft includes intent questions but no explicit acceptance evidence for each retained surface.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "No migration inventory is defined for existing public behavior before behavior changes; the draft does not list affected user-facing commands/APIs/hooks/config entries and side effects that are being moved/replaced."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "No mapping is provided from retained flow-management behaviors to a new owner or explicit removal decisions, despite normal continuation, discovery, and status/next-action/run command paths being affected."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "No behavior-level verification is documented per retained public surface to prove parity through the new path; the draft includes intent questions but no explicit acceptance evidence for each retained surface."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate failed because migration parity inventory, owner mapping, and behavior-level verification were missing for resume recovery public surfaces",
+      "trigger": "senti flow run gate --phase draft reported three migration-parity blocking observations",
+      "resolution": "added migration inventory, retained behavior ownership mapping, and behavior-level verification requirements to draft.json",
+      "guardrailCandidate": "when changing public command behavior, draft must include migration inventory, retained behavior mapping, and behavior-level verification before gate",
+      "taskId": null,
+      "timestamp": "2026-06-25T09:58:55.953Z"
+    },
+    {
+      "step": "spec-review",
+      "reason": "spec review failed because selected runId was defined as a guard but not as a continuation loading contract, and recovery candidate selectability was ambiguous",
+      "trigger": "senti flow run review --phase spec reported two blocking findings",
+      "resolution": "specified execution-root plus runId guarded handoff and added recovery candidate selectability rules for active, orphan-worktree, stale, finalized, branch-only, and missing-runId candidates",
+      "guardrailCandidate": "when a spec selects a recovered target, define both identity verification and how later commands load the target before implementation",
+      "taskId": null,
+      "timestamp": "2026-06-25T10:06:10.005Z"
+    },
+    {
+      "step": "spec-repair",
+      "reason": "spec repair introduced malformed JSON because a comma was missing after the T-4 implementation_notes field",
+      "trigger": "node JSON.parse validation failed on specs/313-resume-recovery-only/spec.json",
+      "resolution": "added the missing comma and revalidated spec.json",
+      "guardrailCandidate": "after manual spec JSON edits, run JSON.parse before completing the repair step",
+      "taskId": null,
+      "timestamp": "2026-06-25T10:06:34.965Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Recovery behavior introduces/retains broad flow discovery via `scanAllFlows()` but the spec defines no explicit limits on candidate count, traversal depth/size, or retry count for discovery bulk loading, leaving processing potentially unbounded.; `R6` names retained public surfaces but the spec does not provide a concrete inventory of current public behavior by surface (including commands/APIs/hooks/config entries/side effects) before the migration and therefore lacks the required migration inventory step.; The spec asks for parity checks at a high level but does not map each retained surface to a new owner or explicit removal decision, and its listed test coverage is not one behavior-level verification per retained public surface required by the rule.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-25T10:07:08.736Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec-content",
+            "locator": "requirements.R1 and overview.decisions"
+          },
+          "observed": "Recovery behavior introduces/retains broad flow discovery via `scanAllFlows()` but the spec defines no explicit limits on candidate count, traversal depth/size, or retry count for discovery bulk loading, leaving processing potentially unbounded.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec-content",
+            "locator": "requirements.R6"
+          },
+          "observed": "`R6` names retained public surfaces but the spec does not provide a concrete inventory of current public behavior by surface (including commands/APIs/hooks/config entries/side effects) before the migration and therefore lacks the required migration inventory step.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec-content",
+            "locator": "acceptance_criteria[9] and tasks.T-5.acceptance"
+          },
+          "observed": "The spec asks for parity checks at a high level but does not map each retained surface to a new owner or explicit removal decision, and its listed test coverage is not one behavior-level verification per retained public surface required by the rule.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "Recovery behavior introduces/retains broad flow discovery via `scanAllFlows()` but the spec defines no explicit limits on candidate count, traversal depth/size, or retry count for discovery bulk loading, leaving processing potentially unbounded."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "`R6` names retained public surfaces but the spec does not provide a concrete inventory of current public behavior by surface (including commands/APIs/hooks/config entries/side effects) before the migration and therefore lacks the required migration inventory step."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The spec asks for parity checks at a high level but does not map each retained surface to a new owner or explicit removal decision, and its listed test coverage is not one behavior-level verification per retained public surface required by the rule."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec gate failed because recovery discovery lacked explicit resource bounds and migration parity lacked per-surface inventory, mapping, and behavior verification",
+      "trigger": "senti flow run gate reported bounded-resource-usage and migration-parity blocking observations",
+      "resolution": "added SCAN_FLOWS_LIMIT bounded discovery constraint, migration inventory/mapping decisions, per-surface behavior-level acceptance criteria, and test coverage expectations",
+      "guardrailCandidate": "specs that retain or move public command behavior must include bounded discovery constraints and one behavior-level verification per retained surface before gate",
+      "taskId": null,
+      "timestamp": "2026-06-25T10:08:16.805Z"
+    },
+    {
+      "step": "implement",
+      "reason": "Global senti upgrade deployed stale resume skill content instead of the worktree source after editing src skills",
+      "trigger": "Post-upgrade verification found .agents skill output still lacked recoveryCandidates and expect-run-id guidance",
+      "resolution": "Reran upgrade through node src/senti.js upgrade and verified .agents and .claude resume skill outputs",
+      "guardrailCandidate": "After editing skill source in a worktree, verify generated skill content and rerun upgrade with worktree source when stale",
+      "taskId": null,
+      "timestamp": "2026-06-25T14:41:42.147Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Impl review found local specs with feature branches were classified as branch-only instead of stale",
+      "trigger": "Blocking finding in impl-review for R2 recovery candidate state separation",
+      "resolution": "Changed branch-only classification to require branch traversal location and let local specs fall through to stale",
+      "guardrailCandidate": "When classifying discovery candidates, use the discovery source as well as flow metadata so local stale and branch-only states remain separate",
+      "taskId": null,
+      "timestamp": "2026-06-25T14:47:54.948Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Impl review found orphan worktree candidates could be hidden by stale main spec entries with the same spec id",
+      "trigger": "Second impl-review blocking finding for R3 recoverable worktree selection",
+      "resolution": "Allowed worktree duplicate discovery and deduplicated recovery candidates by preferring continuable candidates",
+      "guardrailCandidate": "When recovery scans multiple sources, deduplicate after classification so display-only entries do not hide continuable worktrees",
+      "taskId": null,
+      "timestamp": "2026-06-25T14:49:22.889Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "integration gate failed because upgrade-result.json was removed after downstream reset despite src skills changes",
+      "trigger": "senti flow run gate returned ARTIFACT_PLACEHOLDER with upgrade-result.json missing",
+      "resolution": "reran node src/senti.js upgrade to regenerate upgrade-result.json and removed unrelated rename migration diffs",
+      "guardrailCandidate": "Before impl-gate after skill changes, verify upgrade-result.json exists and only intended files remain changed",
+      "taskId": null,
+      "timestamp": "2026-06-25T14:51:50.206Z"
+    },
+    {
+      "step": "test-execute",
+      "reason": "Spec-local tests assumed a git main branch and expected next-action to fail when the existing no-flow contract returns a null action envelope",
+      "trigger": "test-execute raw output showed git switch main failures and R1 expected runSentiFailure for next-action without an active flow",
+      "resolution": "Updated the test fixture to rename the initial branch to main and changed R1 to assert successful next-action output does not include the stale spec",
+      "guardrailCandidate": "Spec-local tests should pin git branch fixtures and assert retained public contracts instead of assuming no-flow commands fail",
+      "taskId": null,
+      "timestamp": "2026-06-25T14:52:47.739Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "integration gate failed because spec-local test artifact still recorded R1 R2 R3 and R8 failures",
+      "trigger": "senti flow run gate returned ARTIFACT_PLACEHOLDER for failed spec-local requirement tests",
+      "resolution": "fixed invalid spec-local test fixture assumptions, reran test-execute, and reran test-result-review with pass verdict",
+      "guardrailCandidate": "After fixing test artifacts that gate rejects, record the repair and rerun test-execute plus test-result-review before gate",
+      "taskId": null,
+      "timestamp": "2026-06-25T14:53:18.267Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "integration gate failed again because rerunning test-execute removed the required upgrade-result artifact",
+      "trigger": "senti flow run gate returned upgrade-result.json missing after refreshed test artifacts",
+      "resolution": "reran node src/senti.js upgrade after test-result-review and removed unrelated rename migration diffs before gate retry",
+      "guardrailCandidate": "For skill-source changes, run upgrade after the final test-execute rerun and immediately before impl-gate",
+      "taskId": null,
+      "timestamp": "2026-06-25T14:53:58.295Z"
+    }
+  ]
+}

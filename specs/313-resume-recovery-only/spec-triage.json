@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "Both blocking findings are valid. The spec needs an explicit continuation handoff contract and a recovery candidate selectability matrix before implementation can proceed.",
+  "items": [
+    {
+      "title": "Selected runId is specified as a guard but not as a continuation resolver",
+      "target": "R3/R4/R5; src/flow/lib/flow-context.js; src/lib/flow-target-guard.js; src/flow/lib/get-status.js",
+      "decision": "apply",
+      "rationale": "The current spec requires guarded continuation by runId but does not state how next-action and run commands load the selected recovery candidate. That is a real implementation blocker.",
+      "evidence": "spec.json requirements R3-R5 mention selected runId verification, while overview data flow does not specify candidate execution root or a runId resolver."
+    },
+    {
+      "title": "Recovery candidate states do not define which runId-bearing candidates are continuable",
+      "target": "Overview Data Flow / R2 / R3 / Acceptance Criteria",
+      "decision": "apply",
+      "rationale": "The current spec distinguishes finalized and missing-runId candidates, but leaves stale, orphan-worktree, and branch-only runId-bearing candidates ambiguous.",
+      "evidence": "spec.json R2 lists candidate states and R3 says candidates with runId can be selected, while acceptance criteria only explicitly block finalized and missing-runId candidates."
+    }
+  ]
+}

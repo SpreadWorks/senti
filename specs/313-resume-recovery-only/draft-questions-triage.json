@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "All 5 repair targets are valid. Each pending QA question should be rewritten to remove recommended answers, rationale, and inline definitions while preserving the user-decision topic.",
+  "items": [
+    {
+      "title": "1. q1 includes a recommended answer and rationale",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "The pending question should ask only whether the selection surface should be `resume --spec`; recommendation and recovery-candidate definition can be captured outside the question or later discussion.",
+      "evidence": "draft.json qa[0].question starts with `推奨:` and includes an explanatory definition."
+    },
+    {
+      "title": "2. q2 includes a recommended answer and rationale",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "The pending question should ask only whether the target identity priority is acceptable; the guarded continuation explanation is rationale, not question text.",
+      "evidence": "draft.json qa[1].question starts with `推奨:` and explains `guarded continuation` inline."
+    },
+    {
+      "title": "3. q3 includes a recommended answer and rationale",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "The pending question should ask only how finalized flows are handled; recommendation and definition text should be removed from the question itself.",
+      "evidence": "draft.json qa[2].question starts with `推奨:` and defines `finalized flow` inline."
+    },
+    {
+      "title": "4. q4 includes a recommended answer and instruction",
+      "target": "q4",
+      "decision": "apply",
+      "rationale": "The pending question should ask whether guarded confirmation belongs in skill guidance without embedding the full command example as an instruction.",
+      "evidence": "draft.json qa[3].question starts with `推奨:` and contains a concrete command example."
+    },
+    {
+      "title": "5. q5 includes a recommended acceptance plan",
+      "target": "q5",
+      "decision": "apply",
+      "rationale": "The pending question should ask whether e2e worktree recovery coverage is required; the broader acceptance plan belongs in spec/test planning.",
+      "evidence": "draft.json qa[4].question starts with `推奨:` and lists a proposed acceptance-test plan."
+    }
+  ]
+}

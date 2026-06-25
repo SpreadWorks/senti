@@ -1,0 +1,59 @@
+{
+  "spec": "specs/313-resume-recovery-only/spec.json",
+  "date": "2026-06-25T14:55:14.090Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Normal active-flow resolution must remain registry-based and must not use broad `scanAllFlows()` recovery discovery when starting or continuing `/senti.flow`.",
+      "status": "done",
+      "note": "R1: normal active-flow status ignores recovery discovery candidates"
+    },
+    {
+      "desc": "`senti flow resume` must act as explicit recovery discovery and classify active, stale, finalized, orphan worktree, and branch-only candidates separately from normal active flows.",
+      "status": "done",
+      "note": "R2: resume discovery classifies recovery candidate states"
+    },
+    {
+      "desc": "`senti flow resume --spec <specId>` must select a displayed recovery candidate only when that candidate has a usable `runId` and execution root; candidates without both values must be display-only and blocked from normal continuation.",
+      "status": "done",
+      "note": "R3: resume --spec selects only candidates with runId and execution root"
+    },
+    {
+      "desc": "Continuation after resume recovery must run from the selected candidate execution root and verify the selected `runId` before status, next-action, or run command execution can proceed; a mismatched target must return `ACTIVE_FLOW_MISMATCH` before step execution.",
+      "status": "done",
+      "note": "R4: guarded continuation rejects mismatched runId before command work"
+    },
+    {
+      "desc": "`senti.flow-resume` must stop presenting unqualified `/senti.flow` re-entry and must instead show execution-root plus `runId` guarded continuation commands when both values exist, or safe-stop instructions when either value is missing.",
+      "status": "done",
+      "note": "R5: resume output provides execution-root guarded guidance or safe-stop guidance"
+    },
+    {
+      "desc": "Migration parity must be verified for retained public surfaces: resume discovery, resume selection, normal active-flow status, target-aware status, next-action, run continuation, resolve-context, active-flow registry, and skill guidance.",
+      "status": "done",
+      "note": "R6: recovery discovery does not register display-only candidates as active flows"
+    },
+    {
+      "desc": "At least one e2e worktree recovery case must verify real git-worktree discovery and separation from normal active-flow resolution.",
+      "status": "done",
+      "note": "R7: worktree recovery candidate is selectable from its execution root"
+    },
+    {
+      "desc": "Recovery discovery must keep bounded resource usage by preserving the `SCAN_FLOWS_LIMIT` candidate cap and limiting traversal to local specs, registered git worktrees, and `feature/*` branches.",
+      "status": "done",
+      "note": "R8: recovery discovery reports candidate cap and truncation state"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 8,
+    "done": 8,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

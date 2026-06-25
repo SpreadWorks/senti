@@ -1,0 +1,25 @@
+# Spec Review Results
+
+## Verdict: FAIL
+
+## Blocking Findings
+
+### 1. Selected runId is specified as a guard but not as a continuation resolver
+**Target:** R3/R4/R5; src/flow/lib/flow-context.js; src/lib/flow-target-guard.js; src/flow/lib/get-status.js
+**Issue:** The spec requires `senti flow resume --spec <specId>` to select a recovery candidate even when `.senti/.active-flow` is absent and to avoid mutating normal active-flow registration, then says later status/next-action/run commands continue with the selected `runId`. In the existing codebase, normal command context resolves only from cwd `flow.json` or `.senti/.active-flow`; `--expect-run-id` only checks an already-resolved `flowState`. `get status <runId>` has a special resolver, but it only searches registered active flows and preparing state, not arbitrary recovery candidates. Next-action and run commands have no runId resolver at all.
+**Required change:** Specify the continuation handoff for a selected recovery candidate: either require the resume envelope/skill guidance to use the candidate execution root as cwd with `--expect-run-id`, or define an explicit runId-based resolver/command surface for status, next-action, and run continuation that can target the selected recovery candidate without registering it as a normal active flow.
+**Why blocking:** A branch-only or orphan-worktree candidate with a valid `runId` can be selected by the spec, but later continuation commands cannot load that candidate from runId alone. Tests for recovery selection followed by guarded continuation would either see `NO_FLOW`, continue the current unrelated active flow, or rely on an unspecified cwd/path convention.
+
+### 2. Recovery candidate states do not define which runId-bearing candidates are continuable
+**Target:** Overview Data Flow / R2 / R3 / Acceptance Criteria
+**Issue:** The spec says displayed recovery candidates are selectable with `resume --spec <specId>` when they have a usable `runId`, but the Data Flow also groups stale branches, orphan worktrees, and branch-only flows with finalized/no-runId candidates as receiving safe-stop guidance rather than entering normal continuation. Acceptance criteria explicitly block finalized candidates, but do not say whether stale, orphan-worktree, or branch-only candidates that do have `runId` are selectable or display-only.
+**Required change:** Add a smallest-necessary selectability matrix or rule for each recovery state: active, stale, finalized, orphan worktree, branch-only, and missing-runId; state whether `resume --spec` returns a selected target envelope or a blocked/display-only result for each state when `runId` exists.
+**Why blocking:** Implementation and tests cannot determine the expected behavior for stale, orphan-worktree, or branch-only candidates with `runId`; one implementation could safely select them while another could block them, and both would appear consistent with different parts of the spec.
+
+
+## Non-blocking Improvements
+
+### 1. Clarify interaction with existing runId auto-migration
+**Target:** R3 / src/lib/flow-store.js
+**Improvement:** Mention whether recovery discovery should use read-only raw flow state or may rely on `FlowStore.load()` auto-assigning `runId` for local/registered flows that lack one. Existing `FlowStore.load()` transparently persists a generated `runId`, while the spec says candidates without `runId` are display-only.
+**Why non-blocking:** The main behavior can still be implemented by treating raw scan candidates without `runId` as blocked, but an explicit note would prevent accidental drift between recovery discovery and existing local active-flow migration behavior.

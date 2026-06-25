@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied both blocking spec review findings by defining the execution-root plus runId handoff contract and a recovery candidate selectability rule.",
+  "items": [
+    {
+      "title": "Selected runId is specified as a guard but not as a continuation resolver",
+      "target": "R3/R4/R5; src/flow/lib/flow-context.js; src/lib/flow-target-guard.js; src/flow/lib/get-status.js",
+      "decision": "applied",
+      "rationale": "Specified that selected recovery continuation uses the candidate execution root plus `--expect-run-id`, not global runId lookup or normal active-flow registration.",
+      "evidence": "spec.json overview.data_flow, overview.decisions, R4, R5, clarifications, and task notes now state execution-root handoff.",
+      "changedFields": [
+        "overview.data_flow",
+        "overview.decisions",
+        "requirements[R3].desc",
+        "requirements[R4].desc",
+        "requirements[R5].desc",
+        "acceptance_criteria",
+        "clarifications",
+        "tasks[T-3].implementation_notes",
+        "tasks[T-4].implementation_notes"
+      ]
+    },
+    {
+      "title": "Recovery candidate states do not define which runId-bearing candidates are continuable",
+      "target": "Overview Data Flow / R2 / R3 / Acceptance Criteria",
+      "decision": "applied",
+      "rationale": "Added a selectability rule: active and orphan-worktree candidates are continuable only with runId and execution root; stale, finalized, branch-only, and missing-runId candidates are display-only/blocked.",
+      "evidence": "spec.json overview.data_flow, R3, acceptance criteria, clarifications, and T-2 acceptance now define selectability by candidate state.",
+      "changedFields": [
+        "overview.data_flow",
+        "requirements[R3].desc",
+        "acceptance_criteria",
+        "clarifications",
+        "tasks[T-2].acceptance",
+        "tasks[T-2].implementation_notes"
+      ]
+    }
+  ]
+}

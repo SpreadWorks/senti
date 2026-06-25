@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-25T14:31:07.267Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 1,
+    "total": 2
+  },
+  "coverageArtifact": "specs/313-resume-recovery-only/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R4 does not verify that guarded run mismatch happens before step execution",
+      "target": "specs/313-resume-recovery-only/tests/resume-recovery-contract.test.js: R4 guarded continuation tests",
+      "issue": "The tests assert ACTIVE_FLOW_MISMATCH for status, next-action, and run, but the run-command cases do not include any observable step side effect or sentinel that would prove the mismatch is returned before step execution begins.",
+      "requiredChange": "Add a minimal regression assertion around the run-command mismatch that would fail if the selected phase/step executed, such as checking no flow state/status transition, artifact, or other step side effect is produced before ACTIVE_FLOW_MISMATCH.",
+      "whyBlocking": "R4 explicitly requires the mismatch to be returned before step execution. Current tests could pass with an implementation that performs step work and only reports ACTIVE_FLOW_MISMATCH afterward.",
+      "origin": "R4",
+      "failureKind": "static-anti-pattern"
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R1 coverage is narrower than the requirement wording",
+      "target": "specs/313-resume-recovery-only/tests/resume-recovery-contract.test.js: R1 normal active-flow status ignores recovery discovery candidates",
+      "improvement": "Consider adding a normal flow start or continuation entrypoint case, not only `flow get status`, to make the `/senti.flow` wording explicit.",
+      "whyNonBlocking": "The existing test still exercises the key registry-vs-recovery separation through normal active-flow status, and R6 adds coverage for retained normal public surfaces."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/313-resume-recovery-only/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "2232245ad8aca90380e49e351bcb92a6bae855d458ebe29d28be25c1b70b1a66"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "test-003-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R4 does not verify that guarded run mismatch happens before step execution",
+      "body": "The tests assert ACTIVE_FLOW_MISMATCH for status, next-action, and run, but the run-command cases do not include any observable step side effect or sentinel that would prove the mismatch is returned before step execution begins.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-003-non-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "non-blocking",
+      "title": "R1 coverage is narrower than the requirement wording",
+      "body": "R1 coverage is narrower than the requirement wording",
+      "category": "unknown"
+    }
+  ]
+}
