@@ -7,6 +7,8 @@
 import { describe, it, afterEach } from "node:test";
 import { makeFlowManager } from "../../helpers/flow-setup.js";
 import assert from "node:assert/strict";
+import fs from "fs";
+import path from "path";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 describe("resolveActiveFlow", () => {
@@ -47,6 +49,26 @@ describe("resolveActiveFlow", () => {
 
   it("returns null when no flow exists", () => {
     tmp = createTmpDir();
+    const result = makeFlowManager(tmp).resolveActiveFlow(null);
+    assert.equal(result, null);
+  });
+
+  it("does not discover unregistered branch or worktree flow files during normal active resolution", () => {
+    tmp = createTmpDir();
+    for (const specId of ["001-stale", "002-stale"]) {
+      const specDir = path.join(tmp, "specs", specId);
+      fs.mkdirSync(specDir, { recursive: true });
+      fs.writeFileSync(path.join(specDir, "flow.json"), JSON.stringify({
+        spec: `specs/${specId}/spec.md`,
+        baseBranch: "main",
+        featureBranch: `feature/${specId}`,
+        steps: buildInitialSteps(),
+        requirements: [],
+        tasks: [],
+        currentTaskId: null,
+      }));
+    }
+
     const result = makeFlowManager(tmp).resolveActiveFlow(null);
     assert.equal(result, null);
   });

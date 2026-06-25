@@ -41,4 +41,13 @@ describe("senti.flow skill prelude auto flow", () => {
     assert.match(text, /B\.0\.5 auto default when preflight auto was accepted/);
     assert.match(text, /Worktree: `senti flow prepare --title "\.\.\." --base <branch> --worktree --run-id <runId>`/);
   });
+
+  it("does not block new flow prelude with target-aware status checks", () => {
+    const text = readSkill();
+    const entry = text.slice(text.indexOf("### A. Entry"), text.indexOf("### A.0 Route choice"));
+
+    assert.match(entry, /do not run `--expect-issue`, `--expect-spec`, or `--expect-run-id` before B\. Prelude/);
+    assert.match(entry, /must not be blocked by unrelated active flows/);
+    assert.doesNotMatch(entry, /senti flow get status --expect-issue <n>/);
+  });
 });

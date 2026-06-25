@@ -6,9 +6,10 @@ Do not ask the user to confirm routine step execution when `requires_approval: f
 **autoApprove check (MANDATORY):**
 Before presenting any choice to the user, you MUST run `senti flow get status` and display the `autoApprove` field value. This is not optional — skipping this check is a protocol violation.
 - If the current flow `runId` is known, prefer `senti flow get status <runId>` so the check reads the target flow instead of an unrelated current context.
-- If the user entered through an Issue-specific flow request and the requested Issue number is known, run `senti flow get status <runId> --expect-issue <n>` when `runId` is known, or `senti flow get status --expect-issue <n>` before dispatcher actions when only the current context is available.
-- If the user request names an explicit spec target, run `senti flow get status --expect-spec <spec>` before dispatcher actions.
-- If the user request names an explicit runId target for dispatcher continuation, run `senti flow get status --expect-run-id <runId>` against the current context. Positional `senti flow get status <runId>` is display-only and does not authorize later dispatcher commands.
+- Do not run target-aware status checks before starting a new flow. `senti flow set init` and `senti flow prepare --run-id <runId>` create a new target; unrelated active flows must not block that prelude.
+- If the user explicitly continues an existing flow and the target Issue is known, run `senti flow get status <runId> --expect-issue <n>` when `runId` is known. Without a target `runId`, use bare status for display and do not treat another active flow as authorization to continue it.
+- If the user explicitly continues an existing spec target, run `senti flow get status --expect-spec <spec>` before dispatcher actions.
+- If the user explicitly continues an existing runId target for dispatcher continuation, run `senti flow get status <runId> --expect-run-id <runId>` before dispatcher actions.
 - If any target-aware status call returns `ACTIVE_FLOW_MISMATCH`, STOP before `next-action`, `repair`, `run`, `finalize`, or `cleanup`. Target mismatch is a safety guard and MUST NOT be bypassed by `autoApprove` or `requires_approval`.
 - A preparing flow still reports `autoApprove: false` in status; use the `senti flow set auto on --run-id <runId>` response and `senti flow prepare --run-id <runId>` inheritance for prelude auto mode.
 - Bare `senti flow get status` remains valid for current-context display and for detecting whether any active flow exists before a runId is known.

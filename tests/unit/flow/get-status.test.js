@@ -24,6 +24,8 @@ describe("flow get status", () => {
       spec: `specs/${specId}/spec.md`,
       baseBranch: "main",
       featureBranch: "feature/001-test",
+      runId: "run-001-test",
+      issue: 1001,
       steps: buildInitialSteps(),
       requirements: [],
       tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
@@ -108,5 +110,30 @@ describe("flow get status", () => {
     assert.equal(envelope.data.metrics.length, 1);
     assert.equal(envelope.data.metricsSummary.flow.draft.srcRead, 1);
     assert.equal(envelope.data.broadModeHistory.length, 1);
+  });
+
+  it("returns target runId identifiers in mismatch data for runId status", () => {
+    tmp = createTmpDir();
+    setupFlowState(tmp);
+    let result;
+    assert.throws(
+      () => {
+        result = execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "status", "run-001-test", "--expect-issue", "1002"], {
+          encoding: "utf8",
+          env: { ...process.env, SENTI_WORK_ROOT: tmp },
+        });
+      },
+      (err) => {
+        const envelope = JSON.parse(err.stdout);
+        assert.equal(envelope.ok, false);
+        assert.equal(envelope.errors[0].code, "ACTIVE_FLOW_MISMATCH");
+        assert.equal(envelope.data.expectedIssue, 1002);
+        assert.equal(envelope.data.activeIssue, 1001);
+        assert.equal(envelope.data.expectedRunId, "run-001-test");
+        assert.equal(envelope.data.activeRunId, "run-001-test");
+        return true;
+      },
+    );
+    assert.equal(result, undefined);
   });
 });

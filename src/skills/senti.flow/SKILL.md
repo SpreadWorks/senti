@@ -46,19 +46,20 @@ Note: `senti flow get context` automatically records these metrics via hooks —
 
 ### A. Entry — branch on flow state
 
-Run `senti flow get status`, or the target-specific form below when the target is known.
+Run bare `senti flow get status` first. This is a display and branch-decision check; it is not a target selection mechanism.
 
-- If the explicit target is a GitHub Issue and a flow `runId` is already known, run `senti flow get status <runId> --expect-issue <n>`.
-- If the explicit target is a GitHub Issue and no `runId` is known yet, run `senti flow get status --expect-issue <n>` before any dispatcher action.
-- If the explicit target is a spec, run `senti flow get status --expect-spec <spec>` before any dispatcher action.
-- If the explicit target is a runId for dispatcher continuation, run `senti flow get status --expect-run-id <runId>` before any dispatcher action. Positional `senti flow get status <runId>` is display-only and must not authorize dispatcher continuation.
-- If status returns `ACTIVE_FLOW_MISMATCH`, STOP. Do not run `senti flow get next-action`, `senti flow run repair`, any `senti flow run ...`, `senti flow run finalize-*`, or cleanup.
-- After the explicit target guard passes, continue to the autoApprove checks and `requires_approval` handling.
-- Evaluate target mismatch before autoApprove or `requires_approval`; neither can bypass `ACTIVE_FLOW_MISMATCH`.
+- For a new feature/fix/Issue request, do not run `--expect-issue`, `--expect-spec`, or `--expect-run-id` before B. Prelude. New flow prelude commands (`set init`, `prepare --run-id`) create their own target and must not be blocked by unrelated active flows.
+- Use target-aware status only when the user is explicitly continuing an existing flow target.
+- If an existing target `runId` is known, run `senti flow get status <runId> --expect-run-id <runId>` before dispatcher actions. Add `--expect-issue <n>` when the target Issue is known.
+- If an existing target spec is known and no runId is available, run `senti flow get status --expect-spec <spec>` before dispatcher actions.
+- If target-aware status returns `ACTIVE_FLOW_MISMATCH`, STOP. Do not run `senti flow get next-action`, `senti flow run repair`, any `senti flow run ...`, `senti flow run finalize-*`, or cleanup.
+- After the explicit existing-target guard passes, continue to the autoApprove checks and `requires_approval` handling.
+- Evaluate target mismatch before autoApprove or `requires_approval` for existing-flow continuation; neither can bypass `ACTIVE_FLOW_MISMATCH`.
 
-- If `active: false` and the user's latest request did not explicitly invoke Spec-Driven Development flow → go to **A.0 Route choice**.
-- If `active: false` and the user's latest request explicitly invoked Spec-Driven Development flow → go to **B. Prelude**.
-- If `active: true` → go to **C. Dispatcher loop**.
+- If the user's latest request is a new feature/fix/Issue request and did not explicitly invoke Spec-Driven Development flow → go to **A.0 Route choice**.
+- If the user's latest request is a new feature/fix/Issue request and explicitly invoked Spec-Driven Development flow → go to **B. Prelude**.
+- If the user's latest request is to continue the current active flow and `active: true` → go to **C. Dispatcher loop**.
+- If `active: false` and there is no new flow request → tell the user there is no active flow and stop.
 
 ### A.0 Route choice — Spec-Driven Development flow or direct edit
 

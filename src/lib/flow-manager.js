@@ -21,11 +21,6 @@ import { PreparingFlowStore } from "./preparing-flow-store.js";
 import { STATE_FILE, SCAN_FLOWS_LIMIT, PREPARING_SCAN_LIMIT, specIdFromPath } from "./flow-helpers.js";
 import { findInProgressLeaf } from "../flow/lib/step-tree.js";
 
-// Pointer written by `flow run finalize-cleanup` (and read by `flow report
-// show`) to mark the last spec that completed cleanup. Stored relative to the
-// main repo root.
-const LAST_FINALIZED_SPEC_REL_PATH = path.join(".senti", "last-finalized-spec");
-
 export class FlowManager {
   /**
    * @param {Object} opts
@@ -274,23 +269,12 @@ export class FlowManager {
   }
 
   /**
-   * Read the spec id stored in `.senti/last-finalized-spec` (if any).
-   * Returns null when the pointer file does not exist or is empty.
+   * Resolve the active flow for normal flow execution.
    *
-   * Post-cleanup, `.active-flow` is empty and this pointer holds the spec
-   * that just completed cleanup. Callers use it to avoid re-activating a
-   * spec whose flow.json still exists on main but is no longer in progress.
-   */
-  _readLastFinalizedSpecId() {
-    const pointerPath = path.join(this._mainRoot, LAST_FINALIZED_SPEC_REL_PATH);
-    if (!fs.existsSync(pointerPath)) return null;
-    const specRel = fs.readFileSync(pointerPath, "utf8").trim();
-    if (!specRel) return null;
-    return specIdFromPath(specRel);
-  }
-
-  /**
-   * 3-stage fallback to resolve the single active flow.
+   * This intentionally does not call scanAllFlows(). Branch/worktree discovery
+   * is a recovery concern owned by resume-like commands; normal status,
+   * next-action, and run commands must not be pulled toward stale branch or
+   * orphan worktree flow.json files.
    *
    * @param {object|null} flowState - pre-loaded flow state (may be null)
    * @param {object} [opts]
@@ -326,26 +310,6 @@ export class FlowManager {
     } else if (activeFlows.length > 1) {
       throw new Error(
         `multiple active flows: ${activeFlows.map((f) => `${f.spec} (${f.mode})`).join(", ")}. Pass --spec <specId> to select one.`,
-      );
-    }
-
-    const allFlows = this.scanAllFlows();
-    const lastFinalizedSpec = this._readLastFinalizedSpecId();
-    const active = allFlows.filter((f) => {
-      if (f.state == null) return false;
-      // Post-cleanup specs remain on disk (committed to main) but are no
-      // longer active. Skip them so resume / get-status correctly report
-      // active:false.
-      if (lastFinalizedSpec && f.specId === lastFinalizedSpec) return false;
-      return true;
-    });
-    if (active.length === 1) {
-      const { specId, state, location } = active[0];
-      const worktreePath = state.worktree ? location : null;
-      return { state, specId, worktreePath };
-    } else if (active.length > 1) {
-      throw new Error(
-        `multiple active flows: ${active.map((f) => `${f.specId} (${f.mode})`).join(", ")}`,
       );
     }
 

@@ -301,13 +301,6 @@ export default class GetStatusCommand extends FlowCommand {
 
   execute(ctx) {
     const runId = validateRunId(ctx.runId);
-    const currentContextMismatch = targetMismatchEnvelopeForInput({
-      type: "get",
-      key: "status",
-      input: { expectSpec: ctx.expectSpec, expectRunId: ctx.expectRunId },
-      flowState: ctx.flowState,
-    });
-    if (currentContextMismatch) return currentContextMismatch;
     const options = { details: ctx.details === true };
 
     if (runId) {
@@ -318,13 +311,25 @@ export default class GetStatusCommand extends FlowCommand {
       }
       const status = buildStatusOutput(state, ctx.root, options);
       try {
-        const expectation = new FlowTargetExpectation({ expectIssue: ctx.expectIssue });
+        const expectation = new FlowTargetExpectation({
+          expectIssue: ctx.expectIssue,
+          expectSpec: ctx.expectSpec,
+          expectRunId: ctx.expectRunId || runId,
+        });
         const mismatch = expectation.mismatchAgainst(state);
         return mismatch ? buildTargetMismatchEnvelope({ type: "get", key: "status", data: mismatch }) : status;
       } catch (err) {
         return Envelope.fail("get", "status", "ARGS_ERROR", err.message);
       }
     }
+
+    const currentContextMismatch = targetMismatchEnvelopeForInput({
+      type: "get",
+      key: "status",
+      input: { expectSpec: ctx.expectSpec, expectRunId: ctx.expectRunId },
+      flowState: ctx.flowState,
+    });
+    if (currentContextMismatch) return currentContextMismatch;
 
     // Default: context-based resolution. No active flow is a normal state,
     // not an error — consumers discriminate via the `active` field.
