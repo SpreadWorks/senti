@@ -73,8 +73,10 @@
 
 本プロジェクトは senti による Spec-Driven Development を採用している。
 
-- **MUST: ユーザーから機能追加・修正のリクエストを受けた場合、Spec-Driven Development フロー (`/senti.flow-plan`) を使用するかユーザーに確認すること。確認なしにコードを変更してはならない。**
-- **MUST: 実装完了後は `/senti.flow-finalize` を実行すること。**
+- **MUST: Spec-Driven Development flow は、ユーザーが明示的に開始を指示した場合のみ開始する。** 通常の機能追加・修正・コード変更・調査・相談では、flow 起動確認を自動表示せず、通常対応してよい。
+  - flow が有用な依頼では選択肢として提案してよい。ただし、ユーザーが選ぶまで flow を開始せず、必須の起動選択も提示しない。
+  - ユーザーが flow 開始を明示した場合は、計画・実装・最終化まで主経路を進める。
+- **MUST: docs 同期のみを行う場合は専用の flow-sync skill を使用する。**
 - スキルが利用できない環境では `senti flow --request "<要望>"` を使用すること
 
 ### Worktree の境界を越えない（MUST）
@@ -97,7 +99,8 @@
 
 ### 開発ワークフロー
 
-- `src/skills/` のスキルソースや `src/presets/` のテンプレートを変更した場合は `senti upgrade` を実行して、プロジェクトのスキル・設定に反映すること。
+- `src/skills/`, `src/presets/` のスキル・プリセット・テンプレートを変更した場合は `senti upgrade` を実行して、プロジェクトのスキル・設定に反映すること。
+- 公式 preset migration は実 plugin repository の clean な Git HEAD と contribution path で検証すること。
 
 ### docs/ 編集ルール
 

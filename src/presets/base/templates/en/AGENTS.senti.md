@@ -2,12 +2,10 @@
 
 This project uses Spec-Driven Development powered by senti.
 
-- **MUST: When the user requests any feature, fix, or code change, classify the request and use AskUserQuestion to present a 2-way choice between "direct edit" and "Spec-Driven Development workflow (`/senti.flow`)". Do NOT modify code without confirmation.**
-  - **Direct-edit leaning** (typos, comments, docs wording, single-file single-line replacements, semantically-neutral renames, config tweaks) → mark "direct edit" as Recommended
-  - **Flow leaning** (behavioral changes, multi-file changes, test/spec impact, new features, new APIs) → mark "flow" as Recommended
-  - **When in doubt, mark flow as Recommended** (keep review / gate / docs-sync safety nets on the default path)
-  - If direct edit is chosen, show the `git diff` and confirm before committing. Docs sync will not run; suggest `senti docs build` separately if needed
-- **MUST: The mainline Spec-Driven Development lifecycle (planning, implementation, finalization) is driven by a single `/senti.flow` skill invocation. Standalone docs-sync runs use `/senti.flow-sync`. If the Spec-Driven Development workflow path is chosen, drive it through to finalize.**
+- **MUST: Start the Spec-Driven Development flow only when the user explicitly instructs it.** Ordinary feature, fix, code-change, investigation, and consultation requests do not require automatic flow-start confirmation and may be handled normally.
+  - If a request would benefit from the flow, suggest it as an option, but do not start the flow or present a mandatory startup choice unless the user chooses it.
+  - When the user explicitly starts the flow, drive the mainline lifecycle through planning, implementation, and finalization.
+- **MUST: Standalone docs-sync runs use the dedicated flow-sync skill.**
 - If skills are unavailable, run `senti flow --request "<request>"` instead.
 
 ### Never cross the worktree boundary (MUST)

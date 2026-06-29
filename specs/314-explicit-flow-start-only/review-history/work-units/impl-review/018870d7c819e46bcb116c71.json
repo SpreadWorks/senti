@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "018870d7c819e46bcb116c71",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0004",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/314-explicit-flow-start-only/test-result-review.json"
+    ],
+    "inputHash": "6941a5dfa7da6b6f900d021c48acc40bbe1959e62512c91711c568be59eea801",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "018870d7c819e46bcb116c71"
+  },
+  "targetFiles": [
+    "specs/314-explicit-flow-start-only/test-result-review.json"
+  ],
+  "inputHash": "6941a5dfa7da6b6f900d021c48acc40bbe1959e62512c91711c568be59eea801",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-06-29T08:35:06.695Z",
+  "finishedAt": "2026-06-29T08:35:06.695Z",
+  "rawResponse": "### 1. Reduce duplicated status fields\n**File:** `specs/314-explicit-flow-start-only/test-result-review.json`\n**Issue:** The file repeats equivalent pass state in top-level `verdict`, `contractSummary.verdict`, `contractSummary.result`, and `contractSummary.blockingCount`. This creates drift risk if the artifact is edited or generated incorrectly.\n**Suggestion:** Prefer a single source of truth for the review outcome, or ensure this file is always generated from one canonical status value. If the contract requires both locations, add generator-side validation that these fields cannot diverge.\n\n### 2. Normalize JSON key naming\n**File:** `specs/314-explicit-flow-start-only/test-result-review.json`\n**Issue:** The artifact mixes snake_case keys such as `checked_items`, `result_file_path`, and `raw_output_path` with camelCase keys under `contractSummary`.\n**Suggestion:** Use one naming convention throughout the artifact where possible. If `contractSummary` is bound to an external schema, consider keeping schema-owned fields isolated and documenting that boundary in the generator/schema to avoid accidental inconsistency.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Reduce duplicated status fields",
+        "body": "**File:** `specs/314-explicit-flow-start-only/test-result-review.json`\n**Issue:** The file repeats equivalent pass state in top-level `verdict`, `contractSummary.verdict`, `contractSummary.result`, and `contractSummary.blockingCount`. This creates drift risk if the artifact is edited or generated incorrectly.\n**Suggestion:** Prefer a single source of truth for the review outcome, or ensure this file is always generated from one canonical status value. If the contract requires both locations, add generator-side validation that these fields cannot diverge.",
+        "file": "specs/314-explicit-flow-start-only/test-result-review.json"
+      },
+      {
+        "title": "2. Normalize JSON key naming",
+        "body": "**File:** `specs/314-explicit-flow-start-only/test-result-review.json`\n**Issue:** The artifact mixes snake_case keys such as `checked_items`, `result_file_path`, and `raw_output_path` with camelCase keys under `contractSummary`.\n**Suggestion:** Use one naming convention throughout the artifact where possible. If `contractSummary` is bound to an external schema, consider keeping schema-owned fields isolated and documenting that boundary in the generator/schema to avoid accidental inconsistency.",
+        "file": "specs/314-explicit-flow-start-only/test-result-review.json"
+      }
+    ]
+  }
+}

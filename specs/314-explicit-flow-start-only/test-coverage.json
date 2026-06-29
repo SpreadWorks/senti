@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "AGENTS templates must not require a flow/direct edit choice for ordinary feature, fix, code change, investigation, or consultation requests.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/explicit-flow-start-only.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "senti.flow skill metadata and entry guidance must start a new flow only when the user explicitly instructs Spec-Driven Development flow start, or when continuing an active flow.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/explicit-flow-start-only.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "Migration parity must retain explicit flow start, prelude, auto-check, prepare, dispatcher loop, and active flow continuation behavior after removing automatic startup confirmation.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/explicit-flow-start-only.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "Tests must verify that old automatic startup confirmation wording is absent and retained explicit-start / active-continuation routes remain documented.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/explicit-flow-start-only.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "Generated skill and preset artifacts must be refreshed after source template changes using senti upgrade.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/explicit-flow-start-only.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "Generated AGENTS.md and existing CLAUDE.md agent guidance must be refreshed or verified through the setup/docs-agent regeneration path so old automatic startup wording is not retained in readable generated files.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/explicit-flow-start-only.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/explicit-flow-start-only.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ]
+    }
+  ]
+}

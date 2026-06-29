@@ -44,10 +44,19 @@ describe("senti.flow skill prelude auto flow", () => {
 
   it("does not block new flow prelude with target-aware status checks", () => {
     const text = readSkill();
-    const entry = text.slice(text.indexOf("### A. Entry"), text.indexOf("### A.0 Route choice"));
+    const entry = text.slice(text.indexOf("### A. Entry"), text.indexOf("### B. Prelude"));
 
     assert.match(entry, /do not run `--expect-issue`, `--expect-spec`, or `--expect-run-id` before B\. Prelude/);
     assert.match(entry, /must not be blocked by unrelated active flows/);
     assert.doesNotMatch(entry, /senti flow get status --expect-issue <n>/);
+  });
+
+  it("does not include automatic route choice for non-explicit requests", () => {
+    const text = readSkill();
+
+    assert.doesNotMatch(text, /A\.0 Route choice/);
+    assert.doesNotMatch(text, /whether to use Spec-Driven Development flow or direct editing/);
+    assert.match(text, /explicitly invokes Spec-Driven Development flow/);
+    assert.match(text, /no explicit flow-start request/);
   });
 });

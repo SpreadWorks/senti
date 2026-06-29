@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-29T07:14:35.356Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/314-explicit-flow-start-only/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Upgrade evidence can be faked without exercising senti upgrade behavior",
+      "target": "specs/314-explicit-flow-start-only/tests/explicit-flow-start-only.test.js:74",
+      "issue": "The R5 test only reads a committed specs/314-explicit-flow-start-only/upgrade-result.json file and checks that it says ok with a matching changed string. It does not verify that generated skill or preset artifacts were actually refreshed, nor that the evidence was produced by running the setup/upgrade path against the current source templates.",
+      "requiredChange": "Add a spec-local assertion that compares the relevant generated skill/preset artifacts against the source templates or otherwise verifies the current generated outputs reflect the source changes, not just the presence of upgrade-result.json.",
+      "whyBlocking": "R5 requires refreshed generated artifacts after source template changes using senti upgrade. A stale or manually edited JSON file could satisfy this test while production generated artifacts remain outdated, so the test has a static anti-pattern that can pass without exercising the required behavior.",
+      "origin": "R5",
+      "failureKind": "static anti-pattern"
+    },
+    {
+      "kind": "blocking",
+      "title": "Generated AGENTS coverage does not verify regeneration path or source parity",
+      "target": "specs/314-explicit-flow-start-only/tests/explicit-flow-start-only.test.js:83",
+      "issue": "The R6 test only checks root AGENTS.md and optional CLAUDE.md for forbidden wording. It does not verify that AGENTS.md was regenerated through the setup/docs-agent path or that readable generated guidance matches the refreshed template content expected by the new policy.",
+      "requiredChange": "Add a spec-local assertion that verifies regeneration evidence or parity between generated AGENTS.md/CLAUDE.md guidance and the refreshed templates, in addition to checking forbidden wording absence.",
+      "whyBlocking": "R6 specifically requires generated AGENTS.md and CLAUDE.md guidance to be refreshed or verified through the setup/docs-agent regeneration path. A manually edited generated file with old omissions or stale non-forbidden content could pass the current test, so the coverage does not correspond to the requirement.",
+      "origin": "R6",
+      "failureKind": "missing coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/314-explicit-flow-start-only/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "74036c6cb891ac0be028728e7eb3d86e9a689a2525a8b942944ee7a70c3781c2"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "test-002-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Upgrade evidence can be faked without exercising senti upgrade behavior",
+      "body": "The R5 test only reads a committed specs/314-explicit-flow-start-only/upgrade-result.json file and checks that it says ok with a matching changed string. It does not verify that generated skill or preset artifacts were actually refreshed, nor that the evidence was produced by running the setup/upgrade path against the current source templates.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Generated AGENTS coverage does not verify regeneration path or source parity",
+      "body": "The R6 test only checks root AGENTS.md and optional CLAUDE.md for forbidden wording. It does not verify that AGENTS.md was regenerated through the setup/docs-agent path or that readable generated guidance matches the refreshed template content expected by the new policy.",
+      "category": "unknown"
+    }
+  ]
+}

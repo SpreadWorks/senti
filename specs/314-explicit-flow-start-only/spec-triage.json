@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "One blocking finding is valid and should be repaired in spec.json.",
+  "items": [
+    {
+      "title": "Generated agent files lack a refresh target",
+      "target": "R1/R5, Scope In, Data Flow",
+      "decision": "apply",
+      "rationale": "The current spec requires senti upgrade for source templates but does not name how generated AGENTS.md or CLAUDE.md directive blocks are refreshed. That can leave user-facing generated guidance with the removed automatic startup wording.",
+      "evidence": "spec.json R5 and acceptance criteria mention upgrade evidence, but no requirement or task names src/setup.js, src/docs/commands/agents.js, AGENTS.md, or CLAUDE.md generated agent-file refresh verification."
+    }
+  ]
+}

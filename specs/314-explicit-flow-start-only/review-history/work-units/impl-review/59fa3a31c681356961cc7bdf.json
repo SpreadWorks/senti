@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "59fa3a31c681356961cc7bdf",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0003",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/314-explicit-flow-start-only/test-execute-result.json"
+    ],
+    "inputHash": "aad5344f13676f2326852cc7c6085526597c80e9c2d415453246af982b934308",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "59fa3a31c681356961cc7bdf"
+  },
+  "targetFiles": [
+    "specs/314-explicit-flow-start-only/test-execute-result.json"
+  ],
+  "inputHash": "aad5344f13676f2326852cc7c6085526597c80e9c2d415453246af982b934308",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-06-29T08:34:44.012Z",
+  "finishedAt": "2026-06-29T08:34:44.012Z",
+  "rawResponse": "### 1. Consolidate repeated evidence metadata\n**File:** `specs/314-explicit-flow-start-only/test-execute-result.json`  \n**Issue:** Each `summary` entry repeats identical `test_file`, `command`, and `raw_output_lines` values, which makes the file noisy and harder to update consistently.  \n**Suggestion:** Move shared execution metadata to a top-level `test_run` or `evidence_defaults` object, leaving each summary item to contain only requirement-specific fields like `id`, `result`, and `test_name`.\n\n### 2. Reduce duplicated regression path lists\n**File:** `specs/314-explicit-flow-start-only/test-execute-result.json`  \n**Issue:** `classified_paths`, `trigger_relevant_changed_files`, and `changed_files` repeat overlapping path information with slightly different metadata. This invites drift between lists.  \n**Suggestion:** Store one canonical list of changed paths with fields such as `status`, `path`, `category`, and `trigger_relevant`, then derive the filtered views where needed.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Consolidate repeated evidence metadata",
+        "body": "**File:** `specs/314-explicit-flow-start-only/test-execute-result.json`  \n**Issue:** Each `summary` entry repeats identical `test_file`, `command`, and `raw_output_lines` values, which makes the file noisy and harder to update consistently.  \n**Suggestion:** Move shared execution metadata to a top-level `test_run` or `evidence_defaults` object, leaving each summary item to contain only requirement-specific fields like `id`, `result`, and `test_name`.",
+        "file": "specs/314-explicit-flow-start-only/test-execute-result.json"
+      },
+      {
+        "title": "2. Reduce duplicated regression path lists",
+        "body": "**File:** `specs/314-explicit-flow-start-only/test-execute-result.json`  \n**Issue:** `classified_paths`, `trigger_relevant_changed_files`, and `changed_files` repeat overlapping path information with slightly different metadata. This invites drift between lists.  \n**Suggestion:** Store one canonical list of changed paths with fields such as `status`, `path`, `category`, and `trigger_relevant`, then derive the filtered views where needed.",
+        "file": "specs/314-explicit-flow-start-only/test-execute-result.json"
+      }
+    ]
+  }
+}

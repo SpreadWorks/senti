@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-29T07:13:36.398Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/314-explicit-flow-start-only/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R3 auto-check parity is untested",
+      "target": "specs/314-explicit-flow-start-only/tests/explicit-flow-start-only.test.js:52",
+      "issue": "R3 requires migration parity for explicit flow start, prelude, auto-check, prepare, dispatcher loop, and active flow continuation. The R3 test asserts prelude, dispatcher loop, ACTIVE_FLOW_MISMATCH, `senti flow set init`, and `senti flow prepare`, but has no assertion for the retained auto-check behavior or wording.",
+      "requiredChange": "Add a spec-local assertion in the R3 coverage that verifies the auto-check surface/behavior remains documented after removing automatic startup confirmation.",
+      "whyBlocking": "An acceptance requirement has no corresponding spec-local test coverage for one of its required retained migration-parity behaviors.",
+      "origin": "R3",
+      "failureKind": "missing-coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/314-explicit-flow-start-only/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "6d53fa433a2c946d311c623e40893e29cc112faf66981756c80d07c0e555c6ff"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "test-001-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R3 auto-check parity is untested",
+      "body": "R3 requires migration parity for explicit flow start, prelude, auto-check, prepare, dispatcher loop, and active flow continuation. The R3 test asserts prelude, dispatcher loop, ACTIVE_FLOW_MISMATCH, `senti flow set init`, and `senti flow prepare`, but has no assertion for the retained auto-check behavior or wording.",
+      "category": "unknown"
+    }
+  ]
+}

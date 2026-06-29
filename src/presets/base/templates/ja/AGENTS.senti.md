@@ -2,12 +2,10 @@
 
 本プロジェクトは senti による Spec-Driven Development を採用している。
 
-- **MUST: ユーザーから機能追加・修正のリクエストを受けた場合、内容を判定して「直接修正」か「Spec-Driven Development フロー (`/senti.flow`)」のどちらで進めるかを AskUserQuestion で 2 択提示すること。確認なしにコードを変更してはならない。**
-  - **直接修正寄り**（typo・コメント・docs 文言・単一ファイル単一行の置換・意味変化のない rename・設定値調整）→「直接修正」を Recommended にする
-  - **flow 寄り**（振る舞いを変える修正・複数ファイル横断・テスト/仕様影響・新機能・新 API）→「flow」を Recommended にする
-  - **判定が迷う場合は flow を Recommended にする**（review / gate / docs sync の安全弁を default 側に置く）
-  - 直接修正を選んだ場合、commit 前に `git diff` を提示してユーザー確認を取ること。docs sync は走らないため、必要なら `senti docs build` を別途案内する
-- **MUST: Spec-Driven Development の主経路（計画・実装・最終化）は `/senti.flow` 一つで駆動される。docs 同期のみを行う場合は `/senti.flow-sync` を使用する。Spec-Driven Development フロー経路を選んだ場合、実装完了後に finalize まで到達させること。**
+- **MUST: Spec-Driven Development flow は、ユーザーが明示的に開始を指示した場合のみ開始する。** 通常の機能追加・修正・コード変更・調査・相談では、flow 起動確認を自動表示せず、通常対応してよい。
+  - flow が有用な依頼では選択肢として提案してよい。ただし、ユーザーが選ぶまで flow を開始せず、必須の起動選択も提示しない。
+  - ユーザーが flow 開始を明示した場合は、計画・実装・最終化まで主経路を進める。
+- **MUST: docs 同期のみを行う場合は専用の flow-sync skill を使用する。**
 - スキルが利用できない環境では `senti flow --request "<要望>"` を使用すること
 
 ### Worktree の境界を越えない（MUST）

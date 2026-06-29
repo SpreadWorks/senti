@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "fail",
+      "reason": "The spec mandates spec-local coverage but does not include the required `// spec: R<N> ...` header convention for files under `specs/314-explicit-flow-start-only/tests/`, only listing the directory and test intentions.",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements / acceptance_criteria / implementationTargets"
+          },
+          "observed": "The spec mandates spec-local coverage but does not include the required `// spec: R<N> ...` header convention for files under `specs/314-explicit-flow-start-only/tests/`, only listing the directory and test intentions.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "Migration parity is described generally, but it does not enumerate all retained/changed public surfaces and side effects with a complete mapping of each retained behavior to its new owner or an explicit removal decision as required.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "decisions.3-4 / design_principles.3"
+          },
+          "observed": "Migration parity is described generally, but it does not enumerate all retained/changed public surfaces and side effects with a complete mapping of each retained behavior to its new owner or an explicit removal decision as required.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "spec-test-coverage",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements / acceptance_criteria / implementationTargets"
+      },
+      "observed": "The spec mandates spec-local coverage but does not include the required `// spec: R<N> ...` header convention for files under `specs/314-explicit-flow-start-only/tests/`, only listing the directory and test intentions.",
+      "severity": "blocking",
+      "refs": [
+        "spec-test-coverage"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "spec.json",
+        "locator": "decisions.3-4 / design_principles.3"
+      },
+      "observed": "Migration parity is described generally, but it does not enumerate all retained/changed public surfaces and side effects with a complete mapping of each retained behavior to its new owner or an explicit removal decision as required.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    }
+  ]
+}

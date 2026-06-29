@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "2802ea34b3003a0b446168d0",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0011",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/presets/base/templates/en/AGENTS.senti.md"
+    ],
+    "inputHash": "6a11a0986ac404a7a7b80b018b5ce523d323bfc683f787484299b6f4fb6b3a84",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "2802ea34b3003a0b446168d0"
+  },
+  "targetFiles": [
+    "src/presets/base/templates/en/AGENTS.senti.md"
+  ],
+  "inputHash": "6a11a0986ac404a7a7b80b018b5ce523d323bfc683f787484299b6f4fb6b3a84",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-06-29T08:36:52.293Z",
+  "finishedAt": "2026-06-29T08:36:52.293Z",
+  "rawResponse": "### 1. Clarify flow fallback scope\n**File:** `src/presets/base/templates/en/AGENTS.senti.md`\n**Issue:** The fallback line `If skills are unavailable, run senti flow --request \"<request>\" instead.` now sits after both the explicit-flow rule and the standalone docs-sync rule, making it ambiguous whether docs-sync should also fall back to `senti flow`.\n**Suggestion:** Scope the fallback explicitly: `If the user explicitly starts the flow and skills are unavailable, run senti flow --request \"<request>\" instead.`\n\n### 2. Use exact skill naming consistently\n**File:** `src/presets/base/templates/en/AGENTS.senti.md`\n**Issue:** The new text says `dedicated flow-sync skill`, while the removed text used the exact skill name `/senti.flow-sync`. This weakens naming consistency in an instruction template.\n**Suggestion:** Change the line to: `**MUST: Standalone docs-sync runs use the dedicated /senti.flow-sync skill.**`",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Clarify flow fallback scope",
+        "body": "**File:** `src/presets/base/templates/en/AGENTS.senti.md`\n**Issue:** The fallback line `If skills are unavailable, run senti flow --request \"<request>\" instead.` now sits after both the explicit-flow rule and the standalone docs-sync rule, making it ambiguous whether docs-sync should also fall back to `senti flow`.\n**Suggestion:** Scope the fallback explicitly: `If the user explicitly starts the flow and skills are unavailable, run senti flow --request \"<request>\" instead.`",
+        "file": "src/presets/base/templates/en/AGENTS.senti.md"
+      },
+      {
+        "title": "2. Use exact skill naming consistently",
+        "body": "**File:** `src/presets/base/templates/en/AGENTS.senti.md`\n**Issue:** The new text says `dedicated flow-sync skill`, while the removed text used the exact skill name `/senti.flow-sync`. This weakens naming consistency in an instruction template.\n**Suggestion:** Change the line to: `**MUST: Standalone docs-sync runs use the dedicated /senti.flow-sync skill.**`",
+        "file": "src/presets/base/templates/en/AGENTS.senti.md"
+      }
+    ]
+  }
+}

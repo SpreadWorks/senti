@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "0bdf3b707356690edf741e13",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0000",
+    "parentUnitId": null,
+    "targetFiles": [
+      "CLAUDE.md"
+    ],
+    "inputHash": "83e78ce9e79d996431d37d081d6728d50ceb7def6c32d709dddc2c1acb1d053e",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "0bdf3b707356690edf741e13"
+  },
+  "targetFiles": [
+    "CLAUDE.md"
+  ],
+  "inputHash": "83e78ce9e79d996431d37d081d6728d50ceb7def6c32d709dddc2c1acb1d053e",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-06-29T08:33:49.173Z",
+  "finishedAt": "2026-06-29T08:33:49.173Z",
+  "rawResponse": "### 1. Qualify the fallback flow command\n**File:** `CLAUDE.md`  \n**Issue:** The line `スキルが利用できない環境では senti flow --request \"<要望>\" を使用すること` now sits after the new “explicit start only” rule, but it is not clearly scoped to cases where the user explicitly requested flow. That ambiguity could reintroduce automatic flow startup for ordinary requests.  \n**Suggestion:** Move this fallback under the bullet for `ユーザーが flow 開始を明示した場合` or rewrite it as: `ユーザーが flow 開始を明示し、スキルが利用できない環境では ...`\n\n### 2. Make the docs-sync instruction operationally specific\n**File:** `CLAUDE.md`  \n**Issue:** `専用の flow-sync skill` is less concrete than the surrounding command-style guidance and does not say what to do if that skill is unavailable. This creates inconsistent agent guidance compared with the existing `senti flow --request` fallback.  \n**Suggestion:** Name the exact invocation or skill identifier expected for docs sync, and add a scoped fallback if applicable, for example: `docs 同期のみの場合は <exact skill/command> を使用する。利用できない場合は ...`",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Qualify the fallback flow command",
+        "body": "**File:** `CLAUDE.md`  \n**Issue:** The line `スキルが利用できない環境では senti flow --request \"<要望>\" を使用すること` now sits after the new “explicit start only” rule, but it is not clearly scoped to cases where the user explicitly requested flow. That ambiguity could reintroduce automatic flow startup for ordinary requests.  \n**Suggestion:** Move this fallback under the bullet for `ユーザーが flow 開始を明示した場合` or rewrite it as: `ユーザーが flow 開始を明示し、スキルが利用できない環境では ...`",
+        "file": "CLAUDE.md"
+      },
+      {
+        "title": "2. Make the docs-sync instruction operationally specific",
+        "body": "**File:** `CLAUDE.md`  \n**Issue:** `専用の flow-sync skill` is less concrete than the surrounding command-style guidance and does not say what to do if that skill is unavailable. This creates inconsistent agent guidance compared with the existing `senti flow --request` fallback.  \n**Suggestion:** Name the exact invocation or skill identifier expected for docs sync, and add a scoped fallback if applicable, for example: `docs 同期のみの場合は <exact skill/command> を使用する。利用できない場合は ...`",
+        "file": "CLAUDE.md"
+      }
+    ]
+  }
+}

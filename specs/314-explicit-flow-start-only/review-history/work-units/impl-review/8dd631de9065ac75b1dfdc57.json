@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "8dd631de9065ac75b1dfdc57",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0014",
+    "parentUnitId": null,
+    "targetFiles": [
+      "tests/unit/flow/skill-prelude-auto.test.js"
+    ],
+    "inputHash": "7c0bef1765a615339e1b2319312bb9b1a013cce6e01072f87ed8625120ff6d03",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "8dd631de9065ac75b1dfdc57"
+  },
+  "targetFiles": [
+    "tests/unit/flow/skill-prelude-auto.test.js"
+  ],
+  "inputHash": "7c0bef1765a615339e1b2319312bb9b1a013cce6e01072f87ed8625120ff6d03",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-06-29T08:38:04.218Z",
+  "finishedAt": "2026-06-29T08:38:04.218Z",
+  "rawResponse": "### 1. Add explicit section-boundary assertions\n**File:** `tests/unit/flow/skill-prelude-auto.test.js`  \n**Issue:** The test slices with `text.indexOf(...)` directly. If `\"### B. Prelude\"` or `\"### A. Entry\"` is missing, `indexOf` returns `-1`, and the slice can still produce misleading text instead of failing clearly.  \n**Suggestion:** Store both indexes, assert they are present and ordered, then slice:\n```js\nconst start = text.indexOf(\"### A. Entry\");\nconst end = text.indexOf(\"### B. Prelude\");\n\nassert.notStrictEqual(start, -1);\nassert.notStrictEqual(end, -1);\nassert.ok(start < end);\n\nconst entry = text.slice(start, end);\n```\n\n### 2. Use table-driven assertions for expected and forbidden wording\n**File:** `tests/unit/flow/skill-prelude-auto.test.js`  \n**Issue:** The new test repeats several `assert.match` / `assert.doesNotMatch` calls with hard-coded prose patterns, which will get noisier as wording requirements grow.  \n**Suggestion:** Group patterns into `forbiddenPatterns` and `requiredPatterns` arrays and iterate over them. This keeps the test easier to extend while preserving the same coverage.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Add explicit section-boundary assertions",
+        "body": "**File:** `tests/unit/flow/skill-prelude-auto.test.js`  \n**Issue:** The test slices with `text.indexOf(...)` directly. If `\"### B. Prelude\"` or `\"### A. Entry\"` is missing, `indexOf` returns `-1`, and the slice can still produce misleading text instead of failing clearly.  \n**Suggestion:** Store both indexes, assert they are present and ordered, then slice:\n```js\nconst start = text.indexOf(\"### A. Entry\");\nconst end = text.indexOf(\"### B. Prelude\");\n\nassert.notStrictEqual(start, -1);\nassert.notStrictEqual(end, -1);\nassert.ok(start < end);\n\nconst entry = text.slice(start, end);\n```",
+        "file": "tests/unit/flow/skill-prelude-auto.test.js"
+      },
+      {
+        "title": "2. Use table-driven assertions for expected and forbidden wording",
+        "body": "**File:** `tests/unit/flow/skill-prelude-auto.test.js`  \n**Issue:** The new test repeats several `assert.match` / `assert.doesNotMatch` calls with hard-coded prose patterns, which will get noisier as wording requirements grow.  \n**Suggestion:** Group patterns into `forbiddenPatterns` and `requiredPatterns` arrays and iterate over them. This keeps the test easier to extend while preserving the same coverage.",
+        "file": "tests/unit/flow/skill-prelude-auto.test.js"
+      }
+    ]
+  }
+}

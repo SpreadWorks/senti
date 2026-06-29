@@ -9,7 +9,70 @@ This skill drives a full Spec-Driven Development flow from an explicitly started
 
 ## Core Principle
 
-<!-- include("@skills/partials/core-principle.md") -->
+**MUST: When a rule in this skill conflicts with a memory entry (e.g. `feedback_*.md` referenced from `MEMORY.md`), the skill rule takes precedence.** Memory entries that contradict skill rules should be considered stale; update or delete them.
+
+**Use the CLI's `requires_approval` field to decide whether user confirmation is required before a step.**
+Do not ask the user to confirm routine step execution when `requires_approval: false`.
+
+**autoApprove check (MANDATORY):**
+Before presenting any choice to the user, you MUST run `senti flow get status` and display the `autoApprove` field value. This is not optional — skipping this check is a protocol violation.
+- If the current flow `runId` is known, prefer `senti flow get status <runId>` so the check reads the target flow instead of an unrelated current context.
+- Do not run target-aware status checks before starting a new flow. `senti flow set init` and `senti flow prepare --run-id <runId>` create a new target; unrelated active flows must not block that prelude.
+- If the user explicitly continues an existing flow and the target Issue is known, run `senti flow get status <runId> --expect-issue <n>` when `runId` is known. Without a target `runId`, use bare status for display and do not treat another active flow as authorization to continue it.
+- If the user explicitly continues an existing spec target, run `senti flow get status --expect-spec <spec>` before dispatcher actions.
+- If the user explicitly continues an existing runId target for dispatcher continuation, run `senti flow get status <runId> --expect-run-id <runId>` before dispatcher actions.
+- If any target-aware status call returns `ACTIVE_FLOW_MISMATCH`, STOP before `next-action`, `repair`, `run`, `finalize`, or `cleanup`. Target mismatch is a safety guard and MUST NOT be bypassed by `autoApprove` or `requires_approval`.
+- A preparing flow still reports `autoApprove: false` in status; use the `senti flow set auto on --run-id <runId>` response and `senti flow prepare --run-id <runId>` inheritance for prelude auto mode.
+- Bare `senti flow get status` remains valid for current-context display and for detecting whether any active flow exists before a runId is known.
+- If the next-action envelope has `requires_approval: false`, execute the step without a "run this step?" confirmation. This applies even when `autoApprove: false`.
+- If `requires_approval: true` and `autoApprove: false` (or field is missing): present the choice to the user and wait for input.
+- If `requires_approval: true` and `autoApprove: true`: treat choice id=1 as selected and proceed immediately. Display progress briefly (e.g. "auto: approval → [1] 承認").
+- Continue without waiting when the step does not require approval, or when `autoApprove: true` satisfies a required approval.
+- If a step fails (command error, gate FAIL, test failure), apply the retry limits defined in each skill. If the retry limit is reached, STOP and return control to the user.
+
+**autoApprove exceptions (MUST present to user even when `autoApprove: true`):**
+The following user-facing choices are explicit exceptions to the auto-select rule because silently picking `[1]` would risk irreversible loss:
+- `finalize-cleanup` orphan-commit recovery prompt (`ORPHAN_COMMITS_DETECTED`): always present the cherry-pick / abort / force-continue choice to the user. Do not auto-select. See `flow.run.finalize-cleanup` for details.
+- Any choice whose envelope error code begins with `SQUASH_BASELINE_` or `FORCED_ORPHAN_`: surface the recovery guidance verbatim and let the user decide.
+
+### MUST
+**MUST: AI は `senti flow set auto on` を自分で実行してはならない。** auto モード切替はユーザーの明示的指示（`/senti.flow-auto` 等）でのみ実行する。
+
+### Why
+auto モードは AI が確認なしに進行できるため、誤動作時の影響が大きい。AI が独断で auto を有効化すると、ユーザーの判断機会を奪う重大な逸脱となる。過去 4 件の事例あり。
+
+### How to apply
+- envelope の `requires_approval: true` を見ても、AI 側で auto を有効化することはしない。
+- ユーザーが interactive Q&A 中の場合、auto モード reminder が context にあっても判断を待つ。
+- `flow get next-action` の autoUpgrade.available === true でも、AI が `set auto on` を自走実行してはならない（ユーザーが選択肢で `[1]` を選ぶまで待機）。
+
+### MUST
+**MUST: Spec-Driven Development フロー内では、CLI の `requires_approval` が true のアクションだけユーザー承認を要求する。** `requires_approval: false` の通常 step では、実行確認の選択肢を出さずに step instruction を実行する。
+
+### Why
+`requires_approval` は CLI 側が持つ承認境界である。skill 側が全 step で確認を挟むと、draft-questions-review などの機械的 step まで不要に停止し、CLI の承認設計と矛盾する。
+
+### How to apply
+- `flow get next-action` の `requires_approval` が false なら、「実行しますか？」の確認を出さずに指示を実行する。
+- `requires_approval` が true か、autoUpgrade / エラー復旧 / ユーザー回答が必要な QA loop の場合だけ Choice Format で確認する。
+- step 完了後は次の `flow get next-action` を読み、同じルールで判断する。
+
+**MUST: 即答せず、要件・前提・例外を洗い出してから回答する。** 実装着手前に要件を列挙し、完了時に突き合わせる。
+
+**MUST: 場当たり的な修正をしない。** 同種の箇所を grep し、既存の仕組みを調べてから設計する。1 箇所だけ直して残りを放置するパターンは禁止。
+
+**MUST: Issue を勝手に分割提案しない。** ユーザーが定義した Issue が 1 つの concern であるかはユーザーの判断。AI は Issue を複数の spec に分割する提案をしない。
+
+**MUST: 承認済みのコミット分割は auto モードでも遵守する。** finalize-commit 時に「論理的に複数コミットに分けてレビュー可能性を高める」と合意済みの場合、auto モードでも 1 コミットに squash しない。
+
+**MUST: `senti` コマンドをチェーン (`&&` `;` `|`) または background 実行してはならない。** 各 `senti` 呼び出しは独立した foreground Bash で実行し、結果を確認してから次へ進む。
+
+**Flow runtime log rule (MANDATORY):**
+- Never hardcode `/tmp/...` for flow-related logs or temporary files.
+- When a flow command needs an agent/tmp/log base directory for the current invocation, pass `--agent-work-dir <path>` to `senti flow run ...`.
+- Flow commands automatically append stdout/stderr to `.tmp/logs/<flowId>.log`, or `.tmp/logs/no-flow.log` when no flow is active.
+- Use `senti flow get runtime-log` to inspect the latest flow command output after failures.
+- Do not wrap flow commands with environment-variable prefixes or shell redirection just to capture logs; keep the command prefix as `senti flow ...` so approval-prefix rules can match it.
 
 ### Prompt guidance placement contract
 
@@ -17,13 +80,28 @@ When implementing prompt guidance movement between flow skill files or flow prom
 
 ## Flow Progress Tracking
 
-<!-- include("@skills/partials/flow-tracking.md") -->
+**MUST: Run `senti flow set step <id> <val>` upon completion of each step to record flow progress.**
+
+Post-hook-managed exceptions:
+
+| Step | Command | Auto-advance condition |
+|---|---|---|
+| `scenario-validity` | `senti flow run scenario-validity` | every testable requirement is `expected_fail`; any other classification keeps the step active |
+| `test-execute` | `senti flow run test-execute` | valid v2 artifact is written |
+| `test-result-review` | `senti flow run test-result-review` | review verdict is `pass` |
+| `retro` | `senti flow run retro` | command succeeds |
+| `final-regression` | `senti flow run final-regression` | final project regression passes |
+| `finalize-*` leaves | `senti flow run finalize-commit`, `finalize-merge`, `finalize-sync`, `finalize-cleanup` | each command succeeds for its own leaf |
+
+Do not advance these manually. Manual completion must not mask blocked scenario-validity classifications, prerequisite failures, invalid v2 test artifacts, deferred full regression, or failed final-regression evidence.
 
 All flow step IDs are defined in the CLI schema. The dispatcher obtains the current step and instructions from `senti flow get next-action` — the skill itself does not encode per-step sequencing.
 
 ## Context Recording (Compaction Resilience)
 
-<!-- include("@skills/partials/context-recording.md") -->
+**MUST: Record key decisions for compaction recovery.**
+
+- After each user choice, record: `senti flow set note "<step>: <choice summary>"`
 - After flow.json is created (prelude step), record the request: `senti flow set request "<user's original request>"`
 
 ## Metric Recording (Read Tool)
@@ -38,9 +116,126 @@ Note: `senti flow get context` automatically records these metrics via hooks —
 
 ## Choice Format
 
-<!-- include("@skills/partials/choice-format.md") -->
+Present choices in the following format:
+```
+──────────────────────────────────────────────────────────
+  Description (question or situation)
+──────────────────────────────────────────────────────────
 
-<!-- include("@skills/partials/ai-question-style.md") -->
+  [1] Label
+  [2] Label
+  [3] Other
+
+```
+- Do not combine the description and choices into one sentence. Description goes inside the lines, choices go outside.
+- Add blank lines before and after the choices.
+
+**MUST: ユーザーへの全ての質問は Choice Format で提示する。** ラベル + 1 行注釈の選択肢。詳細説明は選択肢ブロックの外（上側）に独立配置する。free-form question 禁止（applied user-requested changes の確認も含む）。
+
+<!-- ai-question-style.md — shared style rules for AI-generated questions and choices -->
+
+## AI Question / Choice Style Rules
+
+These rules apply to every question and option block that the AI presents to the user.
+The goal is to produce output that is consistent in granularity, tone, and structure
+regardless of which model renders it.
+
+### 1. 文体 (Prose Style)
+
+- 結論先出し。前置き・総括文を省く。
+- 一文を短く。修飾の入れ子を避ける。
+- 体言止め・箇条書きで密度を上げる。
+- 二重譲歩を畳む。
+- 曖昧な修飾語を避ける: `strict`, `autonomous`, `low impact`, `backward-compatible`,
+  `appropriate`, `fast`, `easy` など検証不能な語。検証可能な条件に書き換える。
+
+**悪い例:**
+> 既存機能への影響はおそらく低く、互換性を保てるような形で統合される可能性があります。
+
+**良い例:**
+> 既存機能への影響なし。R1 / R2 のみ追加。既存本文は変更しない。
+
+### 2. 前提知識 (Assumed Knowledge)
+
+- 専門用語を出したら 1-2 行で定義を添える。
+- 読者が該当コードを開いていない前提で書く。
+- 関数名・ファイル名・CLI だけ挙げず、何をするものか短く記す。
+
+**悪い例:**
+> buildGuardrailPrompt を差し替えて agent.call のコストを下げます。
+
+**良い例:**
+> `buildGuardrailPrompt` (= gate 評価 prompt を組み立てる関数) を置換。
+> agent.call は Claude / codex CLI を外部 spawn する関数で、呼び出し 1 回が数秒コスト。
+
+### 3. 選択肢提示 (Choice Presentation)
+
+- 選択肢ブロック内は「ラベル」＋「1 行注釈」のみ。複数行の説明を詰めない。
+- 比較・評価・pros/cons の詳細は、選択肢ブロックの外（上側の本文）に独立配置する。
+- 推奨案があれば明示し、根拠を 1-2 行で添える。
+- 推奨案がある場合、推奨案を `[1]` に配置する。同率トップ（僅差）が複数ある場合は 1 件を `[1]` に置き、残り候補は本文側で補足する。推奨案が無い場合は配置ルールを発動させない（並び順は自由）。
+- 選択肢内に新規 API / ファイル / コマンドを挙げるときは、本文側で以下を 3-5 行示す:
+  - 関数: シグネチャ例（引数型・戻り値型・呼び出し例）
+  - CLI: 呼び出し例と出力 JSON 例
+  - ファイル: 想定される中身のスケッチ
+
+**悪い例（選択肢内に詳細を詰め込む）:**
+
+```
+  [1] 共通パーシャル化
+      pros: DRY。編集が 1 箇所で済む。既存の include 基盤を流用できる。
+            upgrade でユーザーに反映される。
+      cons: get-step-instructions.js の改修が必要。既存パーサーを流用するので
+            コスト小。
+  [2] コピー埋め込み
+      ...
+```
+
+**良い例（本文で比較、選択肢はラベル + 短注釈）:**
+
+> 共通パーシャル化 vs コピー埋め込みの比較:
+>
+> | 方式 | 編集コスト | 同期リスク | 実装差分 |
+> |---|---|---|---|
+> | パーシャル | 1 箇所 | なし | ローダ改修あり |
+> | コピー | 2 箇所 | あり | なし |
+
+```
+  [1] 共通パーシャル化（推奨）
+  [2] コピー埋め込み
+```
+
+### 4. Turn Structure for User Decisions (Required)
+
+Although these rules are written in English, perform reasoning AND user-facing output in the user's response language. The only tokens that may remain in the source language are: code identifiers (function/class/variable names, file paths, command names, CLI flags, error codes), library/package names, and proper product/brand names. Every other token MUST be translated into the response language.
+
+Every turn that asks the user to choose, decide, or confirm MUST contain all five sections below in order:
+
+1. **Decision statement** (REQUIRED, 1 sentence): explicitly state what is being decided.
+2. **Recommendation + rationale** (REQUIRED, 1-3 sentences): name the recommended option and give the reason. If no recommendation is possible, REQUIRED to explicitly state that no recommendation is possible, with the reason — do not skip this section.
+3. **Comparison** (REQUIRED, one short paragraph or 2-4 bullets): how the recommended option differs from each alternative. This section is mandatory even when options are equivalent — in that case, state how they differ in trade-offs.
+4. **Options block** (REQUIRED): list every option as "label — one-line note". Each option MUST appear. Mark the recommended one explicitly.
+5. **Response instruction** (REQUIRED, 1 sentence): tell the user exactly what to type/say to advance.
+
+ABSOLUTELY PROHIBITED:
+
+- Skipping any of the 5 sections above.
+- Producing a single-line response when a decision is being asked.
+- Listing facts and asking "which one?" without providing the recommendation section.
+- Leaving foreign-language tokens in prose that have natural equivalents in the response language.
+
+All sections marked REQUIRED must appear regardless of whether the AI internally judges them necessary; the structure itself is the contract.
+
+### MUST
+**MUST: 議論の途中で「結論:」「決定:」と独断で締めてはならない。** 設計判断はユーザーが決定者である。AI は選択肢とトレードオフを示し、ユーザーの選択を待つ。
+
+### Why
+過去のセッションで、AI が議論を勝手に締めて方向性を確定させ、ユーザーが意図しない実装に進んだ事例が 8 件発生している。AI が議論をリードしすぎると、ユーザーの判断機会を奪う。
+
+### How to apply
+- このルールが表示されたフェーズでは、複数の選択肢があり得る論点を必ず Choice Format で提示する。
+- 「結論:」「決定:」「方針が確定した」等の語で議論を締めない。「推奨:」「私の見解:」までに留める。
+- ユーザーが明示的に選択肢を指定するまで、AI は最終決定を確定させない。
 
 ## Required Sequence
 
@@ -130,7 +325,10 @@ Note:
 - On impl-gate FAIL, show every Observation from `data.artifacts.nextAction.diagnosis.observations` and use those observations as the primary repair input.
 - When updating base guardrails, apply the guardrail rewrite rubric: named violation, diff-verification condition, and severity-policy.
 
-<!-- include("@skills/partials/placeholder-artifact-permission.md") -->
+Placeholder artifact permission:
+- Do not write placeholder test artifacts to satisfy the flow.
+- If real execution is unavailable and the user explicitly permits a placeholder, record `specs/<spec>/placeholder-permission.json` with `version: 1`, `phase: "integration"`, `approvedByUser: true`, `artifactPaths`, `permissionText`, `reason`, and `createdAt`.
+- Without that record, flow-level `impl-gate` rejects the artifact with `ARTIFACT_PLACEHOLDER`.
 
 ### C. Dispatcher loop
 
@@ -205,7 +403,26 @@ These apply to every step executed by the dispatcher. They are enforced here bec
 
 ### Worktree boundary
 
-<!-- include("@skills/partials/worktree-mode.md") -->
+When `worktree: true` in flow.json:
+- **All file operations (editing, creating, reading) MUST be done inside the worktree directory.** Do not edit files in the main repository.
+- Run `senti flow get status` to see the worktree path. Use absolute paths if needed.
+- The worktree is an isolated copy — changes in the main repo are NOT visible in the worktree and vice versa.
+- **Flow state definitions:**
+  - **Flow is active** — BOTH of the following hold simultaneously (AND):
+    - `senti flow get status` returns `active: true`.
+    - The worktree directory still exists on disk (verifiable via `test -d <worktree-path>`).
+  - **Flow is released** — EITHER of the following has flipped (OR); either one alone is sufficient:
+    - `senti flow get status` returns `active: false` — the flow has ended.
+    - The worktree directory no longer exists (`test -d <worktree-path>` fails) — cleanup has deleted it.
+- **MUST: While the flow is active (per the definition above), never `cd` out of the worktree path.**
+- **Once the flow is released, the worktree boundary is lifted and `cd` out of the (former) worktree path is allowed.**
+- **Once `senti flow run finalize-cleanup` completes successfully (envelope `ok: true`), both release conditions flip together: the worktree directory is removed and `flow get status` reports `active: false`.** The cleanup command owns finalize Report delivery and removes the worktree; subsequent `senti` commands run from the main repository because the worktree no longer exists.
+- **Halt envelopes (e.g. `ORPHAN_COMMITS_DETECTED`, `SQUASH_BASELINE_MISSING`, `SQUASH_BASELINE_DIVERGED`, `MAIN_REPO_DIRTY`, `MAIN_REPO_LOCKED`, `CHERRY_PICK_CONFLICT`, `ARGS_ERROR`) leave the worktree boundary in effect.** The worktree directory and feature branch are intentionally retained so the user can recover (e.g. archive the branch, run `--auto-rescue`, or re-run with `--force`). Until the next `finalize-cleanup` invocation succeeds, do NOT cd out of the worktree.
+- **MUST: Never run `git stash` / `git stash pop` / `git stash apply` / `git reset --hard` / `git checkout -- <path>` in the main repository while the flow is active.** Stashes, resets, and checkouts on shared state can restore stale content (e.g. unrelated stashes from other branches), introduce conflicts, and corrupt the main working tree — even when the flow's own worktree is unaffected.
+- **If baseline comparison (e.g., running tests on `baseBranch` to compare failure counts) is required, do NOT cd into the main repo.** Instead, create a short-lived detached worktree (`git worktree add --detach <tmp-path> <baseBranch>` in an allowed location, run the comparison there, then remove it with `git worktree remove <tmp-path>`). When in doubt, reuse evidence already captured in prior `issue-log.json` entries rather than re-measuring against `main`.
+- **MUST: During an active worktree flow, never pass a main repo absolute path as the file-path argument to Edit/Write tool calls.** Allowed alternatives are (a) a relative path from the worktree cwd, or (b) an absolute path under the `worktreePath` returned by `senti flow get resolve-context`. Rationale: Edit/Write writes to whatever absolute path it receives regardless of the shell's cwd, so a main-repo path silently bypasses the worktree and mutates shared state. Paths surfaced by Read/Grep that resolve to the main repo must be rewritten to the worktree equivalent before being passed to Edit/Write.
+
+**MUST: active flow 中は main リポジトリで `git stash` / `git stash pop` / `git stash apply` / `git reset --hard` / `git checkout -- <path>` を実行してはならない。** 別ブランチ由来の stale な stash 復元・共有状態破壊を防ぐ。ベースライン比較は短命の detached worktree を使う。
 - Before merge, consider running `git rebase <baseBranch>` in the worktree to incorporate upstream changes and avoid post-merge test failures.
 - The finalize phase is decomposed into 4 independent leaf steps driven by the dispatcher: `finalize-commit` → `finalize-merge` → `finalize-sync` → `finalize-cleanup`. Each step has its own CLI command (`senti flow run finalize-commit`, etc.) and prompt. Each command's post hook normalizes its own step status to `done` on success — do not advance these steps manually.
 - **MUST: Do NOT run `senti flow run finalize-cleanup` in background.** Run it in the foreground and wait for it to complete before proceeding.
@@ -246,7 +463,48 @@ When implementation reveals that the spec needs additional tasks:
 
 ## Issue Log Recording
 
-<!-- include("@skills/partials/issue-log-recording.md") -->
+**MUST: When a fix, correction, or workaround is needed (e.g., a command fails, a gate check reveals an issue, a test reveals a bug, a design assumption turns out wrong), record it immediately:**
+
+```
+senti flow set issue-log --step <current-step> --reason "<what went wrong>" --trigger "<what triggered the issue>" --resolution "<how it was fixed>" --guardrail-candidate "<principle to prevent recurrence>"
+```
+
+- Do not defer recording — record as soon as the fix is applied.
+- `--reason` and `--step` are required. `--trigger`, `--resolution`, `--guardrail-candidate` are optional but recommended.
+- Minimum length (enforced by the CLI): `--reason` 20 chars (trimmed), optional fields 10 chars (trimmed). Shorter inputs are rejected with a non-zero exit code.
+- This creates `specs/<spec>/issue-log.json`. The file persists with the spec.
+
+### When to record
+
+Record in issue-log when any of the following occur:
+
+- A test failure reveals a production code bug that is outside the current spec's scope (the bug exists independently of this spec's changes).
+- A test is adjusted to match current (incorrect) behavior because the spec prohibits production code changes — the underlying bug must not be silently lost.
+- A worktree creation or deletion operation fails (e.g., path conflict, branch already exists).
+- A merge conflict occurs during rebase or merge.
+- A commit fails (including pre-commit hook failures).
+- A workaround is applied instead of a proper fix (e.g., retrying a command with different flags, skipping a step due to an environment issue).
+- A design assumption documented in the spec turns out to be wrong during implementation.
+- A gate check fails and requires spec or code correction.
+
+**Key principle:** If a problem is discovered but not fixed in this spec's scope, it MUST be recorded so it is not forgotten. This is especially critical in auto mode where no human is watching.
+
+### Examples
+
+```bash
+# Test revealed a production code bug outside spec scope
+senti flow set issue-log --step test \
+  --reason "fixUnescapedQuotes mishandles nested quotes — test adjusted to match current behavior" \
+  --trigger "unit test for edge case with nested single quotes inside double-quoted values" \
+  --resolution "adjusted test expectation to match current (incorrect) behavior per spec constraint" \
+  --guardrail-candidate "when a test reveals a pre-existing bug, always record it before adjusting the test"
+
+# Worktree merge conflict
+senti flow set issue-log --step finalize \
+  --reason "merge conflict in SKILL.md due to upstream changes during implementation" \
+  --trigger "git merge development into feature branch" \
+  --resolution "manually resolved conflict, kept both upstream and feature changes"
+```
 
 ## Commands (reference)
 

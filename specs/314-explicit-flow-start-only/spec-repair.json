@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied generated agent-file refresh requirement and verification coverage.",
+  "items": [
+    {
+      "title": "Generated agent files lack a refresh target",
+      "target": "R1/R5, Scope In, Data Flow",
+      "decision": "applied",
+      "rationale": "The spec now names the setup/docs-agent regeneration path for generated AGENTS.md and CLAUDE.md, adds R6 for readable generated agent guidance, and extends acceptance/tests to verify the old startup wording is not retained.",
+      "evidence": "spec.json scope.in, overview.data_flow, requirements R6, acceptance_criteria R6, implementationTargets, and T-3 now cover generated agent-file refresh and verification.",
+      "changedFields": [
+        "scope.in",
+        "overview.data_flow",
+        "requirements",
+        "acceptance_criteria",
+        "implementationTargets",
+        "tasks[T-3].acceptance",
+        "tasks[T-3].implementation_notes",
+        "tasks[T-3].test_strategy"
+      ]
+    }
+  ]
+}

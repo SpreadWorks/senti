@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-06-29T07:39:05.695Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 2,
+    "nonBlocking": 0,
+    "total": 2
+  },
+  "blockingFindings": [
+    {
+      "title": "Missing upgrade evidence and preset refresh",
+      "failureMode": "missing_acceptance_requirement",
+      "requirementId": "R5",
+      "issue": "The diff changes `src/skills/` and `src/presets/` sources but does not include the required `specs/314-explicit-flow-start-only/upgrade-result.json` evidence or refreshed `.senti/presets/base/*` generated preset artifacts mapped to R5.",
+      "suggestion": "Run `senti upgrade` for the source skill/preset changes and include the resulting `specs/314-explicit-flow-start-only/upgrade-result.json` plus any refreshed generated preset artifacts required by the upgrade output.",
+      "rationale": "R5 requires generated skill and preset artifacts to be refreshed after source template changes using `senti upgrade`; without the upgrade evidence/artifacts, the implementation cannot prove generated consumers match the updated sources."
+    },
+    {
+      "title": "Generated AGENTS guidance not refreshed",
+      "failureMode": "missing_acceptance_requirement",
+      "requirementId": "R6",
+      "issue": "The diff updates `CLAUDE.md` but does not update or show verification for generated `AGENTS.md`, even though R6 requires generated readable agent guidance to be refreshed or verified so old automatic startup wording is not retained.",
+      "suggestion": "Regenerate or update the `AGENTS.md` agents.senti block through the setup/docs-agent regeneration path and include it in the implementation, or include the required verification artifact showing it already matches the updated template.",
+      "rationale": "R6 explicitly covers generated `AGENTS.md`; leaving it out can leave the old mandatory flow/direct-edit startup wording in a user-readable generated file."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/314-explicit-flow-start-only/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "aba4699f2e8cf5505a8942e1ef22f7d154b9e6d2810a00959caf5950f6a812b2"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "impl-004-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Missing upgrade evidence and preset refresh",
+      "body": "The diff changes `src/skills/` and `src/presets/` sources but does not include the required `specs/314-explicit-flow-start-only/upgrade-result.json` evidence or refreshed `.senti/presets/base/*` generated preset artifacts mapped to R5.",
+      "category": "missing_acceptance_requirement"
+    },
+    {
+      "id": "impl-004-blocking-002",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Generated AGENTS guidance not refreshed",
+      "body": "The diff updates `CLAUDE.md` but does not update or show verification for generated `AGENTS.md`, even though R6 requires generated readable agent guidance to be refreshed or verified so old automatic startup wording is not retained.",
+      "category": "missing_acceptance_requirement"
+    }
+  ]
+}

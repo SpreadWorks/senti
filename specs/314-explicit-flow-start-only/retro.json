@@ -1,0 +1,49 @@
+{
+  "spec": "specs/314-explicit-flow-start-only/spec.json",
+  "date": "2026-06-29T08:40:48.724Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "AGENTS templates must not require a flow/direct edit choice for ordinary feature, fix, code change, investigation, or consultation requests.",
+      "status": "done",
+      "note": "R1: AGENTS templates use explicit-start-only policy"
+    },
+    {
+      "desc": "senti.flow skill metadata and entry guidance must start a new flow only when the user explicitly instructs Spec-Driven Development flow start, or when continuing an active flow.",
+      "status": "done",
+      "note": "R2: senti.flow skill entry guidance has no non-explicit route choice"
+    },
+    {
+      "desc": "Migration parity must retain explicit flow start, prelude, auto-check, prepare, dispatcher loop, and active flow continuation behavior after removing automatic startup confirmation.",
+      "status": "done",
+      "note": "R3: retained manual-start and active-continuation surfaces remain mapped"
+    },
+    {
+      "desc": "Tests must verify that old automatic startup confirmation wording is absent and retained explicit-start / active-continuation routes remain documented.",
+      "status": "done",
+      "note": "R4: old mandatory startup policy is absent from all policy sources"
+    },
+    {
+      "desc": "Generated skill and preset artifacts must be refreshed after source template changes using senti upgrade.",
+      "status": "done",
+      "note": "R5: upgrade refreshes generated skill or preset artifacts"
+    },
+    {
+      "desc": "Generated AGENTS.md and existing CLAUDE.md agent guidance must be refreshed or verified through the setup/docs-agent regeneration path so old automatic startup wording is not retained in readable generated files.",
+      "status": "done",
+      "note": "R6: generated AGENTS and CLAUDE guidance do not retain automatic startup wording"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 6,
+    "done": 6,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

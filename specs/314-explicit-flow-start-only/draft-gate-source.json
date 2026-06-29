@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "変更対象が既存の自動起動/確認フローの挙動を残さず外部化・変更するものであるのに、既存の公開振る舞い（AGENTS テンプレートの文言確認、SKILL の preflight A.0 ルート選択、ユーザー開始手順）を網羅的に列挙するマイグレーション対象インベントリが本文にない。",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft.json",
+            "locator": "scopeVerification"
+          },
+          "observed": "変更対象が既存の自動起動/確認フローの挙動を残さず外部化・変更するものであるのに、既存の公開振る舞い（AGENTS テンプレートの文言確認、SKILL の preflight A.0 ルート選択、ユーザー開始手順）を網羅的に列挙するマイグレーション対象インベントリが本文にない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "`should` の保持要件はあるが、残存する各公開振る舞いを新所有者へ移譲するか削除するかの明示的な対応表がなく、保持対象ごとの移譲先/除去判断が定義されていない。",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft.json",
+            "locator": "impactOnExisting"
+          },
+          "observed": "`should` の保持要件はあるが、残存する各公開振る舞いを新所有者へ移譲するか削除するかの明示的な対応表がなく、保持対象ごとの移譲先/除去判断が定義されていない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "残存振る舞いの新経路での動作検証は「旧自動起動規則が残らないこと」のテストのみで、registration/discovery程度に留まり、各保持公開サーフェス（例: `$senti.flow`/`/senti.flow`/`senti flow` の開始系、active flow の継続系）を新条件下で確認する明確な行動レベルの受け入れ基準が不足している。",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft.json",
+            "locator": "qa"
+          },
+          "observed": "残存振る舞いの新経路での動作検証は「旧自動起動規則が残らないこと」のテストのみで、registration/discovery程度に留まり、各保持公開サーフェス（例: `$senti.flow`/`/senti.flow`/`senti flow` の開始系、active flow の継続系）を新条件下で確認する明確な行動レベルの受け入れ基準が不足している。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft.json",
+        "locator": "scopeVerification"
+      },
+      "observed": "変更対象が既存の自動起動/確認フローの挙動を残さず外部化・変更するものであるのに、既存の公開振る舞い（AGENTS テンプレートの文言確認、SKILL の preflight A.0 ルート選択、ユーザー開始手順）を網羅的に列挙するマイグレーション対象インベントリが本文にない。",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft.json",
+        "locator": "impactOnExisting"
+      },
+      "observed": "`should` の保持要件はあるが、残存する各公開振る舞いを新所有者へ移譲するか削除するかの明示的な対応表がなく、保持対象ごとの移譲先/除去判断が定義されていない。",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft.json",
+        "locator": "qa"
+      },
+      "observed": "残存振る舞いの新経路での動作検証は「旧自動起動規則が残らないこと」のテストのみで、registration/discovery程度に留まり、各保持公開サーフェス（例: `$senti.flow`/`/senti.flow`/`senti flow` の開始系、active flow の継続系）を新条件下で確認する明確な行動レベルの受け入れ基準が不足している。",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    }
+  ]
+}

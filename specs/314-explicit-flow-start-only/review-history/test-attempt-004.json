@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-06-29T07:17:19.968Z",
+  "verdict": "ADVISORY",
+  "counts": {
+    "blocking": 0,
+    "advisory": 1,
+    "total": 1
+  },
+  "coverageArtifact": "specs/314-explicit-flow-start-only/test-coverage.json",
+  "blockingFindings": [],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R2 metadata coverage is implicit",
+      "target": "specs/314-explicit-flow-start-only/tests/explicit-flow-start-only.test.js",
+      "improvement": "Add a metadata-specific assertion if the skill file has frontmatter or structured metadata, so the test verifies the metadata itself carries the explicit-start-only guidance rather than only matching the full file text.",
+      "whyNonBlocking": "The current test reads the full skill file and checks for forbidden startup wording plus explicit-start guidance, so the requirement has meaningful coverage; the gap is precision rather than absence of coverage."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/314-explicit-flow-start-only/test-review.json",
+    "verdict": "ADVISORY",
+    "result": "ADVISORY",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": "implement",
+    "completionKind": "normal",
+    "progressSignature": "c3cedf810690f4a4951685dd564934c91f839febccd12bffedbf5ae4492caea4"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "test-004-non-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "non-blocking",
+      "title": "R2 metadata coverage is implicit",
+      "body": "R2 metadata coverage is implicit",
+      "category": "unknown"
+    }
+  ]
+}

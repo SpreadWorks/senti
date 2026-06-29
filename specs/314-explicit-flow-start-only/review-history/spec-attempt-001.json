@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "generatedAt": "2026-06-29T07:08:09.645Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "nonBlocking": 1,
+    "total": 2
+  },
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Generated agent files lack a refresh target",
+      "target": "R1/R5, Scope In, Data Flow",
+      "body": "**Target:** R1/R5, Scope In, Data Flow\n**Issue:** The spec says `senti upgrade` refreshes generated skill/template artifacts after `src/presets` changes, but the verified upgrade path only deploys skills and copies preset guardrail/rubric files. `src/upgrade.js` calls `deploySkills` and `deployPresetCopies`; `src/lib/preset-deploy.js` does not copy `AGENTS.senti.md` or rewrite generated agent files. Existing generated `AGENTS.md` and `CLAUDE.md` still contain automatic startup wording inside `{{data(\"agents.senti\")}}` blocks, and generated agent files are actually updated through `src/setup.js` or `src/docs/commands/agents.js`, not by the current upgrade implementation.\n**Required change:** Add a spec-level requirement/acceptance item that names the generated agent-file refresh path: either update `senti upgrade` to refresh the `agents.senti` directive blocks, or explicitly require running the existing setup/docs-agent regeneration path after template changes. The requirement should verify generated `AGENTS.md` and, when present, `CLAUDE.md` no longer retain the old automatic startup wording.\n**Why blocking:** If the spec is implemented as written, source templates and skill files can pass tests and `senti upgrade` can record evidence while the repository's generated agent guidance still tells agents to show the mandatory flow/direct-edit confirmation. That directly preserves the behavior the issue is trying to remove and leaves no acceptance test covering the actual generated guidance users read.",
+      "issue": "The spec says `senti upgrade` refreshes generated skill/template artifacts after `src/presets` changes, but the verified upgrade path only deploys skills and copies preset guardrail/rubric files. `src/upgrade.js` calls `deploySkills` and `deployPresetCopies`; `src/lib/preset-deploy.js` does not copy `AGENTS.senti.md` or rewrite generated agent files. Existing generated `AGENTS.md` and `CLAUDE.md` still contain automatic startup wording inside `{{data(\"agents.senti\")}}` blocks, and generated agent files are actually updated through `src/setup.js` or `src/docs/commands/agents.js`, not by the current upgrade implementation.",
+      "requiredChange": "Add a spec-level requirement/acceptance item that names the generated agent-file refresh path: either update `senti upgrade` to refresh the `agents.senti` directive blocks, or explicitly require running the existing setup/docs-agent regeneration path after template changes. The requirement should verify generated `AGENTS.md` and, when present, `CLAUDE.md` no longer retain the old automatic startup wording.",
+      "whyBlocking": "If the spec is implemented as written, source templates and skill files can pass tests and `senti upgrade` can record evidence while the repository's generated agent guidance still tells agents to show the mandatory flow/direct-edit confirmation. That directly preserves the behavior the issue is trying to remove and leaves no acceptance test covering the actual generated guidance users read."
+    }
+  ],
+  "nonBlockingImprovements": [
+    {
+      "kind": "improvement",
+      "title": "Mention generated-agent tests",
+      "target": "T-3 test_strategy",
+      "body": "**Target:** T-3 test_strategy\n**Improvement:** Add `tests/e2e/docs/commands/agents.test.js` and `tests/e2e/051-skill-namespace.test.js` as useful related test targets for generated `AGENTS.md` / `CLAUDE.md` behavior.\n**Why non-blocking:** Spec-local text checks can still prove the core policy, but these existing tests are a better fit for guarding the generation paths.",
+      "improvement": "Add `tests/e2e/docs/commands/agents.test.js` and `tests/e2e/051-skill-namespace.test.js` as useful related test targets for generated `AGENTS.md` / `CLAUDE.md` behavior.",
+      "whyNonBlocking": "Spec-local text checks can still prove the core policy, but these existing tests are a better fit for guarding the generation paths."
+    }
+  ],
+  "sourceArtifact": "spec-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "spec-001-blocking-001",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Generated agent files lack a refresh target",
+      "body": "**Target:** R1/R5, Scope In, Data Flow\n**Issue:** The spec says `senti upgrade` refreshes generated skill/template artifacts after `src/presets` changes, but the verified upgrade path only deploys skills and copies preset guardrail/rubric files. `src/upgrade.js` calls `deploySkills` and `deployPresetCopies`; `src/lib/preset-deploy.js` does not copy `AGENTS.senti.md` or rewrite generated agent files. Existing generated `AGENTS.md` and `CLAUDE.md` still contain automatic startup wording inside `{{data(\"agents.senti\")}}` blocks, and generated agent files are actually updated through `src/setup.js` or `src/docs/commands/agents.js`, not by the current upgrade implementation.\n**Required change:** Add a spec-level requirement/acceptance item that names the generated agent-file refresh path: either update `senti upgrade` to refresh the `agents.senti` directive blocks, or explicitly require running the existing setup/docs-agent regeneration path after template changes. The requirement should verify generated `AGENTS.md` and, when present, `CLAUDE.md` no longer retain the old automatic startup wording.\n**Why blocking:** If the spec is implemented as written, source templates and skill files can pass tests and `senti upgrade` can record evidence while the repository's generated agent guidance still tells agents to show the mandatory flow/direct-edit confirmation. That directly preserves the behavior the issue is trying to remove and leaves no acceptance test covering the actual generated guidance users read.",
+      "category": "unknown"
+    },
+    {
+      "id": "spec-001-non-blocking-002",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "Mention generated-agent tests",
+      "body": "**Target:** T-3 test_strategy\n**Improvement:** Add `tests/e2e/docs/commands/agents.test.js` and `tests/e2e/051-skill-namespace.test.js` as useful related test targets for generated `AGENTS.md` / `CLAUDE.md` behavior.\n**Why non-blocking:** Spec-local text checks can still prove the core policy, but these existing tests are a better fit for guarding the generation paths.",
+      "category": "unknown"
+    }
+  ]
+}

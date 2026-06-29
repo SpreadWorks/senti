@@ -1,0 +1,82 @@
+{
+  "devType": "refactor",
+  "goal": "Spec-Driven Development flow の自動起動条件を廃止し、ユーザーが明示的に開始を指示した場合だけ flow を開始する。",
+  "analysis": {
+    "problem": "現行の AGENTS template と senti.flow skill は、通常の機能追加・修正依頼でも flow/direct edit の二択確認を出す規則を持つ。この規則により、相談・調査・小規模修正などの通常対話で初動が重くなる。",
+    "proposedApproach": "自動起動確認を要求する文言を削除し、flow の開始条件をユーザーの明示的な開始指示へ限定する。手動開始手段、既存の flow 本体、active flow の再開経路は保持する。",
+    "validation": "Issue #408 は目的・範囲・非目的・受け入れ条件を明示している。grep により、自動起動ルールは src/presets/base/templates/*/AGENTS.senti.md と src/skills/senti.flow/SKILL.md に集中していることを確認した。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #408 は、通常の機能追加・修正・調査・相談では flow 起動確認を自動表示しないことを要求している。",
+      "must: flow 自体と手動開始手段は非目的により削除対象ではない。",
+      "must: src/presets/base/templates/en/AGENTS.senti.md と src/presets/base/templates/ja/AGENTS.senti.md には、通常の feature/fix/code change で二択確認を必須化する文言がある。",
+      "must: src/skills/senti.flow/SKILL.md には、明示起動していない feature/fix request を A.0 Route choice に送る記述がある。",
+      "should: src/skills/ または src/presets/ を変更した場合は senti upgrade を実行し、生成済み skill/template へ反映する必要がある。"
+    ],
+    "decisionPoints": [
+      "must: 自動起動 confirmation を削除し、明示開始 instruction の場合だけ flow prelude へ進む起動条件にする。",
+      "must: 特定クライアント固有の起動記法を一般条件として書かず、明示開始 instruction という環境非依存の条件へ寄せる。",
+      "must: active flow の継続・resume・target-aware guard は保持し、今回の変更で flow lifecycle を壊さない。",
+      "should: 既存テストの placement contract を更新し、旧 A.0 Route choice や二択確認の残存を検出する。"
+    ],
+    "resolvedByProjectRules": [
+      "must: Issue を複数 spec に分割しない。Issue #408 全体を単一 concern として扱う。",
+      "must: src/ 以下には特定プロジェクト固有の値を書かない。文言は汎用的な flow 起動条件として記述する。",
+      "must: 変更対象が src/skills/ と src/presets/ を含む場合、senti upgrade を実行する。",
+      "must: docs は自動生成領域を直接編集せず、source/template 側を更新する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: 明示開始 instruction の判定語彙は、特定クライアント記法ではなく、ユーザーが flow 開始を指示したことが分かる表現として spec で定義する。",
+      "must: migration parity inventory として、AGENTS template の自動二択確認、senti.flow skill の A.0 Route choice、明示開始時の prelude、active flow の continue/resume、flow 本体の dispatcher loop を列挙する。",
+      "must: migration parity mapping として、AGENTS template の自動二択確認は削除、senti.flow skill の非明示 feature/fix route は削除、明示開始時の prelude と active flow continuation は既存 senti.flow skill が保持、flow 本体は dispatcher loop が保持、と定義する。",
+      "must: migration parity verification として、通常依頼文では flow/direct edit 二択文言が存在しないこと、明示開始文では prelude に進むこと、active flow では dispatcher loop に進むことをテストで確認する。",
+      "should: 受け入れ条件の検証方法は、unit test と generated skill/template の文言検査として spec で具体化する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: 通常依頼に対する flow/direct edit の自動二択確認を廃止する。",
+      "must: Spec-Driven Development flow の開始条件を、ユーザーの明示的な開始指示へ限定する。",
+      "must: AGENTS template と senti.flow skill metadata / entry guidance の関連文言を環境非依存に統一する。",
+      "must: 旧自動起動規則が残らないことをテストで検証する。",
+      "must: migration parity inventory として、削除対象の公開振る舞いは「通常 feature/fix/code change 依頼で flow/direct edit 二択確認を出す AGENTS template 文言」と「非明示 feature/fix request を A.0 Route choice に送る senti.flow skill entry guidance」として扱う。",
+      "must: migration parity inventory として、保持対象の公開振る舞いは「ユーザーの明示開始指示から flow prelude を開始する手順」「active flow の continuation / resume」「draft 以降の dispatcher loop」「manual CLI fallback」として扱う。"
+    ],
+    "out": [
+      "must: Spec-Driven Development flow 自体は削除しない。",
+      "must: flow を手動で開始する手段は削除しない。",
+      "must: active flow の resume / continue / finalize の挙動は変更しない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: 通常の feature/fix/code change 依頼は、AGENTS template 上で flow/direct edit の二択確認を必須としなくなる。",
+    "must: `$senti.flow`、`/senti.flow`、`senti flow` などの手動開始経路は維持する。ただし一般説明では特定クライアント記法を前提にしない。",
+    "must: migration parity mapping として、AGENTS template の自動二択確認は削除する公開振る舞いであり、新所有者へ移譲しない。",
+    "must: migration parity mapping として、senti.flow skill の A.0 Route choice は削除する公開振る舞いであり、非明示通常依頼は flow skill の入口にしない。",
+    "must: migration parity mapping として、明示開始時の prelude、auto-check、prepare、dispatcher loop、active flow continuation は senti.flow skill の既存手順が所有し続ける。",
+    "must: migration parity verification として、通常依頼の文言検査は旧二択確認の不在を確認し、明示開始と active continuation の検査は既存手順が残ることを行動レベルで確認する。",
+    "should: 既存の preflight auto-check、worktree prepare、draft 以降の dispatcher loop は、明示開始後の内部手順として保持する。",
+    "should: docs/source freshness では source が docs より新しいため、実装後の docs 同期または finalize sync の扱いを確認する。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "must: Issue #408 の目的は、Spec-Driven Development flow をユーザーの明示的な開始指示がある場合だけ開始し、通常依頼では flow/direct edit の二択確認を自動表示しない、という理解で進めてよいか。",
+      "answer": "はい。must: Issue #408 の目的どおり、通常依頼では flow/direct edit の二択確認を自動表示せず、ユーザーが Spec-Driven Development flow の開始を明示した場合だけ開始する。must: 保持する公開振る舞いは、明示開始時の prelude、active flow continuation、draft 以降の dispatcher loop、manual CLI fallback である。",
+      "evidence": "Issue #408 Purpose / Acceptance Criteria。preflight prompt で Goal / Scope / Description を提示し、ユーザーが [1] Enable auto を選択した。",
+      "why": "Issue の非目的は flow 自体と手動開始手段の削除を除外しているため、開始条件だけを明示指示へ限定するのが root problem に対応する。",
+      "considered": "大きな変更では引き続き二択確認を出す案は、Issue #408 の「AI が有用と判断しても自動開始せず提案に留める」という受け入れ条件と衝突するため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-06-29T07:01:54Z",
+    "notes": "Preflight Goal / Scope / Description accepted by user with [1] Enable auto."
+  }
+}

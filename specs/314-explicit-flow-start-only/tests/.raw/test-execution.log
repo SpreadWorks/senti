@@ -1,0 +1,56 @@
+[senti] spec-local tests start
+command: node --test specs/314-explicit-flow-start-only/tests/explicit-flow-start-only.test.js
+TAP version 13
+# Subtest: R1: AGENTS templates use explicit-start-only policy
+ok 1 - R1: AGENTS templates use explicit-start-only policy
+  ---
+  duration_ms: 2.142692
+  type: 'test'
+  ...
+# Subtest: R2: senti.flow skill entry guidance has no non-explicit route choice
+ok 2 - R2: senti.flow skill entry guidance has no non-explicit route choice
+  ---
+  duration_ms: 2.121891
+  type: 'test'
+  ...
+# Subtest: R3: retained manual-start and active-continuation surfaces remain mapped
+ok 3 - R3: retained manual-start and active-continuation surfaces remain mapped
+  ---
+  duration_ms: 0.566443
+  type: 'test'
+  ...
+# Subtest: R4: old mandatory startup policy is absent from all policy sources
+ok 4 - R4: old mandatory startup policy is absent from all policy sources
+  ---
+  duration_ms: 1.033645
+  type: 'test'
+  ...
+# Subtest: R5: upgrade refreshes generated skill or preset artifacts
+ok 5 - R5: upgrade refreshes generated skill or preset artifacts
+  ---
+  duration_ms: 3.182177
+  type: 'test'
+  ...
+# Subtest: R6: generated AGENTS and CLAUDE guidance do not retain automatic startup wording
+ok 6 - R6: generated AGENTS and CLAUDE guidance do not retain automatic startup wording
+  ---
+  duration_ms: 0.650963
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 87.644944
+exitCode: 0
+[senti] requirement R1 result pass
+[senti] requirement R2 result pass
+[senti] requirement R3 result pass
+[senti] requirement R4 result pass
+[senti] requirement R5 result pass
+[senti] requirement R6 result pass
+[senti] spec-local tests end

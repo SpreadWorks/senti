@@ -1,0 +1,366 @@
+{
+  "entries": [
+    {
+      "step": "prepare-spec",
+      "reason": "flow prepare stopped because .senti/config.json had unstaged local state required for worktree creation",
+      "trigger": "senti flow prepare reported REQUIRED_WORKTREE_FILES_UNREFLECTED for .senti/config.json",
+      "resolution": "committed .senti/config.json with user approval, then reran prepare successfully",
+      "guardrailCandidate": "when prepare reports required worktree files are unreflected, resolve the source branch state before retrying prepare",
+      "taskId": null,
+      "timestamp": "2026-06-29T06:58:38.537Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "変更対象が既存の自動起動/確認フローの挙動を残さず外部化・変更するものであるのに、既存の公開振る舞い（AGENTS テンプレートの文言確認、SKILL の preflight A.0 ルート選択、ユーザー開始手順）を網羅的に列挙するマイグレーション対象インベントリが本文にない。; `should` の保持要件はあるが、残存する各公開振る舞いを新所有者へ移譲するか削除するかの明示的な対応表がなく、保持対象ごとの移譲先/除去判断が定義されていない。; 残存振る舞いの新経路での動作検証は「旧自動起動規則が残らないこと」のテストのみで、registration/discovery程度に留まり、各保持公開サーフェス（例: `$senti.flow`/`/senti.flow`/`senti flow` の開始系、active flow の継続系）を新条件下で確認する明確な行動レベルの受け入れ基準が不足している。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-29T07:02:20.626Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft.json",
+            "locator": "scopeVerification"
+          },
+          "observed": "変更対象が既存の自動起動/確認フローの挙動を残さず外部化・変更するものであるのに、既存の公開振る舞い（AGENTS テンプレートの文言確認、SKILL の preflight A.0 ルート選択、ユーザー開始手順）を網羅的に列挙するマイグレーション対象インベントリが本文にない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft.json",
+            "locator": "impactOnExisting"
+          },
+          "observed": "`should` の保持要件はあるが、残存する各公開振る舞いを新所有者へ移譲するか削除するかの明示的な対応表がなく、保持対象ごとの移譲先/除去判断が定義されていない。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft.json",
+            "locator": "qa"
+          },
+          "observed": "残存振る舞いの新経路での動作検証は「旧自動起動規則が残らないこと」のテストのみで、registration/discovery程度に留まり、各保持公開サーフェス（例: `$senti.flow`/`/senti.flow`/`senti flow` の開始系、active flow の継続系）を新条件下で確認する明確な行動レベルの受け入れ基準が不足している。",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "変更対象が既存の自動起動/確認フローの挙動を残さず外部化・変更するものであるのに、既存の公開振る舞い（AGENTS テンプレートの文言確認、SKILL の preflight A.0 ルート選択、ユーザー開始手順）を網羅的に列挙するマイグレーション対象インベントリが本文にない。"
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "`should` の保持要件はあるが、残存する各公開振る舞いを新所有者へ移譲するか削除するかの明示的な対応表がなく、保持対象ごとの移譲先/除去判断が定義されていない。"
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "残存振る舞いの新経路での動作検証は「旧自動起動規則が残らないこと」のテストのみで、registration/discovery程度に留まり、各保持公開サーフェス（例: `$senti.flow`/`/senti.flow`/`senti flow` の開始系、active flow の継続系）を新条件下で確認する明確な行動レベルの受け入れ基準が不足している。"
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate failed because migration parity inventory, mapping, and behavior-level verification were incomplete",
+      "trigger": "senti flow run gate --phase draft returned three migration-parity blocking observations",
+      "resolution": "added migration parity inventory, mapping, and verification requirements to draft.json",
+      "guardrailCandidate": "when changing public startup behavior, draft must inventory removed and retained surfaces before gate",
+      "taskId": null,
+      "timestamp": "2026-06-29T07:03:07.018Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The spec mandates spec-local coverage but does not include the required `// spec: R<N> ...` header convention for files under `specs/314-explicit-flow-start-only/tests/`, only listing the directory and test intentions.; Migration parity is described generally, but it does not enumerate all retained/changed public surfaces and side effects with a complete mapping of each retained behavior to its new owner or an explicit removal decision as required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-29T07:10:18.329Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements / acceptance_criteria / implementationTargets"
+          },
+          "observed": "The spec mandates spec-local coverage but does not include the required `// spec: R<N> ...` header convention for files under `specs/314-explicit-flow-start-only/tests/`, only listing the directory and test intentions.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "decisions.3-4 / design_principles.3"
+          },
+          "observed": "Migration parity is described generally, but it does not enumerate all retained/changed public surfaces and side effects with a complete mapping of each retained behavior to its new owner or an explicit removal decision as required.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "The spec mandates spec-local coverage but does not include the required `// spec: R<N> ...` header convention for files under `specs/314-explicit-flow-start-only/tests/`, only listing the directory and test intentions."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "Migration parity is described generally, but it does not enumerate all retained/changed public surfaces and side effects with a complete mapping of each retained behavior to its new owner or an explicit removal decision as required."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec gate failed because spec-local test header convention and migration parity mapping were not explicit enough",
+      "trigger": "senti flow run gate --phase spec reported spec-test-coverage and migration-parity blocking observations",
+      "resolution": "added spec-local // spec header acceptance and explicit migration inventory, retained behavior mapping, and side-effect mapping",
+      "guardrailCandidate": "when spec requires spec-local tests and migration parity, include header convention and surface-by-surface mapping before gate",
+      "taskId": null,
+      "timestamp": "2026-06-29T07:10:48.747Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test review failed because R3 spec-local coverage omitted the retained auto-check surface",
+      "trigger": "senti flow run review --phase test reported R3 auto-check parity is untested",
+      "resolution": "added an auto-check assertion to the R3 spec-local test coverage",
+      "guardrailCandidate": "when migration parity lists retained surfaces, spec-local tests must assert each retained surface explicitly",
+      "taskId": null,
+      "timestamp": "2026-06-29T07:14:06.006Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test review failed because R5 and R6 checks could pass with stale or manually edited generated artifacts",
+      "trigger": "senti flow run review --phase test reported missing generated artifact parity checks",
+      "resolution": "added generated skill parity checks and agents.senti directive block parity checks against source templates",
+      "guardrailCandidate": "tests for generated artifacts must compare readable/generated outputs against current source templates, not only evidence files",
+      "taskId": null,
+      "timestamp": "2026-06-29T07:15:48.012Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test review failed because R5 did not require separate skill and preset refresh evidence",
+      "trigger": "senti flow run review --phase test reported R5 missing generated preset refresh coverage",
+      "resolution": "changed R5 test to require separate skill and base preset evidence and compare generated preset files to source",
+      "guardrailCandidate": "when a requirement says A and B, test assertions must independently cover A and B rather than one alternation",
+      "taskId": null,
+      "timestamp": "2026-06-29T07:16:58.784Z"
+    },
+    {
+      "step": "implement",
+      "reason": "global senti upgrade used stale installed source and initially generated old senti.flow skill content plus unrelated rename artifacts",
+      "trigger": "forbidden wording remained in .agents/skills/senti.flow/SKILL.md after running senti upgrade",
+      "resolution": "reran upgrade through worktree-local node src/senti.js upgrade and reverted unrelated rename/doc side effects",
+      "guardrailCandidate": "when active-flow upgrade output conflicts with worktree source, verify generated artifacts and rerun through the local source entrypoint",
+      "taskId": null,
+      "timestamp": "2026-06-29T07:22:13.615Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "impl-gate failed because upgrade-result.json was missing after the local upgrade refresh",
+      "trigger": "ARTIFACT_PLACEHOLDER reported missing upgrade-result.json during impl-gate",
+      "resolution": "regenerated real upgrade evidence by forcing one generated skill target stale, running node src/senti.js upgrade, and reverting unrelated upgrade side effects",
+      "guardrailCandidate": "when upgrade evidence is required, verify upgrade-result.json exists before running impl-gate",
+      "taskId": null,
+      "timestamp": "2026-06-29T07:29:30.937Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "impl-gate rerun failed because spec-local evidence still reflected pre-upgrade failures and the R1 assertion expected a different English phrasing",
+      "trigger": "ARTIFACT_PLACEHOLDER reported spec-local requirement tests failed for R1 and R5",
+      "resolution": "aligned the R1 spec-local assertion with the actual explicit-start-only template wording and refreshed test execution evidence after generating upgrade-result.json",
+      "guardrailCandidate": "after changing spec-local tests or generating late artifacts, refresh test-execute evidence before rerunning impl-gate",
+      "taskId": null,
+      "timestamp": "2026-06-29T07:30:16.475Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "R5 spec-local test asserted upgrade-result.json during test-execute even though test-execute removes rebuildable upgrade artifacts before running",
+      "trigger": "R5 kept failing with upgrade-result.json missing immediately after test-execute",
+      "resolution": "changed R5 spec-local coverage to verify generated skill and preset outputs, leaving upgrade-result.json validation to impl-gate",
+      "guardrailCandidate": "do not make spec-local tests depend on artifacts that test-execute deletes before running",
+      "taskId": null,
+      "timestamp": "2026-06-29T07:31:28.114Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The patch modifies source policy/skill markdown and adds a test, but there are no updated generated artifacts in the diff (no regenerated `.agents`/`.senti` files or explicit `senti upgrade` step), so the source-template changes are not demonstrated as having been refreshed.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-29T07:33:50.323Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R5",
+          "where": null,
+          "observed": "The patch modifies source policy/skill markdown and adds a test, but there are no updated generated artifacts in the diff (no regenerated `.agents`/`.senti` files or explicit `senti upgrade` step), so the source-template changes are not demonstrated as having been refreshed.",
+          "severity": "blocking",
+          "refs": [
+            "R5"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R6"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R5",
+          "reason": "The patch modifies source policy/skill markdown and adds a test, but there are no updated generated artifacts in the diff (no regenerated `.agents`/`.senti` files or explicit `senti upgrade` step), so the source-template changes are not demonstrated as having been refreshed."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "impl-gate semantic review did not recognize ignored generated skill and preset refresh evidence in the patch diff",
+      "trigger": "R5 AI semantic gate failed saying no generated artifacts or explicit upgrade step were demonstrated",
+      "resolution": "expanded R5 spec-local coverage to verify both .agents and .claude generated skills plus file-map upgrade evidence paths",
+      "guardrailCandidate": "when generated artifacts are ignored, expose their refresh evidence through tracked tests and file-map entries",
+      "taskId": null,
+      "timestamp": "2026-06-29T07:35:18.636Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff only updates source policy/skill markdown and adds a spec test; it does not include refreshed generated artifacts (e.g., `.agents/skills/senti.flow/SKILL.md`, `.claude/skills/senti.flow/SKILL.md`, or generated preset files) after the source edits. No `senti upgrade` output/evidence appears in the patch, so this requirement is not demonstrated.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-29T07:36:31.984Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R5",
+          "where": null,
+          "observed": "The diff only updates source policy/skill markdown and adds a spec test; it does not include refreshed generated artifacts (e.g., `.agents/skills/senti.flow/SKILL.md`, `.claude/skills/senti.flow/SKILL.md`, or generated preset files) after the source edits. No `senti upgrade` output/evidence appears in the patch, so this requirement is not demonstrated.",
+          "severity": "blocking",
+          "refs": [
+            "R5"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R6"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R5",
+          "reason": "The diff only updates source policy/skill markdown and adds a spec test; it does not include refreshed generated artifacts (e.g., `.agents/skills/senti.flow/SKILL.md`, `.claude/skills/senti.flow/SKILL.md`, or generated preset files) after the source edits. No `senti upgrade` output/evidence appears in the patch, so this requirement is not demonstrated."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "impl-gate required generated skill artifacts to appear in the patch even though .agents and .claude are ignored by default",
+      "trigger": "R5 semantic gate repeated failure after upgrade-result.json and generated output tests were present",
+      "resolution": "force-added generated .agents and .claude senti.flow skill files produced by senti upgrade so gate can inspect the refreshed artifacts",
+      "guardrailCandidate": "when a requirement needs ignored generated artifacts in semantic review, include them explicitly or adjust the requirement to rely on upgrade evidence",
+      "taskId": null,
+      "timestamp": "2026-06-29T07:37:26.496Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl-review failed after only generated skill artifacts were staged, causing the review diff to omit AGENTS and upgrade evidence changes",
+      "trigger": "impl-review reported missing upgrade evidence and generated AGENTS refresh despite those files existing unstaged",
+      "resolution": "staged the complete intended change set including source templates, generated guidance, tests, spec artifacts, and upgrade evidence before rerunning review",
+      "guardrailCandidate": "avoid partially staged diffs before semantic review; stage the full intended patch or keep the index empty",
+      "taskId": null,
+      "timestamp": "2026-06-29T07:39:36.650Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl-review tooling failed when full generated skill files were force-added, producing invalid review JSON after an oversized diff",
+      "trigger": "review command schema validation failed for nonBlockingImprovements after adding .agents and .claude skill files",
+      "resolution": "unstaged ignored generated skill bodies and added concise tracked upgrade-evidence.md tied to R5 file-map instead",
+      "guardrailCandidate": "avoid committing ignored generated skill bodies solely for semantic review; prefer concise tracked evidence artifacts",
+      "taskId": null,
+      "timestamp": "2026-06-29T07:48:37.562Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "failed impl-review left transient review-history work-unit files that bloated subsequent review inputs",
+      "trigger": "review retry generated review-history/work-units files during schema-validation failure",
+      "resolution": "removed transient review-history/work-units files and restored an empty index before rerunning review",
+      "guardrailCandidate": "after review tooling failures, remove transient work-unit artifacts before retrying semantic review",
+      "taskId": null,
+      "timestamp": "2026-06-29T08:32:15.836Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "impl-review ignored untracked upgrade and AGENTS verification artifacts, so R5 and R6 evidence was invisible in the review patch",
+      "trigger": "impl-review reported missing upgrade-result.json and AGENTS.md refresh while those files existed in the working tree",
+      "resolution": "stage the minimal implementation, test, AGENTS, and upgrade evidence files together before rerunning impl-review",
+      "guardrailCandidate": "semantic review should run with either no index or a complete minimal staged evidence set including untracked artifacts",
+      "taskId": null,
+      "timestamp": "2026-06-29T08:33:11.530Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff only changes source `SKILL.md`/`AGENTS.senti.md` templates and adds a test that asserts upgraded artifacts match, but it does not show any refreshed/generated artifact files or an `senti upgrade`-driven update in this change set. Without the generated outputs being updated in the patch, the requirement that artifacts are actually refreshed after template edits is not yet implemented.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-06-29T08:39:45.489Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R5",
+          "where": null,
+          "observed": "The diff only changes source `SKILL.md`/`AGENTS.senti.md` templates and adds a test that asserts upgraded artifacts match, but it does not show any refreshed/generated artifact files or an `senti upgrade`-driven update in this change set. Without the generated outputs being updated in the patch, the requirement that artifacts are actually refreshed after template edits is not yet implemented.",
+          "severity": "blocking",
+          "refs": [
+            "R5"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R6"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R5",
+          "reason": "The diff only changes source `SKILL.md`/`AGENTS.senti.md` templates and adds a test that asserts upgraded artifacts match, but it does not show any refreshed/generated artifact files or an `senti upgrade`-driven update in this change set. Without the generated outputs being updated in the patch, the requirement that artifacts are actually refreshed after template edits is not yet implemented."
+        }
+      ]
+    }
+  ]
+}

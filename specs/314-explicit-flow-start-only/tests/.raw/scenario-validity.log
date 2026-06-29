@@ -1,0 +1,183 @@
+[senti] scenario-validity tests start
+command: node --test specs/314-explicit-flow-start-only/tests/explicit-flow-start-only.test.js
+[senti] scenario-validity file start command=node specs/314-explicit-flow-start-only/tests/explicit-flow-start-only.test.js
+TAP version 13
+# Subtest: R1: AGENTS templates use explicit-start-only policy
+not ok 1 - R1: AGENTS templates use explicit-start-only policy
+  ---
+  duration_ms: 2.559694
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-314-explicit-flow-start-only/specs/314-explicit-flow-start-only/tests/explicit-flow-start-only.test.js:35:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    English AGENTS template still contains automatic startup wording: /AskUserQuestion/
+    
+    true !== false
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: false
+  actual: true
+  operator: 'strictEqual'
+  stack: |-
+    assertNoAutomaticStartupWording (file:///home/nakano/workspace/senti/.senti/worktree/feature-314-explicit-flow-start-only/specs/314-explicit-flow-start-only/tests/explicit-flow-start-only.test.js:30:12)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-314-explicit-flow-start-only/specs/314-explicit-flow-start-only/tests/explicit-flow-start-only.test.js:39:3)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: R2: senti.flow skill entry guidance has no non-explicit route choice
+not ok 2 - R2: senti.flow skill entry guidance has no non-explicit route choice
+  ---
+  duration_ms: 2.194772
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-314-explicit-flow-start-only/specs/314-explicit-flow-start-only/tests/explicit-flow-start-only.test.js:46:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    senti.flow skill still contains automatic startup wording: /did not explicitly invoke Spec-Driven Development flow.*A\.0 Route choice/s
+    
+    true !== false
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: false
+  actual: true
+  operator: 'strictEqual'
+  stack: |-
+    assertNoAutomaticStartupWording (file:///home/nakano/workspace/senti/.senti/worktree/feature-314-explicit-flow-start-only/specs/314-explicit-flow-start-only/tests/explicit-flow-start-only.test.js:30:12)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-314-explicit-flow-start-only/specs/314-explicit-flow-start-only/tests/explicit-flow-start-only.test.js:49:3)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: R3: retained manual-start and active-continuation surfaces remain mapped
+not ok 3 - R3: retained manual-start and active-continuation surfaces remain mapped
+  ---
+  duration_ms: 0.873605
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-314-explicit-flow-start-only/specs/314-explicit-flow-start-only/tests/explicit-flow-start-only.test.js:56:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    senti.flow retained-surface guidance still contains automatic startup wording: /did not explicitly invoke Spec-Driven Development flow.*A\.0 Route choice/s
+    
+    true !== false
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: false
+  actual: true
+  operator: 'strictEqual'
+  stack: |-
+    assertNoAutomaticStartupWording (file:///home/nakano/workspace/senti/.senti/worktree/feature-314-explicit-flow-start-only/specs/314-explicit-flow-start-only/tests/explicit-flow-start-only.test.js:30:12)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-314-explicit-flow-start-only/specs/314-explicit-flow-start-only/tests/explicit-flow-start-only.test.js:59:3)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R4: old mandatory startup policy is absent from all policy sources
+not ok 4 - R4: old mandatory startup policy is absent from all policy sources
+  ---
+  duration_ms: 0.823765
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-314-explicit-flow-start-only/specs/314-explicit-flow-start-only/tests/explicit-flow-start-only.test.js:68:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    src/presets/base/templates/en/AGENTS.senti.md still contains automatic startup wording: /AskUserQuestion/
+    
+    true !== false
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: false
+  actual: true
+  operator: 'strictEqual'
+  stack: |-
+    assertNoAutomaticStartupWording (file:///home/nakano/workspace/senti/.senti/worktree/feature-314-explicit-flow-start-only/specs/314-explicit-flow-start-only/tests/explicit-flow-start-only.test.js:30:12)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-314-explicit-flow-start-only/specs/314-explicit-flow-start-only/tests/explicit-flow-start-only.test.js:75:46)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R5: upgrade evidence records refreshed skill or preset artifacts
+not ok 5 - R5: upgrade evidence records refreshed skill or preset artifacts
+  ---
+  duration_ms: 0.611243
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-314-explicit-flow-start-only/specs/314-explicit-flow-start-only/tests/explicit-flow-start-only.test.js:79:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    upgrade-result.json must exist after senti upgrade
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-314-explicit-flow-start-only/specs/314-explicit-flow-start-only/tests/explicit-flow-start-only.test.js:81:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R6: generated AGENTS and CLAUDE guidance do not retain automatic startup wording
+not ok 6 - R6: generated AGENTS and CLAUDE guidance do not retain automatic startup wording
+  ---
+  duration_ms: 0.404882
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-314-explicit-flow-start-only/specs/314-explicit-flow-start-only/tests/explicit-flow-start-only.test.js:89:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    AGENTS.md still contains automatic startup wording: /AskUserQuestion/
+    
+    true !== false
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: false
+  actual: true
+  operator: 'strictEqual'
+  stack: |-
+    assertNoAutomaticStartupWording (file:///home/nakano/workspace/senti/.senti/worktree/feature-314-explicit-flow-start-only/specs/314-explicit-flow-start-only/tests/explicit-flow-start-only.test.js:30:12)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-314-explicit-flow-start-only/specs/314-explicit-flow-start-only/tests/explicit-flow-start-only.test.js:94:5)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 0
+# fail 6
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 22.64644
+Command failed: node specs/314-explicit-flow-start-only/tests/explicit-flow-start-only.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/314-explicit-flow-start-only/tests/explicit-flow-start-only.test.js
+exitCode: 1
+[senti] requirement R1 observed: R1: AGENTS templates use explicit-start-only policy
+[senti] requirement R2 observed: R2: senti.flow skill entry guidance has no non-explicit route choice
+[senti] requirement R3 observed: R3: retained manual-start and active-continuation surfaces remain mapped
+[senti] requirement R4 observed: R4: old mandatory startup policy is absent from all policy sources
+[senti] requirement R5 observed: R5: upgrade evidence records refreshed skill or preset artifacts
+[senti] requirement R6 observed: R6: generated AGENTS and CLAUDE guidance do not retain automatic startup wording
+[senti] scenario-validity tests end
