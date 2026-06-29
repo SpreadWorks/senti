@@ -89,75 +89,6 @@
     "retryCount": 2,
     "useProfile": "codex-only",
     "providers": {
-      "claude/sonnet": {
-        "command": "claude",
-        "args": [
-          "-p",
-          "{{PROMPT}}",
-          "--model",
-          "sonnet",
-          "--output-format",
-          "json"
-        ],
-        "systemPromptFlag": "--system-prompt",
-        "jsonOutputFlag": "--output-format json"
-      },
-      "claude/opus": {
-        "command": "claude",
-        "args": [
-          "-p",
-          "{{PROMPT}}",
-          "--model",
-          "opus",
-          "--output-format",
-          "json"
-        ],
-        "systemPromptFlag": "--system-prompt",
-        "jsonOutputFlag": "--output-format json"
-      },
-      "claude/haiku": {
-        "command": "claude",
-        "args": [
-          "-p",
-          "{{PROMPT}}",
-          "--model",
-          "haiku",
-          "--output-format",
-          "json"
-        ],
-        "systemPromptFlag": "--system-prompt",
-        "jsonOutputFlag": "--output-format json"
-      },
-      "codex/gpt-5.5": {
-        "command": "codex",
-        "args": [
-          "exec",
-          "--json",
-          "--sandbox",
-          "workspace-write",
-          "-m",
-          "gpt-5.5",
-          "-C",
-          ".tmp",
-          "{{PROMPT}}"
-        ],
-        "jsonOutputFlag": "--json"
-      },
-      "codex/gpt-5.4": {
-        "command": "codex",
-        "args": [
-          "exec",
-          "--json",
-          "--sandbox",
-          "workspace-write",
-          "-m",
-          "gpt-5.4",
-          "-C",
-          ".tmp",
-          "{{PROMPT}}"
-        ],
-        "jsonOutputFlag": "--json"
-      },
       "codex/gpt-5.3": {
         "command": "codex",
         "args": [
@@ -171,7 +102,9 @@
           ".tmp",
           "{{PROMPT}}"
         ],
-        "jsonOutputFlag": "--json"
+        "jsonOutputFlag": "--json",
+        "jsonSchemaFlag": "--output-schema",
+        "jsonSchemaMode": "file"
       },
       "codex/gpt-5.4-mini": {
         "command": "codex",
@@ -186,103 +119,9 @@
           ".tmp",
           "{{PROMPT}}"
         ],
-        "jsonOutputFlag": "--json"
-      },
-      "codex/gpt-5.3-spark": {
-        "command": "codex",
-        "args": [
-          "exec",
-          "--json",
-          "--sandbox",
-          "workspace-write",
-          "-m",
-          "gpt-5.3-codex-spark",
-          "-C",
-          ".tmp",
-          "{{PROMPT}}"
-        ],
-        "jsonOutputFlag": "--json"
-      }
-    },
-    "profiles": {
-      "claude-main": {
-        "docs.init": "claude/sonnet",
-        "docs.enrich": "claude/sonnet",
-        "docs.text": "claude/sonnet",
-        "docs.forge": "claude/sonnet",
-        "docs.readme": "claude/sonnet",
-        "docs.agents": "claude/haiku",
-        "docs.translate": "codex/gpt-5.4",
-        "flow.auto-check": "claude/sonnet",
-        "flow.spec.gate": "claude/sonnet",
-        "flow.spec.review.propose": "codex/gpt-5.5",
-        "flow.draft.review.questions.propose": "codex/gpt-5.5",
-        "flow.draft.review.coverage.propose": "codex/gpt-5.5",
-        "flow.impl.review.propose": "codex/gpt-5.5",
-        "flow.impl.review.final": "claude/opus",
-        "flow.test.execute": "claude/sonnet",
-        "flow.test.result-review": "claude/haiku",
-        "flow.test.review": "codex/gpt-5.5",
-        "flow.finalize.retro": "claude/haiku",
-        "flow.context.search": "claude/haiku"
-      },
-      "codex-main": {
-        "docs.init": "claude/sonnet",
-        "docs.enrich": "claude/sonnet",
-        "docs.text": "claude/sonnet",
-        "docs.forge": "claude/sonnet",
-        "docs.readme": "codex/gpt-5.3-spark",
-        "docs.agents": "codex/gpt-5.3-spark",
-        "docs.translate": "codex/gpt-5.5",
-        "flow.auto-check": "claude/sonnet",
-        "flow.spec.gate": "codex/gpt-5.3-spark",
-        "flow.spec.review.propose": "claude/opus",
-        "flow.draft.review.questions.propose": "claude/opus",
-        "flow.draft.review.coverage.propose": "claude/opus",
-        "flow.impl.review.propose": "claude/opus",
-        "flow.impl.review.final": "claude/opus",
-        "flow.test.execute": "claude/sonnet",
-        "flow.test.result-review": "codex/gpt-5.3-spark",
-        "flow.test.review": "claude/opus",
-        "flow.finalize.retro": "codex/gpt-5.3-spark",
-        "flow.context.search": "codex/gpt-5.3-spark"
-      },
-      "claude-only": {
-        "docs": "claude/sonnet",
-        "docs.agents": "claude/haiku",
-        "flow.auto-check": "claude/sonnet",
-        "flow.spec.gate": "claude/sonnet",
-        "flow.spec.review.propose": "claude/opus",
-        "flow.draft.review.questions.propose": "claude/opus",
-        "flow.draft.review.coverage.propose": "claude/opus",
-        "flow.impl.review.propose": "claude/opus",
-        "flow.impl.review.final": "claude/opus",
-        "flow.test.execute": "claude/sonnet",
-        "flow.test.result-review": "claude/haiku",
-        "flow.test.review": "claude/opus",
-        "flow.finalize.retro": "claude/haiku",
-        "flow.context.search": "claude/haiku"
-      },
-      "codex-only": {
-        "docs.init": "codex/gpt-5.4",
-        "docs.enrich": "codex/gpt-5.4",
-        "docs.text": "codex/gpt-5.4",
-        "docs.forge": "codex/gpt-5.4",
-        "docs.readme": "codex/gpt-5.3-spark",
-        "docs.agents": "codex/gpt-5.3-spark",
-        "docs.translate": "codex/gpt-5.4",
-        "flow.auto-check": "codex/gpt-5.4",
-        "flow.spec.gate": "codex/gpt-5.3-spark",
-        "flow.spec.review.propose": "codex/gpt-5.5",
-        "flow.draft.review.questions.propose": "codex/gpt-5.5",
-        "flow.draft.review.coverage.propose": "codex/gpt-5.5",
-        "flow.impl.review.propose": "codex/gpt-5.5",
-        "flow.impl.review.final": "codex/gpt-5.5",
-        "flow.test.execute": "codex/gpt-5.4",
-        "flow.test.result-review": "codex/gpt-5.3-spark",
-        "flow.test.review": "codex/gpt-5.5",
-        "flow.finalize.retro": "codex/gpt-5.3-spark",
-        "flow.context.search": "codex/gpt-5.3-spark"
+        "jsonOutputFlag": "--json",
+        "jsonSchemaFlag": "--output-schema",
+        "jsonSchemaMode": "file"
       }
     }
   },
@@ -295,7 +134,7 @@
       },
       {
         "id": "workflow",
-        "commit": "b8aafe72b430c6ca042be5bef7cd9bcd077cdade",
+        "commit": "45c6bacb25a4e266d09de8b5ab18c3379b018472",
         "source": "senti-workflow-plugin"
       }
     ],
