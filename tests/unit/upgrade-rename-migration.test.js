@@ -9,7 +9,7 @@ describe("RenameMigration", () => {
   it("skips nested node_modules directories", () => {
     const tmp = createTmpDir("senti-upgrade-rename-");
     try {
-      const legacyName = ["sdd", "forge"].join("-");
+      const legacyName = ["senti", "forge"].join("-");
       const currentName = "senti";
       const dependencyFile = `src/frontend/node_modules/pkg/${legacyName}-note.js`;
       const projectFile = `src/app/${legacyName}-note.js`;

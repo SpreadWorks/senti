@@ -146,9 +146,21 @@ function bulkUpdateAccepted(input) {
   return value === "y" || value === "yes";
 }
 
+export function readPromptLine(fd = 0) {
+  const bytes = [];
+  const buffer = Buffer.alloc(1);
+  while (true) {
+    const bytesRead = fs.readSync(fd, buffer, 0, 1, null);
+    if (bytesRead === 0) break;
+    bytes.push(buffer[0]);
+    if (buffer[0] === 10) break;
+  }
+  return Buffer.from(bytes).toString("utf8");
+}
+
 function promptBulkUpdate() {
   process.stderr.write("Update all installed plugins? [y/N] ");
-  return bulkUpdateAccepted(fs.readFileSync(0, "utf8"));
+  return bulkUpdateAccepted(readPromptLine());
 }
 
 function outputBulkUpdateCandidates(results, json) {
