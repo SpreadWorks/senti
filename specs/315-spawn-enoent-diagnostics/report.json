@@ -1,0 +1,723 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".senti/output/analysis.json                        |  55 +-\n .../acceptance-review.json                         |  21 +\n .../draft-coverage-repair.json                     |   8 +\n .../draft-coverage-triage.json                     |   8 +\n .../draft-gate-source.json                         |  83 ++\n .../draft-questions-repair.json                    |   8 +\n .../draft-questions-triage.json                    |   8 +\n .../draft-review-coverage.json                     |  11 +\n .../draft-review-questions.json                    |  11 +\n specs/315-spawn-enoent-diagnostics/draft.json      | 110 +++\n specs/315-spawn-enoent-diagnostics/file-map.json   |  21 +\n specs/315-spawn-enoent-diagnostics/flow.json       | 918 +++++++++++++++++++++\n .../315-spawn-enoent-diagnostics/impl-review.json  |  28 +\n specs/315-spawn-enoent-diagnostics/issue-log.json  | 439 ++++++++++\n specs/315-spawn-enoent-diagnostics/issue.md        | 124 +++\n .../plugin-artifacts/workflow/prepare.json         |  10 +\n .../review-history/draft-coverage-attempt-001.json |  14 +\n .../draft-questions-attempt-001.json               |  14 +\n .../review-history/impl-attempt-001.json           |  31 +\n .../review-history/impl-attempt-001.md             |  16 +\n .../review-history/spec-attempt-001.json           |  74 ++\n .../review-history/spec-attempt-001.md             |  24 +\n .../review-history/test-attempt-001.json           |  50 ++\n .../review-history/test-attempt-001.md             |  18 +\n .../review-history/test-attempt-002.json           |  50 ++\n .../review-history/test-attempt-002.md             |  18 +\n .../review-history/test-attempt-003.json           |  70 ++\n .../review-history/test-attempt-003.md             |  24 +\n .../review-history/test-attempt-004.json           |  47 ++\n .../review-history/test-attempt-004.md             |  16 +\n specs/315-spawn-enoent-diagnostics/review.md       |  16 +\n .../spec-gate-source.json                          | 120 +++\n .../315-spawn-enoent-diagnostics/spec-repair.json  |  20 +\n .../315-spawn-enoent-diagnostics/spec-review.json  |  40 +\n specs/315-spawn-enoent-diagnostics/spec-review.md  |  24 +\n .../315-spawn-enoent-diagnostics/spec-triage.json  |  15 +\n specs/315-spawn-enoent-diagnostics/spec.json       | 189 +++++\n specs/315-spawn-enoent-diagnostics/spec.md         | 100 +++\n specs/315-spawn-enoent-diagnostics/tasks/T-1.md    |  20 +\n .../test-coverage.json                             |  75 ++\n .../315-spawn-enoent-diagnostics/test-review.json  |  33 +\n specs/315-spawn-enoent-diagnostics/test-review.md  |  16 +\n .../tests/agent-enoent-diagnostics.test.js         | 224 +++++\n src/lib/agent.js                                   |  47 +-\n src/upgrade.js                                     |   2 +\n 45 files changed, 3225 insertions(+), 45 deletions(-)",
+      "commits": [
+        "Improve agent spawn ENOENT diagnostics"
+      ]
+    },
+    "retro": {
+      "total": 5,
+      "done": 5,
+      "partial": 0,
+      "not_done": 0,
+      "not_applicable_count": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "When child process spawn emits ENOENT, Agent shall throw an error preserving `error.code === \"ENOENT\"` and containing the attempted command, the PATH used for spawn resolution, provider, profile, commandId, and an actionable suggestion to add the CLI to the PATH of the environment that starts `senti`.",
+          "status": "done",
+          "note": "R1: reports command, PATH, provider, profile, commandId, guidance, and ENOENT code"
+        },
+        {
+          "desc": "Agent shall preserve the existing spawn environment behavior: clone `process.env`, keep `PATH: process.env.PATH` when present, and continue removing only `CLAUDECODE` from the invocation env.",
+          "status": "done",
+          "note": "R2: preserves process PATH in the spawn environment and omits CLAUDECODE"
+        },
+        {
+          "desc": "Agent shall pass the configured provider profile `command` value to `spawn()` without package-manager-specific path completion or environment-specific absolute path insertion.",
+          "status": "done",
+          "note": "R3: reports an absolute configured command without package-manager path completion"
+        },
+        {
+          "desc": "Migration parity shall be maintained for retained behavior: successful agent calls still return trimmed output, non-ENOENT failures keep existing provider/profile/exit/stderr/stdoutPreview diagnostics, logger end events still record failure, and flow metrics keep provider/profile dimensions.",
+          "status": "done",
+          "note": "R4: keeps failure logging useful when ENOENT is wrapped"
+        },
+        {
+          "desc": "Unit coverage shall verify ENOENT diagnostics and retained Agent behavior without requiring live claude, codex, pnpm, npm, or nvm installations.",
+          "status": "done",
+          "note": "R5: uses deterministic missing commands instead of live package-manager CLIs"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 12,
+      "fullLogPath": "specs/315-spawn-enoent-diagnostics/issue-log.json",
+      "importantTotal": 6,
+      "importantShown": 6,
+      "importantOmitted": 0,
+      "recentOtherTotal": 6,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 1,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "The proposal replaces existing ENOENT handling behavior but does not define migration parity details before implementation: there is no explicit inventory of all affected public behavior/surfaces for the replacement (error contract, comm...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "draft gate rejected the draft because migration parity did not inventory retained agent public behavior or parity verification",
+          "resolution": "added explicit inventory, owner mapping, and verification expectations for success calls, non-ENOENT failures, ENOENT replacement behavior, logger events, flow metrics, and workflow refine envelope behavior"
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "spec gate rejected migration parity inventory and spec-local test header guidance as insufficiently explicit",
+          "resolution": "added affected API command side-effect inventory, owner mapping, behavior-level parity acceptance criteria, and required spec-local // spec: R<N> test headers"
+        },
+        {
+          "classification": "important",
+          "step": "impl-gate",
+          "reason": "fix: spec-local tests treated package-manager names inside the real PATH as package-manager path completion and expected logger fields that existing Logger.agent end events do not emit",
+          "resolution": "Narrow R3 to a controlled PATH/absolute-command diagnostic, assert R4 logger failure via existing exitCode/agentKey fields, and remove self-referential R5 source regex that matched its own forbidden text"
+        },
+        {
+          "classification": "important",
+          "step": "final-regression",
+          "reason": "final-regression failed: dependency_failure",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "final-regression",
+          "reason": "fix: final-regression failed in existing RenameMigration test because senti-forge path/text migration was not implemented",
+          "resolution": "Add the missing senti-forge -> senti rename rule at the shared RenameMigration rule/path boundary, then rerun focused evidence and final-regression"
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "draft gate rejected qa[2].considered because the wording was too ambiguous to be mechanically verifiable",
+          "resolution": "rewrote qa[2].considered to state the rejected no-PATH option and the accepted PATH display boundary without vague wording"
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "No migration inventory is defined for the changed/replaced public behavior. The text names retained behaviors but does not enumerate affected public-facing commands, APIs, hooks, config entries, artifacts, or side effects as required bef...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "test-review",
+          "reason": "test review rejected escapeRegExp because replacement-string escaping could be misread and make PATH regex assertions unreliable",
+          "resolution": "rewrote escapeRegExp to use a callback that returns backslash plus the matched metacharacter"
+        },
+        {
+          "classification": "recent-other",
+          "step": "test-review",
+          "reason": "test review rejected R4 coverage because retained success non-ENOENT diagnostics and flow metric dimensions were not covered",
+          "resolution": "added spec-local R4 tests for trimmed successful output, non-ENOENT provider profile exit stderr stdout diagnostics, and flow metric provider/profile dimensions"
+        },
+        {
+          "classification": "recent-other",
+          "step": "test-review",
+          "reason": "test review rejected R1 guidance and R2 environment clone coverage as too weak",
+          "resolution": "added concrete add CLI to PATH and environment-starting-senti guidance assertions plus a sentinel environment variable preservation assertion"
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 2,
+      "question": 0,
+      "issueLog": 8
+    },
+    "tokenMetrics": {
+      "input": 264450,
+      "output": 47274,
+      "cacheRead": 619392,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 15,
+      "durationMs": 394797,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 21356
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 10997
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 32536
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 164296
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 20874
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 80999
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 45462
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 18277
+        }
+      ]
+    },
+    "tests": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/315-spawn-enoent-diagnostics/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/agent.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/agent.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/agent.js"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "failureCategory": null,
+        "failureNature": null,
+        "skipKind": null,
+        "rawOutputPath": "specs/315-spawn-enoent-diagnostics/tests/.raw/final-regression-attempt-002.log",
+        "command": "node tests/run.js",
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        },
+        "exitCode": 0,
+        "failureSummary": null,
+        "currentDiffRelationship": null,
+        "changedFiles": [
+          {
+            "status": "modified",
+            "path": ".senti/output/analysis.json",
+            "fingerprint": "cfae5c032b6a62b5120d8ca1d73424c47f3f8585b3646bc7f3081e8d0a2780b8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/acceptance-review.json",
+            "fingerprint": "505864be5ada25597f539d7ba056f376a284ae8196e64c3407484b28ff5d445a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/draft-coverage-repair.json",
+            "fingerprint": "895a87abf6cdc081580af4d1c9129175424de348352919e58672be1590be7ebe"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/draft-coverage-triage.json",
+            "fingerprint": "b7e1dee4ace104673e6cb85a7b1b75d8fd72af0eb8bd6d13251bf657c399a4d8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/draft-gate-source.json",
+            "fingerprint": "36510fdeb209ca1e1048e6c5bd6c0aeac8cf7b57700c4f89c27a8909a6c780f4"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/draft-questions-repair.json",
+            "fingerprint": "f011274fa974fcd2bc59326983e04783a73e3006211c10346cc874d4628b24bb"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/draft-questions-triage.json",
+            "fingerprint": "686c955839a2fc26c394274df3c270be323b3fd8db57205deab8c93ddaeca966"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/draft-review-coverage.json",
+            "fingerprint": "897f289de38ddaab1d45d633f0441baab20210463ad19db9079b78be9a824aa8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/draft-review-questions.json",
+            "fingerprint": "78c0e834960314d98859e5865637a4826244ccf3dc028407c5d15b2b58ce3bfa"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/draft.json",
+            "fingerprint": "d96310ace7c8dd1cc97d0a3da8cd8cd132ca284b5cb7db41c4711b5e3b6b11fd"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/file-map.json",
+            "fingerprint": "eed2174e455e82911a64d8dfc1551b52b41a9d4c33db07b35ca69801f198d245"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/impl-gate-result.json",
+            "fingerprint": "0f391d88e84e758733719ffa8ab6043289f802614e5630cd7f50192a982a3fad"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/impl-review.json",
+            "fingerprint": "c8f9ad02366d9d9be437cad40df3cda05cc43826dbf807c5fc30167e9eda4bd2"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/issue.md",
+            "fingerprint": "1a131598387c5a7ec88c0288ee6c3cd37429f5e9eb7842997644894b6deb0696"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/plugin-artifacts/workflow/prepare.json",
+            "fingerprint": "0a9977355dad59157d553aa1aafebeffe781a3e0477f2741a98094ac2f01fa6c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/retro.json",
+            "fingerprint": "c7b00743d7bfbdd86e403c051f5b52a627b56484ecbec96fcfcf8b5bed59ec81"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/review-history/draft-coverage-attempt-001.json",
+            "fingerprint": "e3cde641d198ff45ae224b5862a309b2a849056594d8d4efbe863990562a2198"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/review-history/draft-questions-attempt-001.json",
+            "fingerprint": "f7b5a5f2bc1e0572e53a6adf524856031fb7109c27ca76d81ee41f4b579c1bc0"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/review-history/impl-attempt-001.json",
+            "fingerprint": "ccc3ca80d5e024eddaeec41332a77dd817aded20eaf6f39be2d3720f795d11eb"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/review-history/impl-attempt-001.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/review-history/spec-attempt-001.json",
+            "fingerprint": "083d8f68c98f8d179b3c8911b35edabed52f6e0f8fa3711d50197abda6a63a47"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/review-history/spec-attempt-001.md",
+            "fingerprint": "fcddc996aefadcc51be1968f7083d1389de90b3efc98faed241c1294ed4f620a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/review-history/test-attempt-001.json",
+            "fingerprint": "d7d8ba478355e462f1aa4538998da8cc3ccbd7e56a2b0468a6440c06bfa55357"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/review-history/test-attempt-001.md",
+            "fingerprint": "649e5515578c2338368dc16386c42c4c8dfeb643be7fb37e7bd362cb9161046f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/review-history/test-attempt-002.json",
+            "fingerprint": "27a1b663bf6210ef6263c1b7e8dafa1ce87cf5913dc1eac3f14e3b69da8e9b1a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/review-history/test-attempt-002.md",
+            "fingerprint": "1dbd9a47fa80309141ff00dfaaa01a243445a20ac9f3e496cfcd9e5697930eff"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/review-history/test-attempt-003.json",
+            "fingerprint": "d4fb135d3851d6e32ff19f3941e791318ce8bdce1723ce73d7e819dd7d6dad5a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/review-history/test-attempt-003.md",
+            "fingerprint": "dffd707d78c474d992b90294368ec60ef20122c5d8cada2679748efc414bc100"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/review-history/test-attempt-004.json",
+            "fingerprint": "e2888f9000b0a0b7afdffb3177e4ed9a0468564308d5c142de5bd87ca8f12d84"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/review-history/test-attempt-004.md",
+            "fingerprint": "c609d48db03b473be45b80aad3cf9ded346bb2c94d106639d66a7bbde36d2a0c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/review.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/scenario-validity-result.json",
+            "fingerprint": "ade624899b365234cc835f89ae2a3e79e5f606ead9b5b24453dec58cfba9a05c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/spec-gate-source.json",
+            "fingerprint": "9c413a2349a2ed86f6b32d72fa7ebff3d5c2e2eb16bc616930257418fab1f8ee"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/spec-repair.json",
+            "fingerprint": "0d2cc035d962281bbff688e12c668cbcd0ad567ef53859d92aff33f8d7cb144a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/spec-review.json",
+            "fingerprint": "f4950d76e267879c6c069909f7d65b68ade66d50a7e1d3e1ac17d2d0c7535e05"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/spec-review.md",
+            "fingerprint": "fcddc996aefadcc51be1968f7083d1389de90b3efc98faed241c1294ed4f620a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/spec-triage.json",
+            "fingerprint": "1d02572a9fb56c77446510fe2ef2959ca6452c1abf917f19275c79a4a8438dfb"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/spec.json",
+            "fingerprint": "f35496012c00b5149a5e3096bea10be9152de2f0c79b9d5c73e3389943a826fe"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/spec.md",
+            "fingerprint": "fde9ab38f432a9a0254bab812061746464d3c370baa931afcaeba639cc7635c9"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/tasks/T-1.md",
+            "fingerprint": "a1ce135af9d4373b14cec7b1be75e07f6638c9cee9dfb0ee90eb9f42d5d2fbe8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/test-coverage.json",
+            "fingerprint": "95f0f668039407a8553c99ba5df389a10230be58e5e0601a4475cf0f380c881d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/test-execute-result.json",
+            "fingerprint": "07779fe2541866ab8d012f608464bd0a15fd9d1c66a55e7a4e67043d2530d48e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/test-result-review.json",
+            "fingerprint": "68e888dcd6091320f974cab28bdfc4b3af9ecda28788ba96b1861044afe06f78"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/test-result-review.md",
+            "fingerprint": "60daf06b61a0b540e507c9bda695ff7409f0b813fbaffdb6d467af9da5e81305"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/test-review.json",
+            "fingerprint": "71c2952d06e79ff5da64370174f47b55ea6a675ead56e2f9842d9b0f2f3ded41"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/test-review.md",
+            "fingerprint": "c609d48db03b473be45b80aad3cf9ded346bb2c94d106639d66a7bbde36d2a0c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/tests/.raw/scenario-validity.log",
+            "fingerprint": "686a77b63850a7e94f181090445b7f66a5711dba021e4d4e44252bb20a6f073d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/tests/.raw/test-execution.log",
+            "fingerprint": "2ccdc81d782f24a0638e27680e43ffe48fdc5d22084a2eeb56288ea25bd338e7"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/315-spawn-enoent-diagnostics/tests/agent-enoent-diagnostics.test.js",
+            "fingerprint": "d484d74fffd205fed68001de30f4717141e699673631dd7c9d082312924b0789"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/agent.js",
+            "fingerprint": "5f3b39803cfe88d85062e0152b1d934010f86f80500cf7ba410688cbf0cc9e32"
+          },
+          {
+            "status": "modified",
+            "path": "src/upgrade.js",
+            "fingerprint": "09d446079ab721185224a742af3950149111d2cefb78541badffe3c54e536509"
+          }
+        ],
+        "changedFileFingerprints": [
+          {
+            "path": ".senti/output/analysis.json",
+            "fingerprint": "cfae5c032b6a62b5120d8ca1d73424c47f3f8585b3646bc7f3081e8d0a2780b8"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/acceptance-review.json",
+            "fingerprint": "505864be5ada25597f539d7ba056f376a284ae8196e64c3407484b28ff5d445a"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/draft-coverage-repair.json",
+            "fingerprint": "895a87abf6cdc081580af4d1c9129175424de348352919e58672be1590be7ebe"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/draft-coverage-triage.json",
+            "fingerprint": "b7e1dee4ace104673e6cb85a7b1b75d8fd72af0eb8bd6d13251bf657c399a4d8"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/draft-gate-source.json",
+            "fingerprint": "36510fdeb209ca1e1048e6c5bd6c0aeac8cf7b57700c4f89c27a8909a6c780f4"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/draft-questions-repair.json",
+            "fingerprint": "f011274fa974fcd2bc59326983e04783a73e3006211c10346cc874d4628b24bb"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/draft-questions-triage.json",
+            "fingerprint": "686c955839a2fc26c394274df3c270be323b3fd8db57205deab8c93ddaeca966"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/draft-review-coverage.json",
+            "fingerprint": "897f289de38ddaab1d45d633f0441baab20210463ad19db9079b78be9a824aa8"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/draft-review-questions.json",
+            "fingerprint": "78c0e834960314d98859e5865637a4826244ccf3dc028407c5d15b2b58ce3bfa"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/draft.json",
+            "fingerprint": "d96310ace7c8dd1cc97d0a3da8cd8cd132ca284b5cb7db41c4711b5e3b6b11fd"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/file-map.json",
+            "fingerprint": "eed2174e455e82911a64d8dfc1551b52b41a9d4c33db07b35ca69801f198d245"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/impl-gate-result.json",
+            "fingerprint": "0f391d88e84e758733719ffa8ab6043289f802614e5630cd7f50192a982a3fad"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/impl-review.json",
+            "fingerprint": "c8f9ad02366d9d9be437cad40df3cda05cc43826dbf807c5fc30167e9eda4bd2"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/issue.md",
+            "fingerprint": "1a131598387c5a7ec88c0288ee6c3cd37429f5e9eb7842997644894b6deb0696"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/plugin-artifacts/workflow/prepare.json",
+            "fingerprint": "0a9977355dad59157d553aa1aafebeffe781a3e0477f2741a98094ac2f01fa6c"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/retro.json",
+            "fingerprint": "c7b00743d7bfbdd86e403c051f5b52a627b56484ecbec96fcfcf8b5bed59ec81"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/review-history/draft-coverage-attempt-001.json",
+            "fingerprint": "e3cde641d198ff45ae224b5862a309b2a849056594d8d4efbe863990562a2198"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/review-history/draft-questions-attempt-001.json",
+            "fingerprint": "f7b5a5f2bc1e0572e53a6adf524856031fb7109c27ca76d81ee41f4b579c1bc0"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/review-history/impl-attempt-001.json",
+            "fingerprint": "ccc3ca80d5e024eddaeec41332a77dd817aded20eaf6f39be2d3720f795d11eb"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/review-history/impl-attempt-001.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/review-history/spec-attempt-001.json",
+            "fingerprint": "083d8f68c98f8d179b3c8911b35edabed52f6e0f8fa3711d50197abda6a63a47"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/review-history/spec-attempt-001.md",
+            "fingerprint": "fcddc996aefadcc51be1968f7083d1389de90b3efc98faed241c1294ed4f620a"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/review-history/test-attempt-001.json",
+            "fingerprint": "d7d8ba478355e462f1aa4538998da8cc3ccbd7e56a2b0468a6440c06bfa55357"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/review-history/test-attempt-001.md",
+            "fingerprint": "649e5515578c2338368dc16386c42c4c8dfeb643be7fb37e7bd362cb9161046f"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/review-history/test-attempt-002.json",
+            "fingerprint": "27a1b663bf6210ef6263c1b7e8dafa1ce87cf5913dc1eac3f14e3b69da8e9b1a"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/review-history/test-attempt-002.md",
+            "fingerprint": "1dbd9a47fa80309141ff00dfaaa01a243445a20ac9f3e496cfcd9e5697930eff"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/review-history/test-attempt-003.json",
+            "fingerprint": "d4fb135d3851d6e32ff19f3941e791318ce8bdce1723ce73d7e819dd7d6dad5a"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/review-history/test-attempt-003.md",
+            "fingerprint": "dffd707d78c474d992b90294368ec60ef20122c5d8cada2679748efc414bc100"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/review-history/test-attempt-004.json",
+            "fingerprint": "e2888f9000b0a0b7afdffb3177e4ed9a0468564308d5c142de5bd87ca8f12d84"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/review-history/test-attempt-004.md",
+            "fingerprint": "c609d48db03b473be45b80aad3cf9ded346bb2c94d106639d66a7bbde36d2a0c"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/review.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/scenario-validity-result.json",
+            "fingerprint": "ade624899b365234cc835f89ae2a3e79e5f606ead9b5b24453dec58cfba9a05c"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/spec-gate-source.json",
+            "fingerprint": "9c413a2349a2ed86f6b32d72fa7ebff3d5c2e2eb16bc616930257418fab1f8ee"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/spec-repair.json",
+            "fingerprint": "0d2cc035d962281bbff688e12c668cbcd0ad567ef53859d92aff33f8d7cb144a"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/spec-review.json",
+            "fingerprint": "f4950d76e267879c6c069909f7d65b68ade66d50a7e1d3e1ac17d2d0c7535e05"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/spec-review.md",
+            "fingerprint": "fcddc996aefadcc51be1968f7083d1389de90b3efc98faed241c1294ed4f620a"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/spec-triage.json",
+            "fingerprint": "1d02572a9fb56c77446510fe2ef2959ca6452c1abf917f19275c79a4a8438dfb"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/spec.json",
+            "fingerprint": "f35496012c00b5149a5e3096bea10be9152de2f0c79b9d5c73e3389943a826fe"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/spec.md",
+            "fingerprint": "fde9ab38f432a9a0254bab812061746464d3c370baa931afcaeba639cc7635c9"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/tasks/T-1.md",
+            "fingerprint": "a1ce135af9d4373b14cec7b1be75e07f6638c9cee9dfb0ee90eb9f42d5d2fbe8"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/test-coverage.json",
+            "fingerprint": "95f0f668039407a8553c99ba5df389a10230be58e5e0601a4475cf0f380c881d"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/test-execute-result.json",
+            "fingerprint": "07779fe2541866ab8d012f608464bd0a15fd9d1c66a55e7a4e67043d2530d48e"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/test-result-review.json",
+            "fingerprint": "68e888dcd6091320f974cab28bdfc4b3af9ecda28788ba96b1861044afe06f78"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/test-result-review.md",
+            "fingerprint": "60daf06b61a0b540e507c9bda695ff7409f0b813fbaffdb6d467af9da5e81305"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/test-review.json",
+            "fingerprint": "71c2952d06e79ff5da64370174f47b55ea6a675ead56e2f9842d9b0f2f3ded41"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/test-review.md",
+            "fingerprint": "c609d48db03b473be45b80aad3cf9ded346bb2c94d106639d66a7bbde36d2a0c"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/tests/.raw/scenario-validity.log",
+            "fingerprint": "686a77b63850a7e94f181090445b7f66a5711dba021e4d4e44252bb20a6f073d"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/tests/.raw/test-execution.log",
+            "fingerprint": "2ccdc81d782f24a0638e27680e43ffe48fdc5d22084a2eeb56288ea25bd338e7"
+          },
+          {
+            "path": "specs/315-spawn-enoent-diagnostics/tests/agent-enoent-diagnostics.test.js",
+            "fingerprint": "d484d74fffd205fed68001de30f4717141e699673631dd7c9d082312924b0789"
+          },
+          {
+            "path": "src/lib/agent.js",
+            "fingerprint": "5f3b39803cfe88d85062e0152b1d934010f86f80500cf7ba410688cbf0cc9e32"
+          },
+          {
+            "path": "src/upgrade.js",
+            "fingerprint": "09d446079ab721185224a742af3950149111d2cefb78541badffe3c54e536509"
+          }
+        ],
+        "fixAttempts": null,
+        "selectedAction": null,
+        "remainingRisk": null,
+        "retryable": false,
+        "nextAction": "finalize-commit",
+        "nextRecommendedAction": null,
+        "recordAndProceed": null,
+        "humanSummary": "result=pass raw_output=specs/315-spawn-enoent-diagnostics/tests/.raw/final-regression-attempt-002.log"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    Improve agent spawn ENOENT diagnostics\n    45 files changed, 3225 insertions(+), 45 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (5 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 2\n    Q&A ......................... 0\n    issue-log ................... 8\n    agent calls ................. 15\n    input tokens ................ 264,450\n    output tokens ............... 47,274\n    cache-read tokens ........... 619,392\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 394.8s\n      draft-questions-review .... 21.4s\n      draft-coverage-review ..... 11.0s\n      draft-gate ................ 32.5s\n      spec-review ............... 164.3s\n      spec-gate ................. 20.9s\n      test-review ............... 81.0s\n      impl-review ............... 45.5s\n      impl-gate ................. 18.3s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 5  passed 5  failed 0 verdict=pass\n    raw_output: specs/315-spawn-enoent-diagnostics/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=pass raw_output=specs/315-spawn-enoent-diagnostics/tests/.raw/final-regression-attempt-002.log\n\n  Issue Log Summary (12 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/315-spawn-enoent-diagnostics/issue-log.json\n\n    Important (6)\n    - [draft-gate] The proposal replaces existing ENOENT handling behavior but does not define migration parity details before implementation: there is no explicit inventory of all affected public behavior/surfaces for the replacement (error contract, comm...\n    - [draft-gate] draft gate rejected the draft because migration parity did not inventory retained agent public behavior or parity verification\n    - [spec-gate] spec gate rejected migration parity inventory and spec-local test header guidance as insufficiently explicit\n    - [impl-gate] fix: spec-local tests treated package-manager names inside the real PATH as package-manager path completion and expected logger fields that existing Logger.agent end events do not emit\n    - [final-regression] final-regression failed: dependency_failure\n    - [final-regression] fix: final-regression failed in existing RenameMigration test because senti-forge path/text migration was not implemented\n\n    Recent Other (5 of 6)\n    - [draft-gate] draft gate rejected qa[2].considered because the wording was too ambiguous to be mechanically verifiable\n    - [spec-gate] No migration inventory is defined for the changed/replaced public behavior. The text names retained behaviors but does not enumerate affected public-facing commands, APIs, hooks, config entries, artifacts, or side effects as required bef...\n    - [test-review] test review rejected escapeRegExp because replacement-string escaping could be misread and make PATH regex assertions unreliable\n    - [test-review] test review rejected R4 coverage because retained success non-ENOENT diagnostics and flow metric dimensions were not covered\n    - [test-review] test review rejected R1 guidance and R2 environment clone coverage as too weak\n    ... 1 other issue-log entry omitted"
+}

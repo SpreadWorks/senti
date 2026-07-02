@@ -1,0 +1,189 @@
+{
+  "goal": "agent CLI command が ENOENT で解決できない場合に、利用者が `senti` 起動環境の PATH と agent provider 設定を切り分けられる診断情報を返す。",
+  "scope": {
+    "in": [
+      "`src/lib/agent.js` の ENOENT 専用診断を追加する。",
+      "`process.env.PATH` を含む既存 environment 継承と `CLAUDECODE` 削除の現行挙動を維持する。",
+      "provider profile の `command` 値は相対 command でも絶対パスでもそのまま `spawn()` に渡す。",
+      "`src/lib/agent.js` 周辺の unit test で ENOENT 診断と既存挙動の migration parity を検証する。"
+    ],
+    "out": [
+      "pnpm / npm / nvm など package manager 固有の PATH 補完。",
+      "環境固有の絶対パスの埋め込み。",
+      "claude / codex provider の CLI args、model default、JSON parse contract の変更。",
+      "workflow plugin の command surface や board/refine service behavior の変更。"
+    ]
+  },
+  "constraints": [
+    "外部依存は追加しない。Node.js built-in module だけを使う。",
+    "`src/` 配下にユーザー環境固有の path を含めない。",
+    "診断 message に prompt、system prompt、agent response body を含めない。",
+    "PATH 補完は行わず、`senti` を起動する環境の PATH に対象 CLI を追加する案内に留める。",
+    "非 ENOENT の既存 error formatting は provider/profile/exit/stderr/stdoutPreview を保持する。"
+  ],
+  "design_principles": [
+    "agent command resolution は Node.js の `spawn()` と起動時 environment に委ね、senti 側で package manager 固有探索をしない。",
+    "ENOENT だけを実行環境診断として拡張し、他の failure path は既存の close handler contract を保つ。",
+    "エラー文面は切り分けに必要な設定・環境情報に限定する。"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/lib/agent.js`: Agent service が profile resolution、invocation build、spawn execution、retry、logging、metrics を所有する。"
+      },
+      {
+        "text": "`src/lib/provider.js`: ProviderRegistry が profile.command と provider family を解決し、Agent は解決済み profile.command を spawn に渡す。"
+      },
+      {
+        "text": "`tests/unit/lib/agent-service.test.js` と `agent-with-logger.test.js`: Agent resolution、spawn invocation、failure logging の unit coverage を持つ。"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "caller は `agent.call(prompt, { commandId })` を呼び、Agent は commandId と profile 設定から provider/profile を解決する。"
+      },
+      {
+        "text": "`_buildInvocation` は args と env を作り、`_callOnce` が `spawn(profile.command, finalArgs, { cwd, env })` を実行する。"
+      },
+      {
+        "text": "ENOENT は child `error` event で発生し、今回の変更で command/PATH/provider/profile/commandId を含む診断 error に変換される。"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] checked env handling in `src/lib/agent.js`; result=match: `_buildInvocation` clones `process.env` and removes only `CLAUDECODE`.",
+        "evidence": "`src/lib/agent.js` `_buildInvocation`: `const env = { ...process.env }; delete env.CLAUDECODE;`."
+      },
+      {
+        "text": "[VERIFY] checked spawn command handling in `src/lib/agent.js`; result=match: `_callOnce` passes `profile.command` directly to spawn.",
+        "evidence": "`src/lib/agent.js` `_callOnce`: `spawn(profile.command, finalArgs, { stdio, cwd, env })`."
+      },
+      {
+        "text": "[VERIFY] checked provider resolution in `src/lib/provider.js`; result=match: raw profile entry keeps `command` and user profiles can override built-ins.",
+        "evidence": "`src/lib/provider.js` `ProviderRegistry._mergeProfiles()` layers built-in and user providers; `resolveProfile()` returns raw profile."
+      },
+      {
+        "text": "[VERIFY] checked test placement; result=match: Agent service and logger integration tests already exercise success, resolution failure, and non-zero exit behavior.",
+        "evidence": "`tests/unit/lib/agent-service.test.js` covers resolution and option contract; `tests/unit/lib/agent-with-logger.test.js` covers failure logging."
+      },
+      {
+        "text": "Migration inventory: affected API is `Agent.call`; affected command surface is any command using Agent including workflow refine; affected side effects are logger end events and flow metrics. No config, hook, or artifact format changes.",
+        "evidence": "Issue #409 requires ENOENT diagnostics while preserving claude provider, codex provider, and workflow refine behavior."
+      },
+      {
+        "text": "Migration mapping: `Agent.call` and spawn behavior stay owned by `src/lib/agent.js`; workflow plugin keeps forwarding core Agent errors; logger and metrics stay owned by `runWithLogging`.",
+        "evidence": "Current code routes workflow agent calls through core Agent and records logger/metric side effects around `invoke()`."
+      },
+      {
+        "text": "Spec repair: ENOENT diagnostic errors must preserve `error.code === \"ENOENT\"` so workflow failure envelopes keep their existing code contract.",
+        "evidence": "spec-review.json blockingFinding: workflow plugin catches errors and uses err.code for its failure envelope."
+      }
+    ]
+  },
+  "background": "Issue #409 was created after `senti workflow refine 30fc` failed with `spawn codex ENOENT` inside a workflow agent call. The root cause was that the `senti` process PATH did not include the directory containing `codex`. Current Agent code already clones `process.env`, so the functional gap is not PATH loss inside Agent; it is that the child process error is returned without command, PATH, provider, profile, commandId, or remediation guidance.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "When child process spawn emits ENOENT, Agent shall throw an error preserving `error.code === \"ENOENT\"` and containing the attempted command, the PATH used for spawn resolution, provider, profile, commandId, and an actionable suggestion to add the CLI to the PATH of the environment that starts `senti`.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "Agent shall preserve the existing spawn environment behavior: clone `process.env`, keep `PATH: process.env.PATH` when present, and continue removing only `CLAUDECODE` from the invocation env.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "Agent shall pass the configured provider profile `command` value to `spawn()` without package-manager-specific path completion or environment-specific absolute path insertion.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "Migration parity shall be maintained for retained behavior: successful agent calls still return trimmed output, non-ENOENT failures keep existing provider/profile/exit/stderr/stdoutPreview diagnostics, logger end events still record failure, and flow metrics keep provider/profile dimensions.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "Unit coverage shall verify ENOENT diagnostics and retained Agent behavior without requiring live claude, codex, pnpm, npm, or nvm installations.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "AC1: A unit test using a missing command receives an error with `code === \"ENOENT\"` and a message containing `command=<value>`, `PATH=`, `provider=<value>`, `profile=<value>`, `commandId=<value>`, and guidance to add the CLI to the PATH used to start `senti`.",
+    "AC2: A unit test proves `_buildInvocation` preserves `process.env.PATH` in the env passed to spawn and still omits `CLAUDECODE`.",
+    "AC3: A unit test using an absolute command path observes that the configured `command` value is retained as the invocation command and no package-manager-specific fallback path is added.",
+    "AC4: Behavior-level parity is verified for every retained surface listed in R4: successful `Agent.call()` returns trimmed output, non-ENOENT failure message still includes provider/profile/exit or stderr context, logger end event records non-zero failure, and flow metric accumulation still receives provider/profile dimensions.",
+    "AC5: The implementation diff contains no hardcoded user-specific paths and no pnpm/npm/nvm-specific PATH completion logic."
+  ],
+  "clarifications": [
+    {
+      "q": "Should PATH be included in the diagnostic even if it contains user-specific directories?",
+      "a": "Yes. Issue #409 explicitly requires PATH in the diagnosable error. The message must not include prompts or secrets beyond the process PATH value already used for resolution."
+    },
+    {
+      "q": "Should workflow refine get a plugin-specific fix?",
+      "a": "No unless implementation proves commandId is lost. The workflow plugin already passes `workflow.refine`; the core Agent error should carry that commandId."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Search pnpm global, npm global, nvm, or common bin directories when command lookup fails.",
+      "reason": "Rejected because Issue #409 explicitly forbids package-manager-specific PATH completion and the project rule forbids environment-specific paths in `src/`."
+    },
+    {
+      "option": "Wrap only workflow refine errors in the workflow plugin.",
+      "reason": "Rejected because the same spawn failure can occur for docs, flow, hooks, and plugins; core Agent owns the shared spawn boundary."
+    },
+    {
+      "option": "Hide PATH from the message.",
+      "reason": "Rejected because the user cannot distinguish a missing CLI from a wrong provider command without seeing the PATH used by the `senti` process."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "Agent",
+    "spawn",
+    "ENOENT",
+    "PATH",
+    "provider",
+    "profile",
+    "commandId",
+    "ProviderRegistry",
+    "workflow.refine",
+    "agent diagnostics",
+    "child_process"
+  ],
+  "implementationTargets": [
+    "src/lib/agent.js",
+    "tests/unit/lib/agent-service.test.js",
+    "tests/unit/lib/agent-with-logger.test.js"
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-07-02T10:28:43.686Z",
+    "notes": "autoApprove accepted after spec-gate PASS for Issue #409"
+  },
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Add ENOENT diagnostics",
+      "goal": "Extend the Agent spawn error path so unresolved provider commands produce contextual diagnostics while retained Agent behavior remains unchanged.",
+      "acceptance": [
+        "R1-R3 are implemented in `src/lib/agent.js` without package-manager-specific path completion.",
+        "R4 retained behavior is covered by existing or extended unit tests.",
+        "R5 unit tests pass without live claude or codex CLIs."
+      ],
+      "implementation_notes": "Keep the change at the Agent spawn boundary. Add small private helpers only if they keep `_callOnce` readable. Avoid logging prompt text. If adding PATH candidate strings, derive them from the current PATH entries and the configured command only; do not probe package-manager-specific locations.",
+      "test_strategy": "Add spec-local tests under `specs/315-spawn-enoent-diagnostics/tests/` with `// spec: R<N> ...` headers covering R1-R5. Extend unit tests under `tests/unit/lib/` for Agent behavior where shared regression coverage is more appropriate.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ]
+}

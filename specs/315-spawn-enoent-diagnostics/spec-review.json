@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "generatedAt": "2026-07-02T10:26:21.480Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "nonBlocking": 2,
+    "total": 3
+  },
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Preserve ENOENT error code contract",
+      "target": "R1 / R4 ENOENT diagnostics",
+      "body": "**Target:** R1 / R4 ENOENT diagnostics\n**Issue:** Existing Agent currently rejects the raw child_process spawn error, which carries code=\"ENOENT\". The workflow plugin catches errors and uses err.code for its failure envelope, but the spec only requires the new diagnostic message fields and does not require the wrapped diagnostic Error to preserve the code.\n**Required change:** Add a requirement or acceptance criterion that the ENOENT diagnostic error preserves error.code === \"ENOENT\" while replacing the message with contextual diagnostics.\n**Why blocking:** An implementation can satisfy AC1 by throwing a new Error with the required message but no code, causing existing workflow refine propagation to report a generic ERROR instead of ENOENT; tests cannot determine which compatibility behavior to assert.",
+      "issue": "Existing Agent currently rejects the raw child_process spawn error, which carries code=\"ENOENT\". The workflow plugin catches errors and uses err.code for its failure envelope, but the spec only requires the new diagnostic message fields and does not require the wrapped diagnostic Error to preserve the code.",
+      "requiredChange": "Add a requirement or acceptance criterion that the ENOENT diagnostic error preserves error.code === \"ENOENT\" while replacing the message with contextual diagnostics.",
+      "whyBlocking": "An implementation can satisfy AC1 by throwing a new Error with the required message but no code, causing existing workflow refine propagation to report a generic ERROR instead of ENOENT; tests cannot determine which compatibility behavior to assert."
+    }
+  ],
+  "nonBlockingImprovements": [
+    {
+      "kind": "improvement",
+      "title": "Mention existing spawn tests",
+      "target": "Overview Modules / T-1 test_strategy",
+      "body": "**Target:** Overview Modules / T-1 test_strategy\n**Improvement:** Add tests/unit/lib/agent.test.js as a related test target because it already covers real spawn success/failure, stdin fallback, and retry behavior around Agent.call().\n**Why non-blocking:** The listed test files are sufficient to implement and verify the required behavior; this only improves test placement guidance.",
+      "improvement": "Add tests/unit/lib/agent.test.js as a related test target because it already covers real spawn success/failure, stdin fallback, and retry behavior around Agent.call().",
+      "whyNonBlocking": "The listed test files are sufficient to implement and verify the required behavior; this only improves test placement guidance."
+    },
+    {
+      "kind": "improvement",
+      "title": "Clarify ENOENT retry behavior",
+      "target": "R1 / R5",
+      "body": "**Target:** R1 / R5\n**Improvement:** State whether ENOENT should continue to honor the existing retryCount behavior or fail fast with diagnostics.\n**Why non-blocking:** Existing retry behavior can be preserved and tests can set retryCount: 0, so implementation is not blocked; clarification would avoid accidental slow diagnostics.",
+      "improvement": "State whether ENOENT should continue to honor the existing retryCount behavior or fail fast with diagnostics.",
+      "whyNonBlocking": "Existing retry behavior can be preserved and tests can set retryCount: 0, so implementation is not blocked; clarification would avoid accidental slow diagnostics."
+    }
+  ]
+}

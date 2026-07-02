@@ -397,7 +397,13 @@ class Agent {
 
         child.on("error", (err) => {
           clearTimeout(timer);
-          reject(err);
+          reject(formatSpawnError(err, {
+            command: profile.command,
+            env,
+            providerKey,
+            profileKey,
+            commandId: options.commandId,
+          }));
         });
       });
     } finally {
@@ -568,6 +574,45 @@ async function recordPromptCacheHit({ flowManager, context, provider, profileKey
   } catch (err) {
     process.stderr.write(`[senti] agent: cache-hit metric failed: ${err.message}\n`);
   }
+}
+
+function formatSpawnError(err, { command, env, providerKey, profileKey, commandId }) {
+  if (err?.code !== "ENOENT") return err;
+
+  const diagnostic = new Error([
+    "agent command not found",
+    `command=${command || "unknown"}`,
+    `PATH=${env?.PATH ?? ""}`,
+    `candidates=${formatCommandCandidates(command, env?.PATH)}`,
+    `provider=${providerKey || "unknown"}`,
+    `profile=${profileKey || "unknown"}`,
+    `commandId=${commandId || "unknown"}`,
+    "guidance=add the target CLI to the PATH of the environment that starts senti, or configure the provider command as an absolute path",
+  ].join(" | "));
+
+  diagnostic.name = err.name || "Error";
+  diagnostic.cause = err;
+  for (const key of ["code", "errno", "syscall", "path", "spawnargs"]) {
+    if (err[key] != null) diagnostic[key] = err[key];
+  }
+  return diagnostic;
+}
+
+function formatCommandCandidates(command, pathValue) {
+  const commandText = String(command || "");
+  if (!commandText) return "none";
+  if (path.isAbsolute(commandText) || commandText.includes("/") || commandText.includes("\\")) {
+    return commandText;
+  }
+
+  const entries = String(pathValue || "").split(path.delimiter).filter(Boolean);
+  if (entries.length === 0) return commandText;
+
+  const maxCandidates = 8;
+  const candidates = entries.slice(0, maxCandidates).map((entry) => path.join(entry, commandText));
+  const omitted = entries.length - candidates.length;
+  if (omitted > 0) candidates.push(`...(+${omitted} more)`);
+  return candidates.join(",");
 }
 
 function sha256(text) {

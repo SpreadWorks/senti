@@ -1,0 +1,108 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/315-spawn-enoent-diagnostics/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/315-spawn-enoent-diagnostics/tests/agent-enoent-diagnostics.test.js",
+        "test_name": "R1: reports command, PATH, provider, profile, commandId, guidance, and ENOENT code",
+        "command": "node --test specs/315-spawn-enoent-diagnostics/tests/agent-enoent-diagnostics.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 74
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/315-spawn-enoent-diagnostics/tests/agent-enoent-diagnostics.test.js",
+        "test_name": "R2: preserves process PATH in the spawn environment and omits CLAUDECODE",
+        "command": "node --test specs/315-spawn-enoent-diagnostics/tests/agent-enoent-diagnostics.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 74
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/315-spawn-enoent-diagnostics/tests/agent-enoent-diagnostics.test.js",
+        "test_name": "R3: reports an absolute configured command without package-manager path completion",
+        "command": "node --test specs/315-spawn-enoent-diagnostics/tests/agent-enoent-diagnostics.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 74
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/315-spawn-enoent-diagnostics/tests/agent-enoent-diagnostics.test.js",
+        "test_name": "R4: keeps failure logging useful when ENOENT is wrapped",
+        "command": "node --test specs/315-spawn-enoent-diagnostics/tests/agent-enoent-diagnostics.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 74
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/315-spawn-enoent-diagnostics/tests/agent-enoent-diagnostics.test.js",
+        "test_name": "R5: uses deterministic missing commands instead of live package-manager CLIs",
+        "command": "node --test specs/315-spawn-enoent-diagnostics/tests/agent-enoent-diagnostics.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 74
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": false,
+    "result": "skipped",
+    "mode": "none",
+    "category": "full-regression-deferred",
+    "reason": "full project regression deferred to final-regression",
+    "classified_paths": [
+      {
+        "path": "specs/315-spawn-enoent-diagnostics/",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/lib/agent.js",
+        "category": "full-regression-deferred"
+      }
+    ],
+    "trigger_relevant_changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/315-spawn-enoent-diagnostics/"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/agent.js"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/315-spawn-enoent-diagnostics/"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/agent.js"
+      }
+    ]
+  }
+}

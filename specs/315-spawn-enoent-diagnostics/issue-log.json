@@ -1,0 +1,439 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "qa[2]: considered contains ambiguous wording",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-02T10:20:30.751Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[2]: considered contains ambiguous wording",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate rejected qa[2].considered because the wording was too ambiguous to be mechanically verifiable",
+      "trigger": "senti flow run gate --phase draft reported qa[2]: considered contains ambiguous wording",
+      "resolution": "rewrote qa[2].considered to state the rejected no-PATH option and the accepted PATH display boundary without vague wording",
+      "guardrailCandidate": "draft decision rationales should state the rejected option and concrete accepted boundary instead of using vague bounded wording",
+      "taskId": null,
+      "timestamp": "2026-07-02T10:20:49.216Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The proposal replaces existing ENOENT handling behavior but does not define migration parity details before implementation: there is no explicit inventory of all affected public behavior/surfaces for the replacement (error contract, command failure reporting, logger/metrics behavior), only a high-level impact list.; No mapping is provided from each retained public behavior to a new owner or explicit removal decision, and no behavior-level parity verification is specified for each retained surface (for example non-ENOENT provider execution, failure envelopes, and flow/logger contracts) beyond ENOENT-focused unit checks.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-02T10:21:14.915Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "scopeVerification,impactOnExisting"
+          },
+          "observed": "The proposal replaces existing ENOENT handling behavior but does not define migration parity details before implementation: there is no explicit inventory of all affected public behavior/surfaces for the replacement (error contract, command failure reporting, logger/metrics behavior), only a high-level impact list.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "impactOnExisting,validation"
+          },
+          "observed": "No mapping is provided from each retained public behavior to a new owner or explicit removal decision, and no behavior-level parity verification is specified for each retained surface (for example non-ENOENT provider execution, failure envelopes, and flow/logger contracts) beyond ENOENT-focused unit checks.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The proposal replaces existing ENOENT handling behavior but does not define migration parity details before implementation: there is no explicit inventory of all affected public behavior/surfaces for the replacement (error contract, command failure reporting, logger/metrics behavior), only a high-level impact list."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "No mapping is provided from each retained public behavior to a new owner or explicit removal decision, and no behavior-level parity verification is specified for each retained surface (for example non-ENOENT provider execution, failure envelopes, and flow/logger contracts) beyond ENOENT-focused unit checks."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "draft gate rejected the draft because migration parity did not inventory retained agent public behavior or parity verification",
+      "trigger": "draft gate migration-parity guardrail reported missing inventory and mapping for error contract, logger metrics, and workflow failure surfaces",
+      "resolution": "added explicit inventory, owner mapping, and verification expectations for success calls, non-ENOENT failures, ENOENT replacement behavior, logger events, flow metrics, and workflow refine envelope behavior",
+      "guardrailCandidate": "when replacing error handling behavior, draft must inventory retained public surfaces and map each to owner and behavior-level verification",
+      "taskId": null,
+      "timestamp": "2026-07-02T10:21:44.063Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "No migration inventory is defined for the changed/replaced public behavior. The text names retained behaviors but does not enumerate affected public-facing commands, APIs, hooks, config entries, artifacts, or side effects as required before implementation.; Acceptance criteria include a subset of retained checks but do not provide behavior-level verification for every retained public surface under the new path (e.g., all surfaces listed in R4).; Spec-local testing is requested but the required `// spec: R<N> ...` header format for `specs/<specid>/tests/` files is not specified.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-02T10:27:41.467Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "overview.decisions[4]"
+          },
+          "observed": "No migration inventory is defined for the changed/replaced public behavior. The text names retained behaviors but does not enumerate affected public-facing commands, APIs, hooks, config entries, artifacts, or side effects as required before implementation.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria.AC4"
+          },
+          "observed": "Acceptance criteria include a subset of retained checks but do not provide behavior-level verification for every retained public surface under the new path (e.g., all surfaces listed in R4).",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "tasks[0].test_strategy",
+            "locator": "tasks[0].test_strategy"
+          },
+          "observed": "Spec-local testing is requested but the required `// spec: R<N> ...` header format for `specs/<specid>/tests/` files is not specified.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "No migration inventory is defined for the changed/replaced public behavior. The text names retained behaviors but does not enumerate affected public-facing commands, APIs, hooks, config entries, artifacts, or side effects as required before implementation."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "Acceptance criteria include a subset of retained checks but do not provide behavior-level verification for every retained public surface under the new path (e.g., all surfaces listed in R4)."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "Spec-local testing is requested but the required `// spec: R<N> ...` header format for `specs/<specid>/tests/` files is not specified."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "spec gate rejected migration parity inventory and spec-local test header guidance as insufficiently explicit",
+      "trigger": "senti flow run gate --phase spec reported migration-parity and spec-test-coverage failures",
+      "resolution": "added affected API command side-effect inventory, owner mapping, behavior-level parity acceptance criteria, and required spec-local // spec: R<N> test headers",
+      "guardrailCandidate": "spec migration parity must enumerate affected public surfaces and pair each retained surface with behavior-level verification",
+      "taskId": null,
+      "timestamp": "2026-07-02T10:28:07.741Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test review rejected escapeRegExp because replacement-string escaping could be misread and make PATH regex assertions unreliable",
+      "trigger": "senti flow run review --phase test reported invalid regex escaping helper in spec-local test",
+      "resolution": "rewrote escapeRegExp to use a callback that returns backslash plus the matched metacharacter",
+      "guardrailCandidate": "spec-local tests should avoid fragile regex helper implementations when asserting environment-derived strings",
+      "taskId": null,
+      "timestamp": "2026-07-02T10:31:44.232Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test review rejected R4 coverage because retained success non-ENOENT diagnostics and flow metric dimensions were not covered",
+      "trigger": "senti flow run review --phase test reported R4 retained behavior is only partially covered",
+      "resolution": "added spec-local R4 tests for trimmed successful output, non-ENOENT provider profile exit stderr stdout diagnostics, and flow metric provider/profile dimensions",
+      "guardrailCandidate": "migration parity requirements should include executable tests for every retained public surface listed in the spec",
+      "taskId": null,
+      "timestamp": "2026-07-02T10:32:49.276Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "test review rejected R1 guidance and R2 environment clone coverage as too weak",
+      "trigger": "senti flow run review --phase test reported missing assertions for actionable PATH guidance and non-PATH env preservation",
+      "resolution": "added concrete add CLI to PATH and environment-starting-senti guidance assertions plus a sentinel environment variable preservation assertion",
+      "guardrailCandidate": "tests for diagnostic guidance should assert actionable remediation terms, and env-preservation tests should include unrelated sentinel variables",
+      "taskId": null,
+      "timestamp": "2026-07-02T10:33:46.450Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: spec-local tests treated package-manager names inside the real PATH as package-manager path completion and expected logger fields that existing Logger.agent end events do not emit",
+      "resolution": "Narrow R3 to a controlled PATH/absolute-command diagnostic, assert R4 logger failure via existing exitCode/agentKey fields, and remove self-referential R5 source regex that matched its own forbidden text",
+      "taskId": null,
+      "timestamp": "2026-07-02T10:39:54.758Z"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "dependency_failure",
+      "failureCategory": "dependency",
+      "reason": "final-regression failed: dependency_failure",
+      "command": "node tests/run.js",
+      "commandIdentity": {
+        "command": "node tests/run.js",
+        "commandSource": "config",
+        "argv": [
+          "node",
+          "tests/run.js"
+        ],
+        "env": {},
+        "source": "config",
+        "metadata": {},
+        "resolvedScriptDigest": null,
+        "resolvedConfigDigest": null
+      },
+      "changedFileFingerprints": [
+        {
+          "path": ".senti/output/analysis.json",
+          "fingerprint": "cfae5c032b6a62b5120d8ca1d73424c47f3f8585b3646bc7f3081e8d0a2780b8"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/acceptance-review.json",
+          "fingerprint": "505864be5ada25597f539d7ba056f376a284ae8196e64c3407484b28ff5d445a"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/draft-coverage-repair.json",
+          "fingerprint": "895a87abf6cdc081580af4d1c9129175424de348352919e58672be1590be7ebe"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/draft-coverage-triage.json",
+          "fingerprint": "b7e1dee4ace104673e6cb85a7b1b75d8fd72af0eb8bd6d13251bf657c399a4d8"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/draft-gate-source.json",
+          "fingerprint": "36510fdeb209ca1e1048e6c5bd6c0aeac8cf7b57700c4f89c27a8909a6c780f4"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/draft-questions-repair.json",
+          "fingerprint": "f011274fa974fcd2bc59326983e04783a73e3006211c10346cc874d4628b24bb"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/draft-questions-triage.json",
+          "fingerprint": "686c955839a2fc26c394274df3c270be323b3fd8db57205deab8c93ddaeca966"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/draft-review-coverage.json",
+          "fingerprint": "897f289de38ddaab1d45d633f0441baab20210463ad19db9079b78be9a824aa8"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/draft-review-questions.json",
+          "fingerprint": "78c0e834960314d98859e5865637a4826244ccf3dc028407c5d15b2b58ce3bfa"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/draft.json",
+          "fingerprint": "d96310ace7c8dd1cc97d0a3da8cd8cd132ca284b5cb7db41c4711b5e3b6b11fd"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/file-map.json",
+          "fingerprint": "eed2174e455e82911a64d8dfc1551b52b41a9d4c33db07b35ca69801f198d245"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/impl-gate-result.json",
+          "fingerprint": "0f391d88e84e758733719ffa8ab6043289f802614e5630cd7f50192a982a3fad"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/impl-review.json",
+          "fingerprint": "c8f9ad02366d9d9be437cad40df3cda05cc43826dbf807c5fc30167e9eda4bd2"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/issue.md",
+          "fingerprint": "1a131598387c5a7ec88c0288ee6c3cd37429f5e9eb7842997644894b6deb0696"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/plugin-artifacts/workflow/prepare.json",
+          "fingerprint": "0a9977355dad59157d553aa1aafebeffe781a3e0477f2741a98094ac2f01fa6c"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/retro.json",
+          "fingerprint": "c7b00743d7bfbdd86e403c051f5b52a627b56484ecbec96fcfcf8b5bed59ec81"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/review-history/draft-coverage-attempt-001.json",
+          "fingerprint": "e3cde641d198ff45ae224b5862a309b2a849056594d8d4efbe863990562a2198"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/review-history/draft-questions-attempt-001.json",
+          "fingerprint": "f7b5a5f2bc1e0572e53a6adf524856031fb7109c27ca76d81ee41f4b579c1bc0"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/review-history/impl-attempt-001.json",
+          "fingerprint": "ccc3ca80d5e024eddaeec41332a77dd817aded20eaf6f39be2d3720f795d11eb"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/review-history/impl-attempt-001.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/review-history/spec-attempt-001.json",
+          "fingerprint": "083d8f68c98f8d179b3c8911b35edabed52f6e0f8fa3711d50197abda6a63a47"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/review-history/spec-attempt-001.md",
+          "fingerprint": "fcddc996aefadcc51be1968f7083d1389de90b3efc98faed241c1294ed4f620a"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/review-history/test-attempt-001.json",
+          "fingerprint": "d7d8ba478355e462f1aa4538998da8cc3ccbd7e56a2b0468a6440c06bfa55357"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/review-history/test-attempt-001.md",
+          "fingerprint": "649e5515578c2338368dc16386c42c4c8dfeb643be7fb37e7bd362cb9161046f"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/review-history/test-attempt-002.json",
+          "fingerprint": "27a1b663bf6210ef6263c1b7e8dafa1ce87cf5913dc1eac3f14e3b69da8e9b1a"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/review-history/test-attempt-002.md",
+          "fingerprint": "1dbd9a47fa80309141ff00dfaaa01a243445a20ac9f3e496cfcd9e5697930eff"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/review-history/test-attempt-003.json",
+          "fingerprint": "d4fb135d3851d6e32ff19f3941e791318ce8bdce1723ce73d7e819dd7d6dad5a"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/review-history/test-attempt-003.md",
+          "fingerprint": "dffd707d78c474d992b90294368ec60ef20122c5d8cada2679748efc414bc100"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/review-history/test-attempt-004.json",
+          "fingerprint": "e2888f9000b0a0b7afdffb3177e4ed9a0468564308d5c142de5bd87ca8f12d84"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/review-history/test-attempt-004.md",
+          "fingerprint": "c609d48db03b473be45b80aad3cf9ded346bb2c94d106639d66a7bbde36d2a0c"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/review.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/scenario-validity-result.json",
+          "fingerprint": "ade624899b365234cc835f89ae2a3e79e5f606ead9b5b24453dec58cfba9a05c"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/spec-gate-source.json",
+          "fingerprint": "9c413a2349a2ed86f6b32d72fa7ebff3d5c2e2eb16bc616930257418fab1f8ee"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/spec-repair.json",
+          "fingerprint": "0d2cc035d962281bbff688e12c668cbcd0ad567ef53859d92aff33f8d7cb144a"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/spec-review.json",
+          "fingerprint": "f4950d76e267879c6c069909f7d65b68ade66d50a7e1d3e1ac17d2d0c7535e05"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/spec-review.md",
+          "fingerprint": "fcddc996aefadcc51be1968f7083d1389de90b3efc98faed241c1294ed4f620a"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/spec-triage.json",
+          "fingerprint": "1d02572a9fb56c77446510fe2ef2959ca6452c1abf917f19275c79a4a8438dfb"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/spec.json",
+          "fingerprint": "f35496012c00b5149a5e3096bea10be9152de2f0c79b9d5c73e3389943a826fe"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/spec.md",
+          "fingerprint": "fde9ab38f432a9a0254bab812061746464d3c370baa931afcaeba639cc7635c9"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/tasks/T-1.md",
+          "fingerprint": "a1ce135af9d4373b14cec7b1be75e07f6638c9cee9dfb0ee90eb9f42d5d2fbe8"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/test-coverage.json",
+          "fingerprint": "95f0f668039407a8553c99ba5df389a10230be58e5e0601a4475cf0f380c881d"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/test-execute-result.json",
+          "fingerprint": "07779fe2541866ab8d012f608464bd0a15fd9d1c66a55e7a4e67043d2530d48e"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/test-result-review.json",
+          "fingerprint": "68e888dcd6091320f974cab28bdfc4b3af9ecda28788ba96b1861044afe06f78"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/test-result-review.md",
+          "fingerprint": "60daf06b61a0b540e507c9bda695ff7409f0b813fbaffdb6d467af9da5e81305"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/test-review.json",
+          "fingerprint": "71c2952d06e79ff5da64370174f47b55ea6a675ead56e2f9842d9b0f2f3ded41"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/test-review.md",
+          "fingerprint": "c609d48db03b473be45b80aad3cf9ded346bb2c94d106639d66a7bbde36d2a0c"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/tests/.raw/scenario-validity.log",
+          "fingerprint": "686a77b63850a7e94f181090445b7f66a5711dba021e4d4e44252bb20a6f073d"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/tests/.raw/test-execution.log",
+          "fingerprint": "2ccdc81d782f24a0638e27680e43ffe48fdc5d22084a2eeb56288ea25bd338e7"
+        },
+        {
+          "path": "specs/315-spawn-enoent-diagnostics/tests/agent-enoent-diagnostics.test.js",
+          "fingerprint": "d484d74fffd205fed68001de30f4717141e699673631dd7c9d082312924b0789"
+        },
+        {
+          "path": "src/lib/agent.js",
+          "fingerprint": "5f3b39803cfe88d85062e0152b1d934010f86f80500cf7ba410688cbf0cc9e32"
+        }
+      ],
+      "rawOutputPath": "specs/315-spawn-enoent-diagnostics/tests/.raw/final-regression-attempt-001.log",
+      "fixAttempts": 0,
+      "retryable": false,
+      "nextAction": "stop",
+      "nextRecommendedAction": "fix-and-rerun",
+      "timestamp": "2026-07-02T10:43:54.895Z"
+    },
+    {
+      "step": "final-regression",
+      "reason": "fix: final-regression failed in existing RenameMigration test because senti-forge path/text migration was not implemented",
+      "resolution": "Add the missing senti-forge -> senti rename rule at the shared RenameMigration rule/path boundary, then rerun focused evidence and final-regression",
+      "taskId": null,
+      "timestamp": "2026-07-02T14:14:37.335Z"
+    }
+  ]
+}

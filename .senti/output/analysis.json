@@ -1,12 +1,12 @@
 {
-  "analyzedAt": "2026-06-29T08:44:37.517Z",
+  "analyzedAt": "2026-07-02T10:15:59.979Z",
   "package": {
     "entries": [
       {
         "file": "package.json",
-        "hash": "4d5a228db9547822224f4fc14954f9d0",
+        "hash": "91404d4372f983d66231e515ed1bbc13",
         "lines": 41,
-        "mtime": "2026-06-25T07:54:09.465Z",
+        "mtime": "2026-07-02T10:15:54.541Z",
         "packageDeps": {
           "dependencies": {},
           "devDependencies": {}
@@ -22,25 +22,7 @@
         "composerDeps": null,
         "composerScripts": null,
         "makefileTest": null,
-        "id": "451a9f25",
-        "summary": "This package manifest defines Senti as an ESM-based Node.js CLI for spec-driven documentation tooling. It exposes a single `senti` entry point, packages the `src/` tree, and defines test scripts for multiple scopes.",
-        "detail": "The manifest declares `@spreadworks/senti` as a module package and maps both `bin` and `exports` to `src/senti.js`, indicating one primary runtime entry. It restricts distributable files to the source directory while excluding preset test fixtures from published output. The engine requirement enforces Node.js 18.19.0 or newer, which signals reliance on modern platform APIs. Test automation is organized through a shared runner with unit, end-to-end, acceptance, agent, and full-suite modes. Repository, license, package manager, and keyword metadata position the project as a standalone developer tool with reproducible installs.",
-        "chapter": "stack_and_ops",
-        "role": "package manifest",
-        "enrich": {
-          "processedAt": "2026-06-25T14:59:18.117Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "Node.js CLI",
-          "package manifest",
-          "ES modules",
-          "spec-driven development",
-          "documentation tooling",
-          "test scripts",
-          "npm package",
-          "command-line tool"
-        ]
+        "id": "451a9f25"
       }
     ],
     "summary": {
@@ -10887,13 +10869,14 @@
       },
       {
         "file": "src/plugin.js",
-        "hash": "f1b5dba89bcf6161819d907a12d1c84e",
-        "lines": 282,
-        "mtime": "2026-06-19T15:27:25.789Z",
+        "hash": "50577a8fffcbcd4e808fbe235b961064",
+        "lines": 294,
+        "mtime": "2026-07-02T10:15:55.516Z",
         "className": "plugin",
         "methods": [
           "renderPluginList",
           "renderPluginSourceMigrationGuide",
+          "readPromptLine",
           "main",
           "printHelp",
           "hasJson",
@@ -10921,28 +10904,12 @@
         "exports": [
           "renderPluginList",
           "renderPluginSourceMigrationGuide",
+          "readPromptLine",
           "main"
         ],
         "extends": null,
         "usedBy": null,
-        "id": "ae80e38f",
-        "summary": "This file implements the `plugin` CLI command entrypoint and user-facing output helpers. It parses plugin subcommands, formats results, and optionally runs automatic upgrades after plugin operations.",
-        "detail": "The module provides small argument helpers to detect JSON mode, skip-upgrade mode, reference arguments, and flag-stripped positional input. It centralizes output formatting for list views, operation results, migration guidance, and bulk update prompts so terminal and JSON responses stay consistent. After plugin add, install, update, or source-related actions, it can trigger an automatic upgrade command and merge that outcome into the final response or exit code. The exported `main` function dispatches the `plugin` command tree, prints contextual help for incomplete invocations, and throws explicit errors for unknown subcommands.",
-        "chapter": "cli_commands",
-        "role": "CLI dispatcher and formatter for plugin management commands.",
-        "enrich": {
-          "processedAt": "2026-06-19T15:28:03.168Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "plugin CLI",
-          "subcommand parser",
-          "JSON output",
-          "automatic upgrade",
-          "bulk update",
-          "command entrypoint",
-          "terminal formatting"
-        ]
+        "id": "ae80e38f"
       },
       {
         "file": "src/presets-cmd.js",
@@ -11504,7 +11471,7 @@
     ],
     "summary": {
       "total": 214,
-      "totalMethods": 1997
+      "totalMethods": 1998
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },

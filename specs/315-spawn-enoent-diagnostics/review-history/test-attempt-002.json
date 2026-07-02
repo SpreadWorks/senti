@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-02T10:32:07.943Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/315-spawn-enoent-diagnostics/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R4 retained behavior is only partially covered",
+      "target": "tests/agent-enoent-diagnostics.test.js",
+      "issue": "The R4 test only checks ENOENT failure log text for commandId/provider/profile. It does not cover successful calls returning trimmed output, non-ENOENT failure diagnostics retaining provider/profile/exit/stderr/stdoutPreview, or flow metrics retaining provider/profile dimensions, while the coverage artifact marks R4 fully covered.",
+      "requiredChange": "Add spec-local unit coverage for the missing R4 retained behaviors: successful trimmed output, non-ENOENT diagnostics, and flow metrics provider/profile dimensions.",
+      "whyBlocking": "R4 is a must acceptance requirement and several retained behavior risks have no corresponding test coverage; the coverage artifact contradicts the executable tests.",
+      "origin": "R4",
+      "failureKind": "missing_coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/315-spawn-enoent-diagnostics/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "d682874de4c9ee14024f0edaaf5af21d1bd05d7a6d3b24675a39e0a46948992f"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "test-002-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R4 retained behavior is only partially covered",
+      "body": "The R4 test only checks ENOENT failure log text for commandId/provider/profile. It does not cover successful calls returning trimmed output, non-ENOENT failure diagnostics retaining provider/profile/exit/stderr/stdoutPreview, or flow metrics retaining provider/profile dimensions, while the coverage artifact marks R4 fully covered.",
+      "category": "unknown"
+    }
+  ]
+}

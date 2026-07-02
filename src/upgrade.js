@@ -50,6 +50,7 @@ export class RenameMigration {
     this.root = root;
     this.textRules = [
       new RenameRule(".sdd-forge", ".senti"),
+      new RenameRule("senti-forge", "senti"),
       new RenameRule("sdd-forge", "senti"),
       new RenameRule("SDD-FORGE", "SENTI"),
       new RenameRule("SDD_FORGE", "SENTI"),
@@ -172,6 +173,7 @@ export class RenameMigration {
   renamePath(rel) {
     return rel
       .split(".sdd-forge").join(".senti")
+      .split("senti-forge").join("senti")
       .split("sdd-forge").join("senti")
       .split("AGENTS.sdd").join("AGENTS.senti")
       .split("agents.sdd").join("agents.senti");

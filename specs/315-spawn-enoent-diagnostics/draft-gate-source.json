@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "The proposal replaces existing ENOENT handling behavior but does not define migration parity details before implementation: there is no explicit inventory of all affected public behavior/surfaces for the replacement (error contract, command failure reporting, logger/metrics behavior), only a high-level impact list.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "scopeVerification,impactOnExisting"
+          },
+          "observed": "The proposal replaces existing ENOENT handling behavior but does not define migration parity details before implementation: there is no explicit inventory of all affected public behavior/surfaces for the replacement (error contract, command failure reporting, logger/metrics behavior), only a high-level impact list.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "No mapping is provided from each retained public behavior to a new owner or explicit removal decision, and no behavior-level parity verification is specified for each retained surface (for example non-ENOENT provider execution, failure envelopes, and flow/logger contracts) beyond ENOENT-focused unit checks.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "impactOnExisting,validation"
+          },
+          "observed": "No mapping is provided from each retained public behavior to a new owner or explicit removal decision, and no behavior-level parity verification is specified for each retained surface (for example non-ENOENT provider execution, failure envelopes, and flow/logger contracts) beyond ENOENT-focused unit checks.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft-content",
+        "locator": "scopeVerification,impactOnExisting"
+      },
+      "observed": "The proposal replaces existing ENOENT handling behavior but does not define migration parity details before implementation: there is no explicit inventory of all affected public behavior/surfaces for the replacement (error contract, command failure reporting, logger/metrics behavior), only a high-level impact list.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft-content",
+        "locator": "impactOnExisting,validation"
+      },
+      "observed": "No mapping is provided from each retained public behavior to a new owner or explicit removal decision, and no behavior-level parity verification is specified for each retained surface (for example non-ENOENT provider execution, failure envelopes, and flow/logger contracts) beyond ENOENT-focused unit checks.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "When child process spawn emits ENOENT, Agent shall throw an error preserving `error.code === \"ENOENT\"` and containing the attempted command, the PATH used for spawn resolution, provider, profile, commandId, and an actionable suggestion to add the CLI to the PATH of the environment that starts `senti`.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/agent-enoent-diagnostics.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "Agent shall preserve the existing spawn environment behavior: clone `process.env`, keep `PATH: process.env.PATH` when present, and continue removing only `CLAUDECODE` from the invocation env.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/agent-enoent-diagnostics.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "Agent shall pass the configured provider profile `command` value to `spawn()` without package-manager-specific path completion or environment-specific absolute path insertion.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/agent-enoent-diagnostics.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "Migration parity shall be maintained for retained behavior: successful agent calls still return trimmed output, non-ENOENT failures keep existing provider/profile/exit/stderr/stdoutPreview diagnostics, logger end events still record failure, and flow metrics keep provider/profile dimensions.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/agent-enoent-diagnostics.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "Unit coverage shall verify ENOENT diagnostics and retained Agent behavior without requiring live claude, codex, pnpm, npm, or nvm installations.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/agent-enoent-diagnostics.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/agent-enoent-diagnostics.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "1 blocking finding reviewed; preserve ENOENT error.code in the diagnostic error.",
+  "items": [
+    {
+      "title": "Preserve ENOENT error code contract",
+      "target": "R1 / R4 ENOENT diagnostics",
+      "decision": "apply",
+      "rationale": "The finding is still blocking because the spec requires contextual diagnostics but does not explicitly preserve the existing `err.code === \"ENOENT\"` contract used by workflow error envelopes.",
+      "evidence": "spec-review.json blockingFindings[0]; current spec.json R1 and AC1 mention diagnostic message fields but not the error.code contract."
+    }
+  ]
+}

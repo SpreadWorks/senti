@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "No migration inventory is defined for the changed/replaced public behavior. The text names retained behaviors but does not enumerate affected public-facing commands, APIs, hooks, config entries, artifacts, or side effects as required before implementation.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "overview.decisions[4]"
+          },
+          "observed": "No migration inventory is defined for the changed/replaced public behavior. The text names retained behaviors but does not enumerate affected public-facing commands, APIs, hooks, config entries, artifacts, or side effects as required before implementation.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "Acceptance criteria include a subset of retained checks but do not provide behavior-level verification for every retained public surface under the new path (e.g., all surfaces listed in R4).",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria.AC4"
+          },
+          "observed": "Acceptance criteria include a subset of retained checks but do not provide behavior-level verification for every retained public surface under the new path (e.g., all surfaces listed in R4).",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "fail",
+      "reason": "Spec-local testing is requested but the required `// spec: R<N> ...` header format for `specs/<specid>/tests/` files is not specified.",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "tasks[0].test_strategy",
+            "locator": "tasks[0].test_strategy"
+          },
+          "observed": "Spec-local testing is requested but the required `// spec: R<N> ...` header format for `specs/<specid>/tests/` files is not specified.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "spec.json",
+        "locator": "overview.decisions[4]"
+      },
+      "observed": "No migration inventory is defined for the changed/replaced public behavior. The text names retained behaviors but does not enumerate affected public-facing commands, APIs, hooks, config entries, artifacts, or side effects as required before implementation.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "spec.json",
+        "locator": "acceptance_criteria.AC4"
+      },
+      "observed": "Acceptance criteria include a subset of retained checks but do not provide behavior-level verification for every retained public surface under the new path (e.g., all surfaces listed in R4).",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "spec-test-coverage",
+      "where": {
+        "file": "tasks[0].test_strategy",
+        "locator": "tasks[0].test_strategy"
+      },
+      "observed": "Spec-local testing is requested but the required `// spec: R<N> ...` header format for `specs/<specid>/tests/` files is not specified.",
+      "severity": "blocking",
+      "refs": [
+        "spec-test-coverage"
+      ]
+    }
+  ]
+}

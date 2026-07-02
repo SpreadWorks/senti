@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-02T10:34:09.672Z",
+  "verdict": "ADVISORY",
+  "counts": {
+    "blocking": 0,
+    "advisory": 1,
+    "total": 1
+  },
+  "coverageArtifact": "specs/315-spawn-enoent-diagnostics/test-coverage.json",
+  "blockingFindings": [],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Strengthen bare command spawn coverage",
+      "target": "specs/315-spawn-enoent-diagnostics/tests/agent-enoent-diagnostics.test.js: R3 test",
+      "improvement": "Add a direct assertion, via the invocation helper or spawn interception if available, that a bare configured command such as `__senti_missing_codex_cli__` is passed unchanged to the invocation path.",
+      "whyNonBlocking": "Current R1/R3 coverage would likely catch command rewriting through ENOENT diagnostics, but R3’s named test focuses on an absolute command, so an explicit bare-command assertion would make the requirement clearer."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/315-spawn-enoent-diagnostics/test-review.json",
+    "verdict": "ADVISORY",
+    "result": "ADVISORY",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": "implement",
+    "completionKind": "normal",
+    "progressSignature": "901dbc1e9e3c07466a3ac77c48576912becbae936fb3032eda27cb1586fd2468"
+  }
+}

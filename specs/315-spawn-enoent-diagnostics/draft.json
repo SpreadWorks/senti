@@ -1,0 +1,110 @@
+{
+  "devType": "bugfix",
+  "goal": "must: agent CLI command が ENOENT で解決できない場合に、利用者が PATH と agent 設定を切り分けられる診断情報を出す。",
+  "analysis": {
+    "problem": "must: 現在は `spawn codex ENOENT` がそのまま返るため、どの command、PATH、provider、profile、commandId で失敗したか判断できない。",
+    "proposedApproach": "must: core agent の spawn error handling で ENOENT を文脈付きエラーに変換し、既存の `process.env` 継承と provider `command` 値の扱いは維持する。",
+    "validation": "must: unit test で ENOENT 時の診断情報、PATH 維持、絶対パス command の非改変、非 ENOENT 失敗診断、logger/metrics 契約、既存 provider 呼び出しの回帰なしを確認する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: `src/lib/agent.js` は `_buildInvocation` で `env = { ...process.env }` を作り、`CLAUDECODE` だけ削除している。",
+      "must: `src/lib/agent.js` は `_callOnce` で `spawn(profile.command, finalArgs, { cwd, env })` を呼び、`child.on(\"error\")` は現在 error をそのまま reject している。",
+      "must: `ProviderRegistry` は provider profile の `command` を raw profile entry として保持し、user provider も同じ経路で解決する。",
+      "must: workflow plugin は `workflow.refine` という commandId を core agent call に渡せる。"
+    ],
+    "decisionPoints": [
+      "must: ENOENT 診断に含める項目は command、PATH、provider、profile、commandId、対処案を最低条件とする。",
+      "must: PATH 補完は実装せず、`senti` 起動環境の PATH を直す案内に留める。",
+      "should: 診断メッセージは prompt や system prompt を含めず、設定と実行環境の切り分けに必要な情報だけにする。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 外部依存は追加しない。Node.js built-in module だけで command 解決候補や PATH 表示を扱う。",
+      "must: src 配下に環境固有パスを埋め込まない。",
+      "must: テスト失敗時はテストを通すためだけに期待値を曲げず、product code の診断動作を修正する。"
+    ],
+    "requiresUserJudgment": [
+      "should: ENOENT 診断に PATH 全体を出すことで機密性やログ量に問題があるかは、Issue の受け入れ条件で PATH 表示が要求されているため spec step で表示形式だけを詰める。",
+      "should: 診断に含める解決候補を何件までに制限するかは、ユーザー向け可読性の観点で spec step で決める。"
+    ],
+    "deferredToSpec": [
+      "should: ENOENT 専用 error formatter を Agent private helper として持つか、既存 close error formatting と統合するかは spec step で決める。",
+      "should: unit test の配置は既存 `tests/unit/lib/agent-service.test.js` または `agent-with-logger.test.js` の責務に合わせて決める。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: `src/lib/agent.js` の ENOENT 診断改善。",
+      "must: provider command に相対 command と絶対パス command の両方をそのまま spawn 入力として扱う確認。",
+      "must: agent call の unit test 追加または既存 test 拡張。",
+      "must: 既存 public behavior の migration parity として、成功時 agent call、非 ENOENT 失敗時 error message、logger end event、flow metrics、workflow refine envelope の保持を確認する。",
+      "should: workflow refine 経由で渡る `workflow.refine` commandId が診断に表れることの静的確認。"
+    ],
+    "out": [
+      "must: pnpm、npm、nvm など package manager 固有の PATH 補完。",
+      "must: `/home/nakano/.local/share/pnpm/bin` など環境固有パスの埋め込み。",
+      "must: claude / codex provider の CLI args や model default の変更。",
+      "should: workflow plugin の挙動変更は、commandId 伝搬が既存のまま足りる場合は避ける。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: Inventory: 成功時 agent call public behavior は `Agent.call()` が trimmed response を返す契約であり、owner は引き続き `src/lib/agent.js`、検証は既存 success unit test で行う。",
+    "must: Inventory: 非 ENOENT の非ゼロ終了 public behavior は provider/profile/exit/stderr/stdoutPreview を含む既存診断であり、owner は引き続き `_callOnce` close handler、検証は既存 failure unit test と追加回帰で行う。",
+    "must: Inventory: ENOENT failure public behavior は raw spawn error から文脈付き診断へ置換する。owner は `_callOnce` error handler、検証は command / PATH / provider / profile / commandId / 対処案を含む unit test で行う。",
+    "must: Inventory: logger end event public behavior は agent failure でも non-zero exitCode と error message を記録する契約であり、owner は `runWithLogging`、検証は logger integration test で行う。",
+    "must: Inventory: flow metrics public behavior は agent call の provider/profile dimensions を維持する契約であり、owner は `runWithLogging` metric accumulation、検証は既存 metric accumulation test の非回帰で行う。",
+    "should: Inventory: workflow refine failure envelope public behavior は core agent からの error message を plugin command failureとして返す契約であり、owner は workflow plugin dispatcher と core agent、検証は commandId `workflow.refine` を含む agent error unit test で代替する。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "must: Issue #409 の目的は、`spawn codex ENOENT` を単体で返す状態をやめ、command / PATH / provider / profile / commandId / 対処案を含む診断可能なエラーにする、という理解でよいですか。",
+      "answer": "must: はい。Issue #409 の Summary、Expected Fix、Acceptance Criteria は、ENOENT 時に command / PATH / provider / profile / commandId / 対処案を含む診断可能なエラーを要求している。",
+      "evidence": "Issue #409 body: Expected Fix lists command, referenced PATH, provider/profile/commandId, and suggested resolutions; Acceptance Criteria rejects ending with only `spawn codex ENOENT`.",
+      "why": "must: 目的が明示済みで、ユーザーは preflight summary を auto mode で承認したため、追加確認なしで goal を確定できる。",
+      "considered": "should: workflow refine 側だけで補足する案もあり得るが、Issue は core agent side の改善を指定しているため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "must: この修正では package manager 固有の PATH 補完を実装せず、`senti` 起動環境の PATH を修正する案内だけに留める、という非目標でよいですか。",
+      "answer": "must: はい。pnpm / npm / nvm など package manager 固有の PATH 補完は実装せず、`senti` 起動環境の PATH に対象 CLI を追加する案内に留める。",
+      "evidence": "Issue #409 body: Expected Fix says not to implement path completion based on pnpm / npm / nvm; Acceptance Criteria repeats no package-manager-specific PATH completion.",
+      "why": "must: 環境固有パスを src に入れない project rule と一致し、利用者の起動環境を尊重する設計を保てる。",
+      "considered": "should: よくある pnpm global bin を探索する案は今回の明示的な非目標に反するため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "should: ENOENT 診断には PATH 全体を表示してよいですか。PATH は秘密情報ではないことが多い一方、環境名やユーザー名を含む場合があります。",
+      "answer": "must: PATH は診断に含める。should: spec step では prompt や secret を混ぜず、PATH と command context に限定した表示にする。",
+      "evidence": "Issue #409 Acceptance Criteria requires a diagnosable error that includes PATH and provider/profile/commandId when `command -v codex` fails.",
+      "why": "must: PATH がなければ `senti` 起動環境に CLI が入っていない問題を切り分けられないため、Issue の診断要件を満たせない。",
+      "considered": "should: PATH を完全に隠す案は、`command -v codex` 失敗時の切り分け情報が不足するため採用しない。PATH は `PATH=<value>` または PATH entry list として表示し、prompt 本文は含めない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "must: 受け入れ条件は unit test 中心で十分ですか。実際の `senti workflow refine <hash>` を live agent で再現する確認は環境依存のため必須にしない想定です。",
+      "answer": "must: はい。`src/lib/agent.js` の unit test で ENOENT 診断、PATH 維持、絶対パス command、既存 provider 回帰を確認する。live agent による workflow refine 再現は必須にしない。",
+      "evidence": "Issue #409 Acceptance Criteria explicitly asks to add unit tests for ENOENT diagnostics in `src/lib/agent.js`; `tests/unit/lib/agent-service.test.js` already covers Agent resolution and option contracts.",
+      "why": "must: live agent 実行は外部 CLI と環境 PATH に依存するため、安定した regression には unit test が適している。",
+      "considered": "should: workflow plugin e2e を追加する案は、Issue の主対象が core agent であり外部 CLI 依存も増えるため必須範囲にしない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-02T10:20:19.000Z",
+    "notes": "autoApprove accepted the preflight Goal/Scope for Issue #409; draft-refine resolved all QA entries from Issue text, project rules, and source context."
+  }
+}

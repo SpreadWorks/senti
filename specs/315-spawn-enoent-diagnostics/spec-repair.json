@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied ENOENT error code preservation requirement from spec review.",
+  "items": [
+    {
+      "title": "Preserve ENOENT error code contract",
+      "target": "R1 / R4 ENOENT diagnostics",
+      "decision": "applied",
+      "rationale": "The spec now requires the contextual diagnostic error to preserve `error.code === \"ENOENT\"`, keeping workflow failure envelope compatibility while changing the message.",
+      "evidence": "spec.json requirements[R1].desc and acceptance_criteria[AC1] now explicitly require `code === \"ENOENT\"`; overview.decisions records the compatibility rationale.",
+      "changedFields": [
+        "overview.decisions",
+        "requirements[R1].desc",
+        "acceptance_criteria[AC1]"
+      ]
+    }
+  ]
+}

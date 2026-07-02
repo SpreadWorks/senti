@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-02T10:31:11.940Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/315-spawn-enoent-diagnostics/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Invalid regex escaping helper breaks executable assertions",
+      "target": "specs/315-spawn-enoent-diagnostics/tests/agent-enoent-diagnostics.test.js:139",
+      "issue": "`escapeRegExp()` replaces regex metacharacters with `\\{{PROMPT}}` instead of escaping the matched character. Assertions that build `new RegExp(...)` from `process.env.PATH` or an absolute command can become invalid or fail for the wrong reason when the value contains common metacharacters such as `.`.",
+      "requiredChange": "Fix `escapeRegExp()` to preserve and escape the matched metacharacter, e.g. replace with `\"\\\\$&\"`.",
+      "whyBlocking": "The R2 and R3 tests are not reliably executable and may fail before exercising production behavior, so the spec-local coverage for PATH and configured command diagnostics is not valid.",
+      "origin": "R2/R3",
+      "failureKind": "test-not-executable"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/315-spawn-enoent-diagnostics/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "6cdde619f37812a0febbcd0b70810942a664760fd367637d864f2a4c3ace2ce6"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "test-001-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Invalid regex escaping helper breaks executable assertions",
+      "body": "`escapeRegExp()` replaces regex metacharacters with `\\{{PROMPT}}` instead of escaping the matched character. Assertions that build `new RegExp(...)` from `process.env.PATH` or an absolute command can become invalid or fail for the wrong reason when the value contains common metacharacters such as `.`.",
+      "category": "unknown"
+    }
+  ]
+}

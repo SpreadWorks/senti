@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-02T10:33:14.626Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/315-spawn-enoent-diagnostics/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R1 actionable PATH guidance is not actually asserted",
+      "target": "specs/315-spawn-enoent-diagnostics/tests/agent-enoent-diagnostics.test.js: R1 test",
+      "issue": "The test checks for `PATH=` and `/PATH.*senti/i`, but that can pass with a generic diagnostic that mentions PATH and senti without giving the required actionable suggestion to add the CLI to the PATH of the environment that starts `senti`.",
+      "requiredChange": "Assert concrete guidance terms, e.g. adding/installing the CLI and updating the PATH for the environment/process that starts `senti`.",
+      "whyBlocking": "R1 explicitly requires actionable remediation guidance; the current assertion would pass without covering that acceptance requirement.",
+      "origin": "R1",
+      "failureKind": "missing-coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R2 does not verify cloned environment preserves non-PATH variables",
+      "target": "specs/315-spawn-enoent-diagnostics/tests/agent-enoent-diagnostics.test.js: R2 test",
+      "issue": "The test verifies `PATH` is kept and `CLAUDECODE` is omitted, but it does not prove the invocation env clones `process.env` or that only `CLAUDECODE` is removed. An implementation that drops unrelated environment variables would still pass.",
+      "requiredChange": "Set an unrelated sentinel environment variable before building the invocation and assert it is present unchanged in `built.env`.",
+      "whyBlocking": "R2 requires preserving existing spawn environment behavior by cloning `process.env` and removing only `CLAUDECODE`; that behavior lacks spec-local coverage.",
+      "origin": "R2",
+      "failureKind": "missing-coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/315-spawn-enoent-diagnostics/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "c65a033c864ea492907a267ad5db2d8a1362c511ff1218fc68cefe7432b61dcf"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "test-003-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R1 actionable PATH guidance is not actually asserted",
+      "body": "The test checks for `PATH=` and `/PATH.*senti/i`, but that can pass with a generic diagnostic that mentions PATH and senti without giving the required actionable suggestion to add the CLI to the PATH of the environment that starts `senti`.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-003-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R2 does not verify cloned environment preserves non-PATH variables",
+      "body": "The test verifies `PATH` is kept and `CLAUDECODE` is omitted, but it does not prove the invocation env clones `process.env` or that only `CLAUDECODE` is removed. An implementation that drops unrelated environment variables would still pass.",
+      "category": "unknown"
+    }
+  ]
+}
