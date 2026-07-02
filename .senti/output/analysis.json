@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-07-02T10:15:59.979Z",
+  "analyzedAt": "2026-07-02T14:18:53.181Z",
   "package": {
     "entries": [
       {
@@ -22,7 +22,24 @@
         "composerDeps": null,
         "composerScripts": null,
         "makefileTest": null,
-        "id": "451a9f25"
+        "id": "451a9f25",
+        "summary": "Package manifest for the `@spreadworks/senti` CLI and library distribution. It declares the Node.js runtime target, published files, executable entrypoint, and test scripts.",
+        "detail": "The package is published as an ES module and exposes `src/senti.js` both as the CLI binary and the default export. It restricts packaged contents to `src/` while excluding preset test directories from published artifacts. The manifest sets a minimum Node.js version of 18.19.0 and uses `pnpm` as the package manager. Test automation is organized into unit, end-to-end, acceptance, agent, and aggregate script variants, reflecting a multi-scope validation strategy.",
+        "chapter": "stack_and_ops",
+        "role": "config",
+        "enrich": {
+          "processedAt": "2026-07-02T14:19:16.336Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "package manifest",
+          "npm package",
+          "Node.js CLI",
+          "ES module",
+          "runtime requirements",
+          "pnpm",
+          "test scripts"
+        ]
       }
     ],
     "summary": {
@@ -8075,9 +8092,9 @@
       },
       {
         "file": "src/lib/agent.js",
-        "hash": "9b9786189e68195f6d18de5664a11bf1",
-        "lines": 910,
-        "mtime": "2026-06-17T16:38:36.963Z",
+        "hash": "53b22d7788e90865df143498bf1ab1ac",
+        "lines": 955,
+        "mtime": "2026-07-02T14:18:43.184Z",
         "className": "agent",
         "methods": [
           "createPluginAgentApi",
@@ -8086,6 +8103,8 @@
           "persistFinalizeMetricToSidecar",
           "resolvePromptCacheContext",
           "recordPromptCacheHit",
+          "formatSpawnError",
+          "formatCommandCandidates",
           "sha256",
           "cacheFileName",
           "stableStringify",
@@ -8128,25 +8147,23 @@
           "src/lib/container.js"
         ],
         "id": "13ddf392",
-        "summary": "Implements the core agent runtime that resolves profiles, invokes external providers, and manages retries, caching, and metrics. It is the main abstraction behind prompt execution in the CLI.",
-        "detail": "The Agent class resolves provider and profile selection from config, command IDs, environment variables, and built-in aliases before constructing provider-specific invocations. It supports JSON-schema-assisted calls, stdin fallback thresholds, temporary schema files, working-directory argument injection, streaming event filtering, and provider output parsing. The module includes a prompt cache keyed by a stable serialized request identity, along with cache-hit accounting and optional sidecar metric persistence for flow contexts. Retry handling uses bounded attempts with exponential backoff, while logging captures request IDs, usage, model metadata, timing, and response size statistics. Additional helpers implement profile prefix matching, default fallback rules, prompt token substitution, and a plugin-facing wrapper API.",
-        "chapter": "internal_design",
-        "role": "Agent orchestration runtime",
+        "summary": "Agent execution layer for invoking external AI providers with profile resolution, retries, caching, and metrics. It normalizes command construction and provider parsing behind a single `Agent` API.",
+        "detail": "The module resolves agent profiles from built-in defaults, configuration, and environment overrides, then maps them to provider implementations through a registry. It builds command invocations with prompt substitution, working-directory injection, optional JSON schema delivery, and environment shaping before spawning subprocesses. A prompt cache persists deterministic responses under `.senti/agent-cache`, and cache hits are reported through sidecar metrics when flow context allows it. The runtime includes retry and backoff handling, streaming-event filtering, provider-specific output parsing, logging hooks, and plugin-facing wrappers for agent calls.",
+        "chapter": "configuration",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-06-17T16:39:19.262Z",
+          "processedAt": "2026-07-02T14:19:16.336Z",
           "attempts": 1
         },
         "keywords": [
-          "agent runtime",
-          "provider registry",
+          "agent runner",
+          "LLM provider",
           "profile resolution",
           "prompt cache",
           "retry backoff",
+          "subprocess spawn",
           "metrics logging",
-          "schema-based output",
-          "process spawning",
-          "plugin API",
-          "stream filtering"
+          "schema injection"
         ]
       },
       {
@@ -10909,7 +10926,25 @@
         ],
         "extends": null,
         "usedBy": null,
-        "id": "ae80e38f"
+        "id": "ae80e38f",
+        "summary": "CLI entrypoint for plugin management commands, including listing, source operations, updates, and upgrade integration. It handles argument normalization, interactive confirmation, and structured output formatting.",
+        "detail": "The module parses plugin subcommands, strips control flags, and routes execution to the appropriate plugin workflow or help output. It supports both human-readable and JSON responses, with dedicated renderers for package lists, migration guidance, and operation results. Update flows can trigger an automatic repository upgrade step, and failures in that step influence process exit behavior. For bulk updates, it reads a confirmation prompt directly from stdin and formats candidate or result sets consistently for terminal and machine consumption.",
+        "chapter": "cli_commands",
+        "role": "cli",
+        "enrich": {
+          "processedAt": "2026-07-02T14:19:16.336Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "plugin CLI",
+          "command router",
+          "JSON output",
+          "interactive prompt",
+          "plugin update",
+          "plugin source",
+          "help command",
+          "exit codes"
+        ]
       },
       {
         "file": "src/presets-cmd.js",
@@ -11396,9 +11431,9 @@
       },
       {
         "file": "src/upgrade.js",
-        "hash": "7e0bcf787e70a1b592c6389a3ab6c53f",
-        "lines": 735,
-        "mtime": "2026-06-18T16:58:13.030Z",
+        "hash": "70f03754056caf4e01183880e94b7bde",
+        "lines": 737,
+        "mtime": "2026-07-02T14:18:43.185Z",
         "className": "upgrade",
         "methods": [
           "RenameMigration",
@@ -11449,31 +11484,31 @@
         "extends": null,
         "usedBy": null,
         "id": "a631f658",
-        "summary": "Implements the `senti upgrade` command and the migration logic for legacy naming, config layout, presets, and plugin namespaces. It upgrades both repository files and active flow artifacts while supporting dry runs and structured reporting.",
-        "detail": "The module defines rename rules and migration helpers that rewrite legacy `senti` identifiers, move directories, rename skill folders, and update text content across eligible files. It also migrates configuration objects, legacy preset directories, plugin source registration, and namespace conventions used by newer releases. The command coordinates logging, artifact writing, official package installation, preset deployment, and gitignore normalization so upgrades leave the workspace in a consistent state. An active flow-aware artifact writer records upgrade outcomes for ongoing workflow runs, and the CLI exits with explicit error handling when migration steps fail.",
+        "summary": "Upgrade command implementation that migrates legacy Senti and SDD Forge project state, configuration, presets, and plugin namespaces. It performs filesystem rewrites, config transforms, and upgrade artifact reporting.",
+        "detail": "The module defines rename rules that rewrite legacy product names, environment variables, file paths, and embedded text across project files while skipping protected or irrelevant targets. It migrates configuration objects by cloning and transforming schemas, plugin namespace references, and chapter mappings, then writes updated JSON back to disk. The upgrade flow also moves legacy directories, normalizes generated assets such as `.gitignore`, deploys preset copies, and converts old local preset layouts into plugin-based sources. Logging, dry-run support, active-flow artifact generation, and official provider installation checks make the command suitable for both safe previewing and full in-place migration.",
         "chapter": "cli_commands",
-        "role": "Repository upgrade and migration command",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-06-18T16:58:45.693Z",
+          "processedAt": "2026-07-02T14:19:16.336Z",
           "attempts": 1
         },
         "keywords": [
           "upgrade command",
-          "migration utility",
-          "legacy rename",
+          "migration tool",
           "config migration",
-          "preset migration",
-          "plugin namespace upgrade",
-          "workspace upgrade",
-          "dry run"
+          "filesystem rename",
+          "legacy preset migration",
+          "namespace rewrite",
+          "dry run",
+          "artifact reporting"
         ]
       }
     ],
     "summary": {
       "total": 214,
-      "totalMethods": 1998
+      "totalMethods": 2000
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-06-25T14:59:18.117Z"
+  "enrichedAt": "2026-07-02T14:19:16.336Z"
 }
