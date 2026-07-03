@@ -18,14 +18,24 @@ import fs from "fs";
 import path from "path";
 import { specIdFromPath, STATE_FILE } from "../../lib/flow-helpers.js";
 
+function resolveTargetSelection(input = {}) {
+  const selectRunId = input.expectRunId ?? input.expectRunID ?? null;
+  const specToken = input.expectSpec ?? null;
+  const selectSpecId = specToken ? specIdFromPath(specToken) : null;
+  const selectIssue = input.expectIssue ?? null;
+  if (selectRunId == null && selectSpecId == null && selectIssue == null) return null;
+  return { selectRunId, selectSpecId, selectIssue };
+}
+
 function resolveAuthorityFlowState(container, baseFlowManager, mainRoot, options = {}) {
   const paths = container.get("paths");
+  const selection = resolveTargetSelection(options.input);
   const cwdState = baseFlowManager.load();
   if (!cwdState) {
     let resolved = null;
     try {
       resolved = typeof baseFlowManager.resolveActiveFlow === "function"
-        ? baseFlowManager.resolveActiveFlow(null)
+        ? baseFlowManager.resolveActiveFlow(null, selection || {})
         : null;
     } catch (err) {
       if (!options.allowMissingActive) throw err;

@@ -425,6 +425,10 @@ export class FlowManager {
    * @param {object} [opts]
    * @param {string} [opts.selectSpecId] - explicit spec to disambiguate when
    *   multiple flows are active concurrently
+   * @param {string} [opts.selectRunId] - explicit runId to disambiguate when
+   *   multiple flows are active concurrently
+   * @param {string|number} [opts.selectIssue] - explicit Issue number to
+   *   disambiguate when multiple flows are active concurrently
    * @returns {{ state: object, specId: string, worktreePath: string|null } | null}
    */
   resolveActiveFlow(flowState, opts = {}) {
@@ -438,6 +442,15 @@ export class FlowManager {
     }
 
     const activeFlows = this._activeFlows.load();
+    if (opts.selectRunId) {
+      const resolved = this._resolveActiveFlowByState(
+        activeFlows,
+        (state) => state?.runId === opts.selectRunId,
+      );
+      if (resolved) return resolved;
+      throw new Error(`runId '${opts.selectRunId}' is not in active flows`);
+    }
+
     if (opts.selectSpecId) {
       const match = activeFlows.find((f) => f.spec === opts.selectSpecId);
       if (!match) {
@@ -449,6 +462,19 @@ export class FlowManager {
       throw new Error(`spec '${opts.selectSpecId}' is registered as active but flow.json was not found`);
     }
 
+    if (opts.selectIssue != null) {
+      const issue = Number(opts.selectIssue);
+      if (!Number.isSafeInteger(issue) || issue < 1) {
+        throw new Error(`issue target must be a positive integer: ${opts.selectIssue}`);
+      }
+      const resolved = this._resolveActiveFlowByState(
+        activeFlows,
+        (state) => Number(state?.issue) === issue,
+      );
+      if (resolved) return resolved;
+      throw new Error(`Issue #${issue} is not in active flows`);
+    }
+
     if (activeFlows.length === 1) {
       const resolved = this._loadActiveFlowState(activeFlows[0].spec);
       if (resolved) return resolved;
@@ -458,6 +484,14 @@ export class FlowManager {
       );
     }
 
+    return null;
+  }
+
+  _resolveActiveFlowByState(activeFlows, predicate) {
+    for (const entry of activeFlows) {
+      const resolved = this._loadActiveFlowState(entry.spec);
+      if (resolved?.state && predicate(resolved.state)) return resolved;
+    }
     return null;
   }
 

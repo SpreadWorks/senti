@@ -81,6 +81,40 @@ describe("flow get status", () => {
     assert.equal(envelope.data.active, true);
   });
 
+  it("selects the expected runId when multiple active flows exist", () => {
+    tmp = createTmpDir();
+    setupFlowState(tmp);
+    const secondSpec = "002-second";
+    makeFlowManager(tmp).save({
+      spec: `specs/${secondSpec}/spec.md`,
+      baseBranch: "main",
+      featureBranch: `feature/${secondSpec}`,
+      runId: "run-002-second",
+      issue: 1002,
+      steps: buildInitialSteps(),
+      requirements: [],
+      tasks: [{ id: "T-2", title: "y", goal: "y", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
+      currentTaskId: null,
+    });
+    makeFlowManager(tmp).addActiveFlow(secondSpec, "local");
+
+    const result = execFileSync("node", [
+      FLOW_CMD,
+      ...FLOW_CMD_ARGS_PREFIX,
+      "get",
+      "status",
+      "--expect-run-id",
+      "run-002-second",
+    ], {
+      encoding: "utf8",
+      env: { ...process.env, SENTI_WORK_ROOT: tmp },
+    });
+    const envelope = JSON.parse(result);
+    assert.equal(envelope.ok, true);
+    assert.equal(envelope.data.spec, `specs/${secondSpec}/spec.md`);
+    assert.equal(envelope.data.runId, "run-002-second");
+  });
+
   it("omits audit details from default status", () => {
     tmp = createTmpDir();
     setupFlowState(tmp);

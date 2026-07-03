@@ -20,6 +20,8 @@ describe("resolveActiveFlow", () => {
       spec: `specs/${specId}/spec.md`,
       baseBranch: "main",
       featureBranch: `feature/${specId}`,
+      runId: `run-${specId}`,
+      issue: Number(specId.slice(0, 3)),
       steps: buildInitialSteps(),
       requirements: [],
       tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
@@ -81,6 +83,8 @@ describe("resolveActiveFlow", () => {
       spec: "specs/002-second/spec.md",
       baseBranch: "main",
       featureBranch: "feature/002-second",
+      runId: "run-002-second",
+      issue: 2,
       steps: buildInitialSteps(),
       requirements: [],
     };
@@ -100,6 +104,8 @@ describe("resolveActiveFlow", () => {
       spec: "specs/002-second/spec.md",
       baseBranch: "main",
       featureBranch: "feature/002-second",
+      runId: "run-002-second",
+      issue: 2,
       steps: buildInitialSteps(),
       requirements: [],
     };
@@ -107,6 +113,46 @@ describe("resolveActiveFlow", () => {
     makeFlowManager(tmp).addActiveFlow("002-second", "local");
 
     const result = makeFlowManager(tmp).resolveActiveFlow(null, { selectSpecId: "002-second" });
+    assert.ok(result);
+    assert.equal(result.specId, "002-second");
+  });
+
+  it("selects a specific flow via opts.selectRunId when multiple are active", () => {
+    tmp = createTmpDir();
+    setupFlow(tmp, "001-first");
+    const state2 = {
+      spec: "specs/002-second/spec.md",
+      baseBranch: "main",
+      featureBranch: "feature/002-second",
+      runId: "run-002-second",
+      issue: 2,
+      steps: buildInitialSteps(),
+      requirements: [],
+    };
+    makeFlowManager(tmp).save(state2);
+    makeFlowManager(tmp).addActiveFlow("002-second", "local");
+
+    const result = makeFlowManager(tmp).resolveActiveFlow(null, { selectRunId: "run-002-second" });
+    assert.ok(result);
+    assert.equal(result.specId, "002-second");
+  });
+
+  it("selects a specific flow via opts.selectIssue when multiple are active", () => {
+    tmp = createTmpDir();
+    setupFlow(tmp, "001-first");
+    const state2 = {
+      spec: "specs/002-second/spec.md",
+      baseBranch: "main",
+      featureBranch: "feature/002-second",
+      runId: "run-002-second",
+      issue: 222,
+      steps: buildInitialSteps(),
+      requirements: [],
+    };
+    makeFlowManager(tmp).save(state2);
+    makeFlowManager(tmp).addActiveFlow("002-second", "local");
+
+    const result = makeFlowManager(tmp).resolveActiveFlow(null, { selectIssue: 222 });
     assert.ok(result);
     assert.equal(result.specId, "002-second");
   });
