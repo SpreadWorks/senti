@@ -55,4 +55,17 @@ describe("skills/partials/worktree-mode.md — Edit/Write absolute path guard", 
       "existing baseline-comparison MUST line must remain",
     );
   });
+
+  it("R5: prohibits starting a different flow during an active worktree flow", () => {
+    assert.match(
+      text,
+      /different Issue\/spec flow/,
+      "partial must prohibit starting another target while a worktree flow is active",
+    );
+    assert.match(
+      text,
+      /senti flow prepare --run-id <runId>/,
+      "partial must name runId-based prepare as unsafe during active worktree flow",
+    );
+  });
 });

@@ -42,13 +42,26 @@ describe("senti.flow skill prelude auto flow", () => {
     assert.match(text, /Worktree: `senti flow prepare --title "\.\.\." --base <branch> --worktree --run-id <runId>`/);
   });
 
-  it("does not block new flow prelude with target-aware status checks", () => {
+  it("stops new flow prelude when an unrelated active flow exists", () => {
     const text = readSkill();
     const entry = text.slice(text.indexOf("### A. Entry"), text.indexOf("### B. Prelude"));
+    const prelude = text.slice(text.indexOf("### B. Prelude"), text.indexOf("B.0. **Initialize flow state**"));
 
-    assert.match(entry, /do not run `--expect-issue`, `--expect-spec`, or `--expect-run-id` before B\. Prelude/);
-    assert.match(entry, /must not be blocked by unrelated active flows/);
-    assert.doesNotMatch(entry, /senti flow get status --expect-issue <n>/);
+    assert.match(entry, /If it reports `active: true`/);
+    assert.match(entry, /STOP before `senti flow set init`, `senti flow prepare`/);
+    assert.match(entry, /Do not treat `senti flow prepare --run-id <runId>` as runId-isolated/);
+    assert.match(prelude, /Concurrent flow prelude is out of scope/);
+    assert.doesNotMatch(entry, /must not be blocked by unrelated active flows/);
+  });
+
+  it("verifies the promoted runId target immediately after prepare", () => {
+    const text = readSkill();
+    const prepare = text.slice(text.indexOf("B.4. **Prepare spec"), text.indexOf("Proceed to **C. Dispatcher loop**"));
+
+    assert.match(prepare, /After a successful prepare, immediately verify the promoted target/);
+    assert.match(prepare, /senti flow get status <runId> --expect-run-id <runId> --expect-issue <n>/);
+    assert.match(prepare, /senti flow get status <runId> --expect-run-id <runId> --expect-spec <spec>/);
+    assert.match(prepare, /ACTIVE_FLOW_MISMATCH/);
   });
 
   it("does not include automatic route choice for non-explicit requests", () => {

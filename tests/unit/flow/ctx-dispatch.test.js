@@ -112,8 +112,9 @@ describe("2nd-level dispatcher removal", () => {
 describe("prepare-spec config requirement", () => {
   it("prepare-spec.js should not fallback to null config", () => {
     const content = fs.readFileSync(path.join(FLOW_DIR, "lib/run-prepare-spec.js"), "utf8");
-    assert.ok(
-      !content.includes("? null"),
+    assert.doesNotMatch(
+      content,
+      /config\s*=\s*[^;\n?]+\?\s*[^;\n:]+\s*:\s*null|config\s*=\s*[^;\n]+?\|\|\s*null/,
       "prepare-spec.js must not fallback config to null",
     );
   });

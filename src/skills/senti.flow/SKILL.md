@@ -48,7 +48,8 @@ Note: `senti flow get context` automatically records these metrics via hooks —
 
 Run bare `senti flow get status` first. This is a display and branch-decision check; it is not a target selection mechanism.
 
-- For a new feature/fix/Issue request, do not run `--expect-issue`, `--expect-spec`, or `--expect-run-id` before B. Prelude. New flow prelude commands (`set init`, `prepare --run-id`) create their own target and must not be blocked by unrelated active flows.
+- For a new feature/fix/Issue request, inspect the bare status result before B. Prelude. If it reports `active: true` and the active flow is not the same Issue/spec/runId the user is explicitly continuing, STOP before `senti flow set init`, `senti flow prepare`, or any worktree change.
+- Do not treat `senti flow prepare --run-id <runId>` as runId-isolated unless the CLI has proven isolated state for `set init`, `prepare --run-id`, `get status <runId>`, runtime-log, and `.active-flow`. If this verification is missing or fails, STOP.
 - Use target-aware status only when the user is explicitly continuing an existing flow target.
 - If an existing target `runId` is known, run `senti flow get status <runId> --expect-run-id <runId>` before dispatcher actions. Add `--expect-issue <n>` when the target Issue is known.
 - If an existing target spec is known and no runId is available, run `senti flow get status --expect-spec <spec>` before dispatcher actions.
@@ -63,6 +64,10 @@ Run bare `senti flow get status` first. This is a display and branch-decision ch
 ### B. Prelude (pre-flow setup)
 
 Use this path when no active flow exists. The prelude creates a fresh flow state; after it completes, proceed to the dispatcher loop.
+
+Hard stop:
+- If bare `senti flow get status` reported `active: true`, do not start a different Issue/spec from the main repo or from another worktree. This includes `senti flow set init`, `senti flow prepare --run-id <runId>`, and any attempt to rely on a new runId while an unrelated active worktree flow exists.
+- Concurrent flow prelude is out of scope unless the CLI explicitly verifies fully isolated runId state for `set init`, `prepare --run-id`, `get status <runId>`, runtime-log, and `.active-flow`. Current skill procedure assumes no such verification and therefore stops.
 
 B.0. **Initialize flow state**
    - **Input parsing rules** — apply these rules to the user's raw input before running `set init`:
@@ -118,6 +123,10 @@ B.4. **Prepare spec (silent)**
      - Branch: `senti flow prepare --title "..." --base <branch> --run-id <runId>`
      - No branch: `senti flow prepare --title "..." --no-branch --run-id <runId>`
    - On `{ok: false, code: "DIRTY_WORKTREE"}` → run `senti flow get prompt plan.dirty-worktree` and present the choices; do not retry until clean.
+   - After a successful prepare, immediately verify the promoted target:
+     - If an Issue number was captured: `senti flow get status <runId> --expect-run-id <runId> --expect-issue <n>`.
+     - If no Issue number was captured but the prepared spec is known from the prepare response: `senti flow get status <runId> --expect-run-id <runId> --expect-spec <spec>`.
+   - If the verification response has `ok: false`, returns `ACTIVE_FLOW_MISMATCH`, or its `data.runId` / `data.issue` / `data.spec` does not match the prepared target, STOP immediately. Do not add or edit generated artifacts.
 
 Proceed to **C. Dispatcher loop**.
 

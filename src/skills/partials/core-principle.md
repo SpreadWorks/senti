@@ -6,7 +6,8 @@ Do not ask the user to confirm routine step execution when `requires_approval: f
 **autoApprove check (MANDATORY):**
 Before presenting any choice to the user, you MUST run `senti flow get status` and display the `autoApprove` field value. This is not optional — skipping this check is a protocol violation.
 - If the current flow `runId` is known, prefer `senti flow get status <runId>` so the check reads the target flow instead of an unrelated current context.
-- Do not run target-aware status checks before starting a new flow. `senti flow set init` and `senti flow prepare --run-id <runId>` create a new target; unrelated active flows must not block that prelude.
+- Before starting a new flow, run bare `senti flow get status`. If it reports `active: true` and the active flow is not the same Issue/spec/runId the user is explicitly continuing, STOP before `senti flow set init` or `senti flow prepare`.
+- New flow prelude is allowed only when no active flow exists. Concurrent flow prelude is allowed only after the CLI has proven runId-isolated state for `set init`, `prepare --run-id`, `get status <runId>`, runtime-log, and `.active-flow`; if any verification is missing or fails, STOP.
 - If the user explicitly continues an existing flow and the target Issue is known, run `senti flow get status <runId> --expect-issue <n>` when `runId` is known. Without a target `runId`, use bare status for display and do not treat another active flow as authorization to continue it.
 - If the user explicitly continues an existing spec target, run `senti flow get status --expect-spec <spec>` before dispatcher actions.
 - If the user explicitly continues an existing runId target for dispatcher continuation, run `senti flow get status <runId> --expect-run-id <runId>` before dispatcher actions.
