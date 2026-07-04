@@ -6,8 +6,8 @@ Do not ask the user to confirm routine step execution when `requires_approval: f
 **autoApprove check (MANDATORY):**
 Before presenting any choice to the user, you MUST run `senti flow get status` and display the `autoApprove` field value. This is not optional — skipping this check is a protocol violation.
 - If the current flow `runId` is known, prefer `senti flow get status <runId>` so the check reads the target flow instead of an unrelated current context.
-- Before starting a new flow, run bare `senti flow get status`. If it reports `active: true` and the active flow is not the same Issue/spec/runId the user is explicitly continuing, STOP before `senti flow set init` or `senti flow prepare`.
-- New flow prelude is allowed only when no active flow exists. Concurrent flow prelude is allowed only after the CLI has proven runId-isolated state for `set init`, `prepare --run-id`, `get status <runId>`, runtime-log, and `.active-flow`; if any verification is missing or fails, STOP.
+- `active: true` is not by itself a reason to stop a new flow start. Parallel flows are allowed when the new target is addressed by an explicit preparing `runId` and verified with target-aware status.
+- When starting a new flow while another flow is active, record the `runId` returned by `senti flow set init`; before and after `senti flow prepare --run-id <runId>`, verify the target with `senti flow get status <runId> --expect-run-id <runId>` plus `--expect-issue` or `--expect-spec` when known.
 - If the user explicitly continues an existing flow and the target Issue is known, run `senti flow get status <runId> --expect-issue <n>` when `runId` is known. Without a target `runId`, use bare status for display and do not treat another active flow as authorization to continue it.
 - If the user explicitly continues an existing spec target, run `senti flow get status --expect-spec <spec>` before dispatcher actions.
 - If the user explicitly continues an existing runId target for dispatcher continuation, run `senti flow get status <runId> --expect-run-id <runId>` before dispatcher actions.

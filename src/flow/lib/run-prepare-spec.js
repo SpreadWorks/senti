@@ -80,42 +80,6 @@ function detectBaseBranch(root) {
   }
 }
 
-function specDisplay(state) {
-  return state?.spec || null;
-}
-
-function issueDisplay(state) {
-  return state?.issue == null ? null : Number(state.issue);
-}
-
-function concurrentPrepareMismatchEnvelope({ activeState, preparingState, runId }) {
-  if (!runId || !activeState) return null;
-  if (activeState.runId === runId) return null;
-
-  return Envelope.fail(
-    "run",
-    "prepare-spec",
-    "ACTIVE_FLOW_MISMATCH",
-    [
-      "Cannot prepare a new run while another flow is active in the current context.",
-      "Finish or release the active flow before starting a different Issue/spec flow.",
-    ],
-    {
-      active: {
-        runId: activeState.runId || null,
-        issue: issueDisplay(activeState),
-        spec: specDisplay(activeState),
-        worktree: Boolean(activeState.worktree),
-      },
-      requested: {
-        runId,
-        issue: issueDisplay(preparingState),
-        spec: specDisplay(preparingState),
-      },
-    },
-  );
-}
-
 export function buildDraftTemplate() {
   return JSON.stringify({
     devType: "",
@@ -353,12 +317,40 @@ export class RunPrepareSpecCommand extends FlowCommand {
 
     const { issue, request } = flowManager.resolvePreparingInputs(runIdArg, ctx.issue, ctx.request);
     const preparingState = runIdArg ? flowManager.loadPreparingFlow(runIdArg) : null;
-    const concurrentMismatch = concurrentPrepareMismatchEnvelope({
-      activeState: ctx.flowState,
-      preparingState,
-      runId: runIdArg,
-    });
-    if (concurrentMismatch) return concurrentMismatch;
+    if (ctx.flowState && !runIdArg) {
+      return Envelope.fail(
+        "run",
+        "prepare-spec",
+        "TARGET_REQUIRED",
+        "Cannot run bare prepare while another flow is active; run `senti flow set init` and pass the returned --run-id.",
+        {
+          active: {
+            runId: ctx.flowState.runId || null,
+            issue: ctx.flowState.issue || null,
+            spec: ctx.flowState.spec || null,
+          },
+        },
+      );
+    }
+    if (ctx.flowState && runIdArg && ctx.flowState.runId !== runIdArg) {
+      return Envelope.fail(
+        "run",
+        "prepare-spec",
+        "ACTIVE_FLOW_MISMATCH",
+        "prepare --run-id did not resolve to an isolated preparing flow; target selection would use another active flow.",
+        {
+          active: {
+            runId: ctx.flowState.runId || null,
+            issue: ctx.flowState.issue || null,
+            spec: ctx.flowState.spec || null,
+          },
+          requested: {
+            runId: runIdArg,
+            issue: preparingState?.issue || null,
+          },
+        },
+      );
+    }
 
     if (!title) {
       throw new Error("--title is required");
@@ -561,6 +553,10 @@ export class RunPrepareSpecCommand extends FlowCommand {
 
     return {
       result: "ok",
+      runId: flowRunId,
+      issue: issue ? Number(issue) : null,
+      spec: `specs/${specDirName}/spec.json`,
+      worktreePath,
       changed,
       artifacts: {
         specDir: `specs/${specDirName}`,

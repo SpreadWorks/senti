@@ -42,15 +42,18 @@ describe("senti.flow skill prelude auto flow", () => {
     assert.match(text, /Worktree: `senti flow prepare --title "\.\.\." --base <branch> --worktree --run-id <runId>`/);
   });
 
-  it("stops new flow prelude when an unrelated active flow exists", () => {
+  it("allows parallel flow prelude only through an explicit preparing runId", () => {
     const text = readSkill();
     const entry = text.slice(text.indexOf("### A. Entry"), text.indexOf("### B. Prelude"));
     const prelude = text.slice(text.indexOf("### B. Prelude"), text.indexOf("B.0. **Initialize flow state**"));
 
-    assert.match(entry, /If it reports `active: true`/);
-    assert.match(entry, /STOP before `senti flow set init`, `senti flow prepare`/);
-    assert.match(entry, /Do not treat `senti flow prepare --run-id <runId>` as runId-isolated/);
-    assert.match(prelude, /Concurrent flow prelude is out of scope/);
+    assert.match(entry, /`active: true` is not by itself a reason to stop/);
+    assert.match(entry, /parallel flows are allowed/);
+    assert.match(entry, /explicit preparing `runId`/);
+    assert.match(prelude, /may be run even when another flow is active/);
+    assert.match(prelude, /Before `prepare`, run `senti flow get status <runId> --expect-run-id <runId>`/);
+    assert.match(prelude, /Never run bare `senti flow prepare` while an unrelated flow is active/);
+    assert.doesNotMatch(prelude, /Concurrent flow prelude is out of scope/);
     assert.doesNotMatch(entry, /must not be blocked by unrelated active flows/);
   });
 
@@ -61,6 +64,7 @@ describe("senti.flow skill prelude auto flow", () => {
     assert.match(prepare, /After a successful prepare, immediately verify the promoted target/);
     assert.match(prepare, /senti flow get status <runId> --expect-run-id <runId> --expect-issue <n>/);
     assert.match(prepare, /senti flow get status <runId> --expect-run-id <runId> --expect-spec <spec>/);
+    assert.match(prepare, /branch \/ worktree/);
     assert.match(prepare, /ACTIVE_FLOW_MISMATCH/);
   });
 

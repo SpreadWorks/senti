@@ -31,6 +31,52 @@ function makeContainerWithAmbiguousActiveFlows() {
 }
 
 describe("optional flow context resolution", () => {
+  it("requiresFlow:false commands target a preparing runId before active-flow discovery", async () => {
+    let captured;
+    let loadCalled = false;
+    let selectedRoot = null;
+    const container = new Container();
+    const flowManager = {
+      loadPreparingFlow: (runId) => (runId === "preparing-run" ? { runId } : null),
+      forRoot: (root) => {
+        selectedRoot = root;
+        return flowManager;
+      },
+      load: () => {
+        loadCalled = true;
+        throw new Error("active flow discovery should not run");
+      },
+      resolveActiveFlow: () => {
+        throw new Error("active flow resolution should not run");
+      },
+    };
+    container.register("paths", { root: "/repo/.senti/worktree/feature-001-active" });
+    container.register("mainRoot", "/repo");
+    container.register("config", {});
+    container.register("flowManager", flowManager);
+    container.register("inWorktree", true);
+
+    class OptionalCommand extends FlowCommand {
+      constructor() {
+        super({ requiresFlow: false });
+      }
+
+      execute(ctx) {
+        captured = ctx;
+        return { ok: true };
+      }
+    }
+
+    const cmd = new OptionalCommand();
+    const result = await cmd.run(container, { runId: "preparing-run" });
+
+    assert.deepEqual(result, { ok: true });
+    assert.equal(captured.flowState, null);
+    assert.equal(captured.root, "/repo");
+    assert.equal(selectedRoot, "/repo");
+    assert.equal(loadCalled, false);
+  });
+
   it("requiresFlow:false commands continue when active flow discovery is ambiguous", async () => {
     let captured;
     class OptionalCommand extends FlowCommand {

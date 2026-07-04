@@ -27,8 +27,34 @@ function resolveTargetSelection(input = {}) {
   return { selectRunId, selectSpecId, selectIssue };
 }
 
+function preparingRunIdSelection(input = {}) {
+  const runId = input.runId ?? null;
+  if (typeof runId !== "string") return null;
+  const trimmed = runId.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function preparingAuthorityForRunId(baseFlowManager, mainRoot, paths, runId) {
+  if (!runId || typeof baseFlowManager.loadPreparingFlow !== "function") return null;
+  const state = baseFlowManager.loadPreparingFlow(runId);
+  if (!state) return null;
+  const authorityRoot = mainRoot || paths.root;
+  const flowManager = typeof baseFlowManager.forRoot === "function"
+    ? baseFlowManager.forRoot(authorityRoot)
+    : baseFlowManager;
+  return { flowManager, flowState: null, authorityRoot, flowResolutionError: null };
+}
+
 function resolveAuthorityFlowState(container, baseFlowManager, mainRoot, options = {}) {
   const paths = container.get("paths");
+  const preparingAuthority = preparingAuthorityForRunId(
+    baseFlowManager,
+    mainRoot,
+    paths,
+    preparingRunIdSelection(options.input),
+  );
+  if (preparingAuthority) return preparingAuthority;
+
   const selection = resolveTargetSelection(options.input);
   const cwdState = baseFlowManager.load();
   if (!cwdState) {

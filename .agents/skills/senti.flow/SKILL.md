@@ -17,8 +17,8 @@ Do not ask the user to confirm routine step execution when `requires_approval: f
 **autoApprove check (MANDATORY):**
 Before presenting any choice to the user, you MUST run `senti flow get status` and display the `autoApprove` field value. This is not optional — skipping this check is a protocol violation.
 - If the current flow `runId` is known, prefer `senti flow get status <runId>` so the check reads the target flow instead of an unrelated current context.
-- Before starting a new flow, run bare `senti flow get status`. If it reports `active: true` and the active flow is not the same Issue/spec/runId the user is explicitly continuing, STOP before `senti flow set init` or `senti flow prepare`.
-- New flow prelude is allowed only when no active flow exists. Concurrent flow prelude is allowed only after the CLI has proven runId-isolated state for `set init`, `prepare --run-id`, `get status <runId>`, runtime-log, and `.active-flow`; if any verification is missing or fails, STOP.
+- `active: true` is not by itself a reason to stop a new flow start. Parallel flows are allowed when the new target is addressed by an explicit preparing `runId` and verified with target-aware status.
+- When starting a new flow while another flow is active, record the `runId` returned by `senti flow set init`; before and after `senti flow prepare --run-id <runId>`, verify the target with `senti flow get status <runId> --expect-run-id <runId>` plus `--expect-issue` or `--expect-spec` when known.
 - If the user explicitly continues an existing flow and the target Issue is known, run `senti flow get status <runId> --expect-issue <n>` when `runId` is known. Without a target `runId`, use bare status for display and do not treat another active flow as authorization to continue it.
 - If the user explicitly continues an existing spec target, run `senti flow get status --expect-spec <spec>` before dispatcher actions.
 - If the user explicitly continues an existing runId target for dispatcher continuation, run `senti flow get status <runId> --expect-run-id <runId>` before dispatcher actions.
@@ -244,8 +244,9 @@ All sections marked REQUIRED must appear regardless of whether the AI internally
 
 Run bare `senti flow get status` first. This is a display and branch-decision check; it is not a target selection mechanism.
 
-- For a new feature/fix/Issue request, inspect the bare status result before B. Prelude. If it reports `active: true` and the active flow is not the same Issue/spec/runId the user is explicitly continuing, STOP before `senti flow set init`, `senti flow prepare`, or any worktree change.
-- Do not treat `senti flow prepare --run-id <runId>` as runId-isolated unless the CLI has proven isolated state for `set init`, `prepare --run-id`, `get status <runId>`, runtime-log, and `.active-flow`. If this verification is missing or fails, STOP.
+- For a new feature/fix/Issue request, inspect the bare status result before B. Prelude. `active: true` is not by itself a reason to stop a new flow start; parallel flows are allowed when the new target is addressed by an explicit preparing `runId`.
+- Do not continue an existing active flow merely because bare status reports one. Existing-flow continuation requires the user's intent to match that Issue/spec/runId, verified by target-aware status.
+- When starting a new Issue/spec while another flow is active, the prelude must use the explicit preparing `runId` returned by `senti flow set init`; never rely on cwd, bare active status, or implicit current flow selection to choose the target.
 - Use target-aware status only when the user is explicitly continuing an existing flow target.
 - If an existing target `runId` is known, run `senti flow get status <runId> --expect-run-id <runId>` before dispatcher actions. Add `--expect-issue <n>` when the target Issue is known.
 - If an existing target spec is known and no runId is available, run `senti flow get status --expect-spec <spec>` before dispatcher actions.
@@ -259,11 +260,13 @@ Run bare `senti flow get status` first. This is a display and branch-decision ch
 
 ### B. Prelude (pre-flow setup)
 
-Use this path when no active flow exists. The prelude creates a fresh flow state; after it completes, proceed to the dispatcher loop.
+Use this path when no active flow exists, or when starting an additional flow with an explicit preparing `runId`. The prelude creates a fresh flow state; after it completes, proceed to the dispatcher loop.
 
-Hard stop:
-- If bare `senti flow get status` reported `active: true`, do not start a different Issue/spec from the main repo or from another worktree. This includes `senti flow set init`, `senti flow prepare --run-id <runId>`, and any attempt to rely on a new runId while an unrelated active worktree flow exists.
-- Concurrent flow prelude is out of scope unless the CLI explicitly verifies fully isolated runId state for `set init`, `prepare --run-id`, `get status <runId>`, runtime-log, and `.active-flow`. Current skill procedure assumes no such verification and therefore stops.
+Parallel-flow rules:
+- `senti flow set init [--issue N] [--request ...]` may be run even when another flow is active; it only creates a preparing state.
+- After `set init`, immediately record `data.runId`. Before `prepare`, run `senti flow get status <runId> --expect-run-id <runId>` plus `--expect-issue <n>` or `--expect-spec <spec>` when known. If this does not report the intended preparing flow, STOP.
+- Run prepare only as `senti flow prepare ... --run-id <runId>`. Never run bare `senti flow prepare` while an unrelated flow is active.
+- Never run bare `senti flow get next-action`, bare `senti flow run ...`, repair, finalize, cleanup, or file edits for a target while another unrelated flow is active; use explicit runId/Issue/spec target guards first.
 
 B.0. **Initialize flow state**
    - **Input parsing rules** — apply these rules to the user's raw input before running `set init`:
@@ -322,7 +325,7 @@ B.4. **Prepare spec (silent)**
    - After a successful prepare, immediately verify the promoted target:
      - If an Issue number was captured: `senti flow get status <runId> --expect-run-id <runId> --expect-issue <n>`.
      - If no Issue number was captured but the prepared spec is known from the prepare response: `senti flow get status <runId> --expect-run-id <runId> --expect-spec <spec>`.
-   - If the verification response has `ok: false`, returns `ACTIVE_FLOW_MISMATCH`, or its `data.runId` / `data.issue` / `data.spec` does not match the prepared target, STOP immediately. Do not add or edit generated artifacts.
+   - If the verification response has `ok: false`, returns `ACTIVE_FLOW_MISMATCH`, or its `data.runId` / `data.issue` / `data.spec` / branch / worktree does not match the prepared target, STOP immediately. Do not run `next-action`, `run`, `repair`, `finalize`, `cleanup`, or file edits.
 
 Proceed to **C. Dispatcher loop**.
 
@@ -425,7 +428,8 @@ When `worktree: true` in flow.json:
     - `senti flow get status` returns `active: false` — the flow has ended.
     - The worktree directory no longer exists (`test -d <worktree-path>` fails) — cleanup has deleted it.
 - **MUST: While the flow is active (per the definition above), never `cd` out of the worktree path.**
-- **MUST: During an active worktree flow, never start a different Issue/spec flow from the main repository or another worktree.** Do not run `senti flow set init` or `senti flow prepare --run-id <runId>` for a different target until the active worktree flow is released. RunId-based prepare is not assumed to be isolated from the current active flow.
+- **MUST: The worktree boundary applies to commands that continue, edit, finalize, or clean up this specific flow.** It does not prohibit main-repo prelude commands for a different flow when those commands are explicitly `runId`-targeted and verified against the intended Issue/spec before and after `prepare`.
+- **MUST: Never use implicit current-context flow commands from the main repository or another worktree while an unrelated flow is active.** Use explicit `runId` / Issue / spec target guards instead.
 - **Once the flow is released, the worktree boundary is lifted and `cd` out of the (former) worktree path is allowed.**
 - **Once `senti flow run finalize-cleanup` completes successfully (envelope `ok: true`), both release conditions flip together: the worktree directory is removed and `flow get status` reports `active: false`.** The cleanup command owns finalize Report delivery and removes the worktree; subsequent `senti` commands run from the main repository because the worktree no longer exists.
 - **Halt envelopes (e.g. `ORPHAN_COMMITS_DETECTED`, `SQUASH_BASELINE_MISSING`, `SQUASH_BASELINE_DIVERGED`, `MAIN_REPO_DIRTY`, `MAIN_REPO_LOCKED`, `CHERRY_PICK_CONFLICT`, `ARGS_ERROR`) leave the worktree boundary in effect.** The worktree directory and feature branch are intentionally retained so the user can recover (e.g. archive the branch, run `--auto-rescue`, or re-run with `--force`). Until the next `finalize-cleanup` invocation succeeds, do NOT cd out of the worktree.

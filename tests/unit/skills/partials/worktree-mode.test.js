@@ -56,16 +56,21 @@ describe("skills/partials/worktree-mode.md — Edit/Write absolute path guard", 
     );
   });
 
-  it("R5: prohibits starting a different flow during an active worktree flow", () => {
+  it("R5: allows only explicitly targeted parallel prelude during an active worktree flow", () => {
     assert.match(
       text,
-      /different Issue\/spec flow/,
-      "partial must prohibit starting another target while a worktree flow is active",
+      /does not prohibit main-repo prelude commands for a different flow/,
+      "partial must allow a separate prelude when the target is explicit",
     );
     assert.match(
       text,
-      /senti flow prepare --run-id <runId>/,
-      "partial must name runId-based prepare as unsafe during active worktree flow",
+      /explicitly `runId`-targeted/,
+      "partial must require explicit runId targeting for parallel prelude",
+    );
+    assert.match(
+      text,
+      /Never use implicit current-context flow commands/,
+      "partial must still prohibit implicit current-context commands",
     );
   });
 });
