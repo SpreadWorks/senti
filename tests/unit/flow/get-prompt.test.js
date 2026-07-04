@@ -25,6 +25,8 @@ describe("flow get prompt", () => {
       spec: `specs/${specId}/spec.md`,
       baseBranch: "main",
       featureBranch: "feature/001-test",
+      runId: "run-001-test",
+      issue: 1001,
       steps: buildInitialSteps(),
       requirements: [],
       tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
@@ -52,6 +54,23 @@ describe("flow get prompt", () => {
       tasks: [{ id: "T-1", title: "Task one", goal: "Task goal", parent: null, origin: "plan", added_round: 0, status: "pending" }],
     }, null, 2));
     return specDir;
+  }
+
+  function addSecondFlowState(dir) {
+    const specId = "002-second";
+    const state = {
+      spec: `specs/${specId}/spec.md`,
+      baseBranch: "main",
+      featureBranch: "feature/002-second",
+      runId: "run-002-second",
+      issue: 1002,
+      steps: buildInitialSteps(),
+      requirements: [],
+      tasks: [{ id: "T-2", title: "y", goal: "y", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
+      currentTaskId: null,
+    };
+    makeFlowManager(dir).save(state);
+    makeFlowManager(dir).addActiveFlow(specId, "local");
   }
 
   it("returns error for removed plan.approach kind", () => {
@@ -122,7 +141,18 @@ describe("flow get prompt", () => {
     const specDir = writeSpecJson(tmp);
 
     const result = execFileSync(
-      "node", [FLOW_CMD, "get", "prompt", "plan.approval"],
+      "node", [
+        FLOW_CMD,
+        "get",
+        "prompt",
+        "plan.approval",
+        "--expect-run-id",
+        "run-001-test",
+        "--expect-issue",
+        "1001",
+        "--expect-spec",
+        "001-test",
+      ],
       { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } },
     );
     const envelope = JSON.parse(result);
@@ -134,6 +164,72 @@ describe("flow get prompt", () => {
       "specs/001-test/spec.md",
       "specs/001-test/tasks/T-1.md",
     ]);
+  });
+
+  it("fails with ACTIVE_FLOW_MISMATCH when approval prompt target guard does not match", () => {
+    tmp = createTmpDir();
+    setupFlowState(tmp);
+    writeSpecJson(tmp);
+
+    try {
+      execFileSync(
+        "node", [
+          FLOW_CMD,
+          "get",
+          "prompt",
+          "plan.approval",
+          "--expect-run-id",
+          "run-001-test",
+          "--expect-issue",
+          "1002",
+          "--expect-spec",
+          "001-test",
+        ],
+        { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } },
+      );
+      assert.fail("should exit non-zero");
+    } catch (err) {
+      const envelope = JSON.parse(err.stdout);
+      assert.equal(envelope.ok, false);
+      assert.equal(envelope.errors[0].code, "ACTIVE_FLOW_MISMATCH");
+      assert.equal(envelope.data.expectedIssue, 1002);
+      assert.equal(envelope.data.activeIssue, 1001);
+      assert.equal(envelope.data.expectedRunId, "run-001-test");
+      assert.equal(envelope.data.activeRunId, "run-001-test");
+      assert.equal(envelope.data.expectedSpec, "001-test");
+      assert.equal(envelope.data.activeSpec, "001-test");
+    }
+  });
+
+  it("selects the expected flow for approval prompt rendering when multiple flows are active", () => {
+    tmp = createTmpDir();
+    setupFlowState(tmp);
+    addSecondFlowState(tmp);
+    const specDir = writeSpecJson(tmp, "002-second");
+
+    const result = execFileSync(
+      "node", [
+        FLOW_CMD,
+        "get",
+        "prompt",
+        "plan.approval",
+        "--expect-run-id",
+        "run-002-second",
+        "--expect-issue",
+        "1002",
+        "--expect-spec",
+        "002-second",
+      ],
+      { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } },
+    );
+    const envelope = JSON.parse(result);
+    assert.equal(envelope.ok, true);
+    assert.deepEqual(envelope.data.artifacts.specView, [
+      "specs/002-second/spec.md",
+      "specs/002-second/tasks/T-1.md",
+    ]);
+    const md = fs.readFileSync(path.join(specDir, "spec.md"), "utf8");
+    assert.match(md, /Approval view goal/);
   });
 
   it("finalize.merge-strategy is removed as a known kind", () => {

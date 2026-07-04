@@ -509,8 +509,13 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.get.prompt",
       requiresFlow: false,
       command: () => import("./lib/get-prompt.js"),
-      args: { positional: ["kind"] },
-      help: "Usage: senti flow get prompt <kind>\n\nReturn a prompt template by kind.",
+      args: { positional: ["kind"], options: FLOW_TARGET_GUARD_OPTIONS },
+      help: [
+        "Usage: senti flow get prompt <kind> [--expect-issue <number>] [--expect-spec <spec>] [--expect-run-id <runId>]",
+        "",
+        "Return a prompt template by kind.",
+        "Target-sensitive prompts such as plan.approval validate that the resolved active flow matches the expected target.",
+      ].join("\n"),
     },
     "qa-count": {
       helpKey: "flow.get.qa-count",

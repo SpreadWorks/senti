@@ -2,8 +2,8 @@
 
 This project uses Spec-Driven Development powered by senti.
 
-- **MUST: Start the Spec-Driven Development flow only when the user explicitly instructs it.** Ordinary feature, fix, code-change, investigation, and consultation requests do not require automatic flow-start confirmation and may be handled normally.
-  - If a request would benefit from the flow, suggest it as an option, but do not start the flow or present a mandatory startup choice unless the user chooses it.
+- **MUST: Start the Spec-Driven Development flow only when the user explicitly instructs it.** Ordinary feature, fix, code-change, investigation, and consultation requests must be handled normally without automatic flow-start confirmation, flow-use suggestions, or "direct editing vs flow" choices.
+  - Suggesting flow use or presenting flow choices is allowed only when the user explicitly asks to start the flow, consider using the flow, or see options. Do not infer usefulness from the request and suggest the flow proactively.
   - When the user explicitly starts the flow, drive the mainline lifecycle through planning, implementation, and finalization.
 - **MUST: Standalone docs-sync runs use the dedicated flow-sync skill.**
 - If skills are unavailable, run `senti flow --request "<request>"` instead.

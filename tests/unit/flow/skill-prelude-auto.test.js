@@ -78,6 +78,7 @@ describe("senti.flow skill prelude auto flow", () => {
     assert.match(dispatcher, /senti flow set auto on <targetGuardArgs>/);
     assert.match(dispatcher, /senti flow set auto off <targetGuardArgs>/);
     assert.match(dispatcher, /senti flow get context \.\.\. <targetGuardArgs>/);
+    assert.match(dispatcher, /senti flow get prompt \.\.\./);
     assert.match(dispatcher, /cannot accept `targetGuardArgs`, STOP/);
     assert.match(dispatcher, /senti flow set step <current-step> done <targetGuardArgs>/);
     assert.match(dispatcher, /senti flow get status <targetRunId> <targetGuardArgs>/);
@@ -92,7 +93,9 @@ describe("senti.flow skill prelude auto flow", () => {
 
     assert.doesNotMatch(text, /A\.0 Route choice/);
     assert.doesNotMatch(text, /whether to use Spec-Driven Development flow or direct editing/);
+    assert.doesNotMatch(text, /new feature\/fix\/Issue request/);
     assert.match(text, /explicitly invokes Spec-Driven Development flow/);
+    assert.match(text, /explicit new flow-start request/);
     assert.match(text, /no explicit flow-start request/);
   });
 });

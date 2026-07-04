@@ -11484,7 +11484,7 @@
         "extends": null,
         "usedBy": null,
         "id": "a631f658",
-        "summary": "Upgrade command implementation that migrates legacy Senti and SDD Forge project state, configuration, presets, and plugin namespaces. It performs filesystem rewrites, config transforms, and upgrade artifact reporting.",
+        "summary": "Upgrade command implementation that migrates legacy Senti and senti project state, configuration, presets, and plugin namespaces. It performs filesystem rewrites, config transforms, and upgrade artifact reporting.",
         "detail": "The module defines rename rules that rewrite legacy product names, environment variables, file paths, and embedded text across project files while skipping protected or irrelevant targets. It migrates configuration objects by cloning and transforming schemas, plugin namespace references, and chapter mappings, then writes updated JSON back to disk. The upgrade flow also moves legacy directories, normalizes generated assets such as `.gitignore`, deploys preset copies, and converts old local preset layouts into plugin-based sources. Logging, dry-run support, active-flow artifact generation, and official provider installation checks make the command suitable for both safe previewing and full in-place migration.",
         "chapter": "cli_commands",
         "role": "cli",

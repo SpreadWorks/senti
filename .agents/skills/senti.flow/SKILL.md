@@ -19,7 +19,7 @@ Before presenting any choice to the user, you MUST run `senti flow get status` a
 - If the current flow `runId` is known, prefer `senti flow get status <runId>` so the check reads the target flow instead of an unrelated current context.
 - `active: true` is not by itself a reason to stop a new flow start. Parallel flows are allowed when the new target is addressed by an explicit preparing `runId` and verified with target-aware status.
 - When starting a new flow while another flow is active, record the `runId` returned by `senti flow set init`; before and after `senti flow prepare --run-id <runId>`, verify the target with `senti flow get status <runId> --expect-run-id <runId>` plus every known `--expect-issue` and `--expect-spec` guard.
-- After a dispatcher target `runId` is known, all target-sensitive dispatcher continuation commands for that flow must carry `--expect-run-id <runId>` plus every known `--expect-issue` and `--expect-spec` guard. This applies to `senti flow get next-action`, target-bound `senti flow get context` reads, `senti flow run ...`, and active-flow-mutating `senti flow set ...` commands.
+- After a dispatcher target `runId` is known, all target-sensitive dispatcher continuation commands for that flow must carry `--expect-run-id <runId>` plus every known `--expect-issue` and `--expect-spec` guard. This applies to `senti flow get next-action`, target-bound `senti flow get context` reads, target-bound `senti flow get prompt ...` reads such as `plan.approval`, `senti flow run ...`, and active-flow-mutating `senti flow set ...` commands.
 - If the user explicitly continues an existing flow and the target Issue is known, run `senti flow get status <runId> --expect-run-id <runId> --expect-issue <n>` when `runId` is known. Without a target `runId`, use bare status for display and do not treat another active flow as authorization to continue it.
 - If the user explicitly continues an existing spec target, run `senti flow get status --expect-spec <spec>` before dispatcher actions.
 - If the user explicitly continues an existing runId target for dispatcher continuation, run `senti flow get status <runId> --expect-run-id <runId>` before dispatcher actions.
@@ -245,7 +245,7 @@ All sections marked REQUIRED must appear regardless of whether the AI internally
 
 Run bare `senti flow get status` first. This is a display and branch-decision check; it is not a target selection mechanism.
 
-- For a new feature/fix/Issue request, inspect the bare status result before B. Prelude. `active: true` is not by itself a reason to stop a new flow start; parallel flows are allowed when the new target is addressed by an explicit preparing `runId`.
+- For an explicit new flow-start request, inspect the bare status result before B. Prelude. `active: true` is not by itself a reason to stop a new flow start; parallel flows are allowed when the new target is addressed by an explicit preparing `runId`.
 - Do not continue an existing active flow merely because bare status reports one. Existing-flow continuation requires the user's intent to match that Issue/spec/runId, verified by target-aware status.
 - When starting a new Issue/spec while another flow is active, the prelude must use the explicit preparing `runId` returned by `senti flow set init`; never rely on cwd, bare active status, or implicit current flow selection to choose the target.
 - Use target-aware status for required prelude verification and for explicit existing-target continuation. Do not treat bare active status as target selection.
@@ -333,7 +333,7 @@ B.4. **Prepare spec (silent)**
      - Set `targetIssue = <n>` when an Issue was captured.
      - Set `targetSpec = <spec>` from the prepare/status response when known.
      - Build `targetGuardArgs` from all known target fields: always `--expect-run-id <targetRunId>`, plus `--expect-issue <targetIssue>` when known, plus `--expect-spec <targetSpec>` when known.
-   - All subsequent target-sensitive dispatcher commands for this flow MUST include `targetGuardArgs` until `finalize-cleanup` completes and releases the flow. This includes `senti flow get next-action`, target-bound `senti flow get context` reads, `senti flow run ...`, and active-flow-mutating `senti flow set ...` commands.
+   - All subsequent target-sensitive dispatcher commands for this flow MUST include `targetGuardArgs` until `finalize-cleanup` completes and releases the flow. This includes `senti flow get next-action`, target-bound `senti flow get context` reads, target-bound `senti flow get prompt ...` reads such as `plan.approval`, `senti flow run ...`, and active-flow-mutating `senti flow set ...` commands.
 
 Proceed to **C. Dispatcher loop**.
 
@@ -380,7 +380,7 @@ C.1.5. **Auto-upgrade check (spec 232)**
 C.2. **Execute instructions**
    - Treat `instructions.content` as the authoritative procedure for this step. Follow it exactly.
    - Before running any `instructions.content` command that reads or mutates active flow state, preserve target binding by appending `targetGuardArgs` when available. This applies to:
-     - `senti flow get next-action`, `senti flow get context ...`, and `senti flow get qa-count`.
+     - `senti flow get next-action`, `senti flow get context ...`, `senti flow get prompt ...` commands that read active flow state such as `plan.approval`, and `senti flow get qa-count`.
      - `senti flow run ...` commands that operate on the active flow target, including gate, review, impl/finalize commands, reopen-draft, task commands, lint, retro, final-regression, acceptance-review, and report.
      - `senti flow set ...` commands that mutate active flow state, including step, request, issue, note, summary, req, files, broad, metric, approval, issue-log, retry, acceptance-decision, and auto.
    - If a target-sensitive instruction contains a bare `senti flow ...` command and the command cannot accept `targetGuardArgs`, STOP rather than running it. Report the CLI target-binding gap instead of relying on cwd or bare active-flow selection.

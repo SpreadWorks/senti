@@ -42,6 +42,7 @@ describe("registry structure", () => {
     const targetGuardOptions = ["--expect-issue", "--expect-spec", "--expect-run-id"];
     const commandRefs = [
       FLOW_COMMANDS.get["next-action"],
+      FLOW_COMMANDS.get.prompt,
       FLOW_COMMANDS.get.context,
       FLOW_COMMANDS.get["qa-count"],
       FLOW_COMMANDS.set.step,
