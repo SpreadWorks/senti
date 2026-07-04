@@ -115,6 +115,50 @@ describe("e2e — concurrent flow prelude isolation", () => {
     assert.equal(postStatusData.issue, 12);
     assert.equal(postStatusData.spec, envelope.data.spec);
 
+    const targetArgs = [
+      "--expect-run-id", runId,
+      "--expect-issue", "12",
+      "--expect-spec", envelope.data.spec,
+    ];
+    const nextAction = runCli(tmp, [
+      "flow", "get", "next-action",
+      ...targetArgs,
+    ]);
+    assert.equal(nextAction.status, 0, nextAction.stderr);
+    const nextActionEnvelope = JSON.parse(nextAction.stdout.trim());
+    assert.equal(nextActionEnvelope.ok, true);
+    assert.equal(nextActionEnvelope.data.step, "draft");
+
+    const noteRes = runCli(tmp, [
+      "flow", "set", "note", "target-bound dispatcher note",
+      ...targetArgs,
+    ]);
+    assert.equal(noteRes.status, 0, noteRes.stderr);
+    const noteEnvelope = JSON.parse(noteRes.stdout.trim());
+    assert.equal(noteEnvelope.ok, true);
+    const issue12Flow = JSON.parse(fs.readFileSync(path.join(tmp, specDir, "flow.json"), "utf8"));
+    assert.equal(
+      issue12Flow.notes.some((note) => note.text === "target-bound dispatcher note"),
+      true,
+      "target-bound set command must mutate the second flow",
+    );
+    const issue11Flow = JSON.parse(fs.readFileSync(path.join(issue11Worktree, issue11Data.artifacts.specDir, "flow.json"), "utf8"));
+    assert.equal(
+      (issue11Flow.notes || []).some((note) => note.text === "target-bound dispatcher note"),
+      false,
+      "target-bound set command must not mutate the unrelated worktree flow",
+    );
+
+    const mismatch = runCli(tmp, [
+      "flow", "get", "next-action",
+      "--expect-run-id", issue11RunId,
+      "--expect-issue", "12",
+    ]);
+    assert.notEqual(mismatch.status, 0, mismatch.stdout);
+    const mismatchEnvelope = JSON.parse(mismatch.stdout.trim());
+    assert.equal(mismatchEnvelope.ok, false);
+    assert.equal(mismatchEnvelope.errors[0].code, "ACTIVE_FLOW_MISMATCH");
+
     const activeFlows = JSON.parse(fs.readFileSync(path.join(tmp, ".senti", ".active-flow"), "utf8"));
     assert.equal(
       activeFlows.some((entry) => entry.mode === "worktree" && entry.spec === issue11Data.artifacts.specDir.split("/").at(-1)),

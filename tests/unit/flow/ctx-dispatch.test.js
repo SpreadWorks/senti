@@ -15,6 +15,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "../../..");
@@ -35,6 +36,40 @@ describe("registry structure", () => {
       content.includes("helpKey"),
       "registry.js must define helpKey for commands",
     );
+  });
+
+  it("target-sensitive dispatcher commands accept target guards", () => {
+    const targetGuardOptions = ["--expect-issue", "--expect-spec", "--expect-run-id"];
+    const commandRefs = [
+      FLOW_COMMANDS.get["next-action"],
+      FLOW_COMMANDS.get.context,
+      FLOW_COMMANDS.get["qa-count"],
+      FLOW_COMMANDS.set.step,
+      FLOW_COMMANDS.set.request,
+      FLOW_COMMANDS.set.issue,
+      FLOW_COMMANDS.set.note,
+      FLOW_COMMANDS.set.summary,
+      FLOW_COMMANDS.set.req,
+      FLOW_COMMANDS.set.files,
+      FLOW_COMMANDS.set.broad,
+      FLOW_COMMANDS.set.metric,
+      FLOW_COMMANDS.set.approval,
+      FLOW_COMMANDS.set["issue-log"],
+      FLOW_COMMANDS.set.retry,
+      FLOW_COMMANDS.set["acceptance-decision"],
+      FLOW_COMMANDS.set.auto,
+      FLOW_COMMANDS.run.sync,
+    ];
+
+    for (const entry of commandRefs) {
+      const options = entry.args?.options || [];
+      for (const option of targetGuardOptions) {
+        assert.ok(
+          options.includes(option),
+          `${entry.helpKey} must accept ${option}`,
+        );
+      }
+    }
   });
 });
 

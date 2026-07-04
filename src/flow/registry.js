@@ -37,6 +37,9 @@ import { loadIssueLog, saveIssueLog } from "./lib/set-issue-log.js";
 const FLOW_RUN_RUNTIME_OPTIONS = ["--agent-work-dir"];
 const FLOW_TARGET_GUARD_OPTIONS = ["--expect-issue", "--expect-spec", "--expect-run-id"];
 const FLOW_RUN_OPTIONS = [...FLOW_RUN_RUNTIME_OPTIONS, ...FLOW_TARGET_GUARD_OPTIONS];
+function withTargetGuardOptions(options = []) {
+  return [...options, ...FLOW_TARGET_GUARD_OPTIONS];
+}
 const RETRY_HELP_GATE_PHASES = Object.freeze(["task-impl", "integration"]);
 const RETRY_HELP_REVIEW_PHASES = Object.freeze(["draft", "draft-questions", "draft-coverage", "spec", "test", "impl"]);
 export const DRAFT_REVIEW_REGISTRY_RESPONSIBILITY_BOUNDARY = Object.freeze({
@@ -512,6 +515,7 @@ export const FLOW_COMMANDS = {
     "qa-count": {
       helpKey: "flow.get.qa-count",
       command: () => import("./lib/get-qa-count.js"),
+      args: { options: FLOW_TARGET_GUARD_OPTIONS },
       help: "Usage: senti flow get qa-count\n\nReturn the number of answered questions in draft phase.",
     },
     guardrail: {
@@ -545,7 +549,7 @@ export const FLOW_COMMANDS = {
     context: {
       helpKey: "flow.get.context",
       command: () => import("./lib/get-context.js"),
-      args: { positional: ["path"], flags: ["--raw"], options: ["--search"] },
+      args: { positional: ["path"], flags: ["--raw"], options: withTargetGuardOptions(["--search"]) },
       help: [
         "Usage: senti flow get context [path] [--raw] [--search <query>]",
         "",
@@ -588,50 +592,50 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.set.step",
       runtimeLog: { stepId: (ctx) => ctx.id },
       command: () => import("./lib/set-step.js"),
-      args: { positional: ["id", "status"] },
+      args: { positional: ["id", "status"], options: FLOW_TARGET_GUARD_OPTIONS },
       help: "Usage: senti flow set step <id> <status>\n\nUpdate a workflow step's status.",
     },
     request: {
       helpKey: "flow.set.request",
       requiresFlow: false,
       command: () => import("./lib/set-request.js"),
-      args: { positional: ["text"], options: ["--run-id"] },
+      args: { positional: ["text"], options: withTargetGuardOptions(["--run-id"]) },
       help: "Usage: senti flow set request \"<text>\" [--run-id <id>]\n\nSet the user request field. Works in both active and preparing mode.",
     },
     issue: {
       helpKey: "flow.set.issue",
       command: () => import("./lib/set-issue.js"),
-      args: { positional: ["number"] },
+      args: { positional: ["number"], options: FLOW_TARGET_GUARD_OPTIONS },
       help: "Usage: senti flow set issue <number>\n\nSet the GitHub issue number in flow.json.",
     },
     note: {
       helpKey: "flow.set.note",
       command: () => import("./lib/set-note.js"),
-      args: { positional: ["text"], options: ["--task-id", "--run-id"] },
+      args: { positional: ["text"], options: withTargetGuardOptions(["--task-id", "--run-id"]) },
       help: "Usage: senti flow set note \"<text>\" [--task-id <id>] [--run-id <id>]\n\nAppend a note entry to state.notes. Works in both active and preparing mode.",
     },
     summary: {
       helpKey: "flow.set.summary",
       command: () => import("./lib/set-summary.js"),
-      args: { positional: ["json"] },
+      args: { positional: ["json"], options: FLOW_TARGET_GUARD_OPTIONS },
       help: "Usage: senti flow set summary '<json-array>'\n\nSet requirements list from a JSON string array.",
     },
     req: {
       helpKey: "flow.set.req",
       command: () => import("./lib/set-req.js"),
-      args: { positional: ["reqRef", "status"] },
+      args: { positional: ["reqRef", "status"], options: FLOW_TARGET_GUARD_OPTIONS },
       help: "Usage: senti flow set req <reqId|zeroBasedIndex> <status>\n\nUpdate a single requirement's status. Prefer requirement ids like R1; numeric values are 0-based indexes.",
     },
     files: {
       helpKey: "flow.set.files",
       command: () => import("./lib/set-files.js"),
-      args: { positional: ["reqId"], rest: "paths" },
+      args: { positional: ["reqId"], rest: "paths", options: FLOW_TARGET_GUARD_OPTIONS },
       help: "Usage: senti flow set files <reqId> <path...>\n\nAppend file paths to file-map.json for a requirement. Deduplicates.",
     },
     broad: {
       helpKey: "flow.set.broad",
       command: () => import("./lib/set-broad.js"),
-      args: { positional: ["action"], options: ["--step", "--reason"] },
+      args: { positional: ["action"], options: withTargetGuardOptions(["--step", "--reason"]) },
       help: [
         "Usage: senti flow set broad on --step <implement|impl-review|impl-gate> --reason <text>",
         "",
@@ -643,13 +647,13 @@ export const FLOW_COMMANDS = {
     metric: {
       helpKey: "flow.set.metric",
       command: () => import("./lib/set-metric.js"),
-      args: { positional: ["phase", "counter"], options: ["--task-id"] },
+      args: { positional: ["phase", "counter"], options: withTargetGuardOptions(["--task-id"]) },
       help: `Usage: senti flow set metric <phase> <counter> [--task-id <id>]\n\nAppend a metric entry. Phases: ${VALID_PHASES.join(", ")}. Counters: ${VALID_METRIC_COUNTERS.join(", ")}.`,
     },
     approval: {
       helpKey: "flow.set.approval",
       command: () => import("./lib/set-approval.js"),
-      args: { flags: ["--approved"], options: ["--notes", "--confirmed-at"] },
+      args: { flags: ["--approved"], options: withTargetGuardOptions(["--notes", "--confirmed-at"]) },
       help: [
         "Usage: senti flow set approval --approved [--notes <text>] [--confirmed-at <iso>]",
         "",
@@ -667,7 +671,7 @@ export const FLOW_COMMANDS = {
     "issue-log": {
       helpKey: "flow.set.issue-log",
       command: () => import("./lib/set-issue-log.js"),
-      args: { options: ["--step", "--reason", "--trigger", "--resolution", "--guardrail-candidate", "--normalized-finding-id", "--repair-ref-commit", "--repair-ref-file", "--task-id"] },
+      args: { options: withTargetGuardOptions(["--step", "--reason", "--trigger", "--resolution", "--guardrail-candidate", "--normalized-finding-id", "--repair-ref-commit", "--repair-ref-file", "--task-id"]) },
       help: "Usage: senti flow set issue-log --step <id> --reason <text> [--trigger <text>] [--resolution <text>] [--guardrail-candidate <text>] [--normalized-finding-id <id>] [--repair-ref-commit <sha>] [--repair-ref-file <path>] [--task-id <id>]\n\nRecord an issue-log entry in issue-log.json. Infers taskId from active task unless --task-id is given.",
       post(ctx) {
         const phase = deriveActivePhase(ctx);
@@ -693,7 +697,7 @@ export const FLOW_COMMANDS = {
     retry: {
       helpKey: "flow.set.retry",
       command: () => import("./lib/set-retry.js"),
-      args: { positional: ["action", "kind", "phase"], flags: ["--yes"], options: ["--reason"] },
+      args: { positional: ["action", "kind", "phase"], flags: ["--yes"], options: withTargetGuardOptions(["--reason"]) },
       help: [
         "Usage: senti flow set retry reset <gate|review> <phase> --reason <text> --yes",
         "",
@@ -707,7 +711,7 @@ export const FLOW_COMMANDS = {
     "acceptance-decision": {
       helpKey: "flow.set.acceptance-decision",
       command: () => import("./lib/set-acceptance-decision.js"),
-      args: { options: ["--choice"] },
+      args: { options: withTargetGuardOptions(["--choice"]) },
       help: [
         "Usage: senti flow set acceptance-decision --choice <choice>",
         "",
@@ -720,7 +724,7 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.set.auto",
       requiresFlow: false,
       command: () => import("./lib/set-auto.js"),
-      args: { positional: ["value"], options: ["--run-id"] },
+      args: { positional: ["value"], options: withTargetGuardOptions(["--run-id"]) },
       help: [
         "Usage: senti flow set auto on|off [--run-id <id>]",
         "",
@@ -981,7 +985,7 @@ export const FLOW_COMMANDS = {
       runtimeLog: { stepMetadata: false },
       requiresFlow: false,
       command: () => import("./lib/run-sync.js"),
-      args: { flags: ["--dry-run"], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
+      args: { flags: ["--dry-run"], options: [...FLOW_RUN_OPTIONS] },
       help: [
         "Usage: senti flow run sync [options]",
         "",

@@ -62,10 +62,29 @@ describe("senti.flow skill prelude auto flow", () => {
     const prepare = text.slice(text.indexOf("B.4. **Prepare spec"), text.indexOf("Proceed to **C. Dispatcher loop**"));
 
     assert.match(prepare, /After a successful prepare, immediately verify the promoted target/);
+    assert.match(prepare, /senti flow get status <runId> --expect-run-id <runId> --expect-issue <n> --expect-spec <spec>/);
     assert.match(prepare, /senti flow get status <runId> --expect-run-id <runId> --expect-issue <n>/);
     assert.match(prepare, /senti flow get status <runId> --expect-run-id <runId> --expect-spec <spec>/);
     assert.match(prepare, /branch \/ worktree/);
     assert.match(prepare, /ACTIVE_FLOW_MISMATCH/);
+  });
+
+  it("keeps dispatcher continuation target-bound after prepare", () => {
+    const text = readSkill();
+    const dispatcher = text.slice(text.indexOf("### C. Dispatcher loop"), text.indexOf("## Post-flow"));
+
+    assert.match(text, /Build `targetGuardArgs`/);
+    assert.match(dispatcher, /senti flow get next-action <targetGuardArgs>/);
+    assert.match(dispatcher, /senti flow set auto on <targetGuardArgs>/);
+    assert.match(dispatcher, /senti flow set auto off <targetGuardArgs>/);
+    assert.match(dispatcher, /senti flow get context \.\.\. <targetGuardArgs>/);
+    assert.match(dispatcher, /cannot accept `targetGuardArgs`, STOP/);
+    assert.match(dispatcher, /senti flow set step <current-step> done <targetGuardArgs>/);
+    assert.match(dispatcher, /senti flow get status <targetRunId> <targetGuardArgs>/);
+    assert.match(text, /Reference forms below omit `targetGuardArgs`/);
+    assert.match(text, /Do not proceed past a step whose `requires_approval` is `true`/);
+    assert.match(text, /Do not start `finalize-commit` without its required user confirmation/);
+    assert.doesNotMatch(text, /Do not finalize without user confirmation\./);
   });
 
   it("does not include automatic route choice for non-explicit requests", () => {
