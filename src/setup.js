@@ -20,7 +20,10 @@ import { DEFAULT_LANG, sentiDir as sentiDirFn } from "./lib/config.js";
 import { createI18n } from "./lib/i18n.js";
 import { listSetupPresetCandidates, resolveMultiChains, resolvePresetCandidateChains, validatePresetCandidateChain } from "./lib/presets.js";
 import { buildTreeItems, select } from "./lib/multi-select.js";
-import { loadSpecDrivenDevelopmentTemplate } from "./lib/agents-md.js";
+import {
+  AGENTS_SENTI_DIRECTIVE_RE,
+  buildAgentConfigContent,
+} from "./lib/agent-config-files.js";
 import { resolveWorkDir } from "./lib/config.js";
 import { defaultAgentProfiles } from "./lib/agent-defaults.js";
 import { deploySkills } from "./lib/skills.js";
@@ -367,18 +370,8 @@ function registerProject(projectName, sourcePath, workRootPath, t) {
 // ---------------------------------------------------------------------------
 
 function buildAgentContent(lang, options = {}) {
-  const specDrivenDevelopmentContent = loadSpecDrivenDevelopmentTemplate(lang, options);
-  const lines = [];
-  lines.push('<!-- {{data("agents.senti")}} -->');
-  if (specDrivenDevelopmentContent) lines.push(specDrivenDevelopmentContent.trimEnd());
-  lines.push('<!-- {{/data}} -->');
-  lines.push('');
-  lines.push('<!-- {{data("agents.project")}} -->');
-  lines.push('<!-- {{/data}} -->');
-  return lines.join("\n");
+  return buildAgentConfigContent(lang, options);
 }
-
-const SENTI_DIRECTIVE_RE = /<!-- \{\{data\("agents\.senti"\)\}\} -->[\s\S]*?<!-- \{\{\/data\}\} -->/;
 
 function ensureAgentConfigFile(filePath, lang, t, options = {}) {
   const fileName = path.basename(filePath);
@@ -392,10 +385,10 @@ function ensureAgentConfigFile(filePath, lang, t, options = {}) {
 
   const content = fs.readFileSync(filePath, "utf8");
 
-  if (SENTI_DIRECTIVE_RE.test(content)) {
-    const sentiBlock = agentContent.match(SENTI_DIRECTIVE_RE)?.[0];
+  if (AGENTS_SENTI_DIRECTIVE_RE.test(content)) {
+    const sentiBlock = agentContent.match(AGENTS_SENTI_DIRECTIVE_RE)?.[0];
     if (sentiBlock) {
-      const updated = content.replace(SENTI_DIRECTIVE_RE, sentiBlock);
+      const updated = content.replace(AGENTS_SENTI_DIRECTIVE_RE, sentiBlock);
       if (updated !== content) {
         fs.writeFileSync(filePath, updated, "utf8");
         console.log(t("setup.messages.agentFileUpdated", { file: fileName }));

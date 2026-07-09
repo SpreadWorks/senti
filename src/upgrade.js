@@ -18,7 +18,7 @@ import fs from "fs";
 import path from "path";
 import { repoRoot, parseArgs } from "./lib/cli.js";
 import { EXIT_ERROR } from "./lib/constants.js";
-import { loadConfig, sentiConfigPath, sentiDir } from "./lib/config.js";
+import { DEFAULT_LANG, loadConfig, sentiConfigPath, sentiDir } from "./lib/config.js";
 import { container } from "./lib/container.js";
 import { translate } from "./lib/i18n.js";
 import { validatePresetChain } from "./lib/presets.js";
@@ -33,6 +33,7 @@ import {
 import { deployPresetCopies } from "./lib/preset-deploy.js";
 import { writeUpgradeResultArtifact } from "./flow/lib/test-artifacts.js";
 import { normalizeSentiGitignore } from "./lib/gitignore.js";
+import { AGENT_CONFIG_FILE_NAMES, refreshAgentSentiFile } from "./lib/agent-config-files.js";
 
 class RenameRule {
   constructor(from, to) {
@@ -552,6 +553,7 @@ async function main() {
   const summary = {
     skills: { updated: 0, unchanged: 0, removed: 0 },
     presets: { copied: 0 },
+    agentFiles: { updated: 0, unchanged: 0, missing: 0 },
     plugins: { changed: false },
     config: { changed: false },
     rename: { changed: 0 },
@@ -686,6 +688,23 @@ async function main() {
     summary.presets.copied = presetCopies.length;
   }
 
+  const agentFileResults = AGENT_CONFIG_FILE_NAMES.map((fileName) =>
+    refreshAgentSentiFile(path.join(root, fileName), config.lang || DEFAULT_LANG, {
+      dryRun,
+      projectRoot: root,
+      presetTypes: config.type || "base",
+    }));
+  for (const result of agentFileResults) {
+    summary.agentFiles[result.status] += 1;
+    if (result.status === "updated") {
+      logger.log(t("ui:upgrade.agentFileUpdated", { file: result.file }));
+    } else if (result.status === "unchanged") {
+      logger.log(t("ui:upgrade.agentFileUnchanged", { file: result.file }));
+    } else {
+      logger.log(t("ui:upgrade.agentFileMissing", { file: result.file }));
+    }
+  }
+
   // Migrate config.json in place. Single read/write.
   let configChanged = preConfigChanged;
   try {
@@ -706,7 +725,12 @@ async function main() {
   summary.config.changed = configChanged;
 
   // Summary
-  const hasChanges = renameChanges.length > 0 || skillResults.some((r) => r.status === "updated") || removedSkills.length > 0 || configChanged || summary.plugins.changed;
+  const hasChanges = renameChanges.length > 0
+    || skillResults.some((r) => r.status === "updated")
+    || removedSkills.length > 0
+    || summary.agentFiles.updated > 0
+    || configChanged
+    || summary.plugins.changed;
   if (!hasChanges) {
     logger.log(t("ui:upgrade.noChanges"));
   } else if (dryRun) {
