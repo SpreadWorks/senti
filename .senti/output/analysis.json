@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-07-12T20:13:07.907Z",
+  "analyzedAt": "2026-07-12T22:00:46.758Z",
   "package": {
     "entries": [
       {
@@ -5909,9 +5909,9 @@
       },
       {
         "file": "src/flow/lib/run-prepare-spec.js",
-        "hash": "03ca70a669728f844a1ec79654b682b0",
-        "lines": 574,
-        "mtime": "2026-07-11T20:46:49.097Z",
+        "hash": "8e61ad4ea7ba764a44c5500b31ef9b58",
+        "lines": 572,
+        "mtime": "2026-07-12T22:00:34.410Z",
         "className": "run-prepare-spec",
         "methods": [
           "buildDraftTemplate",
@@ -5959,22 +5959,22 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "59eeacc6",
-        "summary": "Implements the prepare-spec flow command that creates a new spec run scaffold. It sets up workspace state, prerequisite analysis data, and optional worktree isolation.",
-        "detail": "The command validates repository cleanliness, config presence, branch expectations, and required branch-managed files before starting a run. It generates a numbered spec directory from the title, writes draft, spec, issue, and flow artifacts, and records branch metadata in the initial state. When worktree mode is used, it provisions the target path, syncs plugin runtime assets and local config, and fires lifecycle hooks around the worktree setup. It also runs the docs scan to refresh analysis.json and wraps execution in plugin-driven flow command hooks.",
+        "summary": "Implements the flow/spec preparation command that scaffolds a new spec workspace and initializes flow state. It also coordinates git, docs scanning, and plugin lifecycle hooks around the setup process.",
+        "detail": "The module derives spec directory names from a slugified title plus the next numeric index and writes initial `spec.json`, `draft.json`, `issue.md`, and `flow.json` files. Before creating the spec, it validates repository state, detects or verifies the base branch, rejects blocking dirty files, and checks that required branch-scoped files such as `.senti/config.json` are properly reflected in the worktree. When a dedicated worktree is used, it syncs local plugin runtime assets and local config into the worktree and guards that sync with a maximum file count. It also triggers docs scanning, captures plugin hook snapshots, runs pre/post worktree hooks and plugin lifecycle callbacks, and returns structured `Envelope` failures for policy violations.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-07-12T19:39:06.051Z",
+          "processedAt": "2026-07-12T22:02:00.660Z",
           "attempts": 1
         },
         "keywords": [
-          "prepare spec",
-          "worktree setup",
-          "flow initialization",
-          "branch validation",
+          "flow prepare",
+          "spec scaffold",
+          "git worktree",
           "plugin hooks",
           "analysis scan",
-          "spec scaffold"
+          "draft template",
+          "branch validation"
         ]
       },
       {
@@ -6800,9 +6800,9 @@
       },
       {
         "file": "src/flow/lib/set-init.js",
-        "hash": "fd998e35b729c3474b06b4ed82b6b36b",
-        "lines": 54,
-        "mtime": "2026-06-09T08:02:50.457Z",
+        "hash": "a3139314f1db85fccd5cb7641dbc4f0b",
+        "lines": 52,
+        "mtime": "2026-07-12T22:00:34.410Z",
         "className": "set-init",
         "methods": [],
         "imports": [
@@ -6818,22 +6818,21 @@
           "src/docs/commands/build.js"
         ],
         "id": "e407389c",
-        "enrich": {
-          "processedAt": "2026-06-09T17:08:05.013Z",
-          "attempts": 2
-        },
-        "summary": "Initializes flow state for a run and enriches it with cached issue-body content when available. It is the entry point that returns the new run identifier and startup metadata.",
-        "detail": "The command extends the base flow command and uses the standard envelope pattern for reporting invalid startup conditions. It integrates with an issue-body cache helper so normalized issue text can be reused instead of fetched repeatedly during initialization. The returned payload includes the generated `runId` plus any additional state needed by subsequent flow steps. This keeps flow bootstrap logic small and focused while delegating content normalization to a dedicated helper.",
+        "summary": "Defines a small flow command that initializes a run context and returns its run metadata. It uses the shared command framework and envelope-based failure handling.",
+        "detail": "The command class inherits from `FlowCommand`, so it fits the same execution and option-parsing pipeline as other flow CLI actions. Its dependency on `fetchNormalizedIssueBody` indicates that issue-backed initialization is normalized through a cache layer before later steps consume it. Failures are emitted through `Envelope.fail`, which keeps command output structured and machine-readable. On success it returns a `runId` merged with extra fields, suggesting the command seeds downstream flow state rather than performing long-running work itself.",
         "chapter": "cli_commands",
-        "role": "Initialization command for creating a new flow run context.",
+        "role": "cli",
+        "enrich": {
+          "processedAt": "2026-07-12T22:02:00.660Z",
+          "attempts": 1
+        },
         "keywords": [
-          "set init",
-          "flow initialization",
-          "run id",
+          "command initialization",
+          "run metadata",
           "issue body cache",
-          "startup state",
-          "command bootstrap",
-          "flow context"
+          "flow command",
+          "envelope error",
+          "setup step"
         ]
       },
       {
@@ -8871,9 +8870,9 @@
       },
       {
         "file": "src/lib/flow-helpers.js",
-        "hash": "91c6d04aa4f176524f96a35ebaaa8619",
-        "lines": 236,
-        "mtime": "2026-06-09T08:02:50.461Z",
+        "hash": "da1e2eb6a1e1977c488ead38af96f063",
+        "lines": 235,
+        "mtime": "2026-07-12T22:00:34.410Z",
         "className": "flow-helpers",
         "methods": [
           "getSpecName",
@@ -8904,7 +8903,6 @@
           "STATE_FILE",
           "ACTIVE_FLOW_FILE",
           "PREPARING_PREFIX",
-          "PREPARING_TTL_MS",
           "PREPARING_SCAN_LIMIT",
           "SCAN_FLOWS_LIMIT",
           "FLOW_STEPS",
@@ -8921,33 +8919,33 @@
           "src/lib/active-flow-registry.js",
           "src/lib/flow-manager.js",
           "src/lib/flow-store.js",
-          "src/lib/preparing-flow-store.js",
-          "src/lib/flow-target-guard.js"
+          "src/lib/flow-target-guard.js",
+          "src/lib/preparing-flow-store.js"
         ],
         "id": "09ff0ab4",
-        "summary": "Defines shared flow constants and helpers for phase, step, and task state management. It centralizes the basic workflow vocabulary used by the flow subsystem.",
-        "detail": "This module exports filenames, TTL limits, task status enums, and precomputed step and phase maps for both flow steps and task steps. It provides helpers to derive a spec name or directory from stored flow state and to compute the current phase from completed steps. Task utilities build initial task step lists, identify terminal states, and locate or promote the next pending task. The `specIdFromPath` helper extracts stable spec identifiers from spec-relative paths.",
+        "summary": "Central helper module for flow and task state metadata. It defines canonical filenames, phase maps, and step-transition utilities used throughout the flow system.",
+        "detail": "The file exports shared constants such as active/preparing marker names, scan limits, valid task origins, and status enumerations, giving other modules a single source of truth. It derives flattened step ID lists and phase lookup tables from step-tree definitions, then uses them to compute the current phase from the last completed leaf step. Helper functions normalize spec paths, return spec directories or IDs, and create initial nested step structures for both flows and tasks. It also contains progression logic that walks nested task trees to find or promote the next pending step while enforcing known task origins and terminal statuses.",
         "chapter": "internal_design",
-        "role": "Flow state helper library",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-06-09T11:46:36.602Z",
+          "processedAt": "2026-07-12T22:02:00.660Z",
           "attempts": 1
         },
         "keywords": [
-          "flow state",
-          "workflow phases",
-          "step map",
+          "flow helpers",
+          "phase map",
+          "step tree",
           "task status",
-          "spec id",
-          "pending task",
-          "state helpers"
+          "spec path",
+          "state constants",
+          "pending step"
         ]
       },
       {
         "file": "src/lib/flow-manager.js",
-        "hash": "d1a541b247b0f8b4eccad67042206722",
-        "lines": 565,
-        "mtime": "2026-07-11T20:46:49.104Z",
+        "hash": "9bda0ac1a792021a7797183ec55ccbb7",
+        "lines": 563,
+        "mtime": "2026-07-12T22:00:34.411Z",
         "className": "flow-manager",
         "methods": [
           "FlowScanEntry",
@@ -8979,22 +8977,22 @@
           "src/lib/container.js"
         ],
         "id": "3d2ed4c0",
-        "summary": "Provides the core flow coordination API over persisted flow state, active-flow lookup, and recovery scanning. It bridges the store layer with higher-level selection logic for specs, runs, and worktrees.",
-        "detail": "Most `FlowManager` methods are thin delegations to `FlowStore`, adding bound `specId` defaults for state updates such as step status, runtime logs, merge outcomes, metrics, and task completion. The scanning path walks main-repository specs, registered worktrees, and branch-backed flow files, deserializing `flow.json` state and logging malformed entries without aborting the whole scan. Recovery candidates are deduplicated and ranked so stale, orphaned, or active worktree flows can be surfaced consistently. The module also resolves active flows from run IDs, spec IDs, or issue numbers and probes default `.senti/worktree/feature-*` locations when registry data is incomplete.",
+        "summary": "Coordinates loading, scanning, and updating flow state across the main repository and any linked worktrees. It also provides recovery and selection logic for active or partially prepared flows.",
+        "detail": "The manager wraps `FlowStore`, `PreparingFlowStore`, and `ActiveFlowRegistry` behind a higher-level API, forwarding most mutations while automatically applying bound or default spec identifiers. Its scanning code traverses `specs` directories in the main checkout and worktrees, reads `flow.json` files, and can also inspect branch snapshots through git while capping work with scan limits. Recovery helpers rank candidates, classify stale or orphaned worktree states, and map user-facing selectors such as run ID, spec ID, or issue number back to concrete flow locations. The implementation handles malformed state files defensively, reports scan errors to stderr, and exposes convenience accessors for the current task and in-progress task step.",
         "chapter": "internal_design",
-        "role": "model",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-07-12T19:38:36.885Z",
+          "processedAt": "2026-07-12T22:02:00.660Z",
           "attempts": 1
         },
         "keywords": [
           "flow manager",
-          "workflow state",
+          "state orchestration",
           "worktree recovery",
           "active flow registry",
           "spec selection",
-          "task state",
-          "flow scanning"
+          "flow scanning",
+          "git state"
         ]
       },
       {
@@ -10066,9 +10064,9 @@
       },
       {
         "file": "src/lib/preparing-flow-store.js",
-        "hash": "775bc2efefb68074a27a64ecb64471bd",
-        "lines": 179,
-        "mtime": "2026-06-09T08:02:50.462Z",
+        "hash": "080c2bfe98116c236466a48ce1cac411",
+        "lines": 133,
+        "mtime": "2026-07-12T22:00:34.411Z",
         "className": "preparing-flow-store",
         "methods": [
           "PreparingFlowStore"
@@ -10088,22 +10086,21 @@
           "src/lib/flow-manager.js"
         ],
         "id": "14a29a15",
-        "summary": "Stores temporary prepare-phase flow state under `.senti` and cleans up stale entries by TTL. It supports creation, retrieval, mutation, and pruning of per-run preparation data.",
-        "detail": "A `PreparingFlowStore` instance generates UUID-based run IDs and writes each pending flow request to a `.active-flow.*` file. The stored JSON can later be loaded, updated, or deleted by run ID, and helper methods extract resolved issue or request inputs for downstream flow creation. Listing and pruning operations scan only a bounded number of matching files and remove expired entries based on filesystem timestamps. This gives the flow system a lightweight persistence layer for in-progress preparation before a full spec state exists.",
+        "summary": "Persists short-lived preparing-flow state files under the `.senti` directory. It manages run IDs and provides CRUD-style helpers for initialization inputs before a full flow is created.",
+        "detail": "Each preparing flow is stored as JSON under a filename based on `PREPARING_PREFIX`, with `crypto.randomUUID()` used to generate stable run identifiers. The store can write, load, update, and delete these records, and its read methods gracefully return `null` for missing or unreadable files until a strict lookup is required. `resolveInputs` extracts normalized `issue` and `request` fields from a saved preparing record so later commands can reconstruct their initial context. A directory listing helper enumerates pending preparing-flow files beneath `sentiDir`, giving higher-level managers a way to discover incomplete setup sessions.",
         "chapter": "internal_design",
-        "role": "Preparing flow state store",
+        "role": "model",
         "enrich": {
-          "processedAt": "2026-06-09T11:46:36.602Z",
+          "processedAt": "2026-07-12T22:02:00.660Z",
           "attempts": 1
         },
         "keywords": [
+          "preparing flow",
           "temporary state store",
-          "prepare flow",
-          "run id",
-          "TTL cleanup",
-          "active flow file",
-          "pending request",
-          "stale entry pruning"
+          "run ID",
+          "JSON persistence",
+          "initial inputs",
+          "session registry"
         ]
       },
       {
@@ -11617,5 +11614,5 @@
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-07-12T19:39:06.051Z"
+  "enrichedAt": "2026-07-12T22:02:00.660Z"
 }
