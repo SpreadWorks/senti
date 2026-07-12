@@ -380,16 +380,39 @@
             },
             {
               "id": "finalize-merge",
-              "status": "in_progress",
-              "startedAt": "2026-07-12T10:01:03.930Z"
+              "status": "done",
+              "startedAt": "2026-07-12T10:01:03.930Z",
+              "finishedAt": "2026-07-12T10:01:21.303Z",
+              "runtimeLog": {
+                "runId": "54c61ffc-32e5-44b2-975d-0d5203ea035c",
+                "sequence": 123,
+                "attempt": 1,
+                "command": "flow run finalize-merge",
+                "startedAt": "2026-07-12T10:01:18.992Z",
+                "endedAt": "2026-07-12T10:01:21.308Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-sync",
-              "status": "pending"
+              "status": "done",
+              "startedAt": "2026-07-12T10:01:21.303Z",
+              "finishedAt": "2026-07-12T10:01:57.607Z",
+              "runtimeLog": {
+                "runId": "54c61ffc-32e5-44b2-975d-0d5203ea035c",
+                "sequence": 62,
+                "attempt": 1,
+                "command": "flow run finalize-sync",
+                "startedAt": "2026-07-12T10:01:32.716Z",
+                "endedAt": "2026-07-12T10:01:57.613Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-cleanup",
-              "status": "pending"
+              "status": "done",
+              "startedAt": "2026-07-12T10:01:57.607Z",
+              "finishedAt": "2026-07-12T10:03:48.356Z"
             }
           ]
         }
@@ -403,7 +426,7 @@
       "spec": "specs/316-accept-resolve-context-guards/tasks/T-1.md",
       "origin": "plan",
       "parent": null,
-      "status": "in_progress",
+      "status": "done",
       "steps": [
         {
           "id": "task-impl",
@@ -423,7 +446,7 @@
       "added_round": 0
     }
   ],
-  "currentTaskId": "T-1",
+  "currentTaskId": null,
   "issue": 429,
   "request": "Goal: Accept standard flow target guards in flow get resolve-context. Scope: add FLOW_TARGET_GUARD_OPTIONS and guarded help to the get.resolve-context registry definition; reuse existing FlowCommand/flow-context validation; preserve guard-free behavior; add help/dispatcher parity, matching-guard, and runId/Issue/spec mismatch tests in the two specified unit test files. Out of Scope: Issue #410-#428 work, finalize-commit changes, duplicate validation, guard bypasses, external dependencies, and files beyond src/flow/registry.js plus tests/unit/flow/ctx-dispatch.test.js and tests/unit/flow/resolve-context-extended.test.js except Senti-required artifacts.",
   "plugins": {
@@ -1061,6 +1084,20 @@
       "reset": true,
       "taskId": "T-1",
       "ts": "2026-07-12T09:57:31.712Z"
+    },
+    {
+      "phase": "finalize",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-1",
+      "ts": "2026-07-12T10:02:25.523Z"
+    },
+    {
+      "phase": "finalize",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-1",
+      "ts": "2026-07-12T10:03:33.777Z"
     }
   ],
   "reviewRecoveryBaselines": [
@@ -1104,6 +1141,8 @@
     "updatedAt": "2026-07-12T09:57:51.924Z"
   },
   "state": {
-    "finalizedAt": "2026-07-12T10:01:03.796Z"
+    "finalizedAt": "2026-07-12T10:01:03.796Z",
+    "mergeStrategy": "squash",
+    "featureBranchSquashedSha": "c3e345bffc7e2eb47fdf82249387916fc9b2da74"
   }
 }

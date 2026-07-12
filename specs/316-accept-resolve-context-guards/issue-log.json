@@ -213,6 +213,27 @@
       "resolution": "The current v2 test artifact reports R1, R2, and R3 pass, raw TAP reports 3/3 pass, and the integrity review verdict is pass",
       "taskId": "T-1",
       "timestamp": "2026-07-12T09:56:50.157Z"
+    },
+    {
+      "step": "finalize-cleanup",
+      "reason": "unknown step: finalize-cleanup",
+      "timestamp": "2026-07-12T10:02:11.481Z"
+    },
+    {
+      "step": "finalize-cleanup",
+      "reason": "tooling failure: finalize-cleanup attempted a lifecycle mutation in the current task scope and reported unknown step finalize-cleanup",
+      "resolution": "No cleanup or deletion occurred; inspect the command's top-level mutation routing before retrying without bypassing orphan or squash safety checks",
+      "guardrailCandidate": "Finalize cleanup must target top-level lifecycle state when currentTaskId is non-null",
+      "taskId": "T-1",
+      "timestamp": "2026-07-12T10:02:25.521Z"
+    },
+    {
+      "step": "finalize-cleanup",
+      "reason": "workaround: complete T-1 with the built-in recovery command because integration gate PASS did not clear currentTaskId",
+      "resolution": "All three requirements, integration gate, acceptance review, and final regression passed; clearing the completed task restores top-level scope so finalize-cleanup can persist its own lifecycle step",
+      "guardrailCandidate": "Integration gate side effects and finalize cleanup must preserve flow-level mutation scope when currentTaskId is non-null",
+      "taskId": "T-1",
+      "timestamp": "2026-07-12T10:03:33.774Z"
     }
   ]
 }
