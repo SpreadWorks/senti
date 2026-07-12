@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-07-11T20:46:53.188Z",
+  "analyzedAt": "2026-07-12T09:36:44.227Z",
   "package": {
     "entries": [
       {
@@ -2824,9 +2824,9 @@
       },
       {
         "file": "src/flow/definition.js",
-        "hash": "0035554277d1dfa4f587853ba65acdee",
-        "lines": 1185,
-        "mtime": "2026-06-13T17:36:17.991Z",
+        "hash": "dcf69bebb3fe170236ca24917bf812e5",
+        "lines": 1189,
+        "mtime": "2026-07-12T09:36:28.260Z",
         "className": "definition",
         "methods": [
           "SetStepStatus",
@@ -2860,6 +2860,7 @@
           "derivePhaseMap",
           "resolveNodeFor",
           "findActiveNode",
+          "taskIdForResolvedStep",
           "findLatestInProgressLeaf",
           "deriveNextAction",
           "buildInitialNestedSteps",
@@ -2929,6 +2930,7 @@
           "derivePhaseMap",
           "resolveNodeFor",
           "findActiveNode",
+          "taskIdForResolvedStep",
           "findLatestInProgressLeaf",
           "deriveNextAction",
           "buildInitialNestedSteps",
@@ -2941,27 +2943,7 @@
         "usedBy": [
           "src/flow/registry.js"
         ],
-        "id": "2cb27b93",
-        "enrich": {
-          "processedAt": "2026-06-14T23:04:56.145Z",
-          "attempts": 4
-        },
-        "summary": "This module defines the flow and task workflow model, including step graphs, retry policies, lifecycle actions, and branch traversal helpers. It serves as the internal state machine behind review, gating, finalize, and task progression logic.",
-        "detail": "The file models workflow nodes with a `FlowNode` class, typed max-attempt strategies, failure policies, and optional side effects so execution behavior can be resolved from declarative definitions. It provides lifecycle action objects such as status updates, metric increments, step resets, hook execution, and issue logging, then maps those actions to phases like draft review, implementation review, gates, and finalize. Helper functions derive phase maps, prerequisite sets, next actions, leaf orders, active nodes, and nested initial step trees from the static flow definition. It also manages route-specific review artifacts and targeted cleanup logic, showing a design where orchestration rules are centralized and reusable across both full flows and task-level subflows.",
-        "chapter": "internal_design",
-        "role": "Workflow definition and lifecycle orchestration core",
-        "keywords": [
-          "workflow definition",
-          "state machine",
-          "flow graph",
-          "retry policy",
-          "lifecycle actions",
-          "step orchestration",
-          "phase mapping",
-          "task pipeline",
-          "prerequisite resolution",
-          "review routing"
-        ]
+        "id": "2cb27b93"
       },
       {
         "file": "src/flow/lib/acceptance-review-artifacts.js",
@@ -6989,9 +6971,9 @@
       },
       {
         "file": "src/flow/lib/set-step.js",
-        "hash": "00076724b47a2c478a926ebee1f628fe",
-        "lines": 316,
-        "mtime": "2026-06-14T08:44:32.744Z",
+        "hash": "4e5a6e76d5009074ef86e39a017a08b8",
+        "lines": 326,
+        "mtime": "2026-07-12T09:36:28.260Z",
         "className": "set-step",
         "methods": [
           "preValidateImplementStepCompletion",
@@ -7024,26 +7006,7 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "d4cb8d93",
-        "summary": "Controls manual step status changes in the flow state and blocks invalid transitions when required artifacts are missing. It adds pre-validation for testing and implementation milestones before a step can be marked complete.",
-        "detail": "The module collects configured side effects for a step, checks whether the requested status is allowed, and integrates with the flow command framework and dependency container. Before completing test-related steps, it loads spec data and validates generated artifacts such as test headers, scenario validity results, and execute/review JSON files. For implementation completion, it verifies durable files like spec.json, file-map.json, and test outputs, and returns structured envelope failures when evidence is incomplete or inconsistent. It also supports syncing spec tasks to flow state, validating post-hook managed steps, and returning compact step status payloads for CLI consumers.",
-        "chapter": "cli_commands",
-        "role": "Flow step transition validator and state updater",
-        "enrich": {
-          "processedAt": "2026-06-14T08:46:19.562Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "step status",
-          "flow transition",
-          "artifact precheck",
-          "implementation completion",
-          "test validation",
-          "CLI step command",
-          "state update",
-          "envelope failure",
-          "side effects"
-        ]
+        "id": "d4cb8d93"
       },
       {
         "file": "src/flow/lib/set-summary.js",
@@ -7671,9 +7634,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "ecf1f1af6fad94c9334c2b0728377370",
-        "lines": 1233,
-        "mtime": "2026-07-11T20:46:49.102Z",
+        "hash": "e12ec73ff0c1b231e1bb313d3ad6efef",
+        "lines": 1275,
+        "mtime": "2026-07-12T09:36:28.260Z",
         "className": "registry",
         "methods": [
           "assertDraftReviewRegistryHookBoundary",
@@ -7683,6 +7646,7 @@
           "deriveActivePhase",
           "tryUpdateStepStatus",
           "tryAppendIssueLog",
+          "scopedGateStepId",
           "gateRuntimeLogStepId",
           "activeStepId",
           "activeImplReviewStepId",
@@ -8518,9 +8482,9 @@
       },
       {
         "file": "src/lib/dispatcher.js",
-        "hash": "4ca6a2c2f7ddb105692ea2ee68072ca9",
-        "lines": 503,
-        "mtime": "2026-06-19T03:34:14.328Z",
+        "hash": "41d687a9a9a0576cb9a9a617d16c0ec7",
+        "lines": 504,
+        "mtime": "2026-07-12T09:36:28.261Z",
         "className": "dispatcher",
         "methods": [
           "parseEntryInput",
@@ -8546,7 +8510,8 @@
           "./command.js",
           "./flow-envelope.js",
           "./runtime-log.js",
-          "./flow-target-guard.js"
+          "./flow-target-guard.js",
+          "../flow/definition.js"
         ],
         "exports": [
           "parseEntryInput",
@@ -8561,25 +8526,7 @@
           "src/metrics.js",
           "src/spec.js"
         ],
-        "id": "18d5f63b",
-        "summary": "Implements the shared command dispatcher that parses entry-specific arguments and runs command lifecycle hooks. It also normalizes output handling across raw text, JSON envelopes, runtime logs, and failures.",
-        "detail": "This module splits CLI arguments according to each entry's declared flags and options, while preserving positional arguments and rejecting unknown or incomplete options. The main dispatch routine wraps stdout and stderr writers, temporarily suppresses process-capture side effects, and coordinates pre, run, post, and error hooks on command entries. It attaches runtime-log metadata to envelopes, derives run and flow identifiers from hook context, and persists finalize-cleanup metadata after command completion. Failure paths are funneled through a common emitter that can serialize structured envelopes, set exit codes, and display cleanup warnings when reports are missing.",
-        "chapter": "project_structure",
-        "role": "Shared CLI dispatch and envelope execution layer",
-        "enrich": {
-          "processedAt": "2026-06-19T03:35:39.982Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "dispatcher",
-          "command lifecycle",
-          "argument parsing",
-          "runtime log",
-          "envelope output",
-          "error handling",
-          "stdout stderr",
-          "CLI routing"
-        ]
+        "id": "18d5f63b"
       },
       {
         "file": "src/lib/error-preview.js",
@@ -11386,7 +11333,7 @@
     ],
     "summary": {
       "total": 215,
-      "totalMethods": 2008
+      "totalMethods": 2010
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
