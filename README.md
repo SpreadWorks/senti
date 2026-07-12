@@ -120,7 +120,7 @@ See the [configuration reference](docs/configuration.md) for details.
 | Chapter | Summary |
 | --- | --- |
 | [Tool Overview and Architecture](https://github.com/SpreadWorks/senti/blob/main/docs/overview.md) | This chapter introduces sdd-forge, a CLI tool that automates documentation generation from source code analysis and e… |
-| [Technology Stack and Operations](https://github.com/SpreadWorks/senti/blob/main/docs/stack_and_ops.md) | This chapter covers the technology stack, dependency management, deployment, and operations procedures for sdd-forge,… |
+| [Technology Stack and Operations](https://github.com/SpreadWorks/senti/blob/main/docs/stack_and_ops.md) | This project is a JavaScript codebase for Node.js, delivered as an ECMAScript module CLI and library through the sent… |
 | [Project Structure](https://github.com/SpreadWorks/senti/blob/main/docs/project_structure.md) | This chapter describes the overall directory organization of the sdd-forge project, which is structured around seven … |
 | [CLI Command Reference](https://github.com/SpreadWorks/senti/blob/main/docs/cli_commands.md) | The CLI is organized as command groups that dispatch subcommands from registries, with docs, flow, metrics, spec, and… |
 | [Configuration and Customization](https://github.com/SpreadWorks/senti/blob/main/docs/configuration.md) | sdd-forge is configured through a single project-level JSON file (.sdd-forge/config.json) and optionally extended by … |
