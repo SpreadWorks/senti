@@ -19,8 +19,10 @@ import {
 } from "../lib/constants.js";
 import { resolveGateStepId, resolveGatePhaseFromState } from "./lib/gate-step.js";
 import {
+  findActiveNode,
   resolveLifecycle,
   resolveRuntimeStep,
+  taskIdForResolvedStep,
   writeEmptyDraftReviewRouteArtifacts,
 } from "./definition.js";
 import { flattenSteps } from "./lib/step-tree.js";
@@ -165,9 +167,17 @@ function tryAppendIssueLog(fn) {
   }
 }
 
+function scopedGateStepId(flowState, phase) {
+  const activeNode = findActiveNode(flowState);
+  if (phase === "task-impl" && activeNode?.stepId === "task-gate") {
+    return activeNode.stepId;
+  }
+  return resolveGateStepId(phase);
+}
+
 function gateRuntimeLogStepId(ctx) {
   const phase = ctx.phase || resolveGatePhaseFromState(ctx.flowState)?.phase;
-  return resolveGateStepId(phase);
+  return scopedGateStepId(ctx.flowState, phase);
 }
 
 function activeStepId(flowState, stepIds) {
@@ -221,16 +231,46 @@ class RegistryLifecycleAdapter {
     this.phase = result?.artifacts?.phase || ctx.phase;
   }
 
+  mutationOpts(step, extras = {}) {
+    const activeNode = findActiveNode(this.ctx.flowState);
+    return {
+      ...extras,
+      taskId: taskIdForResolvedStep(activeNode, step),
+    };
+  }
+
+  mutationStep(step) {
+    if (step !== "impl-gate" || this.phase !== "task-impl") return step;
+    return scopedGateStepId(this.ctx.flowState, this.phase);
+  }
+
   setStepStatus(step, status) {
-    if (step.startsWith("finalize-")) {
-      tryUpdateStepStatus(this.ctx.flowManager, step, status, { specId: this.ctx.specId });
+    const mutationStep = this.mutationStep(step);
+    if (mutationStep.startsWith("finalize-")) {
+      tryUpdateStepStatus(
+        this.ctx.flowManager,
+        mutationStep,
+        status,
+        this.mutationOpts(mutationStep, { specId: this.ctx.specId }),
+      );
       return;
     }
-    tryUpdateStepStatus({ ...this.ctx, phase: this.phase }, step, status);
+    tryUpdateStepStatus(
+      { ...this.ctx, phase: this.phase },
+      mutationStep,
+      status,
+      this.mutationOpts(mutationStep),
+    );
   }
 
   keepInProgress(step) {
-    tryUpdateStepStatus(this.ctx, step, "in_progress");
+    const mutationStep = this.mutationStep(step);
+    tryUpdateStepStatus(
+      this.ctx,
+      mutationStep,
+      "in_progress",
+      this.mutationOpts(mutationStep),
+    );
   }
 
   async incrementMetric(phase, counter) {
@@ -1108,7 +1148,9 @@ export const FLOW_COMMANDS = {
         "  specs/<spec>/tests/.raw/scenario-validity.log",
       ].join("\n"),
       post(ctx, result) {
-        if (result?.result === "pass") tryUpdateStepStatus(ctx, "scenario-validity", "done");
+        if (result?.result === "pass") {
+          tryUpdateStepStatus(ctx, "scenario-validity", "done", { taskId: null });
+        }
       },
     },
     "test-result-review": {

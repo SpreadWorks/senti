@@ -1,0 +1,80 @@
+{
+  "version": "1",
+  "raw_output_path": "specs/317-preserve-flow-scope/tests/.raw/scenario-validity.log",
+  "command": "node --test specs/317-preserve-flow-scope/tests/flow-scope-regression.test.js",
+  "process": {
+    "started": true,
+    "exitCode": 1,
+    "signal": null,
+    "timedOut": false,
+    "spawnError": null
+  },
+  "result": "pass",
+  "summary": [
+    {
+      "id": "R1",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/317-preserve-flow-scope/tests/flow-scope-regression.test.js",
+        "test_name": "R1: valid fixture",
+        "command": "node --test specs/317-preserve-flow-scope/tests/flow-scope-regression.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 259
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/317-preserve-flow-scope/tests/flow-scope-regression.test.js",
+        "test_name": "R2: runtime metadata scope follows the resolved flow or task step",
+        "command": "node --test specs/317-preserve-flow-scope/tests/flow-scope-regression.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 259
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/317-preserve-flow-scope/tests/flow-scope-regression.test.js",
+        "test_name": "R3: scenario-validity and test-review completion use top-level scope",
+        "command": "node --test specs/317-preserve-flow-scope/tests/flow-scope-regression.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 259
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/317-preserve-flow-scope/tests/flow-scope-regression.test.js",
+        "test_name": "R4: task review and gate lifecycle mutations retain explicit task scope",
+        "command": "node --test specs/317-preserve-flow-scope/tests/flow-scope-regression.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 259
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/317-preserve-flow-scope/tests/flow-scope-regression.test.js",
+        "test_name": "R5: target guards reject mismatches before runtime execution or metadata mutation",
+        "command": "node --test specs/317-preserve-flow-scope/tests/flow-scope-regression.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 259
+        }
+      }
+    }
+  ]
+}

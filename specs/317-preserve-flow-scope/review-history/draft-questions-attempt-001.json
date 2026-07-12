@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "phase": "draft-questions",
+  "sourceDraft": "draft.json",
+  "generatedAt": "2026-07-11T20:51:44.374Z",
+  "verdict": "ADVISORY",
+  "summary": "0 blocking, 0 advisory, 1 repair target finding(s) recorded.",
+  "blockingFindings": [],
+  "advisoryFindings": [],
+  "repairTargets": [
+    {
+      "title": "1. Remove Instruction Prefix",
+      "target": "q1",
+      "rationale": "Issue #430 の目的は、currentTaskId が non-null でも flow-level mutation を top-level scope に固定し、task-level routing、// spec: header validation、target guard を維持する、という理解で進めてよいか。",
+      "evidence": "The shown question includes an instruction-like prefix (`must:`) instead of only the question text.",
+      "classification": "repair_target"
+    }
+  ],
+  "sourceArtifact": "draft-review-questions.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "draft-questions-001-blocking-001",
+      "phase": "draft-questions",
+      "sourceArtifact": "draft-review-questions.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "1. Remove Instruction Prefix",
+      "body": "Issue #430 の目的は、currentTaskId が non-null でも flow-level mutation を top-level scope に固定し、task-level routing、// spec: header validation、target guard を維持する、という理解で進めてよいか。",
+      "category": "repair_target"
+    }
+  ]
+}

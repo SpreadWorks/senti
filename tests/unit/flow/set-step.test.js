@@ -12,6 +12,7 @@ import { join } from "path";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 import { findStepById } from "../../../src/flow/lib/step-tree.js";
+import SetStepCommand from "../../../src/flow/lib/set-step.js";
 const FLOW_CMD = join(process.cwd(), "src/flow.js");
 
 describe("flow set step", () => {
@@ -65,5 +66,54 @@ describe("flow set step", () => {
       assert.equal(envelope.ok, false);
       assert.equal(envelope.errors[0].level, "fatal");
     }
+  });
+
+  it("passes explicit flow and task scope for the resolved active step", async () => {
+    const updates = [];
+    const flowManager = {
+      state: {
+        steps: [{ id: "test", status: "in_progress" }],
+        tasks: [{
+          id: "T-1",
+          steps: [
+            { id: "task-impl", status: "pending" },
+            { id: "task-review", status: "pending" },
+            { id: "task-gate", status: "pending" },
+          ],
+        }],
+        currentTaskId: "T-1",
+      },
+      load() { return this.state; },
+      updateStepStatus(id, status, opts) { updates.push({ id, status, opts }); },
+    };
+    const command = new SetStepCommand();
+
+    await command.execute({
+      id: "test",
+      status: "in_progress",
+      specId: "specs/demo/spec.json",
+      flowManager,
+    });
+    flowManager.state.steps[0].status = "done";
+    flowManager.state.tasks[0].steps[0].status = "in_progress";
+    await command.execute({
+      id: "task-impl",
+      status: "in_progress",
+      specId: "specs/demo/spec.json",
+      flowManager,
+    });
+
+    assert.deepEqual(updates, [
+      {
+        id: "test",
+        status: "in_progress",
+        opts: { specId: "specs/demo/spec.json", taskId: null },
+      },
+      {
+        id: "task-impl",
+        status: "in_progress",
+        opts: { specId: "specs/demo/spec.json", taskId: "T-1" },
+      },
+    ]);
   });
 });

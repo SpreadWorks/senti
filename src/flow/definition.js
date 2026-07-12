@@ -1030,6 +1030,10 @@ export function findActiveNode({ steps, tasks, currentTaskId }) {
   return null;
 }
 
+export function taskIdForResolvedStep(activeNode, targetStepId) {
+  return activeNode?.stepId === targetStepId ? activeNode.taskId : null;
+}
+
 const MAX_IN_PROGRESS_STEP_SCAN = 500;
 const DEFINITION_ORDER_CACHE = new WeakMap();
 

@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "impact-on-existing-features",
+      "result": "fail",
+      "reason": "The spec describes in-scope and out-of-scope changes but does not list the impact on existing features or explicitly state that no existing features are affected.",
+      "category": "code-quality",
+      "title": "Impact on Existing Features",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "impact-on-existing-features",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.scope"
+          },
+          "observed": "The spec describes in-scope and out-of-scope changes but does not list the impact on existing features or explicitly state that no existing features are affected.",
+          "severity": "blocking",
+          "refs": [
+            "impact-on-existing-features"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "impact-on-existing-features",
+      "where": {
+        "file": "spec.json",
+        "locator": "$.scope"
+      },
+      "observed": "The spec describes in-scope and out-of-scope changes but does not list the impact on existing features or explicitly state that no existing features are affected.",
+      "severity": "blocking",
+      "refs": [
+        "impact-on-existing-features"
+      ]
+    }
+  ]
+}

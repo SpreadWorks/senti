@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-12T08:38:15.151Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/317-preserve-flow-scope/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R5 guard ordering is not tested before validation",
+      "target": "specs/317-preserve-flow-scope/tests/flow-scope-regression.test.js R5 test",
+      "issue": "The R5 test uses a command whose `execute()` would run and a lifecycle `post()`/runtime log would mutate after execution, but it does not define or assert any validation/pre-execution hook that would fail or record execution if target guard ordering is wrong. As written, the test can prove guards happen before command execution, runtime metadata, and status mutation, but not before validation as required.",
+      "requiredChange": "Add a spec-local R5 case with a validation/pre-execution hook or equivalent target-sensitive validation path that would be observable if invoked, then assert mismatched targets return `ACTIVE_FLOW_MISMATCH` without invoking it.",
+      "whyBlocking": "R5 explicitly requires guards before validation, and the coverage artifact marks R5 covered despite no corresponding executable coverage for that part of the requirement.",
+      "origin": "R5",
+      "failureKind": "missing-coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/317-preserve-flow-scope/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "475b975db56d76df2f4a3a090e2c907ecda5a05fc07647c42bca1e3eda3e1843"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "test-002-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R5 guard ordering is not tested before validation",
+      "body": "The R5 test uses a command whose `execute()` would run and a lifecycle `post()`/runtime log would mutate after execution, but it does not define or assert any validation/pre-execution hook that would fail or record execution if target guard ordering is wrong. As written, the test can prove guards happen before command execution, runtime metadata, and status mutation, but not before validation as required.",
+      "category": "unknown"
+    }
+  ]
+}

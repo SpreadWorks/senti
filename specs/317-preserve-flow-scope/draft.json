@@ -1,0 +1,81 @@
+{
+  "devType": "bugfix",
+  "goal": "currentTaskId が設定済みでも、flow-level lifecycle step の更新と runtime log 永続化が top-level flow scope を維持するように修正する。",
+  "analysis": {
+    "problem": "approval sync 後は currentTaskId が non-null になり得るが、一部の flow-level mutation boundary が明示的な parent scope を渡していない。そのため FlowStore が active task を推論し、本来 top-level の test、scenario-validity、test-review step や runtime log が task scope を参照して進行不能または誤記録になる。",
+    "proposedApproach": "src/flow/lib/set-step.js と src/flow/registry.js の flow-level mutation boundary で既存の明示的 parent selector taskId: null を使用する。src/lib/dispatcher.js は resolved runtime step が flow-level なら taskId: null、task-level なら explicit current task id を使用する。// spec: header validation と target guard の既存契約は維持する。",
+    "validation": "Issue #430 は root cause、対象ファイル、保持契約、非スコープ、検証点を明示している。source inspection でも set-step の top-level status update、dispatcher の runtime log metadata、registry の scenario-validity/test-review completion が scope を決める境界であり、task-level review/gate routing は別の明示的 task scope を持つことを確認した。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: currentTaskId が non-null のとき、parent scope 未指定の FlowStore mutation は active task を推論する。",
+      "must: top-level test completion は既存の // spec: header validation を通過した後に flow scope の test step を更新する必要がある。",
+      "must: dispatcher の runtime log persistence は resolved runtime step の scope に従い、top-level step には parent scope、task step には explicit current task scope で記録する必要がある。",
+      "must: scenario-validity と test-review の lifecycle completion は registry post hook から対応する top-level step を完了する必要がある。",
+      "must: task-impl、review、gate の task-level routing は明示された task scope を維持する。"
+    ],
+    "decisionPoints": [
+      "must: flow-level mutation boundary は既存の taskId: null selector で top-level scope を明示する。",
+      "must: runtime log metadata の taskId は resolved runtime step が flow-level なら null、task-level なら current task id にする。",
+      "must: invalid または missing の // spec: header は currentTaskId の有無にかかわらず従来どおり拒否する。",
+      "must: lifecycle target guard は scope 修正後も unauthorized target を拒否する。",
+      "must: currentTaskId が non-null の fixture で success path と rejection path の双方を回帰テストする。"
+    ],
+    "resolvedByProjectRules": [
+      "must: FlowStore inference logic は変更せず、system boundary ではなく mutation caller 側で既存 selector を使う。",
+      "must: 新しい scope flag、CLI option、外部 dependency は追加しない。",
+      "must: flow state を手動修復する recovery path は追加しない。",
+      "must: source code を正とし、生成 docs は直接編集しない。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: 各 mutation boundary と既存 test suite の対応関係を requirement/task 単位で定義する。",
+      "must: test completion の accepted header、invalid header、missing header の期待結果を scenario として定義する。",
+      "must: runtime log、scenario-validity、test-review、task-impl/review/gate routing、target guard の回帰証拠を requirement に対応付ける。",
+      "should: 同じ file で繰り返す fixture setup は既存 pattern に従って helper へ抽出する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: src/flow/lib/set-step.js の top-level flow set step mutation に明示的 flow scope を渡す。",
+      "must: src/lib/dispatcher.js の runtime log persistence を resolved runtime step の flow/task scope に一致させる。",
+      "must: src/flow/registry.js の scenario-validity と test-review lifecycle completion を top-level step scope に固定する。",
+      "must: currentTaskId が non-null の状態で top-level test completion と header validation の success/rejection を検証する。",
+      "must: top-level runtime log、scenario-validity、test-review completion を検証する。",
+      "must: task-impl/review/gate routing と lifecycle target guard の既存挙動を回帰検証する。"
+    ],
+    "out": [
+      "must: FlowStore の scope inference logic は変更しない。",
+      "must: 新しい scope flag または CLI option は追加しない。",
+      "must: flow state の手動 repair mechanism は追加しない。",
+      "must: Issue #414 および Issue #429 の実装は含めない。",
+      "must: 外部 dependency、push、publish、release は含めない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: currentTaskId 設定後も通常の flow set step test done が top-level test step を完了できるようになる。",
+    "must: valid な // spec: header は受理し、invalid または missing header は従来どおり TEST_HEADER_VALIDATION_FAILED で拒否する。",
+      "must: top-level command の runtime log metadata は top-level flow step に残り、task-impl/review/gate command の metadata は explicit current task step に残る。",
+    "must: scenario-validity と test-review の成功時 post hook は対応する top-level step を完了する。",
+    "must: explicit task-level task-impl/review/gate routing と target guard rejection は変更しない。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "dropped",
+      "category": "goal-confirmation",
+      "question": "Issue #430 の目的は、currentTaskId が non-null でも flow-level mutation を top-level scope に固定し、task-level routing、// spec: header validation、target guard を維持する、という理解で進めてよいか。",
+      "answer": "",
+      "evidence": "",
+      "why": "",
+      "considered": "",
+      "droppedReason": "must: 推奨は resolved runtime step から scope を決め、flow-level step では taskId: null、task-level step では explicit currentTaskId を使うこと。根拠は src/lib/dispatcher.js の runtime-step resolution と既存 task review/gate routing pattern であり、linked Issue と source inspection が判断を完結させるため q1 は redundant である。"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-11T21:08:41Z",
+    "notes": "Parent approved the bounded dual flow/task runtime-log scope correction."
+  }
+}

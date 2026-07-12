@@ -15,7 +15,11 @@ import { Envelope } from "../../lib/flow-envelope.js";
 import { syncSpecTasksToFlow } from "./sync-spec-tasks.js";
 import { runAutoCheckCore } from "./run-auto-check.js";
 import { resolveAutoCheckInput, buildSkipVerdict } from "./resolve-auto-check-input.js";
-import { resolveSideEffects } from "../definition.js";
+import {
+  findActiveNode,
+  resolveSideEffects,
+  taskIdForResolvedStep,
+} from "../definition.js";
 import { validateTestHeaders, formatValidationMessages } from "./test-headers.js";
 import { loadSpecJson, resolveSpecDir } from "../../lib/spec-json.js";
 import { validateStepCompletionTransition } from "./flow-judgment-contract.js";
@@ -244,7 +248,13 @@ export default class SetStepCommand extends FlowCommand {
     // Pass specId so the mutator can locate flow.json by path even when the
     // current flowManager root has no .active-flow entry for this spec
     // (spec 251: main-repo authority during finalize-merge / sync / cleanup).
-    ctx.flowManager.updateStepStatus(id, status, ctx.specId ? { specId: ctx.specId } : undefined);
+    // The resolved active step owns its parent scope; a non-matching id is a
+    // flow-level mutation rather than an implicit current-task lookup.
+    const activeNode = findActiveNode(ctx.flowManager.load());
+    ctx.flowManager.updateStepStatus(id, status, {
+      ...(ctx.specId ? { specId: ctx.specId } : {}),
+      taskId: taskIdForResolvedStep(activeNode, id),
+    });
     if (container.has("logger")) {
       container.get("logger").event("flow-step-change", { step: id, status });
     }

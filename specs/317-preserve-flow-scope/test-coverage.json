@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "`flow set step` shall pass explicit `taskId: null` for top-level step mutations, including the existing `specId` path, so `test=done` updates the top-level step when `currentTaskId` is non-null; valid `// spec:` headers shall be accepted and invalid or missing headers shall still return `TEST_HEADER_VALIDATION_FAILED` without persisting the transition.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/flow-scope-regression.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "Dispatcher runtime log persistence shall derive parent scope from the resolved runtime step: a top-level runtime step shall call `setStepRuntimeLog` with `taskId: null`, while task-impl, task-review, and task-gate runtime steps shall use the explicit `currentTaskId`; both paths shall preserve any resolved `specId`.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/flow-scope-regression.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "Registry lifecycle completion for passing `scenario-validity` and passing or advisory `test-review` results shall update the corresponding top-level step with explicit `taskId: null` when `currentTaskId` is non-null.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/flow-scope-regression.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "Task-scoped task-impl, task-review, and task-gate lifecycle status and runtime metadata routing shall continue to use the explicitly selected current task and shall not redirect those mutations or logs to top-level flow steps.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/flow-scope-regression.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "Target-sensitive lifecycle commands shall continue to enforce existing run ID, Issue, and spec guards before validation, command execution, runtime log step metadata persistence, or lifecycle status mutation; a mismatched target shall return `ACTIVE_FLOW_MISMATCH` and leave both flow and task steps unchanged.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/flow-scope-regression.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/flow-scope-regression.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ]
+    }
+  ]
+}

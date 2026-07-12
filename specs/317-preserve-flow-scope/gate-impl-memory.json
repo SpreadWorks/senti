@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "phase": "integration",
+      "round": 1,
+      "status": "blocking",
+      "statusReason": "The diff only adds regression coverage for the target guard behavior; it does not show any functional implementation changes enforcing the run ID, issue, and spec guards before validation, execution, runtime log metadata persistence, or lifecycle status mutation. Therefore R5 is not implemented in the provided diff.",
+      "updatedAt": "2026-07-12T08:56:27.759Z",
+      "headSha": null,
+      "worktreeHash": null,
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ],
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R5",
+          "where": null,
+          "observed": "The diff only adds regression coverage for the target guard behavior; it does not show any functional implementation changes enforcing the run ID, issue, and spec guards before validation, execution, runtime log metadata persistence, or lifecycle status mutation. Therefore R5 is not implemented in the provided diff.",
+          "severity": "blocking",
+          "refs": [
+            "R5"
+          ]
+        }
+      ]
+    }
+  ]
+}

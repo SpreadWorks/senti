@@ -1,0 +1,44 @@
+{
+  "spec": "specs/317-preserve-flow-scope/spec.json",
+  "date": "2026-07-12T09:13:00.639Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "`flow set step` shall pass explicit `taskId: null` for top-level step mutations, including the existing `specId` path, so `test=done` updates the top-level step when `currentTaskId` is non-null; valid `// spec:` headers shall be accepted and invalid or missing headers shall still return `TEST_HEADER_VALIDATION_FAILED` without persisting the transition.",
+      "status": "done",
+      "note": "R1: valid fixture"
+    },
+    {
+      "desc": "Dispatcher runtime log persistence shall derive parent scope from the resolved runtime step: a top-level runtime step shall call `setStepRuntimeLog` with `taskId: null`, while task-impl, task-review, and task-gate runtime steps shall use the explicit `currentTaskId`; both paths shall preserve any resolved `specId`.",
+      "status": "done",
+      "note": "R2: runtime metadata scope follows the resolved flow or task step"
+    },
+    {
+      "desc": "Registry lifecycle completion for passing `scenario-validity` and passing or advisory `test-review` results shall update the corresponding top-level step with explicit `taskId: null` when `currentTaskId` is non-null.",
+      "status": "done",
+      "note": "R3: scenario-validity and test-review completion use top-level scope"
+    },
+    {
+      "desc": "Task-scoped task-impl, task-review, and task-gate lifecycle status and runtime metadata routing shall continue to use the explicitly selected current task and shall not redirect those mutations or logs to top-level flow steps.",
+      "status": "done",
+      "note": "R4: task review and gate lifecycle mutations retain explicit task scope"
+    },
+    {
+      "desc": "Target-sensitive lifecycle commands shall continue to enforce existing run ID, Issue, and spec guards before validation, command execution, runtime log step metadata persistence, or lifecycle status mutation; a mismatched target shall return `ACTIVE_FLOW_MISMATCH` and leave both flow and task steps unchanged.",
+      "status": "done",
+      "note": "R5: target guards reject mismatches before runtime execution or metadata mutation"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 5,
+    "done": 5,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

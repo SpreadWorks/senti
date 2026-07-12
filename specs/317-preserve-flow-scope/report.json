@@ -1,0 +1,894 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".senti/output/analysis.json                        |  278 ++--\n .../317-preserve-flow-scope/acceptance-review.json |   21 +\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../317-preserve-flow-scope/draft-gate-source.json |   46 +\n .../draft-questions-repair.json                    |    7 +\n .../draft-questions-triage.json                    |    7 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   11 +\n specs/317-preserve-flow-scope/draft.json           |   81 ++\n specs/317-preserve-flow-scope/file-map.json        |   36 +\n specs/317-preserve-flow-scope/flow.json            | 1495 ++++++++++++++++++++\n .../317-preserve-flow-scope/gate-impl-memory.json  |   33 +\n specs/317-preserve-flow-scope/impl-review.json     |   28 +\n specs/317-preserve-flow-scope/issue-log.json       |  377 +++++\n specs/317-preserve-flow-scope/issue.md             |   92 ++\n .../plugin-artifacts/workflow/prepare.json         |   10 +\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../review-history/draft-coverage-attempt-002.json |   14 +\n .../draft-questions-attempt-001.json               |   33 +\n .../draft-questions-attempt-002.json               |   14 +\n .../review-history/impl-attempt-001.json           |   31 +\n .../review-history/impl-attempt-001.md             |   16 +\n .../review-history/spec-attempt-001.json           |   16 +\n .../review-history/spec-attempt-001.md             |   11 +\n .../review-history/spec-attempt-002.json           |   16 +\n .../review-history/spec-attempt-002.md             |   11 +\n .../review-history/test-attempt-001.json           |   90 ++\n .../review-history/test-attempt-001.md             |   30 +\n .../review-history/test-attempt-002.json           |   50 +\n .../review-history/test-attempt-002.md             |   18 +\n .../review-history/test-attempt-003.json           |   28 +\n .../review-history/test-attempt-003.md             |   13 +\n specs/317-preserve-flow-scope/review.md            |   16 +\n .../317-preserve-flow-scope/spec-gate-source.json  |   46 +\n specs/317-preserve-flow-scope/spec-review.json     |   13 +\n specs/317-preserve-flow-scope/spec-review.md       |   11 +\n specs/317-preserve-flow-scope/spec.json            |  186 +++\n specs/317-preserve-flow-scope/spec.md              |  105 ++\n specs/317-preserve-flow-scope/tasks/T-1.md         |   21 +\n specs/317-preserve-flow-scope/test-coverage.json   |   75 +\n specs/317-preserve-flow-scope/test-review.json     |   25 +\n specs/317-preserve-flow-scope/test-review.md       |   13 +\n .../tests/flow-scope-regression.test.js            |  414 ++++++\n src/flow/definition.js                             |    4 +\n src/flow/lib/set-step.js                           |   14 +-\n src/flow/registry.js                               |   54 +-\n src/lib/dispatcher.js                              |   75 +-\n tests/unit/flow/gate-phase-inference.test.js       |   36 +\n tests/unit/flow/run-review-advisory.test.js        |   24 +-\n tests/unit/flow/set-step.test.js                   |   50 +\n tests/unit/lib/dispatcher.test.js                  |  135 ++\n 52 files changed, 4021 insertions(+), 250 deletions(-)",
+      "commits": [
+        "fix: preserve flow mutation scope"
+      ]
+    },
+    "retro": {
+      "total": 5,
+      "done": 5,
+      "partial": 0,
+      "not_done": 0,
+      "not_applicable_count": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "`flow set step` shall pass explicit `taskId: null` for top-level step mutations, including the existing `specId` path, so `test=done` updates the top-level step when `currentTaskId` is non-null; valid `// spec:` headers shall be accepted and invalid or missing headers shall still return `TEST_HEADER_VALIDATION_FAILED` without persisting the transition.",
+          "status": "done",
+          "note": "R1: valid fixture"
+        },
+        {
+          "desc": "Dispatcher runtime log persistence shall derive parent scope from the resolved runtime step: a top-level runtime step shall call `setStepRuntimeLog` with `taskId: null`, while task-impl, task-review, and task-gate runtime steps shall use the explicit `currentTaskId`; both paths shall preserve any resolved `specId`.",
+          "status": "done",
+          "note": "R2: runtime metadata scope follows the resolved flow or task step"
+        },
+        {
+          "desc": "Registry lifecycle completion for passing `scenario-validity` and passing or advisory `test-review` results shall update the corresponding top-level step with explicit `taskId: null` when `currentTaskId` is non-null.",
+          "status": "done",
+          "note": "R3: scenario-validity and test-review completion use top-level scope"
+        },
+        {
+          "desc": "Task-scoped task-impl, task-review, and task-gate lifecycle status and runtime metadata routing shall continue to use the explicitly selected current task and shall not redirect those mutations or logs to top-level flow steps.",
+          "status": "done",
+          "note": "R4: task review and gate lifecycle mutations retain explicit task scope"
+        },
+        {
+          "desc": "Target-sensitive lifecycle commands shall continue to enforce existing run ID, Issue, and spec guards before validation, command execution, runtime log step metadata persistence, or lifecycle status mutation; a mismatched target shall return `ACTIVE_FLOW_MISMATCH` and leave both flow and task steps unchanged.",
+          "status": "done",
+          "note": "R5: target guards reject mismatches before runtime execution or metadata mutation"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 31,
+      "fullLogPath": "specs/317-preserve-flow-scope/issue-log.json",
+      "importantTotal": 17,
+      "importantShown": 10,
+      "importantOmitted": 7,
+      "recentOtherTotal": 14,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 9,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft-questions-review",
+          "reason": "Expected shared medium and standard Codex wrapper paths were absent during provider recovery setup",
+          "resolution": "created an ignored worktree-local medium wrapper and Issue 430 gpt-5.5 profile"
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "Draft gate rejected qa[0] because it remained phrased as a user question after its answer was derived from existing Issue evidence",
+          "resolution": "halted the flow without repairing the draft, as required by the orchestration gate-FAIL stop condition"
+        },
+        {
+          "classification": "important",
+          "step": "spec",
+          "reason": "Test-location search included a nonexistent tests/integration directory and returned a partial rg failure",
+          "resolution": "restricted implementation targets to existing tests/unit suites and required spec-local tests"
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "Reopened draft question review passed but retained a stale prior-round triage item that no longer matches current review findings",
+          "resolution": "halted without editing evidence artifacts pending parent-approved mechanical recovery"
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "Stale first-round question triage and repair entries contradicted the current PASS review with no findings",
+          "resolution": "replaced both stale artifacts with schema-valid empty current-review bookkeeping"
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "Dispatcher rejected retry reset for draft gate because gate recovery phases exclude draft",
+          "resolution": "retained changed evidence and will rerun the in-progress draft gate without unsupported reset"
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "Draft gate demanded answer-field recommendation evidence for q1 even though q1 is schema-valid dropped and must keep answer fields empty",
+          "resolution": "halted without violating the dropped-entry schema or reintroducing a redundant user question"
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "provider=codex | profile=codex/gpt-5.5 | exit=1 | Reading additional input from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019f5309-9048-79b3-bfdb-e74c56ad05de\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"You'...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "Codex provider usage limit was reached before the revised spec gate could produce a verdict",
+          "resolution": "halted without retrying or changing spec, flow state, tests, or product code"
+        },
+        {
+          "classification": "important",
+          "step": "test",
+          "reason": "Static test guardrail lookup rejected mandatory target guard options during the resumed guarded flow",
+          "resolution": "did not rerun the static command bare and used the complete test rules returned by guarded next-action"
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "Question q1 does not present a recommended answer in the answer field and does not state the basis as project docs/, guardrail principles, or existing code patterns.",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "Dropped q1 lacked an explicit recommendation and code-pattern basis in its only schema-permitted rationale field",
+          "resolution": "rewrote only droppedReason with resolved-step scope recommendation and dispatcher/task-routing basis"
+        },
+        {
+          "classification": "recent-other",
+          "step": "test-review",
+          "reason": "Second static review found R5 lacked an observable validation-hook ordering assertion",
+          "resolution": "added a counted pre hook and asserted mismatches skip it while matched guards invoke it once"
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "The diff only adds regression coverage for the target guard behavior; it does not show any functional implementation changes enforcing the run ID, issue, and spec guards before validation, execution, runtime log metadata persistence, or ...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: accept guardrail observation and extract duplicated active-step task-scope decision",
+          "resolution": "add one shared helper adjacent to findActiveNode that maps an already-resolved active node and target step to explicit taskId-or-null; preserve dispatcher pre-execution snapshot and replace only the three duplicate expressions"
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 19,
+      "question": 0,
+      "issueLog": 22
+    },
+    "tokenMetrics": {
+      "input": 548055,
+      "output": 23001,
+      "cacheRead": 1379584,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 27,
+      "durationMs": 607074,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 12486
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 11412
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 56854
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 275048
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 60199
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 56487
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 8514
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 126074
+        }
+      ]
+    },
+    "tests": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/317-preserve-flow-scope/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "specs/317-preserve-flow-scope/",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/definition.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/set-step.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/registry.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/dispatcher.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/gate-phase-inference.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/run-review-advisory.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/set-step.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/lib/dispatcher.test.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/definition.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-step.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/dispatcher.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-phase-inference.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/run-review-advisory.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/set-step.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/dispatcher.test.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/definition.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-step.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/dispatcher.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-phase-inference.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/run-review-advisory.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/set-step.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/dispatcher.test.js"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "failureCategory": null,
+        "failureNature": null,
+        "skipKind": null,
+        "rawOutputPath": "specs/317-preserve-flow-scope/tests/.raw/final-regression-attempt-001.log",
+        "command": "node tests/run.js",
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        },
+        "exitCode": 0,
+        "failureSummary": null,
+        "currentDiffRelationship": null,
+        "changedFiles": [
+          {
+            "status": "modified",
+            "path": ".senti/output/analysis.json",
+            "fingerprint": "3cb45368b3d2bff91220c1c07448835c48e1229af45934d29f79bef1e262d89a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/acceptance-review.json",
+            "fingerprint": "505864be5ada25597f539d7ba056f376a284ae8196e64c3407484b28ff5d445a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/draft-coverage-repair.json",
+            "fingerprint": "0219f32f2f60193aa39052f40fb0bf79d587f31a5b8cb7f1184323155ce56479"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/draft-coverage-triage.json",
+            "fingerprint": "1054235c37967deb02a9b7626d7ca848704ad66ca10ef59d7a9d2c4f01ed4892"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/draft-gate-source.json",
+            "fingerprint": "0e760a54e5c245aaf64370a61dc656405119e1b29c781edb82afa51097d39eb7"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/draft-questions-repair.json",
+            "fingerprint": "61ae2e520c7431bcac3c9b8223b6d72727b78b6caa7036f8adbae38b2a6b4583"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/draft-questions-triage.json",
+            "fingerprint": "f4740becc3d4a2be89e92e7c30f33c8c3afc57f03e268c36b218e3af8e5d51b2"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/draft-review-coverage.json",
+            "fingerprint": "faecc00ea6b138cb4e891f928a38ca154e25376d4547a54a94d97cbaf6522d65"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/draft-review-questions.json",
+            "fingerprint": "74fef80d071e1c54cb21c2f32b0e926669c2e59867570d5fe98003172964f564"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/draft.json",
+            "fingerprint": "db687619fffdc862e70138ff268cf1b9b447d329a7ec32862871710360a4d46e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/file-map.json",
+            "fingerprint": "90b3abe32c33ca95e71eebe7d1a877ed30d73de0c0b928e339d3946711c6c9a2"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/gate-impl-memory.json",
+            "fingerprint": "e9ffa55aa73f837eed3a8e78ad93e5fd77a5172fd3eac5eabf4128a5e2c1b0fc"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/impl-gate-result.json",
+            "fingerprint": "9543690157bedd7516c1c52ce2f2fd4d67998b50c8667f6ed9caf9e805e17df9"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/impl-review.json",
+            "fingerprint": "060ebb7b3a15d34d70012b35448171562d3caf44ab3c324c062693d02368b678"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/issue.md",
+            "fingerprint": "d0b44cd8c759408ceeed5a3f5b502760f93f66de74416b734618295d7b97b10b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/plugin-artifacts/workflow/prepare.json",
+            "fingerprint": "e7d6ebe647e1cb705b65f7c91d0a72a49bd08d3e850c6536eae173f736625ac2"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/retro.json",
+            "fingerprint": "ab79ff7d1c2eadb435b60dc88417419e93516c62ea0084d2caf1d71ba462c89e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/review-history/draft-coverage-attempt-001.json",
+            "fingerprint": "09f5b27ae95083b90ee4746521248bb5598408838c22889cbf177321665e97e3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/review-history/draft-coverage-attempt-002.json",
+            "fingerprint": "0ef5b9bda3c1050899b60a9ccd08f8905cb200a98265b629ed7f724533a7e86d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/review-history/draft-questions-attempt-001.json",
+            "fingerprint": "a80c1f32c9f0d5479536d7a1566f7c5af7ec991c7a0c7858cf841fa547201743"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/review-history/draft-questions-attempt-002.json",
+            "fingerprint": "dc8a022e7c46789c9df1f5f4f9f4995d390da11a7166a682b207a60318fa3990"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/review-history/impl-attempt-001.json",
+            "fingerprint": "7d7eb3178db28ce724317315f65efb9d4e4194cc5ce8a550e7fc0f03d304c0b8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/review-history/impl-attempt-001.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/review-history/spec-attempt-001.json",
+            "fingerprint": "0605eb6542d5d8eec04eca51a90871dbb0713241f5e78945a9beba476bcee666"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/review-history/spec-attempt-001.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/review-history/spec-attempt-002.json",
+            "fingerprint": "736ed1deca8d86460bba740a3210654dccb46835c9406caa4143e064644a0646"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/review-history/spec-attempt-002.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/review-history/test-attempt-001.json",
+            "fingerprint": "14a7abe17234b9080411ddb79af20660545d6de9bbc5643de2896df9f1b4e76e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/review-history/test-attempt-001.md",
+            "fingerprint": "b2959abb7e951934995992cb973b30a9c746df4816567749199714463b0aec7d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/review-history/test-attempt-002.json",
+            "fingerprint": "2af3251367383968a59813e79c7890ad4d622f9680d1ab5e83dcdbbae3d5975d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/review-history/test-attempt-002.md",
+            "fingerprint": "88d53eb807edbc32b1430131d4f6c8a43d884f6d25ab1968580a33d0eca2919a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/review-history/test-attempt-003.json",
+            "fingerprint": "9dddc145c88b1747102b15e3b37890be2849dcb8e9bb02aa45a4e9f4bf5885a8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/review-history/test-attempt-003.md",
+            "fingerprint": "6c23a511a49f0108e6f1d50955515305e06c9912b1548ab0d3d63f8b51568a83"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/review.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/scenario-validity-result.json",
+            "fingerprint": "b188d1d6193465fc5e1ab8fa225405c1ff43dac0ba5b17f0f0d31c80def8e52a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/spec-gate-source.json",
+            "fingerprint": "3752c0aae15a7a37a7bac9ffa68aacf824454913aba14a7b89dc265e0a60c643"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/spec-review.json",
+            "fingerprint": "3f8f2cd3ef196f775c59c0dbfe85f4ce1ec0f03a58dea91c074fc2aaebded055"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/spec-review.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/spec.json",
+            "fingerprint": "fd0a25b322815bc25cc72ad9284fb145e7ce6017ad79cdf65a99c3e41a478b29"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/spec.md",
+            "fingerprint": "dc15e342cbeb7c82f4890739211378171e50694cba38ea07546e9629ce687bda"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/tasks/T-1.md",
+            "fingerprint": "fcc15f200c63314c18d3173d486a4a04a8884dbb445d431cfbb7f84eac248df9"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/test-coverage.json",
+            "fingerprint": "f82c65887253bc01326c7471a94a5baa6099caa16332c39550a2d5d346d33e20"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/test-execute-result.json",
+            "fingerprint": "fbe81da2f1c5ca71847800e0b2c0c0659b11e940ab89d82714c1d249d9d87334"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/test-result-review.json",
+            "fingerprint": "63356d37da59c7562bbafc3ad8075fdace105aad7236329d9612e463ea7b1c9f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/test-result-review.md",
+            "fingerprint": "25c5c78c870c50dccce29d36991d9a0a4eaa748fc0c7985736880bfc53a83651"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/test-review.json",
+            "fingerprint": "f22ea26e481661198175f421c0c79290806861b4347a69fe131f0ddcd4316556"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/test-review.md",
+            "fingerprint": "6c23a511a49f0108e6f1d50955515305e06c9912b1548ab0d3d63f8b51568a83"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/tests/.raw/scenario-validity.log",
+            "fingerprint": "0bfca3cee65f5224ac5d39d239211db68c1b771f9f0609292f4d807e95cecf0f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/tests/.raw/test-execution.log",
+            "fingerprint": "4ca33d94261385f80f0683ab158071123a8d9eeb7efd7a49bc44792a0338651d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/317-preserve-flow-scope/tests/flow-scope-regression.test.js",
+            "fingerprint": "d8e322f8c7d99513f21c5cba1a4a8e7d5c33227c885805bcdbc6e2a28969aa1a"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/definition.js",
+            "fingerprint": "196fb4b677b2abb1e94ec5cdbf497e687478064f9047425638b18bb368f583fd"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-step.js",
+            "fingerprint": "49b501a4a86219339cda01a7350903d7b169a7e2da679964b6b304ca0b57f573"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js",
+            "fingerprint": "75e13313853d77b0562f30c53a9f68ec2ed8c3d6861a9d23cf28d5763353dafb"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/dispatcher.js",
+            "fingerprint": "adabeb39601a2a195c51a1bdac83bf86d175575a55e8ede66628f67a53b9b3ca"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-phase-inference.test.js",
+            "fingerprint": "2a0c06cb67033dade2ce2875b3d26c5d29da7c9cd62f08d6c23ab5e344d772b6"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/run-review-advisory.test.js",
+            "fingerprint": "4f0a7d22210053bdf9202c79a518ea0d3935b355c3293c6449e7853dc0f7e3e7"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/set-step.test.js",
+            "fingerprint": "3286d555a793dbc9bfe6bac331fcf4d29c3e909653bbfb62a69a4690eeac5429"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/dispatcher.test.js",
+            "fingerprint": "c5d27bb4001247fe86a77acb3f65ec1f6f6a18e468e74920b0c57305c029cf2d"
+          }
+        ],
+        "changedFileFingerprints": [
+          {
+            "path": ".senti/output/analysis.json",
+            "fingerprint": "3cb45368b3d2bff91220c1c07448835c48e1229af45934d29f79bef1e262d89a"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/acceptance-review.json",
+            "fingerprint": "505864be5ada25597f539d7ba056f376a284ae8196e64c3407484b28ff5d445a"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/draft-coverage-repair.json",
+            "fingerprint": "0219f32f2f60193aa39052f40fb0bf79d587f31a5b8cb7f1184323155ce56479"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/draft-coverage-triage.json",
+            "fingerprint": "1054235c37967deb02a9b7626d7ca848704ad66ca10ef59d7a9d2c4f01ed4892"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/draft-gate-source.json",
+            "fingerprint": "0e760a54e5c245aaf64370a61dc656405119e1b29c781edb82afa51097d39eb7"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/draft-questions-repair.json",
+            "fingerprint": "61ae2e520c7431bcac3c9b8223b6d72727b78b6caa7036f8adbae38b2a6b4583"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/draft-questions-triage.json",
+            "fingerprint": "f4740becc3d4a2be89e92e7c30f33c8c3afc57f03e268c36b218e3af8e5d51b2"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/draft-review-coverage.json",
+            "fingerprint": "faecc00ea6b138cb4e891f928a38ca154e25376d4547a54a94d97cbaf6522d65"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/draft-review-questions.json",
+            "fingerprint": "74fef80d071e1c54cb21c2f32b0e926669c2e59867570d5fe98003172964f564"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/draft.json",
+            "fingerprint": "db687619fffdc862e70138ff268cf1b9b447d329a7ec32862871710360a4d46e"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/file-map.json",
+            "fingerprint": "90b3abe32c33ca95e71eebe7d1a877ed30d73de0c0b928e339d3946711c6c9a2"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/gate-impl-memory.json",
+            "fingerprint": "e9ffa55aa73f837eed3a8e78ad93e5fd77a5172fd3eac5eabf4128a5e2c1b0fc"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/impl-gate-result.json",
+            "fingerprint": "9543690157bedd7516c1c52ce2f2fd4d67998b50c8667f6ed9caf9e805e17df9"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/impl-review.json",
+            "fingerprint": "060ebb7b3a15d34d70012b35448171562d3caf44ab3c324c062693d02368b678"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/issue.md",
+            "fingerprint": "d0b44cd8c759408ceeed5a3f5b502760f93f66de74416b734618295d7b97b10b"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/plugin-artifacts/workflow/prepare.json",
+            "fingerprint": "e7d6ebe647e1cb705b65f7c91d0a72a49bd08d3e850c6536eae173f736625ac2"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/retro.json",
+            "fingerprint": "ab79ff7d1c2eadb435b60dc88417419e93516c62ea0084d2caf1d71ba462c89e"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/review-history/draft-coverage-attempt-001.json",
+            "fingerprint": "09f5b27ae95083b90ee4746521248bb5598408838c22889cbf177321665e97e3"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/review-history/draft-coverage-attempt-002.json",
+            "fingerprint": "0ef5b9bda3c1050899b60a9ccd08f8905cb200a98265b629ed7f724533a7e86d"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/review-history/draft-questions-attempt-001.json",
+            "fingerprint": "a80c1f32c9f0d5479536d7a1566f7c5af7ec991c7a0c7858cf841fa547201743"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/review-history/draft-questions-attempt-002.json",
+            "fingerprint": "dc8a022e7c46789c9df1f5f4f9f4995d390da11a7166a682b207a60318fa3990"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/review-history/impl-attempt-001.json",
+            "fingerprint": "7d7eb3178db28ce724317315f65efb9d4e4194cc5ce8a550e7fc0f03d304c0b8"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/review-history/impl-attempt-001.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/review-history/spec-attempt-001.json",
+            "fingerprint": "0605eb6542d5d8eec04eca51a90871dbb0713241f5e78945a9beba476bcee666"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/review-history/spec-attempt-001.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/review-history/spec-attempt-002.json",
+            "fingerprint": "736ed1deca8d86460bba740a3210654dccb46835c9406caa4143e064644a0646"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/review-history/spec-attempt-002.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/review-history/test-attempt-001.json",
+            "fingerprint": "14a7abe17234b9080411ddb79af20660545d6de9bbc5643de2896df9f1b4e76e"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/review-history/test-attempt-001.md",
+            "fingerprint": "b2959abb7e951934995992cb973b30a9c746df4816567749199714463b0aec7d"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/review-history/test-attempt-002.json",
+            "fingerprint": "2af3251367383968a59813e79c7890ad4d622f9680d1ab5e83dcdbbae3d5975d"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/review-history/test-attempt-002.md",
+            "fingerprint": "88d53eb807edbc32b1430131d4f6c8a43d884f6d25ab1968580a33d0eca2919a"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/review-history/test-attempt-003.json",
+            "fingerprint": "9dddc145c88b1747102b15e3b37890be2849dcb8e9bb02aa45a4e9f4bf5885a8"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/review-history/test-attempt-003.md",
+            "fingerprint": "6c23a511a49f0108e6f1d50955515305e06c9912b1548ab0d3d63f8b51568a83"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/review.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/scenario-validity-result.json",
+            "fingerprint": "b188d1d6193465fc5e1ab8fa225405c1ff43dac0ba5b17f0f0d31c80def8e52a"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/spec-gate-source.json",
+            "fingerprint": "3752c0aae15a7a37a7bac9ffa68aacf824454913aba14a7b89dc265e0a60c643"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/spec-review.json",
+            "fingerprint": "3f8f2cd3ef196f775c59c0dbfe85f4ce1ec0f03a58dea91c074fc2aaebded055"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/spec-review.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/spec.json",
+            "fingerprint": "fd0a25b322815bc25cc72ad9284fb145e7ce6017ad79cdf65a99c3e41a478b29"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/spec.md",
+            "fingerprint": "dc15e342cbeb7c82f4890739211378171e50694cba38ea07546e9629ce687bda"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/tasks/T-1.md",
+            "fingerprint": "fcc15f200c63314c18d3173d486a4a04a8884dbb445d431cfbb7f84eac248df9"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/test-coverage.json",
+            "fingerprint": "f82c65887253bc01326c7471a94a5baa6099caa16332c39550a2d5d346d33e20"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/test-execute-result.json",
+            "fingerprint": "fbe81da2f1c5ca71847800e0b2c0c0659b11e940ab89d82714c1d249d9d87334"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/test-result-review.json",
+            "fingerprint": "63356d37da59c7562bbafc3ad8075fdace105aad7236329d9612e463ea7b1c9f"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/test-result-review.md",
+            "fingerprint": "25c5c78c870c50dccce29d36991d9a0a4eaa748fc0c7985736880bfc53a83651"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/test-review.json",
+            "fingerprint": "f22ea26e481661198175f421c0c79290806861b4347a69fe131f0ddcd4316556"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/test-review.md",
+            "fingerprint": "6c23a511a49f0108e6f1d50955515305e06c9912b1548ab0d3d63f8b51568a83"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/tests/.raw/scenario-validity.log",
+            "fingerprint": "0bfca3cee65f5224ac5d39d239211db68c1b771f9f0609292f4d807e95cecf0f"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/tests/.raw/test-execution.log",
+            "fingerprint": "4ca33d94261385f80f0683ab158071123a8d9eeb7efd7a49bc44792a0338651d"
+          },
+          {
+            "path": "specs/317-preserve-flow-scope/tests/flow-scope-regression.test.js",
+            "fingerprint": "d8e322f8c7d99513f21c5cba1a4a8e7d5c33227c885805bcdbc6e2a28969aa1a"
+          },
+          {
+            "path": "src/flow/definition.js",
+            "fingerprint": "196fb4b677b2abb1e94ec5cdbf497e687478064f9047425638b18bb368f583fd"
+          },
+          {
+            "path": "src/flow/lib/set-step.js",
+            "fingerprint": "49b501a4a86219339cda01a7350903d7b169a7e2da679964b6b304ca0b57f573"
+          },
+          {
+            "path": "src/flow/registry.js",
+            "fingerprint": "75e13313853d77b0562f30c53a9f68ec2ed8c3d6861a9d23cf28d5763353dafb"
+          },
+          {
+            "path": "src/lib/dispatcher.js",
+            "fingerprint": "adabeb39601a2a195c51a1bdac83bf86d175575a55e8ede66628f67a53b9b3ca"
+          },
+          {
+            "path": "tests/unit/flow/gate-phase-inference.test.js",
+            "fingerprint": "2a0c06cb67033dade2ce2875b3d26c5d29da7c9cd62f08d6c23ab5e344d772b6"
+          },
+          {
+            "path": "tests/unit/flow/run-review-advisory.test.js",
+            "fingerprint": "4f0a7d22210053bdf9202c79a518ea0d3935b355c3293c6449e7853dc0f7e3e7"
+          },
+          {
+            "path": "tests/unit/flow/set-step.test.js",
+            "fingerprint": "3286d555a793dbc9bfe6bac331fcf4d29c3e909653bbfb62a69a4690eeac5429"
+          },
+          {
+            "path": "tests/unit/lib/dispatcher.test.js",
+            "fingerprint": "c5d27bb4001247fe86a77acb3f65ec1f6f6a18e468e74920b0c57305c029cf2d"
+          }
+        ],
+        "fixAttempts": null,
+        "selectedAction": null,
+        "remainingRisk": null,
+        "retryable": false,
+        "nextAction": "finalize-commit",
+        "nextRecommendedAction": null,
+        "recordAndProceed": null,
+        "humanSummary": "result=pass raw_output=specs/317-preserve-flow-scope/tests/.raw/final-regression-attempt-001.log"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    fix: preserve flow mutation scope\n    52 files changed, 4021 insertions(+), 250 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (5 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 19\n    Q&A ......................... 0\n    issue-log ................... 22\n    agent calls ................. 27\n    input tokens ................ 548,055\n    output tokens ............... 23,001\n    cache-read tokens ........... 1,379,584\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 607.1s\n      draft-questions-review .... 12.5s\n      draft-coverage-review ..... 11.4s\n      draft-gate ................ 56.9s\n      spec-review ............... 275.0s\n      spec-gate ................. 60.2s\n      test-review ............... 56.5s\n      impl-review ............... 8.5s\n      impl-gate ................. 126.1s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 5  passed 5  failed 0 verdict=pass\n    raw_output: specs/317-preserve-flow-scope/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=pass raw_output=specs/317-preserve-flow-scope/tests/.raw/final-regression-attempt-001.log\n\n  Issue Log Summary (31 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/317-preserve-flow-scope/issue-log.json\n\n    Important (10 of 17)\n    - [draft-questions-review] Expected shared medium and standard Codex wrapper paths were absent during provider recovery setup\n    - [draft-gate] Draft gate rejected qa[0] because it remained phrased as a user question after its answer was derived from existing Issue evidence\n    - [spec] Test-location search included a nonexistent tests/integration directory and returned a partial rg failure\n    - [draft-gate] Reopened draft question review passed but retained a stale prior-round triage item that no longer matches current review findings\n    - [draft-gate] Stale first-round question triage and repair entries contradicted the current PASS review with no findings\n    - [draft-gate] Dispatcher rejected retry reset for draft gate because gate recovery phases exclude draft\n    - [draft-gate] Draft gate demanded answer-field recommendation evidence for q1 even though q1 is schema-valid dropped and must keep answer fields empty\n    - [spec-gate] provider=codex | profile=codex/gpt-5.5 | exit=1 | Reading additional input from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019f5309-9048-79b3-bfdb-e74c56ad05de\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"You'...\n    - [spec-gate] Codex provider usage limit was reached before the revised spec gate could produce a verdict\n    - [test] Static test guardrail lookup rejected mandatory target guard options during the resumed guarded flow\n    ... 7 important issue-log entries omitted\n\n    Recent Other (5 of 14)\n    - [draft-gate] Question q1 does not present a recommended answer in the answer field and does not state the basis as project docs/, guardrail principles, or existing code patterns.\n    - [draft-gate] Dropped q1 lacked an explicit recommendation and code-pattern basis in its only schema-permitted rationale field\n    - [test-review] Second static review found R5 lacked an observable validation-hook ordering assertion\n    - [impl-gate] The diff only adds regression coverage for the target guard behavior; it does not show any functional implementation changes enforcing the run ID, issue, and spec guards before validation, execution, runtime log metadata persistence, or ...\n    - [impl-gate] fix: accept guardrail observation and extract duplicated active-step task-scope decision\n    ... 9 other issue-log entries omitted"
+}

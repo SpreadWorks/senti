@@ -1,0 +1,387 @@
+{
+  "entries": [
+    {
+      "step": "draft",
+      "reason": "Reference draft lookup targeted an unmerged parallel-flow spec that is absent from this worktree",
+      "trigger": "attempted context read for specs/316-accept-resolve-context-guards/draft.json",
+      "resolution": "continued from the current draft skeleton and authoritative Issue content",
+      "guardrailCandidate": "verify reference artifact existence inside the isolated worktree before requesting flow context",
+      "taskId": null,
+      "timestamp": "2026-07-11T20:48:39.746Z"
+    },
+    {
+      "step": "draft-questions-review",
+      "reason": "Expected shared medium and standard Codex wrapper paths were absent during provider recovery setup",
+      "trigger": "wrapper version probes returned command-not-found before the draft review",
+      "resolution": "created an ignored worktree-local medium wrapper and Issue 430 gpt-5.5 profile",
+      "guardrailCandidate": "provider recovery should verify wrapper availability and keep overrides local to the active worktree",
+      "taskId": null,
+      "timestamp": "2026-07-11T20:51:28.286Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The draft asks the user to confirm Issue #430 scope even though the same entry cites Issue #430 Goal, Implementation Scope, Acceptance Criteria, Out of Scope, and source inspection as sufficient evidence; the question is not identified as requiring user judgment.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-11T20:54:16.780Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-explore-before-asking",
+          "where": {
+            "file": "content",
+            "locator": "qa[0].question"
+          },
+          "observed": "The draft asks the user to confirm Issue #430 scope even though the same entry cites Issue #430 Goal, Implementation Scope, Acceptance Criteria, Out of Scope, and source inspection as sufficient evidence; the question is not identified as requiring user judgment.",
+          "severity": "blocking",
+          "refs": [
+            "draft-explore-before-asking"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-explore-before-asking",
+          "reason": "The draft asks the user to confirm Issue #430 scope even though the same entry cites Issue #430 Goal, Implementation Scope, Acceptance Criteria, Out of Scope, and source inspection as sufficient evidence; the question is not identified as requiring user judgment."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate rejected qa[0] because it remained phrased as a user question after its answer was derived from existing Issue evidence",
+      "trigger": "draft-explore-before-asking guardrail returned a blocking semantic FAIL",
+      "resolution": "halted the flow without repairing the draft, as required by the orchestration gate-FAIL stop condition",
+      "guardrailCandidate": "when an answer is fully available from linked Issue evidence, drop the redundant draft question instead of retaining it as answered",
+      "taskId": null,
+      "timestamp": "2026-07-11T20:54:34.285Z"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Redundant answered q1 violated Explore Before Asking after the parent accepted the gate diagnosis",
+      "trigger": "parent explicitly approved dropping q1 without any draft scope expansion",
+      "resolution": "changed q1 to schema-valid dropped status and documented the resolved scope in droppedReason",
+      "guardrailCandidate": "drop fully source-resolved draft questions instead of retaining them as answered user confirmations",
+      "taskId": null,
+      "timestamp": "2026-07-11T20:55:40.933Z"
+    },
+    {
+      "step": "spec",
+      "reason": "Test-location search included a nonexistent tests/integration directory and returned a partial rg failure",
+      "trigger": "broad regression search across tests/unit and tests/integration during spec verification",
+      "resolution": "restricted implementation targets to existing tests/unit suites and required spec-local tests",
+      "guardrailCandidate": "verify test directory existence before multi-path source searches in an isolated worktree",
+      "taskId": null,
+      "timestamp": "2026-07-11T20:56:36.249Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The spec describes in-scope and out-of-scope changes but does not list the impact on existing features or explicitly state that no existing features are affected.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-11T21:03:08.429Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "impact-on-existing-features",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.scope"
+          },
+          "observed": "The spec describes in-scope and out-of-scope changes but does not list the impact on existing features or explicitly state that no existing features are affected.",
+          "severity": "blocking",
+          "refs": [
+            "impact-on-existing-features"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "The spec describes in-scope and out-of-scope changes but does not list the impact on existing features or explicitly state that no existing features are affected."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "Spec gate required an explicit impact-on-existing-features inventory instead of distributed impact statements",
+      "trigger": "impact-on-existing-features guardrail returned one blocking semantic observation at spec scope",
+      "resolution": "halted without changing spec.json pending parent acceptance of the gate observation",
+      "guardrailCandidate": "specs that repair existing routing should include one explicit impact inventory decision even when requirements already state each behavior change",
+      "taskId": null,
+      "timestamp": "2026-07-11T21:03:29.062Z"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "Spec impact statements were distributed and did not satisfy the explicit feature-impact inventory guardrail",
+      "trigger": "parent accepted the single spec-gate observation and bounded the required wording",
+      "resolution": "added one overview decision inventorying intended top-level effects and unchanged contracts",
+      "guardrailCandidate": "centralize feature impact and unchanged parity in one explicit spec overview decision",
+      "taskId": null,
+      "timestamp": "2026-07-11T21:04:05.808Z"
+    },
+    {
+      "step": "draft",
+      "reason": "reopen-draft triggered: pre-implementation plan draft regression; stale planning artifacts retained — Clarify runtime-log scope: top-level resolved steps use taskId null while task-scoped task-impl, task-review, and task-gate logs retain current task scope.",
+      "trigger": "user invoked senti flow reopen-draft before implementation task execution",
+      "resolution": "draft step set to in_progress; reset plan steps: draft-questions-review, draft-questions-triage, draft-questions-repair, draft-refine, draft-coverage-review, draft-coverage-triage, draft-coverage-repair, draft-gate, spec, spec-review, spec-triage, spec-repair, spec-gate, approval, test, test-review; stale artifacts retained: spec.json, spec.md, spec-triage.json, spec-repair.json, draft.json, draft-review-questions.json, draft-questions-triage.json, draft-questions-repair.json, draft-review-coverage.json, draft-coverage-triage.json, draft-coverage-repair.json, issue.md, test.md",
+      "timestamp": "2026-07-11T21:06:42.339Z"
+    },
+    {
+      "step": "draft",
+      "reason": "Parent supplied a bounded runtime-log scope clarification immediately after the earlier approval transition",
+      "trigger": "newer parent decision arrived after approval was persisted and test step was promoted",
+      "resolution": "reopened the pre-implementation draft, cleared draft approval, and recorded dual flow/task runtime scope",
+      "guardrailCandidate": "before persisting delegated approval, drain newer orchestration decisions and distinguish resolved flow steps from resolved task steps",
+      "taskId": null,
+      "timestamp": "2026-07-11T21:07:26.044Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "draft-questions-triage.json: items[0] must match a blocking finding or repair target from draft-review-questions.json",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-11T21:08:53.525Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft-questions-triage.json: items[0] must match a blocking finding or repair target from draft-review-questions.json",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Reopened draft question review passed but retained a stale prior-round triage item that no longer matches current review findings",
+      "trigger": "mechanical draft gate validation compared current PASS review against old non-empty triage artifact",
+      "resolution": "halted without editing evidence artifacts pending parent-approved mechanical recovery",
+      "guardrailCandidate": "PASS review hooks must overwrite stale triage and repair bookkeeping with empty current-round artifacts after reopen-draft",
+      "taskId": null,
+      "timestamp": "2026-07-11T21:09:05.456Z"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Stale first-round question triage and repair entries contradicted the current PASS review with no findings",
+      "trigger": "parent approved bounded recovery of Senti evidence artifacts only",
+      "resolution": "replaced both stale artifacts with schema-valid empty current-review bookkeeping",
+      "guardrailCandidate": "reopen-draft PASS hooks should overwrite prior review-route artifacts instead of preserving obsolete items",
+      "taskId": null,
+      "timestamp": "2026-07-11T21:09:49.335Z"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Dispatcher rejected retry reset for draft gate because gate recovery phases exclude draft",
+      "trigger": "attempted parent-approved non-destructive retry reset after mechanical evidence replacement",
+      "resolution": "retained changed evidence and will rerun the in-progress draft gate without unsupported reset",
+      "guardrailCandidate": "gate recovery instructions should limit retry reset guidance to CLI-supported task-impl and integration phases",
+      "taskId": null,
+      "timestamp": "2026-07-11T21:10:10.372Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Question q1 does not present a recommended answer in the answer field and does not state the basis as project docs/, guardrail principles, or existing code patterns.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-11T21:10:33.113Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "draft content",
+            "locator": "qa[0]"
+          },
+          "observed": "Question q1 does not present a recommended answer in the answer field and does not state the basis as project docs/, guardrail principles, or existing code patterns.",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Question q1 does not present a recommended answer in the answer field and does not state the basis as project docs/, guardrail principles, or existing code patterns."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate demanded answer-field recommendation evidence for q1 even though q1 is schema-valid dropped and must keep answer fields empty",
+      "trigger": "draft-recommend-with-reasoning returned a blocking semantic observation after mechanical recovery",
+      "resolution": "halted without violating the dropped-entry schema or reintroducing a redundant user question",
+      "guardrailCandidate": "recommendation guardrails must ignore dropped QA entries or evaluate their droppedReason instead of requiring forbidden answer fields",
+      "taskId": null,
+      "timestamp": "2026-07-11T21:10:54.207Z"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Dropped q1 lacked an explicit recommendation and code-pattern basis in its only schema-permitted rationale field",
+      "trigger": "parent approved a droppedReason-only repair for the semantic gate observation",
+      "resolution": "rewrote only droppedReason with resolved-step scope recommendation and dispatcher/task-routing basis",
+      "guardrailCandidate": "when dropping a fully resolved question, preserve the recommendation and evidence basis in droppedReason",
+      "taskId": null,
+      "timestamp": "2026-07-11T21:11:31.809Z"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "provider=codex | profile=codex/gpt-5.5 | exit=1 | Reading additional input from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019f5309-9048-79b3-bfdb-e74c56ad05de\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"You've hit your usage limit. Visit https://chatgpt.com/codex/settings/us",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-07-11T21:16:05.421Z"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "Codex provider usage limit was reached before the revised spec gate could produce a verdict",
+      "trigger": "gpt-5.5 provider returned usage-limit error during target-guarded spec gate execution",
+      "resolution": "halted without retrying or changing spec, flow state, tests, or product code",
+      "guardrailCandidate": "usage-limit provider failures must stop flow execution and preserve the active worktree for later resume",
+      "taskId": null,
+      "timestamp": "2026-07-11T21:16:18.914Z"
+    },
+    {
+      "step": "test",
+      "reason": "Static test guardrail lookup rejected mandatory target guard options during the resumed guarded flow",
+      "trigger": "flow get guardrail test returned ARGS_ERROR for expect-run-id before test authoring",
+      "resolution": "did not rerun the static command bare and used the complete test rules returned by guarded next-action",
+      "guardrailCandidate": "static flow commands should either accept target guards or resumed-flow instructions should exempt them explicitly",
+      "taskId": null,
+      "timestamp": "2026-07-12T08:32:09.357Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Static test review found three missing behavior branches in the initial spec-local regression design",
+      "trigger": "FAIL findings covered test-review PASS, task-impl status, and guarded lifecycle state parity",
+      "resolution": "added each missing production-path assertion without changing requirements or implementation targets",
+      "guardrailCandidate": "spec-local scope tests should enumerate every verdict branch and both status and metadata effects before static review",
+      "taskId": null,
+      "timestamp": "2026-07-12T08:37:32.779Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Second static review found R5 lacked an observable validation-hook ordering assertion",
+      "trigger": "guard test covered command and mutation ordering but not the dispatcher pre-validation hook",
+      "resolution": "added a counted pre hook and asserted mismatches skip it while matched guards invoke it once",
+      "guardrailCandidate": "target guard tests should instrument every ordered phase named by the requirement, including pre-validation",
+      "taskId": null,
+      "timestamp": "2026-07-12T08:38:54.097Z"
+    },
+    {
+      "step": "test-execute",
+      "reason": "R2 fixture requested task-scoped runtime metadata without marking the resolved task step in_progress",
+      "trigger": "spec-local R2 failure after implementation",
+      "resolution": "activate each tested task step so the fixture matches the approved active-node and resolved-step scope invariant",
+      "guardrailCandidate": "task-scope regression fixtures should make the resolved task step observably active",
+      "taskId": null,
+      "timestamp": "2026-07-12T08:52:28.502Z"
+    },
+    {
+      "step": "test-execute",
+      "reason": "task-impl gate lifecycle resolved impl-gate instead of the active task-gate",
+      "trigger": "spec-local R4 failure after implementation",
+      "resolution": "resolve registry gate runtime and lifecycle mutations to the active task-gate for task-impl phase",
+      "guardrailCandidate": "task gate phase routing should be tested through registry lifecycle boundaries with explicit task scope",
+      "taskId": null,
+      "timestamp": "2026-07-12T08:52:28.894Z"
+    },
+    {
+      "step": "impl-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff only adds regression coverage for the target guard behavior; it does not show any functional implementation changes enforcing the run ID, issue, and spec guards before validation, execution, runtime log metadata persistence, or lifecycle status mutation. Therefore R5 is not implemented in the provided diff.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T08:56:27.751Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R5",
+          "where": null,
+          "observed": "The diff only adds regression coverage for the target guard behavior; it does not show any functional implementation changes enforcing the run ID, issue, and spec guards before validation, execution, runtime log metadata persistence, or lifecycle status mutation. Therefore R5 is not implemented in the provided diff.",
+          "severity": "blocking",
+          "refs": [
+            "R5"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R5",
+          "reason": "The diff only adds regression coverage for the target guard behavior; it does not show any functional implementation changes enforcing the run ID, issue, and spec guards before validation, execution, runtime log metadata persistence, or lifecycle status mutation. Therefore R5 is not implemented in the provided diff."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: enforce target mismatch before command module load, Command.validate, preconditions, lifecycle hooks, execution, and runtime metadata persistence",
+      "trigger": "integration gate attempt 1 R5 spec-impl-mismatch",
+      "resolution": "dispatcher now resolves the target immediately after hook context construction and returns ACTIVE_FLOW_MISMATCH before any command-owned or persistence path; focused coverage asserts zero command loads and metadata writes",
+      "guardrailCandidate": "target guard ordering tests should include command loading and precondition persistence paths",
+      "taskId": null,
+      "timestamp": "2026-07-12T08:59:40.313Z"
+    },
+    {
+      "step": "impl-gate",
+      "phase": "integration",
+      "reason": "observations[0]: unknown requirementRef \"no-overengineering: duplicate code shape\"",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-07-12T09:00:47.166Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "gate FAIL (no details)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T09:00:47.178Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: accept guardrail observation and extract duplicated active-step task-scope decision",
+      "trigger": "schema-repair exhaustion exposed semantically valid duplicate code shape across set-step, registry, and dispatcher",
+      "resolution": "add one shared helper adjacent to findActiveNode that maps an already-resolved active node and target step to explicit taskId-or-null; preserve dispatcher pre-execution snapshot and replace only the three duplicate expressions",
+      "guardrailCandidate": "active-step scope selection used by two or more mutation boundaries must use the shared definition helper",
+      "taskId": null,
+      "timestamp": "2026-07-12T09:08:47.770Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "focused test fixture expected a flow reviewRetry metric while currentTaskId was non-null",
+      "trigger": "focused shared suites: 49 pass, 1 fail in run-review-advisory active-task case",
+      "resolution": "align the assertion with the established R15 contract that updateReviewRetryCounter is a no-op for task scope; retain explicit test-review lifecycle taskId:null coverage",
+      "guardrailCandidate": "active-task lifecycle fixtures must not simultaneously expect flow-level retry metric mutation",
+      "taskId": null,
+      "timestamp": "2026-07-12T09:10:53.100Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-07-12T09:17:16.469Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-07-12T09:19:13.371Z"
+    }
+  ]
+}

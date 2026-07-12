@@ -181,25 +181,37 @@ describe("test-review one-shot verdict routing", () => {
     });
   });
 
-  it("post-hook completes test-review for ADVISORY and does not consume retry for TOOLING_FAILURE", async () => {
+  it("post-hook completes test-review for ADVISORY and skips task/tooling retry metrics", async () => {
     const updates = [];
     const metrics = [];
     await FLOW_COMMANDS.run.review.post({
       phase: "test",
-      flowState: {},
+      flowState: {
+        currentTaskId: "T-1",
+        steps: [{ id: "test-review", status: "in_progress" }],
+        tasks: [{
+          id: "T-1",
+          steps: [
+            { id: "task-impl", status: "pending" },
+            { id: "task-review", status: "pending" },
+            { id: "task-gate", status: "pending" },
+          ],
+        }],
+      },
       flowManager: {
         appendMetric(payload, opts) { metrics.push({ payload, opts }); },
-        updateStepStatus(stepId, status) { updates.push({ stepId, status }); },
+        updateStepStatus(stepId, status, opts) { updates.push({ stepId, status, opts }); },
       },
     }, {
       artifacts: { phase: "test", verdict: "ADVISORY", blockingCount: 0, advisoryCount: 1 },
     });
 
-    assert.deepEqual(updates, [{ stepId: "test-review", status: "done" }]);
-    assert.deepEqual(metrics, [{
-      payload: { phase: "test", counter: "reviewRetry", delta: 0, reset: true },
+    assert.deepEqual(updates, [{
+      stepId: "test-review",
+      status: "done",
       opts: { taskId: null },
     }]);
+    assert.deepEqual(metrics, []);
 
     const tmp = createTmpDir();
     try {

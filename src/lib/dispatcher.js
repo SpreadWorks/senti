@@ -19,6 +19,7 @@ import { Command } from "./command.js";
 import { Envelope } from "./flow-envelope.js";
 import { RuntimeLogBlockWriter } from "./runtime-log.js";
 import { targetMismatchEnvelopeForInput } from "./flow-target-guard.js";
+import { findActiveNode, taskIdForResolvedStep } from "../flow/definition.js";
 
 function throwUnexpected(extras) {
   const unknownOpt = extras.find((v) => typeof v === "string" && v.startsWith("-"));
@@ -314,7 +315,31 @@ export async function dispatch({
     return;
   }
 
-  // 3. Load Command class
+  // 3. Resolve and guard the flow target before loading or validating the
+  // command module. A mismatch cannot reach command-owned validation,
+  // lifecycle hooks, execution, or step metadata persistence.
+  const hookCtx = buildRuntimeHookCtx(input);
+  const targetMismatch = entry.targetGuard === false
+    ? null
+    : buildHookCtx
+      ? targetMismatchEnvelopeForInput({
+          type: envelopeType || "run",
+          key: envelopeKey || "?",
+          input,
+          flowState: hookCtx.flowState,
+        })
+      : null;
+  if (targetMismatch) {
+    openRuntimeLog(hookCtx);
+    attachRuntimeLog(targetMismatch, runtimeLog?.metadata);
+    writeOut(JSON.stringify(targetMismatch.toJSON(), null, 2) + "\n");
+    setExit(1);
+    closeRuntimeLog();
+    if (restoreStreams) restoreStreams();
+    return;
+  }
+
+  // 4. Load Command class
   const mod = await entry.command();
   const CommandClass = mod.default;
   if (!CommandClass || typeof CommandClass !== "function") {
@@ -326,15 +351,7 @@ export async function dispatch({
 
   const mode = CommandClass.outputMode;
 
-  // Hook ctx combines container reference with parsed input for convenience.
-  // Domains with richer shared state (e.g. flow) can override via buildHookCtx.
-  const hookCtx = buildRuntimeHookCtx(input);
-  const runtimeLogMutationOpts = hookCtx.flowState
-    ? {
-        ...(hookCtx.specId ? { specId: hookCtx.specId } : {}),
-        taskId: hookCtx.flowState.currentTaskId ?? null,
-      }
-    : null;
+  const runtimeLogActiveNode = hookCtx.flowState ? findActiveNode(hookCtx.flowState) : null;
 
   openRuntimeLog(hookCtx);
 
@@ -347,12 +364,15 @@ export async function dispatch({
   const persistRuntimeLogMetadata = (result) => {
     const metadata = closedRuntimeLogMetadata;
     const stepId = runtimeLogStepId(entry, hookCtx, result);
-    if (metadata && stepId && hookCtx.flowManager && runtimeLogMutationOpts) {
-      hookCtx.flowManager.setStepRuntimeLog(stepId, metadata.toStepMetadata(), runtimeLogMutationOpts);
+    if (metadata && stepId && hookCtx.flowManager && hookCtx.flowState) {
+      hookCtx.flowManager.setStepRuntimeLog(stepId, metadata.toStepMetadata(), {
+        ...(hookCtx.specId ? { specId: hookCtx.specId } : {}),
+        taskId: taskIdForResolvedStep(runtimeLogActiveNode, stepId),
+      });
     }
   };
 
-  // 4a. requiresConfig — reject early when the command declares config as a
+  // 5a. requiresConfig — reject early when the command declares config as a
   // precondition but the container has no config registered (setup not run).
   if (entry.requiresConfig && container.get("config") == null) {
     emitPreconditionFailure("NO_CONFIG", "config.json not found. Run senti setup first.");
@@ -362,7 +382,7 @@ export async function dispatch({
     return;
   }
 
-  // 4b. requiresFlow (flow domain only — hooks expect flowState present).
+  // 5b. requiresFlow (flow domain only — hooks expect flowState present).
   // Skipped for non-flow entries or when buildHookCtx is absent.
   if (entry.requiresFlow !== false && buildHookCtx && !hookCtx.flowState) {
     emitPreconditionFailure("NO_FLOW", "no active flow (flow.json not found)");
@@ -372,26 +392,7 @@ export async function dispatch({
     return;
   }
 
-  const targetMismatch = entry.targetGuard === false
-    ? null
-    : buildHookCtx
-      ? targetMismatchEnvelopeForInput({
-          type: envelopeType || "run",
-          key: envelopeKey || "?",
-          input,
-          flowState: hookCtx.flowState,
-        })
-      : null;
-  if (targetMismatch) {
-    attachRuntimeLog(targetMismatch, runtimeLog?.metadata);
-    writeOut(JSON.stringify(targetMismatch.toJSON(), null, 2) + "\n");
-    setExit(1);
-    closeRuntimeLog();
-    if (restoreStreams) restoreStreams();
-    return;
-  }
-
-  // 5. pre
+  // 6. pre
   if (entry.pre) {
     try {
       await entry.pre(hookCtx);
@@ -404,7 +405,7 @@ export async function dispatch({
     }
   }
 
-  // 5. execute via Command.run
+  // 7. execute via Command.run
   let result;
   let caught;
   try {
@@ -416,7 +417,7 @@ export async function dispatch({
     caught = err;
   }
 
-  // 6a. Success path
+  // 8a. Success path
   if (!caught) {
     let envelope;
     if (mode === "envelope") {
@@ -461,7 +462,7 @@ export async function dispatch({
     return;
   }
 
-  // 6b. Failure path
+  // 8b. Failure path
   if (entry.onError) {
     try {
       await entry.onError(hookCtx, caught);

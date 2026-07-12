@@ -81,6 +81,62 @@ describe("dispatcher (unified runner)", () => {
       const entry = { command: async () => ({ default: Cmd }) };
       await assert.doesNotReject(() => dispatch({ container, entry, argv: [] }));
     });
+
+    it("rejects a target mismatch before command loading or runtime metadata persistence", async () => {
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-"));
+      try {
+        container.register("paths", {
+          root: tmp,
+          agentWorkDir: path.join(tmp, ".agent-work"),
+        });
+        let commandLoads = 0;
+        let metadataWrites = 0;
+        const out = [];
+        await dispatch({
+          container,
+          entry: {
+            command: async () => {
+              commandLoads += 1;
+              throw new Error("mismatched target must not load the command");
+            },
+            args: { options: ["--expect-run-id", "--expect-issue", "--expect-spec"] },
+            runtimeLog: { stepId: "test-review" },
+          },
+          argv: [
+            "--expect-run-id", "wrong-run",
+            "--expect-issue", "430",
+            "--expect-spec", "specs/demo/spec.json",
+          ],
+          envelopeType: "run",
+          envelopeKey: "guarded",
+          runtimeLog: true,
+          stdout: (chunk) => out.push(chunk),
+          setExitCode: () => {},
+          buildHookCtx: () => ({
+            specId: "specs/demo/spec.json",
+            flowState: {
+              runId: "run-430",
+              issue: 430,
+              spec: "specs/demo/spec.json",
+              currentTaskId: null,
+              steps: [{ id: "test-review", status: "in_progress" }],
+              tasks: [],
+            },
+            flowManager: {
+              setStepRuntimeLog() { metadataWrites += 1; },
+            },
+          }),
+        });
+
+        const envelope = JSON.parse(out.join(""));
+        assert.equal(envelope.ok, false);
+        assert.equal(envelope.errors[0].code, "ACTIVE_FLOW_MISMATCH");
+        assert.equal(commandLoads, 0);
+        assert.equal(metadataWrites, 0);
+      } finally {
+        fs.rmSync(tmp, { recursive: true, force: true });
+      }
+    });
   });
 
   describe("output modes (R5)", () => {
@@ -190,6 +246,85 @@ describe("dispatcher (unified runner)", () => {
         const logText = fs.readFileSync(path.join(tmp, ".tmp", "logs", "demo-flow.log"), "utf8");
         assert.match(logText, /sequence=1/);
         assert.match(logText, /\[stderr\] active flow progress/);
+      } finally {
+        fs.rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+
+    it("persists runtime metadata in the resolved flow or task scope", async () => {
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-"));
+      try {
+        container.register("paths", {
+          root: tmp,
+          agentWorkDir: path.join(tmp, ".agent-work"),
+        });
+        const calls = [];
+        const flowManager = {
+          setStepRuntimeLog(stepId, metadata, opts) {
+            calls.push({ stepId, metadata, opts });
+          },
+        };
+        class Cmd extends Command {
+          static outputMode = "envelope";
+          execute() { return { result: "ok" }; }
+        }
+        const activeTask = (activeStepId = null) => ({
+          id: "T-1",
+          steps: ["task-impl", "task-review", "task-gate"].map((id) => ({
+            id,
+            status: id === activeStepId ? "in_progress" : "pending",
+          })),
+        });
+        const cases = [
+          {
+            stepId: "test-review",
+            taskId: null,
+            flowState: {
+              currentTaskId: "T-1",
+              steps: [{ id: "test-review", status: "in_progress" }],
+              tasks: [activeTask()],
+            },
+          },
+          ...["task-impl", "task-review", "task-gate"].map((stepId) => ({
+            stepId,
+            taskId: "T-1",
+            flowState: {
+              currentTaskId: "T-1",
+              steps: [{ id: "implement", status: "in_progress" }],
+              tasks: [activeTask(stepId)],
+            },
+          })),
+        ];
+
+        for (const testCase of cases) {
+          const out = [];
+          await dispatch({
+            container,
+            entry: {
+              command: async () => ({ default: Cmd }),
+              args: { options: [] },
+              runtimeLog: { stepId: testCase.stepId },
+            },
+            argv: [],
+            envelopeType: "run",
+            envelopeKey: "scope-test",
+            runtimeLog: true,
+            stdout: (chunk) => out.push(chunk),
+            setExitCode: () => {},
+            buildHookCtx: () => ({
+              specId: "specs/demo/spec.json",
+              flowState: testCase.flowState,
+              flowManager,
+            }),
+          });
+          assert.equal(JSON.parse(out.join("")).ok, true);
+          const call = calls.at(-1);
+          assert.equal(call.stepId, testCase.stepId);
+          assert.deepEqual(call.opts, {
+            specId: "specs/demo/spec.json",
+            taskId: testCase.taskId,
+          });
+        }
       } finally {
         fs.rmSync(tmp, { recursive: true, force: true });
       }

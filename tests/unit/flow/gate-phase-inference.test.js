@@ -8,6 +8,7 @@ import {
   STEP_TO_PHASE,
 } from "../../../src/flow/lib/gate-step.js";
 import { VALID_GATE_PHASES } from "../../../src/lib/constants.js";
+import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 
 // -----------------------------------------------------------------------------
 // AC6 (R5): resolveGateStepId / STEP_TO_PHASE round-trip consistency
@@ -223,6 +224,41 @@ describe("resolveGatePhaseFromState: task-level takes precedence (AC4/R3)", () =
     assert.equal(result.phase, "task-spec");
     // The flow-level gate step is considered stale in this situation.
     assert.ok(result.staleSteps.includes("spec-gate"), `expected staleSteps to include flow-level 'gate', got ${JSON.stringify(result.staleSteps)}`);
+  });
+
+  it("passes explicit task scope to the task-gate lifecycle mutation", async () => {
+    const updates = [];
+    const flowState = {
+      currentTaskId: "T1",
+      steps: [{ id: "impl-gate", status: "pending" }],
+      tasks: [{
+        id: "T1",
+        steps: [
+          { id: "task-impl", status: "done" },
+          { id: "task-review", status: "done" },
+          { id: "task-gate", status: "in_progress" },
+        ],
+      }],
+    };
+
+    assert.equal(
+      FLOW_COMMANDS.run.gate.runtimeLog.stepId({ phase: "task-impl", flowState }),
+      "task-gate",
+    );
+
+    await FLOW_COMMANDS.run.gate.pre({
+      phase: "task-impl",
+      flowState,
+      flowManager: {
+        updateStepStatus(stepId, status, opts) { updates.push({ stepId, status, opts }); },
+      },
+    });
+
+    assert.deepEqual(updates, [{
+      stepId: "task-gate",
+      status: "in_progress",
+      opts: { taskId: "T1" },
+    }]);
   });
 });
 
