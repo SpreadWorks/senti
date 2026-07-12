@@ -1,0 +1,154 @@
+{
+  "goal": "Allow `senti flow get resolve-context` to accept the standard run ID, Issue, and spec target guards, using the existing shared flow target validation while preserving unguarded behavior.",
+  "scope": {
+    "in": [
+      "Register the existing `FLOW_TARGET_GUARD_OPTIONS` on the `get.resolve-context` command definition.",
+      "Display `--expect-run-id`, `--expect-issue`, and `--expect-spec` in resolve-context help and verify help/dispatcher parity.",
+      "Verify matching guards, individual run ID / Issue / spec mismatches, and existing calls without guards through CLI dispatch."
+    ],
+    "out": [
+      "Changes to `finalize-commit` or other Issues from #410 through #428.",
+      "Resolve-context-specific target validation, `targetGuard: false`, or any branch that bypasses shared guards.",
+      "External dependencies or product/test changes outside the three Issue target files."
+    ]
+  },
+  "constraints": [
+    "Use only Node.js built-in modules; add no external dependency.",
+    "Product and shared-test changes are limited to `src/flow/registry.js`, `tests/unit/flow/ctx-dispatch.test.js`, and `tests/unit/flow/resolve-context-extended.test.js`.",
+    "Reuse `FLOW_TARGET_GUARD_OPTIONS`, `FlowCommand`, flow-context target selection, and `targetMismatchEnvelopeForInput` without duplicated validation.",
+    "Preserve the successful payload and behavior of `senti flow get resolve-context` when no target guard is supplied."
+  ],
+  "design_principles": [
+    "Keep command metadata as the single source for both option dispatch and help output.",
+    "Expose standard guard inputs at the registry boundary and let the existing shared flow command path own target selection and mismatch envelopes.",
+    "Test the public CLI contract rather than introducing a resolve-context-only test seam."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/flow/registry.js` declares flow command options and help consumed by the dispatcher and help system."
+      },
+      {
+        "text": "`src/flow/lib/base-command.js` and `src/flow/lib/flow-context.js` resolve the target flow and apply the shared mismatch contract before command execution."
+      },
+      {
+        "text": "The two target unit-test files cover registry/help parity and behavior through `src/flow.js` CLI dispatch."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "The dispatcher parses the three `--expect-*` options from the resolve-context registry definition and passes them to the command input."
+      },
+      {
+        "text": "`FlowCommand.run()` gives the parsed input to flow-context selection, then calls `targetMismatchEnvelopeForInput` before executing resolve-context."
+      },
+      {
+        "text": "Matching or absent guards reach the existing resolved-context builder; a mismatching guard returns the existing `ACTIVE_FLOW_MISMATCH` envelope."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] checked the resolve-context registry metadata; result=match: the shared guard constant exists, but this command has neither `args.options` nor guarded help.",
+        "evidence": "`src/flow/registry.js` defines `FLOW_TARGET_GUARD_OPTIONS`; `FLOW_COMMANDS.get[\"resolve-context\"]` currently contains only `helpKey`, `command`, and unguarded help text."
+      },
+      {
+        "text": "[VERIFY] checked shared target validation; result=match: default `FlowCommand` behavior resolves guard inputs and emits mismatch envelopes before command execution.",
+        "evidence": "`src/flow/lib/base-command.js` defaults `targetGuard=true`, calls `resolveFlowContext(..., { input })`, and then calls `targetMismatchEnvelopeForInput`; `src/flow/lib/flow-context.js` maps expectRunId, expectSpec, and expectIssue into active-flow selection."
+      },
+      {
+        "text": "[VERIFY] checked current test ownership; result=match: dispatcher guard parity belongs in ctx-dispatch and CLI behavior belongs in resolve-context-extended.",
+        "evidence": "`tests/unit/flow/ctx-dispatch.test.js` enumerates target-sensitive registry entries; `tests/unit/flow/resolve-context-extended.test.js` already dispatches guard-free resolve-context calls against temporary flow state."
+      },
+      {
+        "text": "Compatibility impact: guarded calls begin reaching shared validation; matching and unguarded calls keep the existing resolved-context payload; only mismatches return the established error envelope.",
+        "evidence": "Issue #429 Expected Changes and Acceptance Criteria explicitly require shared validation reuse, matching success, individual mismatch failures, and guard-free compatibility."
+      }
+    ]
+  },
+  "background": "`senti flow get resolve-context` is used to recover the exact active-flow context, including during guarded finalize operations. The command currently rejects the standard target guard options during dispatcher parsing because its registry definition exposes no options. Shared flow-context selection and `ACTIVE_FLOW_MISMATCH` validation already exist, so the defect is a registry/help metadata gap rather than missing target comparison logic.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "The `get.resolve-context` registry definition shall accept `--expect-run-id`, `--expect-issue`, and `--expect-spec` through the existing `FLOW_TARGET_GUARD_OPTIONS`, and its command help shall display the same three options with unit-tested help/dispatcher parity.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "CLI-dispatched resolve-context shall return the existing successful resolved-context payload when all supplied run ID, Issue, and spec guards match, and shall return an envelope with error code `ACTIVE_FLOW_MISMATCH` when any one of those guards differs from the selected active flow.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "Resolve-context calls without target guards shall continue to succeed, and the implementation shall add no resolve-context-specific comparison, `targetGuard` exception, or other bypass of the existing `FlowCommand` and flow-context validation path.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "AC1: Registry inspection proves that `FLOW_COMMANDS.get[\"resolve-context\"].args.options` contains `--expect-run-id`, `--expect-issue`, and `--expect-spec`.",
+    "AC2: Unit coverage proves resolve-context help contains the same three target guard options accepted by dispatcher metadata.",
+    "AC3: A CLI-dispatched resolve-context call with matching run ID, Issue, and spec guards returns `ok: true` and the resolved context fields.",
+    "AC4: Separate CLI-dispatched calls with a mismatching run ID, Issue, and spec each return `ok: false` with error code `ACTIVE_FLOW_MISMATCH`, not an unknown-option error or normal success.",
+    "AC5: The existing guard-free resolve-context test continues to return `ok: true` and its resolved fields.",
+    "AC6: The production diff is limited to registry metadata/help and contains no duplicate target comparison or guard bypass logic."
+  ],
+  "clarifications": [],
+  "alternatives_considered": [
+    {
+      "option": "Add resolve-context-specific guard parsing or comparison.",
+      "reason": "Rejected because `FlowCommand` and flow-context already implement the standard guard contract; duplicating it would create divergent behavior."
+    },
+    {
+      "option": "Set `targetGuard: false` and handle guarded selection inside resolve-context.",
+      "reason": "Rejected because it would bypass the shared validation path and contradict the Issue requirement."
+    },
+    {
+      "option": "Change finalize-commit to call resolve-context without guards.",
+      "reason": "Rejected because it removes target safety and is explicitly outside Issue #429."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "resolve-context",
+    "FLOW_TARGET_GUARD_OPTIONS",
+    "FlowCommand",
+    "flow-context",
+    "ACTIVE_FLOW_MISMATCH",
+    "expect-run-id",
+    "expect-issue",
+    "expect-spec",
+    "dispatcher",
+    "command help"
+  ],
+  "implementationTargets": [
+    "src/flow/registry.js",
+    "tests/unit/flow/ctx-dispatch.test.js",
+    "tests/unit/flow/resolve-context-extended.test.js",
+    "specs/316-accept-resolve-context-guards/tests/resolve-context-target-guards.test.js"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Enable guarded resolve-context dispatch",
+      "goal": "Expose the standard target guard metadata for resolve-context and verify the public CLI contract without changing shared validation ownership.",
+      "acceptance": [
+        "R1 registry/help parity is implemented in `src/flow/registry.js` and covered by the dispatcher unit test.",
+        "R2 matching and mismatch behavior is covered through CLI dispatch for run ID, Issue, and spec guards.",
+        "R3 guard-free behavior remains covered and no duplicate validation or bypass is added."
+      ],
+      "implementation_notes": "Add the existing `FLOW_TARGET_GUARD_OPTIONS` to the resolve-context registry entry and expand its help text consistently. Extend only the two named shared unit-test files; rely on the inherited `FlowCommand` target guard behavior.",
+      "test_strategy": "Add `specs/316-accept-resolve-context-guards/tests/resolve-context-target-guards.test.js` as executable spec-local coverage with `// spec: R1` for registry/help parity, `// spec: R2` for matching and mismatching CLI guards, and `// spec: R3` for guard-free compatibility and shared-validation ownership. Extend ctx-dispatch parity coverage for R1 and resolve-context-extended CLI-dispatch coverage for R2-R3. Run the spec-local test, both targeted shared unit files, and the configured project regression stages.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-07-11T20:16:43.390Z",
+    "notes": "Parent pre-approved the gate-passed refined Issue #429 specification, including the bounded spec-local test target repair."
+  }
+}

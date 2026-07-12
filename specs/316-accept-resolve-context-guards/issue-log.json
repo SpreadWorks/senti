@@ -1,0 +1,218 @@
+{
+  "entries": [
+    {
+      "step": "draft",
+      "reason": "Prelude auto-check rejected target guard options before the spec was promoted",
+      "trigger": "The first auto-check invocation included preparing-flow expect guards that its registry does not expose",
+      "resolution": "Re-ran the required preparing-flow auto-check with its explicit run-id selector after guarded status verification",
+      "guardrailCandidate": "Document prelude commands whose explicit run-id selector is the complete target binding before spec promotion",
+      "taskId": null,
+      "timestamp": "2026-07-11T20:03:21.550Z"
+    },
+    {
+      "step": "draft",
+      "reason": "Draft guardrail lookup reported the configured node-cli preset was unavailable",
+      "trigger": "senti flow get guardrail draft emitted a preset resolution warning while returning base guardrails",
+      "resolution": "Continued with the successful base guardrail payload; no product or tracked configuration change was made",
+      "guardrailCandidate": "Flow guardrail commands should distinguish optional preset warnings from missing required guardrail content",
+      "taskId": null,
+      "timestamp": "2026-07-11T20:03:48.491Z"
+    },
+    {
+      "step": "draft-questions-review",
+      "reason": "The first draft question review failed because the Codex provider returned invalid_request",
+      "trigger": "flow.draft.review.questions.propose used codex/gpt-5.5 with the CLI default reasoning setting",
+      "resolution": "Added an ignored root-local provider override with the complete built-in gpt-5.5 arguments and schema fields through the existing low-reasoning wrapper",
+      "guardrailCandidate": "Provider recovery should preserve the selected model contract while changing only root-local ignored execution settings",
+      "taskId": null,
+      "timestamp": "2026-07-11T20:07:38.740Z"
+    },
+    {
+      "step": "draft-questions-review",
+      "reason": "Runtime-log inspection rejected standard target guard options despite an explicit run sequence",
+      "trigger": "The guarded flow get runtime-log command returned ARGS_ERROR for --expect-run-id",
+      "resolution": "Read the exact runtime log by its explicit runId#sequence selector, which does not resolve the active flow context",
+      "guardrailCandidate": "Document which flow log commands are target-selected by immutable run sequence rather than active-flow guards",
+      "taskId": null,
+      "timestamp": "2026-07-11T20:07:48.092Z"
+    },
+    {
+      "step": "draft-gate",
+      "phase": "draft",
+      "reason": "provider=codex | profile=codex/gpt-5.3-spark | exit=1 | Reading additional input from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019f52cc-d9f4-73d3-9637-de6db4d0b23e\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"{\\n  \\\"type\\\": \\\"error\\\",\\n  \\\"error\\\": {\\n    \\\"type\\\": \\\"invalid_reque",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-07-11T20:09:47.518Z"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "gate FAIL (no details)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-11T20:09:47.531Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "draft-gate",
+      "reason": "The draft gate provider route returned invalid_request before producing a gate verdict",
+      "trigger": "flow.spec.gate resolved to codex/gpt-5.3-spark under the repository codex-only profile",
+      "resolution": "Selected an ignored root-local flow-only profile that routes all flow AI calls through the recovered codex/gpt-5.5 provider",
+      "guardrailCandidate": "Provider recovery profiles should be local, flow-scoped, and preserve complete provider argument and schema contracts",
+      "taskId": null,
+      "timestamp": "2026-07-11T20:10:02.496Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The implementation targets list only `src/flow/registry.js`, `tests/unit/flow/ctx-dispatch.test.js`, and `tests/unit/flow/resolve-context-extended.test.js`; it does not include required spec-local coverage under `specs/<specid>/tests/`.; The test strategy relies on extending shared unit test files for R1-R3, but does not identify any concrete `specs/<specid>/tests/` file with a `// spec: R<N> ...` header as required for new spec behavior coverage.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-11T20:14:46.249Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "implementationTargets"
+          },
+          "observed": "The implementation targets list only `src/flow/registry.js`, `tests/unit/flow/ctx-dispatch.test.js`, and `tests/unit/flow/resolve-context-extended.test.js`; it does not include required spec-local coverage under `specs/<specid>/tests/`.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[0].test_strategy"
+          },
+          "observed": "The test strategy relies on extending shared unit test files for R1-R3, but does not identify any concrete `specs/<specid>/tests/` file with a `// spec: R<N> ...` header as required for new spec behavior coverage.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "The implementation targets list only `src/flow/registry.js`, `tests/unit/flow/ctx-dispatch.test.js`, and `tests/unit/flow/resolve-context-extended.test.js`; it does not include required spec-local coverage under `specs/<specid>/tests/`."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "The test strategy relies on extending shared unit test files for R1-R3, but does not identify any concrete `specs/<specid>/tests/` file with a `// spec: R<N> ...` header as required for new spec behavior coverage."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "Parent accepted both spec-test-coverage gate observations as valid specification defects",
+      "trigger": "Spec gate reported that implementationTargets and the task test strategy lacked a concrete spec-local test file",
+      "resolution": "Authorized the bounded addition of specs/316-accept-resolve-context-guards/tests/resolve-context-target-guards.test.js with explicit R1, R2, and R3 header coverage while preserving all existing targets",
+      "guardrailCandidate": "Every testable spec should name its concrete spec-local executable test target and requirement headers before spec gate",
+      "taskId": null,
+      "timestamp": "2026-07-11T20:15:37.868Z"
+    },
+    {
+      "step": "test",
+      "reason": "The plan test completion command crashed because the flow ledger no longer contained step test",
+      "trigger": "senti flow set step test done after approval synchronized T-1 returned unknown step: test with a flow-store stack trace",
+      "guardrailCandidate": "Approval task synchronization must preserve all pending parent plan steps through test review",
+      "taskId": "T-1",
+      "timestamp": "2026-07-11T20:18:22.221Z"
+    },
+    {
+      "step": "test",
+      "reason": "Issue 429 flow was relocated from the shared branch checkout into its own linked worktree after the flow-scope completion blocker",
+      "trigger": "Approval synchronized T-1 before the top-level test step and the prior CLI inferred task scope for flow set step test done",
+      "resolution": "Checkpointed the flow, relocated it non-destructively, and resumed after Issue 430 added explicit flow-scope handling on main",
+      "guardrailCandidate": "Flow-level plan transitions must remain parent-scoped even when currentTaskId is populated",
+      "taskId": "T-1",
+      "timestamp": "2026-07-12T09:39:43.813Z"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "Scenario validity preflight treated merged Issue 430 prerequisite files as Issue 429 implementation-target changes",
+      "trigger": "The relocated feature branch checkpoint was based on d06fd961 while main had advanced through the Issue 430 flow-scope fix",
+      "resolution": "Rebase the clean feature checkpoint onto current main so Issue 430 remains baseline history before retrying scenario validity",
+      "guardrailCandidate": "Relocated flows must refresh their base branch before diff-scoped pre-implementation validation",
+      "taskId": "T-1",
+      "timestamp": "2026-07-12T09:40:33.309Z"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "Rebasing the relocated Issue 429 checkpoint onto current main conflicted in generated analysis metadata",
+      "trigger": "Both the old flow checkpoint and main Issue 430 finalization had regenerated .senti/output/analysis.json",
+      "resolution": "Retained current main analysis byte-for-byte, preserved the older checkpoint in the external relocation backup, and completed the rebase",
+      "guardrailCandidate": "Generated analysis conflicts during prerequisite rebases should retain the newest base artifact when feature behavior does not depend on it",
+      "taskId": "T-1",
+      "timestamp": "2026-07-12T09:42:34.117Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Static test review found that R1 verified equivalent guard strings but not reuse of the shared guard definition",
+      "trigger": "The original spec-local test compared resolve-context options against an independently hardcoded TARGET_GUARDS array",
+      "resolution": "Derived guards from production registry metadata and added a source-contract assertion for options: FLOW_TARGET_GUARD_OPTIONS",
+      "guardrailCandidate": "Tests for shared-definition requirements must verify ownership reuse, not only equivalent output values",
+      "taskId": "T-1",
+      "timestamp": "2026-07-12T09:44:45.259Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Static test review found that R3 did not prove resolve-context avoided local guard comparison or bypass logic",
+      "trigger": "The test covered guard-free dispatch and an undefined registry targetGuard property but not command implementation ownership",
+      "resolution": "Added FlowCommand inheritance, enabled shared targetGuard, and source assertions forbidding local expect or mismatch handling",
+      "guardrailCandidate": "Shared-validation requirements need tests for both observable behavior and absence of local ownership duplication",
+      "taskId": "T-1",
+      "timestamp": "2026-07-12T09:45:45.737Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Static test review found that deriving R1 guards from production metadata alone could miss a required option",
+      "trigger": "The shared status registry list could regress in parallel with resolve-context and let the parity assertions still pass",
+      "resolution": "Added an exact literal assertion for expect-issue, expect-spec, and expect-run-id while retaining shared-definition verification",
+      "guardrailCandidate": "Parity coverage should assert both canonical ownership and the complete externally required value set",
+      "taskId": "T-1",
+      "timestamp": "2026-07-12T09:46:39.967Z"
+    },
+    {
+      "step": "test-execute",
+      "reason": "test failure: matching-guard assertions expected runId, issue, and spec fields that resolve-context does not include in its established payload",
+      "resolution": "Align the assertions with the existing resolved-context payload by checking successful dispatch and path/context data; retain full matching guards and per-guard ACTIVE_FLOW_MISMATCH checks",
+      "taskId": "T-1",
+      "timestamp": "2026-07-12T09:51:29.935Z"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "unknown step: impl-gate",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-07-12T09:52:57.381Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "tooling failure: guarded flow run gate rejected the active impl-gate step as unknown and its onError hook lacked a phase",
+      "resolution": "No semantic gate verdict was produced; inspect step schema and dispatcher compatibility before retrying with changed evidence",
+      "taskId": "T-1",
+      "timestamp": "2026-07-12T09:53:08.463Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "workaround: pass --phase integration after automatic gate phase inference routed impl-gate through the current task",
+      "resolution": "The explicit integration phase uses the registry lifecycle adapter, which targets the active top-level impl-gate with taskId null; product scope remains unchanged",
+      "guardrailCandidate": "Automatic flow-level gate phase inference should preserve top-level mutation scope when currentTaskId is non-null",
+      "taskId": "T-1",
+      "timestamp": "2026-07-12T09:54:21.090Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: regenerated test-execute and test-result-review evidence after correcting the matching-guard payload assertion",
+      "resolution": "The current v2 test artifact reports R1, R2, and R3 pass, raw TAP reports 3/3 pass, and the integrity review verdict is pass",
+      "taskId": "T-1",
+      "timestamp": "2026-07-12T09:56:50.157Z"
+    }
+  ]
+}

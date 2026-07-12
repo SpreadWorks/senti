@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "fail",
+      "reason": "The implementation targets list only `src/flow/registry.js`, `tests/unit/flow/ctx-dispatch.test.js`, and `tests/unit/flow/resolve-context-extended.test.js`; it does not include required spec-local coverage under `specs/<specid>/tests/`.",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "implementationTargets"
+          },
+          "observed": "The implementation targets list only `src/flow/registry.js`, `tests/unit/flow/ctx-dispatch.test.js`, and `tests/unit/flow/resolve-context-extended.test.js`; it does not include required spec-local coverage under `specs/<specid>/tests/`.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "fail",
+      "reason": "The test strategy relies on extending shared unit test files for R1-R3, but does not identify any concrete `specs/<specid>/tests/` file with a `// spec: R<N> ...` header as required for new spec behavior coverage.",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[0].test_strategy"
+          },
+          "observed": "The test strategy relies on extending shared unit test files for R1-R3, but does not identify any concrete `specs/<specid>/tests/` file with a `// spec: R<N> ...` header as required for new spec behavior coverage.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "spec-test-coverage",
+      "where": {
+        "file": "spec.json",
+        "locator": "implementationTargets"
+      },
+      "observed": "The implementation targets list only `src/flow/registry.js`, `tests/unit/flow/ctx-dispatch.test.js`, and `tests/unit/flow/resolve-context-extended.test.js`; it does not include required spec-local coverage under `specs/<specid>/tests/`.",
+      "severity": "blocking",
+      "refs": [
+        "spec-test-coverage"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "spec-test-coverage",
+      "where": {
+        "file": "spec.json",
+        "locator": "tasks[0].test_strategy"
+      },
+      "observed": "The test strategy relies on extending shared unit test files for R1-R3, but does not identify any concrete `specs/<specid>/tests/` file with a `// spec: R<N> ...` header as required for new spec behavior coverage.",
+      "severity": "blocking",
+      "refs": [
+        "spec-test-coverage"
+      ]
+    }
+  ]
+}

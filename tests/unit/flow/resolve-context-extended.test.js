@@ -25,6 +25,8 @@ describe("flow get resolve-context (extended fields)", () => {
       spec: `specs/${specId}/spec.md`,
       baseBranch: "main",
       featureBranch: "feature/001-test",
+      runId: "run-001-test",
+      issue: 429,
       steps: buildInitialSteps(),
       requirements: [],
       tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
@@ -32,6 +34,14 @@ describe("flow get resolve-context (extended fields)", () => {
     };
     makeFlowManager(dir).save(state);
     makeFlowManager(dir).addActiveFlow(specId, "local");
+    return state;
+  }
+
+  function runResolveContext(dir, args = []) {
+    return execFileSync(
+      "node", [FLOW_CMD, "get", "resolve-context", ...args],
+      { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: dir } },
+    );
   }
 
   function writeSpecJson(dir, specId, overrides = {}) {
@@ -56,10 +66,7 @@ describe("flow get resolve-context (extended fields)", () => {
   it("returns dirty, currentBranch, aheadCount, ghAvailable fields", () => {
     tmp = createTmpDir();
     setupFlowState(tmp);
-    const result = execFileSync(
-      "node", [FLOW_CMD, "get", "resolve-context"],
-      { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } },
-    );
+    const result = runResolveContext(tmp);
     const envelope = JSON.parse(result);
     assert.equal(envelope.ok, true);
     assert.ok("dirty" in envelope.data, "should have dirty field");
@@ -78,13 +85,49 @@ describe("flow get resolve-context (extended fields)", () => {
       "# Spec\n## Goal\nstale markdown goal\n## Scope\nstale markdown scope\n",
     );
 
-    const result = execFileSync(
-      "node", [FLOW_CMD, "get", "resolve-context"],
-      { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } },
-    );
+    const result = runResolveContext(tmp);
     const envelope = JSON.parse(result);
     assert.equal(envelope.ok, true);
     assert.equal(envelope.data.goal, "JSON goal");
     assert.deepEqual(envelope.data.scope, { in: ["JSON scope"], out: [] });
+  });
+
+  it("accepts matching run ID, Issue, and spec target guards", () => {
+    tmp = createTmpDir();
+    const state = setupFlowState(tmp);
+
+    const result = runResolveContext(tmp, [
+      "--expect-run-id", state.runId,
+      "--expect-issue", String(state.issue),
+      "--expect-spec", state.spec,
+    ]);
+    const envelope = JSON.parse(result);
+    assert.equal(envelope.ok, true);
+    assert.equal(envelope.data.activeFlow, "001-test");
+    assert.equal(envelope.data.issue, state.issue);
+    assert.equal(envelope.data.spec, state.spec);
+  });
+
+  it("returns ACTIVE_FLOW_MISMATCH for each mismatching target guard", () => {
+    tmp = createTmpDir();
+    setupFlowState(tmp);
+    const mismatches = [
+      ["--expect-run-id", "run-other"],
+      ["--expect-issue", "430"],
+      ["--expect-spec", "specs/002-other/spec.json"],
+    ];
+
+    for (const args of mismatches) {
+      assert.throws(
+        () => runResolveContext(tmp, args),
+        (error) => {
+          const envelope = JSON.parse(error.stdout);
+          assert.equal(envelope.ok, false);
+          assert.equal(envelope.errors[0].code, "ACTIVE_FLOW_MISMATCH");
+          assert.doesNotMatch(`${error.stdout}${error.stderr}`, /unknown option/i);
+          return true;
+        },
+      );
+    }
   });
 });

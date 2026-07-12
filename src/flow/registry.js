@@ -536,7 +536,15 @@ export const FLOW_COMMANDS = {
     "resolve-context": {
       helpKey: "flow.get.resolve-context",
       command: () => import("./lib/get-resolve-context.js"),
-      help: "Usage: senti flow get resolve-context\n\nResolve worktree/repo paths and active flow for context recovery.",
+      args: { options: FLOW_TARGET_GUARD_OPTIONS },
+      help: [
+        "Usage: senti flow get resolve-context [--expect-issue <number>] [--expect-spec <spec>] [--expect-run-id <runId>]",
+        "",
+        "Resolve worktree/repo paths and active flow for context recovery.",
+        "  --expect-issue <number>  Fail with ACTIVE_FLOW_MISMATCH when the resolved flow belongs to another Issue.",
+        "  --expect-spec <spec>     Fail with ACTIVE_FLOW_MISMATCH when the current context is another spec.",
+        "  --expect-run-id <runId>  Fail with ACTIVE_FLOW_MISMATCH when the current context is another runId.",
+      ].join("\n"),
     },
     check: {
       helpKey: "flow.get.check",

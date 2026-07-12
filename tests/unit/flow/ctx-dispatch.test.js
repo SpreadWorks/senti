@@ -41,6 +41,7 @@ describe("registry structure", () => {
   it("target-sensitive dispatcher commands accept target guards", () => {
     const targetGuardOptions = ["--expect-issue", "--expect-spec", "--expect-run-id"];
     const commandRefs = [
+      FLOW_COMMANDS.get["resolve-context"],
       FLOW_COMMANDS.get["next-action"],
       FLOW_COMMANDS.get.prompt,
       FLOW_COMMANDS.get.context,
@@ -71,6 +72,16 @@ describe("registry structure", () => {
         );
       }
     }
+  });
+
+  it("resolve-context help matches its dispatcher target guard options", () => {
+    const entry = FLOW_COMMANDS.get["resolve-context"];
+    const helpOptions = [...entry.help.matchAll(/--expect-[a-z-]+/g)].map((match) => match[0]);
+
+    assert.deepEqual(
+      [...new Set(helpOptions)].sort(),
+      [...entry.args.options].sort(),
+    );
   });
 });
 

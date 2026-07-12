@@ -1,0 +1,101 @@
+{
+  "verdict": "pass",
+  "issues": [],
+  "nextAction": {
+    "diagnosis": {
+      "summary": "No blocking observations.",
+      "observations": []
+    },
+    "prescription": "retro"
+  },
+  "level": "integration",
+  "phase": "integration",
+  "evaluations": [
+    {
+      "guardrail_id": "R1",
+      "result": "pass",
+      "reason": "The diff adds `args: { options: FLOW_TARGET_GUARD_OPTIONS }` to `FLOW_COMMANDS.get[\"resolve-context\"]`, expands the command help to list `--expect-issue`, `--expect-spec`, and `--expect-run-id`, and adds unit coverage checking resolve-context is included in target-guard dispatcher parity plus that help options match `entry.args.options`.",
+      "title": "R1",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R2",
+      "result": "pass",
+      "reason": "The resolve-context registry entry now accepts the standard FLOW_TARGET_GUARD_OPTIONS, so CLI-dispatched guarded calls can reach the existing FlowCommand/flow-context validation path. The diff adds coverage for matching runId/issue/spec guards succeeding and each individual mismatch returning ACTIVE_FLOW_MISMATCH.",
+      "title": "R2",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R3",
+      "result": "pass",
+      "reason": "The product diff only adds registry option metadata and help text for resolve-context. It does not add resolve-context-specific comparison logic, a targetGuard exception, or a bypass of FlowCommand validation, and existing guard-free resolve-context behavior is covered as still returning ok: true.",
+      "title": "R3",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": []
+    },
+    {
+      "guardrail_id": "no-overengineering",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "code-quality",
+      "title": "Avoid Overengineering",
+      "observations": []
+    }
+  ],
+  "reasons": [
+    {
+      "verdict": "PASS",
+      "detail": "R1 — The diff adds `args: { options: FLOW_TARGET_GUARD_OPTIONS }` to `FLOW_COMMANDS.get[\"resolve-context\"]`, expands the command help to list `--expect-issue`, `--expect-spec`, and `--expect-run-id`, and adds unit coverage checking resolve-context is included in target-guard dispatcher parity plus that help options match `entry.args.options`.",
+      "guardrail_id": "R1",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R2 — The resolve-context registry entry now accepts the standard FLOW_TARGET_GUARD_OPTIONS, so CLI-dispatched guarded calls can reach the existing FlowCommand/flow-context validation path. The diff adds coverage for matching runId/issue/spec guards succeeding and each individual mismatch returning ACTIVE_FLOW_MISMATCH.",
+      "guardrail_id": "R2",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R3 — The product diff only adds registry option metadata and help text for resolve-context. It does not add resolve-context-specific comparison logic, a targetGuard exception, or a bypass of FlowCommand validation, and existing guard-free resolve-context behavior is covered as still returning ok: true.",
+      "guardrail_id": "R3",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Spec Test Coverage — no observations emitted",
+      "guardrail_id": "spec-test-coverage",
+      "category": "testing"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Avoid Overengineering — no observations emitted",
+      "guardrail_id": "no-overengineering",
+      "category": "code-quality"
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "impl-gate",
+    "artifactPath": "specs/316-accept-resolve-context-guards/impl-gate-result.json",
+    "verdict": "pass",
+    "result": "pass",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": {
+      "diagnosis": {
+        "summary": "No blocking observations.",
+        "observations": []
+      },
+      "prescription": "retro"
+    },
+    "completionKind": "normal",
+    "progressSignature": "0b72bd0185b4cd52d6f83c22bb5151b9b1d16f12bd8066b45753f2db3bc15c50"
+  }
+}

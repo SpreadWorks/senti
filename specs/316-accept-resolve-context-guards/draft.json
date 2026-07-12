@@ -1,0 +1,64 @@
+{
+  "devType": "bugfix",
+  "goal": "Allow flow get resolve-context to accept the standard flow target guards and route them through existing target validation while preserving guard-free behavior.",
+  "analysis": {
+    "problem": "The get.resolve-context registry definition exposes neither dispatcher options nor help for --expect-run-id, --expect-issue, and --expect-spec, so guarded calls fail as unknown options before the shared flow target validation can run.",
+    "proposedApproach": "Register the existing FLOW_TARGET_GUARD_OPTIONS constant on get.resolve-context, describe the same options in its help text, and rely on FlowCommand plus flow-context for selection and ACTIVE_FLOW_MISMATCH behavior.",
+    "validation": "Verify registry/help parity, successful dispatch with matching run ID, Issue, and spec guards, ACTIVE_FLOW_MISMATCH for each mismatching guard, and unchanged success without guards."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "The registry already defines FLOW_TARGET_GUARD_OPTIONS as --expect-issue, --expect-spec, and --expect-run-id.",
+      "FlowCommand already calls shared flow-context resolution and targetMismatchEnvelopeForInput before command execution.",
+      "The existing resolve-context registry entry has no args.options and its help contains no target guard options.",
+      "Existing extended tests cover guard-free resolve-context behavior and resolved data fields.",
+      "The refined Issue and flow assignment confirm one bounded registry-and-tests bug fix with shared validation reuse and no finalize-commit change."
+    ],
+    "decisionPoints": [],
+    "resolvedByProjectRules": [
+      "must: Reuse FLOW_TARGET_GUARD_OPTIONS and the existing FlowCommand/flow-context validation path instead of duplicating validation.",
+      "must: Keep the change within src/flow/registry.js and the two named unit-test files, apart from Senti-generated artifacts.",
+      "must: Add no external dependency and preserve calls that omit all target guards."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: Define requirement identifiers, task decomposition, and concrete test scenarios for help parity and target guard dispatch."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: Add FLOW_TARGET_GUARD_OPTIONS to the get.resolve-context registry definition.",
+      "must: Display --expect-run-id, --expect-issue, and --expect-spec in resolve-context help with dispatcher parity.",
+      "must: Test matching guards, each individual mismatch as ACTIVE_FLOW_MISMATCH, and existing guard-free success."
+    ],
+    "out": [
+      "must: Do not change finalize-commit, implement Issues #410 through #428, add duplicate validation or guard bypasses, or add dependencies.",
+      "must: Do not modify files outside the three Issue targets except Senti-required spec, evidence, and generated documentation artifacts."
+    ]
+  },
+  "impactOnExisting": [
+    "must: Guarded resolve-context calls that currently fail option parsing must reach existing shared target validation.",
+    "must: Matching guards must return the same resolved context payload as unguarded calls.",
+    "must: Calls without guards must continue to succeed without behavior changes.",
+    "must: Mismatched run ID, Issue, or spec must use the established ACTIVE_FLOW_MISMATCH envelope."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "must: Should Issue #429 be implemented exactly as the bounded registry-and-tests bug fix described here, including shared validation reuse, guard-free compatibility, and the stated exclusions?",
+      "answer": "must: Yes. Implement the refined Issue exactly within the three named product/test files, reusing the standard target guard machinery and preserving guard-free calls.",
+      "evidence": "Issue #429 Expected Changes, Acceptance Criteria, Test Targets, and Scope; parent flow assignment for runId 54c61ffc-32e5-44b2-975d-0d5203ea035c.",
+      "why": "The registry metadata gap is the root cause, while FlowCommand and flow-context already own matching and ACTIVE_FLOW_MISMATCH behavior.",
+      "considered": "Resolve-context-specific validation, targetGuard exceptions, finalize-commit changes, dependency additions, and unrelated Issue work were rejected by the Issue scope.",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-11T20:08:59Z",
+    "notes": "Refined Issue #429 scope and routine draft approval were explicitly pre-approved by the parent orchestration request."
+  }
+}
