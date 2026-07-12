@@ -415,27 +415,39 @@
             },
             {
               "id": "finalize-merge",
-              "status": "in_progress",
+              "status": "done",
               "startedAt": "2026-07-12T10:37:18.475Z",
               "runtimeLog": {
                 "runId": "acc2548e-d0d5-4792-90db-54a419a668d3",
-                "sequence": 134,
+                "sequence": 137,
                 "attempt": 1,
                 "command": "flow run finalize-merge",
-                "startedAt": "2026-07-12T10:37:34.178Z",
-                "endedAt": "2026-07-12T10:37:36.569Z",
-                "exitCode": 1
-              }
+                "startedAt": "2026-07-12T10:40:05.185Z",
+                "endedAt": "2026-07-12T10:40:07.536Z",
+                "exitCode": 0
+              },
+              "finishedAt": "2026-07-12T10:40:07.531Z"
             },
             {
               "id": "finalize-sync",
-              "status": "pending",
-              "finishedAt": "2026-07-12T10:37:36.535Z"
+              "status": "done",
+              "finishedAt": "2026-07-12T10:40:53.334Z",
+              "startedAt": "2026-07-12T10:40:07.531Z",
+              "runtimeLog": {
+                "runId": "acc2548e-d0d5-4792-90db-54a419a668d3",
+                "sequence": 2,
+                "attempt": 1,
+                "command": "flow run finalize-sync",
+                "startedAt": "2026-07-12T10:40:24.884Z",
+                "endedAt": "2026-07-12T10:40:53.338Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-cleanup",
-              "status": "pending",
-              "finishedAt": "2026-07-12T10:37:36.561Z"
+              "status": "done",
+              "finishedAt": "2026-07-12T10:41:19.196Z",
+              "startedAt": "2026-07-12T10:40:53.334Z"
             }
           ]
         }
@@ -1107,6 +1119,8 @@
     "updatedAt": "2026-07-11T15:29:22.011Z"
   },
   "state": {
-    "finalizedAt": "2026-07-12T10:37:18.312Z"
+    "finalizedAt": "2026-07-12T10:37:18.312Z",
+    "mergeStrategy": "squash",
+    "featureBranchSquashedSha": "12aeabb97a830b85a7126f969a430ed97843ef69"
   }
 }
