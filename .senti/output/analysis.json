@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-07-12T22:00:46.758Z",
+  "analyzedAt": "2026-07-12T23:44:41.026Z",
   "package": {
     "entries": [
       {
@@ -2439,9 +2439,9 @@
       },
       {
         "file": "src/flow.js",
-        "hash": "2be55f24581834394e47d4d082e544fb",
-        "lines": 108,
-        "mtime": "2026-07-11T20:46:49.092Z",
+        "hash": "d4f4f083ca7f52d2aca7e76a96cfb0cd",
+        "lines": 110,
+        "mtime": "2026-07-12T23:44:25.126Z",
         "className": "flow",
         "methods": [
           "run",
@@ -2458,21 +2458,21 @@
         "extends": null,
         "usedBy": null,
         "id": "1ab08f2b",
-        "summary": "CLI bootstrap for the flow command group. It wires argument routing, container setup, and dispatch into the shared command infrastructure.",
-        "detail": "The file slices process arguments, identifies the flow group and subcommand, and exits early on invalid input. A shared run helper forwards the resolved command entry to the dispatcher with envelope metadata so results are shaped consistently. It initializes the dependency container and flow context before invoking handlers. The bootstrap also special-cases prepare and resume execution paths and maps failures to the standard error exit code.",
+        "summary": "CLI entrypoint for flow commands that resolves the selected subcommand and hands execution to the shared dispatcher. It also initializes flow-aware context and normalizes exit behavior for invalid input.",
+        "detail": "The module reads process arguments, validates the top-level flow group, and exits with the shared error code when required input is missing. A small run helper wraps registry entries with the generic dispatch function and passes envelope metadata for consistent output. It initializes the dependency container and resolves the flow context before command execution so handlers receive the correct flow manager and state. It also special-cases resume and prepare-style routes before falling back to normal command lookup and success exit handling.",
         "chapter": "project_structure",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-07-12T19:39:06.051Z",
+          "processedAt": "2026-07-12T23:46:20.978Z",
           "attempts": 1
         },
         "keywords": [
-          "CLI bootstrap",
-          "command dispatcher",
-          "argument routing",
-          "flow commands",
-          "dependency injection",
-          "exit codes"
+          "flow CLI entrypoint",
+          "subcommand routing",
+          "command dispatch",
+          "argv parsing",
+          "dependency injection container",
+          "exit code handling"
         ]
       },
       {
@@ -3507,9 +3507,9 @@
       },
       {
         "file": "src/flow/lib/flow-context.js",
-        "hash": "084c71e6467076b56d2aa9dc15c521ec",
-        "lines": 134,
-        "mtime": "2026-07-12T19:36:28.054Z",
+        "hash": "3e98d889800636750db242fdb3fe2e71",
+        "lines": 153,
+        "mtime": "2026-07-12T23:44:25.126Z",
         "className": "flow-context",
         "methods": [
           "resolveFlowContext",
@@ -3521,7 +3521,8 @@
         "imports": [
           "fs",
           "path",
-          "../../lib/flow-helpers.js"
+          "../../lib/flow-helpers.js",
+          "../../lib/flow-target-guard.js"
         ],
         "exports": [
           "resolveFlowContext"
@@ -3532,24 +3533,25 @@
           "src/docs/commands/forge.js",
           "src/docs/commands/readme.js",
           "src/flow.js",
-          "src/flow/lib/base-command.js"
+          "src/flow/lib/base-command.js",
+          "src/flow/lib/get-runtime-log.js"
         ],
         "id": "e296da98",
-        "summary": "Resolver for the effective flow manager and state. It chooses the correct authority root across the main repository and worktree-based preparation flows.",
-        "detail": "The module normalizes explicit selectors such as run ID, spec ID, and issue so commands can target a specific flow instance. It can resolve preparing flows from the main root, active worktree state, or the current directory, and it keeps track of which root is authoritative for writes. Missing or ambiguous state is represented without crashing, alongside any resolution error for higher-level handling. The exported context object bundles the chosen flow manager, flow state, authority root, and selection metadata for downstream commands.",
+        "summary": "Resolves the active flow context from CLI target expectations, preparing-flow hints, and filesystem state. It chooses the authoritative flow root and manager before commands run.",
+        "detail": "The module normalizes target selectors such as run ID, spec ID, and issue number from command input. It uses FlowTargetExpectation to validate explicit targeting and can surface a structured resolution error when the target cannot be matched safely. Authority resolution prefers an active flow manager, then checks the main repository state file, and finally falls back to the current working tree state when appropriate. The exported context includes the selected flow manager, resolved flow state, authority root, and any resolution failure for downstream command logic.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-12T19:39:06.051Z",
+          "processedAt": "2026-07-12T23:46:20.978Z",
           "attempts": 1
         },
         "keywords": [
-          "flow context",
-          "worktree resolution",
-          "run selection",
-          "spec selection",
-          "state file",
-          "authority root"
+          "flow context resolution",
+          "target selection",
+          "run ID lookup",
+          "spec authority root",
+          "worktree detection",
+          "preparing flow state"
         ]
       },
       {
@@ -4208,21 +4210,23 @@
       },
       {
         "file": "src/flow/lib/get-runtime-log.js",
-        "hash": "03e3107d7893f03fe7591674394064d9",
-        "lines": 85,
-        "mtime": "2026-05-25T04:34:08.444Z",
+        "hash": "dcea8ac72e82d225c4d7ca0538a8e92b",
+        "lines": 117,
+        "mtime": "2026-07-12T23:44:25.126Z",
         "className": "get-runtime-log",
         "methods": [
           "positiveInteger",
           "parseRunId",
-          "parseArgs",
+          "outputEnvelope",
           "fail"
         ],
         "imports": [
           "../../lib/command.js",
           "../../lib/flow-envelope.js",
           "../../lib/runtime-log.js",
-          "../../lib/flow-helpers.js"
+          "../../lib/flow-helpers.js",
+          "../../lib/flow-target-guard.js",
+          "./flow-context.js"
         ],
         "exports": [
           "default"
@@ -4234,21 +4238,21 @@
           "src/lib/dispatcher.js"
         ],
         "id": "f2e5e82b",
-        "enrich": {
-          "processedAt": "2026-05-29T02:08:40.284Z",
-          "attempts": 4
-        },
-        "summary": "Defines a CLI command to fetch runtime log blocks with strict argument validation and envelope-style responses. It supports run-id and sequence targeting plus optional JSON output mode.",
-        "detail": "The module parses options manually, validates positive integers, and detects incompatible combinations such as conflicting sequence sources. It uses a standardized `Envelope` contract for success and failure payloads, including machine-readable error codes. The command resolves runtime-log context via spec identity and delegates retrieval to runtime-log helpers. Output is emitted either as raw text with newline normalization or structured JSON depending on `--format`. Error handling is explicit and keeps process exit semantics consistent for automation.",
+        "summary": "Implements the get-runtime-log flow command that locates and prints runtime log output for a selected run or spec. It validates selector arguments and emits envelope-shaped failures for invalid or missing targets.",
+        "detail": "Helper functions reject non-positive integers, parse runId:sequence syntax, and format JSON envelopes for stdout. The command requires at least one explicit target expectation and enforces option compatibility, such as rejecting a separate sequence flag when the run ID already includes one. It resolves the flow context, opens the matching runtime log file, and selects either a specific block or the latest matching entry. When a block is found it writes the stored log text directly, while validation or lookup problems are returned as structured error output.",
         "chapter": "cli_commands",
-        "role": "Runtime log retrieval command",
+        "role": "cli",
+        "enrich": {
+          "processedAt": "2026-07-12T23:46:20.978Z",
+          "attempts": 1
+        },
         "keywords": [
-          "runtime log",
-          "cli argument parsing",
-          "envelope response",
-          "sequence lookup",
-          "run id parsing",
-          "structured errors"
+          "runtime log retrieval",
+          "argument validation",
+          "runId sequence parsing",
+          "log block selection",
+          "JSON envelope errors",
+          "stdout output"
         ]
       },
       {
@@ -7804,9 +7808,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "e10bf449d99f056fa999fedd14d72d51",
-        "lines": 1303,
-        "mtime": "2026-07-12T19:36:28.054Z",
+        "hash": "f6ead61f37403a588f238d508bd9fe83",
+        "lines": 1315,
+        "mtime": "2026-07-12T23:44:25.126Z",
         "className": "registry",
         "methods": [
           "assertDraftReviewRegistryHookBoundary",
@@ -7847,23 +7851,22 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "summary": "Defines the `senti flow` command registry and orchestrates lifecycle behavior around command execution.",
-        "detail": "The file declares shared runtime and target-guard options, resolves active phases and step IDs, and routes runtime logs to the correct flow step. It wraps command execution in a lifecycle adapter that applies pre, post, and error actions such as gate side effects, retry bookkeeping, review and finalize hooks, merge-outcome updates, and plugin callbacks. Helper functions perform safe step-status mutations and issue-log updates without breaking the main command path when no active flow is available. Registry entries also validate generated artifacts like test-execute, test-review, and final-regression results before allowing later flow transitions.",
+        "summary": "Central registry for flow subcommands and their lifecycle side effects. It binds command handlers to gate, review, finalize, and plugin-hook behavior.",
+        "detail": "The file defines shared option sets, retry-help boundaries, and responsibility metadata used to guard draft-review extension points. Utility helpers resolve active step IDs, scope runtime logs to gate or review steps, and attempt state or issue-log updates without crashing the main command path on soft failures. RegistryLifecycleAdapter encapsulates post-command behaviors such as retry counters, gate side effects, finalize hooks, merge outcome updates, and plugin callbacks. The exported FLOW_COMMANDS table wires many flow commands to these lifecycle actions and validates required artifacts such as test and regression result files before advancing state.",
         "chapter": "cli_commands",
         "role": "controller",
         "enrich": {
-          "processedAt": "2026-07-12T19:37:50.766Z",
+          "processedAt": "2026-07-12T23:46:20.978Z",
           "attempts": 1
         },
         "keywords": [
-          "flow registry",
-          "CLI commands",
+          "command registry",
           "lifecycle hooks",
-          "step orchestration",
-          "retry handling",
-          "finalize flow",
-          "plugin hooks",
-          "artifact validation"
+          "gate steps",
+          "review workflow",
+          "finalize actions",
+          "plugin callbacks",
+          "flow state transitions"
         ]
       },
       {
@@ -8692,9 +8695,9 @@
       },
       {
         "file": "src/lib/dispatcher.js",
-        "hash": "6360dcecb7ec3aef3cbe0a4f7561ab32",
+        "hash": "c24bd9f61e3afb2836c207a296670a8d",
         "lines": 504,
-        "mtime": "2026-07-12T19:36:28.054Z",
+        "mtime": "2026-07-12T23:44:25.126Z",
         "className": "dispatcher",
         "methods": [
           "parseEntryInput",
@@ -8737,22 +8740,22 @@
           "src/spec.js"
         ],
         "id": "18d5f63b",
-        "summary": "Central dispatch logic for CLI entries, handling argument splitting, output modes, and lifecycle hooks. It also captures runtime logging metadata and converts failures into structured envelopes.",
-        "detail": "The dispatcher separates positional arguments from declared flags and options before handing normalized input to a command entry. During execution it wraps stdout and stderr so runtime log blocks can be attached without breaking the command's visible output. It runs `pre`, main, `post`, and `onError` hooks, resolves raw versus envelope output modes, and emits target-mismatch or failure envelopes when needed. Finalize cleanup warnings are truncated and formatted into a compact report, and post-return metadata is persisted back into the runtime log context.",
+        "summary": "Generic command dispatcher that parses entry input, runs command lifecycle hooks, and standardizes envelopes, exit codes, and runtime logging. It is the shared execution core behind CLI entrypoints.",
+        "detail": "The dispatcher parses command arguments using entry-provided flag and option definitions, including grouped handling for spec-related positional input. It temporarily intercepts stdout and stderr so command output can be mirrored into runtime log blocks while preserving normal writes. Success and failure paths both apply target-mismatch guards, choose raw or envelope output modes, and call pre, post, and onError hooks around the main run method. It also persists finalize-cleanup metadata and emits a compact warning report when cleanup completed with missing-report warnings.",
         "chapter": "project_structure",
         "role": "controller",
         "enrich": {
-          "processedAt": "2026-07-12T19:38:36.885Z",
+          "processedAt": "2026-07-12T23:46:20.978Z",
           "attempts": 1
         },
         "keywords": [
           "command dispatcher",
-          "CLI routing",
-          "envelope output",
-          "runtime logging",
-          "hook lifecycle",
+          "argument parsing",
+          "runtime log capture",
+          "envelope serialization",
           "error handling",
-          "argument parsing"
+          "lifecycle hooks",
+          "exit code management"
         ]
       },
       {
@@ -8943,14 +8946,16 @@
       },
       {
         "file": "src/lib/flow-manager.js",
-        "hash": "9bda0ac1a792021a7797183ec55ccbb7",
-        "lines": 563,
-        "mtime": "2026-07-12T22:00:34.411Z",
+        "hash": "42dfa378e31f2bb02150db8cf770cfdf",
+        "lines": 642,
+        "mtime": "2026-07-12T23:44:25.127Z",
         "className": "flow-manager",
         "methods": [
           "FlowScanEntry",
           "FlowScanResult",
           "RecoveryFlowCandidate",
+          "ResolvedFlowTarget",
+          "FlowTargetNotFoundError",
           "FlowManager",
           "recoveryCandidateRank"
         ],
@@ -8964,35 +8969,38 @@
           "./active-flow-registry.js",
           "./preparing-flow-store.js",
           "./flow-helpers.js",
+          "./flow-target-guard.js",
           "../flow/lib/step-tree.js"
         ],
         "exports": [
           "FlowScanEntry",
           "FlowScanResult",
           "RecoveryFlowCandidate",
+          "ResolvedFlowTarget",
+          "FlowTargetNotFoundError",
           "FlowManager"
         ],
-        "extends": null,
+        "extends": "Error",
         "usedBy": [
           "src/lib/container.js"
         ],
         "id": "3d2ed4c0",
-        "summary": "Coordinates loading, scanning, and updating flow state across the main repository and any linked worktrees. It also provides recovery and selection logic for active or partially prepared flows.",
-        "detail": "The manager wraps `FlowStore`, `PreparingFlowStore`, and `ActiveFlowRegistry` behind a higher-level API, forwarding most mutations while automatically applying bound or default spec identifiers. Its scanning code traverses `specs` directories in the main checkout and worktrees, reads `flow.json` files, and can also inspect branch snapshots through git while capping work with scan limits. Recovery helpers rank candidates, classify stale or orphaned worktree states, and map user-facing selectors such as run ID, spec ID, or issue number back to concrete flow locations. The implementation handles malformed state files defensively, reports scan errors to stderr, and exposes convenience accessors for the current task and in-progress task step.",
+        "summary": "State manager for active and preparing flows across the main repository and linked worktrees. It provides high-level flow lookup, recovery, scanning, and store delegation.",
+        "detail": "The class largely fronts FlowStore, ActiveFlowRegistry, and PreparingFlowStore, adding bound-spec defaults so callers can work against a focused flow instance. It scans specs directories in the main repository and worktrees, parses flow state files, deduplicates results, and records when scan limits truncate discovery. Target resolution supports run ID, spec ID, and issue number selectors, with explicit errors for stale, missing, or ambiguous matches. Recovery helpers rank candidates, detect orphaned worktrees, and derive the best authority root for a resolved flow.",
         "chapter": "internal_design",
-        "role": "controller",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-12T22:02:00.660Z",
+          "processedAt": "2026-07-12T23:46:20.978Z",
           "attempts": 1
         },
         "keywords": [
           "flow manager",
-          "state orchestration",
-          "worktree recovery",
           "active flow registry",
-          "spec selection",
-          "flow scanning",
-          "git state"
+          "worktree scanning",
+          "flow recovery",
+          "spec resolution",
+          "state store delegation",
+          "issue target lookup"
         ]
       },
       {
@@ -9146,7 +9154,8 @@
         ],
         "extends": null,
         "usedBy": [
-          "src/lib/dispatcher.js"
+          "src/lib/dispatcher.js",
+          "src/lib/flow-manager.js"
         ],
         "id": "e8f31d59",
         "summary": "Validates caller expectations about the currently targeted flow and produces structured mismatch envelopes when they do not align. It supports issue, spec, and run-id targeting with normalized comparisons.",
@@ -10396,13 +10405,14 @@
       },
       {
         "file": "src/lib/runtime-log.js",
-        "hash": "f90bdea35b024eaa0b852b03b113d2fa",
-        "lines": 221,
-        "mtime": "2026-05-25T04:34:08.446Z",
+        "hash": "c3a732b7775a70223d7de0a85a65b399",
+        "lines": 245,
+        "mtime": "2026-07-12T23:44:25.127Z",
         "className": "runtime-log",
         "methods": [
           "RuntimeLogMetadata",
           "RuntimeLogBlock",
+          "RuntimeLogSelection",
           "RuntimeLogFile",
           "RuntimeLogBlockWriter",
           "runtimeLogFileForContext",
@@ -10417,6 +10427,7 @@
         "exports": [
           "RuntimeLogMetadata",
           "RuntimeLogBlock",
+          "RuntimeLogSelection",
           "RuntimeLogFile",
           "RuntimeLogBlockWriter",
           "runtimeLogFileForContext"
@@ -10428,22 +10439,22 @@
           "src/lib/dispatcher.js"
         ],
         "id": "48fbf8f0",
-        "summary": "Provides structured runtime logging with metadata-rich start/end blocks per run attempt. It supports log file IO, block parsing, sequence tracking, and context-based log file resolution.",
-        "detail": "The implementation normalizes flow IDs for filesystem-safe log filenames and stores logs under `.tmp/logs/<flowId>.log`. It models metadata, blocks, and file access through small classes that serialize fields and encapsulate parsing behavior. A block writer emits standardized start headers containing runId, sequence, attempt, command, and timestamps, then records completion metadata. The file helper can read full logs, append text, count next sequence numbers, split logs into block candidates, and select the latest matching block. Truncation limits and marker constants are defined to enforce bounded log growth in higher-level callers.",
+        "summary": "Implements append-only runtime log storage and block selection for flow executions. It models log metadata, parsed blocks, on-disk files, and streaming writers.",
+        "detail": "The module builds stable log file paths under .tmp/logs, sanitizes flow identifiers, and stamps each run attempt with command and timestamp metadata. Parsed log blocks use structured start and end markers, allowing RuntimeLogSelection to choose the latest match or a specific sequence for a run. RuntimeLogBlockWriter opens and closes these sections while exposing metadata needed by higher-level dispatch code. A maximum-size guard appends a truncation marker when the file grows too large so runtime logs stay bounded.",
         "chapter": "internal_design",
-        "role": "Runtime execution logging framework",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-05-25T04:35:01.585Z",
+          "processedAt": "2026-07-12T23:46:20.978Z",
           "attempts": 1
         },
         "keywords": [
           "runtime log",
-          "structured logging",
-          "execution metadata",
-          "attempt tracking",
-          "log parsing",
-          "flow tracing",
-          "sequence numbering"
+          "append-only log file",
+          "block writer",
+          "log selection",
+          "metadata serialization",
+          "file size truncation",
+          "execution trace"
         ]
       },
       {
@@ -11610,9 +11621,9 @@
     ],
     "summary": {
       "total": 216,
-      "totalMethods": 2024
+      "totalMethods": 2027
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-07-12T22:02:00.660Z"
+  "enrichedAt": "2026-07-12T23:46:20.978Z"
 }
