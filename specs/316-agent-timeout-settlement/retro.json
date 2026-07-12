@@ -1,0 +1,49 @@
+{
+  "spec": "specs/316-agent-timeout-settlement/spec.json",
+  "date": "2026-07-11T16:20:52.980Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Add ChildProcessSupervisor and AgentTimeoutError in src/lib/agent.js. Spawn provider commands as managed trees: a detached process group on POSIX and a win32 child compatible with taskkill /T. At the resolved agent.timeout deadline, atomically claim timeout ownership and send SIGTERM to the POSIX group or direct win32 child; after one bounded internal grace period, send SIGKILL to the POSIX group or run taskkill /PID <pid> /T /F on win32.",
+      "status": "done",
+      "note": "R1: POSIX supervision uses a detached group and TERM-to-KILL escalation"
+    },
+    {
+      "desc": "ChildProcessSupervisor shall arbitrate close, error, timeout, grace expiry, forced termination completion, and process-tree-dead observation so Agent._callOnce observes exactly one terminal result and every terminal path removes all registered listeners and timers. Grace expiry initiates forced termination but is not itself a successful cleanup observation.",
+      "status": "done",
+      "note": "R2: supervisor arbitrates terminal events and releases listeners and timers"
+    },
+    {
+      "desc": "A pre-deadline close or spawn error shall retain existing success or non-timeout error behavior. Once the deadline fires, any later close, including exit 0 or non-zero during grace, shall reject as AgentTimeoutError after cleanup. The error shall expose code AGENT_TIMEOUT, timeoutMs, graceMs, the final termination signal/action, and killed=true, and shall settle within timeout plus grace plus a fixed cleanup/test margin.",
+      "status": "done",
+      "note": "R3: timeout error exposes final action and bounded timing while ordinary failures stay ordinary"
+    },
+    {
+      "desc": "Timeout termination shall not settle until the direct child has emitted close and the managed tree is observably dead: POSIX process-group signal-0 probing returns ESRCH, or win32 taskkill /T /F has completed and the direct child has closed. No recorded direct or descendant PID may remain alive after the returned timeout failure.",
+      "status": "done",
+      "note": "R4: timeout waits for direct close and complete descendant tree death"
+    },
+    {
+      "desc": "Automated tests shall reproduce a SIGTERM-ignoring child, a timeout immediately before exit, spawn error, and descendant-process termination; spec-local files shall cover R1 through R4 with // spec: R<N> headers.",
+      "status": "done",
+      "note": "R5: exit immediately after deadline rejects by code instead of returning a close result"
+    },
+    {
+      "desc": "Regression tests shall prove unchanged Agent.call command/argument dispatch, agent.timeout resolution, success text and JSON results, callbacks, retry, stdin fallback, logging, metrics, cache behavior, schema cleanup, and non-timeout failure behavior through the supervisor path.",
+      "status": "done",
+      "note": "R6: timeout resolution and JSON provider result remain executable"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 6,
+    "done": 6,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 1,
+    "not_testable_count": 1,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

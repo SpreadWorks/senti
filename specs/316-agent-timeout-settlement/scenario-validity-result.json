@@ -1,0 +1,93 @@
+{
+  "version": "1",
+  "raw_output_path": "specs/316-agent-timeout-settlement/tests/.raw/scenario-validity.log",
+  "command": "node --test specs/316-agent-timeout-settlement/tests/agent-timeout-settlement.test.js",
+  "process": {
+    "started": true,
+    "exitCode": 1,
+    "signal": null,
+    "timedOut": false,
+    "spawnError": null
+  },
+  "result": "pass",
+  "summary": [
+    {
+      "id": "R1",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/316-agent-timeout-settlement/tests/agent-timeout-settlement.test.js",
+        "test_name": "R1: timeout escalates from SIGTERM to forced process-tree termination",
+        "command": "node --test specs/316-agent-timeout-settlement/tests/agent-timeout-settlement.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 114
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/316-agent-timeout-settlement/tests/agent-timeout-settlement.test.js",
+        "test_name": "R2: timeout settlement is observed once after terminal races",
+        "command": "node --test specs/316-agent-timeout-settlement/tests/agent-timeout-settlement.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 114
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/316-agent-timeout-settlement/tests/agent-timeout-settlement.test.js",
+        "test_name": "R3: post-deadline close exposes the timeout error contract",
+        "command": "node --test specs/316-agent-timeout-settlement/tests/agent-timeout-settlement.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 114
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/316-agent-timeout-settlement/tests/agent-timeout-settlement.test.js",
+        "test_name": "R4: timeout completion leaves no descendant process alive",
+        "command": "node --test specs/316-agent-timeout-settlement/tests/agent-timeout-settlement.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 114
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/316-agent-timeout-settlement/tests/agent-timeout-settlement.test.js",
+        "test_name": "R5: spawn errors still reject with the existing spawn error contract",
+        "command": "node --test specs/316-agent-timeout-settlement/tests/agent-timeout-settlement.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 114
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/316-agent-timeout-settlement/tests/agent-timeout-settlement.test.js",
+        "test_name": "R6: successful Agent.call invocation still returns provider output",
+        "command": "node --test specs/316-agent-timeout-settlement/tests/agent-timeout-settlement.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 114
+        }
+      }
+    }
+  ]
+}

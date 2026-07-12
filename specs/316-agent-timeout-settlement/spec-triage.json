@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "All three blocking findings identify unresolved timeout lifecycle contracts and require bounded spec repairs.",
+  "items": [
+    {
+      "title": "Descendant termination has no concrete target",
+      "target": "R1/R4 and Overview > Data Flow",
+      "decision": "apply",
+      "rationale": "The no-descendant guarantee cannot be implemented or tested from direct-child signaling alone; the spec must identify a process-tree termination strategy and its platform behavior.",
+      "evidence": "src/lib/agent.js currently calls child.kill on a normally spawned child, while R4 requires descendants to be absent after settlement."
+    },
+    {
+      "title": "Grace expiry is treated as terminal before death is observable",
+      "target": "Design Principles, R2, R4",
+      "decision": "apply",
+      "rationale": "SIGKILL dispatch is not proof of process death, so timeout settlement must wait for an observable tree-dead and direct-child close condition within the bounded margin.",
+      "evidence": "The current spec names grace expiry as a terminal race but separately requires no live process after the returned failure."
+    },
+    {
+      "title": "Close after timeout has no caller-visible error contract",
+      "target": "R2/R3 and Acceptance Criteria",
+      "decision": "apply",
+      "rationale": "Deadline ownership must decide the result of a close during grace; otherwise success, ordinary exit error, and AgentTimeoutError are all plausible incompatible outcomes.",
+      "evidence": "R3 covers survival through SIGKILL and pre-deadline close, but does not define close after timeout has fired."
+    }
+  ]
+}

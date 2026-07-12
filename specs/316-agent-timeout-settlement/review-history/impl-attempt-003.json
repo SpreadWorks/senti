@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-11T15:45:25.052Z",
+  "verdict": "FAIL",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "title": "Required timeout scenario tests are absent",
+      "failureMode": "missing_acceptance_requirement",
+      "requirementId": "R5",
+      "issue": "The touched diff only changes `src/lib/agent.js`; it does not add or update the required automated timeout-settlement coverage in `specs/316-agent-timeout-settlement/tests/agent-timeout-settlement.test.js`.",
+      "suggestion": "Add the R5 tests in `specs/316-agent-timeout-settlement/tests/agent-timeout-settlement.test.js`, covering the required timeout, race, spawn-error, descendant-termination, and spec-local R1-R4 scenarios.",
+      "rationale": "R5 is mapped to a test file and is an acceptance requirement. Source-only changes do not satisfy the required automated coverage."
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/316-agent-timeout-settlement/impl-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "003eef97eaba08ff544bb7ca96ac0aab2304dcf78b1e42ecc72806fc884cce6b"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "impl-003-blocking-001",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Required timeout scenario tests are absent",
+      "body": "The touched diff only changes `src/lib/agent.js`; it does not add or update the required automated timeout-settlement coverage in `specs/316-agent-timeout-settlement/tests/agent-timeout-settlement.test.js`.",
+      "category": "missing_acceptance_requirement"
+    }
+  ]
+}

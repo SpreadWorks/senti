@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Defined platform process-tree termination, observable cleanup settlement, and post-deadline error ownership.",
+  "items": [
+    {
+      "title": "Descendant termination has no concrete target",
+      "target": "R1/R4 and Overview > Data Flow",
+      "decision": "applied",
+      "rationale": "Specified POSIX detached process groups and negative-PGID signals plus win32 taskkill tree termination, with no new package dependency.",
+      "evidence": "spec.json overview.data_flow[1..2], overview.decisions[4], requirements[0], requirements[3], and tasks[0] now define tree ownership and platform behavior.",
+      "changedFields": [
+        "design_principles[3]",
+        "overview.data_flow[1]",
+        "overview.data_flow[2]",
+        "overview.decisions[4]",
+        "requirements[0].desc",
+        "requirements[3].desc",
+        "acceptance_criteria[0]",
+        "tasks[0].acceptance[0]",
+        "tasks[0].implementation_notes"
+      ]
+    },
+    {
+      "title": "Grace expiry is treated as terminal before death is observable",
+      "target": "Design Principles, R2, R4",
+      "decision": "applied",
+      "rationale": "Separated forced-termination dispatch from terminal settlement and required direct close plus a platform tree-dead observation within a cleanup margin.",
+      "evidence": "spec.json design_principles[3], overview.data_flow[3], requirements[1], requirements[3], and acceptance_criteria[1] now require observable cleanup.",
+      "changedFields": [
+        "design_principles[3]",
+        "overview.data_flow[3]",
+        "overview.decisions[5]",
+        "requirements[1].desc",
+        "requirements[3].desc",
+        "acceptance_criteria[1]",
+        "tasks[0].acceptance[2]"
+      ]
+    },
+    {
+      "title": "Close after timeout has no caller-visible error contract",
+      "target": "R2/R3 and Acceptance Criteria",
+      "decision": "applied",
+      "rationale": "Made deadline ownership atomic: pre-deadline outcomes retain their contract, while every post-deadline close becomes a structured AgentTimeoutError after cleanup.",
+      "evidence": "spec.json design_principles[2], overview.data_flow[3], overview.decisions[5], requirements[2], acceptance_criteria[3], and tasks[1] now define the grace-window close result.",
+      "changedFields": [
+        "design_principles[2]",
+        "overview.data_flow[3]",
+        "overview.decisions[5]",
+        "requirements[2].desc",
+        "acceptance_criteria[3]",
+        "tasks[1].acceptance[0]",
+        "tasks[2].acceptance[1]"
+      ]
+    }
+  ]
+}

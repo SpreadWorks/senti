@@ -1,0 +1,114 @@
+[senti] scenario-validity tests start
+command: node --test specs/316-agent-timeout-settlement/tests/agent-timeout-settlement.test.js
+[senti] scenario-validity file start command=node specs/316-agent-timeout-settlement/tests/agent-timeout-settlement.test.js
+TAP version 13
+# Subtest: R1: timeout escalates from SIGTERM to forced process-tree termination
+not ok 1 - R1: timeout escalates from SIGTERM to forced process-tree termination
+  ---
+  duration_ms: 3366.390407
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-316-agent-timeout-settlement/specs/316-agent-timeout-settlement/tests/agent-timeout-settlement.test.js:62:1'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected rejection.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: [Function (anonymous)]
+  operator: 'rejects'
+  stack: |-
+    process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    async TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-316-agent-timeout-settlement/specs/316-agent-timeout-settlement/tests/agent-timeout-settlement.test.js:70:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: R2: timeout settlement is observed once after terminal races
+ok 2 - R2: timeout settlement is observed once after terminal races
+  ---
+  duration_ms: 9389.218243
+  type: 'test'
+  ...
+# Subtest: R3: post-deadline close exposes the timeout error contract
+not ok 3 - R3: post-deadline close exposes the timeout error contract
+  ---
+  duration_ms: 9660.523654
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-316-agent-timeout-settlement/specs/316-agent-timeout-settlement/tests/agent-timeout-settlement.test.js:90:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The validation function is expected to return "true". Received false
+    
+    Caught error:
+    
+    Error: empty response
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: [Function (anonymous)]
+  actual:
+  error: 'empty response'
+  stack: |-
+    Agent._callOnceWithRetry (file:///home/nakano/workspace/senti/.senti/worktree/feature-316-agent-timeout-settlement/src/lib/agent.js:317:21)
+    process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    async invoke (file:///home/nakano/workspace/senti/.senti/worktree/feature-316-agent-timeout-settlement/src/lib/agent.js:174:26)
+    async runWithLogging (file:///home/nakano/workspace/senti/.senti/worktree/feature-316-agent-timeout-settlement/src/lib/agent.js:872:14)
+    async Agent.call (file:///home/nakano/workspace/senti/.senti/worktree/feature-316-agent-timeout-settlement/src/lib/agent.js:165:18)
+    async waitForActual (node:assert:644:5)
+    async Function.rejects (node:assert:767:25)
+    async TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-316-agent-timeout-settlement/specs/316-agent-timeout-settlement/tests/agent-timeout-settlement.test.js:96:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  operator: 'rejects'
+  stack: |-
+    process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    async TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-316-agent-timeout-settlement/specs/316-agent-timeout-settlement/tests/agent-timeout-settlement.test.js:96:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R4: timeout completion leaves no descendant process alive
+not ok 4 - R4: timeout completion leaves no descendant process alive
+  ---
+  duration_ms: 3340.32895
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-316-agent-timeout-settlement/specs/316-agent-timeout-settlement/tests/agent-timeout-settlement.test.js:105:1'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected rejection.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  operator: 'rejects'
+  stack: |-
+    process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    async TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-316-agent-timeout-settlement/specs/316-agent-timeout-settlement/tests/agent-timeout-settlement.test.js:113:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R5: spawn errors still reject with the existing spawn error contract
+ok 5 - R5: spawn errors still reject with the existing spawn error contract
+  ---
+  duration_ms: 9017.534545
+  type: 'test'
+  ...
+# Subtest: R6: successful Agent.call invocation still returns provider output
+ok 6 - R6: successful Agent.call invocation still returns provider output
+  ---
+  duration_ms: 34.368699
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 3
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 34827.530156
+Command failed: node specs/316-agent-timeout-settlement/tests/agent-timeout-settlement.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/316-agent-timeout-settlement/tests/agent-timeout-settlement.test.js
+exitCode: 1
+[senti] requirement R1 observed: R1: timeout escalates from SIGTERM to forced process-tree termination
+[senti] requirement R2 observed: R2: timeout settlement is observed once after terminal races
+[senti] requirement R3 observed: R3: post-deadline close exposes the timeout error contract
+[senti] requirement R4 observed: R4: timeout completion leaves no descendant process alive
+[senti] requirement R5 observed: R5: spawn errors still reject with the existing spawn error contract
+[senti] requirement R6 observed: R6: successful Agent.call invocation still returns provider output
+[senti] scenario-validity tests end

@@ -1,0 +1,70 @@
+{
+  "devType": "bugfix",
+  "goal": "Resolve F-005 so an agent subprocess that ignores SIGTERM after timeout must settle within a bounded time and leave no child or descendant process behind.",
+  "analysis": {
+    "problem": "Agent._callOnce sends only SIGTERM at timeout and then waits for close or error, so a child that ignores SIGTERM can keep the caller pending; independent close, error, and timeout handlers also do not establish a single terminal owner.",
+    "proposedApproach": "Introduce a dedicated ChildProcessSupervisor and AgentTimeoutError at the agent subprocess boundary so termination escalates from SIGTERM to SIGKILL, terminal events settle once, and cleanup is owned by one component.",
+    "validation": "Automated unit and agent tests must reproduce a SIGTERM-ignoring child, an exit-adjacent timeout race, a spawn error, and a descendant-process case. The Agent.call regression suite must assert: provider command and substituted argument dispatch remain identical before supervisor ownership; resolved agent.timeout seconds still convert to the expected millisecond deadline and bound completion within deadline plus grace plus margin; zero-exit text is returned once; JSON parsing remains selected by profile; stdout and stderr callbacks receive their chunks; retry repeats a failed/empty invocation and returns the recovered response; stdin fallback returns the full prompt; logger start/end events and agent metrics are recorded once per call; prompt-cache hits retain their response and metric behavior; temporary schema files are removed after both success and failure; non-zero exit remains an Error rejection; and timeout is AgentTimeoutError after SIGKILL with no live direct child or descendant."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "src/lib/agent.js currently arms one timeout that calls child.kill(\"SIGTERM\") and clears it independently in close and error handlers.",
+      "The Issue declares F-005, src/lib/agent.js, tests/agent/, and tests/unit/lib/ as the must scope.",
+      "The prepared worktree does not contain .tmp/refactoring/report.md, so that temporary report cannot be direct test input.",
+      "The retained public surface is Agent.call: provider command invocation, successful text or parsed JSON result, non-zero/spawn error reporting, retry behavior, stdin fallback, callbacks, logger events, prompt cache metrics, agent.timeout configuration, and temporary schema-file cleanup."
+    ],
+    "decisionPoints": [
+      "The implementation must define a bounded grace period and an observable timeout failure contract.",
+      "The supervisor must own terminal-event arbitration and resource cleanup.",
+      "The implementation must terminate child descendants as well as the direct child when timeout occurs.",
+      "The supervisor must own only timeout lifecycle and terminal cleanup; Agent must retain invocation construction, output parsing, retry, callback, logging, cache, and schema-file cleanup ownership."
+    ],
+    "resolvedByProjectRules": [
+      "The repository must use Node.js built-ins only and represent meaningful runtime behavior with classes.",
+      "The Issue is one concern and must not be split into separate specifications.",
+      "Tests must demonstrate the failure before the fix and must not alter flow artifacts to force a pass."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "Exact grace-period value and process-group implementation details are deferred to source and test analysis.",
+      "The spec must map each acceptance criterion to an automated test or reproduction command.",
+      "The spec must map each retained Agent.call behavior to the existing owner or to ChildProcessSupervisor and include behavior-level regression evidence."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must update the agent subprocess boundary in src/lib/agent.js",
+      "must add ChildProcessSupervisor and AgentTimeoutError",
+      "must add automated timeout, race, spawn-error, descendant, and success-path regression coverage"
+    ],
+    "out": [
+      "must not address unrelated audit findings",
+      "must not publish packages, change dist-tags, or release software"
+    ]
+  },
+  "impactOnExisting": [
+    "must retain Agent.call invocation construction, provider parsing, retry behavior, stdin fallback, callbacks, logger events, prompt cache metrics, and schema-file cleanup under Agent ownership; ChildProcessSupervisor owns only direct-child and descendant timeout termination, terminal settlement, listeners, and timers.",
+    "must retain agent.timeout as the caller-visible timeout configuration; the new supervisor consumes its resolved timeout and adds a bounded internal grace period without a new public configuration surface.",
+    "must retain success behavior: zero-exit text and JSON responses, callback delivery, metrics, and retries must be verified through the Agent.call path after lifecycle ownership moves.",
+    "must retain failure behavior: spawn errors and non-zero exits remain Agent.call rejections, while timeout exhaustion becomes AgentTimeoutError with bounded completion and no surviving processes."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "Is there any remaining product decision that must constrain bounded timeout recovery behavior beyond the stated acceptance criteria?",
+      "answer": "No. The published Issue body is the accepted intent, and the worker must proceed without routine questions; its acceptance criteria define the required bounded recovery behavior.",
+      "evidence": "User instruction: accept the published Issue body as intent and proceed without asking routine questions; Issue #411 Acceptance Criteria; existing code pattern in src/lib/agent.js.",
+      "why": "The recommendation is based on the existing code pattern in src/lib/agent.js and the Issue acceptance criteria, which explicitly resolve the product-level timeout outcome while leaving implementation details to the spec.",
+      "considered": "Asking for a separate timeout-policy decision was rejected because it would repeat the accepted Issue intent.",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-11T11:20:43Z",
+    "notes": "The explicit worker authorization accepts the published Issue body as intent and supplies no unresolved product decision."
+  }
+}

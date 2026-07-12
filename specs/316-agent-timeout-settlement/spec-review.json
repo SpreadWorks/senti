@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "generatedAt": "2026-07-11T11:34:03.768Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 3,
+    "nonBlocking": 1,
+    "total": 4
+  },
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Descendant termination has no concrete target",
+      "target": "R1/R4 and Overview > Data Flow",
+      "body": "**Target:** R1/R4 and Overview > Data Flow\n**Issue:** Verified src/lib/agent.js currently spawns the provider as a normal child and the timeout calls child.kill(\"SIGTERM\"), which targets only the direct child. The spec requires no descendant process alive after timeout, but R1 only specifies SIGTERM/SIGKILL for the direct child and does not define process-group creation, descendant PID tracking, recursive termination, or platform behavior.\n**Required change:** Add a spec-level requirement or decision that defines how descendants are made killable and terminated before timeout settlement, such as supervised process-group signaling or explicit descendant PID tracking, including any supported-platform limits.\n**Why blocking:** An implementation can satisfy the direct-child SIGTERM/SIGKILL wording while leaving grandchildren alive, so R4 and the descendant acceptance test fail and can leak test fixture processes.",
+      "issue": "Verified src/lib/agent.js currently spawns the provider as a normal child and the timeout calls child.kill(\"SIGTERM\"), which targets only the direct child. The spec requires no descendant process alive after timeout, but R1 only specifies SIGTERM/SIGKILL for the direct child and does not define process-group creation, descendant PID tracking, recursive termination, or platform behavior.",
+      "requiredChange": "Add a spec-level requirement or decision that defines how descendants are made killable and terminated before timeout settlement, such as supervised process-group signaling or explicit descendant PID tracking, including any supported-platform limits.",
+      "whyBlocking": "An implementation can satisfy the direct-child SIGTERM/SIGKILL wording while leaving grandchildren alive, so R4 and the descendant acceptance test fail and can leak test fixture processes."
+    },
+    {
+      "kind": "blocking",
+      "title": "Grace expiry is treated as terminal before death is observable",
+      "target": "Design Principles, R2, R4",
+      "body": "**Target:** Design Principles, R2, R4\n**Issue:** The spec says grace expiry may be a terminal event and that Agent._callOnce settles with AgentTimeoutError after escalation, but R4 requires no direct child or descendant alive after the returned timeout failure settles. Sending SIGKILL is asynchronous, and existing Agent._callOnce uses close as the observable lifecycle endpoint for a spawned child.\n**Required change:** Specify that grace expiry initiates SIGKILL but timeout rejection occurs only after an observable direct-child/process-tree-dead cleanup point within the timeout-plus-grace-plus-margin budget, or explicitly relax the after-settlement no-live-process guarantee.\n**Why blocking:** If the supervisor rejects immediately when the grace timer fires, Agent.call can return while the child or descendants are still alive; if it waits for close/exit, tests and implementation timing differ from the stated terminal race model.",
+      "issue": "The spec says grace expiry may be a terminal event and that Agent._callOnce settles with AgentTimeoutError after escalation, but R4 requires no direct child or descendant alive after the returned timeout failure settles. Sending SIGKILL is asynchronous, and existing Agent._callOnce uses close as the observable lifecycle endpoint for a spawned child.",
+      "requiredChange": "Specify that grace expiry initiates SIGKILL but timeout rejection occurs only after an observable direct-child/process-tree-dead cleanup point within the timeout-plus-grace-plus-margin budget, or explicitly relax the after-settlement no-live-process guarantee.",
+      "whyBlocking": "If the supervisor rejects immediately when the grace timer fires, Agent.call can return while the child or descendants are still alive; if it waits for close/exit, tests and implementation timing differ from the stated terminal race model."
+    },
+    {
+      "kind": "blocking",
+      "title": "Close after timeout has no caller-visible error contract",
+      "target": "R2/R3 and Acceptance Criteria",
+      "body": "**Target:** R2/R3 and Acceptance Criteria\n**Issue:** Existing _callOnce resolves success on code 0 with no signal and formats non-zero/signal closes as ordinary Agent.call errors. The spec covers a close immediately before the deadline and a child that survives SIGTERM until SIGKILL, but it does not define the common path where the deadline fires, SIGTERM is sent, and the child exits during grace before SIGKILL, including exit 0 or a non-zero handler exit.\n**Required change:** Add the expected result for any close observed after the timeout deadline fires but before grace expiry, including whether timeout ownership overrides close as AgentTimeoutError or whether existing close error/success behavior is preserved, and which error fields/messages are required.\n**Why blocking:** Two implementations can both fit parts of the spec while exposing different Agent.call behavior: one may return success or exit=7 from the close handler, another may reject AgentTimeoutError. Regression and acceptance tests cannot be designed reliably without this rule.",
+      "issue": "Existing _callOnce resolves success on code 0 with no signal and formats non-zero/signal closes as ordinary Agent.call errors. The spec covers a close immediately before the deadline and a child that survives SIGTERM until SIGKILL, but it does not define the common path where the deadline fires, SIGTERM is sent, and the child exits during grace before SIGKILL, including exit 0 or a non-zero handler exit.",
+      "requiredChange": "Add the expected result for any close observed after the timeout deadline fires but before grace expiry, including whether timeout ownership overrides close as AgentTimeoutError or whether existing close error/success behavior is preserved, and which error fields/messages are required.",
+      "whyBlocking": "Two implementations can both fit parts of the spec while exposing different Agent.call behavior: one may return success or exit=7 from the close handler, another may reject AgentTimeoutError. Regression and acceptance tests cannot be designed reliably without this rule."
+    }
+  ],
+  "nonBlockingImprovements": [
+    {
+      "kind": "improvement",
+      "title": "List direct Agent references",
+      "target": "Codebase Context (related files)",
+      "body": "**Target:** Codebase Context (related files)\n**Improvement:** Add src/lib/agent.js, tests/unit/lib/agent.test.js, tests/unit/lib/agent-with-logger.test.js, and the recent specs/315-spawn-enoent-diagnostics agent test as related context for the retained Agent.call contract.\n**Why non-blocking:** The spec body already names the main module and required retained behaviors, so implementation is not blocked; the related-file list would just make discovery faster.",
+      "improvement": "Add src/lib/agent.js, tests/unit/lib/agent.test.js, tests/unit/lib/agent-with-logger.test.js, and the recent specs/315-spawn-enoent-diagnostics agent test as related context for the retained Agent.call contract.",
+      "whyNonBlocking": "The spec body already names the main module and required retained behaviors, so implementation is not blocked; the related-file list would just make discovery faster."
+    }
+  ]
+}

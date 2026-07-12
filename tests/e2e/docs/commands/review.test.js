@@ -103,6 +103,21 @@ describe("review CLI", () => {
     assert.match(stdout, /senti docs data/);
   });
 
+  it("passes when an empty {{data}} directive explicitly ignores unresolved data", () => {
+    tmp = setupPassingTmp();
+    const lines = ["# 01. Test", ""];
+    for (let i = 0; i < 10; i++) lines.push(`Line ${i}`);
+    lines.push('<!-- {{data("sample-node-command.controllers.list", {ignoreError: true})}} -->');
+    lines.push("");
+    lines.push('<!-- {{/data}} -->');
+    for (let i = 0; i < 5; i++) lines.push(`More ${i}`);
+    writeFile(tmp, "docs/data_test.md", lines.join("\n"));
+
+    const result = runReview(tmp);
+    assert.doesNotMatch(result, /unfilled \{\{data\}\}/);
+    assert.match(result, /PASSED/);
+  });
+
   it("does not fail on inline {{data}} examples in prose", () => {
     tmp = setupPassingTmp();
     const lines = ["# 01. Test", ""];

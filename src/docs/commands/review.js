@@ -169,6 +169,11 @@ function runReview(rawArgs, container) {
     const filePath = path.join(targetDir, f);
     const content = fs.readFileSync(filePath, "utf8");
     const lines = content.split("\n");
+    const blockDataDirectives = new Map(
+      parseDirectives(content)
+        .filter((directive) => directive.type === "data" && !directive.inline)
+        .map((directive) => [directive.line, directive]),
+    );
     let unfilledData = 0;
     let inFence = false;
     for (let i = 0; i < lines.length; i++) {
@@ -180,7 +185,8 @@ function runReview(rawArgs, container) {
         if (/^<!--\s*\{\{\/data\}\}\s*-->$/.test(lines[j].trim())) break;
         if (lines[j].trim() !== "") { hasContent = true; break; }
       }
-      if (!hasContent) unfilledData++;
+      const directive = blockDataDirectives.get(i);
+      if (!hasContent && directive?.params?.ignoreError !== true) unfilledData++;
     }
     if (unfilledData > 0) {
       reportFail("messages:review.unfilledData", { count: unfilledData, file: f });

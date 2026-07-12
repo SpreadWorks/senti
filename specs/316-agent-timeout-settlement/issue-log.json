@@ -1,0 +1,672 @@
+{
+  "entries": [
+    {
+      "step": "draft",
+      "reason": "auto-check rejected target guard flags before spec promotion",
+      "trigger": "CLI returned ARGS_ERROR for --expect-run-id on auto-check",
+      "resolution": "Used the documented preparing-mode command with explicit --run-id only",
+      "guardrailCandidate": "Preparing commands must expose their supported target guard contract",
+      "taskId": null,
+      "timestamp": "2026-07-11T11:16:58.797Z"
+    },
+    {
+      "step": "draft",
+      "reason": "Two target-bound flow mutations were launched concurrently",
+      "trigger": "Dispatcher violated foreground serial command discipline",
+      "resolution": "All remaining senti commands will run one at a time and be inspected",
+      "guardrailCandidate": "Never dispatch parallel or chained senti flow commands",
+      "taskId": null,
+      "timestamp": "2026-07-11T11:17:04.609Z"
+    },
+    {
+      "step": "draft",
+      "reason": "Draft guardrail lookup reported missing node-cli preset",
+      "trigger": "get guardrail draft emitted resolveChain preset warning",
+      "resolution": "Continued with the guardrail content returned by the CLI",
+      "guardrailCandidate": "Guardrail lookup should resolve configured preset chains without warnings",
+      "taskId": null,
+      "timestamp": "2026-07-11T11:17:37.678Z"
+    },
+    {
+      "step": "draft",
+      "reason": "Documentation freshness check found source newer than generated docs",
+      "trigger": "senti check freshness returned stale before implementation",
+      "resolution": "Will run required documentation synchronization after source changes",
+      "guardrailCandidate": "Source changes require current generated documentation evidence",
+      "taskId": null,
+      "timestamp": "2026-07-11T11:17:41.868Z"
+    },
+    {
+      "step": "draft",
+      "reason": "Issue-referenced F-005 report is absent from the prepared worktree",
+      "trigger": "Requested .tmp/refactoring/report.md could not be read in the worktree",
+      "resolution": "Will make source and automated regression evidence trace the finding without relying on absent report",
+      "guardrailCandidate": "Issue verification references must exist in the prepared worktree or cite a durable source",
+      "taskId": null,
+      "timestamp": "2026-07-11T11:18:18.373Z"
+    },
+    {
+      "step": "draft-questions-review",
+      "reason": "Draft question review returned one advisory finding",
+      "trigger": "Static review classified the initial QA list as ADVISORY",
+      "resolution": "Will inspect and dispose the finding through the required triage step",
+      "guardrailCandidate": "Draft QA prompts should avoid redundant decisions already fixed by Issue intent",
+      "taskId": null,
+      "timestamp": "2026-07-11T11:19:16.093Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The draft introduces subprocess-lifecycle replacement behavior but does not provide an explicit inventory of existing public behavior being moved or replaced (commands/APIs/hooks/config/artifacts/side effects) before implementation.; Retained behaviors are listed (success responses, retry behavior, provider parsing, stdin fallback, logger integration) but the draft does not map each retained behavior to a new owner or give explicit removal decisions.; Validation intent lists scenarios to test but does not define behavior-level parity acceptance for each retained public surface through the new timeout/replacement path.; The question/answer entry provides a conclusion but does not explicitly state the basis as one of the required categories (project docs, guardrail principles, or existing code patterns).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-11T11:21:03.548Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "scopeVerification"
+          },
+          "observed": "The draft introduces subprocess-lifecycle replacement behavior but does not provide an explicit inventory of existing public behavior being moved or replaced (commands/APIs/hooks/config/artifacts/side effects) before implementation.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "impactOnExisting"
+          },
+          "observed": "Retained behaviors are listed (success responses, retry behavior, provider parsing, stdin fallback, logger integration) but the draft does not map each retained behavior to a new owner or give explicit removal decisions.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "validation"
+          },
+          "observed": "Validation intent lists scenarios to test but does not define behavior-level parity acceptance for each retained public surface through the new timeout/replacement path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "draft-content",
+            "locator": "qa[0]"
+          },
+          "observed": "The question/answer entry provides a conclusion but does not explicitly state the basis as one of the required categories (project docs, guardrail principles, or existing code patterns).",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft introduces subprocess-lifecycle replacement behavior but does not provide an explicit inventory of existing public behavior being moved or replaced (commands/APIs/hooks/config/artifacts/side effects) before implementation."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "Retained behaviors are listed (success responses, retry behavior, provider parsing, stdin fallback, logger integration) but the draft does not map each retained behavior to a new owner or give explicit removal decisions."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "Validation intent lists scenarios to test but does not define behavior-level parity acceptance for each retained public surface through the new timeout/replacement path."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "The question/answer entry provides a conclusion but does not explicitly state the basis as one of the required categories (project docs, guardrail principles, or existing code patterns)."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate found four migration-parity and QA-reasoning violations",
+      "trigger": "Gate required behavior inventory, owner mapping, parity checks, and explicit recommendation basis",
+      "resolution": "Will add all requested draft-level parity mappings and evidence before retrying",
+      "guardrailCandidate": "Lifecycle replacements require explicit public behavior ownership and verification mapping",
+      "taskId": null,
+      "timestamp": "2026-07-11T11:21:08.958Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "“existing successful invocation behavior must remain covered” is not a verifiable condition by itself; it does not define what test outcomes, metrics, or assertions count as sufficient coverage.; Migration parity is not concretely defined in this draft: retained Agent.call surfaces are named, but there is no explicit behavior-level acceptance criterion per retained public surface (callbacks, logger events, prompt-cache metrics, schema-file cleanup, etc.) proving they still work through the new ChildProcessSupervisor path.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-11T11:21:45.001Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "draft-content",
+            "locator": "validation"
+          },
+          "observed": "“existing successful invocation behavior must remain covered” is not a verifiable condition by itself; it does not define what test outcomes, metrics, or assertions count as sufficient coverage.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "validation"
+          },
+          "observed": "Migration parity is not concretely defined in this draft: retained Agent.call surfaces are named, but there is no explicit behavior-level acceptance criterion per retained public surface (callbacks, logger events, prompt-cache metrics, schema-file cleanup, etc.) proving they still work through the new ChildProcessSupervisor path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "“existing successful invocation behavior must remain covered” is not a verifiable condition by itself; it does not define what test outcomes, metrics, or assertions count as sufficient coverage."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "Migration parity is not concretely defined in this draft: retained Agent.call surfaces are named, but there is no explicit behavior-level acceptance criterion per retained public surface (callbacks, logger events, prompt-cache metrics, schema-file cleanup, etc.) proving they still work through the new ChildProcessSupervisor path."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Second draft gate still lacked concrete parity acceptance assertions",
+      "trigger": "Gate required exact behavior-level checks for retained Agent.call surfaces",
+      "resolution": "Will replace general regression wording with named observable assertions",
+      "guardrailCandidate": "Parity claims must enumerate observable checks for every retained public surface",
+      "taskId": null,
+      "timestamp": "2026-07-11T11:21:51.748Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The retained behavior list includes Agent.call provider command invocation, but no behavior-level acceptance criterion explicitly verifies invocation construction/dispatch still works through the new ChildProcessSupervisor path; the listed regressions focus on output/callback/timeout behavior only.; `agent.timeout` is identified as a retained public config and behavior, yet the validation criteria do not include any test or reproduction proving caller-visible timeout semantics and resolver behavior are preserved after moving timeout handling into ChildProcessSupervisor.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-11T11:22:14.417Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "validation"
+          },
+          "observed": "The retained behavior list includes Agent.call provider command invocation, but no behavior-level acceptance criterion explicitly verifies invocation construction/dispatch still works through the new ChildProcessSupervisor path; the listed regressions focus on output/callback/timeout behavior only.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "impactOnExisting[1]/validation"
+          },
+          "observed": "`agent.timeout` is identified as a retained public config and behavior, yet the validation criteria do not include any test or reproduction proving caller-visible timeout semantics and resolver behavior are preserved after moving timeout handling into ChildProcessSupervisor.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The retained behavior list includes Agent.call provider command invocation, but no behavior-level acceptance criterion explicitly verifies invocation construction/dispatch still works through the new ChildProcessSupervisor path; the listed regressions focus on output/callback/timeout behavior only."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "`agent.timeout` is identified as a retained public config and behavior, yet the validation criteria do not include any test or reproduction proving caller-visible timeout semantics and resolver behavior are preserved after moving timeout handling into ChildProcessSupervisor."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Third draft gate required invocation and configured-timeout parity checks",
+      "trigger": "Gate found two retained public surfaces without named validation",
+      "resolution": "Will add dispatch construction and timeout resolver assertions to the draft",
+      "guardrailCandidate": "Every retained public surface needs an explicit behavior-level assertion",
+      "taskId": null,
+      "timestamp": "2026-07-11T11:22:20.223Z"
+    },
+    {
+      "step": "spec-review",
+      "reason": "Spec review command ended without envelope and left review step in progress",
+      "trigger": "Runtime log sequence 38 has no completion record and no review process remains",
+      "resolution": "Preserved flow state and will return guarded resume command rather than mutate step state",
+      "guardrailCandidate": "Review execution must finalize runtime logs and flow step state on every exit path",
+      "taskId": null,
+      "timestamp": "2026-07-11T11:25:30.189Z"
+    },
+    {
+      "step": "spec-review",
+      "reason": "Guarded spec review retry again returned no envelope and remains incomplete",
+      "trigger": "Second review invocation created an unfinished runtime log sequence with no surviving process",
+      "resolution": "Stopped retries before exhausting review budget and preserved the worktree for recovery",
+      "guardrailCandidate": "External review execution must return a terminal envelope before mutating flow progress",
+      "taskId": null,
+      "timestamp": "2026-07-11T11:26:25.197Z"
+    },
+    {
+      "step": "spec-review",
+      "reason": "Earlier empty-envelope diagnosis misclassified a yielded review process as terminated",
+      "trigger": "The worker started status and recovery commands before the long-running agent tool call emitted completion",
+      "resolution": "The parent retained the foreground execution session, waited through every yield, and received the valid FAIL review artifact before triage and repair",
+      "guardrailCandidate": "A yielded command remains active until its cell or session returns a terminal exit code",
+      "taskId": null,
+      "timestamp": "2026-07-11T11:54:20.067Z"
+    },
+    {
+      "step": "spec-review",
+      "reason": "Earlier spec-review attempts were yielded agent processes, not terminal empty-envelope failures",
+      "trigger": "Parent completed a guarded foreground review and confirmed the prior commands had not finished",
+      "resolution": "Corrected the incident record; future yielded commands will be waited to terminal completion before any follow-up",
+      "guardrailCandidate": "A yielded tool command remains active until its terminal completion is observed",
+      "taskId": null,
+      "timestamp": "2026-07-11T14:49:55.236Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Test review left an unfinished runtime log entry after terminal tool wait",
+      "trigger": "The guarded review returned no envelope, the step stayed in progress, and no review process remained",
+      "resolution": "Preserved the worktree and did not rerun review without changed test evidence",
+      "guardrailCandidate": "A review command must write a terminal envelope and runtime-log end record before follow-up actions",
+      "taskId": null,
+      "timestamp": "2026-07-11T14:53:31.376Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Earlier handoff misdiagnosed normal sequence 69 review completion as an unfinished yielded command",
+      "trigger": "Runtime sequence 69 ended with exit code 0 and test-review.json recorded seven blocking findings",
+      "resolution": "Corrected the diagnosis and will repair the actual static review findings before rerunning review",
+      "guardrailCandidate": "Check terminal runtime records and review artifacts before classifying a yielded command failure",
+      "taskId": null,
+      "timestamp": "2026-07-11T15:03:19.363Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Second test-review repair added the four missing executable coverage areas",
+      "trigger": "Latest review required R6 regression surfaces, injected win32 cleanup, fixed timing margin, and explicit R5 scenario mapping",
+      "resolution": "Added focused R1/R4 win32, R3 fixed-margin, R5 scenario, and R6 regression tests",
+      "guardrailCandidate": "Coverage artifacts must map every required scenario to executable test evidence",
+      "taskId": null,
+      "timestamp": "2026-07-11T15:06:57.580Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Third test-review repair replaced synthetic R6 checks and stabilized managed-tree fixtures",
+      "trigger": "Review required Agent.call JSON and regression execution plus reliable POSIX descendant ownership",
+      "resolution": "JSON and retry tests now invoke Agent.call; fixture parent remains in the managed tree until supervisor cleanup",
+      "guardrailCandidate": "Spec tests must observe production paths and use fixtures with explicit lifecycle ownership",
+      "taskId": null,
+      "timestamp": "2026-07-11T15:08:12.674Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Static test review found three blockers caused by synthetic test-only evidence and one naming advisory.",
+      "trigger": "The completed 2026-07-11T15:08:46.369Z review returned a real FAIL verdict.",
+      "resolution": "Replace synthetic assertions with observable supervisor-path behavior and clarify the R5 spawn-error scenario name.",
+      "guardrailCandidate": "Tests must assert production-observable effects rather than test-only snapshots or aggregate fixtures.",
+      "taskId": null,
+      "timestamp": "2026-07-11T15:13:06.281Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Second static review found the timeout-close race relied on a five-millisecond scheduler gap and an unused-helper advisory.",
+      "trigger": "Review after replacing synthetic evidence returned one blocker and one advisory.",
+      "resolution": "Introduce a deterministic deadline-owned synchronization seam before the child exits and remove unused helper parameters.",
+      "guardrailCandidate": "Race tests must establish event ordering with a production-observable synchronization point, not wall-clock proximity.",
+      "taskId": null,
+      "timestamp": "2026-07-11T15:15:55.180Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "The review retry budget was already exhausted, so the final repaired test design was deferred without a new static verdict.",
+      "trigger": "The guarded review command returned DEFERRED at attempts=5 instead of evaluating the changed race test.",
+      "resolution": "Preserve the repaired tests and carry the deferred finding to mandatory implementation and acceptance review.",
+      "guardrailCandidate": "When review retries are exhausted, preserve changed evidence and rely on the dispatcher-defined deferred disposition rather than fabricating a pass.",
+      "taskId": null,
+      "timestamp": "2026-07-11T15:16:22.056Z"
+    },
+    {
+      "step": "implement",
+      "reason": "Implement completion validation rejected the step because R5-R7 were pending and no requirement file-map entries existed.",
+      "trigger": "Guarded flow set step implement done returned IMPLEMENT_COMPLETION_VALIDATION_FAILED.",
+      "resolution": "Record the implemented source and repaired spec-local tests for every testable requirement, then synchronize documentation for R7.",
+      "guardrailCandidate": "Before completing implementation, update each requirement state and its changed-file mapping required by the dispatcher.",
+      "taskId": null,
+      "timestamp": "2026-07-11T15:20:08.178Z"
+    },
+    {
+      "step": "implement",
+      "reason": "The runtime-log command rejects required target guards, so its output cannot be read without violating target-binding discipline.",
+      "trigger": "Guarded senti flow get runtime-log returned ARGS_ERROR for --expect-run-id.",
+      "resolution": "Use target-aware status and repository artifacts as evidence; do not invoke the unguarded runtime-log command.",
+      "guardrailCandidate": "Do not bypass target guards for flow diagnostics when a CLI subcommand lacks guard support.",
+      "taskId": null,
+      "timestamp": "2026-07-11T15:21:09.940Z"
+    },
+    {
+      "step": "test-result-review",
+      "reason": "Required real-agent regression cannot load its acceptance pipeline module",
+      "trigger": "tests/agent/report.test.js imports missing acceptance/lib/pipeline.js",
+      "resolution": "Recorded unrelated missing-module failure; no valid test weakened",
+      "guardrailCandidate": "Agent regression tests must resolve all declared local imports before execution",
+      "taskId": null,
+      "timestamp": "2026-07-11T15:34:45.489Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Implementation review found synthetic POSIX timeout settlement and unowned poll timer",
+      "trigger": "impl-review FAIL identified R2 and R4 contradictions in ChildProcessSupervisor",
+      "resolution": "Removed forced-success cleanup; tracked and cleared tree-death polling timer",
+      "guardrailCandidate": "Timeout settlement requires observed tree death and owned cleanup timers",
+      "taskId": null,
+      "timestamp": "2026-07-11T15:41:28.134Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Implementation review cannot see spec-local tests because generated spec directory is untracked",
+      "trigger": "Review reports source-only diff although required test file exists and test execution evidence names it",
+      "resolution": "Staging is unavailable because shared worktree Git metadata is read-only; acceptance must verify executable evidence",
+      "guardrailCandidate": "Implementation review must inspect declared spec-local test evidence, including untracked flow artifacts",
+      "taskId": null,
+      "timestamp": "2026-07-11T15:42:32.073Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Integration gate rejected stale spec-local test execution evidence after supervisor repair",
+      "trigger": "Gate reported ARTIFACT_PLACEHOLDER for R1, R2, R3, R4, and R6 evidence",
+      "resolution": "Regenerate test-execute through the flow-owned execution command before gate retry",
+      "guardrailCandidate": "Supervisor repairs require regenerated requirement evidence before integration validation",
+      "taskId": null,
+      "timestamp": "2026-07-11T15:46:11.895Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Regenerated test execution invalidated its prior evidence review artifact",
+      "trigger": "Gate reported ARTIFACT_PLACEHOLDER because test-result-review.json was missing",
+      "resolution": "Regenerate test-result-review from the current v2 execution evidence before gate retry",
+      "guardrailCandidate": "Execution artifact regeneration requires a new independent result review",
+      "taskId": null,
+      "timestamp": "2026-07-11T15:46:53.031Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Output-stream wait experiment caused the spec test worker to fail without diagnostics",
+      "trigger": "Direct repair verification exited with ERR_TEST_FAILURE after adding stream-end waiting",
+      "resolution": "Removed the unsupported stream wait; retain supervisor-only lifecycle ownership",
+      "guardrailCandidate": "Do not add stream completion ownership to the timeout supervisor without a stable stream contract",
+      "taskId": null,
+      "timestamp": "2026-07-11T15:50:32.107Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "R6 cache test deleted sibling workspaces through a shared afterEach cleanup",
+      "trigger": "Fresh test-execute showed cache file absent although cache context was valid",
+      "resolution": "Moved shared fixture cleanup to file-level after so concurrent scenarios retain their own workspaces",
+      "guardrailCandidate": "Shared test-fixture cleanup must run after the file, not after individual concurrent scenarios",
+      "taskId": null,
+      "timestamp": "2026-07-11T15:51:42.047Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "R6 cache assertion used a different temporary root than the Agent fixture",
+      "trigger": "Cache diagnostic showed agentFor created a second root while assertion inspected the outer root",
+      "resolution": "Allowed agentFor to receive the test root and used it for the R6 cache scenario",
+      "guardrailCandidate": "Fixture helpers must expose the workspace whose persistent effects tests assert",
+      "taskId": null,
+      "timestamp": "2026-07-11T15:53:19.844Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "R3 and R4 fixtures could time out before child handlers and PID records initialized",
+      "trigger": "Fresh execution observed SIGTERM success and a missing PID file under startup scheduling pressure",
+      "resolution": "Extended only setup-sensitive fixture deadlines while preserving timeout escalation assertions",
+      "guardrailCandidate": "Timeout fixtures must allow child readiness before testing termination behavior",
+      "taskId": null,
+      "timestamp": "2026-07-11T15:54:11.328Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff does not show any implementation for post-source-update documentation synchronization or flow-evidence recording; it primarily adds agent timeout/supervision code in `src/lib/agent.js` and related R1–R6 tests, with no observable flow where generated docs are synced and then persisted as evidence.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-11T15:56:25.306Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R7",
+          "where": null,
+          "observed": "The diff does not show any implementation for post-source-update documentation synchronization or flow-evidence recording; it primarily adds agent timeout/supervision code in `src/lib/agent.js` and related R1–R6 tests, with no observable flow where generated docs are synced and then persisted as evidence.",
+          "severity": "blocking",
+          "refs": [
+            "R7"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R6",
+        "R5"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R7",
+          "reason": "The diff does not show any implementation for post-source-update documentation synchronization or flow-evidence recording; it primarily adds agent timeout/supervision code in `src/lib/agent.js` and related R1–R6 tests, with no observable flow where generated docs are synced and then persisted as evidence."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Documentation synchronization failed because generated docs still contain unfilled data directives",
+      "trigger": "senti flow run sync docs review reported missing data in overview, stack_and_ops, and project_structure",
+      "resolution": "Regenerate documentation data in the worktree before retrying flow sync",
+      "guardrailCandidate": "Documentation sync must regenerate directive data before the review stage",
+      "taskId": null,
+      "timestamp": "2026-07-11T15:57:22.909Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Documentation sync remains blocked after data regeneration by unavailable preset directive values",
+      "trigger": "Second flow sync still reports unfilled overview, stack_and_ops, and project_structure data directives",
+      "resolution": "No safe in-scope repair: required preset data resolves null; retain failure evidence for user direction",
+      "guardrailCandidate": "Docs sync must surface unavailable directive sources instead of accepting partial generated output",
+      "taskId": null,
+      "timestamp": "2026-07-11T15:58:04.548Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Baseline docs review contradicts ignoreError directive semantics and blocks required R7 sync",
+      "trigger": "A clean detached main worktree reproduced three unfilled-data failures for intentionally empty cross-preset blocks",
+      "resolution": "Reuse parseDirectives params in docs review, exempt only ignoreError=true empty blocks, and retain the broader parser class refactor in Issue 425",
+      "guardrailCandidate": "Docs review must not reject the resolver's documented ignoreError empty-block output",
+      "taskId": null,
+      "timestamp": "2026-07-11T16:08:48.171Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff does not show any changes implementing documentation synchronization after a source update or recording that result into flow evidence. Added/modified code and tests focus on agent timeout supervision, docs review handling, and metadata/test updates; no flow-level docs-sync + evidence write path is introduced.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-11T16:10:30.465Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R7",
+          "where": null,
+          "observed": "The diff does not show any changes implementing documentation synchronization after a source update or recording that result into flow evidence. Added/modified code and tests focus on agent timeout supervision, docs review handling, and metadata/test updates; no flow-level docs-sync + evidence write path is introduced.",
+          "severity": "blocking",
+          "refs": [
+            "R7"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R7",
+          "reason": "The diff does not show any changes implementing documentation synchronization after a source update or recording that result into flow evidence. Added/modified code and tests focus on agent timeout supervision, docs review handling, and metadata/test updates; no flow-level docs-sync + evidence write path is introduced."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "R7 wording allowed gate to infer a new sync implementation instead of an operational sync run",
+      "trigger": "Gate retry still failed R7 after self-hosted docs sync passed and committed generated output",
+      "resolution": "Clarified R7 as use of the existing sync path and recorded successful docs review plus commit 44a65981 as evidence",
+      "guardrailCandidate": "Operational synchronization requirements must distinguish execution evidence from implementation changes",
+      "taskId": null,
+      "timestamp": "2026-07-11T16:11:14.142Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The provided diff contains no documentation-sync flow execution step, no runtime result artifact (e.g., flow log entry indicating successful docs-sync run), and no generated-doc commit recorded as flow evidence. It only includes code updates and markdown changes, so the operational requirement is not implemented in this patch.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-11T16:11:34.895Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R7",
+          "where": null,
+          "observed": "The provided diff contains no documentation-sync flow execution step, no runtime result artifact (e.g., flow log entry indicating successful docs-sync run), and no generated-doc commit recorded as flow evidence. It only includes code updates and markdown changes, so the operational requirement is not implemented in this patch.",
+          "severity": "blocking",
+          "refs": [
+            "R7"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R7",
+          "reason": "The provided diff contains no documentation-sync flow execution step, no runtime result artifact (e.g., flow log entry indicating successful docs-sync run), and no generated-doc commit recorded as flow evidence. It only includes code updates and markdown changes, so the operational requirement is not implemented in this patch."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Gate input excluded the successful sync runtime log and therefore could not verify R7 evidence",
+      "trigger": "Second R7 retry requested a runtime result artifact despite sequence 164 succeeding",
+      "resolution": "Persisted the exact sequence 164 envelope in docs-sync-evidence.json, mapped it to R7, and exposed spec artifacts through intent-to-add",
+      "guardrailCandidate": "Operational evidence required by semantic gates must be durable and included in gate context",
+      "taskId": null,
+      "timestamp": "2026-07-11T16:13:09.787Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "R7 is non-testable and cannot appear in file-map.json",
+      "trigger": "Gate preflight rejected the evidence mapping with ARTIFACT_PLACEHOLDER unknown requirement R7",
+      "resolution": "Removed only the invalid R7 file-map entry while retaining the standalone runtime evidence artifact in the visible spec diff",
+      "guardrailCandidate": "File-map entries must be limited to testable requirement ids",
+      "taskId": null,
+      "timestamp": "2026-07-11T16:13:41.463Z"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "AI evaluation response is not valid JSON: Unexpected non-whitespace character after JSON at position 766 (line 1 column 767)",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-07-11T16:14:37.765Z"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "Gate provider returned malformed JSON after receiving an oversized intent-to-add spec diff",
+      "trigger": "Sequence 173 failed with ESCALATE_RETRY_EXHAUSTED at JSON position 766 and no semantic verdict",
+      "resolution": "Reduced visible intent-to-add scope from the entire spec directory to docs-sync-evidence.json only; no evidence content changed",
+      "guardrailCandidate": "Gate context should include only evidence needed for the active unresolved requirement",
+      "taskId": null,
+      "timestamp": "2026-07-11T16:16:02.726Z"
+    },
+    {
+      "step": "implement",
+      "reason": "Acceptance review lacked final dispositions for two deferred review findings",
+      "trigger": "First acceptance review returned amend_required with DF-1 and DF-2 still_open",
+      "resolution": "Recorded standard acceptance evidence: DF-1 fixed by deterministic deadline-owned R5 test; DF-2 fixed by visible R1-R6 spec tests and passing execution/gate evidence",
+      "guardrailCandidate": "Deferred findings must carry final dispositions with durable source and execution references before acceptance review",
+      "taskId": null,
+      "timestamp": "2026-07-11T16:19:04.193Z"
+    },
+    {
+      "step": "finalize-commit",
+      "reason": "The required resolve-context command rejected mandatory target guards with ARGS_ERROR.",
+      "trigger": "Guarded finalize-commit context resolution before any commit operation.",
+      "resolution": "Flow halted without running finalize-commit; target-binding support or an approved protocol correction is required.",
+      "guardrailCandidate": "All active-flow context resolvers used by next-action instructions must accept the standard target guard arguments.",
+      "taskId": null,
+      "timestamp": "2026-07-11T19:47:37.532Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-07-12T10:06:21.770Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "The initial squash merge detected generated documentation conflicts after main advanced.",
+      "trigger": "The guarded finalize-merge command prescribed rebasing the feature worktree onto current main.",
+      "resolution": "Rebased onto main and dropped the obsolete generated-only docs commit so finalize-sync can regenerate from the current baseline; all Issue 411 source, tests, and evidence were preserved.",
+      "guardrailCandidate": "When main advances after an early docs sync, resolve generated-doc conflicts from current main and regenerate during finalize-sync.",
+      "taskId": null,
+      "timestamp": "2026-07-12T10:08:40.543Z"
+    }
+  ]
+}

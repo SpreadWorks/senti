@@ -1,0 +1,962 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".senti/output/analysis.json                        |  332 ++--\n README.md                                          |    8 +-\n docs/ja/project_structure.md                       |    8 +-\n docs/project_structure.md                          |    8 +-\n .../acceptance-review-evidence.json                |   22 +\n .../acceptance-review.json                         |   46 +\n .../docs-sync-evidence.json                        |   25 +\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-gate-source.json                         |   83 +\n .../draft-questions-repair.json                    |   15 +\n .../draft-questions-triage.json                    |   15 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   19 +\n specs/316-agent-timeout-settlement/draft.json      |   70 +\n specs/316-agent-timeout-settlement/file-map.json   |   25 +\n .../flow-findings.json                             |   27 +\n specs/316-agent-timeout-settlement/flow.json       | 1597 ++++++++++++++++++++\n .../316-agent-timeout-settlement/impl-review.json  |   38 +\n specs/316-agent-timeout-settlement/issue-log.json  |  658 ++++++++\n specs/316-agent-timeout-settlement/issue.md        |  106 ++\n .../plugin-artifacts/workflow/prepare.json         |   10 +\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |   33 +\n .../review-history/impl-attempt-001.json           |  107 ++\n .../review-history/impl-attempt-001.md             |   45 +\n .../review-history/impl-attempt-002.json           |   51 +\n .../review-history/impl-attempt-002.md             |   22 +\n .../review-history/impl-attempt-003.json           |   51 +\n .../review-history/impl-attempt-003.md             |   22 +\n .../review-history/impl-attempt-004.json           |   51 +\n .../review-history/impl-attempt-004.md             |   22 +\n .../review-history/spec-attempt-001.json           |   94 ++\n .../review-history/spec-attempt-001.md             |   31 +\n .../review-history/test-attempt-001.json           |  188 +++\n .../review-history/test-attempt-001.md             |   57 +\n .../review-history/test-attempt-002.json           |  110 ++\n .../review-history/test-attempt-002.md             |   36 +\n .../review-history/test-attempt-003.json           |  108 ++\n .../review-history/test-attempt-003.md             |   33 +\n .../review-history/test-attempt-004.json           |  108 ++\n .../review-history/test-attempt-004.md             |   33 +\n .../review-history/test-attempt-005.json           |   68 +\n .../review-history/test-attempt-005.md             |   21 +\n specs/316-agent-timeout-settlement/review.md       |   22 +\n .../316-agent-timeout-settlement/spec-repair.json  |   58 +\n .../316-agent-timeout-settlement/spec-review.json  |   50 +\n specs/316-agent-timeout-settlement/spec-review.md  |   31 +\n .../316-agent-timeout-settlement/spec-triage.json  |   29 +\n specs/316-agent-timeout-settlement/spec.json       |  258 ++++\n specs/316-agent-timeout-settlement/spec.md         |  117 ++\n specs/316-agent-timeout-settlement/tasks/T-1.md    |   20 +\n specs/316-agent-timeout-settlement/tasks/T-2.md    |   20 +\n specs/316-agent-timeout-settlement/tasks/T-3.md    |   20 +\n specs/316-agent-timeout-settlement/tasks/T-4.md    |   18 +\n .../test-coverage.json                             |   93 ++\n .../316-agent-timeout-settlement/test-review.json  |   45 +\n specs/316-agent-timeout-settlement/test-review.md  |   21 +\n .../tests/agent-timeout-settlement.test.js         |  180 +++\n src/docs/commands/review.js                        |    8 +-\n src/lib/agent.js                                   |  264 +++-\n tests/e2e/docs/commands/review.test.js             |   15 +\n 62 files changed, 5531 insertions(+), 182 deletions(-)",
+      "commits": [
+        "feat: feature/316-agent-timeout-settlement",
+        "docs: sync documentation"
+      ]
+    },
+    "retro": {
+      "total": 6,
+      "done": 6,
+      "partial": 0,
+      "not_done": 0,
+      "not_applicable_count": 0,
+      "na_count": 1,
+      "not_testable_count": 1,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "Add ChildProcessSupervisor and AgentTimeoutError in src/lib/agent.js. Spawn provider commands as managed trees: a detached process group on POSIX and a win32 child compatible with taskkill /T. At the resolved agent.timeout deadline, atomically claim timeout ownership and send SIGTERM to the POSIX group or direct win32 child; after one bounded internal grace period, send SIGKILL to the POSIX group or run taskkill /PID <pid> /T /F on win32.",
+          "status": "done",
+          "note": "R1: POSIX supervision uses a detached group and TERM-to-KILL escalation"
+        },
+        {
+          "desc": "ChildProcessSupervisor shall arbitrate close, error, timeout, grace expiry, forced termination completion, and process-tree-dead observation so Agent._callOnce observes exactly one terminal result and every terminal path removes all registered listeners and timers. Grace expiry initiates forced termination but is not itself a successful cleanup observation.",
+          "status": "done",
+          "note": "R2: supervisor arbitrates terminal events and releases listeners and timers"
+        },
+        {
+          "desc": "A pre-deadline close or spawn error shall retain existing success or non-timeout error behavior. Once the deadline fires, any later close, including exit 0 or non-zero during grace, shall reject as AgentTimeoutError after cleanup. The error shall expose code AGENT_TIMEOUT, timeoutMs, graceMs, the final termination signal/action, and killed=true, and shall settle within timeout plus grace plus a fixed cleanup/test margin.",
+          "status": "done",
+          "note": "R3: timeout error exposes final action and bounded timing while ordinary failures stay ordinary"
+        },
+        {
+          "desc": "Timeout termination shall not settle until the direct child has emitted close and the managed tree is observably dead: POSIX process-group signal-0 probing returns ESRCH, or win32 taskkill /T /F has completed and the direct child has closed. No recorded direct or descendant PID may remain alive after the returned timeout failure.",
+          "status": "done",
+          "note": "R4: timeout waits for direct close and complete descendant tree death"
+        },
+        {
+          "desc": "Automated tests shall reproduce a SIGTERM-ignoring child, a timeout immediately before exit, spawn error, and descendant-process termination; spec-local files shall cover R1 through R4 with // spec: R<N> headers.",
+          "status": "done",
+          "note": "R5: exit immediately after deadline rejects by code instead of returning a close result"
+        },
+        {
+          "desc": "Regression tests shall prove unchanged Agent.call command/argument dispatch, agent.timeout resolution, success text and JSON results, callbacks, retry, stdin fallback, logging, metrics, cache behavior, schema cleanup, and non-timeout failure behavior through the supervisor path.",
+          "status": "done",
+          "note": "R6: timeout resolution and JSON provider result remain executable"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 47,
+      "fullLogPath": "specs/316-agent-timeout-settlement/issue-log.json",
+      "importantTotal": 18,
+      "importantShown": 10,
+      "importantOmitted": 8,
+      "recentOtherTotal": 29,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 24,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft",
+          "reason": "auto-check rejected target guard flags before spec promotion",
+          "resolution": "Used the documented preparing-mode command with explicit --run-id only"
+        },
+        {
+          "classification": "important",
+          "step": "spec-review",
+          "reason": "Guarded spec review retry again returned no envelope and remains incomplete",
+          "resolution": "Stopped retries before exhausting review budget and preserved the worktree for recovery"
+        },
+        {
+          "classification": "important",
+          "step": "spec-review",
+          "reason": "Earlier empty-envelope diagnosis misclassified a yielded review process as terminated",
+          "resolution": "The parent retained the foreground execution session, waited through every yield, and received the valid FAIL review artifact before triage and repair"
+        },
+        {
+          "classification": "important",
+          "step": "spec-review",
+          "reason": "Earlier spec-review attempts were yielded agent processes, not terminal empty-envelope failures",
+          "resolution": "Corrected the incident record; future yielded commands will be waited to terminal completion before any follow-up"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Earlier handoff misdiagnosed normal sequence 69 review completion as an unfinished yielded command",
+          "resolution": "Corrected the diagnosis and will repair the actual static review findings before rerunning review"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Static test review found three blockers caused by synthetic test-only evidence and one naming advisory.",
+          "resolution": "Replace synthetic assertions with observable supervisor-path behavior and clarify the R5 spawn-error scenario name."
+        },
+        {
+          "classification": "important",
+          "step": "implement",
+          "reason": "Implement completion validation rejected the step because R5-R7 were pending and no requirement file-map entries existed.",
+          "resolution": "Record the implemented source and repaired spec-local tests for every testable requirement, then synchronize documentation for R7."
+        },
+        {
+          "classification": "important",
+          "step": "implement",
+          "reason": "The runtime-log command rejects required target guards, so its output cannot be read without violating target-binding discipline.",
+          "resolution": "Use target-aware status and repository artifacts as evidence; do not invoke the unguarded runtime-log command."
+        },
+        {
+          "classification": "important",
+          "step": "test-result-review",
+          "reason": "Required real-agent regression cannot load its acceptance pipeline module",
+          "resolution": "Recorded unrelated missing-module failure; no valid test weakened"
+        },
+        {
+          "classification": "important",
+          "step": "impl-review",
+          "reason": "Implementation review found synthetic POSIX timeout settlement and unowned poll timer",
+          "resolution": "Removed forced-success cleanup; tracked and cleared tree-death polling timer"
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "The diff does not show any changes implementing documentation synchronization after a source update or recording that result into flow evidence. Added/modified code and tests focus on agent timeout supervision, docs review handling, and ...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "The provided diff contains no documentation-sync flow execution step, no runtime result artifact (e.g., flow log entry indicating successful docs-sync run), and no generated-doc commit recorded as flow evidence. It only includes code upd...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "Gate input excluded the successful sync runtime log and therefore could not verify R7 evidence",
+          "resolution": "Persisted the exact sequence 164 envelope in docs-sync-evidence.json, mapped it to R7, and exposed spec artifacts through intent-to-add"
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "R7 is non-testable and cannot appear in file-map.json",
+          "resolution": "Removed only the invalid R7 file-map entry while retaining the standalone runtime evidence artifact in the visible spec diff"
+        },
+        {
+          "classification": "recent-other",
+          "step": "implement",
+          "reason": "Acceptance review lacked final dispositions for two deferred review findings",
+          "resolution": "Recorded standard acceptance evidence: DF-1 fixed by deterministic deadline-owned R5 test; DF-2 fixed by visible R1-R6 spec tests and passing execution/gate evidence"
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 3,
+      "srcRead": 4,
+      "question": 0,
+      "issueLog": 40
+    },
+    "tokenMetrics": {
+      "input": 881065,
+      "output": 135374,
+      "cacheRead": 2345600,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 32,
+      "durationMs": 1451221,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 15150
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 17685
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 43537
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 286674
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 17252
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 154234
+        },
+        {
+          "phase": "implement",
+          "durationMs": 15164
+        },
+        {
+          "phase": "test-execute",
+          "durationMs": 131343
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 491755
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 278427
+        }
+      ]
+    },
+    "tests": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/316-agent-timeout-settlement/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "specs/316-agent-timeout-settlement/plugin-artifacts/",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/review-history/",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/tasks/",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/docs/commands/review.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/agent.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/e2e/docs/commands/review.test.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/plugin-artifacts/"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/review-history/"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/tasks/"
+          },
+          {
+            "status": "modified",
+            "path": "src/docs/commands/review.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/agent.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/docs/commands/review.test.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/plugin-artifacts/"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/review-history/"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/tasks/"
+          },
+          {
+            "status": "modified",
+            "path": "src/docs/commands/review.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/agent.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/docs/commands/review.test.js"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "failureCategory": null,
+        "failureNature": null,
+        "skipKind": null,
+        "rawOutputPath": "specs/316-agent-timeout-settlement/tests/.raw/final-regression-attempt-001.log",
+        "command": "node tests/run.js",
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        },
+        "exitCode": 0,
+        "failureSummary": null,
+        "currentDiffRelationship": null,
+        "changedFiles": [
+          {
+            "status": "modified",
+            "path": ".senti/output/analysis.json",
+            "fingerprint": "6067d34ed8734698177165b7fdc54016ff70076af917d8d8275614a170e4e241"
+          },
+          {
+            "status": "modified",
+            "path": "docs/ja/project_structure.md",
+            "fingerprint": "53bbe18d6bd10d38753afbc886af6a35d4f40dca07ddd8d0be9b49c49a627b5b"
+          },
+          {
+            "status": "modified",
+            "path": "docs/project_structure.md",
+            "fingerprint": "48054126c195f1f4c2cc29225d40fd4390ff3ae3dfb5bf1708f381e9818c7328"
+          },
+          {
+            "status": "modified",
+            "path": "README.md",
+            "fingerprint": "13669d98656503004d340b8ff8e80c7b9656cec7cb91d8b1c1753d9c4035dbe1"
+          },
+          {
+            "status": "added",
+            "path": "specs/316-agent-timeout-settlement/acceptance-review-evidence.json",
+            "fingerprint": "706a5a9d4c76ba4b6bd53fdb45adc2c86b62809d52f923336ff6e7fdb107b333"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/acceptance-review.json",
+            "fingerprint": "b086fa104b42ce271546c817baba1975da473e2cab8b70377ad111588ac0f9e8"
+          },
+          {
+            "status": "added",
+            "path": "specs/316-agent-timeout-settlement/docs-sync-evidence.json",
+            "fingerprint": "671b1e0a6425d6382a445479b89e9e8386057fc87f9838499bedba09fc8121f7"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/draft-coverage-repair.json",
+            "fingerprint": "92ae1b015647b88f7f04e8032ae7c3649cf4769b558581efcbccc9733d3273da"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/draft-coverage-triage.json",
+            "fingerprint": "3e52223e1f8a6f4c78ca9ae8ba759a0a3c8f7b3424de410787dec28d954dfe4d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/draft-gate-source.json",
+            "fingerprint": "eabc9d2d367c6e6d69964c7e96d0036ee551a1d2ca544124c1f2c36e03f6e00d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/draft-questions-repair.json",
+            "fingerprint": "785a50cb10a3f8024f7e81987206a4de40e5594d08dd8ffd7d28d72c5a9fd249"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/draft-questions-triage.json",
+            "fingerprint": "c9f09621ca0ed8edca99bddf4e7cbca5542e9347f043a76d85b113a344d00cf3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/draft-review-coverage.json",
+            "fingerprint": "cb8113d16a4c90ac514688c5efe785512b4d13698ff2393598cf1827b3303da2"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/draft-review-questions.json",
+            "fingerprint": "570e053a6ce0b01223cebf8f99d0e9c88dbc7675a54192d4d927b9711aa31f28"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/draft.json",
+            "fingerprint": "96cab370a4eeb69ec76db701dd6d8fcca327c67017daf06006c79e2f000b6a71"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/file-map.json",
+            "fingerprint": "79c30b2ab4bcd97b5a731a9d5cd0c84f8900f780d3a0cb43601981673fbd6860"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/flow-findings.json",
+            "fingerprint": "2c6835b4f608454daaaa37e49d30466134b679397fccecd1bc17f13839570562"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/impl-gate-result.json",
+            "fingerprint": "0bbfa0fdd83bdecb9841107975cddc53dfbfb345448cadd3cabd9e4ad5032f99"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/impl-review.json",
+            "fingerprint": "2a40cfde4a77553324438f8a3a799594389aa1913075561c935efe9342c2466a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/issue.md",
+            "fingerprint": "38a08b6dea6bfe105563d4af0efca889809d5a57217ac464b84090221a6c5a6d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/plugin-artifacts/workflow/prepare.json",
+            "fingerprint": "15e96500878ee496fbc2ff97f740730d0edb34018e558a8b5fdc4289607a1e62"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/retro.json",
+            "fingerprint": "10f9083d628d22c17cd700623e4c20556b3f971534762b9e82218a375606245d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/review-history/draft-coverage-attempt-001.json",
+            "fingerprint": "de48f86a73ff091d162ef386b58d8d56967779517cac1e9ad7de7a2259d6a806"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/review-history/draft-questions-attempt-001.json",
+            "fingerprint": "47f1dbb4b41de7ac60f805c77b39be6166c3198fb48e062caa8e5734189d3e44"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/review-history/impl-attempt-001.json",
+            "fingerprint": "6b8be1686eea42b0c5dddb607760fbce240b581a50143a0c8973bb109c3fe6e7"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/review-history/impl-attempt-001.md",
+            "fingerprint": "6dd488d08127663a2caa2f38ea220acb4bcc3fdee67b5b560fd84c5284ea7dec"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/review-history/impl-attempt-002.json",
+            "fingerprint": "2f26f744527c3e35bbf16aec8f9735efcc51d817c07c3e3c65e5155724575ae4"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/review-history/impl-attempt-002.md",
+            "fingerprint": "3837c4477e427edddb125ad925e4d1d919e0ab60be9fba910458209c1d52b004"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/review-history/impl-attempt-003.json",
+            "fingerprint": "111ce4c3db3d850461d8f067dc5cba5b7a2fc2ae6d37ad3ba53d64140bcf844d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/review-history/impl-attempt-003.md",
+            "fingerprint": "3837c4477e427edddb125ad925e4d1d919e0ab60be9fba910458209c1d52b004"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/review-history/impl-attempt-004.json",
+            "fingerprint": "6eda831b089f8426b4abf63a7caaff89295d633baf5afbbf6c4344dd5e2fd813"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/review-history/impl-attempt-004.md",
+            "fingerprint": "3837c4477e427edddb125ad925e4d1d919e0ab60be9fba910458209c1d52b004"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/review-history/spec-attempt-001.json",
+            "fingerprint": "2234ec20cb9b2c70c3d435b630e8ed739829825ef14ba688424c930ed8db96ab"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/review-history/spec-attempt-001.md",
+            "fingerprint": "ef48992bbe44a8cd3f4f1f7a37045983204cd5d04b7ec114e1b7d5dbca9225c3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/review-history/test-attempt-001.json",
+            "fingerprint": "e148cc6da26d47f7fcd36736ce722776d48267922b7b33c8ae07c78a658352f8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/review-history/test-attempt-001.md",
+            "fingerprint": "3c90e3dfac1e18da86ff1f8e6bb6f495e095bd5dd2f4f1e5769b3815019b95d5"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/review-history/test-attempt-002.json",
+            "fingerprint": "99807cbc37b5dd48cde6c001e4cf5f478080913903a7cab39a93bf383a01fd17"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/review-history/test-attempt-002.md",
+            "fingerprint": "69d568f38884e9adbdafdcc99b04dfb014f12272c265fcc376baa2009b54cf17"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/review-history/test-attempt-003.json",
+            "fingerprint": "72dd8d0d03b8501a39e9c017c743da176d3a8c05bd33abc0fd3c712f1a22c037"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/review-history/test-attempt-003.md",
+            "fingerprint": "78ee5c40315f29fafa468f55bc4930339094f48424b6ac1550ec0e36f5ac6132"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/review-history/test-attempt-004.json",
+            "fingerprint": "d7692c92c622ea6afba1991cd09628cf6e59b89586cd5e7a3349b310d4386269"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/review-history/test-attempt-004.md",
+            "fingerprint": "81f6195556650c524d7b773baa35a11a984f6870349d0fac9599d5a143a6c314"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/review-history/test-attempt-005.json",
+            "fingerprint": "9073f8462445deacb871717ed0ca94224c8012c508d99a9ff8367f2ca64ca651"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/review-history/test-attempt-005.md",
+            "fingerprint": "8aadf16a96a4f0145a6e7f17f6ae62811a8ede5bfe184cd2ece8009ef401d848"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/review.md",
+            "fingerprint": "3837c4477e427edddb125ad925e4d1d919e0ab60be9fba910458209c1d52b004"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/scenario-validity-result.json",
+            "fingerprint": "0f998d5b7ba83630aa955551229ca53805928b0d45cb2a318989848434308232"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/spec-repair.json",
+            "fingerprint": "270f1b653a23fafce2e9db9bf5bc99c072dadfd5b82b0c483fad5290fd1cfe6a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/spec-review.json",
+            "fingerprint": "280a6f555ff573a152f77b0af13dc20dabb37532e897841385ffd43ca162dccc"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/spec-review.md",
+            "fingerprint": "ef48992bbe44a8cd3f4f1f7a37045983204cd5d04b7ec114e1b7d5dbca9225c3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/spec-triage.json",
+            "fingerprint": "9cba524471c8646db4bf4a17742317651aa0031b699bf3f23e4dda857730ad8b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/spec.json",
+            "fingerprint": "35524659ff6f7475effe46450ab87cfe69a0e7a21536e969a6c21133940cdb5b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/spec.md",
+            "fingerprint": "da92c28b026ad9f5edaca0ffc84fb9fceff59364e639157c5b7ecfb124f5a1a0"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/tasks/T-1.md",
+            "fingerprint": "ee052b640f39f1343dd64684030b11dd5e3cc6d7dcb3b25ee8a218b84088139c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/tasks/T-2.md",
+            "fingerprint": "200d32992069bfb4ee45437f8e2ed2dc1f2e2e0c7394b63d59b04e6c5d0f3a87"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/tasks/T-3.md",
+            "fingerprint": "e01ae5fed57c8035a3737527379c71007d26cc9b09891f4569b429d84d48e057"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/tasks/T-4.md",
+            "fingerprint": "8c54bd2bb334add885a39a740329f424730279f9ce273f123cbc4ee6ff115265"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/test-coverage.json",
+            "fingerprint": "edfccd66b09de625248d473feccc24f54ca3aab720d7d89f07066a74c4895b1c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/test-execute-result.json",
+            "fingerprint": "e9b1092c9fe40226f0644e84ea7ccfb6537f1b935cfb4554fcb33ff2f12e5e9f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/test-result-review.json",
+            "fingerprint": "f67afa74ec581e93bfabad7e16b9abc0e58ae483d3dfe8fd3c65b31b99471617"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/test-result-review.md",
+            "fingerprint": "4f3c96eed71bfd73dc7c7e85f48803d6e22a9e3f9f9220c3e809b8ab56ae1a79"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/test-review.json",
+            "fingerprint": "d1601dcd0ae709483ef951e2f6812a253fd08b935af2c57e810f56880bf3de57"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/test-review.md",
+            "fingerprint": "8aadf16a96a4f0145a6e7f17f6ae62811a8ede5bfe184cd2ece8009ef401d848"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/tests/.raw/scenario-validity.log",
+            "fingerprint": "eb072bc90110caee5e3b124be6fc0257efb0ba5e541922dc9383b7d0c52978bd"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-agent-timeout-settlement/tests/.raw/test-execution.log",
+            "fingerprint": "6884f3c6a073f55ac573747347165511fae54ba230c4820a284eb4207d6f0b55"
+          },
+          {
+            "status": "added",
+            "path": "specs/316-agent-timeout-settlement/tests/agent-timeout-settlement.test.js",
+            "fingerprint": "fc1976a5dd1d9fbff10f9da85dc11baaf0f4a920c2bff137a75a54cf9570d97f"
+          },
+          {
+            "status": "modified",
+            "path": "src/docs/commands/review.js",
+            "fingerprint": "f5ef52b72490fb2bc53cec368b35c401be96562e4961794fdaf8c168428d77c7"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/agent.js",
+            "fingerprint": "2122b60f480b95e229eb538b81f9d1f33e9b405b9d3b573a95488d6388619198"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/docs/commands/review.test.js",
+            "fingerprint": "6ccdd5c2abb6a19bc16d13c12e536639ea5e37701232373736b5b216fcb24a62"
+          }
+        ],
+        "changedFileFingerprints": [
+          {
+            "path": ".senti/output/analysis.json",
+            "fingerprint": "6067d34ed8734698177165b7fdc54016ff70076af917d8d8275614a170e4e241"
+          },
+          {
+            "path": "docs/ja/project_structure.md",
+            "fingerprint": "53bbe18d6bd10d38753afbc886af6a35d4f40dca07ddd8d0be9b49c49a627b5b"
+          },
+          {
+            "path": "docs/project_structure.md",
+            "fingerprint": "48054126c195f1f4c2cc29225d40fd4390ff3ae3dfb5bf1708f381e9818c7328"
+          },
+          {
+            "path": "README.md",
+            "fingerprint": "13669d98656503004d340b8ff8e80c7b9656cec7cb91d8b1c1753d9c4035dbe1"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/acceptance-review-evidence.json",
+            "fingerprint": "706a5a9d4c76ba4b6bd53fdb45adc2c86b62809d52f923336ff6e7fdb107b333"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/acceptance-review.json",
+            "fingerprint": "b086fa104b42ce271546c817baba1975da473e2cab8b70377ad111588ac0f9e8"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/docs-sync-evidence.json",
+            "fingerprint": "671b1e0a6425d6382a445479b89e9e8386057fc87f9838499bedba09fc8121f7"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/draft-coverage-repair.json",
+            "fingerprint": "92ae1b015647b88f7f04e8032ae7c3649cf4769b558581efcbccc9733d3273da"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/draft-coverage-triage.json",
+            "fingerprint": "3e52223e1f8a6f4c78ca9ae8ba759a0a3c8f7b3424de410787dec28d954dfe4d"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/draft-gate-source.json",
+            "fingerprint": "eabc9d2d367c6e6d69964c7e96d0036ee551a1d2ca544124c1f2c36e03f6e00d"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/draft-questions-repair.json",
+            "fingerprint": "785a50cb10a3f8024f7e81987206a4de40e5594d08dd8ffd7d28d72c5a9fd249"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/draft-questions-triage.json",
+            "fingerprint": "c9f09621ca0ed8edca99bddf4e7cbca5542e9347f043a76d85b113a344d00cf3"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/draft-review-coverage.json",
+            "fingerprint": "cb8113d16a4c90ac514688c5efe785512b4d13698ff2393598cf1827b3303da2"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/draft-review-questions.json",
+            "fingerprint": "570e053a6ce0b01223cebf8f99d0e9c88dbc7675a54192d4d927b9711aa31f28"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/draft.json",
+            "fingerprint": "96cab370a4eeb69ec76db701dd6d8fcca327c67017daf06006c79e2f000b6a71"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/file-map.json",
+            "fingerprint": "79c30b2ab4bcd97b5a731a9d5cd0c84f8900f780d3a0cb43601981673fbd6860"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/flow-findings.json",
+            "fingerprint": "2c6835b4f608454daaaa37e49d30466134b679397fccecd1bc17f13839570562"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/impl-gate-result.json",
+            "fingerprint": "0bbfa0fdd83bdecb9841107975cddc53dfbfb345448cadd3cabd9e4ad5032f99"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/impl-review.json",
+            "fingerprint": "2a40cfde4a77553324438f8a3a799594389aa1913075561c935efe9342c2466a"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/issue.md",
+            "fingerprint": "38a08b6dea6bfe105563d4af0efca889809d5a57217ac464b84090221a6c5a6d"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/plugin-artifacts/workflow/prepare.json",
+            "fingerprint": "15e96500878ee496fbc2ff97f740730d0edb34018e558a8b5fdc4289607a1e62"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/retro.json",
+            "fingerprint": "10f9083d628d22c17cd700623e4c20556b3f971534762b9e82218a375606245d"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/review-history/draft-coverage-attempt-001.json",
+            "fingerprint": "de48f86a73ff091d162ef386b58d8d56967779517cac1e9ad7de7a2259d6a806"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/review-history/draft-questions-attempt-001.json",
+            "fingerprint": "47f1dbb4b41de7ac60f805c77b39be6166c3198fb48e062caa8e5734189d3e44"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/review-history/impl-attempt-001.json",
+            "fingerprint": "6b8be1686eea42b0c5dddb607760fbce240b581a50143a0c8973bb109c3fe6e7"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/review-history/impl-attempt-001.md",
+            "fingerprint": "6dd488d08127663a2caa2f38ea220acb4bcc3fdee67b5b560fd84c5284ea7dec"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/review-history/impl-attempt-002.json",
+            "fingerprint": "2f26f744527c3e35bbf16aec8f9735efcc51d817c07c3e3c65e5155724575ae4"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/review-history/impl-attempt-002.md",
+            "fingerprint": "3837c4477e427edddb125ad925e4d1d919e0ab60be9fba910458209c1d52b004"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/review-history/impl-attempt-003.json",
+            "fingerprint": "111ce4c3db3d850461d8f067dc5cba5b7a2fc2ae6d37ad3ba53d64140bcf844d"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/review-history/impl-attempt-003.md",
+            "fingerprint": "3837c4477e427edddb125ad925e4d1d919e0ab60be9fba910458209c1d52b004"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/review-history/impl-attempt-004.json",
+            "fingerprint": "6eda831b089f8426b4abf63a7caaff89295d633baf5afbbf6c4344dd5e2fd813"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/review-history/impl-attempt-004.md",
+            "fingerprint": "3837c4477e427edddb125ad925e4d1d919e0ab60be9fba910458209c1d52b004"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/review-history/spec-attempt-001.json",
+            "fingerprint": "2234ec20cb9b2c70c3d435b630e8ed739829825ef14ba688424c930ed8db96ab"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/review-history/spec-attempt-001.md",
+            "fingerprint": "ef48992bbe44a8cd3f4f1f7a37045983204cd5d04b7ec114e1b7d5dbca9225c3"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/review-history/test-attempt-001.json",
+            "fingerprint": "e148cc6da26d47f7fcd36736ce722776d48267922b7b33c8ae07c78a658352f8"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/review-history/test-attempt-001.md",
+            "fingerprint": "3c90e3dfac1e18da86ff1f8e6bb6f495e095bd5dd2f4f1e5769b3815019b95d5"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/review-history/test-attempt-002.json",
+            "fingerprint": "99807cbc37b5dd48cde6c001e4cf5f478080913903a7cab39a93bf383a01fd17"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/review-history/test-attempt-002.md",
+            "fingerprint": "69d568f38884e9adbdafdcc99b04dfb014f12272c265fcc376baa2009b54cf17"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/review-history/test-attempt-003.json",
+            "fingerprint": "72dd8d0d03b8501a39e9c017c743da176d3a8c05bd33abc0fd3c712f1a22c037"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/review-history/test-attempt-003.md",
+            "fingerprint": "78ee5c40315f29fafa468f55bc4930339094f48424b6ac1550ec0e36f5ac6132"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/review-history/test-attempt-004.json",
+            "fingerprint": "d7692c92c622ea6afba1991cd09628cf6e59b89586cd5e7a3349b310d4386269"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/review-history/test-attempt-004.md",
+            "fingerprint": "81f6195556650c524d7b773baa35a11a984f6870349d0fac9599d5a143a6c314"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/review-history/test-attempt-005.json",
+            "fingerprint": "9073f8462445deacb871717ed0ca94224c8012c508d99a9ff8367f2ca64ca651"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/review-history/test-attempt-005.md",
+            "fingerprint": "8aadf16a96a4f0145a6e7f17f6ae62811a8ede5bfe184cd2ece8009ef401d848"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/review.md",
+            "fingerprint": "3837c4477e427edddb125ad925e4d1d919e0ab60be9fba910458209c1d52b004"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/scenario-validity-result.json",
+            "fingerprint": "0f998d5b7ba83630aa955551229ca53805928b0d45cb2a318989848434308232"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/spec-repair.json",
+            "fingerprint": "270f1b653a23fafce2e9db9bf5bc99c072dadfd5b82b0c483fad5290fd1cfe6a"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/spec-review.json",
+            "fingerprint": "280a6f555ff573a152f77b0af13dc20dabb37532e897841385ffd43ca162dccc"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/spec-review.md",
+            "fingerprint": "ef48992bbe44a8cd3f4f1f7a37045983204cd5d04b7ec114e1b7d5dbca9225c3"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/spec-triage.json",
+            "fingerprint": "9cba524471c8646db4bf4a17742317651aa0031b699bf3f23e4dda857730ad8b"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/spec.json",
+            "fingerprint": "35524659ff6f7475effe46450ab87cfe69a0e7a21536e969a6c21133940cdb5b"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/spec.md",
+            "fingerprint": "da92c28b026ad9f5edaca0ffc84fb9fceff59364e639157c5b7ecfb124f5a1a0"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/tasks/T-1.md",
+            "fingerprint": "ee052b640f39f1343dd64684030b11dd5e3cc6d7dcb3b25ee8a218b84088139c"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/tasks/T-2.md",
+            "fingerprint": "200d32992069bfb4ee45437f8e2ed2dc1f2e2e0c7394b63d59b04e6c5d0f3a87"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/tasks/T-3.md",
+            "fingerprint": "e01ae5fed57c8035a3737527379c71007d26cc9b09891f4569b429d84d48e057"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/tasks/T-4.md",
+            "fingerprint": "8c54bd2bb334add885a39a740329f424730279f9ce273f123cbc4ee6ff115265"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/test-coverage.json",
+            "fingerprint": "edfccd66b09de625248d473feccc24f54ca3aab720d7d89f07066a74c4895b1c"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/test-execute-result.json",
+            "fingerprint": "e9b1092c9fe40226f0644e84ea7ccfb6537f1b935cfb4554fcb33ff2f12e5e9f"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/test-result-review.json",
+            "fingerprint": "f67afa74ec581e93bfabad7e16b9abc0e58ae483d3dfe8fd3c65b31b99471617"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/test-result-review.md",
+            "fingerprint": "4f3c96eed71bfd73dc7c7e85f48803d6e22a9e3f9f9220c3e809b8ab56ae1a79"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/test-review.json",
+            "fingerprint": "d1601dcd0ae709483ef951e2f6812a253fd08b935af2c57e810f56880bf3de57"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/test-review.md",
+            "fingerprint": "8aadf16a96a4f0145a6e7f17f6ae62811a8ede5bfe184cd2ece8009ef401d848"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/tests/.raw/scenario-validity.log",
+            "fingerprint": "eb072bc90110caee5e3b124be6fc0257efb0ba5e541922dc9383b7d0c52978bd"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/tests/.raw/test-execution.log",
+            "fingerprint": "6884f3c6a073f55ac573747347165511fae54ba230c4820a284eb4207d6f0b55"
+          },
+          {
+            "path": "specs/316-agent-timeout-settlement/tests/agent-timeout-settlement.test.js",
+            "fingerprint": "fc1976a5dd1d9fbff10f9da85dc11baaf0f4a920c2bff137a75a54cf9570d97f"
+          },
+          {
+            "path": "src/docs/commands/review.js",
+            "fingerprint": "f5ef52b72490fb2bc53cec368b35c401be96562e4961794fdaf8c168428d77c7"
+          },
+          {
+            "path": "src/lib/agent.js",
+            "fingerprint": "2122b60f480b95e229eb538b81f9d1f33e9b405b9d3b573a95488d6388619198"
+          },
+          {
+            "path": "tests/e2e/docs/commands/review.test.js",
+            "fingerprint": "6ccdd5c2abb6a19bc16d13c12e536639ea5e37701232373736b5b216fcb24a62"
+          }
+        ],
+        "fixAttempts": null,
+        "selectedAction": null,
+        "remainingRisk": null,
+        "retryable": false,
+        "nextAction": "finalize-commit",
+        "nextRecommendedAction": null,
+        "recordAndProceed": null,
+        "humanSummary": "result=pass raw_output=specs/316-agent-timeout-settlement/tests/.raw/final-regression-attempt-001.log"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/316-agent-timeout-settlement\n    docs: sync documentation\n    62 files changed, 5531 insertions(+), 182 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (6 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 3\n    src read .................... 4\n    Q&A ......................... 0\n    issue-log ................... 40\n    agent calls ................. 32\n    input tokens ................ 881,065\n    output tokens ............... 135,374\n    cache-read tokens ........... 2,345,600\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 1451.2s\n      draft-questions-review .... 15.2s\n      draft-coverage-review ..... 17.7s\n      draft-gate ................ 43.5s\n      spec-review ............... 286.7s\n      spec-gate ................. 17.3s\n      test-review ............... 154.2s\n      implement ................. 15.2s\n      test-execute .............. 131.3s\n      impl-review ............... 491.8s\n      impl-gate ................. 278.4s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 6  passed 6  failed 0 verdict=pass\n    raw_output: specs/316-agent-timeout-settlement/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=pass raw_output=specs/316-agent-timeout-settlement/tests/.raw/final-regression-attempt-001.log\n\n  Issue Log Summary (47 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/316-agent-timeout-settlement/issue-log.json\n\n    Important (10 of 18)\n    - [draft] auto-check rejected target guard flags before spec promotion\n    - [spec-review] Guarded spec review retry again returned no envelope and remains incomplete\n    - [spec-review] Earlier empty-envelope diagnosis misclassified a yielded review process as terminated\n    - [spec-review] Earlier spec-review attempts were yielded agent processes, not terminal empty-envelope failures\n    - [test-review] Earlier handoff misdiagnosed normal sequence 69 review completion as an unfinished yielded command\n    - [test-review] Static test review found three blockers caused by synthetic test-only evidence and one naming advisory.\n    - [implement] Implement completion validation rejected the step because R5-R7 were pending and no requirement file-map entries existed.\n    - [implement] The runtime-log command rejects required target guards, so its output cannot be read without violating target-binding discipline.\n    - [test-result-review] Required real-agent regression cannot load its acceptance pipeline module\n    - [impl-review] Implementation review found synthetic POSIX timeout settlement and unowned poll timer\n    ... 8 important issue-log entries omitted\n\n    Recent Other (5 of 29)\n    - [spec-gate] The diff does not show any changes implementing documentation synchronization after a source update or recording that result into flow evidence. Added/modified code and tests focus on agent timeout supervision, docs review handling, and ...\n    - [spec-gate] The provided diff contains no documentation-sync flow execution step, no runtime result artifact (e.g., flow log entry indicating successful docs-sync run), and no generated-doc commit recorded as flow evidence. It only includes code upd...\n    - [impl-gate] Gate input excluded the successful sync runtime log and therefore could not verify R7 evidence\n    - [impl-gate] R7 is non-testable and cannot appear in file-map.json\n    - [implement] Acceptance review lacked final dispositions for two deferred review findings\n    ... 24 other issue-log entries omitted"
+}

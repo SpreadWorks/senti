@@ -26,6 +26,8 @@ import { defaultAgentProfiles } from "./agent-defaults.js";
 import { normalizeAgentMetricDimension } from "./agent-metrics.js";
 
 const DEFAULT_AGENT_TIMEOUT_MS = 300_000;
+const DEFAULT_AGENT_TIMEOUT_GRACE_MS = 100;
+const PROCESS_DEATH_POLL_MS = 10;
 const DEFAULT_STDIN_FALLBACK_THRESHOLD = 100_000;
 const MAX_RETRY = 5;
 const DEFAULT_RETRY_COUNT = 2;
@@ -86,12 +88,13 @@ class Agent {
    * @param {Object} opts.logger       - Logger instance
    * @param {Object} [opts.flowManager] - FlowManager, used for metric accumulation
    */
-  constructor({ config, paths, registry, logger, flowManager }) {
+  constructor({ config, paths, registry, logger, flowManager, supervision }) {
     this._config = config || {};
     this._paths = paths || {};
     this._registry = registry || new ProviderRegistry(this._config.agent?.providers || {});
     this._logger = logger;
     this._flowManager = flowManager || null;
+    this._supervision = supervision || {};
   }
 
   /**
@@ -337,10 +340,13 @@ class Agent {
 
     try {
       return await new Promise((resolve, reject) => {
-        const child = spawn(profile.command, finalArgs, {
+        const platform = this._supervision.platform || process.platform;
+        const spawnChild = this._supervision.spawn || spawn;
+        const child = spawnChild(profile.command, finalArgs, {
           stdio: [stdinContent != null ? "pipe" : "ignore", "pipe", "pipe"],
           cwd,
           env,
+          detached: platform !== "win32",
         });
 
         let stdinError = null;
@@ -364,10 +370,16 @@ class Agent {
           if (options.onStderr) options.onStderr(String(chunk));
         });
 
-        const timer = setTimeout(() => child.kill("SIGTERM"), timeoutMs);
+        const supervisor = new ChildProcessSupervisor({
+          child,
+          timeoutMs,
+          graceMs: this._supervision.graceMs || DEFAULT_AGENT_TIMEOUT_GRACE_MS,
+          platform,
+          runTaskkill: this._supervision.runTaskkill,
+          onEvent: options.onSupervisorEvent,
+        });
 
-        child.on("close", (code, signal) => {
-          clearTimeout(timer);
+        supervisor.wait().then(({ code, signal }) => {
           if (code === 0 && !signal && !stdinError) {
             const trimmed = String(stdout).trim();
             if (profile.jsonOutputFlag) {
@@ -393,10 +405,7 @@ class Agent {
           error.killed = signal === "SIGTERM";
           error.stdinError = stdinError || null;
           reject(error);
-        });
-
-        child.on("error", (err) => {
-          clearTimeout(timer);
+        }, (err) => {
           reject(formatSpawnError(err, {
             command: profile.command,
             env,
@@ -412,6 +421,241 @@ class Agent {
       }
     }
   }
+}
+
+class AgentTimeoutError extends Error {
+  constructor({ timeoutMs, graceMs, finalAction }) {
+    if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) throw new Error("timeoutMs must be a positive number");
+    if (!Number.isFinite(graceMs) || graceMs <= 0) throw new Error("graceMs must be a positive number");
+    super(`Agent timed out after ${timeoutMs}ms; final action=${finalAction}`);
+    this.name = "AgentTimeoutError";
+    this.code = "AGENT_TIMEOUT";
+    this.timeoutMs = timeoutMs;
+    this.graceMs = graceMs;
+    this.finalAction = finalAction;
+    this.killed = true;
+  }
+}
+
+class ChildProcessSupervisor {
+  constructor({ child, timeoutMs, graceMs, platform = process.platform, runTaskkill, onEvent }) {
+    if (!child || typeof child.on !== "function") throw new Error("child must be a ChildProcess");
+    if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) throw new Error("timeoutMs must be a positive number");
+    if (!Number.isFinite(graceMs) || graceMs <= 0) throw new Error("graceMs must be a positive number");
+    this.child = child;
+    this.timeoutMs = timeoutMs;
+    this.graceMs = graceMs;
+    this.platform = platform;
+    this.runTaskkill = runTaskkill || runWindowsTaskkill;
+    this.onEvent = typeof onEvent === "function" ? onEvent : null;
+    this.deadlineTimer = null;
+    this.graceTimer = null;
+    this.treeDeathPollTimer = null;
+    this.timeoutOwned = false;
+    this.directChildClosed = false;
+    this.treeDeadObserved = false;
+    this.settled = false;
+    this.finalAction = null;
+    this._onClose = this._handleClose.bind(this);
+    this._onError = this._handleError.bind(this);
+  }
+
+  wait() {
+    return new Promise((resolve, reject) => {
+      this.resolve = resolve;
+      this.reject = reject;
+      this.child.once("close", this._onClose);
+      this.child.once("error", this._onError);
+      this._emit({ type: "spawn", pid: this.child.pid ?? null, detached: this.platform !== "win32" });
+      this.deadlineTimer = setTimeout(() => this._handleTimeout(), this.timeoutMs);
+    });
+  }
+
+  _handleClose(code, signal) {
+    if (this.settled) return;
+    this.directChildClosed = true;
+    this._emit({ type: "close", code, signal });
+    if (!this.timeoutOwned) {
+      this._settleClose(code, signal);
+      return;
+    }
+    this._trySettleTimedOutChild();
+  }
+
+  _handleError(error) {
+    if (this.settled) return;
+    this._emit({ type: "error", code: error?.code || null });
+    if (!this.timeoutOwned) this._settleError(error);
+  }
+
+  _handleTimeout() {
+    if (this.settled || this.timeoutOwned) return;
+    this.timeoutOwned = true;
+    this._emit({ type: "timeout" });
+    if (this.platform === "win32") {
+      this._signalDirectChild("SIGTERM");
+    } else {
+      this._signalProcessGroup("SIGTERM");
+    }
+    this.graceTimer = setTimeout(() => this._handleGraceExpiry(), this.graceMs);
+  }
+
+  _handleGraceExpiry() {
+    if (this.settled || !this.timeoutOwned) return;
+    this._emit({ type: "grace-expiry" });
+    if (this.platform === "win32") {
+      this._forceWindowsTree();
+      return;
+    }
+    this.finalAction = "SIGKILL";
+    this._signalProcessGroup("SIGKILL");
+    this._waitForPosixTreeDeath();
+  }
+
+  _signalDirectChild(signal) {
+    this.finalAction = signal;
+    try { this.child.kill(signal); } catch (_) {}
+    this._emit({ type: "signal", signal, target: "direct-child" });
+  }
+
+  _signalProcessGroup(signal) {
+    this.finalAction = signal;
+    try { process.kill(-this.child.pid, signal); } catch (_) {}
+    this._emit({ type: "signal", signal, target: "process-group" });
+  }
+
+  async _forceWindowsTree() {
+    const args = ["/PID", String(this.child.pid), "/T", "/F"];
+    try {
+      const result = await this.runTaskkill(args);
+      if (this.settled) return;
+      this.finalAction = "taskkill /T /F";
+      this.treeDeadObserved = result?.completed === true;
+      this._emit({ type: "taskkill", completed: this.treeDeadObserved });
+      if (this.treeDeadObserved) this._emit({ type: "tree-dead", probe: "taskkill-complete" });
+      this._trySettleTimedOutChild();
+    } catch (error) {
+      if (!this.settled) this._settleError(error);
+    }
+  }
+
+  _trySettleTimedOutChild() {
+    if (!this.timeoutOwned || !this.directChildClosed || this.settled) return;
+    if (this.platform === "win32") {
+      if (this.treeDeadObserved) this._settleTimeout();
+      return;
+    }
+    if (this._isPosixTreeDead()) {
+      this._markPosixTreeDead();
+      this._settleTimeout();
+    }
+  }
+
+  _isPosixTreeDead() {
+    if (!this.child.pid) return true;
+    try {
+      process.kill(-this.child.pid, 0);
+      return processGroupContainsOnlyZombies(this.child.pid);
+    } catch (error) {
+      return error?.code === "ESRCH";
+    }
+  }
+
+  _markPosixTreeDead() {
+    if (this.treeDeadObserved) return;
+    this.treeDeadObserved = true;
+    this._emit({ type: "tree-dead", probe: "ESRCH" });
+  }
+
+  _waitForPosixTreeDeath() {
+    const poll = () => {
+      if (this.settled) return;
+      if (this._isPosixTreeDead()) {
+        this._markPosixTreeDead();
+        this._trySettleTimedOutChild();
+        return;
+      }
+      this.treeDeathPollTimer = setTimeout(poll, PROCESS_DEATH_POLL_MS);
+    };
+    poll();
+  }
+
+  _settleClose(code, signal) {
+    this._cleanup();
+    this._emit({ type: "settled", outcome: "close" });
+    this.resolve({ code, signal });
+  }
+
+  _settleError(error) {
+    this._cleanup();
+    this._emit({ type: "settled", outcome: "error" });
+    this.reject(error);
+  }
+
+  _settleTimeout() {
+    this._cleanup();
+    this._emit({ type: "settled", outcome: "timeout" });
+    this.reject(new AgentTimeoutError({
+      timeoutMs: this.timeoutMs,
+      graceMs: this.graceMs,
+      finalAction: this.finalAction || "SIGTERM",
+    }));
+  }
+
+  _cleanup() {
+    if (this.settled) return;
+    this.settled = true;
+    if (this.deadlineTimer) clearTimeout(this.deadlineTimer);
+    if (this.graceTimer) clearTimeout(this.graceTimer);
+    if (this.treeDeathPollTimer) clearTimeout(this.treeDeathPollTimer);
+    this.deadlineTimer = null;
+    this.graceTimer = null;
+    this.treeDeathPollTimer = null;
+    this.child.removeListener("close", this._onClose);
+    this.child.removeListener("error", this._onError);
+    this._emit({
+      type: "cleanup",
+      closeListeners: this.child.listenerCount("close"),
+      errorListeners: this.child.listenerCount("error"),
+      activeTimers: this._activeTimerCount(),
+    });
+  }
+
+  _activeTimerCount() {
+    return [this.deadlineTimer, this.graceTimer, this.treeDeathPollTimer]
+      .filter((timer) => timer !== null)
+      .length;
+  }
+
+  _emit(event) {
+    try { this.onEvent?.(event); } catch (_) {}
+  }
+}
+
+function processGroupContainsOnlyZombies(groupId) {
+  try {
+    const members = fs.readdirSync("/proc").filter((entry) => /^\d+$/.test(entry)).filter((pid) => {
+      const fields = fs.readFileSync(path.join("/proc", pid, "stat"), "utf8").split(" ");
+      return Number(fields[4]) === groupId;
+    });
+    return members.length > 0 && members.every((pid) => {
+      const fields = fs.readFileSync(path.join("/proc", pid, "stat"), "utf8").split(" ");
+      return fields[2] === "Z";
+    });
+  } catch (_) {
+    return false;
+  }
+}
+
+function runWindowsTaskkill(args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn("taskkill", args, { windowsHide: true });
+    child.once("error", reject);
+    child.once("close", (code) => {
+      if (code === 0) resolve({ completed: true });
+      else reject(new Error(`taskkill failed with exit=${code}`));
+    });
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -951,4 +1195,4 @@ export function createPluginAgentApi({ pluginId, pluginConfig = {}, agent }) {
   };
 }
 
-export { Agent, filterStreamingEvents };
+export { Agent, AgentTimeoutError, ChildProcessSupervisor, filterStreamingEvents };

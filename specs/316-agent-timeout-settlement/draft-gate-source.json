@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "The retained behavior list includes Agent.call provider command invocation, but no behavior-level acceptance criterion explicitly verifies invocation construction/dispatch still works through the new ChildProcessSupervisor path; the listed regressions focus on output/callback/timeout behavior only.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "validation"
+          },
+          "observed": "The retained behavior list includes Agent.call provider command invocation, but no behavior-level acceptance criterion explicitly verifies invocation construction/dispatch still works through the new ChildProcessSupervisor path; the listed regressions focus on output/callback/timeout behavior only.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "`agent.timeout` is identified as a retained public config and behavior, yet the validation criteria do not include any test or reproduction proving caller-visible timeout semantics and resolver behavior are preserved after moving timeout handling into ChildProcessSupervisor.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "impactOnExisting[1]/validation"
+          },
+          "observed": "`agent.timeout` is identified as a retained public config and behavior, yet the validation criteria do not include any test or reproduction proving caller-visible timeout semantics and resolver behavior are preserved after moving timeout handling into ChildProcessSupervisor.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft-content",
+        "locator": "validation"
+      },
+      "observed": "The retained behavior list includes Agent.call provider command invocation, but no behavior-level acceptance criterion explicitly verifies invocation construction/dispatch still works through the new ChildProcessSupervisor path; the listed regressions focus on output/callback/timeout behavior only.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft-content",
+        "locator": "impactOnExisting[1]/validation"
+      },
+      "observed": "`agent.timeout` is identified as a retained public config and behavior, yet the validation criteria do not include any test or reproduction proving caller-visible timeout semantics and resolver behavior are preserved after moving timeout handling into ChildProcessSupervisor.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    }
+  ]
+}

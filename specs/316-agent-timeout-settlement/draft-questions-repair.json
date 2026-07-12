@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Removed explanatory rationale from the one pending QA question.",
+  "items": [
+    {
+      "title": "1. Question includes rationale",
+      "target": "q1",
+      "rationale": "Replaced the context-heavy question with the reviewer-provided self-contained wording.",
+      "evidence": "draft.json qa[0].question now contains only the user decision prompt.",
+      "changedFieldPaths": ["qa[0].question"]
+    }
+  ]
+}
