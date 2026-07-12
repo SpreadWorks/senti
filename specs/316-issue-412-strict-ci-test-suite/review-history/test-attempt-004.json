@@ -1,0 +1,148 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-11T15:20:21.685Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 5,
+    "advisory": 1,
+    "total": 6
+  },
+  "coverageArtifact": "specs/316-issue-412-strict-ci-test-suite/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Selector conflict matrix is only partially covered",
+      "target": "specs/316-issue-412-strict-ci-test-suite/tests/test-selection.contract.test.js",
+      "issue": "R1 requires rejecting combinations of mutually exclusive suite selectors with each other or with file-spec mode, but the test samples only a few conflicts. It does not cover several required selector conflicts such as --scope with --agent, --scope with --all, --preset with --agent, --preset with --all, --preset with --file/--pattern/positional path, and --agent with positional path.",
+      "requiredChange": "Add table-driven invalid cases covering the missing mutually exclusive selector combinations, especially each suite selector paired with another suite selector and each suite selector paired with file-spec mode.",
+      "whyBlocking": "An implementation could reject only the sampled pairs while accepting other forbidden combinations, so the acceptance requirement has incomplete spec-local coverage.",
+      "origin": "R1",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "Missing CLI JSON stdout-only and pre-stdout oversize coverage",
+      "target": "specs/316-issue-412-strict-ci-test-suite/tests/test-selection.contract.test.js",
+      "issue": "R2 requires `tests/run.js --list --json` stdout to be only JSON and listing to fail before stdout when serialized JSON exceeds 16 MiB. The tests validate `TestRunner.run` JSON parsing and `renderTestList` throws at a low byte limit, but they do not prove the runner returns empty stdout on listing serialization failure or that the CLI path avoids any non-JSON stdout around the JSON listing.",
+      "requiredChange": "Add runner-level or CLI-level contract coverage asserting successful list output is exactly parseable JSON with no extra stdout text, and an oversized JSON listing returns non-zero with empty stdout before writing JSON.",
+      "whyBlocking": "The current tests allow an implementation that throws internally or emits partial/non-JSON stdout, contradicting the required command contract.",
+      "origin": "R2",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "Acceptance target discovery bound is incomplete",
+      "target": "specs/316-issue-412-strict-ci-test-suite/tests/acceptance-targets.contract.test.js",
+      "issue": "R4 requires discovery to inspect at most 1000 immediate directories under src/presets and to return a structured discovery error when the directory/path bound is exceeded. The test covers 1001 directory entries, but it does not cover the path-bound side of the requirement, such as overly long target paths or too many checked path pairs if that is the intended path bound.",
+      "requiredChange": "Add a discovery test that exceeds the required path bound and asserts no targets plus a structured error code.",
+      "whyBlocking": "An implementation could enforce only the directory-count limit and miss the required path-bound failure mode.",
+      "origin": "R4",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "Side-effect-free acceptance library is not tested",
+      "target": "specs/316-issue-412-strict-ci-test-suite/tests/acceptance-targets.contract.test.js",
+      "issue": "R4 requires `tests/acceptance/lib/targets.js` to remain side-effect-free, but the tests only exercise injected discovery calls. They do not assert that importing the library does not perform filesystem discovery, spawn processes, write output, or otherwise execute side effects.",
+      "requiredChange": "Add an import-time contract using injected or observable seams that proves the targets library performs no discovery/execution side effects until its exported functions are called.",
+      "whyBlocking": "A module with import-time discovery or execution could still pass the current tests while violating the side-effect-free requirement.",
+      "origin": "R4",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "Stub acceptance credential-free behavior is not enforced",
+      "target": "specs/316-issue-412-strict-ci-test-suite/tests/ci-stages.contract.test.js",
+      "issue": "R3 requires stub acceptance to require no provider credentials. The test passes `env: {}` but does not assert that credential environment variables are ignored or that missing credentials are not read, required, or forwarded. A runner could still inspect `process.env` directly and fail in real CI while passing this injectable test.",
+      "requiredChange": "Add a contract case that runs the stub acceptance path with no provider credentials and fails if credential lookup is required, or injects an env accessor that throws for provider credential keys and asserts the pipeline still succeeds.",
+      "whyBlocking": "The current test can pass without proving the required credential-free behavior of the CI stub acceptance stage.",
+      "origin": "R3",
+      "failureKind": "missing_coverage"
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R2 valid list-selection combinations could be broader",
+      "target": "specs/316-issue-412-strict-ci-test-suite/tests/test-selection.contract.test.js",
+      "improvement": "Consider adding explicit `--list --json` cases with `--preset`, `--all`, and file-spec selections, not only default retained selector parsing and one runner `--scope unit` listing.",
+      "whyNonBlocking": "The parser coverage already checks retained selectors with JSON listing, but extra cases would document the command contract more completely."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/316-issue-412-strict-ci-test-suite/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 5,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "8a47251207f931ba6a8ac3b973222083b77824f8f6762998b31fe571ae4fda96"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "test-004-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Selector conflict matrix is only partially covered",
+      "body": "R1 requires rejecting combinations of mutually exclusive suite selectors with each other or with file-spec mode, but the test samples only a few conflicts. It does not cover several required selector conflicts such as --scope with --agent, --scope with --all, --preset with --agent, --preset with --all, --preset with --file/--pattern/positional path, and --agent with positional path.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-004-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Missing CLI JSON stdout-only and pre-stdout oversize coverage",
+      "body": "R2 requires `tests/run.js --list --json` stdout to be only JSON and listing to fail before stdout when serialized JSON exceeds 16 MiB. The tests validate `TestRunner.run` JSON parsing and `renderTestList` throws at a low byte limit, but they do not prove the runner returns empty stdout on listing serialization failure or that the CLI path avoids any non-JSON stdout around the JSON listing.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-004-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Acceptance target discovery bound is incomplete",
+      "body": "R4 requires discovery to inspect at most 1000 immediate directories under src/presets and to return a structured discovery error when the directory/path bound is exceeded. The test covers 1001 directory entries, but it does not cover the path-bound side of the requirement, such as overly long target paths or too many checked path pairs if that is the intended path bound.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-004-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Side-effect-free acceptance library is not tested",
+      "body": "R4 requires `tests/acceptance/lib/targets.js` to remain side-effect-free, but the tests only exercise injected discovery calls. They do not assert that importing the library does not perform filesystem discovery, spawn processes, write output, or otherwise execute side effects.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-004-blocking-005",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Stub acceptance credential-free behavior is not enforced",
+      "body": "R3 requires stub acceptance to require no provider credentials. The test passes `env: {}` but does not assert that credential environment variables are ignored or that missing credentials are not read, required, or forwarded. A runner could still inspect `process.env` directly and fail in real CI while passing this injectable test.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-004-non-blocking-006",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "non-blocking",
+      "title": "R2 valid list-selection combinations could be broader",
+      "body": "R2 valid list-selection combinations could be broader",
+      "category": "unknown"
+    }
+  ]
+}

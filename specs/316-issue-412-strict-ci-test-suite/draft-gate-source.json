@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "The draft introduces behavior changes (selector validation/ownership, acceptance target discovery source, test:ci composition) but does not define migration parity before implementation: it lacks an explicit inventory of affected public behavior and a mapped handoff/explicit-removal decision for retained surfaces, and does not provide behavior-level verification per retained command/flag/API surface through the new path.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "migration-parity scope"
+          },
+          "observed": "The draft introduces behavior changes (selector validation/ownership, acceptance target discovery source, test:ci composition) but does not define migration parity before implementation: it lacks an explicit inventory of affected public behavior and a mapped handoff/explicit-removal decision for retained surfaces, and does not provide behavior-level verification per retained command/flag/API surface through the new path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "draft-recommend-with-reasoning",
+      "result": "fail",
+      "reason": "For the answered question, the rationale is not explicitly grounded in the required basis categories (project docs, guardrail principles, or existing code patterns); the reason cites user instruction/issue-body acceptance instead.",
+      "category": "code-quality",
+      "title": "Present Recommendations with Reasoning",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "content",
+            "locator": "qa[0]"
+          },
+          "observed": "For the answered question, the rationale is not explicitly grounded in the required basis categories (project docs, guardrail principles, or existing code patterns); the reason cites user instruction/issue-body acceptance instead.",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "content",
+        "locator": "migration-parity scope"
+      },
+      "observed": "The draft introduces behavior changes (selector validation/ownership, acceptance target discovery source, test:ci composition) but does not define migration parity before implementation: it lacks an explicit inventory of affected public behavior and a mapped handoff/explicit-removal decision for retained surfaces, and does not provide behavior-level verification per retained command/flag/API surface through the new path.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "draft-recommend-with-reasoning",
+      "where": {
+        "file": "content",
+        "locator": "qa[0]"
+      },
+      "observed": "For the answered question, the rationale is not explicitly grounded in the required basis categories (project docs, guardrail principles, or existing code patterns); the reason cites user instruction/issue-body acceptance instead.",
+      "severity": "blocking",
+      "refs": [
+        "draft-recommend-with-reasoning"
+      ]
+    }
+  ]
+}

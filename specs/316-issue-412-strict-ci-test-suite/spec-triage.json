@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "All five blocking findings expose unresolved compatibility or executable CI contracts and require bounded spec repairs.",
+  "items": [
+    {
+      "title": "Duplicate selector rule conflicts with file-spec union",
+      "target": "R1 / T-1",
+      "decision": "apply",
+      "rationale": "Strictness must distinguish mutually exclusive single-valued suite selectors from the existing multi-valued file selector union.",
+      "evidence": "tests/run.js accumulates repeated --file, --pattern, and positional inputs, while --preset, --scope, --agent, and --all select one directory mode."
+    },
+    {
+      "title": "`--list --json` lacks an output contract",
+      "target": "R2 / Acceptance Criteria",
+      "decision": "apply",
+      "rationale": "Parseability alone cannot prove discovery; a minimal versioned selection and category/file listing contract is required for implementation and tests.",
+      "evidence": "The current runner has category grouping and discovered files but no listing mode or machine-readable shape."
+    },
+    {
+      "title": "`test:ci` targets are not concretely identifiable",
+      "target": "R3 / T-3",
+      "decision": "apply",
+      "rationale": "Credential-free coverage needs exact commands/files and a schema-aware acceptance stub rather than the flow-gate-only fixed response helper.",
+      "evidence": "tests/helpers/stub-agent.js emits one fixed JSON response, while docs enrich/text and quality verification require different schema-shaped responses."
+    },
+    {
+      "title": "Zero-target acceptance failure has no runner owner",
+      "target": "R4 / T-2",
+      "decision": "apply",
+      "rationale": "Discovery should remain side-effect-free in targets.js and tests/acceptance/run.js must own non-zero process behavior for empty or unknown target resolution.",
+      "evidence": "package.json invokes tests/acceptance/run.js, which already owns argument validation and child test execution."
+    },
+    {
+      "title": "`test:agent` preservation omits its current consumer",
+      "target": "R5 / T-3",
+      "decision": "apply",
+      "rationale": "The retained real-provider command cannot be verified until report.test.js imports the actual acceptance helpers and selects the discovered base fixture.",
+      "evidence": "tests/agent/report.test.js imports ../../acceptance from tests/agent and requests node, while the repository contains only the base acceptance fixture/test pair."
+    }
+  ]
+}

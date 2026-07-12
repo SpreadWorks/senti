@@ -11,7 +11,7 @@
 
 <!-- {{text({prompt: "Write a 1-2 sentence overview of this chapter. Include the programming language, framework, and key tool versions."})}} -->
 
-This chapter covers the technology stack, dependency management, deployment, and operations procedures for sdd-forge, a zero-dependency Node.js CLI tool built with ES Modules targeting Node.js ≥ 18.0.0, managed with pnpm 10.33.0, and distributed through the npm registry.
+This project is a JavaScript codebase for Node.js, delivered as an ECMAScript module CLI and library through the `senti` package entry point. The analyzed configuration identifies Node.js `18.19.0` or newer as the runtime requirement and uses a specifically pinned `pnpm` version for consistent tooling.
 <!-- {{/text}} -->
 
 ## Content
@@ -21,105 +21,59 @@ This chapter covers the technology stack, dependency management, deployment, and
 <!-- {{text({prompt: "Describe the technology stack in table format with category, technology name, and version."})}} -->
 
 | Category | Technology | Version |
-|---|---|---|
-| Runtime | Node.js | ≥ 18.0.0 |
-| Language | JavaScript (ES Modules) | ES2022+ |
-| Package Manager | pnpm | 10.33.0 |
-| Distribution | npm registry | — |
-| External Dependencies | None (zero-dependency policy) | — |
-| Version Format | Git commit count-based | 0.1.0-alpha.N |
-| Source Control | Git | — |
-| Dependency Automation | GitHub Dependabot | — |
-| Test Runner | Custom Node.js runner | — |
+| --- | --- | --- |
+| Programming language | JavaScript | Not specified in the analysis |
+| Runtime | Node.js | `18.19.0` or newer |
+| Module format | ECMAScript modules (ESM) | Configured at the package level |
+| Package manager | pnpm | Specific version pinned in `package.json` |
+| Distribution format | Node.js CLI and library package | Exposes `src/senti.js` as both binary and package entry |
+| Test execution | Repository-local Node runners | Versions not specified in the analysis |
 <!-- {{/text}} -->
 
 ### Dependencies
 
 <!-- {{text({prompt: "Describe the project's dependency management approach."})}} -->
 
-sdd-forge enforces a strict zero-external-dependency policy. All runtime functionality relies exclusively on Node.js built-in modules such as `fs`, `path`, `child_process`, and `url`. No third-party npm packages are used at runtime.
+Dependency management is centralized in `package.json`, which defines the package entry points, publish scope, runtime requirements, and the test command set in one place. The project also follows a minimal-runtime approach in the analyzed utilities: the TOML parser and Makefile parser are implemented internally and described as dependency-free, which reduces reliance on external packages for core parsing behavior.
 
-The package manager is pnpm, pinned to an exact version (`10.33.0`) with an SHA-512 integrity hash in the `packageManager` field of `package.json`. This ensures fully reproducible installs across all environments without relying on a floating version.
-
-Dependency updates are monitored automatically via GitHub Dependabot, configured in `.github/dependabot.yml` with weekly checks against the npm ecosystem.
-
-Only the `src/` directory is included in the published npm package. Test files, configuration, and documentation are excluded from distribution.
+For packaging, the manifest publishes the `src/` tree and explicitly excludes preset test directories from the distributed output. Tooling consistency is reinforced by requiring Node.js `18.19.0` or newer and pinning a specific `pnpm` version.
 <!-- {{/text}} -->
 
 ### Deployment Flow
 
 <!-- {{text({prompt: "Describe the deployment procedure and flow."})}} -->
 
-Releases are published to the npm registry using a two-step process to ensure alpha releases do not immediately reach the `latest` tag.
+The analyzed files do not define a deployment pipeline or release workflow beyond package-level distribution settings. Based on `package.json`, the publish flow is scoped to the `src/` directory, exposes `src/senti.js` as the `senti` executable, and exports the same module as the package root.
 
-**Step 1 — Pre-publish verification**
-
-Before publishing, run a dry-run pack to confirm that no sensitive files or unintended directories are included in the bundle:
-
-```bash
-npm pack --dry-run
-```
-
-**Step 2 — Publish under the alpha dist-tag**
-
-```bash
-npm publish --tag alpha
-```
-
-This makes the release available for install via `npm install sdd-forge@alpha` without affecting users who install via the default `latest` tag.
-
-**Step 3 — Promote to latest (optional)**
-
-When a release is ready to become the default, promote it explicitly:
-
-```bash
-npm dist-tag add sdd-forge@<version> latest
-```
-
-The version number follows the format `0.1.0-alpha.N`, where `N` is the total git commit count obtained via `git rev-list --count HEAD`. Publishing is performed only when a release is explicitly requested — version bumps, commits, and pushes alone do not trigger a publish.
+The packaged output is controlled by explicitly excluding preset test directories, which keeps test assets out of the published artifact. This indicates that deployment, in the analyzed scope, is centered on preparing and publishing a Node.js package with a controlled file set rather than on a separate application deployment process.
 <!-- {{/text}} -->
 
 ### Operations Flow
 
 <!-- {{text({prompt: "Describe the operations procedures."})}} -->
 
-**Running Tests**
+Operations in this project are centered on predictable command execution, test orchestration, and lightweight file-based inspection. `package.json` defines unit, end-to-end, acceptance, agent-focused, aggregate, and CI test commands through repository-local Node runners, providing a consistent operational entry point for validation tasks.
 
-Tests are organized into three scopes — unit, end-to-end, and acceptance — and are driven by a custom Node.js test runner located in `tests/run.js`.
+At runtime, process handling is standardized in `src/lib/process.js`, where synchronous and asynchronous command execution share one option contract for working directory, environment variables, timeouts, and buffers. Errors are normalized through reusable formatting and assertion utilities, which supports consistent diagnostics and fail-fast behavior.
 
-```bash
-npm test                        # Run all tests
-npm run test:unit               # Run unit tests only
-npm run test:e2e                # Run end-to-end tests only
-npm run test:acceptance         # Run acceptance tests only
-npm test -- --preset <name>    # Run tests scoped to a specific preset
-```
-
-Test output should be redirected to a file when inspecting results from long-running runs:
-
-```bash
-npm test > /tmp/test-output.log 2>&1
-```
-
-**Common CLI Operations**
-
-| Command | Purpose |
-|---|---|
-| `sdd-forge setup` | Initialize project configuration |
-| `sdd-forge docs build` | Run the full documentation generation pipeline |
-| `sdd-forge docs scan` | Analyze source code and produce `analysis.json` |
-| `sdd-forge docs enrich` | AI-enhance the analysis output |
-| `sdd-forge docs readme` | Generate or refresh `README.md` |
-| `sdd-forge flow prepare` | Start the SDD workflow for a new feature |
-| `sdd-forge flow get status` | Show current flow progress |
-| `sdd-forge upgrade` | Sync skills and templates after preset changes |
-| `sdd-forge presets` | List all available presets |
-| `sdd-forge help` | Display all available commands |
-
-**No Build Step**
-
-Because sdd-forge is pure JavaScript with ES Modules and no transpilation or bundling, the source in `src/` is executed directly by Node.js. There is no compile step required before running or publishing.
+Supporting utilities keep operational checks simple and dependency-free. The Makefile helper can safely inspect files, enforce a 1 MB size limit, and extract the `test` target, while the TOML parser converts basic configuration fragments into plain JavaScript objects for internal use.
 <!-- {{/text}} -->
+
+### Test Command Contract
+
+| Command | Selection |
+| --- | --- |
+| `npm test` | Unit and end-to-end tests |
+| `npm run test:unit` | Unit tests only |
+| `npm run test:e2e` | End-to-end tests only |
+| `npm run test:acceptance` | Fixture-derived acceptance targets |
+| `npm run test:agent` | Real-provider agent tests |
+| `npm run test:all` | Default tests plus real-provider agent tests |
+| `npm run test:ci` | Credential-free unit, end-to-end, stub acceptance, and CLI smoke stages |
+
+`npm run test:ci` runs its four stages sequentially, stops at the first failure, and never selects `tests/agent`. Use `npm run test:agent` explicitly when provider credentials are available.
+
+`node tests/run.js --help` prints usage without discovering or executing tests. Machine-readable discovery requires the paired flags `--list --json` and accepts one valid suite or file selection. The suite selectors `--preset`, `--scope`, `--agent`, and `--all` are mutually exclusive and cannot be combined with file selection. Repeated `--file`, repeated `--pattern`, and positional paths form one deduplicated file union.
 
 ---
 

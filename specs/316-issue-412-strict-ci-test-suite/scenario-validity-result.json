@@ -1,0 +1,80 @@
+{
+  "version": "1",
+  "raw_output_path": "specs/316-issue-412-strict-ci-test-suite/tests/.raw/scenario-validity.log",
+  "command": "node --test specs/316-issue-412-strict-ci-test-suite/tests/acceptance-targets.contract.test.js specs/316-issue-412-strict-ci-test-suite/tests/agent-report-fixture.contract.test.js specs/316-issue-412-strict-ci-test-suite/tests/ci-stages.contract.test.js specs/316-issue-412-strict-ci-test-suite/tests/test-selection.contract.test.js",
+  "process": {
+    "started": true,
+    "exitCode": 1,
+    "signal": null,
+    "timedOut": false,
+    "spawnError": null
+  },
+  "result": "pass",
+  "summary": [
+    {
+      "id": "R1",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/316-issue-412-strict-ci-test-suite/tests/test-selection.contract.test.js",
+        "test_name": "R1: TestSelection rejects every invalid single-value or conflicting selector without discovery",
+        "command": "node --test specs/316-issue-412-strict-ci-test-suite/tests/acceptance-targets.contract.test.js specs/316-issue-412-strict-ci-test-suite/tests/agent-report-fixture.contract.test.js specs/316-issue-412-strict-ci-test-suite/tests/ci-stages.contract.test.js specs/316-issue-412-strict-ci-test-suite/tests/test-selection.contract.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 550
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/316-issue-412-strict-ci-test-suite/tests/test-selection.contract.test.js",
+        "test_name": "R2: TestRunner keeps help discovery-free and emits only the versioned JSON listing",
+        "command": "node --test specs/316-issue-412-strict-ci-test-suite/tests/acceptance-targets.contract.test.js specs/316-issue-412-strict-ci-test-suite/tests/agent-report-fixture.contract.test.js specs/316-issue-412-strict-ci-test-suite/tests/ci-stages.contract.test.js specs/316-issue-412-strict-ci-test-suite/tests/test-selection.contract.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 550
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/316-issue-412-strict-ci-test-suite/tests/ci-stages.contract.test.js",
+        "test_name": "R3: CI stage factory defines the four deterministic credential-free stages",
+        "command": "node --test specs/316-issue-412-strict-ci-test-suite/tests/acceptance-targets.contract.test.js specs/316-issue-412-strict-ci-test-suite/tests/agent-report-fixture.contract.test.js specs/316-issue-412-strict-ci-test-suite/tests/ci-stages.contract.test.js specs/316-issue-412-strict-ci-test-suite/tests/test-selection.contract.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 550
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/316-issue-412-strict-ci-test-suite/tests/acceptance-targets.contract.test.js",
+        "test_name": "R4: fixture discovery uses injected immediate directories and fixed path pairs",
+        "command": "node --test specs/316-issue-412-strict-ci-test-suite/tests/acceptance-targets.contract.test.js specs/316-issue-412-strict-ci-test-suite/tests/agent-report-fixture.contract.test.js specs/316-issue-412-strict-ci-test-suite/tests/ci-stages.contract.test.js specs/316-issue-412-strict-ci-test-suite/tests/test-selection.contract.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 550
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/316-issue-412-strict-ci-test-suite/tests/agent-report-fixture.contract.test.js",
+        "test_name": "R5: the real agent report test imports acceptance helpers and resolves the base fixture",
+        "command": "node --test specs/316-issue-412-strict-ci-test-suite/tests/acceptance-targets.contract.test.js specs/316-issue-412-strict-ci-test-suite/tests/agent-report-fixture.contract.test.js specs/316-issue-412-strict-ci-test-suite/tests/ci-stages.contract.test.js specs/316-issue-412-strict-ci-test-suite/tests/test-selection.contract.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 550
+        }
+      }
+    }
+  ]
+}

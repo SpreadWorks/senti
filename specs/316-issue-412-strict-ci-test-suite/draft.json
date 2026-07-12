@@ -1,0 +1,85 @@
+{
+  "devType": "bugfix",
+  "goal": "must: Issue #412 の監査 finding F-013（suite foundation 部分）と F-022 を解消し、test suite 選択を厳格化し、credential を必要としない再現可能な `npm run test:ci` を提供する。",
+  "analysis": {
+    "problem": "tests/run.js は unknown flag を走査時に無視し、--preset の値欠落を unknown preset として扱う。--help と --list --json の専用契約もなく、package.json に test:ci がない。acceptance target は固定配列で、実 fixture の増減と乖離し得る。これにより CI が実 provider 依存テストを含めたり、存在しない target を成功扱いしたりする余地がある。",
+    "proposedApproach": "TestSelection の選択・検証境界を明確化し、unknown、競合、値欠落、存在しない preset を非 0 にする。usage と JSON listing を別コマンド契約として検証し、deterministic な unit、integration、stub acceptance、CLI smoke だけを test:ci に束ねる。acceptance target は fixture/test file の実在から導出し、0 件解決を失敗にする。",
+    "validation": "修正前に strict selector、usage、JSON listing、fixture 解決、credential-free CI 実行の失敗再現を自動テストで追加する。修正後は各失敗系の非 0、--help の usage、--list --json の JSON、fixture 由来 target と 0 件 failure、npm run test:ci、既存 unit/e2e/acceptance の正常系を確認する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #412 は strict selector、独立した --help / --list --json 契約、credential-free test:ci、fixture 実態からの acceptance target 導出を受け入れ条件にしている。",
+      "must: tests/run.js は --preset、--scope、--agent、--all、--file、--pattern と positional paths を扱うが、unknown --flag を無視する走査を持つ。",
+      "must: tests/helpers/test-runner-search-dirs.js は selector の排他検証と検索ディレクトリ構築を分離している。",
+      "must: package.json は test、test:unit、test:e2e、test:acceptance、test:agent、test:all を持つが test:ci を持たない。",
+      "must: tests/acceptance/lib/targets.js は ACCEPTANCE_PRESET_NAMES 固定配列から target を作り、existing target は test.js の有無だけで絞る。",
+      "must: repository rules は外部依存を追加せず、source 更新時に関連 docs を同期し、AI 実行を伴う既存 agent test 変更時は test:agent も実行する。",
+      "must: migration parity inventory の既存 public surfaces は package scripts npm test / test:unit / test:e2e / test:acceptance / test:agent / test:all、tests/run.js の valid --preset / --scope / --agent / --all / --file / --pattern / positional invocation、tests/acceptance/lib/targets.js exports、fixture-local acceptance execution、CLI smoke execution である。"
+    ],
+    "decisionPoints": [
+      "must: selector は未認識 flag、同一 selector の不正な重複、値を必要とする flag の値欠落、存在しない preset を usage error として非 0 にする。",
+      "must: --help は実行対象を解決せず usage を返す人間向け契約、--list --json は実行可能 suite の機械可読 JSON を返す契約として分離する。",
+      "must: test:ci は実 provider credential を必要とする tests/agent を含めず、unit、integration、stub acceptance、CLI smoke を実行する。",
+      "must: acceptance target discovery は実際の fixture と対応 test file を根拠にし、解決結果が 0 件なら成功終了しない。",
+      "must: retained selector の正常系と既存 test scripts は継続し、Issue にない test infrastructure の変更は行わない。"
+    ],
+    "resolvedByProjectRules": [
+      "must: Node.js 組み込みモジュールと既存 test runner だけを使い、依存を追加しない。",
+      "must: alpha 版ポリシーに従い、曖昧な旧 selector format や deprecated path の互換コードを保持しない。",
+      "must: 同じ selector parsing / validation が複数箇所に必要なら既存 helper を拡張または共通 helper に抽出する。",
+      "must: source を変更した場合は docs 同期を実行する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: TestSelection の正確な class / module 境界、CLI JSON schema、test:ci script の具体的な呼び出し列は既存 runner と smoke fixture を調査して spec で定義する。",
+      "must: fixture discovery が対象とする directory と test file の両方の存在条件、空集合 error message、stub-agent fixture の配置は spec で検証可能な条件にする。",
+      "should: helper 抽出の要否は既存 tests/run.js と acceptance runner の重複調査後に決める。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: package.json に credential-free test:ci を追加し、unit、integration、stub acceptance、CLI smoke を実行対象にする。",
+      "must: tests/run.js と selector helper で unknown、競合、値欠落、missing preset の suite specification を非 0 にする。",
+      "must: --help と --list --json の output / exit 契約を別々に実装・検証する。",
+      "must: acceptance target を実 fixture と test file から導出し、0 matches を failure にする。",
+      "must: stub-agent fixture と CLI smoke tests を deterministic CI suite に含め、real-provider-dependent tests から分離する。",
+      "must: 修正前 failing reproduction または automated test を追加し、修正後の pass と既存 happy paths を確認する。"
+    ],
+    "out": [
+      "must: F-013 の suite foundation 以外、F-022 以外、または Issue #412 に列挙されない監査 finding の修正は含めない。",
+      "must: npm publish、npm dist-tag、正式 release は含めない。",
+      "must: CI provider、外部 credential、実 provider integration の挙動変更は含めない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: `npm test`、test:unit、test:e2e、test:acceptance、test:agent、test:all の既存 scripts と valid selector invocations は継続する。",
+    "must: invalid selector invocations は silent ignore から明示的な非 0 usage error に変わる。",
+    "must: tests/agent を明示した実 provider-dependent execution は credential-free test:ci から除外されるが、既存 test:agent surface は維持する。",
+    "must: acceptance target list は固定配列ではなく repository fixture 実態に追随し、fixture/test file がない name は実行対象にならない。",
+    "must: --help は test execution を開始せず、--list --json は machine-readable output 以外を stdout に混在させない。",
+    "must: retained behavior mapping は、既存 package scripts を同じ runner entry point に維持し、valid selector invocation を strict TestSelection owner に移し、invalid/unknown selector の silent ignore を explicit usage error に置き換える。",
+    "must: retained behavior mapping は、tests/acceptance/lib/targets.js の list/get target exports を fixture/test file discovery owner に移し、fixture-local acceptance と CLI smoke surfaces を deterministic test:ci owner に含め、tests/agent の実 provider surface は既存 test:agent owner に残す。",
+    "must: behavior-level verification は各 package script の既存 happy path、valid selector execution、unknown/conflicting/missing selector の non-zero、--help の非実行 usage、--list --json の parseable stdout、fixture target discovery、0-match failure、credential-free npm run test:ci、test:agent exclusion を自動テストまたは実行 evidence で証明する。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "must: Issue #412 の公開 body を、strict selector、credential-free test:ci、fixture 由来 acceptance target、既存正常系の回帰確認を含む実装範囲として承認しますか。",
+      "answer": "must: はい。公開済み Issue #412 body を完全な intent として採用し、記載された strict selector、credential-free test:ci、fixture 由来 target、回帰確認の範囲で進める。",
+      "evidence": "ユーザーの開始指示は『accept the published Issue body as the intent』および『proceed without asking the user routine questions』と明示している。",
+      "why": "must: 既存 code pattern では tests/run.js が selector validation を tests/helpers/test-runner-search-dirs.js に委譲し、docs/stack_and_ops.md が custom Node.js test runner と unit/e2e/acceptance の既存契約を示す。これらと公開 Issue の対象 finding を合わせると、追加の product judgment は不要である。",
+      "considered": "",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [
+    "must: Issue #412 の公開 body を完全な intent として受領済みであり、追加の user judgment はない。"
+  ],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-11T11:23:05Z",
+    "notes": "User explicitly authorized accepting the published Issue #412 body as the intent and continuing without routine questions."
+  }
+}

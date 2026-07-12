@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Clarified selector plurality, JSON listing, deterministic CI stages, acceptance runner ownership, and test:agent compatibility.",
+  "items": [
+    {
+      "title": "Duplicate selector rule conflicts with file-spec union",
+      "target": "R1 / T-1",
+      "decision": "applied",
+      "rationale": "Limited duplicate rejection to suite selectors and preserved repeated file/pattern/positional union behavior.",
+      "evidence": "spec.json overview.data_flow[0], overview.decisions[3], requirements[0], acceptance_criteria[1], and tasks[0] now distinguish selector kinds.",
+      "changedFields": ["overview.data_flow[0]", "overview.decisions[3]", "requirements[0].desc", "acceptance_criteria[1]", "tasks[0]"]
+    },
+    {
+      "title": "`--list --json` lacks an output contract",
+      "target": "R2 / Acceptance Criteria",
+      "decision": "applied",
+      "rationale": "Defined required version, selection, categorized file arrays/counts, total, stable paths, selector semantics, and no-execution behavior.",
+      "evidence": "spec.json overview.data_flow[1], overview.decisions[4], requirements[1], acceptance_criteria[2], and tasks[0] now define the contract.",
+      "changedFields": ["overview.data_flow[1]", "overview.decisions[4]", "requirements[1].desc", "acceptance_criteria[2]", "tasks[0]"]
+    },
+    {
+      "title": "`test:ci` targets are not concretely identifiable",
+      "target": "R3 / T-3",
+      "decision": "applied",
+      "rationale": "Named tests/ci.js and its four exact child commands plus the schema-aware stub injection and acceptance behavior.",
+      "evidence": "spec.json overview.modules[4..5], overview.data_flow[3], overview.decisions[5], requirements[2], acceptance_criteria[4..5], implementationTargets, and tasks[2] now identify executable targets.",
+      "changedFields": ["overview.modules[4]", "overview.modules[5]", "overview.data_flow[3]", "overview.decisions[5]", "requirements[2].desc", "acceptance_criteria[4]", "acceptance_criteria[5]", "implementationTargets", "tasks[2]"]
+    },
+    {
+      "title": "Zero-target acceptance failure has no runner owner",
+      "target": "R4 / T-2",
+      "decision": "applied",
+      "rationale": "Assigned side-effect-free discovery to targets.js and non-zero empty/requested handling to tests/acceptance/run.js.",
+      "evidence": "spec.json overview.modules[3], overview.data_flow[2], overview.decisions[6], requirements[3], acceptance_criteria[3], implementationTargets, and tasks[1] now name the runner boundary.",
+      "changedFields": ["overview.modules[3]", "overview.data_flow[2]", "overview.decisions[6]", "requirements[3].desc", "acceptance_criteria[3]", "implementationTargets", "tasks[1]"]
+    },
+    {
+      "title": "`test:agent` preservation omits its current consumer",
+      "target": "R5 / T-3",
+      "decision": "applied",
+      "rationale": "Required report.test.js to use correct acceptance imports and the discovered base fixture while remaining outside credential-free CI.",
+      "evidence": "spec.json overview.modules[5], overview.decisions[7], requirements[4], acceptance_criteria[6], implementationTargets, and tasks[2] now define compatibility and verification.",
+      "changedFields": ["overview.modules[5]", "overview.decisions[7]", "requirements[4].desc", "acceptance_criteria[6]", "implementationTargets", "tasks[2]"]
+    }
+  ]
+}

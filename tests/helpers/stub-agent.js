@@ -66,3 +66,74 @@ export function defaultPassResponse() {
     ],
   });
 }
+
+class SchemaAwareStubProvider {
+  enrich(prompt = "") {
+    const chapters = parseAvailableChapters(prompt);
+    const entries = parseEnrichTargets(prompt).map(({ category, index, file }) => ({
+      category,
+      index,
+      summary: `Stub summary for ${file}`,
+      detail: `Deterministic CI enrichment for ${file}.`,
+      chapter: chapters[0] || "overview",
+      role: "other",
+      keywords: ["stub", "ci", category],
+      app: null,
+    }));
+    return JSON.stringify(entries.length > 0 ? { entries } : { entries, chapters });
+  }
+
+  text(_prompt = "", { jsonSchema } = {}) {
+    const keys = Array.isArray(jsonSchema?.required)
+      ? jsonSchema.required
+      : Object.keys(jsonSchema?.properties || {});
+    if (keys.length === 0) return JSON.stringify({ text: "stub text" });
+    return JSON.stringify(Object.fromEntries(keys.map((key) => [key, `stub text for ${key}`])));
+  }
+
+  quality() {
+    return JSON.stringify({ verdict: "pass", evaluations: [] });
+  }
+
+  respond(options = {}, prompt = "") {
+    if (options.commandId === "docs.enrich") return this.enrich(prompt, options);
+    if (options.commandId === "docs.text") return this.text(prompt, options);
+    return this.quality();
+  }
+}
+
+class StubAgent {
+  constructor(provider) {
+    this.provider = provider;
+  }
+
+  resolve() {
+    return { provider: "stub" };
+  }
+
+  call(prompt, options) {
+    return Promise.resolve(this.provider.respond(options, prompt));
+  }
+}
+
+export function createSchemaAwareStubProvider() {
+  return new SchemaAwareStubProvider();
+}
+
+export function createStubAgent(provider) {
+  return new StubAgent(provider);
+}
+
+function parseEnrichTargets(prompt) {
+  return [...String(prompt).matchAll(/^### \[([^:\]]+):(\d+)\] (.+)$/gm)].map((match) => ({
+    category: match[1],
+    index: Number(match[2]),
+    file: match[3],
+  }));
+}
+
+function parseAvailableChapters(prompt) {
+  const section = String(prompt).match(/## Available chapters\s*\n([\s\S]*?)(?=\n## |$)/)?.[1] || "";
+  return [...section.matchAll(/^- ([^:\n]+?)(?:: .*)?$/gm)]
+    .map((match) => match[1].trim().replace(/\.md$/, ""));
+}

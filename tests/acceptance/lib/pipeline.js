@@ -58,7 +58,7 @@ export function copyFixture(fixtureDir, configOverrides) {
  * i18n/logger so Command subclasses that read from the container at runtime
  * still see fixture-scoped values.
  */
-export function buildCtx(tmp) {
+export function buildCtx(tmp, { agent: injectedAgent = null } = {}) {
   const configPath = path.join(tmp, ".senti", "config.json");
   const config = validate(loadJsonFile(configPath));
   const lang = config.lang || "en";
@@ -68,7 +68,7 @@ export function buildCtx(tmp) {
   const registry = new ProviderRegistry(config?.agent?.providers || {});
   const paths = { root: tmp, srcRoot: tmp, agentWorkDir: path.join(tmp, ".tmp") };
   const logger = new Logger({ logDir: os.tmpdir(), enabled: false });
-  const agentService = new Agent({ config, paths, registry, logger });
+  const agentService = injectedAgent || new Agent({ config, paths, registry, logger });
   const agent = agentService.resolve() ? agentService : null;
   const t = createI18n(lang, { domain: "messages" });
 
@@ -129,8 +129,8 @@ async function runStep(name, CommandClass, container, docsCtx) {
   }
 }
 
-export async function runPipeline(tmp) {
-  const { ctx, container } = buildCtx(tmp);
+export async function runPipeline(tmp, { agent = null } = {}) {
+  const { ctx, container } = buildCtx(tmp, { agent });
   const steps = [];
 
   steps.push(await runStep("scan", DocsScanCommand, container, { ...ctx }));

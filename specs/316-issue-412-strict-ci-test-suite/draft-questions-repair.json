@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Added the single triaged initial scope-confirmation question without changing the Issue-derived requirements or scope.",
+  "items": [
+    {
+      "title": "1. Empty initial QA list",
+      "target": "qa[]",
+      "rationale": "Added one self-contained goal-confirmation question. It asks only whether the published Issue body is the authorized scope and introduces no implementation decision.",
+      "evidence": "draft.json qa[0].question now names the Issue #412 outcome boundaries; all pending-answer fields remain empty as required.",
+      "changedFieldPaths": [
+        "qa[0]"
+      ]
+    }
+  ]
+}

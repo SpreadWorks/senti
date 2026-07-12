@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "bounded-resource-usage",
+      "result": "fail",
+      "reason": "Deriving acceptance targets from existing fixture/test pairs is specified as a bulk discovery step, but no explicit upper bound is given for recursion depth, fixture count, or scanned file size/count.",
+      "category": "code-quality",
+      "title": "Bounded Resource Usage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements.R4.desc"
+          },
+          "observed": "Deriving acceptance targets from existing fixture/test pairs is specified as a bulk discovery step, but no explicit upper bound is given for recursion depth, fixture count, or scanned file size/count.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "bounded-resource-usage",
+      "result": "fail",
+      "reason": "The `--list --json` contract requires returning resolver-derived file arrays and counts, yet there is no stated limit on resolver traversal or number/size of files included in listing output.",
+      "category": "code-quality",
+      "title": "Bounded Resource Usage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements.R2.desc"
+          },
+          "observed": "The `--list --json` contract requires returning resolver-derived file arrays and counts, yet there is no stated limit on resolver traversal or number/size of files included in listing output.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "bounded-resource-usage",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements.R4.desc"
+      },
+      "observed": "Deriving acceptance targets from existing fixture/test pairs is specified as a bulk discovery step, but no explicit upper bound is given for recursion depth, fixture count, or scanned file size/count.",
+      "severity": "blocking",
+      "refs": [
+        "bounded-resource-usage"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "bounded-resource-usage",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements.R2.desc"
+      },
+      "observed": "The `--list --json` contract requires returning resolver-derived file arrays and counts, yet there is no stated limit on resolver traversal or number/size of files included in listing output.",
+      "severity": "blocking",
+      "refs": [
+        "bounded-resource-usage"
+      ]
+    }
+  ]
+}

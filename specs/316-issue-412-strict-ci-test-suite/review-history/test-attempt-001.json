@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-11T15:06:08.663Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 5,
+    "advisory": 0,
+    "total": 5
+  },
+  "coverageArtifact": "specs/316-issue-412-strict-ci-test-suite/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R1 invalid selector matrix is mostly untested",
+      "target": "specs/316-issue-412-strict-ci-test-suite/tests/test-selection.contract.test.js",
+      "issue": "The R1 test covers only one unknown flag, one missing value, one preset/scope combination, one repeated scope, and one valid repeated --file case. It has no spec-local assertions for unknown presets, missing presets, repeated --preset, repeated --agent, repeated --all, --all/--agent mutual exclusion, selector/file-spec mutual exclusion, repeated --pattern validity, positional path union validity, or deduplication only after resolution.",
+      "requiredChange": "Add focused contract cases for each required invalid selector failure and retained valid multi-valued file/pattern/positional behavior.",
+      "whyBlocking": "R1 is a must requirement and the coverage artifact marks it covered, but several required parser behaviors have no corresponding spec-local test coverage.",
+      "origin": "R1",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R2 CLI/listing contract lacks required coverage",
+      "target": "specs/316-issue-412-strict-ci-test-suite/tests/test-selection.contract.test.js",
+      "issue": "The R2 test checks help mode and one renderTestList shape only. It does not cover that --help performs no discovery/execution, --list and --json require each other, listing stdout is JSON-only, suite ordering across unit/integration/acceptance/other, sorted repository-relative POSIX files, count/total consistency beyond a single file, no test spawning during listing, traversal depth >32, >10000 resolved files, repo-relative path length >4096, or serialized JSON >16 MiB failing before stdout.",
+      "requiredChange": "Add spec-local tests for the list/json pairing, JSON-only output shape/order/count/sort guarantees, non-spawning behavior, and every resolver/listing limit failure mode.",
+      "whyBlocking": "R2 is a must requirement and the artifact marks it covered, but most required failure modes and output guarantees are untested.",
+      "origin": "R2",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R3 CI execution behavior and credential-free stub path are untested",
+      "target": "specs/316-issue-412-strict-ci-test-suite/tests/ci-stages.contract.test.js",
+      "issue": "The R3 test only asserts createCiStages returns four command tuples. It does not test package.json maps npm run test:ci to node tests/ci.js, stages execute sequentially, execution stops non-zero on the first failure, tests/agent is not selected, or that tests/ci/stub-acceptance.test.js copies the base fixture, injects tests/helpers/stub-agent.js for docs enrich/text and passing quality responses, runs the pipeline, and requires no provider credentials.",
+      "requiredChange": "Add contract tests for package-script wiring, CI runner sequencing/early-exit behavior, exclusion of tests/agent, and the stub acceptance fixture/provider behavior without credentials.",
+      "whyBlocking": "R3 is a must requirement and the current test would pass with only a stage factory present, leaving critical CI behavior unprotected.",
+      "origin": "R3",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R4 discovery limits and acceptance runner behavior are untested",
+      "target": "specs/316-issue-412-strict-ci-test-suite/tests/acceptance-targets.contract.test.js",
+      "issue": "The R4 test validates one injected immediate directory and two fixed existsSync checks. It does not cover the at-most-1000 immediate directory bound, structured discovery errors when directory/path bounds are exceeded, absence of recursive fixture traversal or file-content reads, side-effect-free behavior beyond injected filesystem calls, or tests/acceptance/run.js exiting non-zero for discovery errors, empty all-target results, unknown requested targets, or empty requested resolution, and executing only resolved test files otherwise.",
+      "requiredChange": "Add targeted tests for discovery limit/error cases, no recursive/content-read filesystem usage, side-effect-free discovery, and acceptance runner failure/success resolution paths.",
+      "whyBlocking": "R4 is a must requirement and the artifact marks it covered, but the required discovery safety limits and runner contract have no corresponding spec-local coverage.",
+      "origin": "R4",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R5 real-provider isolation and package-script surface are untested",
+      "target": "specs/316-issue-412-strict-ci-test-suite/tests/agent-report-fixture.contract.test.js",
+      "issue": "The R5 test only checks a resolveReportFixture callback is invoked with base. It does not verify tests/agent/report.test.js imports helpers from ../acceptance/lib, selects the discovered base fixture rather than node, remains under explicit real-provider npm run test:agent, fixture/import resolution is testable without credentials, real agent execution is excluded from test:ci, or that retained valid selector/package-script surfaces are covered.",
+      "requiredChange": "Add tests for report.test helper imports and discovered base fixture selection, package.json test:agent/test:ci isolation, credential-free fixture/import resolution, and retained selector/package-script surfaces required by R5.",
+      "whyBlocking": "R5 is a must requirement and the current test covers only a narrow helper seam while leaving the required isolation and package-script behavior untested.",
+      "origin": "R5",
+      "failureKind": "missing_coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/316-issue-412-strict-ci-test-suite/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 5,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "ab2324821d55428fafa3fceef0abffc72e6447a8b5bdc949e8a32a93af2d391b"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "test-001-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R1 invalid selector matrix is mostly untested",
+      "body": "The R1 test covers only one unknown flag, one missing value, one preset/scope combination, one repeated scope, and one valid repeated --file case. It has no spec-local assertions for unknown presets, missing presets, repeated --preset, repeated --agent, repeated --all, --all/--agent mutual exclusion, selector/file-spec mutual exclusion, repeated --pattern validity, positional path union validity, or deduplication only after resolution.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R2 CLI/listing contract lacks required coverage",
+      "body": "The R2 test checks help mode and one renderTestList shape only. It does not cover that --help performs no discovery/execution, --list and --json require each other, listing stdout is JSON-only, suite ordering across unit/integration/acceptance/other, sorted repository-relative POSIX files, count/total consistency beyond a single file, no test spawning during listing, traversal depth >32, >10000 resolved files, repo-relative path length >4096, or serialized JSON >16 MiB failing before stdout.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R3 CI execution behavior and credential-free stub path are untested",
+      "body": "The R3 test only asserts createCiStages returns four command tuples. It does not test package.json maps npm run test:ci to node tests/ci.js, stages execute sequentially, execution stops non-zero on the first failure, tests/agent is not selected, or that tests/ci/stub-acceptance.test.js copies the base fixture, injects tests/helpers/stub-agent.js for docs enrich/text and passing quality responses, runs the pipeline, and requires no provider credentials.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R4 discovery limits and acceptance runner behavior are untested",
+      "body": "The R4 test validates one injected immediate directory and two fixed existsSync checks. It does not cover the at-most-1000 immediate directory bound, structured discovery errors when directory/path bounds are exceeded, absence of recursive fixture traversal or file-content reads, side-effect-free behavior beyond injected filesystem calls, or tests/acceptance/run.js exiting non-zero for discovery errors, empty all-target results, unknown requested targets, or empty requested resolution, and executing only resolved test files otherwise.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-005",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R5 real-provider isolation and package-script surface are untested",
+      "body": "The R5 test only checks a resolveReportFixture callback is invoked with base. It does not verify tests/agent/report.test.js imports helpers from ../acceptance/lib, selects the discovered base fixture rather than node, remains under explicit real-provider npm run test:agent, fixture/import resolution is testable without credentials, real agent execution is excluded from test:ci, or that retained valid selector/package-script surfaces are covered.",
+      "category": "unknown"
+    }
+  ]
+}

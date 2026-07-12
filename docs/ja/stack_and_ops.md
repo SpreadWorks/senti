@@ -69,6 +69,22 @@ npm への公開は、ユーザーがリリースの意図を明示した場合�
 テスト実行など長時間かかるコマンドの結果は `command > /tmp/output.log 2>&1` でファイルに保存し、`grep` や Read ツールで確認します。
 <!-- {{/text}} -->
 
+### テストコマンド契約
+
+| コマンド | 選択範囲 |
+| --- | --- |
+| `npm test` | ユニットテストと E2E テスト |
+| `npm run test:unit` | ユニットテストのみ |
+| `npm run test:e2e` | E2E テストのみ |
+| `npm run test:acceptance` | fixture から検出した受け入れテスト |
+| `npm run test:agent` | 実プロバイダーを使う agent テスト |
+| `npm run test:all` | 既定テストと実プロバイダーを使う agent テスト |
+| `npm run test:ci` | 認証情報不要の unit、E2E、stub acceptance、CLI smoke の各ステージ |
+
+`npm run test:ci` は 4 ステージを順番に実行し、最初の失敗で停止します。`tests/agent` は選択しません。プロバイダー認証情報を利用できる場合だけ `npm run test:agent` を明示的に実行します。
+
+`node tests/run.js --help` はテストを検出・実行せず usage を表示します。機械可読の一覧取得には `--list --json` の組み合わせが必要で、suite または file の有効な選択を 1 つ指定できます。`--preset`、`--scope`、`--agent`、`--all` は相互排他で、file 選択と併用できません。複数の `--file`、複数の `--pattern`、位置引数は 1 つの file union として解決後に重複排除されます。
+
 ---
 
 <!-- {{data("base.docs.nav")}} -->

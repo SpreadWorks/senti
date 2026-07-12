@@ -9,14 +9,14 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import fs from "fs";
 import path from "path";
-import { copyFixture, runPipeline, removeTmpDir } from "../../acceptance/lib/pipeline.js";
-import { getAcceptanceFixtureDir } from "../../acceptance/lib/targets.js";
+import { copyFixture, runPipeline, removeTmpDir } from "../acceptance/lib/pipeline.js";
+import { getAcceptanceFixtureDir } from "../acceptance/lib/targets.js";
 
 describe("acceptance report: pipeline traceability", { timeout: 300000 }, () => {
   let tmp;
 
   it("runPipeline returns step timing for each pipeline step", async () => {
-    const fixtureDir = getAcceptanceFixtureDir("node");
+    const fixtureDir = getAcceptanceFixtureDir("base");
     tmp = copyFixture(fixtureDir, { type: "base" });
 
     const result = await runPipeline(tmp);
@@ -43,7 +43,7 @@ describe("acceptance report: pipeline traceability", { timeout: 300000 }, () => 
   });
 
   it("failed step records status as error", async () => {
-    const fixtureDir = getAcceptanceFixtureDir("node");
+    const fixtureDir = getAcceptanceFixtureDir("base");
     const badTmp = copyFixture(fixtureDir, { type: "base" });
 
     const outputDir = path.join(badTmp, ".senti", "output");
@@ -72,12 +72,12 @@ describe("acceptance report: JSON output", { timeout: 300000 }, () => {
   let tmp;
 
   it("report JSON is written to .senti/output/acceptance-report.json", async () => {
-    const fixtureDir = getAcceptanceFixtureDir("node");
+    const fixtureDir = getAcceptanceFixtureDir("base");
     tmp = copyFixture(fixtureDir, { type: "base" });
 
     await runPipeline(tmp);
 
-    const { writeReport } = await import("../../acceptance/lib/test-template.js");
+    const { writeReport } = await import("../acceptance/lib/test-template.js");
     const report = {
       preset: "base",
       timestamp: new Date().toISOString(),

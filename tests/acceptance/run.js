@@ -1,57 +1,21 @@
 #!/usr/bin/env node
-/**
- * tests/acceptance/run.js
- *
- * Acceptance test runner. Discovers and runs preset-specific test files.
- *
- * Usage:
- *   node tests/acceptance/run.js           — run all presets
- *   node tests/acceptance/run.js symfony   — run only symfony
- */
+import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
+import { discoverAcceptanceTargets } from "./lib/targets.js";
+import { runAcceptanceTargets } from "./lib/run-targets.js";
 
-import { execFileSync } from "child_process";
-import { getAcceptanceTestFile, listAcceptancePresetNames } from "./lib/targets.js";
-
-const ALL_PRESETS = listAcceptancePresetNames();
-const args = process.argv.slice(2);
-
-if (args.includes("--help") || args.includes("-h")) {
-  console.log(`Usage: node tests/acceptance/run.js [preset ...]
-
-Run acceptance tests for senti presets.
-
-Arguments:
-  preset    One or more preset names to test (default: all)
-
-Available presets:
-  ${ALL_PRESETS.join(", ")}
-
-Examples:
-  node tests/acceptance/run.js              Run all presets
-  node tests/acceptance/run.js symfony      Run only symfony
-  node tests/acceptance/run.js node laravel Run node and laravel`);
-  process.exit(0);
-}
-
-const requested = args.filter((a) => !a.startsWith("-"));
-const presets = requested.length > 0 ? requested : ALL_PRESETS;
-
-for (const preset of presets) {
-  if (!ALL_PRESETS.includes(preset)) {
-    console.error(`Unknown preset: ${preset}`);
-    console.error(`Available: ${ALL_PRESETS.join(", ")}`);
-    process.exit(1);
+export function main({ args = process.argv.slice(2), runAcceptanceTargets: runTargets = runAcceptanceTargets } = {}) {
+  if (args.includes("--help") || args.includes("-h")) {
+    process.stdout.write("Usage: node tests/acceptance/run.js [preset ...]\n");
+    return 0;
   }
-}
-
-const testFiles = presets.map((preset) => getAcceptanceTestFile(preset));
-console.log(`Running acceptance tests for: ${presets.join(", ")}`);
-
-try {
-  execFileSync("node", ["--test", ...testFiles], {
-    stdio: "inherit",
-    env: process.env,
+  return runTargets({
+    requested: args,
+    discoverTargets: discoverAcceptanceTargets,
+    executeTests: (files) => execFileSync("node", ["--test", ...files], { stdio: "inherit", env: process.env }),
+    writeError: (message) => process.stderr.write(message),
   });
-} catch (err) {
-  process.exit(err.status || 1);
 }
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) process.exitCode = main();

@@ -1,0 +1,150 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "generatedAt": "2026-07-11T11:42:01.883Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 5,
+    "nonBlocking": 2,
+    "total": 7
+  },
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Duplicate selector rule conflicts with file-spec union",
+      "target": "R1 / T-1",
+      "body": "**Target:** R1 / T-1\n**Issue:** Verified existing tests treat repeated `--file`, repeated `--pattern`, and file-spec unions as valid selector behavior, while R1 broadly requires rejecting duplicate/conflicting selector specifications. The spec does not distinguish single-valued suite selectors from intentionally multi-valued file selectors.\n**Required change:** Constrain duplicate rejection to single-selection flags such as `--preset`, `--scope`, `--agent`, and `--all`, or explicitly state which existing repeated `--file`/`--pattern`/positional union behavior is intentionally removed.\n**Why blocking:** Implementation and tests cannot know whether repeated file selectors must be rejected to satisfy R1 or preserved to avoid breaking verified existing behavior.",
+      "issue": "Verified existing tests treat repeated `--file`, repeated `--pattern`, and file-spec unions as valid selector behavior, while R1 broadly requires rejecting duplicate/conflicting selector specifications. The spec does not distinguish single-valued suite selectors from intentionally multi-valued file selectors.",
+      "requiredChange": "Constrain duplicate rejection to single-selection flags such as `--preset`, `--scope`, `--agent`, and `--all`, or explicitly state which existing repeated `--file`/`--pattern`/positional union behavior is intentionally removed.",
+      "whyBlocking": "Implementation and tests cannot know whether repeated file selectors must be rejected to satisfy R1 or preserved to avoid breaking verified existing behavior."
+    },
+    {
+      "kind": "blocking",
+      "title": "`--list --json` lacks an output contract",
+      "target": "R2 / Acceptance Criteria",
+      "body": "**Target:** R2 / Acceptance Criteria\n**Issue:** R2 requires parseable machine-readable suite output, but the spec does not define the JSON shape, required fields, or how selectors affect the listed suites/files/categories. Parseable-only acceptance would allow arbitrary JSON such as `{}`.\n**Required change:** Add the minimal JSON output contract for `tests/run.js --list --json`, including required top-level fields and selector semantics.\n**Why blocking:** Tests cannot prove suite discovery correctness, and implementers can satisfy parseability without producing a usable machine-readable listing.",
+      "issue": "R2 requires parseable machine-readable suite output, but the spec does not define the JSON shape, required fields, or how selectors affect the listed suites/files/categories. Parseable-only acceptance would allow arbitrary JSON such as `{}`.",
+      "requiredChange": "Add the minimal JSON output contract for `tests/run.js --list --json`, including required top-level fields and selector semantics.",
+      "whyBlocking": "Tests cannot prove suite discovery correctness, and implementers can satisfy parseability without producing a usable machine-readable listing."
+    },
+    {
+      "kind": "blocking",
+      "title": "`test:ci` targets are not concretely identifiable",
+      "target": "R3 / T-3",
+      "body": "**Target:** R3 / T-3\n**Issue:** The codebase has no existing CLI smoke script/directory, and the existing `tests/helpers/stub-agent.js` emits flow guardrail JSON while acceptance code expects docs text/enrich and quality-verification responses. The spec names unit, integration, stub acceptance, and CLI smoke, but not the exact commands/files or stub-agent injection path.\n**Required change:** Specify the exact `test:ci` command sequence or named test files for unit, integration/e2e, stub acceptance, and CLI smoke, including how the stub agent is configured for acceptance execution.\n**Why blocking:** Credential-free CI can be implemented with arbitrary or incomplete coverage, and a naive stub acceptance target can still fail against the existing acceptance pipeline response contracts.",
+      "issue": "The codebase has no existing CLI smoke script/directory, and the existing `tests/helpers/stub-agent.js` emits flow guardrail JSON while acceptance code expects docs text/enrich and quality-verification responses. The spec names unit, integration, stub acceptance, and CLI smoke, but not the exact commands/files or stub-agent injection path.",
+      "requiredChange": "Specify the exact `test:ci` command sequence or named test files for unit, integration/e2e, stub acceptance, and CLI smoke, including how the stub agent is configured for acceptance execution.",
+      "whyBlocking": "Credential-free CI can be implemented with arbitrary or incomplete coverage, and a naive stub acceptance target can still fail against the existing acceptance pipeline response contracts."
+    },
+    {
+      "kind": "blocking",
+      "title": "Zero-target acceptance failure has no runner owner",
+      "target": "R4 / T-2",
+      "body": "**Target:** R4 / T-2\n**Issue:** The spec assigns fixture/test discovery to `tests/acceptance/lib/targets.js`, but zero-target non-zero exit is process behavior. Existing `npm run test:acceptance` executes `tests/acceptance/run.js`, which owns argument validation and execution, yet that runner is not named as an integration target.\n**Required change:** Add `tests/acceptance/run.js` as the integration point that consumes discovered targets and exits non-zero for empty all-target or requested-target resolution, while keeping `targets.js` side-effect-free.\n**Why blocking:** Without a runner owner, implementers either put process exits in a library used by tests or update discovery while leaving package-script execution and zero-match behavior untested.",
+      "issue": "The spec assigns fixture/test discovery to `tests/acceptance/lib/targets.js`, but zero-target non-zero exit is process behavior. Existing `npm run test:acceptance` executes `tests/acceptance/run.js`, which owns argument validation and execution, yet that runner is not named as an integration target.",
+      "requiredChange": "Add `tests/acceptance/run.js` as the integration point that consumes discovered targets and exits non-zero for empty all-target or requested-target resolution, while keeping `targets.js` side-effect-free.",
+      "whyBlocking": "Without a runner owner, implementers either put process exits in a library used by tests or update discovery while leaving package-script execution and zero-match behavior untested."
+    },
+    {
+      "kind": "blocking",
+      "title": "`test:agent` preservation omits its current consumer",
+      "target": "R5 / T-3",
+      "body": "**Target:** R5 / T-3\n**Issue:** R5 requires proving retained real-provider `test:agent` behavior, but existing `test:agent` runs `tests/agent/report.test.js`, which currently imports acceptance helpers through a wrong relative path and calls `getAcceptanceFixtureDir(\"node\")` even though only the `base` acceptance fixture exists. Fixture-derived discovery may also drop `node` unless compatibility is specified.\n**Required change:** Specify the compatibility change for `tests/agent/report.test.js`: update it to a discovered fixture target and correct acceptance-lib imports, or revise R5 so it does not require executing that surface.\n**Why blocking:** `npm run test:agent` cannot be proven from the current spec because it fails before any real-provider credential boundary, and target discovery changes can strand its acceptance fixture lookup.",
+      "issue": "R5 requires proving retained real-provider `test:agent` behavior, but existing `test:agent` runs `tests/agent/report.test.js`, which currently imports acceptance helpers through a wrong relative path and calls `getAcceptanceFixtureDir(\"node\")` even though only the `base` acceptance fixture exists. Fixture-derived discovery may also drop `node` unless compatibility is specified.",
+      "requiredChange": "Specify the compatibility change for `tests/agent/report.test.js`: update it to a discovered fixture target and correct acceptance-lib imports, or revise R5 so it does not require executing that surface.",
+      "whyBlocking": "`npm run test:agent` cannot be proven from the current spec because it fails before any real-provider credential boundary, and target discovery changes can strand its acceptance fixture lookup."
+    }
+  ],
+  "nonBlockingImprovements": [
+    {
+      "kind": "improvement",
+      "title": "Mention preset alias helper",
+      "target": "Codebase Context / R1",
+      "body": "**Target:** Codebase Context / R1\n**Improvement:** Add `tests/helpers/preset-aliases.js` to related files because strict preset validation and acceptance target naming both depend on alias resolution.\n**Why non-blocking:** The existing target list already names the main runner/helper files, so implementers can still discover this dependency while working.",
+      "improvement": "Add `tests/helpers/preset-aliases.js` to related files because strict preset validation and acceptance target naming both depend on alias resolution.",
+      "whyNonBlocking": "The existing target list already names the main runner/helper files, so implementers can still discover this dependency while working."
+    },
+    {
+      "kind": "improvement",
+      "title": "Call out localized docs",
+      "target": "R6",
+      "body": "**Target:** R6\n**Improvement:** Mention that both `docs/stack_and_ops.md` and `docs/ja/stack_and_ops.md` may need synchronization for the revised test command contract.\n**Why non-blocking:** R6 already requires related generated documentation synchronization broadly.",
+      "improvement": "Mention that both `docs/stack_and_ops.md` and `docs/ja/stack_and_ops.md` may need synchronization for the revised test command contract.",
+      "whyNonBlocking": "R6 already requires related generated documentation synchronization broadly."
+    }
+  ],
+  "sourceArtifact": "spec-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "spec-001-blocking-001",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Duplicate selector rule conflicts with file-spec union",
+      "body": "**Target:** R1 / T-1\n**Issue:** Verified existing tests treat repeated `--file`, repeated `--pattern`, and file-spec unions as valid selector behavior, while R1 broadly requires rejecting duplicate/conflicting selector specifications. The spec does not distinguish single-valued suite selectors from intentionally multi-valued file selectors.\n**Required change:** Constrain duplicate rejection to single-selection flags such as `--preset`, `--scope`, `--agent`, and `--all`, or explicitly state which existing repeated `--file`/`--pattern`/positional union behavior is intentionally removed.\n**Why blocking:** Implementation and tests cannot know whether repeated file selectors must be rejected to satisfy R1 or preserved to avoid breaking verified existing behavior.",
+      "category": "unknown"
+    },
+    {
+      "id": "spec-001-blocking-002",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "`--list --json` lacks an output contract",
+      "body": "**Target:** R2 / Acceptance Criteria\n**Issue:** R2 requires parseable machine-readable suite output, but the spec does not define the JSON shape, required fields, or how selectors affect the listed suites/files/categories. Parseable-only acceptance would allow arbitrary JSON such as `{}`.\n**Required change:** Add the minimal JSON output contract for `tests/run.js --list --json`, including required top-level fields and selector semantics.\n**Why blocking:** Tests cannot prove suite discovery correctness, and implementers can satisfy parseability without producing a usable machine-readable listing.",
+      "category": "unknown"
+    },
+    {
+      "id": "spec-001-blocking-003",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "`test:ci` targets are not concretely identifiable",
+      "body": "**Target:** R3 / T-3\n**Issue:** The codebase has no existing CLI smoke script/directory, and the existing `tests/helpers/stub-agent.js` emits flow guardrail JSON while acceptance code expects docs text/enrich and quality-verification responses. The spec names unit, integration, stub acceptance, and CLI smoke, but not the exact commands/files or stub-agent injection path.\n**Required change:** Specify the exact `test:ci` command sequence or named test files for unit, integration/e2e, stub acceptance, and CLI smoke, including how the stub agent is configured for acceptance execution.\n**Why blocking:** Credential-free CI can be implemented with arbitrary or incomplete coverage, and a naive stub acceptance target can still fail against the existing acceptance pipeline response contracts.",
+      "category": "unknown"
+    },
+    {
+      "id": "spec-001-blocking-004",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Zero-target acceptance failure has no runner owner",
+      "body": "**Target:** R4 / T-2\n**Issue:** The spec assigns fixture/test discovery to `tests/acceptance/lib/targets.js`, but zero-target non-zero exit is process behavior. Existing `npm run test:acceptance` executes `tests/acceptance/run.js`, which owns argument validation and execution, yet that runner is not named as an integration target.\n**Required change:** Add `tests/acceptance/run.js` as the integration point that consumes discovered targets and exits non-zero for empty all-target or requested-target resolution, while keeping `targets.js` side-effect-free.\n**Why blocking:** Without a runner owner, implementers either put process exits in a library used by tests or update discovery while leaving package-script execution and zero-match behavior untested.",
+      "category": "unknown"
+    },
+    {
+      "id": "spec-001-blocking-005",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "`test:agent` preservation omits its current consumer",
+      "body": "**Target:** R5 / T-3\n**Issue:** R5 requires proving retained real-provider `test:agent` behavior, but existing `test:agent` runs `tests/agent/report.test.js`, which currently imports acceptance helpers through a wrong relative path and calls `getAcceptanceFixtureDir(\"node\")` even though only the `base` acceptance fixture exists. Fixture-derived discovery may also drop `node` unless compatibility is specified.\n**Required change:** Specify the compatibility change for `tests/agent/report.test.js`: update it to a discovered fixture target and correct acceptance-lib imports, or revise R5 so it does not require executing that surface.\n**Why blocking:** `npm run test:agent` cannot be proven from the current spec because it fails before any real-provider credential boundary, and target discovery changes can strand its acceptance fixture lookup.",
+      "category": "unknown"
+    },
+    {
+      "id": "spec-001-non-blocking-006",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "Mention preset alias helper",
+      "body": "**Target:** Codebase Context / R1\n**Improvement:** Add `tests/helpers/preset-aliases.js` to related files because strict preset validation and acceptance target naming both depend on alias resolution.\n**Why non-blocking:** The existing target list already names the main runner/helper files, so implementers can still discover this dependency while working.",
+      "category": "unknown"
+    },
+    {
+      "id": "spec-001-non-blocking-007",
+      "phase": "spec",
+      "sourceArtifact": "spec-review.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "Call out localized docs",
+      "body": "**Target:** R6\n**Improvement:** Mention that both `docs/stack_and_ops.md` and `docs/ja/stack_and_ops.md` may need synchronization for the revised test command contract.\n**Why non-blocking:** R6 already requires related generated documentation synchronization broadly.",
+      "category": "unknown"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-11T15:27:34.211Z",
+  "verdict": "TOOLING_FAILURE",
+  "counts": {
+    "blocking": 0,
+    "advisory": 0,
+    "total": 0
+  },
+  "coverageArtifact": "specs/316-issue-412-strict-ci-test-suite/test-coverage.json",
+  "blockingFindings": [],
+  "advisoryFindings": [],
+  "toolingFailure": {
+    "kind": "agent_error",
+    "message": "provider=codex | profile=codex/gpt-5.5 | exit=1 | Reading additional input from stdin... | stdoutPreview={\"type\":\"thread.started\",\"thread_id\":\"019f51ca-7762-7fa2-b13a-9a966e1a0c3f\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"{\\n  \\\"type\\\": \\\"error\\\",\\n  \\\"error\\\": {\\n    \\\"type\\\": \\\"invalid_reque",
+    "recovery": "Fix the test-review tooling failure, then rerun test-review. If proceeding with accepted risk, record structured evidence in completion-overrides.json entries.test-review; issue-log alone is audit context, not override evidence."
+  },
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/316-issue-412-strict-ci-test-suite/test-review.json",
+    "verdict": "TOOLING_FAILURE",
+    "result": "TOOLING_FAILURE",
+    "blockingCount": 0,
+    "failureKind": "tooling_failure",
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "c0591125a1fe6f457ebd088d89c7644a426390900f34493a8652e1a4d6a293d7"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 5,
+  "findings": []
+}

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "The empty initial QA list is a valid repair target. Add one self-contained confirmation question whose premise is grounded in the published Issue and whose answer is already authorized by the user.",
+  "items": [
+    {
+      "title": "1. Empty initial QA list",
+      "target": "qa[]",
+      "decision": "apply",
+      "rationale": "The review correctly identifies that the draft phase requires an initial QA list before any answer exists. One scope-confirmation question can be repaired without expanding Issue #412 or requesting new intent.",
+      "evidence": "specs/316-issue-412-strict-ci-test-suite/draft.json.qa is empty; the user explicitly authorized accepting the published Issue #412 body as the intent."
+    }
+  ]
+}

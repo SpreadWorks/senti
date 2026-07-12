@@ -1,0 +1,1198 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".senti/output/analysis.json                        |  290 ++--\n README.md                                          |    8 +-\n docs/ja/project_structure.md                       |    6 +-\n docs/ja/stack_and_ops.md                           |   16 +\n docs/project_structure.md                          |    6 +-\n docs/stack_and_ops.md                              |  102 +-\n package.json                                       |    3 +-\n .../acceptance-review-evidence.json                |   54 +\n .../acceptance-review.json                         |   87 ++\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-gate-source.json                         |   83 +\n .../draft-questions-repair.json                    |   17 +\n .../draft-questions-triage.json                    |   15 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   19 +\n .../316-issue-412-strict-ci-test-suite/draft.json  |   85 +\n .../file-map.json                                  |   35 +\n .../flow-findings.json                             |   60 +\n specs/316-issue-412-strict-ci-test-suite/flow.json | 1649 ++++++++++++++++++++\n .../impl-review.json                               |   28 +\n .../issue-log.json                                 |  820 ++++++++++\n specs/316-issue-412-strict-ci-test-suite/issue.md  |  132 ++\n .../plugin-artifacts/workflow/prepare.json         |   10 +\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |   33 +\n .../review-history/impl-attempt-001.json           |   70 +\n .../review-history/impl-attempt-001.md             |   30 +\n .../review-history/impl-attempt-002.json           |   31 +\n .../review-history/impl-attempt-002.md             |   16 +\n .../review-history/impl-attempt-003.json           |   31 +\n .../review-history/impl-attempt-003.md             |   16 +\n .../review-history/spec-attempt-001.json           |  150 ++\n .../review-history/spec-attempt-001.md             |   48 +\n .../review-history/test-attempt-001.json           |  130 ++\n .../review-history/test-attempt-001.md             |   42 +\n .../review-history/test-attempt-002.json           |  228 +++\n .../review-history/test-attempt-002.md             |   69 +\n .../review-history/test-attempt-003.json           |  170 ++\n .../review-history/test-attempt-003.md             |   54 +\n .../review-history/test-attempt-004.json           |  148 ++\n .../review-history/test-attempt-004.md             |   45 +\n .../review-history/test-attempt-005.json           |   33 +\n .../review-history/test-attempt-005.md             |   21 +\n .../review-history/test-attempt-006.json           |   33 +\n .../review-history/test-attempt-006.md             |   21 +\n .../review-history/test-attempt-007.json           |  165 ++\n .../review-history/test-attempt-007.md             |   50 +\n specs/316-issue-412-strict-ci-test-suite/review.md |   16 +\n .../spec-gate-source.json                          |   83 +\n .../spec-repair.json                               |   48 +\n .../spec-review.json                               |   76 +\n .../spec-review.md                                 |   48 +\n .../spec-triage.json                               |   43 +\n specs/316-issue-412-strict-ci-test-suite/spec.json |  275 ++++\n specs/316-issue-412-strict-ci-test-suite/spec.md   |  123 ++\n .../tasks/T-1.md                                   |   20 +\n .../tasks/T-2.md                                   |   19 +\n .../tasks/T-3.md                                   |   20 +\n .../tasks/T-4.md                                   |   18 +\n .../test-coverage.json                             |  112 ++\n .../test-review.json                               |   96 ++\n .../test-review.md                                 |   50 +\n .../tests/acceptance-targets.contract.test.js      |  128 ++\n .../tests/agent-report-fixture.contract.test.js    |   27 +\n .../tests/ci-stages.contract.test.js               |  119 ++\n .../tests/test-selection.contract.test.js          |  267 ++++\n tests/acceptance/lib/pipeline.js                   |    8 +-\n tests/acceptance/lib/run-targets.js                |   24 +\n tests/acceptance/lib/targets.js                    |   70 +-\n tests/acceptance/run.js                            |   70 +-\n tests/agent/report.test.js                         |   12 +-\n tests/ci.js                                        |   21 +\n tests/ci/cli-smoke.test.js                         |   15 +\n tests/ci/stub-acceptance.js                        |   28 +\n tests/ci/stub-acceptance.test.js                   |   14 +\n tests/helpers/stub-agent.js                        |   71 +\n tests/helpers/test-runner.js                       |   43 +\n tests/helpers/test-selection.js                    |  147 ++\n tests/run.js                                       |  244 +--\n 80 files changed, 7065 insertions(+), 490 deletions(-)",
+      "commits": [
+        "feat: add strict credential-free CI test suite"
+      ]
+    },
+    "retro": {
+      "total": 5,
+      "done": 5,
+      "partial": 0,
+      "not_done": 0,
+      "not_applicable_count": 0,
+      "na_count": 1,
+      "not_testable_count": 1,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "`tests/run.js` shall parse a TestSelection that rejects unknown flags, missing values, unknown/missing presets, repeated --preset/--scope/--agent/--all, and combinations of those mutually exclusive suite selectors with each other or file-spec mode. Repeated --file, repeated --pattern, and positional paths shall remain a valid multi-valued union and deduplicate only after resolution.",
+          "status": "done",
+          "note": "R1: TestSelection rejects every invalid single-value or conflicting selector without discovery"
+        },
+        {
+          "desc": "`tests/run.js --help` shall return usage without discovery or execution. `--list` and `--json` shall require each other and may combine with one valid selection; stdout shall be only JSON with version=1, selection { mode, preset, scope }, suites[] in unit/integration/acceptance/other order containing { category, files, count }, and totalFiles. The shared execution/list resolver shall reject traversal beyond depth 32, more than 10000 resolved files, or a repository-relative path longer than 4096 characters; listing shall fail before stdout if serialized JSON exceeds 16 MiB. Files shall be sorted repository-relative POSIX paths, and counts/totalFiles shall match those arrays without spawning tests.",
+          "status": "done",
+          "note": "R2: TestRunner keeps help discovery-free and emits only the versioned JSON listing"
+        },
+        {
+          "desc": "`npm run test:ci` shall execute `node tests/ci.js`, which runs these stages sequentially and stops non-zero on the first failure: `node tests/run.js --scope unit`, `node tests/run.js --scope e2e`, `node --test tests/ci/stub-acceptance.test.js`, and `node --test tests/ci/cli-smoke.test.js`. The stub acceptance shall copy the base fixture, inject a schema-aware provider from tests/helpers/stub-agent.js for docs enrich/text and passing quality responses, run the pipeline, and require no provider credentials; tests/agent shall not be selected.",
+          "status": "done",
+          "note": "R3: CI stage factory defines the four deterministic credential-free stages"
+        },
+        {
+          "desc": "`tests/acceptance/lib/targets.js` shall inspect at most 1000 immediate directories under src/presets and derive targets only by checking each fixed tests/acceptance/test.js and tests/acceptance/fixtures path pair, with no recursive fixture traversal or file-content reads; exceeding the directory/path bound shall return a structured discovery error. The library shall remain side-effect-free. `tests/acceptance/run.js` shall consume discovery and exit non-zero on a discovery limit/error, empty all-target result, unknown requested target, or empty requested resolution; otherwise it shall execute only the resolved test files.",
+          "status": "done",
+          "note": "R4: fixture discovery uses injected immediate directories and fixed path pairs"
+        },
+        {
+          "desc": "Automated regressions shall prove every new failure mode and retained valid selector/package-script surface. `tests/agent/report.test.js` shall import helpers from ../acceptance/lib, select the discovered base fixture rather than node, and remain under explicit real-provider `npm run test:agent`; fixture/import resolution shall be testable without credentials while real agent execution remains excluded from test:ci.",
+          "status": "done",
+          "note": "R5: the real agent report test imports acceptance helpers and resolves the base fixture"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 41,
+      "fullLogPath": "specs/316-issue-412-strict-ci-test-suite/issue-log.json",
+      "importantTotal": 26,
+      "importantShown": 10,
+      "importantOmitted": 16,
+      "recentOtherTotal": 15,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 10,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft",
+          "reason": "Draft guardrail lookup emitted preset resolution warning",
+          "resolution": "Guardrail command returned ok with draft guardrails; treat warning as environmental evidence unless it blocks later flow actions"
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "Draft gate reported migration parity and recommendation-rationale violations",
+          "resolution": "Add full retained-surface inventory, behavior mapping and verification to draft; ground answered QA rationale in existing code and docs; then rerun draft gate with changed evidence"
+        },
+        {
+          "classification": "important",
+          "step": "spec-review",
+          "reason": "Earlier empty-envelope diagnosis misclassified a yielded review process as terminated",
+          "resolution": "The parent retained the foreground execution session, waited through every yield, and received the valid FAIL review artifact before triage and repair"
+        },
+        {
+          "classification": "important",
+          "step": "scenario-validity",
+          "reason": "Sequence 70 completed with all R1-R5 classified invalid_test",
+          "resolution": "Replace broad-runner shells and source-text checks with isolated behavioral fixture and injection tests before rerunning scenario-validity"
+        },
+        {
+          "classification": "important",
+          "step": "scenario-validity",
+          "reason": "Corrected the earlier missing-envelope diagnosis for scenario-validity",
+          "resolution": "Supersede the earlier transport diagnosis; use sequence 70 artifacts and invalid_test classifications as the repair evidence"
+        },
+        {
+          "classification": "important",
+          "step": "scenario-validity",
+          "reason": "First isolated test redesign still produced invalid_test for R1 R2 R3 and R5",
+          "resolution": "Avoid missing-module import failures; exercise existing injected seams with behavior assertions that fail only at contract expectations"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Static test review found missing coverage for R1-R5 contract boundaries",
+          "resolution": "Expand isolated contract tests across selector limits, bounded JSON, CI sequencing, fixture discovery errors, acceptance runner errors, and agent isolation"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Second test-review foreground invocation returned no envelope and did not refresh the review artifact",
+          "resolution": "Preserved repaired test files and active flow state; resume the same guarded test review rather than resetting retry state"
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Scenario-validity was already passed; the active failure is test-review.",
+          "resolution": "Use the persisted test-review findings as repair input without rerunning unchanged review."
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Latest static test review reported nine blocking coverage and premise defects plus one advisory.",
+          "resolution": "Expanded isolated contracts for every value-taking selector, post-resolution dedupe, CI fail-fast/helper isolation/agent exclusion, bounded discovery, empty requested resolution, real report fixture use, retained surfaces, and conflict b..."
+        },
+        {
+          "classification": "recent-other",
+          "step": "test-review",
+          "reason": "Changed-evidence review sequence 105 has no agent-start, completion, or artifact after the CLI process returned.",
+          "resolution": "Preserve the validated repaired tests and resume the same guarded review command when the external review service is available."
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-review",
+          "reason": "Implementation review found that the CI stub copied a js-webapp fixture without a base override and returned fixed non-schema docs responses",
+          "resolution": "Applied the base config override, injected the stub into the default pipeline, and generated enrich/text payloads from prompts and JSON schema keys"
+        },
+        {
+          "classification": "recent-other",
+          "step": "acceptance-review",
+          "reason": "Acceptance review classified five exhausted test-review findings as still open because disposition evidence had not been recorded",
+          "resolution": "Added acceptance-review-evidence.json marking DF-1 through DF-5 fixed with source finding, repaired test, test-execute, and impl-gate references"
+        },
+        {
+          "classification": "recent-other",
+          "step": "implement",
+          "reason": "Docs build refreshed analysis but skipped the filled operations chapter, and targeted regeneration produced only generic test prose",
+          "resolution": "Regenerated the chapter once, then added persistent English and Japanese test-command contract sections outside generated directives"
+        },
+        {
+          "classification": "recent-other",
+          "step": "final-regression",
+          "reason": "Current main passes test-runner-flags 29/29; Issue #412 restored selector-conflict precedence before unknown-preset membership after attempt-001 exposed the regression.",
+          "resolution": "Moved only the unknown-preset membership check after suite/file selector-conflict validation in TestSelection.parse; existing test expectations and standalone unknown-preset rejection were preserved."
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 2,
+      "srcRead": 9,
+      "question": 0,
+      "issueLog": 36
+    },
+    "tokenMetrics": {
+      "input": 810849,
+      "output": 164244,
+      "cacheRead": 3609600,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 35,
+      "durationMs": 2192191,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 10692
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 13493
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 19926
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 436863
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 41223
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 495901
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 899771
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 117731
+        },
+        {
+          "phase": "implement",
+          "durationMs": 156591
+        }
+      ]
+    },
+    "tests": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/316-issue-412-strict-ci-test-suite/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "package.json",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/acceptance/lib/pipeline.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/acceptance/lib/run-targets.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/acceptance/lib/targets.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/acceptance/run.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/agent/report.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/ci.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/ci/",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/helpers/stub-agent.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/helpers/test-runner.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/helpers/test-selection.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/run.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "modified",
+            "path": "package.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/"
+          },
+          {
+            "status": "modified",
+            "path": "tests/acceptance/lib/pipeline.js"
+          },
+          {
+            "status": "untracked",
+            "path": "tests/acceptance/lib/run-targets.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/acceptance/lib/targets.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/acceptance/run.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/agent/report.test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "tests/ci.js"
+          },
+          {
+            "status": "untracked",
+            "path": "tests/ci/"
+          },
+          {
+            "status": "modified",
+            "path": "tests/helpers/stub-agent.js"
+          },
+          {
+            "status": "untracked",
+            "path": "tests/helpers/test-runner.js"
+          },
+          {
+            "status": "untracked",
+            "path": "tests/helpers/test-selection.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/run.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "modified",
+            "path": "package.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/"
+          },
+          {
+            "status": "modified",
+            "path": "tests/acceptance/lib/pipeline.js"
+          },
+          {
+            "status": "untracked",
+            "path": "tests/acceptance/lib/run-targets.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/acceptance/lib/targets.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/acceptance/run.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/agent/report.test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "tests/ci.js"
+          },
+          {
+            "status": "untracked",
+            "path": "tests/ci/"
+          },
+          {
+            "status": "modified",
+            "path": "tests/helpers/stub-agent.js"
+          },
+          {
+            "status": "untracked",
+            "path": "tests/helpers/test-runner.js"
+          },
+          {
+            "status": "untracked",
+            "path": "tests/helpers/test-selection.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/run.js"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "failureCategory": null,
+        "failureNature": null,
+        "skipKind": null,
+        "rawOutputPath": "specs/316-issue-412-strict-ci-test-suite/tests/.raw/final-regression-attempt-002.log",
+        "command": "node tests/run.js",
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        },
+        "exitCode": 0,
+        "failureSummary": null,
+        "currentDiffRelationship": null,
+        "changedFiles": [
+          {
+            "status": "modified",
+            "path": ".senti/output/analysis.json",
+            "fingerprint": "c3bbf29c6d6c95f4e6de07450e3bda3b51458cbf5cd70a919b8a95cd4453d8aa"
+          },
+          {
+            "status": "modified",
+            "path": "docs/ja/project_structure.md",
+            "fingerprint": "f8551da036935985cd9fbf16caa7ecabc698623c961c6b8ae0933142fb7cb078"
+          },
+          {
+            "status": "modified",
+            "path": "docs/ja/stack_and_ops.md",
+            "fingerprint": "aec7da7f6660a0846f2de800c68e183892f2ba60d50af2c4c4bd123e6c576ba9"
+          },
+          {
+            "status": "modified",
+            "path": "docs/project_structure.md",
+            "fingerprint": "a253dc9b401847e287b5bfd484d7ccc3f3b770832b4c6a2203f4a1f7199c43c7"
+          },
+          {
+            "status": "modified",
+            "path": "docs/stack_and_ops.md",
+            "fingerprint": "8029980568e3dbafdd0b46e0353386fac8c313a23458cb3684da774fd9cdf152"
+          },
+          {
+            "status": "modified",
+            "path": "package.json",
+            "fingerprint": "b272605522bd25f57581ac44139fa72d936e5646c9141cdc8830d8a75d320cba"
+          },
+          {
+            "status": "modified",
+            "path": "README.md",
+            "fingerprint": "13669d98656503004d340b8ff8e80c7b9656cec7cb91d8b1c1753d9c4035dbe1"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/acceptance-review-evidence.json",
+            "fingerprint": "5fd504da72aaada48ec1ff71369ae7e1bbe1615269d50c9daa8340530a417964"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/acceptance-review.json",
+            "fingerprint": "f3aae69de59edbd68d327640751529ed0473239f1bbca913991ad5c42219d280"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/draft-coverage-repair.json",
+            "fingerprint": "1b1f3b4d2235afd36059d8dc0dea4150cf05ef0b7b5aa3ee26e6f17cc2f36be7"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/draft-coverage-triage.json",
+            "fingerprint": "0e80da0cf77e52450d1294f8f2fd3ff7376739235629262b190db417fe24ac6f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/draft-gate-source.json",
+            "fingerprint": "c901bf0d2e8fe88e99acaa5205fbcbbec1803f3c551b0ee398538cfcfe268c24"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/draft-questions-repair.json",
+            "fingerprint": "88b10830baa1f704beea3140986b6afbcca9a03c57052e9f821af91aadeaf6eb"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/draft-questions-triage.json",
+            "fingerprint": "335bcc427531245e8613bced69d2c9b4beaf9debbfc725ac9ce3395f35c88976"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/draft-review-coverage.json",
+            "fingerprint": "6acf045b9d6a27c3953cf508f32bed63d721a38884b8cc3930192de4c44ce2e4"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/draft-review-questions.json",
+            "fingerprint": "00fcf2a4120d39331277cec845fead0c5b9ebe60e4fe8cae367b05f19efb6c79"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/draft.json",
+            "fingerprint": "b6300f4b600177ff53e36f74ec2433f5ba8f592a23d49904f38a6c57c8b0d9ea"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/file-map.json",
+            "fingerprint": "78833e31212f744c22eec6e4da173ebcf5b54cb4d1c18b8406f8bf509f47b05f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/flow-findings.json",
+            "fingerprint": "3ddb5d25f027dda069bff953a22e163259a3529e6ab4a0841f5916d457a09d44"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/impl-gate-result.json",
+            "fingerprint": "b0018adbec247f7b753248cdf569b64fb1db4e2e085361b561b3f1efdaa85d20"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/impl-review.json",
+            "fingerprint": "a1b51b10d947f47b4411588a0cb49b81695c4988b3803f03773026d3b4628834"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/issue.md",
+            "fingerprint": "a82eb068adfe41278d4378cb931b6d2b42aefe85b5ce1bce58d5aa143330499c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/plugin-artifacts/workflow/prepare.json",
+            "fingerprint": "65b36e449b3bb775e9b3ac891e2f1a929a4547c4a7ae0f60943851141de44222"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/retro.json",
+            "fingerprint": "29994882192c708a478fbb5158b084bf942f00669f3aae856e5e3e49d247815d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/draft-coverage-attempt-001.json",
+            "fingerprint": "92e06afd01629b4689725cf552664451171560104c18a5d2cda34f20ca4677f8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/draft-questions-attempt-001.json",
+            "fingerprint": "bf1838849bd3c3f913e9d970a3c9de4ea48d8fc984a91c79535dd1edc5753c83"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/impl-attempt-001.json",
+            "fingerprint": "20a62637c2537d6d0c23842c5fbd830db7e36e074671caee5386e12540a787b7"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/impl-attempt-001.md",
+            "fingerprint": "cfe848a86d3aaa612266919eea1021ec6a50229aa029326581137c9ccfe4699e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/impl-attempt-002.json",
+            "fingerprint": "e24ea3be30f4cecf13e29300c7aae22721e04ed049a192c0185b91dbdd1b8fde"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/impl-attempt-002.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/impl-attempt-003.json",
+            "fingerprint": "27de81e0ce1ef8aa18b28cb66527ed3a358d21da2fa7cbc3afdc107d9f088426"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/impl-attempt-003.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/spec-attempt-001.json",
+            "fingerprint": "968489c05f3c40ef00275866e048d19c5c09361f4a22a1e3c394e935870b82b5"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/spec-attempt-001.md",
+            "fingerprint": "125c8a59caba161515af53cceb09a2eef8d93377570da5da4ba4ba1bcefbfa7f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/test-attempt-001.json",
+            "fingerprint": "6da86299aa7b022004563de8769d28960fcd9d36246b83b7d482ad79cb22b568"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/test-attempt-001.md",
+            "fingerprint": "797fbf6b883c38e3341fb32f59bb242ecb01c92bc5f3641b72243a0f52eaa27a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/test-attempt-002.json",
+            "fingerprint": "512f80b8187fd4b6a9224b3c311ed0717f820cb684a589c4cbd7e7d2979cff04"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/test-attempt-002.md",
+            "fingerprint": "b1afcc549e90d3c23946414a9de3dcff3f3ab29bfd62d6efa027a34fd6ced48b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/test-attempt-003.json",
+            "fingerprint": "120188ee5073600d7203efc945bf71f734a97a53ed7b57a346e301dd5c830381"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/test-attempt-003.md",
+            "fingerprint": "1eb1a1fe7f48d1b612a798afd46e344e4b5570b8a3cc5318cb3f24b352b28d94"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/test-attempt-004.json",
+            "fingerprint": "4a48fede9298698a246ca57f15753651a894bf4387260b079c84308195b2349b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/test-attempt-004.md",
+            "fingerprint": "c5362c9eb1e2c4b2f28886c920f6ec1b083659f912ba90308b91f6020c3b7a8a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/test-attempt-005.json",
+            "fingerprint": "65a6112764fe50f9815d95985dc27eefbc2fd6d7bcb760a2cf346faed2f7d603"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/test-attempt-005.md",
+            "fingerprint": "86d2e09a519589729419db6234f17b271832cb5831feac55bc901422e0931f5c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/test-attempt-006.json",
+            "fingerprint": "8ee49de019c7e9039a12dcff0ca3722423d9a097fd766b994af91b025c2c14c7"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/test-attempt-006.md",
+            "fingerprint": "270bb1180ebababb0b49b129339e3afff49a894040cd4ed56d2e3cf95d1a9c7a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/test-attempt-007.json",
+            "fingerprint": "f324b6fe250f8443a18544faf113f7d664d8f9061129407c125f62cc80422178"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/test-attempt-007.md",
+            "fingerprint": "826b1bd5a8e7c7fc8a41df234e3ce13dec5b585d67a28aada470c02c0423c934"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/review.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/scenario-validity-result.json",
+            "fingerprint": "507a15109d4c08f55ad98fb79064bfc0c4dd6f5f4a1361ec8f6fd828db746b5e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/spec-gate-source.json",
+            "fingerprint": "e6ef6b3e80b23648bfc146cdc053088dced0c99d84495ecad362ea21efaf300e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/spec-repair.json",
+            "fingerprint": "1f1fbca378b3c63d6a4106e75f007de028144b14ae2bc8062e4d31d3c92e7317"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/spec-review.json",
+            "fingerprint": "27a53d646691653b6a178de558d18d1ce8470e27043c905a951944f425fd95ae"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/spec-review.md",
+            "fingerprint": "125c8a59caba161515af53cceb09a2eef8d93377570da5da4ba4ba1bcefbfa7f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/spec-triage.json",
+            "fingerprint": "4ae7e657d3c4cfab679c2ecd509a2502db17c82e1fa18d41fbaf23b7ace7b57b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/spec.json",
+            "fingerprint": "93f916d8e1b8e054d175d01b1196d54055afcf6852166d47895501666ca41ff4"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/spec.md",
+            "fingerprint": "f8d0ff4113ca10c485e338dc08047cac5271d44bb208eaed8d1ad7f5714ccb5f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/tasks/T-1.md",
+            "fingerprint": "fe19ecc97acfd365009877912b2925e5d1480decd999c6cb153bb9d171771288"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/tasks/T-2.md",
+            "fingerprint": "91eab87f25006bb5eb4efa99dad5dd588906ae7e82e56e14c9bc1857778dc16f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/tasks/T-3.md",
+            "fingerprint": "30e709db3c37a0a1c4a2dd3bdc6fff704315727ad87a797a222229d9680529ef"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/tasks/T-4.md",
+            "fingerprint": "944116234b244c251b1500464365ac8d1844806a7fe9827a9b2bfe47ff74c07f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/test-coverage.json",
+            "fingerprint": "5bced2e1f1e2c89dfab10d28947804cbe20efb85d7c800a779e2900568992dff"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/test-execute-result.json",
+            "fingerprint": "66a502240fad18af7dc5557249211fed7c2020240f837de29ca16fd1ec350f32"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/test-result-review.json",
+            "fingerprint": "2988e68477b00f717795a887e642dd2d59845bb73d84ddbc4c21a7c1de2a6ea2"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/test-result-review.md",
+            "fingerprint": "4ca0e46c2531b0ad744d49819af2e2e5d5e46d9d8a43e11471c9159dfb266591"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/test-review.json",
+            "fingerprint": "9c52392d4e2163c4a4a24573ebba730a339b3a8f9eee6dfbb5aeddce2d70b456"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/test-review.md",
+            "fingerprint": "826b1bd5a8e7c7fc8a41df234e3ce13dec5b585d67a28aada470c02c0423c934"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/tests/.raw/scenario-validity.log",
+            "fingerprint": "1418256bb8a36d462b9d45af72925cb128433f0c2b2b675fd9f34152e6857e04"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/tests/.raw/test-execution.log",
+            "fingerprint": "4115b73d7f073159e1a441e3dc65504c06d97c0d67be75b598dd930d83a1223c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/tests/acceptance-targets.contract.test.js",
+            "fingerprint": "e3f7b0761c453239eac507cd11dc71cbaca101dad33a5d9cb08edeb2e9e82066"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/tests/agent-report-fixture.contract.test.js",
+            "fingerprint": "d7ab5bfc74cccea5f8d434103cd5b54c01114b88f4dcf052ab376d8c39e726e3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/tests/ci-stages.contract.test.js",
+            "fingerprint": "e94cd6247a9469d39c2175c67119f8156b55af2ee6bdd893146e27ac0153bd35"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-issue-412-strict-ci-test-suite/tests/test-selection.contract.test.js",
+            "fingerprint": "95aa887cf19aa79ef37f95ac382e742a8b42bc4f417f6d98032f98f8d7c79467"
+          },
+          {
+            "status": "modified",
+            "path": "tests/acceptance/lib/pipeline.js",
+            "fingerprint": "dc73083ebd3a7bbfbf0d16097ba2753bb3993a1f92faabc4856802f26daeb01a"
+          },
+          {
+            "status": "untracked",
+            "path": "tests/acceptance/lib/run-targets.js",
+            "fingerprint": "2cdee0ca6d8257d25b92d798b87c9cb0118f2ee70e0ea430d46c8e941934d2e6"
+          },
+          {
+            "status": "modified",
+            "path": "tests/acceptance/lib/targets.js",
+            "fingerprint": "3a0c1a35c6c335efda67a69029c691071897218cc802c0e6107e6d0c0650513c"
+          },
+          {
+            "status": "modified",
+            "path": "tests/acceptance/run.js",
+            "fingerprint": "ea05ac1c039ad949d014203be9b6e02dfd5e879aae230a3008c94bad7252b7c7"
+          },
+          {
+            "status": "modified",
+            "path": "tests/agent/report.test.js",
+            "fingerprint": "66d42fc9a858933eff3a40a7ed4eb3984b754f3d993f5d277c6c026f73d88bdb"
+          },
+          {
+            "status": "untracked",
+            "path": "tests/ci.js",
+            "fingerprint": "d395b193d0a283b2cfafa29df1f60a75eb4d655673880c51400ceb2c2031ff14"
+          },
+          {
+            "status": "untracked",
+            "path": "tests/ci/cli-smoke.test.js",
+            "fingerprint": "851a7ff08b91c8030f5fcd43c40b50a16469d9c5acedee8c0568896d5f6ca158"
+          },
+          {
+            "status": "untracked",
+            "path": "tests/ci/stub-acceptance.js",
+            "fingerprint": "adcc9c97be9c05e4851e695bcef96a9c10fe209b153eba3c07668dd24897288a"
+          },
+          {
+            "status": "untracked",
+            "path": "tests/ci/stub-acceptance.test.js",
+            "fingerprint": "8210af8e0318e48c8997169a264e7f1eb17a3d3fcb4473e051cfe05be400449f"
+          },
+          {
+            "status": "modified",
+            "path": "tests/helpers/stub-agent.js",
+            "fingerprint": "9be93b5f1694e0f6de3c53e1348518ee778bfd5b02c71393f178d37a2f511456"
+          },
+          {
+            "status": "untracked",
+            "path": "tests/helpers/test-runner.js",
+            "fingerprint": "5c6064605b106400c05f15057eed0c9315aeb411b6ba6a41450a3e27f33fce8c"
+          },
+          {
+            "status": "untracked",
+            "path": "tests/helpers/test-selection.js",
+            "fingerprint": "a00d7c18e183aa5a52baf6e5a95d5249cc7a8b6c7c7f81fe70702bc0376d26d0"
+          },
+          {
+            "status": "modified",
+            "path": "tests/run.js",
+            "fingerprint": "afd0695e8d23925d207a5a46e6b6e05e738120053f623b24bc171953941a5d43"
+          }
+        ],
+        "changedFileFingerprints": [
+          {
+            "path": ".senti/output/analysis.json",
+            "fingerprint": "c3bbf29c6d6c95f4e6de07450e3bda3b51458cbf5cd70a919b8a95cd4453d8aa"
+          },
+          {
+            "path": "docs/ja/project_structure.md",
+            "fingerprint": "f8551da036935985cd9fbf16caa7ecabc698623c961c6b8ae0933142fb7cb078"
+          },
+          {
+            "path": "docs/ja/stack_and_ops.md",
+            "fingerprint": "aec7da7f6660a0846f2de800c68e183892f2ba60d50af2c4c4bd123e6c576ba9"
+          },
+          {
+            "path": "docs/project_structure.md",
+            "fingerprint": "a253dc9b401847e287b5bfd484d7ccc3f3b770832b4c6a2203f4a1f7199c43c7"
+          },
+          {
+            "path": "docs/stack_and_ops.md",
+            "fingerprint": "8029980568e3dbafdd0b46e0353386fac8c313a23458cb3684da774fd9cdf152"
+          },
+          {
+            "path": "package.json",
+            "fingerprint": "b272605522bd25f57581ac44139fa72d936e5646c9141cdc8830d8a75d320cba"
+          },
+          {
+            "path": "README.md",
+            "fingerprint": "13669d98656503004d340b8ff8e80c7b9656cec7cb91d8b1c1753d9c4035dbe1"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/acceptance-review-evidence.json",
+            "fingerprint": "5fd504da72aaada48ec1ff71369ae7e1bbe1615269d50c9daa8340530a417964"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/acceptance-review.json",
+            "fingerprint": "f3aae69de59edbd68d327640751529ed0473239f1bbca913991ad5c42219d280"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/draft-coverage-repair.json",
+            "fingerprint": "1b1f3b4d2235afd36059d8dc0dea4150cf05ef0b7b5aa3ee26e6f17cc2f36be7"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/draft-coverage-triage.json",
+            "fingerprint": "0e80da0cf77e52450d1294f8f2fd3ff7376739235629262b190db417fe24ac6f"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/draft-gate-source.json",
+            "fingerprint": "c901bf0d2e8fe88e99acaa5205fbcbbec1803f3c551b0ee398538cfcfe268c24"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/draft-questions-repair.json",
+            "fingerprint": "88b10830baa1f704beea3140986b6afbcca9a03c57052e9f821af91aadeaf6eb"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/draft-questions-triage.json",
+            "fingerprint": "335bcc427531245e8613bced69d2c9b4beaf9debbfc725ac9ce3395f35c88976"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/draft-review-coverage.json",
+            "fingerprint": "6acf045b9d6a27c3953cf508f32bed63d721a38884b8cc3930192de4c44ce2e4"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/draft-review-questions.json",
+            "fingerprint": "00fcf2a4120d39331277cec845fead0c5b9ebe60e4fe8cae367b05f19efb6c79"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/draft.json",
+            "fingerprint": "b6300f4b600177ff53e36f74ec2433f5ba8f592a23d49904f38a6c57c8b0d9ea"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/file-map.json",
+            "fingerprint": "78833e31212f744c22eec6e4da173ebcf5b54cb4d1c18b8406f8bf509f47b05f"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/flow-findings.json",
+            "fingerprint": "3ddb5d25f027dda069bff953a22e163259a3529e6ab4a0841f5916d457a09d44"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/impl-gate-result.json",
+            "fingerprint": "b0018adbec247f7b753248cdf569b64fb1db4e2e085361b561b3f1efdaa85d20"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/impl-review.json",
+            "fingerprint": "a1b51b10d947f47b4411588a0cb49b81695c4988b3803f03773026d3b4628834"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/issue.md",
+            "fingerprint": "a82eb068adfe41278d4378cb931b6d2b42aefe85b5ce1bce58d5aa143330499c"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/plugin-artifacts/workflow/prepare.json",
+            "fingerprint": "65b36e449b3bb775e9b3ac891e2f1a929a4547c4a7ae0f60943851141de44222"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/retro.json",
+            "fingerprint": "29994882192c708a478fbb5158b084bf942f00669f3aae856e5e3e49d247815d"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/draft-coverage-attempt-001.json",
+            "fingerprint": "92e06afd01629b4689725cf552664451171560104c18a5d2cda34f20ca4677f8"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/draft-questions-attempt-001.json",
+            "fingerprint": "bf1838849bd3c3f913e9d970a3c9de4ea48d8fc984a91c79535dd1edc5753c83"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/impl-attempt-001.json",
+            "fingerprint": "20a62637c2537d6d0c23842c5fbd830db7e36e074671caee5386e12540a787b7"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/impl-attempt-001.md",
+            "fingerprint": "cfe848a86d3aaa612266919eea1021ec6a50229aa029326581137c9ccfe4699e"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/impl-attempt-002.json",
+            "fingerprint": "e24ea3be30f4cecf13e29300c7aae22721e04ed049a192c0185b91dbdd1b8fde"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/impl-attempt-002.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/impl-attempt-003.json",
+            "fingerprint": "27de81e0ce1ef8aa18b28cb66527ed3a358d21da2fa7cbc3afdc107d9f088426"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/impl-attempt-003.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/spec-attempt-001.json",
+            "fingerprint": "968489c05f3c40ef00275866e048d19c5c09361f4a22a1e3c394e935870b82b5"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/spec-attempt-001.md",
+            "fingerprint": "125c8a59caba161515af53cceb09a2eef8d93377570da5da4ba4ba1bcefbfa7f"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/test-attempt-001.json",
+            "fingerprint": "6da86299aa7b022004563de8769d28960fcd9d36246b83b7d482ad79cb22b568"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/test-attempt-001.md",
+            "fingerprint": "797fbf6b883c38e3341fb32f59bb242ecb01c92bc5f3641b72243a0f52eaa27a"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/test-attempt-002.json",
+            "fingerprint": "512f80b8187fd4b6a9224b3c311ed0717f820cb684a589c4cbd7e7d2979cff04"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/test-attempt-002.md",
+            "fingerprint": "b1afcc549e90d3c23946414a9de3dcff3f3ab29bfd62d6efa027a34fd6ced48b"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/test-attempt-003.json",
+            "fingerprint": "120188ee5073600d7203efc945bf71f734a97a53ed7b57a346e301dd5c830381"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/test-attempt-003.md",
+            "fingerprint": "1eb1a1fe7f48d1b612a798afd46e344e4b5570b8a3cc5318cb3f24b352b28d94"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/test-attempt-004.json",
+            "fingerprint": "4a48fede9298698a246ca57f15753651a894bf4387260b079c84308195b2349b"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/test-attempt-004.md",
+            "fingerprint": "c5362c9eb1e2c4b2f28886c920f6ec1b083659f912ba90308b91f6020c3b7a8a"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/test-attempt-005.json",
+            "fingerprint": "65a6112764fe50f9815d95985dc27eefbc2fd6d7bcb760a2cf346faed2f7d603"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/test-attempt-005.md",
+            "fingerprint": "86d2e09a519589729419db6234f17b271832cb5831feac55bc901422e0931f5c"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/test-attempt-006.json",
+            "fingerprint": "8ee49de019c7e9039a12dcff0ca3722423d9a097fd766b994af91b025c2c14c7"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/test-attempt-006.md",
+            "fingerprint": "270bb1180ebababb0b49b129339e3afff49a894040cd4ed56d2e3cf95d1a9c7a"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/test-attempt-007.json",
+            "fingerprint": "f324b6fe250f8443a18544faf113f7d664d8f9061129407c125f62cc80422178"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/review-history/test-attempt-007.md",
+            "fingerprint": "826b1bd5a8e7c7fc8a41df234e3ce13dec5b585d67a28aada470c02c0423c934"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/review.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/scenario-validity-result.json",
+            "fingerprint": "507a15109d4c08f55ad98fb79064bfc0c4dd6f5f4a1361ec8f6fd828db746b5e"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/spec-gate-source.json",
+            "fingerprint": "e6ef6b3e80b23648bfc146cdc053088dced0c99d84495ecad362ea21efaf300e"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/spec-repair.json",
+            "fingerprint": "1f1fbca378b3c63d6a4106e75f007de028144b14ae2bc8062e4d31d3c92e7317"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/spec-review.json",
+            "fingerprint": "27a53d646691653b6a178de558d18d1ce8470e27043c905a951944f425fd95ae"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/spec-review.md",
+            "fingerprint": "125c8a59caba161515af53cceb09a2eef8d93377570da5da4ba4ba1bcefbfa7f"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/spec-triage.json",
+            "fingerprint": "4ae7e657d3c4cfab679c2ecd509a2502db17c82e1fa18d41fbaf23b7ace7b57b"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/spec.json",
+            "fingerprint": "93f916d8e1b8e054d175d01b1196d54055afcf6852166d47895501666ca41ff4"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/spec.md",
+            "fingerprint": "f8d0ff4113ca10c485e338dc08047cac5271d44bb208eaed8d1ad7f5714ccb5f"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/tasks/T-1.md",
+            "fingerprint": "fe19ecc97acfd365009877912b2925e5d1480decd999c6cb153bb9d171771288"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/tasks/T-2.md",
+            "fingerprint": "91eab87f25006bb5eb4efa99dad5dd588906ae7e82e56e14c9bc1857778dc16f"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/tasks/T-3.md",
+            "fingerprint": "30e709db3c37a0a1c4a2dd3bdc6fff704315727ad87a797a222229d9680529ef"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/tasks/T-4.md",
+            "fingerprint": "944116234b244c251b1500464365ac8d1844806a7fe9827a9b2bfe47ff74c07f"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/test-coverage.json",
+            "fingerprint": "5bced2e1f1e2c89dfab10d28947804cbe20efb85d7c800a779e2900568992dff"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/test-execute-result.json",
+            "fingerprint": "66a502240fad18af7dc5557249211fed7c2020240f837de29ca16fd1ec350f32"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/test-result-review.json",
+            "fingerprint": "2988e68477b00f717795a887e642dd2d59845bb73d84ddbc4c21a7c1de2a6ea2"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/test-result-review.md",
+            "fingerprint": "4ca0e46c2531b0ad744d49819af2e2e5d5e46d9d8a43e11471c9159dfb266591"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/test-review.json",
+            "fingerprint": "9c52392d4e2163c4a4a24573ebba730a339b3a8f9eee6dfbb5aeddce2d70b456"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/test-review.md",
+            "fingerprint": "826b1bd5a8e7c7fc8a41df234e3ce13dec5b585d67a28aada470c02c0423c934"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/tests/.raw/scenario-validity.log",
+            "fingerprint": "1418256bb8a36d462b9d45af72925cb128433f0c2b2b675fd9f34152e6857e04"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/tests/.raw/test-execution.log",
+            "fingerprint": "4115b73d7f073159e1a441e3dc65504c06d97c0d67be75b598dd930d83a1223c"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/tests/acceptance-targets.contract.test.js",
+            "fingerprint": "e3f7b0761c453239eac507cd11dc71cbaca101dad33a5d9cb08edeb2e9e82066"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/tests/agent-report-fixture.contract.test.js",
+            "fingerprint": "d7ab5bfc74cccea5f8d434103cd5b54c01114b88f4dcf052ab376d8c39e726e3"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/tests/ci-stages.contract.test.js",
+            "fingerprint": "e94cd6247a9469d39c2175c67119f8156b55af2ee6bdd893146e27ac0153bd35"
+          },
+          {
+            "path": "specs/316-issue-412-strict-ci-test-suite/tests/test-selection.contract.test.js",
+            "fingerprint": "95aa887cf19aa79ef37f95ac382e742a8b42bc4f417f6d98032f98f8d7c79467"
+          },
+          {
+            "path": "tests/acceptance/lib/pipeline.js",
+            "fingerprint": "dc73083ebd3a7bbfbf0d16097ba2753bb3993a1f92faabc4856802f26daeb01a"
+          },
+          {
+            "path": "tests/acceptance/lib/run-targets.js",
+            "fingerprint": "2cdee0ca6d8257d25b92d798b87c9cb0118f2ee70e0ea430d46c8e941934d2e6"
+          },
+          {
+            "path": "tests/acceptance/lib/targets.js",
+            "fingerprint": "3a0c1a35c6c335efda67a69029c691071897218cc802c0e6107e6d0c0650513c"
+          },
+          {
+            "path": "tests/acceptance/run.js",
+            "fingerprint": "ea05ac1c039ad949d014203be9b6e02dfd5e879aae230a3008c94bad7252b7c7"
+          },
+          {
+            "path": "tests/agent/report.test.js",
+            "fingerprint": "66d42fc9a858933eff3a40a7ed4eb3984b754f3d993f5d277c6c026f73d88bdb"
+          },
+          {
+            "path": "tests/ci.js",
+            "fingerprint": "d395b193d0a283b2cfafa29df1f60a75eb4d655673880c51400ceb2c2031ff14"
+          },
+          {
+            "path": "tests/ci/cli-smoke.test.js",
+            "fingerprint": "851a7ff08b91c8030f5fcd43c40b50a16469d9c5acedee8c0568896d5f6ca158"
+          },
+          {
+            "path": "tests/ci/stub-acceptance.js",
+            "fingerprint": "adcc9c97be9c05e4851e695bcef96a9c10fe209b153eba3c07668dd24897288a"
+          },
+          {
+            "path": "tests/ci/stub-acceptance.test.js",
+            "fingerprint": "8210af8e0318e48c8997169a264e7f1eb17a3d3fcb4473e051cfe05be400449f"
+          },
+          {
+            "path": "tests/helpers/stub-agent.js",
+            "fingerprint": "9be93b5f1694e0f6de3c53e1348518ee778bfd5b02c71393f178d37a2f511456"
+          },
+          {
+            "path": "tests/helpers/test-runner.js",
+            "fingerprint": "5c6064605b106400c05f15057eed0c9315aeb411b6ba6a41450a3e27f33fce8c"
+          },
+          {
+            "path": "tests/helpers/test-selection.js",
+            "fingerprint": "a00d7c18e183aa5a52baf6e5a95d5249cc7a8b6c7c7f81fe70702bc0376d26d0"
+          },
+          {
+            "path": "tests/run.js",
+            "fingerprint": "afd0695e8d23925d207a5a46e6b6e05e738120053f623b24bc171953941a5d43"
+          }
+        ],
+        "fixAttempts": null,
+        "selectedAction": null,
+        "remainingRisk": null,
+        "retryable": false,
+        "nextAction": "finalize-commit",
+        "nextRecommendedAction": null,
+        "recordAndProceed": null,
+        "humanSummary": "result=pass raw_output=specs/316-issue-412-strict-ci-test-suite/tests/.raw/final-regression-attempt-002.log"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: add strict credential-free CI test suite\n    80 files changed, 7065 insertions(+), 490 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (5 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 9\n    Q&A ......................... 0\n    issue-log ................... 36\n    agent calls ................. 35\n    input tokens ................ 810,849\n    output tokens ............... 164,244\n    cache-read tokens ........... 3,609,600\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 2192.2s\n      draft-questions-review .... 10.7s\n      draft-coverage-review ..... 13.5s\n      draft-gate ................ 19.9s\n      spec-review ............... 436.9s\n      spec-gate ................. 41.2s\n      test-review ............... 495.9s\n      impl-review ............... 899.8s\n      impl-gate ................. 117.7s\n      implement ................. 156.6s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 5  passed 5  failed 0 verdict=pass\n    raw_output: specs/316-issue-412-strict-ci-test-suite/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=pass raw_output=specs/316-issue-412-strict-ci-test-suite/tests/.raw/final-regression-attempt-002.log\n\n  Issue Log Summary (41 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/316-issue-412-strict-ci-test-suite/issue-log.json\n\n    Important (10 of 26)\n    - [draft] Draft guardrail lookup emitted preset resolution warning\n    - [draft-gate] Draft gate reported migration parity and recommendation-rationale violations\n    - [spec-review] Earlier empty-envelope diagnosis misclassified a yielded review process as terminated\n    - [scenario-validity] Sequence 70 completed with all R1-R5 classified invalid_test\n    - [scenario-validity] Corrected the earlier missing-envelope diagnosis for scenario-validity\n    - [scenario-validity] First isolated test redesign still produced invalid_test for R1 R2 R3 and R5\n    - [test-review] Static test review found missing coverage for R1-R5 contract boundaries\n    - [test-review] Second test-review foreground invocation returned no envelope and did not refresh the review artifact\n    - [test-review] Scenario-validity was already passed; the active failure is test-review.\n    - [test-review] Latest static test review reported nine blocking coverage and premise defects plus one advisory.\n    ... 16 important issue-log entries omitted\n\n    Recent Other (5 of 15)\n    - [test-review] Changed-evidence review sequence 105 has no agent-start, completion, or artifact after the CLI process returned.\n    - [impl-review] Implementation review found that the CI stub copied a js-webapp fixture without a base override and returned fixed non-schema docs responses\n    - [acceptance-review] Acceptance review classified five exhausted test-review findings as still open because disposition evidence had not been recorded\n    - [implement] Docs build refreshed analysis but skipped the filled operations chapter, and targeted regeneration produced only generic test prose\n    - [final-regression] Current main passes test-runner-flags 29/29; Issue #412 restored selector-conflict precedence before unknown-preset membership after attempt-001 exposed the regression.\n    ... 10 other issue-log entries omitted"
+}
