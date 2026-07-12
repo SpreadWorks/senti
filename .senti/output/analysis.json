@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-07-12T10:01:34.313Z",
+  "analyzedAt": "2026-07-12T10:09:50.464Z",
   "package": {
     "entries": [
       {
@@ -926,9 +926,9 @@
       },
       {
         "file": "src/docs/commands/review.js",
-        "hash": "2bbdb2b402c82b4a4ddef38ec69a804c",
-        "lines": 312,
-        "mtime": "2026-06-09T08:02:50.450Z",
+        "hash": "16066cd736001a92bb0f9c706004e98c",
+        "lines": 318,
+        "mtime": "2026-07-12T10:09:35.836Z",
         "className": "review",
         "methods": [
           "stripInlineCode",
@@ -952,22 +952,7 @@
         ],
         "extends": "Command",
         "usedBy": null,
-        "id": "f3a5a725",
-        "summary": "This command reviews generated documentation for structural completeness and unresolved template artifacts. It serves as a quality gate for docs output.",
-        "detail": "The review logic checks chapter presence, minimum content length, leftover directives, broken comment markers, and residual block syntax that should not survive rendering. It also verifies README and localized docs expectations, and cross-checks rendered content against available analysis entries where applicable. Failures are reported through translated messages and eventually raised as a hard error if any issue remains. The command is designed for automated validation in build or forge workflows.",
-        "chapter": "development",
-        "role": "documentation review command",
-        "enrich": {
-          "processedAt": "2026-06-09T11:45:10.652Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "quality gate",
-          "docs review",
-          "integrity check",
-          "unresolved directives",
-          "validation"
-        ]
+        "id": "f3a5a725"
       },
       {
         "file": "src/docs/commands/scan.js",
@@ -7988,15 +7973,17 @@
       },
       {
         "file": "src/lib/agent.js",
-        "hash": "53b22d7788e90865df143498bf1ab1ac",
-        "lines": 955,
-        "mtime": "2026-07-02T14:18:43.184Z",
+        "hash": "ec9b360a6c2cc6ecd0105c37a54af225",
+        "lines": 1199,
+        "mtime": "2026-07-12T10:09:35.837Z",
         "className": "agent",
         "methods": [
           "createPluginAgentApi",
           "buildAgentMetricEntry",
           "shouldPersistFinalizeMetricToSidecar",
           "persistFinalizeMetricToSidecar",
+          "processGroupContainsOnlyZombies",
+          "runWindowsTaskkill",
           "resolvePromptCacheContext",
           "recordPromptCacheHit",
           "formatSpawnError",
@@ -8036,31 +8023,15 @@
         "exports": [
           "createPluginAgentApi",
           "Agent",
+          "AgentTimeoutError",
+          "ChildProcessSupervisor",
           "filterStreamingEvents"
         ],
-        "extends": null,
+        "extends": "Error",
         "usedBy": [
           "src/lib/container.js"
         ],
-        "id": "13ddf392",
-        "summary": "Agent execution layer for invoking external AI providers with profile resolution, retries, caching, and metrics. It normalizes command construction and provider parsing behind a single `Agent` API.",
-        "detail": "The module resolves agent profiles from built-in defaults, configuration, and environment overrides, then maps them to provider implementations through a registry. It builds command invocations with prompt substitution, working-directory injection, optional JSON schema delivery, and environment shaping before spawning subprocesses. A prompt cache persists deterministic responses under `.senti/agent-cache`, and cache hits are reported through sidecar metrics when flow context allows it. The runtime includes retry and backoff handling, streaming-event filtering, provider-specific output parsing, logging hooks, and plugin-facing wrappers for agent calls.",
-        "chapter": "configuration",
-        "role": "lib",
-        "enrich": {
-          "processedAt": "2026-07-02T14:19:16.336Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "agent runner",
-          "LLM provider",
-          "profile resolution",
-          "prompt cache",
-          "retry backoff",
-          "subprocess spawn",
-          "metrics logging",
-          "schema injection"
-        ]
+        "id": "13ddf392"
       },
       {
         "file": "src/lib/agents-md.js",
@@ -11333,7 +11304,7 @@
     ],
     "summary": {
       "total": 215,
-      "totalMethods": 2010
+      "totalMethods": 2012
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
