@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "No migration inventory enumerates affected public behavior in the required dimensions (user-facing commands, APIs, hooks, config entries, generated artifacts, side effects). The spec lists touched files and goals but does not define a full behavior inventory before migration.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft.json",
+            "locator": "/scopeVerification"
+          },
+          "observed": "No migration inventory enumerates affected public behavior in the required dimensions (user-facing commands, APIs, hooks, config entries, generated artifacts, side effects). The spec lists touched files and goals but does not define a full behavior inventory before migration.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "The draft declares existing classification/command behavior should be preserved but does not map each retained public surface to a new owner/path, nor state explicit removal decisions for specific behavior points.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft.json",
+            "locator": "/decisionMap/decisionPoints"
+          },
+          "observed": "The draft declares existing classification/command behavior should be preserved but does not map each retained public surface to a new owner/path, nor state explicit removal decisions for specific behavior points.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "Acceptance criteria include fingerprint change scenarios, but do not provide behavior-level verification that retained public surfaces (for example targeted/full/skip planning, regression command execution, discovery/observable artifacts) still work through the new canonical snapshot path.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft.json",
+            "locator": "/validation"
+          },
+          "observed": "Acceptance criteria include fingerprint change scenarios, but do not provide behavior-level verification that retained public surfaces (for example targeted/full/skip planning, regression command execution, discovery/observable artifacts) still work through the new canonical snapshot path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft.json",
+        "locator": "/scopeVerification"
+      },
+      "observed": "No migration inventory enumerates affected public behavior in the required dimensions (user-facing commands, APIs, hooks, config entries, generated artifacts, side effects). The spec lists touched files and goals but does not define a full behavior inventory before migration.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft.json",
+        "locator": "/decisionMap/decisionPoints"
+      },
+      "observed": "The draft declares existing classification/command behavior should be preserved but does not map each retained public surface to a new owner/path, nor state explicit removal decisions for specific behavior points.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft.json",
+        "locator": "/validation"
+      },
+      "observed": "Acceptance criteria include fingerprint change scenarios, but do not provide behavior-level verification that retained public surfaces (for example targeted/full/skip planning, regression command execution, discovery/observable artifacts) still work through the new canonical snapshot path.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
+import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { validateIntegrationArtifactTrust } from "../../../src/flow/lib/test-artifacts.js";
@@ -16,9 +17,14 @@ describe("integration gate deferred regression evidence", () => {
   it("accepts deferred full-regression evidence without blocking impl-gate", () => {
     tmp = createTmpDir("gate-deferred-regression-");
     const specDir = path.join(tmp, "specs/001-test");
+    const changedFileContent = "export function runGateFixture() {}\n";
+    const changedFileFingerprint = crypto
+      .createHash("sha256")
+      .update(changedFileContent)
+      .digest("hex");
     fs.mkdirSync(path.join(specDir, "tests/.raw"), { recursive: true });
 
-    writeFile(tmp, "src/flow/lib/run-gate.js", "export function runGateFixture() {}\n");
+    writeFile(tmp, "src/flow/lib/run-gate.js", changedFileContent);
     writeJson(tmp, "specs/001-test/spec.json", {
       requirements: [{ id: "R1", testable: true }],
     });
@@ -50,8 +56,8 @@ describe("integration gate deferred regression evidence", () => {
         required: false,
         category: "full-regression-deferred",
         reason: "full project regression deferred to final-regression",
-        changed_files: [{ status: "modified", path: "src/flow/lib/run-gate.js" }],
-        trigger_relevant_changed_files: [{ status: "modified", path: "src/flow/lib/run-gate.js" }],
+        changed_files: [{ status: "modified", path: "src/flow/lib/run-gate.js", fingerprint: changedFileFingerprint }],
+        trigger_relevant_changed_files: [{ status: "modified", path: "src/flow/lib/run-gate.js", fingerprint: changedFileFingerprint }],
         classified_paths: [{ path: "src/flow/lib/run-gate.js", category: "full-regression-deferred" }],
       },
     });

@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "fail",
+      "reason": "The spec does not specify any spec-local tests under specs/<specid>/tests/, and no file is defined to carry the required `// spec: R<N>` headers for requirement-scoped coverage.",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria"
+          },
+          "observed": "The spec does not specify any spec-local tests under specs/<specid>/tests/, and no file is defined to carry the required `// spec: R<N>` headers for requirement-scoped coverage.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "spec-test-coverage",
+      "where": {
+        "file": "spec.json",
+        "locator": "acceptance_criteria"
+      },
+      "observed": "The spec does not specify any spec-local tests under specs/<specid>/tests/, and no file is defined to carry the required `// spec: R<N>` headers for requirement-scoped coverage.",
+      "severity": "blocking",
+      "refs": [
+        "spec-test-coverage"
+      ]
+    }
+  ]
+}

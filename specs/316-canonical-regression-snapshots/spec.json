@@ -1,0 +1,256 @@
+{
+  "goal": "project regression の保存時と integration gate 再検証時で同一の RegressionFileSnapshotList factory を使い、changed-file evidence の表現差による F-001 の stale 誤判定を解消する。",
+  "scope": {
+    "in": [
+      "RegressionFileSnapshot と RegressionFileSnapshotList を `src/flow/lib/regression-file-snapshot.js` に定義する。",
+      "required / skipped regression artifact の `changed_files` と `trigger_relevant_changed_files` を canonical snapshot list として保存する。",
+      "integration gate で保存済み snapshot と current snapshot を canonical comparison する。",
+      "test-execute result schema で snapshot item の fingerprint を必須化し、旧 item 形式を rerun-required failure とする。",
+      "unchanged、1 byte change、add、delete、rename、ordering difference、deleted file、legacy artifact、required gate の spec-local automated coverage を追加する。",
+      "source 変更に必要な generated docs synchronization を実行して検証する。"
+    ],
+    "out": [
+      "F-001 以外の audit finding の修正。",
+      "targeted / full / skip classification、regression command discovery、final-regression policy の再設計。",
+      "flow hook、step transition、test config key、raw log、summary、review、file-map contract の変更。",
+      "test-execute result root version `2` の compatibility conversion または legacy snapshot item の吸収。",
+      "npm publish、npm dist-tag、official release。"
+    ]
+  },
+  "constraints": [
+    "Node.js 組み込み module のみを使用し、外部依存を追加しない。",
+    "RegressionFileSnapshot と RegressionFileSnapshotList の constructor が invariant を強制し、serialization と comparison を class の behavior として保持する。",
+    "artifact root versionは `2` を維持するが、snapshot item の `fingerprint` は必須とし、欠落する旧形式を変換せず rerun-required error にする。",
+    "snapshot entry 数は git changed-file helper の上限 2000 と共有し、regression enumeration は `untrackedFiles: \"all\"` で untracked directory を leaf files に展開し、file hashing は固定長 buffer で行って whole-file memory loading を避ける。",
+    "status、path、old_path、fingerprint 以外の project 固有情報を `src/` に埋め込まない。",
+    "既存 tests の失敗 scenario が妥当な場合、test expectation を迂回せず product code を修正する。",
+    "`src/skills/` と `src/presets/` は変更しないため、この spec 自体は `senti upgrade` を要求しない。該当 path が実装中に変更された場合のみ repository rule に従って実行する。"
+  ],
+  "design_principles": [
+    "Canonicalization before persistence and comparison: 同じ changed-file set は入力順に依存せず同じ JSON value になる。",
+    "One value owner: hashing、normalization、sorting、validation、serialization、equality は RegressionFileSnapshotList に集約する。",
+    "Fail closed on legacy evidence: fingerprint を欠く artifact は trusted evidence とせず test-execute rerun を要求する。",
+    "Migration parity: command orchestration、classification、config、hooks、raw/review artifacts、side effects は既存 owner に残す。"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/flow/lib/regression-file-snapshot.js`: RegressionFileSnapshot と RegressionFileSnapshotList。changed-file entry の validation、SHA-256 fingerprint、canonical sort、JSON serialization、equality を所有する。"
+      },
+      {
+        "text": "`src/flow/lib/run-test-execute.js`: existing orchestration を維持し、required / skipped regression evidence の two changed-file lists を shared factory から保存する。"
+      },
+      {
+        "text": "`src/flow/lib/test-artifacts.js`: snapshot schema validation と integration gate freshness comparison を shared value class で行う。"
+      },
+      {
+        "text": "`src/flow/lib/test-regression.js`: classification owner を維持し、existing withChangedFileFingerprints API を shared factory への delegation に置換する。"
+      },
+      {
+        "text": "`src/lib/git-helpers.js` と `src/flow/schemas/test-execute-result.schema.json`: changed-file count bound を共有し、fingerprint-required JSON contract を宣言する。"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "Save: Git changed leaf entries (`untrackedFiles: all`) → existing classification → RegressionFileSnapshotList.fromChangedFiles(root, entries) → canonical JSON arrays → test-execute-result.json."
+      },
+      {
+        "text": "Validate: test-execute-result.json arrays → RegressionFileSnapshotList.fromJSON() → legacy/malformed item rejection before trust checks."
+      },
+      {
+        "text": "Revalidate: current Git entries → existing classification → the same fromChangedFiles factory → equals(saved list) → unchanged PASS or rerun-required stale failure."
+      },
+      {
+        "text": "Parity: command discovery → targeted/full/skip planning → process execution → raw log/summary/review → gate transition remains on existing paths; only changed-file value creation and comparison move."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] Save path / `run-test-execute.js` / result=match: required evidence currently adds fingerprints before persistence, confirming the Issue premise that save representation includes content identity.",
+        "evidence": "`buildRequiredRegression()` calls `withChangedFileFingerprints(root, classification.changedFiles)` and repeats it for trigger-relevant entries."
+      },
+      {
+        "text": "[VERIFY] Gate path / `test-artifacts.js` / result=match: current classification entries are compared directly with persisted fingerprint entries, reproducing F-001 by representation mismatch.",
+        "evidence": "`assertIntegrationRegressionEvidence()` JSON-stringifies `current.changedFiles` and `current.triggerRelevantChangedFiles` against artifact arrays without applying `withChangedFileFingerprints()`."
+      },
+      {
+        "text": "[VERIFY] Artifact schema / `test-execute-result.schema.json` / result=match: root version is `2`, but changed-file items omit the fingerprint field that the saver emits.",
+        "evidence": "Both changed-file item schemas declare status/path/old_path with additionalProperties=false, while `run-test-execute.js` persists fingerprint. The new contract makes fingerprint string-or-null required."
+      },
+      {
+        "text": "[VERIFY] Git detail contract / `git-helpers.js` / result=match: status/path/old_path values are normalized, deduplicated, bounded, and stably sorted before snapshot creation.",
+        "evidence": "`listChangedFilesDetailed()` maps modified/added/deleted/renamed, uses a Map key of status/old_path/path, caps entries, and sorts by path/status/old_path."
+      },
+      {
+        "text": "Keep array-shaped artifact fields and root version `2`; require fingerprint on each item so existing array consumers remain valid while old no-fingerprint evidence fails closed.",
+        "evidence": "`run-final-regression.js` consumes both fields as arrays. Issue #410 requires a schema update and rerun for old format, not a root artifact redesign.",
+        "consideredAlternatives": "Changing both fields to wrapper objects or bumping the entire artifact to v3 would force unrelated consumer and prompt migrations outside F-001."
+      },
+      {
+        "text": "Use canonical value equality rather than raw JSON equality so input ordering cannot create false stale results while status/path/old_path/fingerprint changes remain detectable.",
+        "evidence": "Issue #410 explicitly requires ordering differences not to mismatch and 1 byte/add/delete/rename changes to be detected.",
+        "consideredAlternatives": "Sorting only at one call site leaves future producers and revalidators free to diverge again."
+      },
+      {
+        "text": "Enumerate untracked content with `untrackedFiles: all` before classification so directory paths never collapse nested file identity into a null fingerprint.",
+        "evidence": "`listChangedFilesDetailed()` defaults to untrackedFiles=normal but supports all; normal mode may emit one untracked directory entry, while all emits bounded leaf entries whose content can be hashed.",
+        "consideredAlternatives": "Hashing a directory tree inside the snapshot class would duplicate Git enumeration, complicate ordering, and create a second entry-count boundary."
+      }
+    ]
+  },
+  "background": "F-001 is an evidence-correctness release blocker. The current test-execute saver fingerprints changed files, but integration gate revalidation compares freshly classified entries that do not contain fingerprints against the persisted arrays by JSON.stringify. The same Git state can therefore fail immediately after a successful required regression. The schema also rejects fingerprint as an additional property while deterministic runtime validation does not validate snapshot item shape, so old and current representations have no single trust contract.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "listRegressionChangedFiles shall request untrackedFiles=all so untracked directories become bounded leaf entries; RegressionFileSnapshotList shall construct immutable canonical snapshots from at most 2000 modified/added/deleted/renamed/untracked entries, normalize POSIX paths, retain status/path/old_path, compute a SHA-256 fingerprint with fixed-size buffered reads or explicit null for deleted paths, reject duplicate or malformed entries, sort independently of input order, serialize to JSON, parse persisted JSON, and compare value equality.",
+      "priority": "must",
+      "status": "done",
+      "testable": true
+    },
+    {
+      "id": "R2",
+      "desc": "RunTestExecuteCommand shall use RegressionFileSnapshotList.fromChangedFiles for both changed_files and trigger_relevant_changed_files in required and skipped regression artifacts; the test-execute result schema and deterministic validator shall require fingerprint as a string or null and reject no-fingerprint legacy items with a rerun-test-execute reason.",
+      "priority": "must",
+      "status": "done",
+      "testable": true
+    },
+    {
+      "id": "R3",
+      "desc": "Integration regression evidence validation shall parse saved lists with RegressionFileSnapshotList.fromJSON, build both current classified lists with the same fromChangedFiles factory, and compare canonical values so unchanged and reordered entries pass while a 1 byte content change, add, delete, rename, or content change under an untracked directory produces a stale rerun-required failure; deleted files shall remain comparable with fingerprint null.",
+      "priority": "must",
+      "status": "done",
+      "testable": true
+    },
+    {
+      "id": "R4",
+      "desc": "The migration shall preserve user-facing test-execute and integration-gate command behavior, listRegressionChangedFiles/classifyRegression/planTestExecuteRegression APIs, flow hooks, test.command/test.projectPaths/test.testExecuteRegression config, targeted/full/skip planning, process execution, raw log, summary, review, file-map, and step-transition behavior; only successful trust of legacy no-fingerprint snapshots is intentionally removed and replaced by rerun requirement.",
+      "priority": "must",
+      "status": "done",
+      "testable": true
+    }
+  ],
+  "acceptance_criteria": [
+    "AC1 (R1): The same changed-file entries in different input orders produce equal RegressionFileSnapshotList values and byte-identical JSON serialization.",
+    "AC2 (R1): Snapshot tests distinguish modified content by one byte; represent add, delete, rename, old_path, untracked leaf files, and an already deleted file; and prove untrackedFiles=all expands an untracked directory within the 2000-entry bound.",
+    "AC3 (R2): Required and skipped artifacts written by the save path contain fingerprint on every changed_files and trigger_relevant_changed_files item and satisfy the updated JSON/deterministic schema.",
+    "AC4 (R2): An old-format artifact whose snapshot item lacks fingerprint is not successful evidence and returns a message requiring test-execute rerun; it is not converted or accepted.",
+    "AC5 (R3): A required=true, result=pass artifact passes integration regression evidence validation immediately after save when the worktree is unchanged.",
+    "AC6 (R3): After save, a one-byte edit, added file, deleted file, rename, or one-byte edit inside a previously saved untracked directory makes the relevant canonical snapshot unequal and the gate requires rerun.",
+    "AC7 (R3): Reordering saved or current input entries alone does not produce a stale-snapshot failure, and unchanged deleted-file entries compare equal with fingerprint null.",
+    "AC8 (R4): Existing targeted/full/skip classification, command discovery/execution, skipped artifact fields, config handling, raw evidence, review, file-map, hook, and step-transition tests continue to pass through the canonical snapshot path.",
+    "AC9 (R1-R4): Spec-local failure reproduction fails against the pre-fix source, then all spec-local tests and required targeted project regression pass after implementation.",
+    "AC10 (R1-R4): Docs synchronization reports the source-derived docs state, and no upgrade is required unless an upgrade-trigger source path enters the final diff.",
+    "AC11 (R1): `specs/316-canonical-regression-snapshots/tests/regression-file-snapshot.test.js` begins with `// spec: R1` and executes canonical model, ordering, lifecycle, untracked-directory, and bounded hashing scenarios.",
+    "AC12 (R2-R4): `specs/316-canonical-regression-snapshots/tests/regression-artifact-gate.test.js` begins with `// spec: R2 R3 R4` and executes save/schema/legacy rejection, immediate required gate, stale-change, and retained behavior scenarios."
+  ],
+  "clarifications": [
+    {
+      "q": "Does artifact schema update require changing test-execute-result root version `2`?",
+      "a": "No. The changed-file item contract is updated by making fingerprint required string-or-null. This deterministically separates legacy no-fingerprint items while retaining existing array consumers and the unrelated v2 summary/process contract."
+    },
+    {
+      "q": "How is a deleted file fingerprinted?",
+      "a": "The snapshot retains status/path/old_path and stores fingerprint null for a deleted path. Untracked directories are expanded by Git with untrackedFiles=all before snapshot creation, so their leaf files receive content fingerprints. The null field is explicit and required, so missing legacy fields remain distinguishable."
+    },
+    {
+      "q": "Which behavior is intentionally removed?",
+      "a": "Only successful trust of changed-file artifact items that omit fingerprint. The user-visible recovery is to rerun test-execute; no automatic compatibility conversion is provided."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Add fingerprints only in the gate before raw JSON comparison",
+      "reason": "This fixes one call site but leaves normalization, ordering, schema validation, and future producers split across modules, so the representation can diverge again."
+    },
+    {
+      "option": "Strip fingerprints from saved evidence",
+      "reason": "This would make unchanged arrays comparable but would lose one-byte content-change detection and weaken evidence correctness."
+    },
+    {
+      "option": "Wrap lists in a new artifact object and bump all test-execute evidence to version `3`",
+      "reason": "This forces unrelated consumer, fixture, prompt, and report migrations. Requiring fingerprint on the existing array item schema gives an unambiguous legacy boundary within the Issue scope."
+    },
+    {
+      "option": "Accept legacy items by computing missing fingerprints during validation",
+      "reason": "This is compatibility absorption prohibited by Issue #410 and the alpha policy, and it would trust evidence that did not record content identity at execution time."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "RegressionFileSnapshotList",
+    "changed-files",
+    "project-regression",
+    "integration-gate",
+    "fingerprint",
+    "SHA-256",
+    "test-execute-result",
+    "artifact-validation",
+    "canonical-order",
+    "rerun-required"
+  ],
+  "implementationTargets": [
+    "src/flow/lib/regression-file-snapshot.js",
+    "src/flow/lib/run-test-execute.js",
+    "src/flow/lib/test-regression.js",
+    "src/flow/lib/test-artifacts.js",
+    "src/flow/schemas/test-execute-result.schema.json",
+    "src/lib/git-helpers.js"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Define canonical regression snapshots",
+      "goal": "Create the immutable snapshot value model and centralize changed-file hashing, validation, canonical ordering, serialization, and equality.",
+      "acceptance": [
+        "RegressionFileSnapshot and RegressionFileSnapshotList enforce the R1 invariants.",
+        "Order-independent, one-byte, add, delete, rename, untracked-directory expansion, and deleted-file cases are covered.",
+        "Hashing uses bounded entry count and fixed-size buffered file reads."
+      ],
+      "implementation_notes": "Add src/flow/lib/regression-file-snapshot.js. Export the shared changed-file count limit from src/lib/git-helpers.js and make listRegressionChangedFiles request untrackedFiles=all. Replace test-regression.js fingerprint implementation with delegation so existing final-regression consumers retain array output.",
+      "test_strategy": "Use specs/316-canonical-regression-snapshots/tests/regression-file-snapshot.test.js with `// spec: R1`; unit-test the value classes against temporary files and shuffled changed-file inputs and assert invariant failures for malformed/duplicate/legacy entries.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Persist canonical regression snapshots",
+      "goal": "Make test-execute artifacts persist canonical snapshots for every regression outcome and enforce the new item schema without legacy absorption.",
+      "acceptance": [
+        "Required and skipped save paths use RegressionFileSnapshotList.fromChangedFiles for both lists.",
+        "JSON schema and deterministic validation require fingerprint string-or-null.",
+        "Legacy no-fingerprint artifacts return rerun-required failure."
+      ],
+      "implementation_notes": "Update run-test-execute.js, test-artifacts.js validation, and test-execute-result.schema.json while retaining the root version and array field names.",
+      "test_strategy": "Use specs/316-canonical-regression-snapshots/tests/regression-artifact-gate.test.js with `// spec: R2 R3 R4`; exercise required/skipped artifact construction and deterministic/schema validation, including a legacy artifact rejection fixture.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-3",
+      "title": "Revalidate canonical regression snapshots",
+      "goal": "Use the shared factory and value equality at integration gate so fresh evidence passes and substantive Git changes require rerun.",
+      "acceptance": [
+        "A required artifact passes immediately after save with no worktree change.",
+        "One-byte, add, delete, and rename changes fail stale validation.",
+        "A nested content change under an untracked directory fails stale validation after leaf expansion.",
+        "Ordering-only differences and unchanged deleted entries pass.",
+        "Existing command, classification, config, hook, and artifact side effects remain covered."
+      ],
+      "implementation_notes": "Update assertIntegrationRegressionEvidence in test-artifacts.js to parse saved lists and build current lists through RegressionFileSnapshotList; preserve the existing trust decision owner and error routing.",
+      "test_strategy": "Use specs/316-canonical-regression-snapshots/tests/regression-artifact-gate.test.js with `// spec: R2 R3 R4`; run integration-style tests in temporary Git repositories and retain existing targeted/full/skip and gate test coverage.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-07-11T14:47:11.065Z",
+    "notes": "User approved Wave 1 specifications for Issues #410, #411, and #412 together by selecting option 1 on 2026-07-11."
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Defined bounded untracked-directory expansion and added leaf-content identity coverage.",
+  "items": [
+    {
+      "title": "Untracked directory evidence has no content identity",
+      "target": "R1/R3, AC2/AC6",
+      "decision": "applied",
+      "rationale": "Required listRegressionChangedFiles to use untrackedFiles=all, added untracked as a snapshot status, limited null fingerprints to deleted paths, and added nested untracked content-change tests.",
+      "evidence": "spec.json R1/R3 and AC2/AC6 now define untracked leaf enumeration and stale detection; the supporting constraint, decision, clarification, and T-1/T-3 acceptance make the implementation path auditable.",
+      "changedFields": [
+        "constraints[3]",
+        "overview.data_flow[0].text",
+        "overview.decisions[6]",
+        "requirements[0].desc",
+        "requirements[2].desc",
+        "acceptance_criteria[1]",
+        "acceptance_criteria[5]",
+        "clarifications[1].a",
+        "tasks[0].acceptance[1]",
+        "tasks[0].implementation_notes",
+        "tasks[2].acceptance[2]"
+      ]
+    }
+  ]
+}

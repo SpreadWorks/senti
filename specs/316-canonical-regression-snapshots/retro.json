@@ -1,0 +1,39 @@
+{
+  "spec": "specs/316-canonical-regression-snapshots/spec.json",
+  "date": "2026-07-11T15:29:07.309Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "listRegressionChangedFiles shall request untrackedFiles=all so untracked directories become bounded leaf entries; RegressionFileSnapshotList shall construct immutable canonical snapshots from at most 2000 modified/added/deleted/renamed/untracked entries, normalize POSIX paths, retain status/path/old_path, compute a SHA-256 fingerprint with fixed-size buffered reads or explicit null for deleted paths, reject duplicate or malformed entries, sort independently of input order, serialize to JSON, parse persisted JSON, and compare value equality.",
+      "status": "done",
+      "note": "R1: canonical serialization ignores input ordering and detects a one-byte change"
+    },
+    {
+      "desc": "RunTestExecuteCommand shall use RegressionFileSnapshotList.fromChangedFiles for both changed_files and trigger_relevant_changed_files in required and skipped regression artifacts; the test-execute result schema and deterministic validator shall require fingerprint as a string or null and reject no-fingerprint legacy items with a rerun-test-execute reason.",
+      "status": "done",
+      "note": "R2: fixture behavior"
+    },
+    {
+      "desc": "Integration regression evidence validation shall parse saved lists with RegressionFileSnapshotList.fromJSON, build both current classified lists with the same fromChangedFiles factory, and compare canonical values so unchanged and reordered entries pass while a 1 byte content change, add, delete, rename, or content change under an untracked directory produces a stale rerun-required failure; deleted files shall remain comparable with fingerprint null.",
+      "status": "done",
+      "note": "R3: required evidence passes immediately after save regardless of saved ordering"
+    },
+    {
+      "desc": "The migration shall preserve user-facing test-execute and integration-gate command behavior, listRegressionChangedFiles/classifyRegression/planTestExecuteRegression APIs, flow hooks, test.command/test.projectPaths/test.testExecuteRegression config, targeted/full/skip planning, process execution, raw log, summary, review, file-map, and step-transition behavior; only successful trust of legacy no-fingerprint snapshots is intentionally removed and replaced by rerun requirement.",
+      "status": "done",
+      "note": "R4: commands config process artifacts gate hooks and planning retain production behavior"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 4,
+    "done": 4,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

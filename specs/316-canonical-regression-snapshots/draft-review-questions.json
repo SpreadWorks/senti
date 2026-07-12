@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "phase": "draft-questions-review",
+  "sourceDraft": "draft.json",
+  "generatedAt": "2026-07-11T11:17:34.368Z",
+  "verdict": "ADVISORY",
+  "summary": "0 blocking, 0 advisory, 5 repair target finding(s) recorded.",
+  "blockingFindings": [],
+  "advisoryFindings": [],
+  "repairTargets": [
+    {
+      "title": "1. q1 includes answer/rationale/evidence",
+      "target": "q1",
+      "rationale": "保存時と integration gate 再検証時の changed-file evidence を同じ canonical snapshot representation に統一して F-001 を解消する goal と scope で進めますか。",
+      "evidence": "Question includes recommended answer, rationale, evidence, and explanatory definition instead of only question text.",
+      "classification": "repair_target"
+    },
+    {
+      "title": "2. q2 includes answer/rationale",
+      "target": "q2",
+      "rationale": "artifact schema を更新し、旧形式は compatibility conversion せず rerun required とする policy で進めますか。",
+      "evidence": "Question includes recommended answer and rationale instead of only question text.",
+      "classification": "repair_target"
+    },
+    {
+      "title": "3. q3 includes answer/rationale",
+      "target": "q3",
+      "rationale": "unchanged PASS、1 byte change、add、delete、rename、ordering difference、deleted file、旧 schema rerun、保存直後の required:true gate PASS を自動テストで証明する test matrix で進めますか。",
+      "evidence": "Question includes recommended answer and rationale instead of only question text.",
+      "classification": "repair_target"
+    },
+    {
+      "title": "4. q4 includes answer/rationale",
+      "target": "q4",
+      "rationale": "existing targeted/full/skip classification、regression command execution、skipped artifact の observable behavior を維持し、changed-file evidence の生成と比較だけを置換する parity boundary で進めますか。",
+      "evidence": "Question includes recommended answer and rationale instead of only question text.",
+      "classification": "repair_target"
+    },
+    {
+      "title": "5. q5 includes answer/rationale",
+      "target": "q5",
+      "rationale": "F-001 以外の finding、package publication、dist-tag、official release、旧 artifact compatibility を対象外にする non-goal で進めますか。",
+      "evidence": "Question includes recommended answer and rationale instead of only question text.",
+      "classification": "repair_target"
+    }
+  ]
+}

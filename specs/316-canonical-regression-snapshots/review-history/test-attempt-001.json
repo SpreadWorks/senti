@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-11T14:59:37.878Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 5,
+    "advisory": 0,
+    "total": 5
+  },
+  "coverageArtifact": "specs/316-canonical-regression-snapshots/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Source grep does not test RunTestExecuteCommand artifact behavior",
+      "target": "specs/316-canonical-regression-snapshots/tests/regression-artifact-gate.test.js",
+      "issue": "The R2 test proves save-path migration by reading run-test-execute.js and counting textual RegressionFileSnapshotList.fromChangedFiles occurrences. This can pass with dead code or comments and does not execute the required or skipped RunTestExecuteCommand artifact builders.",
+      "requiredChange": "Replace the source-text assertions with an executable test of the required and skipped test-execute save paths, asserting changed_files and trigger_relevant_changed_files are canonical fingerprinted snapshot JSON.",
+      "whyBlocking": "R2 requires production artifact behavior, but the current test can pass without exercising that behavior.",
+      "origin": "R2",
+      "failureKind": "static anti-pattern"
+    },
+    {
+      "kind": "blocking",
+      "title": "Bounded hashing test is source-text only",
+      "target": "specs/316-canonical-regression-snapshots/tests/regression-file-snapshot.test.js",
+      "issue": "The R1 bounded-buffer hashing test reads regression-file-snapshot.js and matches openSync/createReadStream/readSync text while rejecting readFileSync text. This can pass without the hashing path using bounded reads and can fail valid implementations that delegate to another bounded helper.",
+      "requiredChange": "Use an executable hashing test with a real file and a behavior-level guard or spy that fails whole-file reads, then assert the resulting SHA-256 fingerprint.",
+      "whyBlocking": "R1 requires fingerprint computation behavior; the current test is a static anti-pattern that can pass without exercising production hashing.",
+      "origin": "R1",
+      "failureKind": "static anti-pattern"
+    },
+    {
+      "kind": "blocking",
+      "title": "R1 path normalization and malformed-entry rejection are not covered",
+      "target": "specs/316-canonical-regression-snapshots/tests/regression-file-snapshot.test.js",
+      "issue": "The R1 tests use already-normal POSIX paths and only cover missing fingerprint, duplicate path, and over-limit rejection. They do not verify POSIX path normalization or rejection of malformed status/path/old_path/fingerprint inputs.",
+      "requiredChange": "Add spec-local cases for normalized path/old_path output and malformed entries such as invalid status, empty or non-string path, unsafe path, invalid old_path usage, and invalid fingerprint.",
+      "whyBlocking": "The coverage artifact marks R1 covered, but required normalization and malformed-entry rejection behavior can be omitted while these tests still pass.",
+      "origin": "R1",
+      "failureKind": "missing coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "Legacy no-fingerprint rerun reason is not asserted",
+      "target": "specs/316-canonical-regression-snapshots/tests/regression-artifact-gate.test.js",
+      "issue": "The R2 legacy rejection assertion uses /fingerprint|rerun test-execute/i, so a generic missing-field error mentioning fingerprint passes without the required rerun-test-execute reason.",
+      "requiredChange": "Tighten the assertion to require the rerun-test-execute reason or code, not just the word fingerprint.",
+      "whyBlocking": "R2 explicitly requires legacy no-fingerprint items to be rejected with a rerun-test-execute reason.",
+      "origin": "R2",
+      "failureKind": "missing coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R4 preservation coverage is mostly absent",
+      "target": "specs/316-canonical-regression-snapshots/tests/regression-artifact-gate.test.js",
+      "issue": "The artifact marks R4 covered, but the tests only cover small classifyRegression and planTestExecuteRegression targeted/skipped cases plus a source-text assertion. They do not cover test-execute and integration-gate command behavior, flow hooks, test.command, test.testExecuteRegression config, full planning, process execution, raw log, summary, review, file-map, or step-transition preservation.",
+      "requiredChange": "Add behavior-level spec-local coverage for the preserved command and flow surfaces, or narrow the coverage artifact so R4 is not claimed covered by these tests.",
+      "whyBlocking": "An acceptance requirement has no corresponding spec-local test coverage, and the coverage artifact contradicts the actual tests.",
+      "origin": "R4",
+      "failureKind": "missing coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/316-canonical-regression-snapshots/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 5,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "34b8b27e7106ec0e571a611b531c08c2e71286b649b23be6a89ee3c55d6ba96f"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "test-001-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Source grep does not test RunTestExecuteCommand artifact behavior",
+      "body": "The R2 test proves save-path migration by reading run-test-execute.js and counting textual RegressionFileSnapshotList.fromChangedFiles occurrences. This can pass with dead code or comments and does not execute the required or skipped RunTestExecuteCommand artifact builders.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Bounded hashing test is source-text only",
+      "body": "The R1 bounded-buffer hashing test reads regression-file-snapshot.js and matches openSync/createReadStream/readSync text while rejecting readFileSync text. This can pass without the hashing path using bounded reads and can fail valid implementations that delegate to another bounded helper.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R1 path normalization and malformed-entry rejection are not covered",
+      "body": "The R1 tests use already-normal POSIX paths and only cover missing fingerprint, duplicate path, and over-limit rejection. They do not verify POSIX path normalization or rejection of malformed status/path/old_path/fingerprint inputs.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Legacy no-fingerprint rerun reason is not asserted",
+      "body": "The R2 legacy rejection assertion uses /fingerprint|rerun test-execute/i, so a generic missing-field error mentioning fingerprint passes without the required rerun-test-execute reason.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-001-blocking-005",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R4 preservation coverage is mostly absent",
+      "body": "The artifact marks R4 covered, but the tests only cover small classifyRegression and planTestExecuteRegression targeted/skipped cases plus a source-text assertion. They do not cover test-execute and integration-gate command behavior, flow hooks, test.command, test.testExecuteRegression config, full planning, process execution, raw log, summary, review, file-map, or step-transition preservation.",
+      "category": "unknown"
+    }
+  ]
+}

@@ -181,6 +181,8 @@ function parsePorcelainLine(line) {
   return { status, path: normalizeGitPath(body) };
 }
 
+export const DEFAULT_MAX_CHANGED_FILE_ENTRIES = 2000;
+
 /**
  * List changed files with stable status details for regression evidence.
  *
@@ -232,7 +234,7 @@ export function listChangedFilesDetailed(opts = {}) {
 }
 
 function normalizeChangedFilesLimit(value) {
-  const limit = value ?? 2000;
+  const limit = value ?? DEFAULT_MAX_CHANGED_FILE_ENTRIES;
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 10000) {
     throw new Error("listChangedFilesDetailed maxChangedFileEntries must be a positive safe integer <= 10000");
   }

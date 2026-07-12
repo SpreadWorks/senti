@@ -1,11 +1,11 @@
 import fs from "fs";
 import path from "path";
-import crypto from "crypto";
 import { execFile } from "child_process";
 import { listChangedFilesDetailed } from "../../lib/git-helpers.js";
 import { extractMakeTestTarget, readMakefile } from "../../lib/makefile.js";
 import { collectTestCommandSources, selectTestCommandSource } from "../../lib/test-command-sources.js";
 import { projectFilePathsFromAnalysis } from "../../docs/lib/analysis-entry.js";
+import { RegressionFileSnapshotList } from "./regression-file-snapshot.js";
 
 export const DEFAULT_TEST_TIMEOUT_SECONDS = 600;
 export const DEFAULT_PROCESS_HEARTBEAT_MS = 30_000;
@@ -105,21 +105,8 @@ export function commandIdentityFor(command) {
   });
 }
 
-function fingerprintFile(root, relPath) {
-  const absolute = path.resolve(root, relPath);
-  if (!fs.existsSync(absolute) || !fs.statSync(absolute).isFile()) return null;
-  return crypto.createHash("sha256").update(fs.readFileSync(absolute)).digest("hex");
-}
-
 export function withChangedFileFingerprints(root, changedFiles = []) {
-  return changedFiles.map((entry) => {
-    const normalized = normalizePath(entry.path);
-    return {
-      ...entry,
-      path: normalized,
-      fingerprint: fingerprintFile(root, normalized),
-    };
-  });
+  return RegressionFileSnapshotList.fromChangedFiles(root, changedFiles).toJSON();
 }
 
 export class RegressionClassification {
@@ -327,7 +314,11 @@ function categoryFor(classes) {
 }
 
 export function listRegressionChangedFiles({ root, state }) {
-  return listChangedFilesDetailed({ cwd: root, baseBranch: state.baseBranch || "main" });
+  return listChangedFilesDetailed({
+    cwd: root,
+    baseBranch: state.baseBranch || "main",
+    untrackedFiles: "all",
+  });
 }
 
 export function classifyRegression({ root, state, analysis, config, changedFiles = null }) {

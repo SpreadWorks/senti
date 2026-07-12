@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "The untracked-directory finding is blocking and has a bounded source-supported repair.",
+  "items": [
+    {
+      "title": "Untracked directory evidence has no content identity",
+      "target": "R1/R3, AC2/AC6",
+      "decision": "apply",
+      "rationale": "Regression enumeration must expand untracked directories to leaf files before snapshot creation; otherwise nested content can change while a directory-level null fingerprint remains equal.",
+      "evidence": "listRegressionChangedFiles() currently omits untrackedFiles, so listChangedFilesDetailed() defaults to git status --untracked-files=normal. The helper already supports untrackedFiles=all and enforces the same 2000-entry bound."
+    }
+  ]
+}

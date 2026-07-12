@@ -1,0 +1,136 @@
+{
+  "devType": "bugfix",
+  "goal": "project regression の保存時と integration gate 再検証時で changed-file evidence を同一の canonical snapshot に統一し、F-001 の誤判定を解消する。",
+  "analysis": {
+    "problem": "保存側は changed-file entry に file fingerprint を加える一方、integration gate 側は Git から再取得した未 fingerprint の entry を JSON 全体で比較している。この表現差により、実質的に同一の差分でも stale evidence と誤判定される。",
+    "proposedApproach": "保存と再検証の両方が利用する RegressionFileSnapshotList factory を導入し、status・path・旧 path・file content fingerprint を canonical order で保持する snapshot を artifact contract にする。",
+    "validation": "修正前に required regression artifact の保存直後 gate が誤って stale 判定する failure reproduction を確認する。修正後は unchanged、1 byte 変更、add、delete、rename、順序差、削除済み file、旧 schema rerun、保存直後の required gate を自動テストで検証する。さらに `senti flow run test-execute` が existing command discovery と targeted/full/skip planning を通り、同じ process 実行・raw log・summary・review side effect を保つこと、skipped artifact の observable fields を保つこと、required artifact が新 canonical snapshot を保存して integration gate から再検証されることを behavior-level test で証明する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "`run-test-execute.js` は must として required regression artifact の `changed_files` と `trigger_relevant_changed_files` に fingerprint 付き entry を保存している。",
+      "`test-artifacts.js` は must として gate 時に現在の classification entry と保存済み fingerprint 付き entry を JSON 全体比較しており、表現が一致しない。",
+      "`git-helpers.js` の `listChangedFilesDetailed()` は must として modified、added、deleted、renamed を root-relative POSIX path で返し、path/status/old_path により安定 sort する。",
+      "Issue #410 は must として旧 artifact 形式を互換吸収せず rerun required とし、F-001 以外の finding を scope 外としている。"
+    ],
+    "decisionPoints": [
+      "must: canonical snapshot の identity と ordering を保存・再検証で完全に共有する。",
+      "must: deleted file は fingerprint が存在しない状態も canonical value として比較できる。",
+      "must: artifact schema の新形式だけを成功 evidence として受理し、旧形式は rerun を要求する。",
+      "must: existing regression classification と targeted/full/skip の owner は `test-regression.js` に維持し、snapshot construction だけを `RegressionFileSnapshotList` に委譲する。",
+      "must: `senti flow run test-execute` の orchestration owner は `RunTestExecuteCommand` に維持し、required artifact の two changed-file fields だけを shared factory の serialized value に置換する。",
+      "must: integration gate trust decision の owner は `assertIntegrationRegressionEvidence()` に維持し、raw entry JSON 比較だけを `RegressionFileSnapshotList` comparison に置換する。",
+      "must: artifact schema validation の owner は `test-artifacts.js` に維持し、新 snapshot schema を検証して旧 schema を rerun-required failure にする。",
+      "must: flow hooks、config keys、command discovery、process execution、raw logs、summary、review、file-map、step transitions は既存 owner と observable behavior を維持し、削除しない。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 値の invariant と serialization は専用 class に所属させ、object literal を型表現として増やさない。",
+      "must: Node.js 組み込み module のみを使い、外部依存を追加しない。",
+      "must: alpha policy に従い、旧 artifact schema の compatibility code を追加しない。",
+      "must: production code と同種の既存 test pattern を調査し、failure reproduction を先に実行する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: RegressionFileSnapshotList の constructor/factory method と JSON field の具体形を task と requirement に分解する。",
+      "must: artifact schema version の具体値と validator error contract を現在の schema pattern に合わせて定義する。",
+      "must: unit test と integration gate reproduction の fixture arrangement を既存 test helper に合わせて定義する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: `src/flow/lib/run-test-execute.js` の regression evidence 保存経路。",
+      "must: `src/flow/lib/test-regression.js` と新規 `src/flow/lib/regression-file-snapshot.js` の canonical snapshot factory。",
+      "must: `src/flow/lib/test-artifacts.js` の schema validation と integration gate 再検証。",
+      "must: `src/lib/git-helpers.js` の changed-file detail contract に必要な最小変更。",
+      "must: F-001 の修正前 failure と全 acceptance case を証明する自動テスト。",
+      "must: source 更新に伴う必要な docs synchronization。",
+      "must: command inventory は `senti flow run test-execute` と integration `senti flow run gate --phase integration` を retained surface とし、引数・command discovery・exit/result semantics を維持する。",
+      "must: API inventory は `listRegressionChangedFiles()`、`classifyRegression()`、`planTestExecuteRegression()`、`validateIntegrationArtifactTrust()` を retained surface とし、snapshot factory を新しい evidence value owner とする。",
+      "must: artifact inventory は `test-execute-result.json` の regression changed-file fields と schema version を変更対象とし、raw output、summary、`test-result-review.json`、`file-map.json` を retained surface とする。",
+      "must: side-effect inventory は project regression process 実行、raw log 作成、artifact 書き込み、test-result review、gate trust validation を retained behavior とする。"
+    ],
+    "out": [
+      "must: F-001 以外の audit finding は変更しない。",
+      "must: regression command discovery、target classification、final-regression policy は再設計しない。",
+      "must: `npm publish`、`npm dist-tag`、official release は実行しない。",
+      "must: 旧 artifact 形式の compatibility absorption は実装しない。",
+      "must: flow hook registration、step transition、`test.command`、`test.projectPaths`、`test.testExecuteRegression` config contract は変更しない。",
+      "must: user-facing command の削除、API の削除、hook の削除、config entry の削除、raw/review/file-map artifact の削除、existing side effect の削除は行わない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: required project regression artifact の changed-file evidence schema が更新される。",
+    "must: integration gate は新 canonical snapshot と現在の canonical snapshot が一致する場合だけ保存済み regression result を信頼する。",
+    "must: 1 byte の content change と add/delete/rename は stale evidence として検出する。",
+    "must: entry ordering の違いだけでは stale evidence と判定しない。",
+    "must: skipped regression artifact と existing targeted/full/skip classification の observable behavior を維持する。",
+    "must: 旧 schema artifact は成功扱いせず、test-execute の rerun を要求する。",
+    "must: `senti flow run test-execute` は existing command discovery、process execution、raw log、summary、review input、step transition を同じ owner 経由で維持する。",
+    "must: integration gate は existing trust-validation owner を維持し、保存済み snapshot と同じ shared factory で作った current snapshot を比較する。",
+    "must: `test.command`、`test.projectPaths`、`test.testExecuteRegression` config と flow hooks には user-visible change を生じさせない。",
+    "must: intentional removal は旧 changed-file artifact schema の成功受理だけとし、user-visible impact は test-execute rerun requirement に限定する。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "保存時と integration gate 再検証時の changed-file evidence を同じ canonical snapshot に統一して F-001 を解消する goal と scope を must として承認しますか。",
+      "answer": "承認する。must として、公開 Issue #410 の goal と scope をそのまま実装対象にする。",
+      "evidence": "ユーザーは元依頼で published Issue body を intent として受理すると明示した。Issue #410 Summary と Scope は F-001、対象 5 path、共有 factory を指定している。",
+      "why": "保存側の `withChangedFileFingerprints()` と gate 側の未 fingerprint classification が異なる表現を比較する現行 source を確認でき、Issue の root-cause premise と一致する。",
+      "considered": "保存側だけ、または gate 側だけを局所変換する案は、同じ表現を両経路で共有する Issue の contract を満たさないため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "artifact schema を更新し、旧形式は compatibility conversion を行わず `rerun required` とする migration policy を must として承認しますか。",
+      "answer": "承認する。must として、新 schema だけを成功 evidence として扱い、旧形式は rerun を要求する。",
+      "evidence": "Issue #410 Deliverables と Acceptance Criteria は旧形式 artifact を compatibility absorption せず rerun required と指定する。root AGENTS.md の alpha policy も後方互換 code を禁止する。",
+      "why": "旧表現を暗黙変換すると、canonical snapshot の trust contract と schema version の境界が曖昧になる。",
+      "considered": "旧 artifact を読み替える compatibility layer は Issue と alpha policy の両方に反するため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "unchanged PASS、1 byte change、add、delete、rename、ordering difference、deleted file、旧 schema rerun、保存直後の `required: true` gate PASS を自動テストで証明する test matrix を must として承認しますか。",
+      "answer": "承認する。must として、列挙した全 case を automated test または reproduction command で証明する。",
+      "evidence": "Issue #410 Acceptance Criteria と Completion Contract が全 case と failure reproduction first を明示する。",
+      "why": "content、lifecycle、ordering、schema migration、save-to-gate integration の各 failure mode を独立に検証できる。",
+      "considered": "unchanged と 1 byte change だけの unit coverage は add/delete/rename、ordering、gate integration を証明できないため不十分。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "existing targeted/full/skip classification、regression command execution、skipped artifact の observable behavior を維持し、changed-file evidence の生成と比較だけを置換する parity boundary を must として承認しますか。",
+      "answer": "承認する。must として、classification と command execution の observable behavior を維持し、evidence representation のみを変更する。",
+      "evidence": "Issue #410 は F-001 の evidence correctness に scope を限定する。`test-regression.js` は targeted/full/skip planning を独立 class と関数で表現している。",
+      "why": "classification policy を変えると F-001 以外の concern が混ざり、独立 review/revert の completion contract を損なう。",
+      "considered": "regression planning の同時 refactor は Issue scope を超えるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "F-001 以外の finding、package publication、dist-tag、official release、旧 artifact compatibility を対象外とする non-goal を must として承認しますか。",
+      "answer": "承認する。must として、列挙した non-goal を本 spec の対象外に保つ。",
+      "evidence": "Issue #410 Out of Scope とユーザーの safety requirements が同じ boundary を明示する。",
+      "why": "F-001 を独立して実装・review・revert・verify できる単位に維持する。",
+      "considered": "関連 finding の便乗修正と release 操作は明示的に禁止されているため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-11T11:20:38.000Z",
+    "notes": "The user explicitly accepted the published Issue #410 body as intent and authorized routine flow progress without additional questions."
+  }
+}

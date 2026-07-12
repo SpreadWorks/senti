@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "Five answer-like question texts require small neutral-wording repairs; no new user decision or scope change is needed.",
+  "items": [
+    {
+      "title": "1. q1 includes answer/rationale/evidence",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "The goal confirmation remains valid, but a pending question must not include a recommended answer, rationale, or evidence.",
+      "evidence": "draft.json qa[0].question begins with a recommendation and cites Issue and source evidence."
+    },
+    {
+      "title": "2. q2 includes answer/rationale",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "The migration-policy confirmation remains valid, but its pending question must contain only the decision being asked.",
+      "evidence": "draft.json qa[1].question includes both a recommended policy and its rationale."
+    },
+    {
+      "title": "3. q3 includes answer/rationale",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "The acceptance-matrix confirmation remains valid, but the pending question must not pre-answer the choice.",
+      "evidence": "draft.json qa[2].question recommends the matrix and explains why it should be selected."
+    },
+    {
+      "title": "4. q4 includes answer/rationale",
+      "target": "q4",
+      "decision": "apply",
+      "rationale": "The parity-boundary confirmation remains valid, but its recommendation and scope rationale belong outside the stored pending question.",
+      "evidence": "draft.json qa[3].question contains a recommended boundary followed by its rationale."
+    },
+    {
+      "title": "5. q5 includes answer/rationale",
+      "target": "q5",
+      "decision": "apply",
+      "rationale": "The non-goal confirmation remains valid, but the pending question must be neutral and answer-free.",
+      "evidence": "draft.json qa[4].question contains a recommendation and Issue-boundary rationale."
+    }
+  ]
+}

@@ -6,6 +6,7 @@ import { sentiOutputDir } from "../../lib/config.js";
 import { globToRegex } from "../../lib/glob.js";
 import { listChangedFilesDetailed } from "../../lib/git-helpers.js";
 import { classifyRegression, listRegressionChangedFiles } from "./test-regression.js";
+import { RegressionFileSnapshotList } from "./regression-file-snapshot.js";
 import {
   ArtifactCompletionMechanicalFailure,
   ArtifactCompletionSuccess,
@@ -687,6 +688,14 @@ function validateRegression(regression) {
   if (!Array.isArray(regression.trigger_relevant_changed_files)) {
     throw new Error("regression.trigger_relevant_changed_files[] is required");
   }
+  RegressionFileSnapshotList.fromJSON(
+    regression.changed_files,
+    "regression.changed_files",
+  );
+  RegressionFileSnapshotList.fromJSON(
+    regression.trigger_relevant_changed_files,
+    "regression.trigger_relevant_changed_files",
+  );
   if (regression.required) {
     for (const key of ["mode", "root_test_command", "root_test_command_source", "command", "result", "raw_output_lines"]) {
       if (regression[key] == null) throw new Error(`regression.${key} is required`);
@@ -1314,14 +1323,30 @@ export function assertIntegrationRegressionEvidence({ root, state, specDir, conf
   }
 
   if (regression.required) {
+    const savedChangedFiles = RegressionFileSnapshotList.fromJSON(
+      regression.changed_files,
+      "regression.changed_files",
+    );
+    const savedTriggerFiles = RegressionFileSnapshotList.fromJSON(
+      regression.trigger_relevant_changed_files,
+      "regression.trigger_relevant_changed_files",
+    );
     const analysisPath = path.join(sentiOutputDir(root), "analysis.json");
     const analysis = JSON.parse(fs.readFileSync(analysisPath, "utf8"));
     const changedFiles = listRegressionChangedFiles({ root, state });
     const current = classifyRegression({ root, state, analysis, config, changedFiles });
-    if (JSON.stringify(current.changedFiles) !== JSON.stringify(regression.changed_files)) {
+    const currentChangedFiles = RegressionFileSnapshotList.fromChangedFiles(
+      root,
+      current.changedFiles,
+    );
+    const currentTriggerFiles = RegressionFileSnapshotList.fromChangedFiles(
+      root,
+      current.triggerRelevantChangedFiles,
+    );
+    if (!savedChangedFiles.equals(currentChangedFiles)) {
       throw new Error("project regression changed_files snapshot is stale; rerun test-execute");
     }
-    if (JSON.stringify(current.triggerRelevantChangedFiles) !== JSON.stringify(regression.trigger_relevant_changed_files)) {
+    if (!savedTriggerFiles.equals(currentTriggerFiles)) {
       throw new Error("project regression trigger_relevant_changed_files snapshot is stale; rerun test-execute");
     }
   }

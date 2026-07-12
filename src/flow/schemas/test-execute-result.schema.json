@@ -75,12 +75,13 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["status", "path"],
+            "required": ["status", "path", "fingerprint"],
             "additionalProperties": false,
             "properties": {
               "status": { "type": "string" },
               "path": { "type": "string" },
-              "old_path": { "type": "string" }
+              "old_path": { "type": "string" },
+              "fingerprint": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" }
             }
           }
         },
@@ -88,12 +89,13 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["status", "path"],
+            "required": ["status", "path", "fingerprint"],
             "additionalProperties": false,
             "properties": {
               "status": { "type": "string" },
               "path": { "type": "string" },
-              "old_path": { "type": "string" }
+              "old_path": { "type": "string" },
+              "fingerprint": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" }
             }
           }
         },

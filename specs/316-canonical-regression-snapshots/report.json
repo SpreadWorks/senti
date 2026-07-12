@@ -1,0 +1,856 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".senti/output/analysis.json                        |  278 ++---\n .../acceptance-review.json                         |   21 +\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-gate-source.json                         |  120 +++\n .../draft-questions-repair.json                    |   43 +\n .../draft-questions-triage.json                    |   43 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   47 +\n .../316-canonical-regression-snapshots/draft.json  |  136 +++\n .../file-map.json                                  |   28 +\n specs/316-canonical-regression-snapshots/flow.json | 1090 ++++++++++++++++++++\n .../impl-review.json                               |   28 +\n .../issue-log.json                                 |  228 ++++\n specs/316-canonical-regression-snapshots/issue.md  |  114 ++\n .../plugin-artifacts/workflow/prepare.json         |   10 +\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |  101 ++\n .../review-history/impl-attempt-001.json           |   51 +\n .../review-history/impl-attempt-001.md             |   22 +\n .../review-history/impl-attempt-002.json           |   31 +\n .../review-history/impl-attempt-002.md             |   16 +\n .../review-history/spec-attempt-001.json           |   37 +\n .../review-history/spec-attempt-001.md             |   16 +\n .../review-history/test-attempt-001.json           |  130 +++\n .../review-history/test-attempt-001.md             |   42 +\n .../review-history/test-attempt-002.json           |   28 +\n .../review-history/test-attempt-002.md             |   13 +\n specs/316-canonical-regression-snapshots/review.md |   16 +\n .../spec-gate-source.json                          |   46 +\n .../spec-repair.json                               |   28 +\n .../spec-review.json                               |   23 +\n .../spec-review.md                                 |   16 +\n .../spec-triage.json                               |   15 +\n specs/316-canonical-regression-snapshots/spec.json |  256 +++++\n specs/316-canonical-regression-snapshots/spec.md   |  127 +++\n .../tasks/T-1.md                                   |   20 +\n .../tasks/T-2.md                                   |   20 +\n .../tasks/T-3.md                                   |   22 +\n .../test-coverage.json                             |   72 ++\n .../test-review.json                               |   25 +\n .../test-review.md                                 |   13 +\n .../tests/regression-artifact-gate.test.js         |  392 +++++++\n .../tests/regression-file-snapshot.test.js         |  208 ++++\n src/flow/lib/regression-file-snapshot.js           |  239 +++++\n src/flow/lib/run-test-execute.js                   |   29 +-\n src/flow/lib/test-artifacts.js                     |   29 +-\n src/flow/lib/test-regression.js                    |   23 +-\n src/flow/schemas/test-execute-result.schema.json   |   10 +-\n src/lib/git-helpers.js                             |    4 +-\n tests/unit/flow/gate-deferred-regression.test.js   |   12 +-\n 51 files changed, 4125 insertions(+), 234 deletions(-)",
+      "commits": [
+        "feat: feature/316-canonical-regression-snapshots"
+      ]
+    },
+    "retro": {
+      "total": 4,
+      "done": 4,
+      "partial": 0,
+      "not_done": 0,
+      "not_applicable_count": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "listRegressionChangedFiles shall request untrackedFiles=all so untracked directories become bounded leaf entries; RegressionFileSnapshotList shall construct immutable canonical snapshots from at most 2000 modified/added/deleted/renamed/untracked entries, normalize POSIX paths, retain status/path/old_path, compute a SHA-256 fingerprint with fixed-size buffered reads or explicit null for deleted paths, reject duplicate or malformed entries, sort independently of input order, serialize to JSON, parse persisted JSON, and compare value equality.",
+          "status": "done",
+          "note": "R1: canonical serialization ignores input ordering and detects a one-byte change"
+        },
+        {
+          "desc": "RunTestExecuteCommand shall use RegressionFileSnapshotList.fromChangedFiles for both changed_files and trigger_relevant_changed_files in required and skipped regression artifacts; the test-execute result schema and deterministic validator shall require fingerprint as a string or null and reject no-fingerprint legacy items with a rerun-test-execute reason.",
+          "status": "done",
+          "note": "R2: fixture behavior"
+        },
+        {
+          "desc": "Integration regression evidence validation shall parse saved lists with RegressionFileSnapshotList.fromJSON, build both current classified lists with the same fromChangedFiles factory, and compare canonical values so unchanged and reordered entries pass while a 1 byte content change, add, delete, rename, or content change under an untracked directory produces a stale rerun-required failure; deleted files shall remain comparable with fingerprint null.",
+          "status": "done",
+          "note": "R3: required evidence passes immediately after save regardless of saved ordering"
+        },
+        {
+          "desc": "The migration shall preserve user-facing test-execute and integration-gate command behavior, listRegressionChangedFiles/classifyRegression/planTestExecuteRegression APIs, flow hooks, test.command/test.projectPaths/test.testExecuteRegression config, targeted/full/skip planning, process execution, raw log, summary, review, file-map, and step-transition behavior; only successful trust of legacy no-fingerprint snapshots is intentionally removed and replaced by rerun requirement.",
+          "status": "done",
+          "note": "R4: commands config process artifacts gate hooks and planning retain production behavior"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 17,
+      "fullLogPath": "specs/316-canonical-regression-snapshots/issue-log.json",
+      "importantTotal": 10,
+      "importantShown": 10,
+      "importantOmitted": 0,
+      "recentOtherTotal": 7,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 2,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft",
+          "reason": "Preparing auto-check rejected target guard options with ARGS_ERROR.",
+          "resolution": "Verified the preparing state with guarded status, inspected runtime-log, then used the documented --run-id binding for auto-check."
+        },
+        {
+          "classification": "important",
+          "step": "draft",
+          "reason": "Issue evidence file .tmp/refactoring/report.md is absent from the prepared worktree.",
+          "resolution": "Preserved the worktree boundary and used the published Issue body plus current target source as the available authoritative evidence."
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "Draft gate failed three migration-parity checks for missing inventory, ownership mapping, and behavior-level verification.",
+          "resolution": "Add a complete retained-surface inventory, map each surface to its post-change owner, and require behavior-level parity tests through the canonical snapshot path before rerunning the gate."
+        },
+        {
+          "classification": "important",
+          "step": "spec",
+          "reason": "Cross-reference search included a nonexistent tests/integration directory and rg reported ENOENT.",
+          "resolution": "Use repository-indexed rg results and existing test directories only; no file or flow state was changed by the failed path."
+        },
+        {
+          "classification": "important",
+          "step": "scenario-validity",
+          "reason": "Pre-implementation scenario validity classified R1 as invalid_test while R2 through R4 were expected_fail.",
+          "resolution": "Inspect the real scenario artifact and raw log, repair only the invalid R1 test design, and rerun within the three-attempt budget."
+        },
+        {
+          "classification": "important",
+          "step": "scenario-validity",
+          "reason": "Runtime-log inspection rejected target expectation guards with ARGS_ERROR.",
+          "resolution": "Treat runtime-log as a non-target state-independent log reader, verify the embedded runId when reading it bare, and use guarded context for artifacts."
+        },
+        {
+          "classification": "important",
+          "step": "scenario-validity",
+          "reason": "R1 tests failed at dynamic module resolution instead of a named requirement assertion.",
+          "resolution": "Added an explicit named R1 existence assertion before dynamic import so the valid failure-first condition is an assertion failure."
+        },
+        {
+          "classification": "important",
+          "step": "implement",
+          "reason": "Guarded implementation guardrail read failed with ARGS_ERROR because flow get guardrail does not accept --expect-* options. Workaround: record the guarded failure, then run the static non-target-bound guardrail read without guards; runti...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "implement",
+          "reason": "set step implement done failed with IMPLEMENT_COMPLETION_VALIDATION_FAILED (file-map-missing, runtime sequence 100). Workaround: populate guarded file-map entries for every testable requirement with senti flow set files, then retry norma...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "impl-review",
+          "reason": "Impl review FAIL missing_acceptance_requirement R1: reviewer reported src/flow/lib/regression-file-snapshot.js absent because the review diff omitted the untracked new production file, although the file exists and R1-R4 spec-local tests ...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "draft-gate",
+          "reason": "No migration inventory enumerates affected public behavior in the required dimensions (user-facing commands, APIs, hooks, config entries, generated artifacts, side effects). The spec lists touched files and goals but does not define a fu...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-triage",
+          "reason": "Spec review found that untracked directory entries could retain null fingerprints across nested content changes.",
+          "resolution": "Triage an explicit untracked-files=all input contract, support untracked leaf snapshots, and add directory-content change coverage within the 2000-entry bound."
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "The spec does not specify any spec-local tests under specs/<specid>/tests/, and no file is defined to carry the required `// spec: R<N>` headers for requirement-scoped coverage.",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "Spec gate found no explicit spec-local test files or requirement header mapping.",
+          "resolution": "Name the spec-local test files under specs/316-canonical-regression-snapshots/tests and map each file to required // spec: R<N> headers."
+        },
+        {
+          "classification": "recent-other",
+          "step": "test-review",
+          "reason": "Static test review found five blocking gaps in executable production-path and requirement coverage.",
+          "resolution": "Replace static assertions with executable RunTestExecuteCommand and integration behavior fixtures, add invariant cases, and tighten the legacy rerun assertion before re-review."
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 2,
+      "srcRead": 16,
+      "question": 0,
+      "issueLog": 15
+    },
+    "tokenMetrics": {
+      "input": 402850,
+      "output": 101825,
+      "cacheRead": 2329856,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 16,
+      "durationMs": 1179705,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 22413
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 15764
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 20984
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 282471
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 24814
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 428530
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 344090
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 40639
+        }
+      ]
+    },
+    "tests": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/316-canonical-regression-snapshots/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "specs/316-canonical-regression-snapshots/",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/regression-file-snapshot.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-test-execute.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/test-artifacts.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/test-regression.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/git-helpers.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/gate-deferred-regression.test.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/"
+          },
+          {
+            "status": "untracked",
+            "path": "src/flow/lib/regression-file-snapshot.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-test-execute.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-artifacts.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-regression.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/git-helpers.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-deferred-regression.test.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/"
+          },
+          {
+            "status": "untracked",
+            "path": "src/flow/lib/regression-file-snapshot.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-test-execute.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-artifacts.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-regression.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/git-helpers.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-deferred-regression.test.js"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "failureCategory": null,
+        "failureNature": null,
+        "skipKind": null,
+        "rawOutputPath": "specs/316-canonical-regression-snapshots/tests/.raw/final-regression-attempt-001.log",
+        "command": "node tests/run.js",
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        },
+        "exitCode": 0,
+        "failureSummary": null,
+        "currentDiffRelationship": null,
+        "changedFiles": [
+          {
+            "status": "modified",
+            "path": ".senti/output/analysis.json",
+            "fingerprint": "0e08fe446dd1cb0b913a89766d05a0b4203f8b9a10c31c7056b5f4e2235033f5"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/acceptance-review.json",
+            "fingerprint": "505864be5ada25597f539d7ba056f376a284ae8196e64c3407484b28ff5d445a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/draft-coverage-repair.json",
+            "fingerprint": "44d3f39cec85cfe629c8f28ee30106f2ce44038d0b7ca042da8cfa1095ef67eb"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/draft-coverage-triage.json",
+            "fingerprint": "93fd1f9eb7c8bee4db0f57e5d0145687620b137553f76b07cc110354ed6fddeb"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/draft-gate-source.json",
+            "fingerprint": "d95a17a183b881e05a92a89b109a96159dc61e07c16d0cb59d59b89b21dfacd4"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/draft-questions-repair.json",
+            "fingerprint": "795707985d3ef28478e3ab8f582d65b29711b0a945b73f756a414b3932586ff2"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/draft-questions-triage.json",
+            "fingerprint": "36451ea4d699e8462c2a9734ae9a35847d706111cab05d26d51b0479a1d7dc38"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/draft-review-coverage.json",
+            "fingerprint": "5c0b9fad40f4f959acd031f1af4e94481f822a23ca134e46dba37d6da83b05b4"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/draft-review-questions.json",
+            "fingerprint": "3071cbe804b04a465f0aa8e1aca9c7531d85c81dbc741a856562b6f64b886684"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/draft.json",
+            "fingerprint": "7e9d560b891ff469b7b566a7f6709632fe8c1a6626d94d850e37f6c64ced98dc"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/file-map.json",
+            "fingerprint": "6b155da97386cead46ebcbaa350dfa2dcb68f9e775e493e6cc10991d90a53fab"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/impl-gate-result.json",
+            "fingerprint": "077f4b097209f4266083285d6f1ca247191414c82cac5ee48237c754f9b430df"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/impl-review.json",
+            "fingerprint": "0b99a152a2e6ae8383671786d001da8ed8bfda40f2502bf31f7be0776a831630"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/issue.md",
+            "fingerprint": "9b8160f597a00fe9ab245e178b4ed175887f74edd244b582029b83c7e1183274"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/plugin-artifacts/workflow/prepare.json",
+            "fingerprint": "da082dc4187825ff052e0c47d4707c99d56a4c26177a897519f4a223a5edd3cb"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/retro.json",
+            "fingerprint": "5d3f01703a321c36029aa501698f6bd82f42492c7aadde6bfbdd54e012e3ef79"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/review-history/draft-coverage-attempt-001.json",
+            "fingerprint": "fa488811cbf89250985aae87f4d0cd649c155527c04dc88ab961982df11afc0e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/review-history/draft-questions-attempt-001.json",
+            "fingerprint": "e843e52c0f93365054aea8bd9a58767a7eb0e01380236c3bb5257b9f028eded0"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/review-history/impl-attempt-001.json",
+            "fingerprint": "dea52b7b85faf8cbb6f2a5d4f6c0f9a362d9ad3e2a0ebe171c90e9798c7e579e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/review-history/impl-attempt-001.md",
+            "fingerprint": "80a534e691c6f1d67fd9508e73a7dfb946a0610f86cac48aa5a40547be44e2e3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/review-history/impl-attempt-002.json",
+            "fingerprint": "c4f9ca5d0bbf243eab66785eb4efee9e0c4452cad5d4e1c091cf77056fb2e9ce"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/review-history/impl-attempt-002.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/review-history/spec-attempt-001.json",
+            "fingerprint": "c8d42f46b279f68e97e156a4212dc8daa630a30e6ed8d58258f05933267520b5"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/review-history/spec-attempt-001.md",
+            "fingerprint": "3abb6f23efebfe45263e026c17e9b7ca29edf488c0254f9031f21e33e5e955d8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/review-history/test-attempt-001.json",
+            "fingerprint": "e399bb13dddf527ba4e9cfb45b9a6e1f5db092aae6a8923c4b715379f93ad3d4"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/review-history/test-attempt-001.md",
+            "fingerprint": "978a31524b7115293e296de99ccc2a6b40dd7d7cb3a9868119d6f2bd50df7c8d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/review-history/test-attempt-002.json",
+            "fingerprint": "a84b4f4156e16174e51dc49b927626775f3c80e7ae4bf30e67f697a5a9bb9ad8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/review-history/test-attempt-002.md",
+            "fingerprint": "ea307b95bba9cdb480b257bb2d8b8b95c2d1215e67585f4a3c407f5e0262dd8a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/review.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/scenario-validity-result.json",
+            "fingerprint": "e3b9c0d6419bd413d7cfb93fdd1930e53d196fbb3a5abe4df64c23194a49bab7"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/spec-gate-source.json",
+            "fingerprint": "6819474349eded5ec7f4a706e0ee8ab5bc34336ed3cd5d22f7c64432320e8b34"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/spec-repair.json",
+            "fingerprint": "bd8e8762f9d1aa2f659f4ee7c1ffdcfa84f3bf75f7dbbda09a3b357e33879969"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/spec-review.json",
+            "fingerprint": "3bd8f2a8fa7866d7876d005964ef9f013b6c492ca98c80c3abb2755f31e6b97e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/spec-review.md",
+            "fingerprint": "3abb6f23efebfe45263e026c17e9b7ca29edf488c0254f9031f21e33e5e955d8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/spec-triage.json",
+            "fingerprint": "f0f226b6d63fad614710eb574d470fe7b42bb62ed04728c153441a8439cb6298"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/spec.json",
+            "fingerprint": "264ffb90a1867e32be667d2cf1dc06a18022f07e5d06eedebb6dd56cf7ca0493"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/spec.md",
+            "fingerprint": "b61b3b4421f71b30bc6ab8521f7e9dd3d04ea3d081e9dbe2bd941af40c23e4c3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/tasks/T-1.md",
+            "fingerprint": "534ae40d49468bf07061bbdf7a873fd691552a76061c8f62ee251442eae35cde"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/tasks/T-2.md",
+            "fingerprint": "02dafebcf1a6705f54009ad71352a43cc42158409dc9b2e419a5cbc29ca7f151"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/tasks/T-3.md",
+            "fingerprint": "0602731650496a4c56afbf75cf237cd31b41d8dfbcfcb21bff239ff6ad5f526d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/test-coverage.json",
+            "fingerprint": "bfa39ae513164a140f20b7d79b3984bafcbd09a82302db9391f515ea6bf4af40"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/test-execute-result.json",
+            "fingerprint": "ead6667f533b40ca50f794bdb75ddfdc20110538fb1883a32d3e6733d9d383d5"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/test-result-review.json",
+            "fingerprint": "3de7e4c72defa5c4b162114b3201a02ad4fe6543a115333d4c56933d8d69109e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/test-result-review.md",
+            "fingerprint": "205a2e0ef9ec0e7200c441a348c7736086e6e89e322fd61474a0a0de708f41c0"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/test-review.json",
+            "fingerprint": "4346fda9b30081160b19502b3be210ab0f4b1c51d744f009ded917c4112a0f36"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/test-review.md",
+            "fingerprint": "ea307b95bba9cdb480b257bb2d8b8b95c2d1215e67585f4a3c407f5e0262dd8a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/tests/.raw/scenario-validity.log",
+            "fingerprint": "a0cc9cf24a685fb9f9c67e6f096012b2aa9df07594919cddc8a3f33aac02c48e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/tests/.raw/test-execution.log",
+            "fingerprint": "76c5d57e5093ee3c67b7d8ad9b19de294474f7323b4be8c2f7a33f44c7bc833d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/tests/regression-artifact-gate.test.js",
+            "fingerprint": "bd48344daac3ab349039287518c6c73e092d251506303dd90d654b48820e29af"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/316-canonical-regression-snapshots/tests/regression-file-snapshot.test.js",
+            "fingerprint": "e8fdb4b960faec4c665fc5501a3b29ec3dadcda73da46589a8fac46481f4d96e"
+          },
+          {
+            "status": "added",
+            "path": "src/flow/lib/regression-file-snapshot.js",
+            "fingerprint": "ffd6d02ec3143bc2582bd668b8b6dd1a97350e2a09003b4b3df236e39d2db3af"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-test-execute.js",
+            "fingerprint": "edbce419d00a6c9d7a864179b3a96f6e7d45e21eb8c81228a249779ab68504f3"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-artifacts.js",
+            "fingerprint": "02ebfb154ef251e21809c44ad06656de89e09c4010878bddd615b61c21a384d3"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-regression.js",
+            "fingerprint": "5bfe71210927e7cd3fb98c761082be3b294222f01caae18034e868a666d51d60"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/schemas/test-execute-result.schema.json",
+            "fingerprint": "501b43878ce0fc0cfdbaa628209fa30ebd27be6e84eb0924d3f30b2a6e60d16f"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/git-helpers.js",
+            "fingerprint": "a0dc2b6351d7f4d8023a38da292d56d2a7d1f93d86ec991ade8fc6c3a0d37839"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-deferred-regression.test.js",
+            "fingerprint": "b1b975b9d72fbdd04385ee1c9e93fbeab472211f239c3fcb45729c6c3728366c"
+          }
+        ],
+        "changedFileFingerprints": [
+          {
+            "path": ".senti/output/analysis.json",
+            "fingerprint": "0e08fe446dd1cb0b913a89766d05a0b4203f8b9a10c31c7056b5f4e2235033f5"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/acceptance-review.json",
+            "fingerprint": "505864be5ada25597f539d7ba056f376a284ae8196e64c3407484b28ff5d445a"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/draft-coverage-repair.json",
+            "fingerprint": "44d3f39cec85cfe629c8f28ee30106f2ce44038d0b7ca042da8cfa1095ef67eb"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/draft-coverage-triage.json",
+            "fingerprint": "93fd1f9eb7c8bee4db0f57e5d0145687620b137553f76b07cc110354ed6fddeb"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/draft-gate-source.json",
+            "fingerprint": "d95a17a183b881e05a92a89b109a96159dc61e07c16d0cb59d59b89b21dfacd4"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/draft-questions-repair.json",
+            "fingerprint": "795707985d3ef28478e3ab8f582d65b29711b0a945b73f756a414b3932586ff2"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/draft-questions-triage.json",
+            "fingerprint": "36451ea4d699e8462c2a9734ae9a35847d706111cab05d26d51b0479a1d7dc38"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/draft-review-coverage.json",
+            "fingerprint": "5c0b9fad40f4f959acd031f1af4e94481f822a23ca134e46dba37d6da83b05b4"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/draft-review-questions.json",
+            "fingerprint": "3071cbe804b04a465f0aa8e1aca9c7531d85c81dbc741a856562b6f64b886684"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/draft.json",
+            "fingerprint": "7e9d560b891ff469b7b566a7f6709632fe8c1a6626d94d850e37f6c64ced98dc"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/file-map.json",
+            "fingerprint": "6b155da97386cead46ebcbaa350dfa2dcb68f9e775e493e6cc10991d90a53fab"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/impl-gate-result.json",
+            "fingerprint": "077f4b097209f4266083285d6f1ca247191414c82cac5ee48237c754f9b430df"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/impl-review.json",
+            "fingerprint": "0b99a152a2e6ae8383671786d001da8ed8bfda40f2502bf31f7be0776a831630"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/issue.md",
+            "fingerprint": "9b8160f597a00fe9ab245e178b4ed175887f74edd244b582029b83c7e1183274"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/plugin-artifacts/workflow/prepare.json",
+            "fingerprint": "da082dc4187825ff052e0c47d4707c99d56a4c26177a897519f4a223a5edd3cb"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/retro.json",
+            "fingerprint": "5d3f01703a321c36029aa501698f6bd82f42492c7aadde6bfbdd54e012e3ef79"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/review-history/draft-coverage-attempt-001.json",
+            "fingerprint": "fa488811cbf89250985aae87f4d0cd649c155527c04dc88ab961982df11afc0e"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/review-history/draft-questions-attempt-001.json",
+            "fingerprint": "e843e52c0f93365054aea8bd9a58767a7eb0e01380236c3bb5257b9f028eded0"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/review-history/impl-attempt-001.json",
+            "fingerprint": "dea52b7b85faf8cbb6f2a5d4f6c0f9a362d9ad3e2a0ebe171c90e9798c7e579e"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/review-history/impl-attempt-001.md",
+            "fingerprint": "80a534e691c6f1d67fd9508e73a7dfb946a0610f86cac48aa5a40547be44e2e3"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/review-history/impl-attempt-002.json",
+            "fingerprint": "c4f9ca5d0bbf243eab66785eb4efee9e0c4452cad5d4e1c091cf77056fb2e9ce"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/review-history/impl-attempt-002.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/review-history/spec-attempt-001.json",
+            "fingerprint": "c8d42f46b279f68e97e156a4212dc8daa630a30e6ed8d58258f05933267520b5"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/review-history/spec-attempt-001.md",
+            "fingerprint": "3abb6f23efebfe45263e026c17e9b7ca29edf488c0254f9031f21e33e5e955d8"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/review-history/test-attempt-001.json",
+            "fingerprint": "e399bb13dddf527ba4e9cfb45b9a6e1f5db092aae6a8923c4b715379f93ad3d4"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/review-history/test-attempt-001.md",
+            "fingerprint": "978a31524b7115293e296de99ccc2a6b40dd7d7cb3a9868119d6f2bd50df7c8d"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/review-history/test-attempt-002.json",
+            "fingerprint": "a84b4f4156e16174e51dc49b927626775f3c80e7ae4bf30e67f697a5a9bb9ad8"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/review-history/test-attempt-002.md",
+            "fingerprint": "ea307b95bba9cdb480b257bb2d8b8b95c2d1215e67585f4a3c407f5e0262dd8a"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/review.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/scenario-validity-result.json",
+            "fingerprint": "e3b9c0d6419bd413d7cfb93fdd1930e53d196fbb3a5abe4df64c23194a49bab7"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/spec-gate-source.json",
+            "fingerprint": "6819474349eded5ec7f4a706e0ee8ab5bc34336ed3cd5d22f7c64432320e8b34"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/spec-repair.json",
+            "fingerprint": "bd8e8762f9d1aa2f659f4ee7c1ffdcfa84f3bf75f7dbbda09a3b357e33879969"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/spec-review.json",
+            "fingerprint": "3bd8f2a8fa7866d7876d005964ef9f013b6c492ca98c80c3abb2755f31e6b97e"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/spec-review.md",
+            "fingerprint": "3abb6f23efebfe45263e026c17e9b7ca29edf488c0254f9031f21e33e5e955d8"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/spec-triage.json",
+            "fingerprint": "f0f226b6d63fad614710eb574d470fe7b42bb62ed04728c153441a8439cb6298"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/spec.json",
+            "fingerprint": "264ffb90a1867e32be667d2cf1dc06a18022f07e5d06eedebb6dd56cf7ca0493"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/spec.md",
+            "fingerprint": "b61b3b4421f71b30bc6ab8521f7e9dd3d04ea3d081e9dbe2bd941af40c23e4c3"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/tasks/T-1.md",
+            "fingerprint": "534ae40d49468bf07061bbdf7a873fd691552a76061c8f62ee251442eae35cde"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/tasks/T-2.md",
+            "fingerprint": "02dafebcf1a6705f54009ad71352a43cc42158409dc9b2e419a5cbc29ca7f151"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/tasks/T-3.md",
+            "fingerprint": "0602731650496a4c56afbf75cf237cd31b41d8dfbcfcb21bff239ff6ad5f526d"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/test-coverage.json",
+            "fingerprint": "bfa39ae513164a140f20b7d79b3984bafcbd09a82302db9391f515ea6bf4af40"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/test-execute-result.json",
+            "fingerprint": "ead6667f533b40ca50f794bdb75ddfdc20110538fb1883a32d3e6733d9d383d5"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/test-result-review.json",
+            "fingerprint": "3de7e4c72defa5c4b162114b3201a02ad4fe6543a115333d4c56933d8d69109e"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/test-result-review.md",
+            "fingerprint": "205a2e0ef9ec0e7200c441a348c7736086e6e89e322fd61474a0a0de708f41c0"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/test-review.json",
+            "fingerprint": "4346fda9b30081160b19502b3be210ab0f4b1c51d744f009ded917c4112a0f36"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/test-review.md",
+            "fingerprint": "ea307b95bba9cdb480b257bb2d8b8b95c2d1215e67585f4a3c407f5e0262dd8a"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/tests/.raw/scenario-validity.log",
+            "fingerprint": "a0cc9cf24a685fb9f9c67e6f096012b2aa9df07594919cddc8a3f33aac02c48e"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/tests/.raw/test-execution.log",
+            "fingerprint": "76c5d57e5093ee3c67b7d8ad9b19de294474f7323b4be8c2f7a33f44c7bc833d"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/tests/regression-artifact-gate.test.js",
+            "fingerprint": "bd48344daac3ab349039287518c6c73e092d251506303dd90d654b48820e29af"
+          },
+          {
+            "path": "specs/316-canonical-regression-snapshots/tests/regression-file-snapshot.test.js",
+            "fingerprint": "e8fdb4b960faec4c665fc5501a3b29ec3dadcda73da46589a8fac46481f4d96e"
+          },
+          {
+            "path": "src/flow/lib/regression-file-snapshot.js",
+            "fingerprint": "ffd6d02ec3143bc2582bd668b8b6dd1a97350e2a09003b4b3df236e39d2db3af"
+          },
+          {
+            "path": "src/flow/lib/run-test-execute.js",
+            "fingerprint": "edbce419d00a6c9d7a864179b3a96f6e7d45e21eb8c81228a249779ab68504f3"
+          },
+          {
+            "path": "src/flow/lib/test-artifacts.js",
+            "fingerprint": "02ebfb154ef251e21809c44ad06656de89e09c4010878bddd615b61c21a384d3"
+          },
+          {
+            "path": "src/flow/lib/test-regression.js",
+            "fingerprint": "5bfe71210927e7cd3fb98c761082be3b294222f01caae18034e868a666d51d60"
+          },
+          {
+            "path": "src/flow/schemas/test-execute-result.schema.json",
+            "fingerprint": "501b43878ce0fc0cfdbaa628209fa30ebd27be6e84eb0924d3f30b2a6e60d16f"
+          },
+          {
+            "path": "src/lib/git-helpers.js",
+            "fingerprint": "a0dc2b6351d7f4d8023a38da292d56d2a7d1f93d86ec991ade8fc6c3a0d37839"
+          },
+          {
+            "path": "tests/unit/flow/gate-deferred-regression.test.js",
+            "fingerprint": "b1b975b9d72fbdd04385ee1c9e93fbeab472211f239c3fcb45729c6c3728366c"
+          }
+        ],
+        "fixAttempts": null,
+        "selectedAction": null,
+        "remainingRisk": null,
+        "retryable": false,
+        "nextAction": "finalize-commit",
+        "nextRecommendedAction": null,
+        "recordAndProceed": null,
+        "humanSummary": "result=pass raw_output=specs/316-canonical-regression-snapshots/tests/.raw/final-regression-attempt-001.log"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/316-canonical-regression-snapshots\n    51 files changed, 4125 insertions(+), 234 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (4 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 16\n    Q&A ......................... 0\n    issue-log ................... 15\n    agent calls ................. 16\n    input tokens ................ 402,850\n    output tokens ............... 101,825\n    cache-read tokens ........... 2,329,856\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 1179.7s\n      draft-questions-review .... 22.4s\n      draft-coverage-review ..... 15.8s\n      draft-gate ................ 21.0s\n      spec-review ............... 282.5s\n      spec-gate ................. 24.8s\n      test-review ............... 428.5s\n      impl-review ............... 344.1s\n      impl-gate ................. 40.6s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 4  passed 4  failed 0 verdict=pass\n    raw_output: specs/316-canonical-regression-snapshots/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=pass raw_output=specs/316-canonical-regression-snapshots/tests/.raw/final-regression-attempt-001.log\n\n  Issue Log Summary (17 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/316-canonical-regression-snapshots/issue-log.json\n\n    Important (10)\n    - [draft] Preparing auto-check rejected target guard options with ARGS_ERROR.\n    - [draft] Issue evidence file .tmp/refactoring/report.md is absent from the prepared worktree.\n    - [draft-gate] Draft gate failed three migration-parity checks for missing inventory, ownership mapping, and behavior-level verification.\n    - [spec] Cross-reference search included a nonexistent tests/integration directory and rg reported ENOENT.\n    - [scenario-validity] Pre-implementation scenario validity classified R1 as invalid_test while R2 through R4 were expected_fail.\n    - [scenario-validity] Runtime-log inspection rejected target expectation guards with ARGS_ERROR.\n    - [scenario-validity] R1 tests failed at dynamic module resolution instead of a named requirement assertion.\n    - [implement] Guarded implementation guardrail read failed with ARGS_ERROR because flow get guardrail does not accept --expect-* options. Workaround: record the guarded failure, then run the static non-target-bound guardrail read without guards; runti...\n    - [implement] set step implement done failed with IMPLEMENT_COMPLETION_VALIDATION_FAILED (file-map-missing, runtime sequence 100). Workaround: populate guarded file-map entries for every testable requirement with senti flow set files, then retry norma...\n    - [impl-review] Impl review FAIL missing_acceptance_requirement R1: reviewer reported src/flow/lib/regression-file-snapshot.js absent because the review diff omitted the untracked new production file, although the file exists and R1-R4 spec-local tests ...\n\n    Recent Other (5 of 7)\n    - [draft-gate] No migration inventory enumerates affected public behavior in the required dimensions (user-facing commands, APIs, hooks, config entries, generated artifacts, side effects). The spec lists touched files and goals but does not define a fu...\n    - [spec-triage] Spec review found that untracked directory entries could retain null fingerprints across nested content changes.\n    - [spec-gate] The spec does not specify any spec-local tests under specs/<specid>/tests/, and no file is defined to carry the required `// spec: R<N>` headers for requirement-scoped coverage.\n    - [spec-gate] Spec gate found no explicit spec-local test files or requirement header mapping.\n    - [test-review] Static test review found five blocking gaps in executable production-path and requirement coverage.\n    ... 2 other issue-log entries omitted"
+}

@@ -48,8 +48,8 @@ import {
   processPassed,
   resolveTestTimeoutSeconds,
   runProcessDetailed,
-  withChangedFileFingerprints,
 } from "./test-regression.js";
+import { RegressionFileSnapshotList } from "./regression-file-snapshot.js";
 
 const MAX_TEST_EXECUTE_REQUIREMENTS = 500;
 const NO_TESTS_DECLARED_REASON = "no_tests_declared";
@@ -198,7 +198,19 @@ function specLocalPassed(specLocal) {
   return processPassed(specLocal.result);
 }
 
-function buildSkippedRegression(classification) {
+function buildRegressionSnapshots(root, classification) {
+  return {
+    changedFiles: RegressionFileSnapshotList
+      .fromChangedFiles(root, classification.changedFiles)
+      .toJSON(),
+    triggerRelevantChangedFiles: RegressionFileSnapshotList
+      .fromChangedFiles(root, classification.triggerRelevantChangedFiles)
+      .toJSON(),
+  };
+}
+
+function buildSkippedRegression(root, classification) {
+  const snapshots = buildRegressionSnapshots(root, classification);
   return {
     required: false,
     result: "skipped",
@@ -206,16 +218,15 @@ function buildSkippedRegression(classification) {
     category: classification.category,
     reason: classification.reason,
     classified_paths: classification.classifiedPaths,
-    trigger_relevant_changed_files: classification.triggerRelevantChangedFiles,
-    changed_files: classification.changedFiles,
+    trigger_relevant_changed_files: snapshots.triggerRelevantChangedFiles,
+    changed_files: snapshots.changedFiles,
   };
 }
 
 function buildRequiredRegression({ root, classification, rootCommand, command, result, range }) {
   const pass = processPassed(result);
   const commandIdentity = commandIdentityFor(command).toJSON();
-  const changedFiles = withChangedFileFingerprints(root, classification.changedFiles);
-  const triggerRelevantChangedFiles = withChangedFileFingerprints(root, classification.triggerRelevantChangedFiles);
+  const snapshots = buildRegressionSnapshots(root, classification);
   return {
     required: true,
     mode: classification.mode,
@@ -225,8 +236,8 @@ function buildRequiredRegression({ root, classification, rootCommand, command, r
     ...commandIdentity,
     result: pass ? "pass" : "fail",
     raw_output_lines: range,
-    trigger_relevant_changed_files: triggerRelevantChangedFiles,
-    changed_files: changedFiles,
+    trigger_relevant_changed_files: snapshots.triggerRelevantChangedFiles,
+    changed_files: snapshots.changedFiles,
     ...(classification.mode === "targeted" ? { target_paths: [...classification.targetPaths] } : {}),
     process: {
       started: result.started,
@@ -299,7 +310,7 @@ export default class RunTestExecuteCommand extends FlowCommand {
       const regressionPlan = planTestExecuteRegression(classification, config);
       let regression;
       if (!regressionPlan.run) {
-        regression = buildSkippedRegression(regressionPlan.classification);
+        regression = buildSkippedRegression(root, regressionPlan.classification);
       } else {
         const rootCommand = discoverRegressionCommand(root, config);
         const command = regressionPlan.classification.mode === "targeted"

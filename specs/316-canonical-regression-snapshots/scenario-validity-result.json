@@ -1,0 +1,67 @@
+{
+  "version": "1",
+  "raw_output_path": "specs/316-canonical-regression-snapshots/tests/.raw/scenario-validity.log",
+  "command": "node --test specs/316-canonical-regression-snapshots/tests/regression-artifact-gate.test.js specs/316-canonical-regression-snapshots/tests/regression-file-snapshot.test.js",
+  "process": {
+    "started": true,
+    "exitCode": 1,
+    "signal": null,
+    "timedOut": false,
+    "spawnError": null
+  },
+  "result": "pass",
+  "summary": [
+    {
+      "id": "R1",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/316-canonical-regression-snapshots/tests/regression-file-snapshot.test.js",
+        "test_name": "R1: canonical serialization ignores input ordering and detects a one-byte change",
+        "command": "node --test specs/316-canonical-regression-snapshots/tests/regression-artifact-gate.test.js specs/316-canonical-regression-snapshots/tests/regression-file-snapshot.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 1826
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/316-canonical-regression-snapshots/tests/regression-artifact-gate.test.js",
+        "test_name": "R2: schema and deterministic validation reject legacy no-fingerprint snapshots",
+        "command": "node --test specs/316-canonical-regression-snapshots/tests/regression-artifact-gate.test.js specs/316-canonical-regression-snapshots/tests/regression-file-snapshot.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 1826
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/316-canonical-regression-snapshots/tests/regression-artifact-gate.test.js",
+        "test_name": "R3: required evidence passes immediately after save regardless of saved ordering",
+        "command": "node --test specs/316-canonical-regression-snapshots/tests/regression-artifact-gate.test.js specs/316-canonical-regression-snapshots/tests/regression-file-snapshot.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 1826
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "classification": "expected_fail",
+      "evidence": {
+        "test_file": "specs/316-canonical-regression-snapshots/tests/regression-artifact-gate.test.js",
+        "test_name": "R4: existing fingerprint API and regression planning retain behavior through the canonical model",
+        "command": "node --test specs/316-canonical-regression-snapshots/tests/regression-artifact-gate.test.js specs/316-canonical-regression-snapshots/tests/regression-file-snapshot.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 1826
+        }
+      }
+    }
+  ]
+}

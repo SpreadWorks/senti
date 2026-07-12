@@ -1,0 +1,233 @@
+{
+  "entries": [
+    {
+      "step": "draft",
+      "reason": "Preparing auto-check rejected target guard options with ARGS_ERROR.",
+      "trigger": "The first mandatory auto-check call included --expect-run-id and --expect-issue.",
+      "resolution": "Verified the preparing state with guarded status, inspected runtime-log, then used the documented --run-id binding for auto-check.",
+      "guardrailCandidate": "Preparing auto-check should accept target expectation guards or document its explicit guarded-command exception.",
+      "taskId": null,
+      "timestamp": "2026-07-11T11:13:37.086Z"
+    },
+    {
+      "step": "draft",
+      "reason": "Draft guardrail lookup warned that preset node-cli could not be resolved.",
+      "trigger": "senti flow get guardrail draft emitted a preset resolution warning before returning base guardrails.",
+      "resolution": "Used the successfully returned guardrail set and retained the warning as flow evidence; no project state was bypassed.",
+      "guardrailCandidate": "Guardrail lookup should resolve configured preset chains or return a structured non-success result when a preset is missing.",
+      "taskId": null,
+      "timestamp": "2026-07-11T11:14:31.392Z"
+    },
+    {
+      "step": "draft",
+      "reason": "Issue evidence file .tmp/refactoring/report.md is absent from the prepared worktree.",
+      "trigger": "The required F-001 evidence lookup failed with ENOENT inside the guarded worktree.",
+      "resolution": "Preserved the worktree boundary and used the published Issue body plus current target source as the available authoritative evidence.",
+      "guardrailCandidate": "Issue evidence paths should reference tracked files that are present in newly prepared worktrees.",
+      "taskId": null,
+      "timestamp": "2026-07-11T11:15:17.534Z"
+    },
+    {
+      "step": "draft-questions-triage",
+      "reason": "Draft question review found five pending questions containing prefilled recommendations and rationale.",
+      "trigger": "The detection-only review returned ADVISORY with one repair target for each q1 through q5.",
+      "resolution": "Classify all five as small apply repairs, then remove prefilled answer-like text in the dedicated repair step.",
+      "guardrailCandidate": "Initial pending draft questions should contain only neutral self-contained question text; recommendations belong in the later user presentation.",
+      "taskId": null,
+      "timestamp": "2026-07-11T11:17:55.630Z"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "No migration inventory enumerates affected public behavior in the required dimensions (user-facing commands, APIs, hooks, config entries, generated artifacts, side effects). The spec lists touched files and goals but does not define a full behavior inventory before migration.; The draft declares existing classification/command behavior should be preserved but does not map each retained public surface to a new owner/path, nor state explicit removal decisions for specific behavior points.; Acceptance criteria include fingerprint change scenarios, but do not provide behavior-level verification that retained public surfaces (for example targeted/full/skip planning, regression command execution, discovery/observable artifacts) still work through the new canonical snapshot path.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-11T11:20:59.925Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft.json",
+            "locator": "/scopeVerification"
+          },
+          "observed": "No migration inventory enumerates affected public behavior in the required dimensions (user-facing commands, APIs, hooks, config entries, generated artifacts, side effects). The spec lists touched files and goals but does not define a full behavior inventory before migration.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft.json",
+            "locator": "/decisionMap/decisionPoints"
+          },
+          "observed": "The draft declares existing classification/command behavior should be preserved but does not map each retained public surface to a new owner/path, nor state explicit removal decisions for specific behavior points.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft.json",
+            "locator": "/validation"
+          },
+          "observed": "Acceptance criteria include fingerprint change scenarios, but do not provide behavior-level verification that retained public surfaces (for example targeted/full/skip planning, regression command execution, discovery/observable artifacts) still work through the new canonical snapshot path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "No migration inventory enumerates affected public behavior in the required dimensions (user-facing commands, APIs, hooks, config entries, generated artifacts, side effects). The spec lists touched files and goals but does not define a full behavior inventory before migration."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft declares existing classification/command behavior should be preserved but does not map each retained public surface to a new owner/path, nor state explicit removal decisions for specific behavior points."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "Acceptance criteria include fingerprint change scenarios, but do not provide behavior-level verification that retained public surfaces (for example targeted/full/skip planning, regression command execution, discovery/observable artifacts) still work through the new canonical snapshot path."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate failed three migration-parity checks for missing inventory, ownership mapping, and behavior-level verification.",
+      "trigger": "The first draft gate evaluated scopeVerification, decisionPoints, and validation against the migration-parity guardrail.",
+      "resolution": "Add a complete retained-surface inventory, map each surface to its post-change owner, and require behavior-level parity tests through the canonical snapshot path before rerunning the gate.",
+      "guardrailCandidate": "Behavior extraction or replacement drafts should inventory public surfaces, map retained ownership, and define parity evidence before the first gate.",
+      "taskId": null,
+      "timestamp": "2026-07-11T11:21:10.783Z"
+    },
+    {
+      "step": "spec",
+      "reason": "Cross-reference search included a nonexistent tests/integration directory and rg reported ENOENT.",
+      "trigger": "The validator search command assumed an integration-test directory alongside tests/unit.",
+      "resolution": "Use repository-indexed rg results and existing test directories only; no file or flow state was changed by the failed path.",
+      "guardrailCandidate": "Repository searches should enumerate paths with rg --files before naming optional test subdirectories.",
+      "taskId": null,
+      "timestamp": "2026-07-11T11:23:27.200Z"
+    },
+    {
+      "step": "spec-triage",
+      "reason": "Spec review found that untracked directory entries could retain null fingerprints across nested content changes.",
+      "trigger": "The review traced listRegressionChangedFiles through git status --untracked-files=normal and found directory-level untracked entries.",
+      "resolution": "Triage an explicit untracked-files=all input contract, support untracked leaf snapshots, and add directory-content change coverage within the 2000-entry bound.",
+      "guardrailCandidate": "Changed-file snapshot specs must cover every status and path shape emitted by the underlying Git enumeration mode.",
+      "taskId": null,
+      "timestamp": "2026-07-11T11:32:13.861Z"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The spec does not specify any spec-local tests under specs/<specid>/tests/, and no file is defined to carry the required `// spec: R<N>` headers for requirement-scoped coverage.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-11T11:33:54.026Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria"
+          },
+          "observed": "The spec does not specify any spec-local tests under specs/<specid>/tests/, and no file is defined to carry the required `// spec: R<N>` headers for requirement-scoped coverage.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "The spec does not specify any spec-local tests under specs/<specid>/tests/, and no file is defined to carry the required `// spec: R<N>` headers for requirement-scoped coverage."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "reason": "Spec gate found no explicit spec-local test files or requirement header mapping.",
+      "trigger": "The first spec gate evaluated acceptance_criteria against the spec-test-coverage guardrail.",
+      "resolution": "Name the spec-local test files under specs/316-canonical-regression-snapshots/tests and map each file to required // spec: R<N> headers.",
+      "guardrailCandidate": "Specifications should name spec-local test files and header-to-requirement coverage before the first spec gate.",
+      "taskId": null,
+      "timestamp": "2026-07-11T11:34:04.279Z"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "Pre-implementation scenario validity classified R1 as invalid_test while R2 through R4 were expected_fail.",
+      "trigger": "The first guarded scenario-validity run executed the two new spec-local test files.",
+      "resolution": "Inspect the real scenario artifact and raw log, repair only the invalid R1 test design, and rerun within the three-attempt budget.",
+      "guardrailCandidate": "Failure-first tests must fail inside named requirement test cases rather than at module loading or test infrastructure boundaries.",
+      "taskId": null,
+      "timestamp": "2026-07-11T14:55:54.314Z"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "Runtime-log inspection rejected target expectation guards with ARGS_ERROR.",
+      "trigger": "The diagnostic get runtime-log command included the mandatory runId, Issue, and spec guards.",
+      "resolution": "Treat runtime-log as a non-target state-independent log reader, verify the embedded runId when reading it bare, and use guarded context for artifacts.",
+      "guardrailCandidate": "Runtime-log should accept target guards or document that embedded runId verification is the supported safety contract.",
+      "taskId": null,
+      "timestamp": "2026-07-11T14:56:01.208Z"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "R1 tests failed at dynamic module resolution instead of a named requirement assertion.",
+      "trigger": "The scenario raw log showed ERR_MODULE_NOT_FOUND for the planned regression-file-snapshot module.",
+      "resolution": "Added an explicit named R1 existence assertion before dynamic import so the valid failure-first condition is an assertion failure.",
+      "guardrailCandidate": "Tests for planned modules should assert expected module existence inside the requirement test before importing it.",
+      "taskId": null,
+      "timestamp": "2026-07-11T14:56:48.925Z"
+    },
+    {
+      "step": "test-review",
+      "reason": "Static test review found five blocking gaps in executable production-path and requirement coverage.",
+      "trigger": "The first test-review flagged source-grep assertions, missing malformed/path cases, weak legacy messaging, and incomplete R4 parity coverage.",
+      "resolution": "Replace static assertions with executable RunTestExecuteCommand and integration behavior fixtures, add invariant cases, and tighten the legacy rerun assertion before re-review.",
+      "guardrailCandidate": "Spec tests must execute the owned production paths and assert each requirement clause instead of inferring behavior from source text.",
+      "taskId": null,
+      "timestamp": "2026-07-11T15:00:09.414Z"
+    },
+    {
+      "step": "implement",
+      "reason": "Guarded implementation guardrail read failed with ARGS_ERROR because flow get guardrail does not accept --expect-* options. Workaround: record the guarded failure, then run the static non-target-bound guardrail read without guards; runtime log sequence 91 embedded runId acc2548e-d0d5-4792-90db-54a419a668d3.",
+      "taskId": null,
+      "timestamp": "2026-07-11T15:11:53.483Z"
+    },
+    {
+      "step": "implement",
+      "reason": "set step implement done failed with IMPLEMENT_COMPLETION_VALIDATION_FAILED (file-map-missing, runtime sequence 100). Workaround: populate guarded file-map entries for every testable requirement with senti flow set files, then retry normal implement completion.",
+      "taskId": null,
+      "timestamp": "2026-07-11T15:19:27.840Z"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Impl review FAIL missing_acceptance_requirement R1: reviewer reported src/flow/lib/regression-file-snapshot.js absent because the review diff omitted the untracked new production file, although the file exists and R1-R4 spec-local tests passed against it. Workaround: expose only that file to Git diff with git add --intent-to-add, then follow the dispatcher repair/re-review path without changing test evidence directly.",
+      "taskId": null,
+      "timestamp": "2026-07-11T15:27:13.976Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-07-12T10:37:36.524Z"
+    }
+  ]
+}
