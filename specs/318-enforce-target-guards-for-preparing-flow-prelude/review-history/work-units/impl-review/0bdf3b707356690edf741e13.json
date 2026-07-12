@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "0bdf3b707356690edf741e13",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0000",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/318-enforce-target-guards-for-preparing-flow-prelude/draft.json"
+    ],
+    "inputHash": "231964ec90be3d1d3c203b3fee91e75949ff2603908133a894aff736f9e827c4",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "0bdf3b707356690edf741e13"
+  },
+  "targetFiles": [
+    "specs/318-enforce-target-guards-for-preparing-flow-prelude/draft.json"
+  ],
+  "inputHash": "231964ec90be3d1d3c203b3fee91e75949ff2603908133a894aff736f9e827c4",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-12T19:29:49.454Z",
+  "finishedAt": "2026-07-12T19:29:49.454Z",
+  "rawResponse": "### 1. Consolidate repeated guard matrix wording\n**File:** `specs/318-enforce-target-guards-for-preparing-flow-prelude/draft.json`\n**Issue:** The same command set and guard matrix are repeated across `analysis`, `decisionMap`, `scopeVerification`, `impactOnExisting`, and `qa`, which makes future edits easy to desynchronize.\n**Suggestion:** Introduce one canonical phrasing for the guarded commands and guard types, then reference it consistently. For example, define the target surface once as “request, note, auto, auto-check, and prepare with run, issue, and spec guards,” and shorten later sections to refer to that target surface.\n\n### 2. Normalize issue terminology casing\n**File:** `specs/318-enforce-target-guards-for-preparing-flow-prelude/draft.json`\n**Issue:** The file alternates between generic guard wording like `run, Issue, and spec` and specific tracker references like `Issue 431`. Capitalizing generic `Issue` makes it read like a proper noun and blurs the distinction.\n**Suggestion:** Use lowercase `issue` for the guard name and reserve `Issue 431` capitalization for the specific external issue reference.\n\n### 3. Clarify null-spec validation wording\n**File:** `specs/318-enforce-target-guards-for-preparing-flow-prelude/draft.json`\n**Issue:** Phrases like `null preparing specs` are terse and slightly ambiguous because they could mean multiple spec records rather than a preparing state whose spec field is null.\n**Suggestion:** Rename this wording to `preparing state with null spec` or `null spec on the preparing target` everywhere it appears.\n\n### 4. Remove empty optional fields if schema permits\n**File:** `specs/318-enforce-target-guards-for-preparing-flow-prelude/draft.json`\n**Issue:** `requiresUserJudgment: []`, `openQuestions: []`, and repeated `droppedReason: \"\"` fields add noise without carrying information.\n**Suggestion:** If the draft schema does not require these keys, omit empty arrays/strings. If they are required by tooling, keep them.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Consolidate repeated guard matrix wording",
+        "body": "**File:** `specs/318-enforce-target-guards-for-preparing-flow-prelude/draft.json`\n**Issue:** The same command set and guard matrix are repeated across `analysis`, `decisionMap`, `scopeVerification`, `impactOnExisting`, and `qa`, which makes future edits easy to desynchronize.\n**Suggestion:** Introduce one canonical phrasing for the guarded commands and guard types, then reference it consistently. For example, define the target surface once as “request, note, auto, auto-check, and prepare with run, issue, and spec guards,” and shorten later sections to refer to that target surface.",
+        "file": "specs/318-enforce-target-guards-for-preparing-flow-prelude/draft.json"
+      },
+      {
+        "title": "2. Normalize issue terminology casing",
+        "body": "**File:** `specs/318-enforce-target-guards-for-preparing-flow-prelude/draft.json`\n**Issue:** The file alternates between generic guard wording like `run, Issue, and spec` and specific tracker references like `Issue 431`. Capitalizing generic `Issue` makes it read like a proper noun and blurs the distinction.\n**Suggestion:** Use lowercase `issue` for the guard name and reserve `Issue 431` capitalization for the specific external issue reference.",
+        "file": "specs/318-enforce-target-guards-for-preparing-flow-prelude/draft.json"
+      },
+      {
+        "title": "3. Clarify null-spec validation wording",
+        "body": "**File:** `specs/318-enforce-target-guards-for-preparing-flow-prelude/draft.json`\n**Issue:** Phrases like `null preparing specs` are terse and slightly ambiguous because they could mean multiple spec records rather than a preparing state whose spec field is null.\n**Suggestion:** Rename this wording to `preparing state with null spec` or `null spec on the preparing target` everywhere it appears.",
+        "file": "specs/318-enforce-target-guards-for-preparing-flow-prelude/draft.json"
+      },
+      {
+        "title": "4. Remove empty optional fields if schema permits",
+        "body": "**File:** `specs/318-enforce-target-guards-for-preparing-flow-prelude/draft.json`\n**Issue:** `requiresUserJudgment: []`, `openQuestions: []`, and repeated `droppedReason: \"\"` fields add noise without carrying information.\n**Suggestion:** If the draft schema does not require these keys, omit empty arrays/strings. If they are required by tooling, keep them.",
+        "file": "specs/318-enforce-target-guards-for-preparing-flow-prelude/draft.json"
+      }
+    ]
+  }
+}

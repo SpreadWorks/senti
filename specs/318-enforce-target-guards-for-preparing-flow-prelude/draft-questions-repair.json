@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Applied five bounded question-text repairs from triage.",
+  "items": [
+    {
+      "title": "1. Non-question Prefix",
+      "target": "q1",
+      "rationale": "Removed the prefix and named all five prelude commands.",
+      "evidence": "draft.json qa[0].question is now a self-contained command behavior question.",
+      "changedFieldPaths": ["qa[0].question"]
+    },
+    {
+      "title": "2. Internal Implementation Detail",
+      "target": "q2",
+      "rationale": "Reframed the question around preserved behavior and effective target validation.",
+      "evidence": "draft.json qa[1].question no longer prescribes routing or state representation.",
+      "changedFieldPaths": ["qa[1].question"]
+    },
+    {
+      "title": "3. Non-question Prefix",
+      "target": "q3",
+      "rationale": "Removed the priority prefix without changing the isolation requirement.",
+      "evidence": "draft.json qa[2].question contains only the unknown-run isolation question.",
+      "changedFieldPaths": ["qa[2].question"]
+    },
+    {
+      "title": "4. Non-question Prefix",
+      "target": "q4",
+      "rationale": "Removed the priority prefix without changing verification coverage.",
+      "evidence": "draft.json qa[3].question contains only the focused test question.",
+      "changedFieldPaths": ["qa[3].question"]
+    },
+    {
+      "title": "5. Non-question Prefix / Not Self-contained",
+      "target": "q5",
+      "rationale": "Removed the prefix and explicitly named the four product files.",
+      "evidence": "draft.json qa[4].question now contains the complete bounded product-file scope.",
+      "changedFieldPaths": ["qa[4].question"]
+    }
+  ]
+}

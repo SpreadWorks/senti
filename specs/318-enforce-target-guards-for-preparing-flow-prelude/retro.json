@@ -1,0 +1,49 @@
+{
+  "spec": "specs/318-enforce-target-guards-for-preparing-flow-prelude/spec.json",
+  "date": "2026-07-12T19:32:15.557Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Preparing selection shall return both `flowState: null` and the loaded `preparingFlowState`; when an explicit non-empty run ID does not exist, selection shall return `flowState: null` plus an isolated empty `preparingFlowState` snapshot and shall not fall through to unrelated active or preparing flow discovery.",
+      "status": "done",
+      "note": "R1: exposes known and missing preparing selections without active-flow fallback"
+    },
+    {
+      "desc": "FlowCommand and dispatcher target validation shall evaluate `preparingFlowState ?? flowState` for `--expect-run-id`, `--expect-issue`, and `--expect-spec`, returning `ACTIVE_FLOW_MISMATCH` before mutation, command module execution, lifecycle hooks, agent calls, runtime target persistence, or worktree creation while preserving existing `requiresFlow` routing semantics.",
+      "status": "done",
+      "note": "R2: FlowCommand validates every expectation against the selected preparing state"
+    },
+    {
+      "desc": "`flow set request`, `flow set note`, and `flow set auto` shall use coherent preparing routing with matching guards succeeding, each guard mismatch failing before mutation, a non-null expected spec failing while preparing spec is null, guarded explicit unknown runs returning `ACTIVE_FLOW_MISMATCH`, and guard-free documented behavior including unknown-run errors unchanged; registry note routing shall declare `requiresFlow:false` consistently with its command class.",
+      "status": "done",
+      "note": "R3: request, note, and auto enforce preparing guards before mutation"
+    },
+    {
+      "desc": "`flow run auto-check` and `flow prepare` shall accept and document the standard run ID, Issue, and spec guard options using registry helper conventions; guarded mismatches and guarded unknown runs shall return `ACTIVE_FLOW_MISMATCH` before auto-check agent execution or prepare branch/worktree/spec creation, guard-free unknown runs shall retain command-specific failures, and matching guarded prepare shall return the promoted spec.",
+      "status": "done",
+      "note": "R4: auto-check and prepare reject guarded mismatches before side effects"
+    },
+    {
+      "desc": "After successful prepare, matching run ID, Issue, and spec guards shall continue to succeed against the active flow, changing any one shall return `ACTIVE_FLOW_MISMATCH`, and all existing guard-free public behavior and FlowStore ownership shall remain unchanged.",
+      "status": "done",
+      "note": "R5: successful guarded prepare promotes the same target and preserves active guards"
+    },
+    {
+      "desc": "Focused unit, end-to-end, and spec-local tests shall pair every retained behavior with evidence: selection shape; request/note/auto guard-free and guarded routes; all mismatch types; unknown-run no-fallback; auto-check no-agent rejection; prepare no-worktree rejection; successful guarded prepare; post-prepare three-guard behavior; and registry/help parity.",
+      "status": "done",
+      "note": "R6: dispatcher rejects every preparing mismatch before command loading and hooks"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 6,
+    "done": 6,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

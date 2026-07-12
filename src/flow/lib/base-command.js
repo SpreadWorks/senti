@@ -56,7 +56,7 @@ export class FlowCommand extends Command {
         type: input._envelopeType || "run",
         key: input._envelopeKey || "flow",
         input,
-        flowState: ctx.flowState,
+        flowState: ctx.preparingFlowState ?? ctx.flowState,
       });
       if (mismatch) return mismatch;
     }

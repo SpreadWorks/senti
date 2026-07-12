@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "Apply two blocking clarifications to make guarded unknown-run behavior implementable within the approved product files.",
+  "items": [
+    {
+      "title": "Missing target state for unknown preparing run guards",
+      "target": "R1/R2/AC2/AC5/AC6",
+      "decision": "apply",
+      "rationale": "An explicit missing run needs an isolated empty preparing target snapshot so existing shared mismatch logic sees a non-null target without changing flow-target-guard ownership.",
+      "evidence": "src/lib/flow-target-guard.js treats a null state as no mismatch; Issue 431 limits product changes to flow-context, base-command, dispatcher, and registry."
+    },
+    {
+      "title": "Unknown run error contract conflicts with guard-free preservation",
+      "target": "AC5/AC6 and Constraints",
+      "decision": "apply",
+      "rationale": "ACTIVE_FLOW_MISMATCH applies when expectations are supplied; guard-free unknown-run calls retain their existing command-specific failure contracts.",
+      "evidence": "Issue 431 requires guard-free documented behavior unchanged and target guard mismatch behavior before side effects."
+    }
+  ]
+}

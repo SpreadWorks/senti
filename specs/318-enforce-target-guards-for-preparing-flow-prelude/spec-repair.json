@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Applied two unknown-run contract repairs within the approved product scope.",
+  "items": [
+    {
+      "title": "Missing target state for unknown preparing run guards",
+      "target": "R1/R2/AC2/AC5/AC6",
+      "decision": "applied",
+      "rationale": "Defined an isolated empty preparing target snapshot for explicit missing runs so existing shared guard comparisons can reject supplied expectations without changing flow-target-guard ownership.",
+      "evidence": "spec.json data_flow[0], overview.decisions[1], requirements R1, and AC2 now define the missing-run representation and behavior.",
+      "changedFields": [
+        "overview.data_flow[0].text",
+        "overview.decisions[1]",
+        "requirements[R1].desc",
+        "acceptance_criteria[AC2]"
+      ]
+    },
+    {
+      "title": "Unknown run error contract conflicts with guard-free preservation",
+      "target": "AC5/AC6 and Constraints",
+      "decision": "applied",
+      "rationale": "Limited ACTIVE_FLOW_MISMATCH to unknown-run invocations carrying expectation guards and preserved existing guard-free command-specific errors.",
+      "evidence": "spec.json constraints[5], requirements R3/R4, and AC2/AC5/AC6 now distinguish guarded and guard-free unknown-run contracts.",
+      "changedFields": [
+        "constraints[5]",
+        "requirements[R3].desc",
+        "requirements[R4].desc",
+        "acceptance_criteria[AC2]",
+        "acceptance_criteria[AC5]",
+        "acceptance_criteria[AC6]"
+      ]
+    }
+  ]
+}

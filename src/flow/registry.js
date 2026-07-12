@@ -38,6 +38,12 @@ import { loadIssueLog, saveIssueLog } from "./lib/set-issue-log.js";
  */
 const FLOW_RUN_RUNTIME_OPTIONS = ["--agent-work-dir"];
 const FLOW_TARGET_GUARD_OPTIONS = ["--expect-issue", "--expect-spec", "--expect-run-id"];
+const FLOW_TARGET_GUARD_USAGE = "[--expect-issue <number>] [--expect-spec <spec>] [--expect-run-id <runId>]";
+const FLOW_TARGET_GUARD_HELP_LINES = [
+  "  --expect-issue <number>  Require the selected flow to belong to this Issue.",
+  "  --expect-spec <spec>     Require the selected flow to match this spec.",
+  "  --expect-run-id <runId>  Require the selected flow to match this runId.",
+];
 const FLOW_RUN_OPTIONS = [...FLOW_RUN_RUNTIME_OPTIONS, ...FLOW_TARGET_GUARD_OPTIONS];
 function withTargetGuardOptions(options = []) {
   return [...options, ...FLOW_TARGET_GUARD_OPTIONS];
@@ -489,10 +495,10 @@ export const FLOW_COMMANDS = {
     command: () => import("./lib/run-prepare-spec.js"),
     args: {
       flags: ["--no-branch", "--worktree", "--dry-run"],
-      options: ["--title", "--base", "--issue", "--request", "--run-id"],
+      options: withTargetGuardOptions(["--title", "--base", "--issue", "--request", "--run-id"]),
     },
     help: [
-      "Usage: senti flow prepare [options]",
+      `Usage: senti flow prepare [options] ${FLOW_TARGET_GUARD_USAGE}`,
       "",
       "Create branch/worktree and initialize spec directory.",
       "",
@@ -504,6 +510,7 @@ export const FLOW_COMMANDS = {
       "  --issue <number>   GitHub Issue number to link",
       "  --request <text>   User request text to save in flow.json",
       "  --run-id <runId>   Use preparing runId from flow set init (isolated from unrelated active flows)",
+      ...FLOW_TARGET_GUARD_HELP_LINES,
       "  --dry-run          Show what would happen without executing",
     ].join("\n"),
     async post(ctx, result) {
@@ -653,7 +660,12 @@ export const FLOW_COMMANDS = {
       requiresFlow: false,
       command: () => import("./lib/set-request.js"),
       args: { positional: ["text"], options: withTargetGuardOptions(["--run-id"]) },
-      help: "Usage: senti flow set request \"<text>\" [--run-id <id>]\n\nSet the user request field. Works in both active and preparing mode.",
+      help: [
+        `Usage: senti flow set request \"<text>\" [--run-id <id>] ${FLOW_TARGET_GUARD_USAGE}`,
+        "",
+        "Set the user request field. Works in both active and preparing mode.",
+        ...FLOW_TARGET_GUARD_HELP_LINES,
+      ].join("\n"),
     },
     issue: {
       helpKey: "flow.set.issue",
@@ -663,9 +675,15 @@ export const FLOW_COMMANDS = {
     },
     note: {
       helpKey: "flow.set.note",
+      requiresFlow: false,
       command: () => import("./lib/set-note.js"),
       args: { positional: ["text"], options: withTargetGuardOptions(["--task-id", "--run-id"]) },
-      help: "Usage: senti flow set note \"<text>\" [--task-id <id>] [--run-id <id>]\n\nAppend a note entry to state.notes. Works in both active and preparing mode.",
+      help: [
+        `Usage: senti flow set note \"<text>\" [--task-id <id>] [--run-id <id>] ${FLOW_TARGET_GUARD_USAGE}`,
+        "",
+        "Append a note entry to state.notes. Works in both active and preparing mode.",
+        ...FLOW_TARGET_GUARD_HELP_LINES,
+      ].join("\n"),
     },
     summary: {
       helpKey: "flow.set.summary",
@@ -779,12 +797,13 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/set-auto.js"),
       args: { positional: ["value"], options: withTargetGuardOptions(["--run-id"]) },
       help: [
-        "Usage: senti flow set auto on|off [--run-id <id>]",
+        `Usage: senti flow set auto on|off [--run-id <id>] ${FLOW_TARGET_GUARD_USAGE}`,
         "",
         "Enable or disable autoApprove mode. Writes to flow.json when an",
         "active flow exists; otherwise writes to the matching preparing",
         "flow (.active-flow.<runId>). --run-id selects a preparing flow",
         "when multiple exist; auto-detected when exactly one is present.",
+        ...FLOW_TARGET_GUARD_HELP_LINES,
       ].join("\n"),
     },
   },
@@ -878,9 +897,9 @@ export const FLOW_COMMANDS = {
       runtimeLog: { stepMetadata: false },
       command: () => import("./lib/run-auto-check.js"),
       requiresFlow: false,
-      args: { options: ["--run-id", ...FLOW_RUN_RUNTIME_OPTIONS] },
+      args: { options: withTargetGuardOptions(["--run-id", ...FLOW_RUN_RUNTIME_OPTIONS]) },
       help: [
-        "Usage: senti flow run auto-check [--run-id <id>]",
+        `Usage: senti flow run auto-check [--run-id <id>] ${FLOW_TARGET_GUARD_USAGE}`,
         "",
         "Evaluate whether the current request qualifies for auto mode.",
         "Input is derived statically from flow state based on phase:",
@@ -896,6 +915,7 @@ export const FLOW_COMMANDS = {
         "",
         "Options:",
         "  --run-id <runId>   Target preparing flow (required for prelude, even when another flow is active)",
+        ...FLOW_TARGET_GUARD_HELP_LINES,
         "  --agent-work-dir <path>  Per-invocation agent/tmp base directory",
       ].join("\n"),
     },

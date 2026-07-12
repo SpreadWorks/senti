@@ -18,6 +18,8 @@ import fs from "fs";
 import path from "path";
 import { specIdFromPath, STATE_FILE } from "../../lib/flow-helpers.js";
 
+const MISSING_PREPARING_FLOW_STATE = Object.freeze({});
+
 function resolveTargetSelection(input = {}) {
   const selectRunId = input.expectRunId ?? input.expectRunID ?? null;
   const specToken = input.expectSpec ?? null;
@@ -37,12 +39,17 @@ function preparingRunIdSelection(input = {}) {
 function preparingAuthorityForRunId(baseFlowManager, mainRoot, paths, runId) {
   if (!runId || typeof baseFlowManager.loadPreparingFlow !== "function") return null;
   const state = baseFlowManager.loadPreparingFlow(runId);
-  if (!state) return null;
   const authorityRoot = mainRoot || paths.root;
   const flowManager = typeof baseFlowManager.forRoot === "function"
     ? baseFlowManager.forRoot(authorityRoot)
     : baseFlowManager;
-  return { flowManager, flowState: null, authorityRoot, flowResolutionError: null };
+  return {
+    flowManager,
+    flowState: null,
+    preparingFlowState: state || MISSING_PREPARING_FLOW_STATE,
+    authorityRoot,
+    flowResolutionError: null,
+  };
 }
 
 function resolveAuthorityFlowState(container, baseFlowManager, mainRoot, options = {}) {
@@ -99,7 +106,13 @@ export function resolveFlowContext(container, options = {}) {
   const paths = container.get("paths");
   const baseFlowManager = container.get("flowManager");
   const mainRoot = container.get("mainRoot");
-  const { flowManager, flowState, authorityRoot, flowResolutionError } = resolveAuthorityFlowState(
+  const {
+    flowManager,
+    flowState,
+    preparingFlowState = null,
+    authorityRoot,
+    flowResolutionError,
+  } = resolveAuthorityFlowState(
     container,
     baseFlowManager,
     mainRoot,
@@ -111,6 +124,7 @@ export function resolveFlowContext(container, options = {}) {
     config: container.get("config"),
     flowManager,
     flowState,
+    preparingFlowState,
     specId: flowState ? specIdFromPath(flowState.spec) : null,
     inWorktree: container.get("inWorktree"),
     authorityRoot,

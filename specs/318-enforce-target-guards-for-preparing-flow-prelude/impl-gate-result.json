@@ -1,0 +1,140 @@
+{
+  "verdict": "pass",
+  "issues": [],
+  "nextAction": {
+    "diagnosis": {
+      "summary": "No blocking observations.",
+      "observations": []
+    },
+    "prescription": "retro"
+  },
+  "level": "integration",
+  "phase": "integration",
+  "evaluations": [
+    {
+      "guardrail_id": "R1",
+      "result": "pass",
+      "reason": "`preparingAuthorityForRunId` now returns both `flowState: null` and `preparingFlowState` (loaded state or `MISSING_PREPARING_FLOW_STATE = {}`), so explicit run-id selection no longer returns null when the run is missing. The selection object is returned to callers via `resolveFlowContext`/`preparingFlowState`, and updated tests assert missing explicit `runId` yields `{}` and does not invoke active/preparing fallback discovery.",
+      "title": "R1",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R2",
+      "result": "pass",
+      "reason": "Implemented via `preparingFlowState ?? flowState` in both `FlowCommand` validation (`src/flow/lib/base-command.js`) and dispatcher pre-execution validation (`src/lib/dispatcher.js`). New tests assert guarded mismatches yield `ACTIVE_FLOW_MISMATCH` before command load/`pre` hooks/execute and before prepare side effects (`agent`/worktree), with no routing semantics change to `requiresFlow` in these edits.",
+      "title": "R2",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R3",
+      "result": "pass",
+      "reason": "`flow set request`, `flow set note`, and `flow set auto` now accept standard target guards and use shared guard validation against `preparingFlowState` via `FlowCommand` (`flow-context.js` exposes `preparingFlowState`, `base-command.js` validates `ctx.preparingFlowState ?? ctx.flowState`). `FLOW_TARGET_GUARD_OPTIONS` are wired into request/note/auto args/help, with note explicitly set to `requiresFlow:false` in the registry. `flow-context` returns an empty snapshot for explicit missing run IDs, so guarded unknown runs yield guard mismatches instead of fallback, and existing guard-free unknown-run path remains (tests expect `PREPARING_FLOW_NOT_FOUND`). New spec tests cover matching guards succeed, each mismatch (including non-null `--expect-spec` against null spec) returning `ACTIVE_FLOW_MISMATCH`, no state mutation on mismatch, and guard-free behavior unchanged.",
+      "title": "R3",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R4",
+      "result": "pass",
+      "reason": "`flow run auto-check` and `flow prepare` now accept and document `--expect-run-id/--expect-issue/--expect-spec` through registry helper usage/help constants and `withTargetGuardOptions`; dispatcher now uses `preparingFlowState ?? flowState` for target mismatch, and new tests verify mismatches are rejected with `ACTIVE_FLOW_MISMATCH` before command load/hooks and before auto agent/worktree/spec side effects. Spec-local tests also verify guard-free unknown-run behavior is preserved and guarded prepare succeeds and returns a spec.",
+      "title": "R4",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R5",
+      "result": "pass",
+      "reason": "The diff routes target validation through `preparingFlowState ?? flowState` in both command and dispatcher layers, so after successful prepare (where the active flow is in `flowState`) validation semantics remain unchanged for active flows; the new spec test for R5 explicitly verifies successful guarded active usage after prepare, per-field mismatches (`run`, `issue`, `spec`) returning `ACTIVE_FLOW_MISMATCH`, and guard-free `flow get next-action` still succeeding. No FlowStore ownership files were modified.",
+      "title": "R5",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R6",
+      "result": "pass",
+      "reason": "Implemented with test evidence in the diff: selection-shape and unknown explicit-run isolation are asserted in `optional-flow-context.test.js`; request/note/auto guard-free and guarded paths plus all three mismatch types are covered in `preparing-target-guards.test.js` (with pre/post state checks); unknown-run no-fallback is checked in unit and spec-local tests; auto-check guard-mismatch no-agent behavior is verified via stub capture file absence; prepare mismatch no-worktree/branch/spec-tree side effects are verified; successful guarded prepare and post-prepare run/issue/spec mismatch behavior are covered; registry/help parity is covered in `ctx-dispatch.test.js`. No new e2e file changes are visible in this diff, so end-to-end confirmation relies on existing e2e coverage if present.",
+      "title": "R6",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": []
+    },
+    {
+      "guardrail_id": "no-overengineering",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "code-quality",
+      "title": "Avoid Overengineering",
+      "observations": []
+    }
+  ],
+  "reasons": [
+    {
+      "verdict": "PASS",
+      "detail": "R1 — `preparingAuthorityForRunId` now returns both `flowState: null` and `preparingFlowState` (loaded state or `MISSING_PREPARING_FLOW_STATE = {}`), so explicit run-id selection no longer returns null when the run is missing. The selection object is returned to callers via `resolveFlowContext`/`preparingFlowState`, and updated tests assert missing explicit `runId` yields `{}` and does not invoke active/preparing fallback discovery.",
+      "guardrail_id": "R1",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R2 — Implemented via `preparingFlowState ?? flowState` in both `FlowCommand` validation (`src/flow/lib/base-command.js`) and dispatcher pre-execution validation (`src/lib/dispatcher.js`). New tests assert guarded mismatches yield `ACTIVE_FLOW_MISMATCH` before command load/`pre` hooks/execute and before prepare side effects (`agent`/worktree), with no routing semantics change to `requiresFlow` in these edits.",
+      "guardrail_id": "R2",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R3 — `flow set request`, `flow set note`, and `flow set auto` now accept standard target guards and use shared guard validation against `preparingFlowState` via `FlowCommand` (`flow-context.js` exposes `preparingFlowState`, `base-command.js` validates `ctx.preparingFlowState ?? ctx.flowState`). `FLOW_TARGET_GUARD_OPTIONS` are wired into request/note/auto args/help, with note explicitly set to `requiresFlow:false` in the registry. `flow-context` returns an empty snapshot for explicit missing run IDs, so guarded unknown runs yield guard mismatches instead of fallback, and existing guard-free unknown-run path remains (tests expect `PREPARING_FLOW_NOT_FOUND`). New spec tests cover matching guards succeed, each mismatch (including non-null `--expect-spec` against null spec) returning `ACTIVE_FLOW_MISMATCH`, no state mutation on mismatch, and guard-free behavior unchanged.",
+      "guardrail_id": "R3",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R4 — `flow run auto-check` and `flow prepare` now accept and document `--expect-run-id/--expect-issue/--expect-spec` through registry helper usage/help constants and `withTargetGuardOptions`; dispatcher now uses `preparingFlowState ?? flowState` for target mismatch, and new tests verify mismatches are rejected with `ACTIVE_FLOW_MISMATCH` before command load/hooks and before auto agent/worktree/spec side effects. Spec-local tests also verify guard-free unknown-run behavior is preserved and guarded prepare succeeds and returns a spec.",
+      "guardrail_id": "R4",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R5 — The diff routes target validation through `preparingFlowState ?? flowState` in both command and dispatcher layers, so after successful prepare (where the active flow is in `flowState`) validation semantics remain unchanged for active flows; the new spec test for R5 explicitly verifies successful guarded active usage after prepare, per-field mismatches (`run`, `issue`, `spec`) returning `ACTIVE_FLOW_MISMATCH`, and guard-free `flow get next-action` still succeeding. No FlowStore ownership files were modified.",
+      "guardrail_id": "R5",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R6 — Implemented with test evidence in the diff: selection-shape and unknown explicit-run isolation are asserted in `optional-flow-context.test.js`; request/note/auto guard-free and guarded paths plus all three mismatch types are covered in `preparing-target-guards.test.js` (with pre/post state checks); unknown-run no-fallback is checked in unit and spec-local tests; auto-check guard-mismatch no-agent behavior is verified via stub capture file absence; prepare mismatch no-worktree/branch/spec-tree side effects are verified; successful guarded prepare and post-prepare run/issue/spec mismatch behavior are covered; registry/help parity is covered in `ctx-dispatch.test.js`. No new e2e file changes are visible in this diff, so end-to-end confirmation relies on existing e2e coverage if present.",
+      "guardrail_id": "R6",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Spec Test Coverage — no observations emitted",
+      "guardrail_id": "spec-test-coverage",
+      "category": "testing"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Avoid Overengineering — no observations emitted",
+      "guardrail_id": "no-overengineering",
+      "category": "code-quality"
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "impl-gate",
+    "artifactPath": "specs/318-enforce-target-guards-for-preparing-flow-prelude/impl-gate-result.json",
+    "verdict": "pass",
+    "result": "pass",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": {
+      "diagnosis": {
+        "summary": "No blocking observations.",
+        "observations": []
+      },
+      "prescription": "retro"
+    },
+    "completionKind": "normal",
+    "progressSignature": "d4b1a4fb22cf5ff4b287c98c099a28a259d6cb8fd0338f4e3a731842a2679d39"
+  }
+}

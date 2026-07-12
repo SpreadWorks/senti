@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "75f4871091a34c2fc78b9a8b",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0001",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/318-enforce-target-guards-for-preparing-flow-prelude/flow.json"
+    ],
+    "inputHash": "740df904392a6cc6480e5bd495eb06f73baa392471e848fe4c04ae11536c3c6d",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "75f4871091a34c2fc78b9a8b"
+  },
+  "targetFiles": [
+    "specs/318-enforce-target-guards-for-preparing-flow-prelude/flow.json"
+  ],
+  "inputHash": "740df904392a6cc6480e5bd495eb06f73baa392471e848fe4c04ae11536c3c6d",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-12T19:30:08.530Z",
+  "finishedAt": "2026-07-12T19:30:08.530Z",
+  "rawResponse": "### 1. Normalize Parent Step Status\n**File:** `specs/318-enforce-target-guards-for-preparing-flow-prelude/flow.json`\n**Issue:** The `plan` step is marked `\"pending\"` even though all of its children are `\"done\"`. This makes the flow state internally inconsistent.\n**Suggestion:** Update the parent status to `\"done\"` or derive parent status from children instead of storing a potentially stale duplicate value.\n\n### 2. Make Auto-Check Score Breakdown Reconcile With Total\n**File:** `specs/318-enforce-target-guards-for-preparing-flow-prelude/flow.json`\n**Issue:** `autoCheck.score` is `24`, but the visible `breakdown` values sum to `12`. This makes the scoring data hard to audit.\n**Suggestion:** Either include per-field weights/max values in the breakdown or adjust the stored breakdown so it reconciles directly with `score` and `maxScore`.\n\n### 3. Bound Persisted Runtime History\n**File:** `specs/318-enforce-target-guards-for-preparing-flow-prelude/flow.json`\n**Issue:** The `metrics` array records every review/gate attempt and can grow without an explicit cap. This conflicts with the `bounded-resource-usage` guardrail for bulk data accumulation.\n**Suggestion:** Add or enforce a fixed retention limit for persisted metrics, such as keeping the latest N entries per phase plus aggregate counters.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Normalize Parent Step Status",
+        "body": "**File:** `specs/318-enforce-target-guards-for-preparing-flow-prelude/flow.json`\n**Issue:** The `plan` step is marked `\"pending\"` even though all of its children are `\"done\"`. This makes the flow state internally inconsistent.\n**Suggestion:** Update the parent status to `\"done\"` or derive parent status from children instead of storing a potentially stale duplicate value.",
+        "file": "specs/318-enforce-target-guards-for-preparing-flow-prelude/flow.json"
+      },
+      {
+        "title": "2. Make Auto-Check Score Breakdown Reconcile With Total",
+        "body": "**File:** `specs/318-enforce-target-guards-for-preparing-flow-prelude/flow.json`\n**Issue:** `autoCheck.score` is `24`, but the visible `breakdown` values sum to `12`. This makes the scoring data hard to audit.\n**Suggestion:** Either include per-field weights/max values in the breakdown or adjust the stored breakdown so it reconciles directly with `score` and `maxScore`.",
+        "file": "specs/318-enforce-target-guards-for-preparing-flow-prelude/flow.json"
+      },
+      {
+        "title": "3. Bound Persisted Runtime History",
+        "body": "**File:** `specs/318-enforce-target-guards-for-preparing-flow-prelude/flow.json`\n**Issue:** The `metrics` array records every review/gate attempt and can grow without an explicit cap. This conflicts with the `bounded-resource-usage` guardrail for bulk data accumulation.\n**Suggestion:** Add or enforce a fixed retention limit for persisted metrics, such as keeping the latest N entries per phase plus aggregate counters.",
+        "file": "specs/318-enforce-target-guards-for-preparing-flow-prelude/flow.json"
+      }
+    ]
+  }
+}

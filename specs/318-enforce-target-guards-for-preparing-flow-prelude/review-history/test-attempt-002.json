@@ -1,0 +1,128 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-12T14:48:13.029Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 4,
+    "advisory": 1,
+    "total": 5
+  },
+  "coverageArtifact": "specs/318-enforce-target-guards-for-preparing-flow-prelude/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Missing guard-free coverage for preparing set routes",
+      "target": "specs/318-enforce-target-guards-for-preparing-flow-prelude/tests/preparing-target-guards.test.js:92",
+      "issue": "R3/R6 require evidence for guard-free documented behavior for `flow set request`, `flow set note`, and `flow set auto`. The test only exercises successful guarded routes and guard-free unknown-run errors; it does not verify normal guard-free preparing updates still succeed for an existing run.",
+      "requiredChange": "Add spec-local assertions that `flow set request`, `flow set note`, and `flow set auto` succeed without `--expect-*` guards against an existing preparing run and preserve the documented behavior.",
+      "whyBlocking": "The coverage artifact marks R3/R6 covered, but a required retained behavior has no corresponding spec-local executable coverage.",
+      "origin": "R3, R6",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "Missing individual mismatch coverage for set route guards",
+      "target": "specs/318-enforce-target-guards-for-preparing-flow-prelude/tests/preparing-target-guards.test.js:103",
+      "issue": "R3/R6 require each guard mismatch type for `flow set request`, `flow set note`, and `flow set auto`. The test covers one mismatch type per command: run ID for request, issue for note, and spec for auto. It does not show that each set command rejects run ID, Issue, and spec mismatches before mutation.",
+      "requiredChange": "Add the smallest table-driven assertions so each of `request`, `note`, and `auto` is checked against run ID, Issue, and spec mismatches, with state unchanged after rejection.",
+      "whyBlocking": "A required guard matrix is only partially covered, so regressions in a specific command/guard combination could pass the suite.",
+      "origin": "R3, R6",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "Missing successful guarded prepare spec guard coverage",
+      "target": "specs/318-enforce-target-guards-for-preparing-flow-prelude/tests/preparing-target-guards.test.js:190",
+      "issue": "R4 requires matching guarded prepare to return the promoted spec and standard run ID, Issue, and spec guard behavior. The successful prepare test uses only `--expect-run-id` and `--expect-issue`; it never demonstrates a successful prepare with a matching `--expect-spec` guard. Because preparing `spec` is null before promotion, this edge is part of the guard semantics under review.",
+      "requiredChange": "Add a successful guarded prepare assertion that includes the expected spec guard according to the intended API semantics, or explicitly cover that a non-null spec guard fails while preparing spec is null and separately assert the returned promoted spec from the matching run/issue guarded prepare.",
+      "whyBlocking": "The acceptance text explicitly calls out standard spec guard behavior for prepare, but the executable coverage omits the matching guarded prepare/spec case ambiguity.",
+      "origin": "R4",
+      "failureKind": "missing_coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "Missing prepare no-worktree rejection proof for no-branch path",
+      "target": "specs/318-enforce-target-guards-for-preparing-flow-prelude/tests/preparing-target-guards.test.js:162",
+      "issue": "R4/R6 require guarded prepare mismatches to fail before branch/worktree/spec creation. The test checks no `specs` directory and no `.senti/worktree` after the `--worktree` mismatch, but the guarded unknown-run prepare uses `--no-branch` and only checks `specs`; it does not prove no branch/worktree side effects for that rejection path.",
+      "requiredChange": "Add a side-effect assertion after the guarded unknown-run prepare rejection that no worktree/branch artifact was created, using the repository’s expected observable for that path.",
+      "whyBlocking": "A critical side-effect prevention requirement is not evidenced for one of the required rejection classes: guarded unknown runs.",
+      "origin": "R4, R6",
+      "failureKind": "missing_coverage"
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Selection helper does not count preparing loads",
+      "target": "specs/318-enforce-target-guards-for-preparing-flow-prelude/tests/preparing-target-guards.test.js:17",
+      "improvement": "Track `loadPreparingFlow` calls and requested IDs in `preparingContainer` so the R1 test proves explicit known and missing run IDs are looked up exactly as intended.",
+      "whyNonBlocking": "The current assertions still exercise the selection shape and active-flow no-fallback behavior; this would make the diagnostic evidence tighter."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/318-enforce-target-guards-for-preparing-flow-prelude/test-review.json",
+    "verdict": "FAIL",
+    "result": "FAIL",
+    "blockingCount": 4,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "dc208e25ec0c515c82da187b83562f07bba82d2226521fbada05bc9212e7a742"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "test-002-blocking-001",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Missing guard-free coverage for preparing set routes",
+      "body": "R3/R6 require evidence for guard-free documented behavior for `flow set request`, `flow set note`, and `flow set auto`. The test only exercises successful guarded routes and guard-free unknown-run errors; it does not verify normal guard-free preparing updates still succeed for an existing run.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-002",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Missing individual mismatch coverage for set route guards",
+      "body": "R3/R6 require each guard mismatch type for `flow set request`, `flow set note`, and `flow set auto`. The test covers one mismatch type per command: run ID for request, issue for note, and spec for auto. It does not show that each set command rejects run ID, Issue, and spec mismatches before mutation.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-003",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Missing successful guarded prepare spec guard coverage",
+      "body": "R4 requires matching guarded prepare to return the promoted spec and standard run ID, Issue, and spec guard behavior. The successful prepare test uses only `--expect-run-id` and `--expect-issue`; it never demonstrates a successful prepare with a matching `--expect-spec` guard. Because preparing `spec` is null before promotion, this edge is part of the guard semantics under review.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-blocking-004",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Missing prepare no-worktree rejection proof for no-branch path",
+      "body": "R4/R6 require guarded prepare mismatches to fail before branch/worktree/spec creation. The test checks no `specs` directory and no `.senti/worktree` after the `--worktree` mismatch, but the guarded unknown-run prepare uses `--no-branch` and only checks `specs`; it does not prove no branch/worktree side effects for that rejection path.",
+      "category": "unknown"
+    },
+    {
+      "id": "test-002-non-blocking-005",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "Selection helper does not count preparing loads",
+      "body": "Selection helper does not count preparing loads",
+      "category": "unknown"
+    }
+  ]
+}

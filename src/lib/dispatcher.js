@@ -326,7 +326,7 @@ export async function dispatch({
           type: envelopeType || "run",
           key: envelopeKey || "?",
           input,
-          flowState: hookCtx.flowState,
+          flowState: hookCtx.preparingFlowState ?? hookCtx.flowState,
         })
       : null;
   if (targetMismatch) {

@@ -60,6 +60,8 @@ describe("registry structure", () => {
       FLOW_COMMANDS.set.retry,
       FLOW_COMMANDS.set["acceptance-decision"],
       FLOW_COMMANDS.set.auto,
+      FLOW_COMMANDS.run["auto-check"],
+      FLOW_COMMANDS.prepare,
       FLOW_COMMANDS.run.sync,
     ];
 
@@ -82,6 +84,24 @@ describe("registry structure", () => {
       [...new Set(helpOptions)].sort(),
       [...entry.args.options].sort(),
     );
+  });
+
+  it("prelude help matches target guard options and dual-mode routing", () => {
+    const entries = [
+      FLOW_COMMANDS.set.request,
+      FLOW_COMMANDS.set.note,
+      FLOW_COMMANDS.set.auto,
+      FLOW_COMMANDS.run["auto-check"],
+      FLOW_COMMANDS.prepare,
+    ];
+    for (const entry of entries) {
+      const helpOptions = [...entry.help.matchAll(/--expect-[a-z-]+/g)].map((match) => match[0]);
+      const guardOptions = entry.args.options.filter((option) => option.startsWith("--expect-"));
+      assert.deepEqual([...new Set(helpOptions)].sort(), guardOptions.sort());
+    }
+    assert.equal(FLOW_COMMANDS.set.request.requiresFlow, false);
+    assert.equal(FLOW_COMMANDS.set.note.requiresFlow, false);
+    assert.equal(FLOW_COMMANDS.set.auto.requiresFlow, false);
   });
 });
 

@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "Apply five bounded question-text repairs identified by the sanity review.",
+  "items": [
+    {
+      "title": "1. Non-question Prefix",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "The question can remove the priority prefix and explicitly name the five commands without changing scope.",
+      "evidence": "draft-review-questions.json identifies q1 as a repair target; Issue 431 names request, note, auto, auto-check, and prepare."
+    },
+    {
+      "title": "2. Internal Implementation Detail",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "The question can ask for preserved preparing behavior and effective validation without prescribing routing representation.",
+      "evidence": "draft-review-questions.json identifies q2 as internal implementation detail; Issue 431 requires preserving preparing-mode behavior."
+    },
+    {
+      "title": "3. Non-question Prefix",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "Removing the prefix leaves the unknown-run isolation question unchanged.",
+      "evidence": "draft-review-questions.json identifies only the q3 prefix as defective."
+    },
+    {
+      "title": "4. Non-question Prefix",
+      "target": "q4",
+      "decision": "apply",
+      "rationale": "Removing the prefix leaves the requested verification coverage unchanged.",
+      "evidence": "draft-review-questions.json identifies only the q4 prefix as defective."
+    },
+    {
+      "title": "5. Non-question Prefix / Not Self-contained",
+      "target": "q5",
+      "decision": "apply",
+      "rationale": "The question can remove the prefix and name the approved product files explicitly.",
+      "evidence": "Issue 431 scope names src/flow/registry.js, src/flow/lib/flow-context.js, src/flow/lib/base-command.js, and src/lib/dispatcher.js."
+    }
+  ]
+}

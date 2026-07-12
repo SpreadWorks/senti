@@ -1,0 +1,118 @@
+{
+  "devType": "bugfix",
+  "goal": "Enforce standard target guards for preparing-flow prelude commands before any state mutation, agent execution, or worktree creation.",
+  "analysis": {
+    "problem": "Prelude commands can select a preparing run while exposing no active flow state to shared guard validation, so supplied run, Issue, and spec expectations may not protect the operation target.",
+    "proposedApproach": "Expose the selected preparing state alongside the existing routing state, apply shared target validation to whichever state represents the selected target, and declare the standard guard options on auto-check and prepare.",
+    "validation": "Focused unit and end-to-end tests will verify matching and mismatching guards, null preparing specs, unknown explicit run IDs, help parity, post-prepare guards, and rejection before side effects."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: preparing-mode routing keeps its existing null active-flow state while exposing the selected preparing target separately.",
+      "must: request, note, auto, auto-check, and prepare share the same run, Issue, and spec guard semantics.",
+      "must: an explicit unknown run ID remains isolated and cannot fall through to another flow.",
+      "must: parity mapping for guard-free request, note, and auto invocation retains command ownership and verifies unchanged success behavior in focused command tests.",
+      "must: parity mapping for null preparing routing state retains src/flow/lib/flow-context.js ownership, adds the selected preparing state beside it, and verifies both values in a unit test.",
+      "must: parity mapping for request, note, and auto guard parsing assigns preparing-target validation to src/flow/lib/base-command.js and verifies matching success plus run, Issue, and spec mismatch before mutation for each command.",
+      "must: parity mapping for auto-check and prepare assigns guard option/help metadata to src/flow/registry.js and pre-execution validation to src/lib/dispatcher.js, with help parity and no-agent/no-worktree mismatch evidence.",
+      "must: parity mapping for explicit unknown run IDs assigns isolated selection to src/flow/lib/flow-context.js and shared mismatch handling to src/flow/lib/base-command.js and src/lib/dispatcher.js, verified by no-fallback tests with unrelated flows present.",
+      "must: parity mapping for post-prepare guard behavior retains active-flow validation ownership in src/flow/lib/base-command.js and src/lib/dispatcher.js and verifies run, Issue, and spec guards after successful prepare.",
+      "must: no inventoried public behavior is deliberately removed."
+    ],
+    "decisionPoints": [
+      "must: confirm that target validation applies before mutation, agent execution, and worktree creation.",
+      "must: confirm that a non-null expected spec mismatches a preparing state whose spec is null.",
+      "must: confirm that guard-free documented behavior remains unchanged."
+    ],
+    "resolvedByProjectRules": [
+      "must: use existing command, registry, envelope, and class patterns without external dependencies.",
+      "must: keep FlowStore ownership and existing public command boundaries unchanged."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: map each guard and side-effect boundary to focused tests and implementation tasks."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: update preparing target selection and shared guard validation in the four approved product files.",
+      "must: add standard guard registry and help definitions for auto-check and prepare.",
+      "must: add focused existing or spec-local tests for all five prelude commands and routing parity."
+    ],
+    "out": [
+      "must: do not change FlowStore, init, status, unrelated public semantics, dependencies, or other flows.",
+      "must: do not recover or modify the stopped Issue 415 run."
+    ]
+  },
+  "impactOnExisting": [
+    "must: preserve guard-free invocation behavior for existing consumers.",
+    "must: preserve preparing-mode command routing while making supplied expectations effective.",
+    "must: keep help output synchronized with command registry metadata.",
+    "must: retain request, note, and auto command behavior while activating their already parsed guards against preparing targets.",
+    "must: retain auto-check and prepare behavior while adding the standard guard options and rejecting mismatches before agent or worktree side effects.",
+    "must: retain explicit target isolation and replace unknown-run fallback with an ACTIVE_FLOW_MISMATCH failure owned by shared target validation."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "Should this must requirement apply: flow set request, flow set note, flow set auto, flow run auto-check, and flow prepare reject a mismatched run, Issue, or spec before any side effect while preserving matching and guard-free behavior?",
+      "answer": "must: Yes. All five commands share the standard target guards, and matching or guard-free calls preserve documented behavior.",
+      "evidence": "Issue 431 Requirements and Acceptance Criteria explicitly name the five commands and require matching, mismatching, and guard-free coverage.",
+      "why": "This is the published bug contract and prevents target confusion before side effects.",
+      "considered": "Guarding only mutating set commands was rejected because auto-check and prepare also depend on a selected preparing run.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "Should this must requirement apply: preparing-mode command behavior remains unchanged while supplied target expectations are validated against the selected preparing run?",
+      "answer": "must: Yes. Preserve preparing-mode command routing and make supplied expectations validate the selected preparing target.",
+      "evidence": "Issue 431 requires retaining flowState:null, exposing preparingFlowState separately, and validating the selected preparing state.",
+      "why": "The fix must activate guards without changing the established preparing command routing contract.",
+      "considered": "Changing preparing commands to appear as an active flow was rejected because the Issue explicitly preserves the null routing state.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "Should this must requirement apply: an explicit unknown run ID fails in isolation instead of falling through to any active or preparing flow?",
+      "answer": "must: Yes. An explicit unknown run ID must not select any unrelated active or preparing flow.",
+      "evidence": "Issue 431 states this requirement and acceptance criterion explicitly.",
+      "why": "Falling through defeats caller-selected target isolation and can mutate the wrong flow.",
+      "considered": "Active-flow fallback was rejected because explicit target intent must take precedence even when the requested run does not exist.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "Should this must requirement apply: focused tests prove help parity, null-spec mismatch, pre-side-effect rejection, successful guarded prepare, and all three guards after prepare?",
+      "answer": "must: Yes. Focused tests must pair each retained surface with evidence: guard-free request/note/auto success; preparing selection shape; matching and mismatching request/note/auto guards before mutation; auto-check help and no-agent mismatch behavior; prepare help and no-worktree mismatch behavior; unknown-run no-fallback behavior; successful guarded prepare; and all three guards after prepare.",
+      "evidence": "Issue 431 Verification lists selection shape, matching and mismatching guards for all five commands, unknown runs, pre-side-effect rejection, post-prepare guards, guard-free behavior, and help parity.",
+      "why": "The regression concerns each public command surface plus selection and ordering, so every retained behavior requires paired evidence.",
+      "considered": "Relying only on broad project regression was rejected because it would not demonstrate rejection before mutation, agent execution, or worktree creation.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "Should this must requirement apply: implementation remains limited to src/flow/registry.js, src/flow/lib/flow-context.js, src/flow/lib/base-command.js, and src/lib/dispatcher.js plus focused tests and evidence, with no FlowStore, init, status, dependency, or unrelated flow changes?",
+      "answer": "must: Yes. Product changes remain limited to the four approved files, with focused tests and required flow evidence only.",
+      "evidence": "Issue 431 Scope and Out of Scope, plus the parent assignment, define this exact boundary.",
+      "why": "The Issue is a prerequisite guard-foundation fix and must remain isolated from FlowStore, init, status, dependencies, and other flows.",
+      "considered": "Broader FlowStore or public command changes were rejected as unnecessary and explicitly out of scope.",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-12T14:27:54Z",
+    "notes": "Published Issue 431 and parent-preapproved bounded scope resolve all draft decisions."
+  }
+}

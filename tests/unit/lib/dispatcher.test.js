@@ -137,6 +137,39 @@ describe("dispatcher (unified runner)", () => {
         fs.rmSync(tmp, { recursive: true, force: true });
       }
     });
+
+    it("rejects a preparing target mismatch before command loading or hooks", async () => {
+      let commandLoads = 0;
+      let preCalls = 0;
+      const out = [];
+      await dispatch({
+        container,
+        entry: {
+          requiresFlow: false,
+          args: { options: ["--expect-run-id", "--expect-issue", "--expect-spec"] },
+          command: async () => {
+            commandLoads += 1;
+            throw new Error("mismatched preparing target must not load the command");
+          },
+          pre() { preCalls += 1; },
+        },
+        argv: ["--expect-run-id", "run-431", "--expect-issue", "999"],
+        envelopeType: "run",
+        envelopeKey: "auto-check",
+        stdout: (chunk) => out.push(chunk),
+        setExitCode: () => {},
+        buildHookCtx: () => ({
+          flowState: null,
+          preparingFlowState: { runId: "run-431", issue: 431, spec: null },
+        }),
+      });
+
+      const envelope = JSON.parse(out.join(""));
+      assert.equal(envelope.ok, false);
+      assert.equal(envelope.errors[0].code, "ACTIVE_FLOW_MISMATCH");
+      assert.equal(commandLoads, 0);
+      assert.equal(preCalls, 0);
+    });
   });
 
   describe("output modes (R5)", () => {

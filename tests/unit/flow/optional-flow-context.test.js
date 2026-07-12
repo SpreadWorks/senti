@@ -37,7 +37,7 @@ describe("optional flow context resolution", () => {
     let selectedRoot = null;
     const container = new Container();
     const flowManager = {
-      loadPreparingFlow: (runId) => (runId === "preparing-run" ? { runId } : null),
+      loadPreparingFlow: (runId) => (runId === "preparing-run" ? { runId, issue: 431, spec: null } : null),
       forRoot: (root) => {
         selectedRoot = root;
         return flowManager;
@@ -72,8 +72,45 @@ describe("optional flow context resolution", () => {
 
     assert.deepEqual(result, { ok: true });
     assert.equal(captured.flowState, null);
+    assert.deepEqual(captured.preparingFlowState, { runId: "preparing-run", issue: 431, spec: null });
     assert.equal(captured.root, "/repo");
     assert.equal(selectedRoot, "/repo");
+    assert.equal(loadCalled, false);
+  });
+
+  it("isolates an explicit unknown preparing run from active-flow discovery", async () => {
+    let loadCalled = false;
+    const container = new Container();
+    const flowManager = {
+      loadPreparingFlow: () => null,
+      forRoot: () => flowManager,
+      load: () => {
+        loadCalled = true;
+        return { runId: "unrelated-run", issue: 999, spec: "specs/999-unrelated/spec.json" };
+      },
+    };
+    container.register("paths", { root: "/repo" });
+    container.register("mainRoot", "/repo");
+    container.register("config", {});
+    container.register("flowManager", flowManager);
+    container.register("inWorktree", false);
+
+    class OptionalCommand extends FlowCommand {
+      constructor() {
+        super({ requiresFlow: false });
+      }
+      execute(ctx) {
+        return ctx;
+      }
+    }
+
+    const result = await new OptionalCommand().run(container, {
+      runId: "missing-run",
+      expectRunId: "missing-run",
+    });
+
+    assert.equal(result.ok, false);
+    assert.equal(result.errors[0].code, "ACTIVE_FLOW_MISMATCH");
     assert.equal(loadCalled, false);
   });
 

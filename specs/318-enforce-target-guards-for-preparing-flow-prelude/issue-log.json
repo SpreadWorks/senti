@@ -1,0 +1,112 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The draft describes new shared target-guard behavior and impacted commands but does not define migration parity artifacts before implementation: no inventory of existing public behavior being replaced, and no explicit mapping of each retained public behavior to its new owner or a deliberate removal decision.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T14:28:30.653Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "(inline draft content)",
+            "locator": "scopeVerification + impactOnExisting"
+          },
+          "observed": "The draft describes new shared target-guard behavior and impacted commands but does not define migration parity artifacts before implementation: no inventory of existing public behavior being replaced, and no explicit mapping of each retained public behavior to its new owner or a deliberate removal decision.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft describes new shared target-guard behavior and impacted commands but does not define migration parity artifacts before implementation: no inventory of existing public behavior being replaced, and no explicit mapping of each retained public behavior to its new owner or a deliberate removal decision."
+        }
+      ]
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The draft defers inclusion of a migration parity matrix to later, so the spec itself does not define migration parity before implementation as required.; Migration mapping is described only at module level (flow-context.js/base-command.js/dispatcher.js/registry.js) and does not map each inventoried public behavior to a specific new owner or explicit removal decision.; The listed verification targets (help parity, null-spec mismatch, pre-side-effect rejection, post-prepare guards) do not provide behavior-level verification for each retained public surface in the behavior inventory.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T14:29:17.481Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "decisionMap.deferredToSpec[1]"
+          },
+          "observed": "The draft defers inclusion of a migration parity matrix to later, so the spec itself does not define migration parity before implementation as required.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "decisionMap.resolvedByProjectRules[0]"
+          },
+          "observed": "Migration mapping is described only at module level (flow-context.js/base-command.js/dispatcher.js/registry.js) and does not map each inventoried public behavior to a specific new owner or explicit removal decision.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "qa[3]"
+          },
+          "observed": "The listed verification targets (help parity, null-spec mismatch, pre-side-effect rejection, post-prepare guards) do not provide behavior-level verification for each retained public surface in the behavior inventory.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft defers inclusion of a migration parity matrix to later, so the spec itself does not define migration parity before implementation as required."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "Migration mapping is described only at module level (flow-context.js/base-command.js/dispatcher.js/registry.js) and does not map each inventoried public behavior to a specific new owner or explicit removal decision."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The listed verification targets (help parity, null-spec mismatch, pre-side-effect rejection, post-prepare guards) do not provide behavior-level verification for each retained public surface in the behavior inventory."
+        }
+      ]
+    },
+    {
+      "step": "test-review",
+      "phase": "test",
+      "failureKind": "tooling_failure",
+      "reason": "test-review tooling failure: agent_error",
+      "trigger": "test-review post hook (auto)",
+      "resolution": "Recover the tooling failure or record an explicit evidence-based override before proceeding.",
+      "artifact": "specs/318-enforce-target-guards-for-preparing-flow-prelude/test-review.md",
+      "timestamp": "2026-07-12T14:52:10.673Z"
+    }
+  ]
+}
