@@ -484,14 +484,8 @@ export class RunPrepareSpecCommand extends FlowCommand {
       });
     }
 
-    // Clean stale .active-flow entries and preparing files before creating a new flow
+    // Clean stale active-flow registry entries before creating a new flow.
     flowManager.cleanStaleFlows();
-    flowManager.cleanStalePreparingFlows();
-
-    // Delete the preparing file if --run-id was provided
-    if (runIdArg) {
-      flowManager.deletePreparingFlow(runIdArg);
-    }
 
     const changed = [
       `specs/${specDirName}/spec.json`,
@@ -549,6 +543,10 @@ export class RunPrepareSpecCommand extends FlowCommand {
         "next:",
         ...fillAndGateNext.map((l, i) => `${i + 1}) ${l}`),
       );
+    }
+
+    if (runIdArg) {
+      flowManager.deletePreparingFlow(runIdArg);
     }
 
     return {

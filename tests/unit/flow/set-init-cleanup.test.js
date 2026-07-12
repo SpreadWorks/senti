@@ -43,7 +43,7 @@ function captureStderr(fn) {
   }
 }
 
-describe("flow set init — stale preparing-flow cleanup (spec 222)", () => {
+describe("flow set init preparing-flow preservation", () => {
   let tmp;
 
   beforeEach(() => {
@@ -55,7 +55,7 @@ describe("flow set init — stale preparing-flow cleanup (spec 222)", () => {
     removeTmpDir(tmp);
   });
 
-  it("deletes stale preparing files and reports count of only remaining fresh files (AC-1, REQ-P1, REQ-P4)", () => {
+  it("preserves fresh and aged preparing files byte-identically and reports them", () => {
     const fm = makeFlowManager(tmp);
 
     const fresh = fm.generateRunId();
@@ -64,6 +64,11 @@ describe("flow set init — stale preparing-flow cleanup (spec 222)", () => {
     fm.createPreparingFlow(fresh, { issue: 10 });
     fm.createPreparingFlow(stale1, { issue: 11 });
     fm.createPreparingFlow(stale2, { issue: 12 });
+    const before = new Map([
+      [fresh, fs.readFileSync(preparingFilePath(tmp, fresh))],
+      [stale1, fs.readFileSync(preparingFilePath(tmp, stale1))],
+      [stale2, fs.readFileSync(preparingFilePath(tmp, stale2))],
+    ]);
 
     ageFileByMs(preparingFilePath(tmp, fresh), 10 * 60 * 1000);      // 10 min
     ageFileByMs(preparingFilePath(tmp, stale1), 2 * 60 * 60 * 1000); // 2h
@@ -74,17 +79,14 @@ describe("flow set init — stale preparing-flow cleanup (spec 222)", () => {
       cmd.execute({ flowManager: fm, issue: 99 }),
     );
 
-    // stale files removed
-    assert.equal(fs.existsSync(preparingFilePath(tmp, stale1)), false);
-    assert.equal(fs.existsSync(preparingFilePath(tmp, stale2)), false);
-    // fresh file retained
-    assert.equal(fs.existsSync(preparingFilePath(tmp, fresh)), true);
-    // a new preparing flow was created for the generated runId
+    for (const runId of [fresh, stale1, stale2]) {
+      assert.equal(fs.existsSync(preparingFilePath(tmp, runId)), true);
+      assert.deepEqual(fs.readFileSync(preparingFilePath(tmp, runId)), before.get(runId));
+    }
     const newRunId = result.runId;
     assert.ok(newRunId, `expected runId in response, got ${JSON.stringify(result)}`);
     assert.equal(fs.existsSync(preparingFilePath(tmp, newRunId)), true);
 
-    // warning reflects only the fresh pre-existing preparing flow (count = 1)
     const warningLine = stderr
       .split("\n")
       .find((l) => l.includes("preparing flow(s) already exist"));
@@ -92,15 +94,10 @@ describe("flow set init — stale preparing-flow cleanup (spec 222)", () => {
       warningLine,
       `expected warning line in stderr, got: ${stderr}`,
     );
-    assert.match(warningLine, /^\[flow\] WARN: 1 preparing flow\(s\) already exist:/);
-    assert.ok(
-      warningLine.includes(fresh),
-      `expected fresh runId ${fresh} in warning: ${warningLine}`,
-    );
-    assert.ok(
-      !warningLine.includes(stale1),
-      `stale runId ${stale1} should not appear in warning: ${warningLine}`,
-    );
+    assert.match(warningLine, /^\[flow\] WARN: 3 preparing flow\(s\) already exist:/);
+    for (const runId of [fresh, stale1, stale2]) {
+      assert.ok(warningLine.includes(runId), `expected runId ${runId} in warning: ${warningLine}`);
+    }
   });
 
   it("emits no warning when no preparing flows exist (AC-4, REQ-P6)", () => {

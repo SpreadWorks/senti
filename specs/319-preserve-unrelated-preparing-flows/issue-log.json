@@ -1,0 +1,163 @@
+{
+  "entries": [
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Requires `flow set init` to list existing preparing runIds without stating an explicit upper bound on the bulk listing size.; Requires warning with all pre-existing runIds without stating an explicit upper bound on the number of preparing records/runIds loaded or emitted.; Requires public init and prepare behavior to remain unchanged except for specified preservation semantics, but does not enumerate the behavior set, making satisfaction dependent on reviewer interpretation.; Requires public init and prepare behavior to remain unchanged except for specified changes; that broad compatibility guarantee is not decidable from a unified diff and test execution summary alone.; Uses the vague adjective `Focused` for shared and spec-local tests instead of stating verifiable conditions for what qualifies as focused.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T20:21:39.002Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "overview.data_flow[0].text"
+          },
+          "observed": "Requires `flow set init` to list existing preparing runIds without stating an explicit upper bound on the bulk listing size.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[0].desc"
+          },
+          "observed": "Requires warning with all pre-existing runIds without stating an explicit upper bound on the number of preparing records/runIds loaded or emitted.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[4].desc"
+          },
+          "observed": "Requires public init and prepare behavior to remain unchanged except for specified preservation semantics, but does not enumerate the behavior set, making satisfaction dependent on reviewer interpretation.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "req-diff-verifiability",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[4].desc"
+          },
+          "observed": "Requires public init and prepare behavior to remain unchanged except for specified changes; that broad compatibility guarantee is not decidable from a unified diff and test execution summary alone.",
+          "severity": "blocking",
+          "refs": [
+            "req-diff-verifiability"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[5].desc"
+          },
+          "observed": "Uses the vague adjective `Focused` for shared and spec-local tests instead of stating verifiable conditions for what qualifies as focused.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "Requires `flow set init` to list existing preparing runIds without stating an explicit upper bound on the bulk listing size."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "Requires warning with all pre-existing runIds without stating an explicit upper bound on the number of preparing records/runIds loaded or emitted."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requires public init and prepare behavior to remain unchanged except for specified preservation semantics, but does not enumerate the behavior set, making satisfaction dependent on reviewer interpretation."
+        },
+        {
+          "guardrail_id": "req-diff-verifiability",
+          "reason": "Requires public init and prepare behavior to remain unchanged except for specified changes; that broad compatibility guarantee is not decidable from a unified diff and test execution summary alone."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Uses the vague adjective `Focused` for shared and spec-local tests instead of stating verifiable conditions for what qualifies as focused."
+        }
+      ]
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The migration parity statement lists only `flow set init` and `flow prepare` as affected public surfaces, but does not inventory whether affected APIs, hooks, config entries, generated artifacts, and side effects exist or are unaffected.; The migration parity statement says retained behavior is kept and TTL-based global deletion is removed, but does not map each retained behavior to its new owner or explicitly state that ownership remains unchanged.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-12T20:23:16.455Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "overview.decisions[3]"
+          },
+          "observed": "The migration parity statement lists only `flow set init` and `flow prepare` as affected public surfaces, but does not inventory whether affected APIs, hooks, config entries, generated artifacts, and side effects exist or are unaffected.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "overview.decisions[3]"
+          },
+          "observed": "The migration parity statement says retained behavior is kept and TTL-based global deletion is removed, but does not map each retained behavior to its new owner or explicitly state that ownership remains unchanged.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The migration parity statement lists only `flow set init` and `flow prepare` as affected public surfaces, but does not inventory whether affected APIs, hooks, config entries, generated artifacts, and side effects exist or are unaffected."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The migration parity statement says retained behavior is kept and TTL-based global deletion is removed, but does not map each retained behavior to its new owner or explicitly state that ownership remains unchanged."
+        }
+      ]
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: corrected the spec-local active-registry assertion from entry.id to entry.spec and regenerated v2 test evidence",
+      "resolution": "all R1-R6 spec-local results now pass and test-result-review verifies the regenerated artifact",
+      "taskId": null,
+      "timestamp": "2026-07-12T20:37:04.660Z"
+    }
+  ]
+}

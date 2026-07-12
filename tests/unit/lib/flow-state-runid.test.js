@@ -158,39 +158,6 @@ describe("preparing state files (.active-flow.<runId>)", () => {
     assert.equal(raw.autoApprove, false);
   });
 
-  // ── Req 6: stale cleanup ───────────────────────────────────────────────
-
-  it("stale .active-flow.* files older than TTL can be identified by mtime", () => {
-    tmp = createTmpDir();
-    const sentiDir = join(tmp, ".senti");
-    fs.mkdirSync(sentiDir, { recursive: true });
-
-    const staleRunId = "stale-run";
-    const freshRunId = "fresh-run";
-    const staleFile = join(sentiDir, `.active-flow.${staleRunId}`);
-    const freshFile = join(sentiDir, `.active-flow.${freshRunId}`);
-
-    fs.writeFileSync(staleFile, JSON.stringify(makePreparingState(staleRunId)));
-    fs.writeFileSync(freshFile, JSON.stringify(makePreparingState(freshRunId)));
-
-    // Set stale file mtime to 25 hours ago
-    const now = new Date();
-    const staleTime = new Date(now.getTime() - 25 * 60 * 60 * 1000);
-    fs.utimesSync(staleFile, staleTime, staleTime);
-
-    // Verify mtime-based detection works
-    const TTL_MS = 24 * 60 * 60 * 1000;
-    const files = fs.readdirSync(sentiDir).filter((f) => f.startsWith(".active-flow."));
-    assert.equal(files.length, 2);
-
-    const staleFiles = files.filter((f) => {
-      const stat = fs.statSync(join(sentiDir, f));
-      return now.getTime() - stat.mtimeMs > TTL_MS;
-    });
-    assert.equal(staleFiles.length, 1);
-    assert.ok(staleFiles[0].includes(staleRunId));
-  });
-
   // ── Req 4: deletion after promotion ────────────────────────────────────
 
   it(".active-flow.<runId> is deletable after promotion to flow.json", () => {

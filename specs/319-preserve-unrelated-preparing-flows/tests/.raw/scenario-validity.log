@@ -1,0 +1,546 @@
+[senti] scenario-validity tests start
+command: node --test specs/319-preserve-unrelated-preparing-flows/tests/preparing-flow-isolation.test.js
+[senti] scenario-validity file start command=node specs/319-preserve-unrelated-preparing-flows/tests/preparing-flow-isolation.test.js
+TAP version 13
+# Subtest: Issue \#433 preparing-flow data integrity
+    # Subtest: R1: init preserves an aged unrelated record byte-identically and reports it
+    not ok 1 - R1: init preserves an aged unrelated record byte-identically and reports it
+      ---
+      duration_ms: 110.29633
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-319-preserve-unrelated-preparing-flows/specs/319-preserve-unrelated-preparing-flows/tests/preparing-flow-isolation.test.js:70:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        
+        false !== true
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-preserve-unrelated-preparing-flows/specs/319-preserve-unrelated-preparing-flows/tests/preparing-flow-isolation.test.js:85:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Test.start (node:internal/test_runner/test:944:17)
+        node:internal/test_runner/test:1440:71
+        node:internal/per_context/primordials:464:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:433:3)
+        node:internal/per_context/primordials:464:9
+        Array.map (<anonymous>)
+      ...
+    # Subtest: R2: successful prepare deletes only its target after preserving an aged unrelated record
+    not ok 2 - R2: successful prepare deletes only its target after preserving an aged unrelated record
+      ---
+      duration_ms: 333.374921
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-319-preserve-unrelated-preparing-flows/specs/319-preserve-unrelated-preparing-flows/tests/preparing-flow-isolation.test.js:90:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        
+        false !== true
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-preserve-unrelated-preparing-flows/specs/319-preserve-unrelated-preparing-flows/tests/preparing-flow-isolation.test.js:108:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1442:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+      ...
+    # Subtest: R3: prepare failure after target resolution preserves target and unrelated bytes
+    not ok 3 - R3: prepare failure after target resolution preserves target and unrelated bytes
+      ---
+      duration_ms: 493.91159
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-319-preserve-unrelated-preparing-flows/specs/319-preserve-unrelated-preparing-flows/tests/preparing-flow-isolation.test.js:115:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        
+        false !== true
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-preserve-unrelated-preparing-flows/specs/319-preserve-unrelated-preparing-flows/tests/preparing-flow-isolation.test.js:132:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R4: production init and prepare sources expose no global TTL prune path
+    not ok 4 - R4: production init and prepare sources expose no global TTL prune path
+      ---
+      duration_ms: 12.188783
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-319-preserve-unrelated-preparing-flows/specs/319-preserve-unrelated-preparing-flows/tests/preparing-flow-isolation.test.js:138:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        The input was expected to not match the regular expression /pruneStalePreparingFlowsAndList/. Input:
+        
+        '/**\n' +
+          ' * src/flow/lib/set-init.js\n' +
+          ' *\n' +
+          ' * Initialize a preparing flow state before flow prepare.\n' +
+          ' * Creates .senti/.active-flow.<runId> with a flow.json-compatible schema.\n' +
+          ' * Accepts --issue and --request to seed the preparing state so that a later\n' +
+          ' * `flow prepare --run-id <id>` can inherit them.\n' +
+          ' */\n' +
+          '\n' +
+          'import { FlowCommand } from "./base-command.js";\n' +
+          'import { Envelope } from "../../lib/flow-envelope.js";\n' +
+          'import { fetchNormalizedIssueBody } from "./issue-body-cache.js";\n' +
+          '\n' +
+          'export default class SetInitCommand extends FlowCommand {\n' +
+          '  constructor() {\n' +
+          '    super({ requiresFlow: false });\n' +
+          '  }\n' +
+          '\n' +
+          '  execute(ctx) {\n' +
+          '    const { flowManager } = ctx;\n' +
+          '\n' +
+          '    const extra = {};\n' +
+          '    if (ctx.issue != null && ctx.issue !== "") {\n' +
+          '      const n = Number(ctx.issue);\n' +
+          '      if (!Number.isInteger(n) || n <= 0) {\n' +
+          '        return Envelope.fail(\n' +
+          '          "set",\n' +
+          '          "init",\n' +
+          '          "INVALID_ARG_VALUE",\n' +
+          '          `--issue must be a positive integer: ${ctx.issue}`,\n' +
+          '        );\n' +
+          '      }\n' +
+          '      extra.issue = n;\n' +
+          '      const body = fetchNormalizedIssueBody(n, ctx.root);\n' +
+          '      if (body) extra.issueBody = body;\n' +
+          '    }\n' +
+          '    if (ctx.request) extra.request = ctx.request;\n' +
+          '\n' +
+          '    // Single-pass prune + list: delete stale preparing flows and enumerate\n' +
+          '    // the remaining entries in one directory scan (spec 222).\n' +
+          '    const { remaining } = flowManager.pruneStalePreparingFlowsAndList();\n' +
+          '    if (remaining.length > 0) {\n' +
+          '      console.error(\n' +
+          '        `[flow] WARN: ${remaining.length} preparing flow(s) already exist: ${remaining.join(", ")}`\n' +
+          '      );\n' +
+          '    }\n' +
+          '\n' +
+          '    const runId = flowManager.generateRunId();\n' +
+          '    flowManager.createPreparingFlow(runId, extra);\n' +
+          '\n' +
+          '    return { runId, ...extra };\n' +
+          '  }\n' +
+          '}\n'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: |-
+        /**
+         * src/flow/lib/set-init.js
+         *
+         * Initialize a preparing flow state before flow prepare.
+         * Creates .senti/.active-flow.<runId> with a flow.json-compatible schema.
+         * Accepts --issue and --request to seed the preparing state so that a later
+         * `flow prepare --run-id <id>` can inherit them.
+         */
+        
+        import { FlowCommand } from "./base-command.js";
+        import { Envelope } from "../../lib/flow-envelope.js";
+        import { fetchNormalizedIssueBody } from "./issue-body-cache.js";
+        
+        export default class SetInitCommand extends FlowCommand {
+          constructor() {
+            super({ requiresFlow: false });
+          }
+        
+          execute(ctx) {
+            const { flowManager } = ctx;
+        
+            const extra = {};
+            if (ctx.issue != null && ctx.issue !== "") {
+              const n = Number(ctx.issue);
+              if (!Number.isInteger(n) || n <= 0) {
+                return Envelope.fail(
+                  "set",
+                  "init",
+                  "INVALID_ARG_VALUE",
+                  `--issue must be a positive integer: ${ctx.issue}`,
+                );
+              }
+              extra.issue = n;
+              const body = fetchNormalizedIssueBody(n, ctx.root);
+              if (body) extra.issueBody = body;
+            }
+            if (ctx.request) extra.request = ctx.request;
+        
+            // Single-pass prune + list: delete stale preparing flows and enumerate
+            // the remaining entries in one directory scan (spec 222).
+            const { remaining } = flowManager.pruneStalePreparingFlowsAndList();
+            if (remaining.length > 0) {
+              console.error(
+                `[flow] WARN: ${remaining.length} preparing flow(s) already exist: ${remaining.join(", ")}`
+              );
+            }
+        
+            const runId = flowManager.generateRunId();
+            flowManager.createPreparingFlow(runId, extra);
+        
+            return { runId, ...extra };
+          }
+        }
+        
+      operator: 'doesNotMatch'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-preserve-unrelated-preparing-flows/specs/319-preserve-unrelated-preparing-flows/tests/preparing-flow-isolation.test.js:145:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R5: init retains its response and warning contract without consuming aged state
+    not ok 5 - R5: init retains its response and warning contract without consuming aged state
+      ---
+      duration_ms: 228.744661
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-319-preserve-unrelated-preparing-flows/specs/319-preserve-unrelated-preparing-flows/tests/preparing-flow-isolation.test.js:153:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        The input did not match the regular expression /\[flow\] WARN: 1 preparing flow\(s\) already exist:/. Input:
+        
+        ''
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: ''
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-preserve-unrelated-preparing-flows/specs/319-preserve-unrelated-preparing-flows/tests/preparing-flow-isolation.test.js:170:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R6: shared regression tests contain preservation assertions instead of TTL deletion contracts
+    not ok 6 - R6: shared regression tests contain preservation assertions instead of TTL deletion contracts
+      ---
+      duration_ms: 7.975721
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-319-preserve-unrelated-preparing-flows/specs/319-preserve-unrelated-preparing-flows/tests/preparing-flow-isolation.test.js:175:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        The input did not match the regular expression /byte-identical|deepEqual\([^\n]+before/. Input:
+        
+        'import { describe, it, beforeEach, afterEach } from "node:test";\n' +
+          'import assert from "node:assert/strict";\n' +
+          'import fs from "fs";\n' +
+          'import path from "path";\n' +
+          'import { createTmpDir, removeTmpDir, writeJson } from "../../helpers/tmp-dir.js";\n' +
+          'import { makeFlowManager } from "../../helpers/flow-setup.js";\n' +
+          'import SetInitCommand from "../../../src/flow/lib/set-init.js";\n' +
+          'import { PREPARING_PREFIX } from "../../../src/lib/flow-helpers.js";\n' +
+          '\n' +
+          'function setupProject(tmp) {\n' +
+          '  writeJson(tmp, ".senti/config.json", {\n' +
+          '    lang: "ja",\n' +
+          '    type: "base",\n' +
+          '    docs: { languages: ["ja"], defaultLanguage: "ja" },\n' +
+          '  });\n' +
+          '  writeJson(tmp, "package.json", { name: "fixture", version: "0.0.0" });\n' +
+          '  return tmp;\n' +
+          '}\n' +
+          '\n' +
+          'function preparingFilePath(tmp, runId) {\n' +
+          '  return path.join(tmp, ".senti", `${PREPARING_PREFIX}${runId}`);\n' +
+          '}\n' +
+          '\n' +
+          'function ageFileByMs(filePath, ageMs) {\n' +
+          '  const now = Date.now();\n' +
+          '  const targetMs = now - ageMs;\n' +
+          '  const targetSec = targetMs / 1000;\n' +
+          '  fs.utimesSync(filePath, targetSec, targetSec);\n' +
+          '}\n' +
+          '\n' +
+          'function captureStderr(fn) {\n' +
+          '  const original = process.stderr.write.bind(process.stderr);\n' +
+          '  let buf = "";\n' +
+          '  process.stderr.write = (chunk) => {\n' +
+          '    buf += typeof chunk === "string" ? chunk : chunk.toString();\n' +
+          '    return true;\n' +
+          '  };\n' +
+          '  try {\n' +
+          '    const result = fn();\n' +
+          '    return { result, stderr: buf };\n' +
+          '  } finally {\n' +
+          '    process.stderr.write = original;\n' +
+          '  }\n' +
+          '}\n' +
+          '\n' +
+          'describe("flow set init — stale preparing-flow cleanup (spec 222)", () => {\n' +
+          '  let tmp;\n' +
+          '\n' +
+          '  beforeEach(() => {\n' +
+          '    tmp = createTmpDir("set-init-cleanup-");\n' +
+          '    setupProject(tmp);\n' +
+          '  });\n' +
+          '\n' +
+          '  afterEach(() => {\n' +
+          '    removeTmpDir(tmp);\n' +
+          '  });\n' +
+          '\n' +
+          '  it("deletes stale preparing files and reports count of only remaining fresh files (AC-1, REQ-P1, REQ-P4)", () => {\n' +
+          '    const fm = makeFlowManager(tmp);\n' +
+          '\n' +
+          '    const fresh = fm.generateRunId();\n' +
+          '    const stale1 = fm.generateRunId();\n' +
+          '    const stale2 = fm.generateRunId();\n' +
+          '    fm.createPreparingFlow(fresh, { issue: 10 });\n' +
+          '    fm.createPreparingFlow(stale1, { issue: 11 });\n' +
+          '    fm.createPreparingFlow(stale2, { issue: 12 });\n' +
+          '\n' +
+          '    ageFileByMs(preparingFilePath(tmp, fresh), 10 * 60 * 1000);      // 10 min\n' +
+          '    ageFileByMs(preparingFilePath(tmp, stale1), 2 * 60 * 60 * 1000); // 2h\n' +
+          '    ageFileByMs(preparingFilePath(tmp, stale2), 3 * 60 * 60 * 1000); // 3h\n' +
+          '\n' +
+          '    const cmd = new SetInitCommand();\n' +
+          '    const { result, stderr } = captureStderr(() =>\n' +
+          '      cmd.execute({ flowManager: fm, issue: 99 }),\n' +
+          '    );\n' +
+          '\n' +
+          '    // stale files removed\n' +
+          '    assert.equal(fs.existsSync(preparingFilePath(tmp, stale1)), false);\n' +
+          '    assert.equal(fs.existsSync(preparingFilePath(tmp, stale2)), false);\n' +
+          '    // fresh file retained\n' +
+          '    assert.equal(fs.existsSync(preparingFilePath(tmp, fresh)), true);\n' +
+          '    // a new preparing flow was created for the generated runId\n' +
+          '    const newRunId = result.runId;\n' +
+          '    assert.ok(newRunId, `expected runId in response, got ${JSON.stringify(result)}`);\n' +
+          '    assert.equal(fs.existsSync(preparingFilePath(tmp, newRunId)), true);\n' +
+          '\n' +
+          '    // warning reflects only the fresh pre-existing preparing flow (count = 1)\n' +
+          '    const warningLine = stderr\n' +
+          '      .split("\\n")\n' +
+          '      .find((l) => l.includes("preparing flow(s) already exist"));\n' +
+          '    assert.ok(\n' +
+          '      warningLine,\n' +
+          '      `expected warning line in stderr, got: ${stderr}`,\n' +
+          '    );\n' +
+          '    assert.match(warningLine, /^\\[flow\\] WARN: 1 preparing flow\\(s\\) already exist:/);\n' +
+          '    assert.ok(\n' +
+          '      warningLine.includes(fresh),\n' +
+          '      `expected fresh runId ${fresh} in warning: ${warningLine}`,\n' +
+          '    );\n' +
+          '    assert.ok(\n' +
+          '      !warningLine.includes(stale1),\n' +
+          '      `stale runId ${stale1} should not appear in warning: ${warningLine}`,\n' +
+          '    );\n' +
+          '  });\n' +
+          '\n' +
+          '  it("emits no warning when no preparing flows exist (AC-4, REQ-P6)", () => {\n' +
+          '    const fm = makeFlowManager(tmp);\n' +
+          '\n' +
+          '    const cmd = new SetInitCommand();\n' +
+          '    const { result, stderr } = captureStderr(() =>\n' +
+          '      cmd.execute({ flowManager: fm, issue: 1 }),\n' +
+          '    );\n' +
+          '\n' +
+          '    assert.ok(\n' +
+          '      !stderr.includes("preparing flow(s) already exist"),\n' +
+          '      `expected no warning, got: ${stderr}`,\n' +
+          '    );\n' +
+          '    const newRunId = result.runId;\n' +
+          '    assert.ok(newRunId);\n' +
+          '    assert.equal(fs.existsSync(preparingFilePath(tmp, newRunId)), true);\n' +
+          '  });\n' +
+          '});\n'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: |-
+        import { describe, it, beforeEach, afterEach } from "node:test";
+        import assert from "node:assert/strict";
+        import fs from "fs";
+        import path from "path";
+        import { createTmpDir, removeTmpDir, writeJson } from "../../helpers/tmp-dir.js";
+        import { makeFlowManager } from "../../helpers/flow-setup.js";
+        import SetInitCommand from "../../../src/flow/lib/set-init.js";
+        import { PREPARING_PREFIX } from "../../../src/lib/flow-helpers.js";
+        
+        function setupProject(tmp) {
+          writeJson(tmp, ".senti/config.json", {
+            lang: "ja",
+            type: "base",
+            docs: { languages: ["ja"], defaultLanguage: "ja" },
+          });
+          writeJson(tmp, "package.json", { name: "fixture", version: "0.0.0" });
+          return tmp;
+        }
+        
+        function preparingFilePath(tmp, runId) {
+          return path.join(tmp, ".senti", `${PREPARING_PREFIX}${runId}`);
+        }
+        
+        function ageFileByMs(filePath, ageMs) {
+          const now = Date.now();
+          const targetMs = now - ageMs;
+          const targetSec = targetMs / 1000;
+          fs.utimesSync(filePath, targetSec, targetSec);
+        }
+        
+        function captureStderr(fn) {
+          const original = process.stderr.write.bind(process.stderr);
+          let buf = "";
+          process.stderr.write = (chunk) => {
+            buf += typeof chunk === "string" ? chunk : chunk.toString();
+            return true;
+          };
+          try {
+            const result = fn();
+            return { result, stderr: buf };
+          } finally {
+            process.stderr.write = original;
+          }
+        }
+        
+        describe("flow set init — stale preparing-flow cleanup (spec 222)", () => {
+          let tmp;
+        
+          beforeEach(() => {
+            tmp = createTmpDir("set-init-cleanup-");
+            setupProject(tmp);
+          });
+        
+          afterEach(() => {
+            removeTmpDir(tmp);
+          });
+        
+          it("deletes stale preparing files and reports count of only remaining fresh files (AC-1, REQ-P1, REQ-P4)", () => {
+            const fm = makeFlowManager(tmp);
+        
+            const fresh = fm.generateRunId();
+            const stale1 = fm.generateRunId();
+            const stale2 = fm.generateRunId();
+            fm.createPreparingFlow(fresh, { issue: 10 });
+            fm.createPreparingFlow(stale1, { issue: 11 });
+            fm.createPreparingFlow(stale2, { issue: 12 });
+        
+            ageFileByMs(preparingFilePath(tmp, fresh), 10 * 60 * 1000);      // 10 min
+            ageFileByMs(preparingFilePath(tmp, stale1), 2 * 60 * 60 * 1000); // 2h
+            ageFileByMs(preparingFilePath(tmp, stale2), 3 * 60 * 60 * 1000); // 3h
+        
+            const cmd = new SetInitCommand();
+            const { result, stderr } = captureStderr(() =>
+              cmd.execute({ flowManager: fm, issue: 99 }),
+            );
+        
+            // stale files removed
+            assert.equal(fs.existsSync(preparingFilePath(tmp, stale1)), false);
+            assert.equal(fs.existsSync(preparingFilePath(tmp, stale2)), false);
+            // fresh file retained
+            assert.equal(fs.existsSync(preparingFilePath(tmp, fresh)), true);
+            // a new preparing flow was created for the generated runId
+            const newRunId = result.runId;
+            assert.ok(newRunId, `expected runId in response, got ${JSON.stringify(result)}`);
+            assert.equal(fs.existsSync(preparingFilePath(tmp, newRunId)), true);
+        
+            // warning reflects only the fresh pre-existing preparing flow (count = 1)
+            const warningLine = stderr
+              .split("\n")
+              .find((l) => l.includes("preparing flow(s) already exist"));
+            assert.ok(
+              warningLine,
+              `expected warning line in stderr, got: ${stderr}`,
+            );
+            assert.match(warningLine, /^\[flow\] WARN: 1 preparing flow\(s\) already exist:/);
+            assert.ok(
+              warningLine.includes(fresh),
+              `expected fresh runId ${fresh} in warning: ${warningLine}`,
+            );
+            assert.ok(
+              !warningLine.includes(stale1),
+              `stale runId ${stale1} should not appear in warning: ${warningLine}`,
+            );
+          });
+        
+          it("emits no warning when no preparing flows exist (AC-4, REQ-P6)", () => {
+            const fm = makeFlowManager(tmp);
+        
+            const cmd = new SetInitCommand();
+            const { result, stderr } = captureStderr(() =>
+              cmd.execute({ flowManager: fm, issue: 1 }),
+            );
+        
+            assert.ok(
+              !stderr.includes("preparing flow(s) already exist"),
+              `expected no warning, got: ${stderr}`,
+            );
+            const newRunId = result.runId;
+            assert.ok(newRunId);
+            assert.equal(fs.existsSync(preparingFilePath(tmp, newRunId)), true);
+          });
+        });
+        
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-319-preserve-unrelated-preparing-flows/specs/319-preserve-unrelated-preparing-flows/tests/preparing-flow-isolation.test.js:180:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    1..6
+not ok 1 - Issue \#433 preparing-flow data integrity
+  ---
+  duration_ms: 1190.604747
+  type: 'suite'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-319-preserve-unrelated-preparing-flows/specs/319-preserve-unrelated-preparing-flows/tests/preparing-flow-isolation.test.js:63:1'
+  failureType: 'subtestsFailed'
+  error: '6 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 6
+# suites 1
+# pass 0
+# fail 6
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1231.222556
+Command failed: node specs/319-preserve-unrelated-preparing-flows/tests/preparing-flow-isolation.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/319-preserve-unrelated-preparing-flows/tests/preparing-flow-isolation.test.js
+exitCode: 1
+[senti] requirement R1 observed: R1: init preserves an aged unrelated record byte-identically and reports it
+[senti] requirement R2 observed: R2: successful prepare deletes only its target after preserving an aged unrelated record
+[senti] requirement R3 observed: R3: prepare failure after target resolution preserves target and unrelated bytes
+[senti] requirement R4 observed: R4: production init and prepare sources expose no global TTL prune path
+[senti] requirement R5 observed: R5: init retains its response and warning contract without consuming aged state
+[senti] requirement R6 observed: R6: shared regression tests contain preservation assertions instead of TTL deletion contracts
+[senti] scenario-validity tests end

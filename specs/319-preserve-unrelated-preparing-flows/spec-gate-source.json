@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "The migration parity statement lists only `flow set init` and `flow prepare` as affected public surfaces, but does not inventory whether affected APIs, hooks, config entries, generated artifacts, and side effects exist or are unaffected.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "overview.decisions[3]"
+          },
+          "observed": "The migration parity statement lists only `flow set init` and `flow prepare` as affected public surfaces, but does not inventory whether affected APIs, hooks, config entries, generated artifacts, and side effects exist or are unaffected.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "The migration parity statement says retained behavior is kept and TTL-based global deletion is removed, but does not map each retained behavior to its new owner or explicitly state that ownership remains unchanged.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "overview.decisions[3]"
+          },
+          "observed": "The migration parity statement says retained behavior is kept and TTL-based global deletion is removed, but does not map each retained behavior to its new owner or explicitly state that ownership remains unchanged.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "spec.json",
+        "locator": "overview.decisions[3]"
+      },
+      "observed": "The migration parity statement lists only `flow set init` and `flow prepare` as affected public surfaces, but does not inventory whether affected APIs, hooks, config entries, generated artifacts, and side effects exist or are unaffected.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "spec.json",
+        "locator": "overview.decisions[3]"
+      },
+      "observed": "The migration parity statement says retained behavior is kept and TTL-based global deletion is removed, but does not map each retained behavior to its new owner or explicitly state that ownership remains unchanged.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    }
+  ]
+}

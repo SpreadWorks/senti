@@ -1,0 +1,49 @@
+{
+  "spec": "specs/319-preserve-unrelated-preparing-flows/spec.json",
+  "date": "2026-07-12T20:38:17.948Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "flow set init must leave every pre-existing preparing record byte-identical, including records older than one hour, while creating the requested new record and warning with the at-most-100 runIds returned by the existing PREPARING_SCAN_LIMIT-bounded list when that list is non-empty.",
+      "status": "done",
+      "note": "R1: init preserves an aged unrelated record byte-identically and reports it"
+    },
+    {
+      "desc": "A successful flow prepare --run-id B must leave every unrelated preparing record byte-identical and delete only B after worktree/spec/flow conversion, docs validation, plugin lifecycle, and active-flow registration succeed.",
+      "status": "done",
+      "note": "R2: successful prepare deletes only its target after preserving an aged unrelated record"
+    },
+    {
+      "desc": "If flow prepare --run-id B fails before successful conversion completes, B and every unrelated preparing record must retain their original bytes.",
+      "status": "done",
+      "note": "R3: prepare failure after target resolution preserves target and unrelated bytes"
+    },
+    {
+      "desc": "Production init and prepare call paths must contain no reachable global preparing-record deletion based on file age, and obsolete preparing TTL constants and prune helpers must be removed when they have no remaining caller.",
+      "status": "done",
+      "note": "R4: production init and prepare sources expose no global TTL prune path"
+    },
+    {
+      "desc": "flow set init must retain positive-integer issue validation, issue-body and request persistence, warning format for a non-empty at-most-100-runId list, and its runId/issue/issueBody/request response fields; flow prepare must retain target guards and input inheritance, branch/worktree/spec/draft/flow creation, docs validation, plugin lifecycle, active-flow registration, and its result/runId/issue/spec/worktreePath/changed/artifacts/next/output response fields.",
+      "status": "done",
+      "note": "R5: init retains its response and warning contract without consuming aged state"
+    },
+    {
+      "desc": "Shared tests in the listed implementation targets and spec-local tests must cover multiple preparing records, records older than 60 minutes, byte-identical isolation, target-only successful deletion, and selected/unrelated preservation across prepare failure paths.",
+      "status": "done",
+      "note": "R6: shared regression tests contain preservation assertions instead of TTL deletion contracts"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 6,
+    "done": 6,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

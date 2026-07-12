@@ -1,0 +1,115 @@
+{
+  "devType": "bugfix",
+  "goal": "Prevent flow initialization and preparation from deleting or modifying unrelated unresolved preparing-flow records, while retaining target-only deletion after successful conversion.",
+  "analysis": {
+    "problem": "The init and prepare paths perform global age-based cleanup of preparing-flow records, and prepare removes its target before conversion completes. This permits unrelated or failed target state to be lost without an explicit, auditable deletion request.",
+    "proposedApproach": "Remove age-based global preparing-record deletion from init and prepare, preserve existing store ownership boundaries, and move target deletion to the successful end of preparation conversion.",
+    "validation": "Verify byte-identical preservation of unrelated records across init and successful prepare, preservation of target and unrelated records on each prepare failure boundary, target-only removal after success, and absence of reachable TTL-based pruning from these commands."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: flow set init creates a preparing record and currently globally prunes records older than one hour.",
+      "must: flow prepare currently performs global stale cleanup and deletes its selected preparing record before worktree, spec, and active-flow conversion finish.",
+      "must: Issue #433 requires unrelated preparing records to remain byte-identical regardless of elapsed time.",
+      "must: Issue #433 explicitly excludes reconstruction of the missing #415 record and creation of cleanup or archive operations."
+    ],
+    "decisionPoints": [
+      "must: retain existing init and prepare public behavior except for removal of implicit stale deletion.",
+      "must: delete only the selected preparing record and only after successful conversion.",
+      "must: replace TTL-deletion expectations with preservation, isolation, and failure-atomicity coverage."
+    ],
+    "resolvedByProjectRules": [
+      "must: preserve existing FlowStore and preparing-store ownership boundaries rather than adding a parallel state-management path.",
+      "must: use Node.js built-in modules only and add no compatibility shim."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: enumerate the concrete validation, agent, write, and conversion failure seams covered by focused tests.",
+      "must: map each obsolete TTL assertion to a preservation or non-pruning assertion."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: make flow set init list or warn about existing preparing runs without deleting or modifying them.",
+      "must: make successful flow prepare remove only its selected preparing run after conversion succeeds.",
+      "must: preserve selected and unrelated preparing runs unchanged when prepare fails.",
+      "must: remove or make unreachable global TTL pruning used by init and prepare.",
+      "must: replace obsolete one-hour and 61-minute deletion tests with byte-preservation, isolation, and failure-atomicity tests."
+    ],
+    "out": [
+      "must: do not reconstruct, infer, or silently replace the missing #415 preparing record.",
+      "must: do not design or add cleanup, archive, or audited deletion commands.",
+      "must: do not change unrelated flow lifecycle behavior or add dependencies or public compatibility shims."
+    ]
+  },
+  "impactOnExisting": [
+    "must: unresolved preparing runs older than one hour remain available instead of being implicitly deleted by init or prepare.",
+    "must: init retains its creation result and existing-run warning behavior, with warning membership including all unresolved runs rather than only fresh runs.",
+    "must: successful prepare still converts its selected preparing run into active spec state and removes that selected source record.",
+    "must: failed prepare now preserves retryable preparing state rather than losing the selected record.",
+    "must: no other public init or prepare output or command contract changes."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "must: Should the fix preserve every unrelated unresolved preparing-flow record byte-identically across both init and prepare, regardless of record age?",
+      "answer": "must: Yes. Unrelated unresolved preparing-flow records remain byte-identical across init and prepare regardless of elapsed time.",
+      "evidence": "Issue #433 acceptance criteria explicitly require byte-identical preservation of stale run A across init B and successful prepare B.",
+      "why": "must: Elapsed time alone is not an explicit, target-guarded, or auditable instruction to destroy unresolved state.",
+      "considered": "Retaining the one-hour prune was rejected because it caused the unrelated #415 loss and violates the published data-integrity invariant.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "must: Should prepare remove only its selected preparing-flow record, and only after all conversion work has succeeded?",
+      "answer": "must: Yes. Successful prepare deletes only its selected record after conversion succeeds.",
+      "evidence": "Issue #433 requires target-record deletion only after successful conversion; src/flow/lib/run-prepare-spec.js currently deletes the target before worktree, spec, and flow-state creation.",
+      "why": "must: Post-conversion deletion makes the preparing record the retryable source until its replacement state exists successfully.",
+      "considered": "Pre-conversion deletion was rejected because later validation, agent, write, or conversion failure would destroy retry state.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "must: Should failed prepare attempts leave both the selected and unrelated preparing-flow records unchanged at validation, agent, write, and conversion failure boundaries?",
+      "answer": "must: Yes. Both selected and unrelated preparing records remain unchanged whenever prepare fails.",
+      "evidence": "Issue #433 requirements and verification explicitly name validation, agent, write, and conversion failures and require both A and B to remain unchanged.",
+      "why": "must: Failure atomicity prevents partial preparation from silently consuming the only unresolved request state.",
+      "considered": "Preserving only unrelated records was rejected because it would still lose the selected record on a retryable failure.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "must: Should public init and prepare behavior remain unchanged except that unresolved preparing records are no longer deleted solely because of elapsed time?",
+      "answer": "must: Yes. The public contract remains unchanged except for removal of implicit age-based deletion.",
+      "evidence": "Issue #433 acceptance criteria require public init and prepare behavior to stay unchanged except for removing stale global deletion.",
+      "why": "must: The bug fix remains minimal and does not broaden into unrelated lifecycle changes.",
+      "considered": "Changing warnings, target selection, or preparation output was rejected as outside the published scope.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "must: Should this fix exclude reconstruction of #415 and any new cleanup, archive, or audited deletion design?",
+      "answer": "must: Yes. Do not reconstruct #415 and do not add cleanup, archive, or audited deletion design.",
+      "evidence": "Issue #433 lists all of these as explicit non-goals and states the missing record cannot be recovered exactly without a tombstone or journal.",
+      "why": "must: Inventing lost state or a new lifecycle operation would exceed the minimal prevention fix and could create additional data-integrity risk.",
+      "considered": "Inferred reconstruction and implicit replacement cleanup were rejected because neither can preserve exact historical state or provide an explicit deletion audit trail.",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-12T20:17:14Z",
+    "notes": "Published Issue #433 resolves every draft decision; no unresolved user-decision item remains."
+  }
+}
