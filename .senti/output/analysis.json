@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-07-12T10:30:51.652Z",
+  "analyzedAt": "2026-07-12T10:40:26.370Z",
   "package": {
     "entries": [
       {
@@ -4410,6 +4410,44 @@
         ]
       },
       {
+        "file": "src/flow/lib/regression-file-snapshot.js",
+        "hash": "52ec2affce54d7a3e1c082b099acb1d1",
+        "lines": 240,
+        "mtime": "2026-07-12T10:40:07.456Z",
+        "className": "regression-file-snapshot",
+        "methods": [
+          "RegressionFileSnapshot",
+          "RegressionFileSnapshotList",
+          "assertRecord",
+          "assertKnownKeys",
+          "normalizeRepoRelativePath",
+          "normalizeSnapshotMetadata",
+          "normalizeFingerprint",
+          "resolveSnapshotFile",
+          "fingerprintFile",
+          "compareText",
+          "compareSnapshots",
+          "assertSnapshotCount"
+        ],
+        "imports": [
+          "crypto",
+          "fs",
+          "path",
+          "../../lib/git-helpers.js"
+        ],
+        "exports": [
+          "RegressionFileSnapshot",
+          "RegressionFileSnapshotList"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/run-test-execute.js",
+          "src/flow/lib/test-artifacts.js",
+          "src/flow/lib/test-regression.js"
+        ],
+        "id": "e6ed79d6"
+      },
+      {
         "file": "src/flow/lib/render-spec-view.js",
         "hash": "56e20f4f922923f639cef5dade7fa381",
         "lines": 63,
@@ -6290,9 +6328,9 @@
       },
       {
         "file": "src/flow/lib/run-test-execute.js",
-        "hash": "298be20b686f87d43ee3631aeb0d9c29",
-        "lines": 362,
-        "mtime": "2026-06-15T16:20:37.614Z",
+        "hash": "85c33adefd964fc8e24e5cfadad9899a",
+        "lines": 373,
+        "mtime": "2026-07-12T10:40:07.456Z",
         "className": "run-test-execute",
         "methods": [
           "failedRequirementIdsFromSpecLocal",
@@ -6309,6 +6347,7 @@
           "requirementRawResultLine",
           "buildSummary",
           "specLocalPassed",
+          "buildRegressionSnapshots",
           "buildSkippedRegression",
           "buildRequiredRegression"
         ],
@@ -6322,7 +6361,8 @@
           "./base-command.js",
           "./set-issue-log.js",
           "./test-artifacts.js",
-          "./test-regression.js"
+          "./test-regression.js",
+          "./regression-file-snapshot.js"
         ],
         "exports": [
           "failedRequirementIdsFromSpecLocal",
@@ -6330,25 +6370,7 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "41745e8b",
-        "enrich": {
-          "processedAt": "2026-06-17T03:32:46.337Z",
-          "attempts": 2
-        },
-        "summary": "Executes spec-local tests and project regression checks, then records structured evidence in a test execution artifact. It turns raw test output into requirement-level pass/fail summaries and reproducible command metadata.",
-        "detail": "This module discovers spec-scoped test files, extracts requirement identifiers from test content, and derives friendly test names for summary evidence. It runs local Node.js tests and optional regression commands, captures raw output ranges, and classifies whether requirements are testable, passed, failed, or not applicable when no tests are declared. The command enforces limits such as maximum tracked requirements, validates prerequisite analysis artifacts, and records startup failures in the issue log for later diagnosis. It writes both a raw output log and test-execute-result.json so downstream review steps can validate evidence without rerunning tests.",
-        "chapter": "cli_commands",
-        "role": "Test execution and evidence capture command",
-        "keywords": [
-          "test execute",
-          "requirement verification",
-          "regression testing",
-          "raw output log",
-          "spec-local tests",
-          "test artifact",
-          "evidence collection",
-          "Node test runner"
-        ]
+        "id": "41745e8b"
       },
       {
         "file": "src/flow/lib/run-test-result-review.js",
@@ -7195,9 +7217,9 @@
       },
       {
         "file": "src/flow/lib/test-artifacts.js",
-        "hash": "675b95bdaab835f2c8229d104c66c641",
-        "lines": 1560,
-        "mtime": "2026-06-19T09:54:43.010Z",
+        "hash": "3854958a71a6f2e284d400f643785293",
+        "lines": 1585,
+        "mtime": "2026-07-12T10:40:07.456Z",
         "className": "test-artifacts",
         "methods": [
           "matchUpgradeRequiredSourcePaths",
@@ -7294,6 +7316,7 @@
           "../../lib/glob.js",
           "../../lib/git-helpers.js",
           "./test-regression.js",
+          "./regression-file-snapshot.js",
           "./artifact-completion.js"
         ],
         "exports": [
@@ -7365,26 +7388,7 @@
           "src/flow/lib/set-step.js",
           "src/upgrade.js"
         ],
-        "id": "0b1b96b3",
-        "summary": "Provides the shared artifact model for flow test runs, including file names, path patterns, and strict validation helpers. It is responsible for reading, writing, completing, and trust-checking test, review, upgrade, and regression artifacts.",
-        "detail": "The module defines canonical artifact locations, size limits, line limits, and bounded readers so test outputs cannot grow without control or be parsed loosely. It validates multiple artifact schemas such as test execution results, scenario validity reports, upgrade results, final regression records, file maps, and placeholder permission files, with detailed structural and semantic checks. It also manages artifact lifecycle operations such as collecting existing files from glob patterns, deleting rebuildable artifacts, writing temporary summaries, and deriving durable pathspecs for commits. A separate trust layer scans artifacts for placeholder content, verifies required supporting files, and proves that integration evidence matches current repository state before downstream gates rely on it.",
-        "chapter": "internal_design",
-        "role": "Central artifact validation and trust layer for flow test outputs.",
-        "enrich": {
-          "processedAt": "2026-06-19T09:55:21.554Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "test artifacts",
-          "artifact validation",
-          "regression evidence",
-          "raw log parsing",
-          "placeholder detection",
-          "upgrade result",
-          "scenario validity",
-          "file map",
-          "trust contract"
-        ]
+        "id": "0b1b96b3"
       },
       {
         "file": "src/flow/lib/test-headers.js",
@@ -7443,9 +7447,9 @@
       },
       {
         "file": "src/flow/lib/test-regression.js",
-        "hash": "367fca1ff1e5afd2acc6d3812a8f9556",
-        "lines": 547,
-        "mtime": "2026-06-19T09:54:43.010Z",
+        "hash": "4592d9d2604f7c72fe109fa9c6bb7f11",
+        "lines": 538,
+        "mtime": "2026-07-12T10:40:07.456Z",
         "className": "test-regression",
         "methods": [
           "formatElapsedMs",
@@ -7465,7 +7469,6 @@
           "processOutputLines",
           "runProcessDetailed",
           "resolveTestTimeoutSeconds",
-          "fingerprintFile",
           "readJsonIfExists",
           "regressionCommandFromSource",
           "normalizePath",
@@ -7481,12 +7484,12 @@
         "imports": [
           "fs",
           "path",
-          "crypto",
           "child_process",
           "../../lib/git-helpers.js",
           "../../lib/makefile.js",
           "../../lib/test-command-sources.js",
-          "../../docs/lib/analysis-entry.js"
+          "../../docs/lib/analysis-entry.js",
+          "./regression-file-snapshot.js"
         ],
         "exports": [
           "formatElapsedMs",
@@ -7520,25 +7523,7 @@
           "src/flow/lib/run-test-execute.js",
           "src/flow/lib/test-artifacts.js"
         ],
-        "id": "2980d983",
-        "summary": "Implements project regression planning and execution for the flow system. It discovers a supported test command, classifies changed files, and decides whether regression should run in targeted, full, or skipped mode.",
-        "detail": "The module models parsed commands and command identities so regression runs can be compared, fingerprinted, and audited consistently. It inspects repository metadata such as package scripts, Composer settings, Makefiles, and configured command sources to discover a safe executable command without accepting shell control syntax. It classifies changed files against project analysis data, documentation paths, generated spec artifacts, and non-trigger files to determine whether a change is test-relevant. It also provides process execution utilities with timeout and heartbeat settings, plus helpers for interpreting exit status and normalizing output lines.",
-        "chapter": "internal_design",
-        "role": "Regression command discovery, change classification, and process execution logic.",
-        "enrich": {
-          "processedAt": "2026-06-19T09:55:21.554Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "regression testing",
-          "test command discovery",
-          "changed file classification",
-          "targeted regression",
-          "full regression",
-          "process timeout",
-          "command parsing",
-          "file fingerprint"
-        ]
+        "id": "2980d983"
       },
       {
         "file": "src/flow/lib/work-unit.js",
@@ -8934,9 +8919,9 @@
       },
       {
         "file": "src/lib/git-helpers.js",
-        "hash": "5452917360986987d8adc28a0db2a445",
-        "lines": 272,
-        "mtime": "2026-05-18T02:25:43.710Z",
+        "hash": "6fbdf47a48ca7f729885f325f41a41c0",
+        "lines": 274,
+        "mtime": "2026-07-12T10:40:07.457Z",
         "className": "git-helpers",
         "methods": [
           "runGit",
@@ -8978,7 +8963,8 @@
           "countCommitsBetween",
           "listUncommittedFiles",
           "listChangedFilesDetailed",
-          "commentOnIssue"
+          "commentOnIssue",
+          "DEFAULT_MAX_CHANGED_FILE_ENTRIES"
         ],
         "extends": null,
         "usedBy": [
@@ -8987,25 +8973,7 @@
           "src/lib/flow-store.js",
           "src/lib/lint.js"
         ],
-        "id": "61b28e9c",
-        "enrich": {
-          "processedAt": "2026-05-19T04:50:12.342Z",
-          "attempts": 3
-        },
-        "summary": "Provides a robust Git/GitHub CLI helper layer for repository state checks and workflow actions. It standardizes command execution and exposes higher-level operations used by flow logic.",
-        "detail": "The module wraps Git calls through a shared `runGit` path that relies on common process helpers for consistent error handling. It includes state readers such as worktree dirtiness, current branch, ahead count, and last commit retrieval. For change analysis, it parses porcelain output, normalizes path separators/quotes, deduplicates entries, and returns a stable sorted result. Rebase support is explicit: it detects dirty-state preconditions, reports conflict files, and exposes abort behavior. It also enforces strict numeric parsing for commit counts and includes optional GitHub issue commenting via `gh`.",
-        "chapter": "development",
-        "role": "Git and GitHub command orchestration with normalized repository-state introspection.",
-        "keywords": [
-          "git wrapper",
-          "repository status",
-          "worktree dirty check",
-          "porcelain parsing",
-          "rebase conflict handling",
-          "ahead/behind count",
-          "changed files detail",
-          "GitHub CLI integration"
-        ]
+        "id": "61b28e9c"
       },
       {
         "file": "src/lib/gitignore.js",
@@ -11304,8 +11272,8 @@
       }
     ],
     "summary": {
-      "total": 215,
-      "totalMethods": 2012
+      "total": 216,
+      "totalMethods": 2024
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
