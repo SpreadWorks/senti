@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "The draft changes existing public `flow get runtime-log` behavior by making target expectations required, but it does not inventory the existing public behavior being replaced across affected public surfaces such as command options, output modes, error behavior, generated artifacts, and side effects.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft.json",
+            "locator": "$.impactOnExisting"
+          },
+          "observed": "The draft changes existing public `flow get runtime-log` behavior by making target expectations required, but it does not inventory the existing public behavior being replaced across affected public surfaces such as command options, output modes, error behavior, generated artifacts, and side effects.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "The draft does not map each retained existing `flow get runtime-log` behavior to its new owner/path or state an explicit removal decision for behavior that will no longer be retained.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft.json",
+            "locator": "$.impactOnExisting"
+          },
+          "observed": "The draft does not map each retained existing `flow get runtime-log` behavior to its new owner/path or state an explicit removal decision for behavior that will no longer be retained.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "The verification list includes behavior-level checks for runtime-log output and isolation, but it does not provide at least one behavior-level verification for each retained public surface identified by a migration inventory because that inventory is absent.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft.json",
+            "locator": "$.scopeVerification.in[4]"
+          },
+          "observed": "The verification list includes behavior-level checks for runtime-log output and isolation, but it does not provide at least one behavior-level verification for each retained public surface identified by a migration inventory because that inventory is absent.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft.json",
+        "locator": "$.impactOnExisting"
+      },
+      "observed": "The draft changes existing public `flow get runtime-log` behavior by making target expectations required, but it does not inventory the existing public behavior being replaced across affected public surfaces such as command options, output modes, error behavior, generated artifacts, and side effects.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft.json",
+        "locator": "$.impactOnExisting"
+      },
+      "observed": "The draft does not map each retained existing `flow get runtime-log` behavior to its new owner/path or state an explicit removal decision for behavior that will no longer be retained.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft.json",
+        "locator": "$.scopeVerification.in[4]"
+      },
+      "observed": "The verification list includes behavior-level checks for runtime-log output and isolation, but it does not provide at least one behavior-level verification for each retained public surface identified by a migration inventory because that inventory is absent.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    }
+  ]
+}

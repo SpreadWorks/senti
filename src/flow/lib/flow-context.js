@@ -17,6 +17,7 @@
 import fs from "fs";
 import path from "path";
 import { specIdFromPath, STATE_FILE } from "../../lib/flow-helpers.js";
+import { FlowTargetExpectation } from "../../lib/flow-target-guard.js";
 
 const MISSING_PREPARING_FLOW_STATE = Object.freeze({});
 
@@ -54,12 +55,14 @@ function preparingAuthorityForRunId(baseFlowManager, mainRoot, paths, runId) {
 
 function resolveAuthorityFlowState(container, baseFlowManager, mainRoot, options = {}) {
   const paths = container.get("paths");
-  const preparingAuthority = preparingAuthorityForRunId(
-    baseFlowManager,
-    mainRoot,
-    paths,
-    preparingRunIdSelection(options.input),
-  );
+  const preparingAuthority = options.preparingRunIdSelection === false
+    ? null
+    : preparingAuthorityForRunId(
+      baseFlowManager,
+      mainRoot,
+      paths,
+      preparingRunIdSelection(options.input),
+    );
   if (preparingAuthority) return preparingAuthority;
 
   const selection = resolveTargetSelection(options.input);
@@ -67,6 +70,22 @@ function resolveAuthorityFlowState(container, baseFlowManager, mainRoot, options
   if (!cwdState) {
     let resolved = null;
     try {
+      if (options.explicitTargetResolution === true && selection) {
+        const target = baseFlowManager.resolveExplicitFlowTarget(
+          new FlowTargetExpectation(options.input),
+        );
+        const flowManager = baseFlowManager.forRoot(
+          target.authorityRoot,
+          target.specId ? { specId: target.specId } : {},
+        );
+        return {
+          flowManager,
+          flowState: target.preparing ? null : target.state,
+          preparingFlowState: target.preparing ? target.state : null,
+          authorityRoot: target.authorityRoot,
+          flowResolutionError: null,
+        };
+      }
       resolved = typeof baseFlowManager.resolveActiveFlow === "function"
         ? baseFlowManager.resolveActiveFlow(null, selection || {})
         : null;

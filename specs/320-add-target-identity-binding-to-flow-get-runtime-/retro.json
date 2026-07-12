@@ -1,0 +1,54 @@
+{
+  "spec": "specs/320-add-target-identity-binding-to-flow-get-runtime-/spec.json",
+  "date": "2026-07-12T23:39:08.014Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "The runtime-log command must accept `--expect-run-id`, `--expect-issue`, and `--expect-spec` using the existing target-aware types and validation, require at least one of them, and accept every non-empty subset.",
+      "status": "done",
+      "note": "R1: requires a non-empty subset of the shared target expectations"
+    },
+    {
+      "desc": "The command must resolve exactly one local, active, or preparing target from the supplied identity; every supplied expectation must match, and missing, ambiguous, or mismatched input must not fall back to another flow.",
+      "status": "done",
+      "note": "R2: isolates exact active and preparing targets when several flows exist"
+    },
+    {
+      "desc": "Run ID, Issue, and spec mismatches against a resolved target must return `ACTIVE_FLOW_MISMATCH` with the existing expected/active identity data and no runtime-log content.",
+      "status": "done",
+      "note": "R3: reports each local target identity mismatch without log content"
+    },
+    {
+      "desc": "A missing or ambiguous explicit target must return a structured `FLOW_TARGET_NOT_FOUND` failure, and a target with no matching log block must return the existing `RUNTIME_LOG_NOT_FOUND` failure; neither failure may disclose another target's log.",
+      "status": "done",
+      "note": "R4: distinguishes missing target from missing runtime log without fallback"
+    },
+    {
+      "desc": "After a target match, raw text, `--format json`, `--sequence`, `--run-id`, `runId#sequence`, conflict validation, latest non-runtime-log selection, and existing invalid-argument envelopes must retain their public behavior while selecting only blocks owned by the resolved target run ID.",
+      "status": "done",
+      "note": "R5: preserves raw, JSON, and block-selector contracts after target match"
+    },
+    {
+      "desc": "Successful and failed runtime-log reads must not modify flow files, spec files, runtime-log content, metadata, Issue state, board state, or generated product artifacts beyond the dispatcher's established command-log append.",
+      "status": "done",
+      "note": "R6: leaves flow and runtime-log files unchanged on success and mismatch"
+    },
+    {
+      "desc": "All other `flow get` subcommands must retain their existing options, target resolution, output envelopes, and mutation behavior.",
+      "status": "done",
+      "note": "R7: confines target-option behavior to runtime-log while every other get contract keeps regression coverage"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 7,
+    "done": 7,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

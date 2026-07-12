@@ -290,7 +290,7 @@ export async function dispatch({
     const helpHint = entry.helpPath
       ? `Run: ${entry.helpPath}`
       : `Run: senti ${envelopeType || "flow"} ${envelopeKey || ""} --help`.trimEnd();
-    if (mode === "envelope") {
+    if (mode === "envelope" || entry.parseErrorsAsEnvelope === true) {
       const env = Envelope.fail(envelopeType || "run", envelopeKey || "?", "ARGS_ERROR", [
         String(err.message || err),
         helpHint,

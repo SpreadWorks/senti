@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "The runtime-log command must accept `--expect-run-id`, `--expect-issue`, and `--expect-spec` using the existing target-aware types and validation, require at least one of them, and accept every non-empty subset.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/runtime-log-target-identity.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "The command must resolve exactly one local, active, or preparing target from the supplied identity; every supplied expectation must match, and missing, ambiguous, or mismatched input must not fall back to another flow.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/runtime-log-target-identity.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "Run ID, Issue, and spec mismatches against a resolved target must return `ACTIVE_FLOW_MISMATCH` with the existing expected/active identity data and no runtime-log content.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/runtime-log-target-identity.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "A missing or ambiguous explicit target must return a structured `FLOW_TARGET_NOT_FOUND` failure, and a target with no matching log block must return the existing `RUNTIME_LOG_NOT_FOUND` failure; neither failure may disclose another target's log.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/runtime-log-target-identity.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "After a target match, raw text, `--format json`, `--sequence`, `--run-id`, `runId#sequence`, conflict validation, latest non-runtime-log selection, and existing invalid-argument envelopes must retain their public behavior while selecting only blocks owned by the resolved target run ID.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/runtime-log-target-identity.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "Successful and failed runtime-log reads must not modify flow files, spec files, runtime-log content, metadata, Issue state, board state, or generated product artifacts beyond the dispatcher's established command-log append.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/runtime-log-target-identity.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "All other `flow get` subcommands must retain their existing options, target resolution, output envelopes, and mutation behavior.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/runtime-log-target-identity.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/runtime-log-target-identity.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7"
+      ]
+    }
+  ]
+}

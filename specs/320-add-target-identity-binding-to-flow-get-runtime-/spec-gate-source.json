@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "fail",
+      "reason": "Spec coverage is targeted only at `tests/`; the spec does not require new spec behavior coverage under `specs/<specid>/tests/`.",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "implementationTargets"
+          },
+          "observed": "Spec coverage is targeted only at `tests/`; the spec does not require new spec behavior coverage under `specs/<specid>/tests/`.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "fail",
+      "reason": "Task test strategies describe registry, temporary repository, runtime-log, and adjacent regression tests, but do not require a `// spec: R<N> ...` header per spec-local test file.",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks"
+          },
+          "observed": "Task test strategies describe registry, temporary repository, runtime-log, and adjacent regression tests, but do not require a `// spec: R<N> ...` header per spec-local test file.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "spec-test-coverage",
+      "where": {
+        "file": "spec.json",
+        "locator": "implementationTargets"
+      },
+      "observed": "Spec coverage is targeted only at `tests/`; the spec does not require new spec behavior coverage under `specs/<specid>/tests/`.",
+      "severity": "blocking",
+      "refs": [
+        "spec-test-coverage"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "spec-test-coverage",
+      "where": {
+        "file": "spec.json",
+        "locator": "tasks"
+      },
+      "observed": "Task test strategies describe registry, temporary repository, runtime-log, and adjacent regression tests, but do not require a `// spec: R<N> ...` header per spec-local test file.",
+      "severity": "blocking",
+      "refs": [
+        "spec-test-coverage"
+      ]
+    }
+  ]
+}

@@ -19,6 +19,7 @@ import { withSpecIdArgDefault, withSpecIdDefault } from "./flow-options.js";
 import { ActiveFlowRegistry } from "./active-flow-registry.js";
 import { PreparingFlowStore } from "./preparing-flow-store.js";
 import { STATE_FILE, SCAN_FLOWS_LIMIT, PREPARING_SCAN_LIMIT, specIdFromPath } from "./flow-helpers.js";
+import { FlowTargetExpectation } from "./flow-target-guard.js";
 import { findInProgressLeaf } from "../flow/lib/step-tree.js";
 
 export class FlowScanEntry {
@@ -88,6 +89,54 @@ export class RecoveryFlowCandidate {
       worktreePath: this.state === "orphan-worktree" || this.mode === "worktree" ? this.executionRoot : null,
       continuable: this.continuable,
       blockReason: this.blockReason,
+    };
+  }
+}
+
+export class ResolvedFlowTarget {
+  constructor({ state, specId = null, worktreePath = null, authorityRoot, preparing = false }) {
+    if (!state || typeof state !== "object") throw new Error("resolved flow target state is required");
+    if (!state.runId) throw new Error("resolved flow target runId is required");
+    if (!authorityRoot) throw new Error("resolved flow target authority root is required");
+    this.state = state;
+    this.specId = state.spec ? specIdFromPath(state.spec) : specId;
+    this.worktreePath = worktreePath;
+    this.authorityRoot = authorityRoot;
+    this.preparing = Boolean(preparing);
+    if (this.preparing && this.specId != null) {
+      throw new Error("preparing flow target must not have a spec");
+    }
+    if (!this.preparing && !this.specId) {
+      throw new Error("active flow target spec is required");
+    }
+    Object.freeze(this);
+  }
+
+  matches(expectation) {
+    if (!(expectation instanceof FlowTargetExpectation) || expectation.empty) return false;
+    if (expectation.runId != null && this.state.runId !== expectation.runId) return false;
+    if (expectation.issue != null && Number(this.state.issue) !== expectation.issue) return false;
+    if (expectation.spec != null && this.specId !== expectation.spec) return false;
+    return true;
+  }
+}
+
+export class FlowTargetNotFoundError extends Error {
+  constructor(expectation, matchCount) {
+    const target = [
+      expectation.runId && `runId ${expectation.runId}`,
+      expectation.issue && `Issue #${expectation.issue}`,
+      expectation.spec && `spec ${expectation.spec}`,
+    ].filter(Boolean).join(", ");
+    super(matchCount > 1
+      ? `explicit flow target is ambiguous: ${target}`
+      : `explicit flow target not found: ${target}`);
+    this.code = "FLOW_TARGET_NOT_FOUND";
+    this.data = {
+      matchCount,
+      ...(expectation.runId != null && { expectedRunId: expectation.runId }),
+      ...(expectation.issue != null && { expectedIssue: expectation.issue }),
+      ...(expectation.spec != null && { expectedSpec: expectation.spec }),
     };
   }
 }
@@ -257,6 +306,36 @@ export class FlowManager {
   }
   deletePreparingFlow(runId) { return this._preparing.delete(runId); }
   listPreparingFlows() { return this._preparing.list(); }
+
+  resolveExplicitFlowTarget(expectation) {
+    if (!(expectation instanceof FlowTargetExpectation) || expectation.empty) {
+      throw new Error("explicit flow target expectation is required");
+    }
+    const targets = [];
+    for (const entry of this._activeFlows.load()) {
+      const resolved = this._loadActiveFlowState(entry.spec);
+      if (!resolved?.state) continue;
+      const target = new ResolvedFlowTarget({
+        state: resolved.state,
+        specId: resolved.specId,
+        worktreePath: resolved.worktreePath,
+        authorityRoot: resolved.worktreePath || this._mainRoot,
+      });
+      if (target.matches(expectation)) targets.push(target);
+    }
+    for (const runId of this._preparing.list()) {
+      const state = this._preparing.load(runId);
+      if (!state) continue;
+      const target = new ResolvedFlowTarget({
+        state,
+        authorityRoot: this._mainRoot,
+        preparing: true,
+      });
+      if (target.matches(expectation)) targets.push(target);
+    }
+    if (targets.length !== 1) throw new FlowTargetNotFoundError(expectation, targets.length);
+    return targets[0];
+  }
 
   // ── cross-cutting ───────────────────────────────────────────────────────────
 

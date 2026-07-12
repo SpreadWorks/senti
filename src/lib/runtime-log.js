@@ -88,6 +88,41 @@ export class RuntimeLogBlock {
   }
 }
 
+export class RuntimeLogSelection {
+  constructor({
+    sequence = null,
+    runId = null,
+    ownerRunId = null,
+    latestNonRuntimeLog = false,
+  } = {}) {
+    if (sequence != null && (!Number.isInteger(sequence) || sequence < 1)) {
+      throw new Error(`invalid runtime log selection sequence: ${sequence}`);
+    }
+    this.sequence = sequence;
+    this.runId = runId == null ? null : String(runId);
+    this.ownerRunId = ownerRunId == null ? null : String(ownerRunId);
+    this.latestNonRuntimeLog = Boolean(latestNonRuntimeLog);
+    Object.freeze(this);
+  }
+
+  select(blocks) {
+    const owned = this.ownerRunId == null
+      ? blocks
+      : blocks.filter((block) => block.runId === this.ownerRunId);
+    if (this.sequence != null || this.runId != null) {
+      return owned.find((block) => {
+        if (this.sequence != null && block.sequence !== this.sequence) return false;
+        if (this.runId != null && block.runId !== this.runId) return false;
+        return true;
+      }) || null;
+    }
+    const candidates = this.latestNonRuntimeLog
+      ? owned.filter((block) => block.command !== "flow get runtime-log")
+      : owned;
+    return candidates.at(-1) || null;
+  }
+}
+
 export class RuntimeLogFile {
   constructor(root, flowId) {
     this.root = root;
@@ -114,19 +149,8 @@ export class RuntimeLogFile {
       .map((match) => new RuntimeLogBlock(match[0]));
   }
 
-  select({ sequence = null, runId = null, latestNonRuntimeLog = false } = {}) {
-    const blocks = this.blocks();
-    if (sequence != null || runId != null) {
-      return blocks.find((block) => {
-        if (sequence != null && block.sequence !== sequence) return false;
-        if (runId != null && block.runId !== runId) return false;
-        return true;
-      }) || null;
-    }
-    const candidates = latestNonRuntimeLog
-      ? blocks.filter((block) => block.command !== "flow get runtime-log")
-      : blocks;
-    return candidates.at(-1) || null;
+  select(input = {}) {
+    return new RuntimeLogSelection(input).select(this.blocks());
   }
 }
 
