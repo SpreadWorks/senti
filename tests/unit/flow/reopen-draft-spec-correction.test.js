@@ -159,7 +159,7 @@ function setupFlow(root, {
       { phase: "test", counter: "reviewRetry", delta: 1, taskId: null, ts: "2026-07-13T00:00:00Z" },
     ],
     retryLimits: { gate: 5, review: 4 },
-    ...(planRewinds && { planRewinds: structuredClone(planRewinds) }),
+    ...(planRewinds !== undefined && { planRewinds: structuredClone(planRewinds) }),
   };
   if (!doneTask && taskStepStatus) state.tasks[0].steps[0].status = taskStepStatus;
   const fm = new FlowManager({ root, mainRoot, inWorktree });
@@ -196,19 +196,20 @@ function git(root, args) {
   return execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
 }
 
+async function setupConvergedReopen(root) {
+  const fixture = setupFlow(root, { tasks: [startedTask("T-1")], currentTaskId: "T-1" });
+  const first = await runDirect(root);
+  assert.equal(first.ok, true, JSON.stringify(first.errors));
+  return fixture;
+}
+
 describe("guarded single-state reopen for source-discovered spec corrections", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
   it("uses one public atomic flow save and leaves every non-flow byte unchanged", async () => {
     tmp = createTmpDir("reopen-single-state-");
-    const olderAudit = {
-      category: "spec-correction",
-      reason: "older correction",
-      target: { runId: "run-441", spec: SPEC_PATH, issue: 441 },
-      timestamp: "2026-07-12T00:00:00Z",
-    };
-    const { files } = setupFlow(tmp, { planRewinds: [olderAudit] });
+    const { files } = setupFlow(tmp);
     const before = snapshot(files);
     const container = makeContainer(tmp);
     const fm = container.get("flowManager");
@@ -245,9 +246,8 @@ describe("guarded single-state reopen for source-discovered spec corrections", (
       { phase: "test", counter: "reviewRetry", delta: 1, taskId: null, ts: "2026-07-13T00:00:00Z" },
     ]);
     assert.deepEqual(state.retryLimits, { gate: 5, review: 4 });
-    assert.equal(state.planRewinds.length, 2);
-    assert.deepEqual(state.planRewinds[0], olderAudit);
-    const audit = state.planRewinds[1];
+    assert.equal(state.planRewinds.length, 1);
+    const audit = state.planRewinds[0];
     assert.equal(audit.category, "spec-correction");
     assert.equal(audit.reason, targetInput().reason);
     assert.deepEqual(audit.invalidatedPhases, ["plan", "impl"]);
@@ -274,6 +274,69 @@ describe("guarded single-state reopen for source-discovered spec corrections", (
     assert.equal(audit.resultingState.stepStatuses.approval, "pending");
     assert.equal(findStepById(state.steps, "approval").runtimeLog, undefined);
     assert.doesNotMatch(JSON.stringify(audit), /originIssue|Issue #441/);
+  });
+
+  it("rejects every present non-array plan rewind history without changing bytes", async () => {
+    for (const [name, planRewinds] of [
+      ["null", null],
+      ["object", { retained: "evidence" }],
+      ["string", "retained evidence"],
+      ["number", 7],
+    ]) {
+      tmp = createTmpDir(`reopen-invalid-history-${name}-`);
+      const { files } = setupFlow(tmp, { planRewinds });
+      const before = snapshot(files);
+
+      const result = await runDirect(tmp);
+
+      assert.equal(result.ok, false, name);
+      assert.equal(result.errors[0].code, "REOPEN_AUDIT_INVALID", name);
+      assert.deepEqual(snapshot(files), before, name);
+      removeTmpDir(tmp);
+      tmp = null;
+    }
+  });
+
+  it("appends a new correction without changing a valid historical audit", async () => {
+    tmp = createTmpDir("reopen-append-valid-history-");
+    const { files } = await setupConvergedReopen(tmp);
+    const progressed = JSON.parse(fs.readFileSync(files.flow, "utf8"));
+    const historicalAudit = structuredClone(progressed.planRewinds[0]);
+    progressed.steps = implementationSteps("implement");
+    progressed.tasks = [startedTask("T-1")];
+    progressed.currentTaskId = "T-1";
+    writeJson(files.flow, progressed);
+
+    const second = await runDirect(tmp, targetInput({ reason: "A second source contradiction was verified." }));
+
+    assert.equal(second.ok, true, JSON.stringify(second.errors));
+    const state = JSON.parse(fs.readFileSync(files.flow, "utf8"));
+    assert.equal(state.planRewinds.length, 2);
+    assert.deepEqual(state.planRewinds[0], historicalAudit);
+    assert.equal(state.planRewinds[1].reason, "A second source contradiction was verified.");
+    const convergedBytes = fs.readFileSync(files.flow);
+    const retry = await runDirect(tmp, targetInput({ reason: "A second source contradiction was verified." }));
+    assert.equal(retry.ok, true, JSON.stringify(retry.errors));
+    assert.equal(retry.data.idempotent, true);
+    assert.deepEqual(fs.readFileSync(files.flow), convergedBytes);
+  });
+
+  it("rejects a malformed historical audit before an implement-stage append", async () => {
+    tmp = createTmpDir("reopen-reject-history-before-append-");
+    const { files } = await setupConvergedReopen(tmp);
+    const progressed = JSON.parse(fs.readFileSync(files.flow, "utf8"));
+    progressed.steps = implementationSteps("implement");
+    progressed.tasks = [startedTask("T-1")];
+    progressed.currentTaskId = "T-1";
+    progressed.planRewinds[0].unknownHistoricalField = true;
+    writeJson(files.flow, progressed);
+    const before = snapshot(files);
+
+    const result = await runDirect(tmp, targetInput({ reason: "A second source contradiction was verified." }));
+
+    assert.equal(result.ok, false);
+    assert.equal(result.errors[0].code, "REOPEN_AUDIT_INVALID");
+    assert.deepEqual(snapshot(files), before);
   });
 
   it("accepts explicit Issue presence or absence without fabricating identity", async () => {
@@ -451,6 +514,48 @@ describe("guarded single-state reopen for source-discovered spec corrections", (
     assert.deepEqual(snapshot(files), before);
   });
 
+  it("rejects incomplete, unknown, contradictory, duplicate, and forged retry audits", async () => {
+    const cases = [
+      ["incomplete", (state) => { delete state.planRewinds[0].previousState; }],
+      ["unknown-field", (state) => { state.planRewinds[0].unexpected = true; }],
+      ["wrong-previous-state", (state) => { state.planRewinds[0].previousState.taskStatuses["T-1"] = "done"; }],
+      ["wrong-invalidated-results", (state) => { state.planRewinds[0].invalidatedResults.approvals = []; }],
+      ["duplicate", (state) => { state.planRewinds.push(structuredClone(state.planRewinds[0])); }],
+      ["conflicting", (state) => {
+        const conflict = structuredClone(state.planRewinds[0]);
+        conflict.timestamp = "2026-07-13T23:59:59.000Z";
+        conflict.previousState.currentTaskId = "T-foreign";
+        state.planRewinds.push(conflict);
+      }],
+      ["matching-summary-forgery", (state) => {
+        const audit = state.planRewinds[0];
+        state.planRewinds = [{
+          category: audit.category,
+          reason: audit.reason,
+          target: audit.target,
+          resultingState: audit.resultingState,
+        }];
+      }],
+    ];
+
+    for (const [name, corrupt] of cases) {
+      tmp = createTmpDir(`reopen-forged-audit-${name}-`);
+      const { files } = await setupConvergedReopen(tmp);
+      const state = JSON.parse(fs.readFileSync(files.flow, "utf8"));
+      corrupt(state);
+      writeJson(files.flow, state);
+      const before = snapshot(files);
+
+      const result = await runDirect(tmp);
+
+      assert.equal(result.ok, false, name);
+      assert.equal(result.errors[0].code, "REOPEN_AUDIT_INVALID", name);
+      assert.deepEqual(snapshot(files), before, name);
+      removeTmpDir(tmp);
+      tmp = null;
+    }
+  });
+
   it("converges a committed durability fault and makes an exact retry mutation-free", async () => {
     tmp = createTmpDir("reopen-committed-retry-");
     const { files } = setupFlow(tmp, { tasks: [startedTask("T-1")], currentTaskId: "T-1" });
@@ -480,6 +585,7 @@ describe("guarded single-state reopen for source-discovered spec corrections", (
     const convergedBytes = fs.readFileSync(files.flow);
     const converged = JSON.parse(convergedBytes);
     assert.equal(converged.planRewinds.length, 1);
+    assert.match(converged.planRewinds[0].stateDigest, /^[a-f0-9]{64}$/);
     assert.equal(findInProgressLeaf(converged.steps).id, "draft");
 
     const retry = await runDirect(tmp);
@@ -488,6 +594,40 @@ describe("guarded single-state reopen for source-discovered spec corrections", (
     assert.equal(retry.data.idempotent, true);
     assert.deepEqual(fs.readFileSync(files.flow), convergedBytes);
     assert.equal(JSON.parse(fs.readFileSync(files.flow, "utf8")).planRewinds.length, 1);
+  });
+
+  it("does not convert a committed write error when authority differs from the expected transaction", async () => {
+    tmp = createTmpDir("reopen-committed-divergence-");
+    const { files } = setupFlow(tmp, { tasks: [startedTask("T-1")], currentTaskId: "T-1" });
+    const container = makeContainer(tmp);
+    const fm = container.get("flowManager");
+    const forRoot = fm.forRoot.bind(fm);
+    fm.forRoot = (root, options) => {
+      const bound = forRoot(root, options);
+      const saveAtomic = bound.saveAtomic.bind(bound);
+      bound.saveAtomic = (state, atomicOptions) => saveAtomic(state, {
+        ...atomicOptions,
+        faultInjector(event) {
+          if (event.phase !== "after-state-rename") return;
+          const divergent = JSON.parse(fs.readFileSync(files.flow, "utf8"));
+          divergent.postCommitCorruption = "must prevent success conversion";
+          writeJson(files.flow, divergent);
+          throw new Error("simulated divergent authority after replacement");
+        },
+      });
+      return bound;
+    };
+
+    const result = await new RunReopenDraftCommand().run(container, targetInput());
+
+    assert.equal(result.ok, false);
+    assert.equal(result.errors[0].code, "FLOW_STATE_ATOMIC_SAVE_FAILED");
+    assert.equal(result.data.committed, true);
+    const divergentBytes = fs.readFileSync(files.flow);
+    const retry = await runDirect(tmp);
+    assert.equal(retry.ok, false);
+    assert.equal(retry.errors[0].code, "REOPEN_AUDIT_INVALID");
+    assert.deepEqual(fs.readFileSync(files.flow), divergentBytes);
   });
 
   it("preserves the existing plan and task-addition routes", async () => {

@@ -16,6 +16,10 @@ import { FLOW_STEPS, PHASE_MAP } from "../../lib/flow-helpers.js";
 import { loadSpecJson, resolveSpecJsonPath } from "../../lib/spec-json.js";
 import { findInProgressLeaf, findStepById } from "./step-tree.js";
 import { DRAFT_REVIEW_ROUTES } from "./draft-review-routes.js";
+import {
+  PlanRewindAuditHistory,
+  sealLatestPlanRewind,
+} from "./spec-correction-rewind-audit.js";
 
 const MAX_REASON_LENGTH = 500;
 const SPEC_CORRECTION_CATEGORY = "spec-correction";
@@ -329,21 +333,6 @@ function appendIssueLog(root, state, entry) {
   appendIssueLogEntry(root, state.spec, { ...entry, timestamp: new Date().toISOString() });
 }
 
-function auditTargetsRequest(audit, state, reason) {
-  return audit?.category === SPEC_CORRECTION_CATEGORY
-    && audit.reason === reason
-    && audit.target?.runId === state.runId
-    && audit.target?.spec === state.spec
-    && (audit.target?.issue ?? null) === (state.issue == null ? null : Number(state.issue));
-}
-
-function convergedSpecCorrectionAudit(state, reason, stepIds) {
-  const audit = Array.isArray(state.planRewinds) ? state.planRewinds.at(-1) : null;
-  if (!auditTargetsRequest(audit, state, reason) || !audit.resultingState) return null;
-  const current = new PlanRewindResultingState(state, stepIds).toJSON();
-  return isDeepStrictEqual(current, audit.resultingState) ? audit : null;
-}
-
 function specCorrectionResult(audit, resetSteps, replacement, options = {}) {
   const taskStatuses = audit.previousState?.taskStatuses || {};
   return Envelope.ok("run", "reopen-draft", {
@@ -373,6 +362,15 @@ function saveFailure(err) {
       cleanupErrors: err.cleanupErrors ?? [],
       residuePaths: err.residuePaths ?? [],
     },
+  );
+}
+
+function auditFailure(err) {
+  return Envelope.fail(
+    "run",
+    "reopen-draft",
+    err.code || "REOPEN_AUDIT_INVALID",
+    err.message,
   );
 }
 
@@ -410,8 +408,13 @@ function executeSpecCorrection({ flowManager, root, specId, state, reason }) {
     stepIds,
     timestamp,
   });
-  if (!Array.isArray(nextState.planRewinds)) nextState.planRewinds = [];
+  if (!Object.hasOwn(nextState, "planRewinds")) nextState.planRewinds = [];
   nextState.planRewinds.push(audit.toJSON());
+  try {
+    sealLatestPlanRewind(nextState);
+  } catch (err) {
+    return auditFailure(err);
+  }
 
   const boundManager = flowManager.forRoot(root, { specId });
   let replacement;
@@ -425,9 +428,14 @@ function executeSpecCorrection({ flowManager, root, specId, state, reason }) {
     } catch {
       return saveFailure(err);
     }
-    const committedAudit = committedState
-      ? convergedSpecCorrectionAudit(committedState, reason, stepIds)
-      : null;
+    if (!committedState || !isDeepStrictEqual(committedState, nextState)) return saveFailure(err);
+    let committedAudit;
+    try {
+      const committedHistory = new PlanRewindAuditHistory(committedState);
+      committedAudit = committedHistory.exactRetry(committedState, { reason });
+    } catch {
+      return saveFailure(err);
+    }
     if (!committedAudit) return saveFailure(err);
     return specCorrectionResult(
       committedAudit,
@@ -467,10 +475,21 @@ export class RunReopenDraftCommand extends FlowCommand {
       }
       const guardFailure = validateCorrectionGuards(ctx, state);
       if (guardFailure) return guardFailure;
+      let auditHistory;
+      try {
+        auditHistory = new PlanRewindAuditHistory(state);
+      } catch (err) {
+        return auditFailure(err);
+      }
       const activeStep = findInProgressLeaf(state.steps || [])?.id ?? null;
       if (activeStep !== "implement") {
         const stepIds = specCorrectionResetStepIds();
-        const retryAudit = convergedSpecCorrectionAudit(state, reason, stepIds);
+        let retryAudit;
+        try {
+          retryAudit = auditHistory.exactRetry(state, { reason });
+        } catch (err) {
+          return auditFailure(err);
+        }
         if (retryAudit) {
           const resetSteps = stepIds.filter((id) => findStepById(state.steps || [], id));
           return specCorrectionResult(retryAudit, resetSteps, null, { idempotent: true });
