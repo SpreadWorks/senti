@@ -20,7 +20,6 @@ import { Envelope } from "./flow-envelope.js";
 import { RuntimeLogBlockWriter } from "./runtime-log.js";
 import { targetMismatchEnvelopeForInput } from "./flow-target-guard.js";
 import { findActiveNode, taskIdForResolvedStep } from "../flow/definition.js";
-import { ReopenDraftRecoveryPreflight } from "../flow/lib/reopen-draft-transaction.js";
 
 function throwUnexpected(extras) {
   const unknownOpt = extras.find((v) => typeof v === "string" && v.startsWith("-"));
@@ -308,38 +307,6 @@ export async function dispatch({
     closeRuntimeLog();
     if (restoreStreams) restoreStreams();
     return;
-  }
-
-  // A prior process may have stopped between durable transaction phases.
-  // Recover before help, hook context, target guards, runtime logs, or command loading
-  // can observe or persist metadata derived from an intermediate flow state.
-  if (buildHookCtx && container.has("paths")) {
-    try {
-      new ReopenDraftRecoveryPreflight({
-        root: container.get("paths").root,
-        mainRoot: container.has("mainRoot")
-          ? container.get("mainRoot")
-          : container.get("paths").root,
-      }).run();
-    } catch (err) {
-      const envelope = Envelope.fail(
-        envelopeType || "run",
-        envelopeKey || "?",
-        err.code === "TRANSACTION_IN_PROGRESS"
-          ? "TRANSACTION_IN_PROGRESS"
-          : "TRANSACTION_RECOVERY_FAILED",
-        err.message,
-        {
-          journalPath: err.journalPath ?? null,
-          lockPath: err.lockPath ?? null,
-          committed: err.committed === true,
-          transaction: "issue-441-reopen-draft",
-        },
-      );
-      writeOut(`${JSON.stringify(envelope.toJSON(), null, 2)}\n`);
-      setExit(1);
-      return;
-    }
   }
 
   // 2. help shortcut

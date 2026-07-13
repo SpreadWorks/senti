@@ -183,6 +183,7 @@ export class FlowManager {
     return this._store.loadReadOnly(withSpecIdArgDefault(specId, this._boundSpecId));
   }
   save(state) { return this._store.save(state); }
+  saveAtomic(state, options) { return this._store.saveAtomic(state, options); }
   mutate(mutator, opts) { return this._store.mutate(mutator, withSpecIdDefault(opts, this._boundSpecId)); }
   pathFor(specId) { return this._store.pathFor(withSpecIdArgDefault(specId, this._boundSpecId)); }
   pathForCurrent() { return this._store.pathForCurrent(); }

@@ -1,29 +1,18 @@
 /**
- * src/flow/lib/run-reopen-draft.js
+ * FlowCommand: `flow reopen-draft`.
  *
- * FlowCommand: `flow reopen-draft` — rewind the flow's draft step to
- * in_progress so the user can answer draft QA or add tasks to a spec.
- *
- * Preconditions:
- *   - pre-implementation plan flows may reopen before tasks exist
- *   - implementation-phase task additions require at least one done task
- *
- * Side effects:
- *   - mark flow.draft step as in_progress
- *   - append an entry to specs/<spec>/issue-log.json recording the event
+ * The established plan and task-addition routes update flow.json and append
+ * issue-log entries. The guarded spec-correction route has a narrower owner:
+ * it atomically replaces only the already-resolved flow.json authority and
+ * leaves spec, issue-log, source, and evidence files to their normal owners.
  */
 
-import fs from "fs";
-import path from "path";
 import { FlowCommand } from "./base-command.js";
-import { FlowManager } from "../../lib/flow-manager.js";
 import { Envelope } from "../../lib/flow-envelope.js";
-import { targetMismatchEnvelopeForInput } from "../../lib/flow-target-guard.js";
 import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
-import { FLOW_STEPS } from "../../lib/flow-helpers.js";
+import { FLOW_STEPS, PHASE_MAP } from "../../lib/flow-helpers.js";
 import { findInProgressLeaf, findStepById } from "./step-tree.js";
 import { DRAFT_REVIEW_ROUTES } from "./draft-review-routes.js";
-import { ReopenDraftTransaction } from "./reopen-draft-transaction.js";
 
 const MAX_REASON_LENGTH = 500;
 const SPEC_CORRECTION_CATEGORY = "spec-correction";
@@ -46,12 +35,8 @@ function draftReviewResetStepIdsForReopen() {
   ]);
 }
 
-const STALE_DRAFT_REVIEW_ARTIFACTS = Object.freeze(
-  draftReviewArtifactNamesForReopen(),
-);
-const PLAN_REOPEN_DRAFT_REVIEW_RESET_STEPS = Object.freeze(
-  draftReviewResetStepIdsForReopen(),
-);
+const STALE_DRAFT_REVIEW_ARTIFACTS = Object.freeze(draftReviewArtifactNamesForReopen());
+const PLAN_REOPEN_DRAFT_REVIEW_RESET_STEPS = Object.freeze(draftReviewResetStepIdsForReopen());
 const PLAN_REOPEN_ACTIVE_STEPS = Object.freeze([
   "spec",
   "spec-review",
@@ -76,32 +61,11 @@ const STALE_ARTIFACTS = Object.freeze([
   "issue.md",
   "test.md",
 ]);
-const SPEC_CORRECTION_STALE_ARTIFACTS = Object.freeze([
-  ...STALE_ARTIFACTS,
-  "draft-gate-result.json",
-  "spec-review.json",
-  "spec-gate-result.json",
-  "approval.json",
-  "test-review.json",
-  "test-review-triage.json",
-  "test-review-repair.json",
-  "test-execute-result.json",
-  "impl-review.json",
-  "impl-gate-result.json",
-]);
-const RETRY_RESETS = Object.freeze([
-  ...["draft", "spec", "task-impl", "integration"].map((phase) => ({ phase, counter: "gateRetry" })),
-  ...["draft-questions", "draft-coverage", "spec", "test", "impl"].map((phase) => ({ phase, counter: "reviewRetry" })),
-]);
 
 function validateReason(raw) {
   if (raw == null) return "";
-  if (typeof raw !== "string") {
-    throw new Error("--reason must be a string");
-  }
-  if (raw.includes("\0")) {
-    throw new Error("--reason contains invalid NUL byte");
-  }
+  if (typeof raw !== "string") throw new Error("--reason must be a string");
+  if (raw.includes("\0")) throw new Error("--reason contains invalid NUL byte");
   const trimmed = raw.trim();
   if (trimmed.length > MAX_REASON_LENGTH) {
     throw new Error(`--reason exceeds ${MAX_REASON_LENGTH} characters`);
@@ -132,36 +96,44 @@ function specCorrectionResetStepIds() {
   return FLOW_STEPS.slice(FLOW_STEPS.indexOf("draft"));
 }
 
-function appendRetryResets(state, timestamp) {
-  if (!Array.isArray(state.metrics)) state.metrics = [];
-  for (const reset of RETRY_RESETS) {
-    state.metrics.push({ ...reset, delta: 0, reset: true, taskId: null, ts: timestamp });
+class PlanRewindPreviousState {
+  constructor(state, stepIds) {
+    this.activeStep = findInProgressLeaf(state.steps || [])?.id ?? null;
+    this.currentTaskId = state.currentTaskId ?? null;
+    this.stepStatuses = Object.fromEntries(stepIds.map((id) => [
+      id,
+      findStepById(state.steps || [], id)?.status ?? null,
+    ]));
+    Object.freeze(this.stepStatuses);
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      activeStep: this.activeStep,
+      currentTaskId: this.currentTaskId,
+      stepStatuses: this.stepStatuses,
+    };
   }
 }
 
 class PlanRewindAuditEntry {
-  constructor({ state, category, reason, sourceStage, invalidatedEvidence, timestamp }) {
-    const hasIssue = state.issue != null;
+  constructor({ state, category, reason, stepIds, timestamp }) {
     this.category = category;
     this.reason = reason;
     this.target = {
       runId: state.runId,
       spec: state.spec,
-      issue: { present: hasIssue, value: hasIssue ? Number(state.issue) : null },
+      issue: state.issue == null ? null : Number(state.issue),
     };
-    this.sourceStage = sourceStage;
-    this.destinationStep = "draft";
-    this.invalidatedEvidence = [...invalidatedEvidence];
-    this.preservedWorktree = {
-      enabled: state.worktree === true,
-      featureBranch: state.featureBranch ?? null,
-      spec: state.spec,
-    };
+    this.previousState = new PlanRewindPreviousState(state, stepIds);
+    this.invalidatedPhases = [...new Set(stepIds
+      .filter((id) => this.previousState.stepStatuses[id] !== "pending")
+      .map((id) => PHASE_MAP[id])
+      .filter(Boolean))];
     this.timestamp = timestamp;
-    Object.freeze(this.invalidatedEvidence);
-    Object.freeze(this.preservedWorktree);
-    Object.freeze(this.target.issue);
     Object.freeze(this.target);
+    Object.freeze(this.invalidatedPhases);
     Object.freeze(this);
   }
 
@@ -170,10 +142,8 @@ class PlanRewindAuditEntry {
       category: this.category,
       reason: this.reason,
       target: this.target,
-      sourceStage: this.sourceStage,
-      destinationStep: this.destinationStep,
-      invalidatedEvidence: this.invalidatedEvidence,
-      preservedWorktree: this.preservedWorktree,
+      invalidatedPhases: this.invalidatedPhases,
+      previousState: this.previousState.toJSON(),
       timestamp: this.timestamp,
     };
   }
@@ -203,90 +173,54 @@ function appendIssueLog(root, state, entry) {
   saveIssueLog(root, state.spec, log);
 }
 
-function serializeJson(value) {
-  return `${JSON.stringify(value, null, 2)}\n`;
-}
-
-function executeSpecCorrection({ root, state, reason }) {
-  const tasks = Array.isArray(state.tasks) ? state.tasks : [];
-  const previousActiveStep = findInProgressLeaf(state.steps || [])?.id ?? null;
+function executeSpecCorrection({ flowManager, state, reason }) {
+  const stepIds = specCorrectionResetStepIds();
   const timestamp = new Date().toISOString();
   const audit = new PlanRewindAuditEntry({
     state,
     category: SPEC_CORRECTION_CATEGORY,
     reason,
-    sourceStage: previousActiveStep,
-    invalidatedEvidence: SPEC_CORRECTION_STALE_ARTIFACTS,
+    stepIds,
     timestamp,
   });
-  const spec = JSON.parse(fs.readFileSync(path.resolve(root, state.spec), "utf8"));
-  const issueLog = loadIssueLog(root, state.spec);
-  const resetSteps = resetStepSequence(state, specCorrectionResetStepIds());
-  state.currentTaskId = null;
-  appendRetryResets(state, timestamp);
-  if (!Array.isArray(state.planRewinds)) state.planRewinds = [];
-  state.planRewinds.push(audit.toJSON());
-  spec.user_approval = {
-    ...(spec.user_approval || {}),
-    approved: false,
-    confirmed_at: "",
-    notes: "Invalidated by an audited Issue #441 spec-correction rewind.",
-  };
-  issueLog.entries.push({
-    step: "draft",
-    category: SPEC_CORRECTION_CATEGORY,
-    originIssue: 441,
-    reason,
-    trigger: `source verification discovered a spec correction during ${previousActiveStep}`,
-    resolution: `flow rewound to draft; evidence retained but invalidated: ${SPEC_CORRECTION_STALE_ARTIFACTS.join(", ")}`,
-    target: audit.target,
-    timestamp,
-  });
+  const nextState = structuredClone(state);
+  const resetSteps = resetStepSequence(nextState, stepIds);
+  nextState.currentTaskId = null;
+  if (!Array.isArray(nextState.planRewinds)) nextState.planRewinds = [];
+  nextState.planRewinds.push(audit.toJSON());
 
-  let transaction;
+  let replacement;
   try {
-    transaction = new ReopenDraftTransaction({
-      root,
-      specPath: state.spec,
-      identity: { runId: state.runId, issue: state.issue ?? null },
-      contents: {
-        flow: serializeJson(state),
-        spec: serializeJson(spec),
-        issueLog: serializeJson(issueLog),
-      },
-    }).commit();
+    replacement = flowManager.saveAtomic(nextState);
   } catch (err) {
     return Envelope.fail(
       "run",
       "reopen-draft",
-      err.code || "REOPEN_FAILED",
+      err.code || "REOPEN_SAVE_FAILED",
       err.message,
       {
-        journalPath: err.journalPath ?? null,
-        recovered: err.recovered ?? false,
         committed: err.committed === true,
-        transaction: "issue-441-reopen-draft",
+        statePath: err.path ?? null,
       },
     );
   }
 
+  const tasks = Array.isArray(state.tasks) ? state.tasks : [];
   return Envelope.ok("run", "reopen-draft", {
     reopened: true,
     mode: SPEC_CORRECTION_CATEGORY,
-    previousActiveStep,
+    previousActiveStep: audit.previousState.activeStep,
     resetSteps,
-    staleArtifacts: [...SPEC_CORRECTION_STALE_ARTIFACTS],
+    invalidatedPhases: [...audit.invalidatedPhases],
     doneTaskCount: 0,
     taskCount: tasks.length,
-    transaction,
+    stateReplacement: replacement,
   });
 }
 
 export class RunReopenDraftCommand extends FlowCommand {
-  async run(container, input = {}) {
-    const recoveryFailure = this.runRecoveryPreflight(container, input);
-    if (recoveryFailure) return recoveryFailure;
-    if (!REOPEN_CATEGORIES.has(input.category)) {
+  async execute(ctx) {
+    if (!REOPEN_CATEGORIES.has(ctx.category)) {
       return Envelope.fail(
         "run",
         "reopen-draft",
@@ -294,58 +228,9 @@ export class RunReopenDraftCommand extends FlowCommand {
         `--category must be task-addition or ${SPEC_CORRECTION_CATEGORY}`,
       );
     }
-    if (input.category === SPEC_CORRECTION_CATEGORY) {
-      let reason;
-      try {
-        reason = validateReason(input.reason);
-      } catch (err) {
-        return Envelope.fail("run", "reopen-draft", "INVALID_REASON", err.message);
-      }
-      if (!reason) {
-        return Envelope.fail("run", "reopen-draft", "INVALID_REASON", "--reason is required for spec-correction");
-      }
-      const flowManager = container.get("flowManager");
-      const flowPath = flowManager.pathForCurrent();
-      const flowState = flowPath && fs.existsSync(flowPath)
-        ? JSON.parse(fs.readFileSync(flowPath, "utf8"))
-        : null;
-      const mismatch = targetMismatchEnvelopeForInput({
-        type: input._envelopeType || "run",
-        key: input._envelopeKey || "reopen-draft",
-        input,
-        flowState,
-      });
-      if (mismatch) return mismatch;
-      if (flowState) {
-        const guardFailure = validateCorrectionGuards(input, flowState);
-        if (guardFailure) return guardFailure;
-        const activeStep = findInProgressLeaf(flowState.steps || [])?.id ?? null;
-        const hasDoneTask = (flowState.tasks || []).some((task) => task.status === "done");
-        if (activeStep !== "implement" || hasDoneTask) {
-          return Envelope.fail(
-            "run",
-            "reopen-draft",
-            "REOPEN_STAGE_UNSUPPORTED",
-            "spec-correction reopen is only available from implement with zero done tasks",
-          );
-        }
-        return executeSpecCorrection({
-          root: container.get("paths").root,
-          state: flowState,
-          reason,
-        });
-      }
-    }
-    return super.run(container, input);
-  }
 
-  async execute(ctx) {
-    const { root } = ctx;
-    const fm = ctx.flowManager || new FlowManager({ root, mainRoot: root, inWorktree: false });
-    const state = ctx.flowState || fm.load();
-    if (!state) {
-      return Envelope.fail("run", "reopen-draft", "NO_ACTIVE_FLOW", "no active flow found");
-    }
+    const { root, flowManager, flowState: state } = ctx;
+    if (!state) return Envelope.fail("run", "reopen-draft", "NO_ACTIVE_FLOW", "no active flow found");
 
     let reason;
     try {
@@ -354,12 +239,31 @@ export class RunReopenDraftCommand extends FlowCommand {
       return Envelope.fail("run", "reopen-draft", "INVALID_REASON", err.message);
     }
 
+    if (ctx.category === SPEC_CORRECTION_CATEGORY) {
+      if (!reason) {
+        return Envelope.fail("run", "reopen-draft", "INVALID_REASON", "--reason is required for spec-correction");
+      }
+      const guardFailure = validateCorrectionGuards(ctx, state);
+      if (guardFailure) return guardFailure;
+      const activeStep = findInProgressLeaf(state.steps || [])?.id ?? null;
+      const hasDoneTask = (state.tasks || []).some((task) => task.status === "done");
+      if (activeStep !== "implement" || hasDoneTask) {
+        return Envelope.fail(
+          "run",
+          "reopen-draft",
+          "REOPEN_STAGE_UNSUPPORTED",
+          "spec-correction reopen is only available from implement with zero done tasks",
+        );
+      }
+      return executeSpecCorrection({ flowManager, state, reason });
+    }
+
     const tasks = Array.isArray(state.tasks) ? state.tasks : [];
     const previousActiveStep = findInProgressLeaf(state.steps || [])?.id ?? null;
     if (state.currentTaskId == null && PLAN_REOPEN_ACTIVE_STEPS.includes(previousActiveStep)) {
       const resetSteps = [];
-      fm.mutate((s) => {
-        resetSteps.push(...resetStepSequence(s, ["draft", ...PLAN_REOPEN_RESET_STEPS]));
+      flowManager.mutate((nextState) => {
+        resetSteps.push(...resetStepSequence(nextState, ["draft", ...PLAN_REOPEN_RESET_STEPS]));
       });
 
       appendIssueLog(root, state, {
@@ -375,13 +279,12 @@ export class RunReopenDraftCommand extends FlowCommand {
         previousActiveStep,
         resetSteps,
         staleArtifacts: [...STALE_ARTIFACTS],
-        doneTaskCount: tasks.filter((t) => t.status === "done").length,
+        doneTaskCount: tasks.filter((task) => task.status === "done").length,
         taskCount: tasks.length,
       });
     }
 
-    const hasDone = tasks.some((t) => t.status === "done");
-    if (!hasDone) {
+    if (!tasks.some((task) => task.status === "done")) {
       return Envelope.fail(
         "run",
         "reopen-draft",
@@ -390,10 +293,9 @@ export class RunReopenDraftCommand extends FlowCommand {
       );
     }
 
-    fm.mutate((s) => {
-      setStepStatusAndClearTimestamps(s.steps, "draft", "in_progress");
-      // Reset draft-gate so the new round re-runs the gate.
-      setStepStatusAndClearTimestamps(s.steps, "draft-gate", "pending");
+    flowManager.mutate((nextState) => {
+      setStepStatusAndClearTimestamps(nextState.steps, "draft", "in_progress");
+      setStepStatusAndClearTimestamps(nextState.steps, "draft-gate", "pending");
     });
 
     appendIssueLog(root, state, {
@@ -406,7 +308,7 @@ export class RunReopenDraftCommand extends FlowCommand {
     return Envelope.ok("run", "reopen-draft", {
       reopened: true,
       mode: "implementation",
-      doneTaskCount: tasks.filter((t) => t.status === "done").length,
+      doneTaskCount: tasks.filter((task) => task.status === "done").length,
       taskCount: tasks.length,
     });
   }

@@ -14,10 +14,8 @@
  */
 
 import { Command } from "../../lib/command.js";
-import { Envelope } from "../../lib/flow-envelope.js";
 import { resolveFlowContext } from "./flow-context.js";
 import { targetMismatchEnvelopeForInput } from "../../lib/flow-target-guard.js";
-import { ReopenDraftRecoveryPreflight } from "./reopen-draft-transaction.js";
 
 export class FlowCommand extends Command {
   /** All flow commands emit JSON envelopes. */
@@ -43,8 +41,6 @@ export class FlowCommand extends Command {
    */
   async run(container, input = {}) {
     this.container = container;
-    const recoveryFailure = this.runRecoveryPreflight(container, input);
-    if (recoveryFailure) return recoveryFailure;
     const ctx = {
       ...resolveFlowContext(container, {
         allowMissingActive: !this.requiresFlow,
@@ -65,34 +61,6 @@ export class FlowCommand extends Command {
       if (mismatch) return mismatch;
     }
     return this.execute(ctx);
-  }
-
-  runRecoveryPreflight(container, input = {}) {
-    const root = container.get("paths")?.root;
-    if (!root) return null;
-    try {
-      new ReopenDraftRecoveryPreflight({
-        root,
-        mainRoot: container.has("mainRoot") ? container.get("mainRoot") : root,
-      }).run();
-      return null;
-    } catch (err) {
-      return Envelope.fail(
-        input._envelopeType || "run",
-        input._envelopeKey || "flow",
-        err.code === "TRANSACTION_IN_PROGRESS"
-          ? "TRANSACTION_IN_PROGRESS"
-          : "TRANSACTION_RECOVERY_FAILED",
-        err.message,
-        {
-          journalPath: err.journalPath ?? null,
-          lockPath: err.lockPath ?? null,
-          committed: err.committed === true,
-          recovered: false,
-          transaction: "issue-441-reopen-draft",
-        },
-      );
-    }
   }
 
   /**
