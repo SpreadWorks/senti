@@ -173,7 +173,7 @@ function appendIssueLog(root, state, entry) {
   saveIssueLog(root, state.spec, log);
 }
 
-function executeSpecCorrection({ flowManager, state, reason }) {
+function executeSpecCorrection({ flowManager, root, specId, state, reason }) {
   const stepIds = specCorrectionResetStepIds();
   const timestamp = new Date().toISOString();
   const audit = new PlanRewindAuditEntry({
@@ -191,7 +191,9 @@ function executeSpecCorrection({ flowManager, state, reason }) {
 
   let replacement;
   try {
-    replacement = flowManager.saveAtomic(nextState);
+    replacement = flowManager
+      .forRoot(root, { specId })
+      .saveAtomic(nextState, { expectedOriginal: state });
   } catch (err) {
     return Envelope.fail(
       "run",
@@ -201,6 +203,9 @@ function executeSpecCorrection({ flowManager, state, reason }) {
       {
         committed: err.committed === true,
         statePath: err.path ?? null,
+        lockPath: err.lockPath ?? null,
+        cleanupErrors: err.cleanupErrors ?? [],
+        residuePaths: err.residuePaths ?? [],
       },
     );
   }
@@ -246,16 +251,21 @@ export class RunReopenDraftCommand extends FlowCommand {
       const guardFailure = validateCorrectionGuards(ctx, state);
       if (guardFailure) return guardFailure;
       const activeStep = findInProgressLeaf(state.steps || [])?.id ?? null;
-      const hasDoneTask = (state.tasks || []).some((task) => task.status === "done");
-      if (activeStep !== "implement" || hasDoneTask) {
+      const tasks = Array.isArray(state.tasks) ? state.tasks : [];
+      const tasksUnstarted = state.currentTaskId == null && tasks.every((task) => (
+        task.status === "pending"
+        && Array.isArray(task.steps)
+        && task.steps.every((step) => step.status === "pending")
+      ));
+      if (activeStep !== "implement" || !tasksUnstarted) {
         return Envelope.fail(
           "run",
           "reopen-draft",
           "REOPEN_STAGE_UNSUPPORTED",
-          "spec-correction reopen is only available from implement with zero done tasks",
+          "spec-correction reopen is only available from implement before any task has started",
         );
       }
-      return executeSpecCorrection({ flowManager, state, reason });
+      return executeSpecCorrection({ flowManager, root, specId: ctx.specId, state, reason });
     }
 
     const tasks = Array.isArray(state.tasks) ? state.tasks : [];

@@ -19,6 +19,7 @@ import {
 import { runGit } from "./git-helpers.js";
 import { sentiDir } from "./config.js";
 import { renameFlowStateStepIds } from "./step-id-rename.js";
+import { AtomicFlowStateWriter } from "./flow-state-atomic-writer.js";
 import {
   STATE_FILE,
   specIdFromPath,
@@ -521,25 +522,6 @@ export function resolveMutationScope(state, opts = {}) {
   return task;
 }
 
-export class FlowStateAtomicSaveError extends Error {
-  constructor(message, { cause, committed, path: statePath }) {
-    super(message, { cause });
-    this.name = "FlowStateAtomicSaveError";
-    this.code = "FLOW_STATE_ATOMIC_SAVE_FAILED";
-    this.committed = committed;
-    this.path = statePath;
-  }
-}
-
-function fsyncDirectory(directory) {
-  const descriptor = fs.openSync(directory, "r");
-  try {
-    fs.fsyncSync(descriptor);
-  } finally {
-    fs.closeSync(descriptor);
-  }
-}
-
 export class FlowStore {
   /**
    * @param {Object} opts
@@ -669,57 +651,14 @@ export class FlowStore {
    * single-state primitive; callers remain responsible for command-level
    * eligibility and target guards.
    */
-  saveAtomic(state, { faultInjector = () => {} } = {}) {
-    if (!Array.isArray(state.tasks)) state.tasks = [];
-    if (!("currentTaskId" in state)) state.currentTaskId = null;
-    const specId = specIdFromPath(state.spec);
-    const statePath = specFlowPath(this._root, specId);
-    const directory = path.dirname(statePath);
-    fs.mkdirSync(directory, { recursive: true });
-    const existing = fs.existsSync(statePath) ? fs.lstatSync(statePath) : null;
-    const mode = existing ? existing.mode & 0o777 : 0o644;
-    const tempPath = path.join(directory, `.flow.json.${crypto.randomUUID()}.tmp`);
-    const content = JSON.stringify(state, null, 2) + "\n";
-    let descriptor = null;
-    let committed = false;
-    const emit = (phase) => faultInjector({ phase, statePath, tempPath });
-
-    try {
-      emit("before-temp-write");
-      descriptor = fs.openSync(tempPath, "wx", mode);
-      fs.writeFileSync(descriptor, content, "utf8");
-      emit("after-temp-write");
-      fs.fchmodSync(descriptor, mode);
-      emit("before-file-fsync");
-      fs.fsyncSync(descriptor);
-      emit("after-file-fsync");
-      fs.closeSync(descriptor);
-      descriptor = null;
-
-      emit("before-rename");
-      fs.renameSync(tempPath, statePath);
-      committed = true;
-      emit("after-rename");
-
-      emit("before-dir-fsync");
-      fsyncDirectory(directory);
-      emit("after-dir-fsync");
-      return { committed: true, path: statePath };
-    } catch (cause) {
-      if (descriptor != null) {
-        try { fs.closeSync(descriptor); } catch { /* preserve the primary failure */ }
-      }
-      if (!committed && fs.existsSync(tempPath)) {
-        try {
-          fs.unlinkSync(tempPath);
-          fsyncDirectory(directory);
-        } catch { /* the target still contains the complete old state */ }
-      }
-      throw new FlowStateAtomicSaveError(
-        `atomic flow state replacement failed: ${cause.message}`,
-        { cause, committed, path: statePath },
-      );
-    }
+  saveAtomic(state, { boundSpecId, expectedOriginal, faultInjector = () => {} } = {}) {
+    return new AtomicFlowStateWriter({
+      root: this._root,
+      boundSpecId,
+      expectedOriginal,
+      nextState: state,
+      faultInjector,
+    }).save();
   }
 
   mutate(mutator, opts) {

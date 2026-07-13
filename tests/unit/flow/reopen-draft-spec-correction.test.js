@@ -65,7 +65,16 @@ function fixturePaths(root) {
   };
 }
 
-function setupFlow(root, { issue = 441, activeStep = "implement", doneTask = false, mainRoot = root, inWorktree = false } = {}) {
+function setupFlow(root, {
+  issue = 441,
+  activeStep = "implement",
+  doneTask = false,
+  currentTaskId,
+  taskStatus,
+  taskStepStatus,
+  mainRoot = root,
+  inWorktree = false,
+} = {}) {
   const files = fixturePaths(root);
   writeJson(files.spec, {
     goal: "fixture",
@@ -89,14 +98,15 @@ function setupFlow(root, { issue = 441, activeStep = "implement", doneTask = fal
     requirements: [],
     tasks: doneTask
       ? [task({ id: "T-1", status: "done" }), task({ id: "T-2", status: "in_progress" })]
-      : [task({ id: "T-1", status: "pending" })],
-    currentTaskId: doneTask ? "T-2" : null,
+      : [task({ id: "T-1", status: taskStatus ?? "pending" })],
+    currentTaskId: currentTaskId === undefined ? (doneTask ? "T-2" : null) : currentTaskId,
     metrics: [
       { phase: "spec", counter: "gateRetry", delta: 1, taskId: null, ts: "2026-07-13T00:00:00Z" },
       { phase: "test", counter: "reviewRetry", delta: 1, taskId: null, ts: "2026-07-13T00:00:00Z" },
     ],
     retryLimits: { gate: 5, review: 4 },
   };
+  if (!doneTask && taskStepStatus) state.tasks[0].steps[0].status = taskStepStatus;
   const fm = new FlowManager({ root, mainRoot, inWorktree });
   fm.save(state);
   fm.addActiveFlow(SPEC_ID, inWorktree ? "worktree" : "local");
@@ -138,8 +148,19 @@ describe("guarded single-state reopen for source-discovered spec corrections", (
     const container = makeContainer(tmp);
     const fm = container.get("flowManager");
     let saves = 0;
-    const saveAtomic = fm.saveAtomic.bind(fm);
-    fm.saveAtomic = (state, options) => { saves += 1; return saveAtomic(state, options); };
+    const forRoot = fm.forRoot.bind(fm);
+    fm.forRoot = (root, options) => {
+      assert.equal(root, tmp);
+      assert.deepEqual(options, { specId: SPEC_ID });
+      const bound = forRoot(root, options);
+      const saveAtomic = bound.saveAtomic.bind(bound);
+      bound.saveAtomic = (state, atomicOptions) => {
+        saves += 1;
+        assert.deepEqual(atomicOptions.expectedOriginal, JSON.parse(fs.readFileSync(files.flow, "utf8")));
+        return saveAtomic(state, atomicOptions);
+      };
+      return bound;
+    };
     fm.save = () => { throw new Error("non-atomic save must not be used"); };
     fm.mutate = () => { throw new Error("mutate must not be used for spec-correction"); };
 
@@ -248,22 +269,57 @@ describe("guarded single-state reopen for source-discovered spec corrections", (
     }
   });
 
+  it("rejects every zero-done task that has already started", async () => {
+    const cases = [
+      { currentTaskId: "T-1", taskStatus: "in_progress" },
+      { currentTaskId: null, taskStatus: "in_progress" },
+      { currentTaskId: null, taskStatus: "pending", taskStepStatus: "in_progress" },
+      { currentTaskId: null, taskStatus: "pending", taskStepStatus: "done" },
+    ];
+    for (const options of cases) {
+      tmp = createTmpDir("reopen-started-task-");
+      const { files } = setupFlow(tmp, options);
+      const before = snapshot(files);
+      const result = await runDirect(tmp);
+      assert.equal(result.ok, false, JSON.stringify(options));
+      assert.equal(result.errors[0].code, "REOPEN_STAGE_UNSUPPORTED", JSON.stringify(options));
+      assert.deepEqual(snapshot(files), before, JSON.stringify(options));
+      removeTmpDir(tmp);
+      tmp = null;
+    }
+  });
+
   it("keeps old bytes when the public atomic save fails before replacement", async () => {
     tmp = createTmpDir("reopen-save-failure-");
     const { files } = setupFlow(tmp);
     const before = snapshot(files);
     const container = makeContainer(tmp);
-    container.get("flowManager").saveAtomic = () => {
-      const err = new Error("injected atomic save failure");
-      err.code = "FLOW_STATE_ATOMIC_SAVE_FAILED";
-      err.committed = false;
-      throw err;
+    container.get("flowManager").forRoot = () => {
+      return {
+        saveAtomic() {
+          const err = new Error("injected atomic save failure");
+          err.code = "FLOW_STATE_ATOMIC_SAVE_FAILED";
+          err.committed = false;
+          err.path = files.flow;
+          err.lockPath = `${files.flow}.writer.lock`;
+          err.cleanupErrors = [{ phase: "cleanup", target: files.flow, message: "injected cleanup failure" }];
+          err.residuePaths = [`${files.flow}.tmp`];
+          throw err;
+        },
+      };
     };
 
     const result = await new RunReopenDraftCommand().run(container, targetInput());
 
     assert.equal(result.ok, false);
     assert.equal(result.errors[0].code, "FLOW_STATE_ATOMIC_SAVE_FAILED");
+    assert.deepEqual(result.data, {
+      committed: false,
+      statePath: files.flow,
+      lockPath: `${files.flow}.writer.lock`,
+      cleanupErrors: [{ phase: "cleanup", target: files.flow, message: "injected cleanup failure" }],
+      residuePaths: [`${files.flow}.tmp`],
+    });
     assert.deepEqual(snapshot(files), before);
   });
 
