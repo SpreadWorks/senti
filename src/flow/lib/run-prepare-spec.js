@@ -21,6 +21,7 @@ import { writeIssueMd } from "./issue-body-cache.js";
 import { discoverFlowCommandHooks, readProjectConfig, runFlowCommandWithPluginLifecycle } from "../../lib/plugin-registry.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { FlowManager } from "../../lib/flow-manager.js";
+import { RepositoryFlowOperationLock } from "../../lib/repository-maintenance-lock.js";
 
 const MAX_PLUGIN_RUNTIME_SYNC_FILES = 2000;
 const REQUIRED_WORKTREE_BRANCH_FILES = Object.freeze([".senti/config.json"]);
@@ -421,6 +422,12 @@ export class RunPrepareSpecCommand extends FlowCommand {
       };
     }
 
+    const operationLock = new RepositoryFlowOperationLock({
+      mainRoot: ctx.mainRoot || flowManager._mainRoot || root,
+    });
+    const operationOwnerToken = operationLock.acquire();
+    try {
+
     // Helper: write planning source files. spec.json is the source of truth;
     // spec.md is a generated view rendered later when human approval needs it.
     function writeSpecFiles() {
@@ -477,7 +484,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
         ...extra,
       };
       state.plugins = { flowCommandHooks: await hookSnapshotFor(specRoot) };
-      flowManager.forRoot(specRoot).create(state);
+      flowManager.forRoot(specRoot).create(state, { operationOwnerToken });
       await runFlowCommandWithPluginLifecycle(specRoot, state.plugins.flowCommandHooks, {
         command: "prepare",
         flow: state,
@@ -566,6 +573,9 @@ export class RunPrepareSpecCommand extends FlowCommand {
       next: "draft",
       output: lines.join("\n"),
     };
+    } finally {
+      operationLock.release();
+    }
   }
 }
 

@@ -169,6 +169,29 @@ function assertNoMutation(root, before) {
   assert.equal(fs.readFileSync(path.join(root, artifactPath), "utf8"), before.recovery);
 }
 
+function recoveryGrantRequest(root, input, {
+  attempts,
+  maxAttempts,
+  createdAt,
+  faultInjector,
+} = {}) {
+  const flow = readJson(root, `specs/${specId}/flow.json`);
+  return {
+    root,
+    spec: flow.spec,
+    flowManager: makeFlowManager(root),
+    input,
+    expectedAttempts: attempts,
+    expectedMaxAttempts: maxAttempts,
+    expectedRunId: flow.runId,
+    expectedHasIssue: Object.hasOwn(flow, "issue"),
+    expectedIssue: flow.issue,
+    resolveConfiguredMaxAttempts: () => maxAttempts,
+    createdAt,
+    faultInjector,
+  };
+}
+
 describe("retry recovery contract", () => {
   const cleanup = [];
   afterEach(() => {
@@ -250,11 +273,12 @@ describe("retry recovery contract", () => {
       const flow = readJson(root, `specs/${specId}/flow.json`);
       const recovery = readJson(root, artifactPath);
       const issueLog = readJson(root, issueLogPath);
-      assert.equal(recovery.entries.length, 1, `${item.kind}/${item.phase} writes one recovery artifact entry`);
-      assert.equal(issueLog.entries.length, 1, `${item.kind}/${item.phase} writes one issue-log entry`);
-      assert.equal(recovery.entries[0].kind, item.kind);
-      assert.equal(recovery.entries[0].phase, item.phase);
-      assert.equal(recovery.entries[0].counterAfter, 2);
+      assert.equal(flow.retryRecovery.entries.length, 1, `${item.kind}/${item.phase} writes one flow recovery entry`);
+      assert.equal(recovery.entries.length, 0, "legacy artifact stays byte-independent from the grant");
+      assert.equal(issueLog.entries.length, 0, "issue-log stays byte-independent from the grant");
+      assert.equal(flow.retryRecovery.entries[0].kind, item.kind);
+      assert.equal(flow.retryRecovery.entries[0].phase, item.phase);
+      assert.equal(flow.retryRecovery.entries[0].counterAfter, 2);
       assert.equal(flow.metrics.at(-1).delta, 2, "reset grant leaves one reevaluation before exhaustion");
     }
   });
@@ -512,13 +536,51 @@ describe("retry recovery contract", () => {
     assertNoMutation(root, before);
   });
 
+  it("two CLI processes grant one recovery and the stale request has no side effects", () => {
+    const root = setupRecoveryFixture();
+    cleanup.push(root);
+    const command = [
+      "flow", "set", "retry", "reset", "gate", "task-impl",
+      "--reason", reason, "--yes",
+    ];
+
+    const winner = runSenti(root, command);
+    assert.equal(winner.status, 0, JSON.stringify(winner));
+    const afterWinner = snapshotRecoveryFiles(root);
+    const loser = runSenti(root, command);
+
+    assert.notEqual(loser.status, 0);
+    assert.ok(["RECOVERY_ALREADY_GRANTED", "STALE_RECOVERY_REQUEST"].includes(loser.envelope.errors[0].code));
+    assertNoMutation(root, afterWinner);
+    const flow = readJson(root, `specs/${specId}/flow.json`);
+    assert.equal(flow.retryRecovery.entries.length, 1);
+  });
+
+  it("flow state is the single crash-atomic recovery authority", () => {
+    const root = setupRecoveryFixture();
+    cleanup.push(root);
+    const before = snapshotRecoveryFiles(root);
+    const result = runSenti(root, [
+      "flow", "set", "retry", "reset", "gate", "task-impl",
+      "--reason", reason, "--yes",
+    ]);
+
+    assert.equal(result.status, 0, JSON.stringify(result));
+    const after = snapshotRecoveryFiles(root);
+    assert.notEqual(after.flow, before.flow);
+    assert.equal(after.recovery, before.recovery);
+    assert.equal(after.issueLog, before.issueLog);
+    const flow = JSON.parse(after.flow);
+    assert.equal(flow.retryRecovery.entries.length, 1);
+    assert.equal(flow.retryRecovery.entries[0].reason, reason);
+  });
+
   it("R5: R6: R7: TC-18 TC-19 TC-20: granted recovery appends audit artifacts after eligibility succeeds", async () => {
     const {
       ChangedEvidenceSummary,
       RetryRecoveryInput,
       applyRetryRecoveryGrant,
       buildOneAttemptGrantMetrics,
-      RECOVERY_ARTIFACT_FILE,
     } = await loadRecovery();
     const root = setupRecoveryFixture({ attempts: 4, maxAttempts: 4 });
     cleanup.push(root);
@@ -538,19 +600,12 @@ describe("retry recovery contract", () => {
       truncated: false,
     });
 
-    const before = readJson(root, `specs/${specId}/flow.json`);
-    const grant = applyRetryRecoveryGrant({
-      root,
-      spec: specPath,
-      flowManager: makeFlowManager(root),
-      input,
-      eligibility: { recoverable: true, changedEvidence },
-      attemptsBefore: 4,
+    const grant = applyRetryRecoveryGrant(recoveryGrantRequest(root, input, {
+      attempts: 4,
       maxAttempts: 4,
       createdAt: "2026-05-18T00:00:02.000Z",
-    });
+    }));
 
-    assert.equal(RECOVERY_ARTIFACT_FILE, "retry-recovery.json");
     assert.equal(grant.counterAfter, 3);
     assert.deepEqual(buildOneAttemptGrantMetrics({
       counter: "gateRetry",
@@ -562,11 +617,8 @@ describe("retry recovery contract", () => {
     ]);
 
     const flow = JSON.parse(fs.readFileSync(flowPath, "utf8"));
-    const recoveryLog = readJson(root, artifactPath);
-    const issueLog = readJson(root, issueLogPath);
     const lastMetric = flow.metrics.at(-1);
-    const entry = recoveryLog.entries.at(-1);
-    const issue = issueLog.entries.at(-1);
+    const entry = flow.retryRecovery.entries.at(-1);
 
     assert.equal(entry.kind, "gate");
     assert.equal(entry.phase, "task-impl");
@@ -577,8 +629,8 @@ describe("retry recovery contract", () => {
     assert.equal(entry.maxAttempts, 4);
     assert.equal(entry.counterAfter, 3);
     assert.equal(entry.recoveryCommand, `senti flow set retry reset gate task-impl --reason "${reason}" --yes`);
-    assert.equal(issue.recoveryCommand, entry.recoveryCommand);
-    assert.equal(issue.createdAt, entry.createdAt);
+    assert.deepEqual(readJson(root, artifactPath), { version: 1, entries: [] });
+    assert.deepEqual(readJson(root, issueLogPath), { entries: [] });
     assert.equal(lastMetric.counter, "gateRetry");
     assert.equal(lastMetric.delta, 3);
     assert.ok(new Date(lastMetric.ts) >= new Date(entry.createdAt), "metrics are appended after artifact creation");
@@ -599,71 +651,39 @@ describe("retry recovery contract", () => {
     }
   });
 
-  it("R6: separate recovery grants append audit entries in chronological order", async () => {
+  it("R6: separate recovery grants append flow audit entries in chronological order", async () => {
     const {
-      ChangedEvidenceSummary,
       RetryRecoveryInput,
       applyRetryRecoveryGrant,
     } = await loadRecovery();
     const root = setupRecoveryFixture();
     cleanup.push(root);
-    const firstFlow = readJson(root, `specs/${specId}/flow.json`);
-    applyRetryRecoveryGrant({
-      root,
-      spec: specPath,
-      flowManager: makeFlowManager(root),
-      input: new RetryRecoveryInput({
+    const firstInput = new RetryRecoveryInput({
         action: "reset",
         kind: "gate",
         phase: "task-impl",
         reason,
         yes: true,
-      }),
-      eligibility: {
-        recoverable: true,
-        changedEvidence: new ChangedEvidenceSummary({
-          sourceKind: "implementation-diff",
-          baselineHash: "a",
-          currentHash: "b",
-          changedPaths: ["src/a.js"],
-          truncated: false,
-        }),
-      },
-      attemptsBefore: 3,
+    });
+    applyRetryRecoveryGrant(recoveryGrantRequest(root, firstInput, {
+      attempts: 3,
       maxAttempts: 3,
       createdAt: "2026-05-18T00:00:01.000Z",
+    }));
+    makeFlowManager(root).mutate((flow) => {
+      flow.metrics.push({ phase: "task-impl", counter: "gateRetry", delta: 1, taskId: null });
     });
-    const secondFlow = readJson(root, `specs/${specId}/flow.json`);
-    applyRetryRecoveryGrant({
-      root,
-      spec: specPath,
-      flowManager: makeFlowManager(root),
-      input: new RetryRecoveryInput({
-        action: "reset",
-        kind: "review",
-        phase: "spec",
-        reason,
-        yes: true,
-      }),
-      eligibility: {
-        recoverable: true,
-        changedEvidence: new ChangedEvidenceSummary({
-          sourceKind: "spec-json",
-          baselineHash: "b",
-          currentHash: "c",
-          changedPaths: [specPath],
-          truncated: false,
-        }),
-      },
-      attemptsBefore: 3,
+    writeFile(root, "src/changed.js", "export const value = 'second-change';\n");
+    applyRetryRecoveryGrant(recoveryGrantRequest(root, firstInput, {
+      attempts: 3,
       maxAttempts: 3,
       createdAt: "2026-05-18T00:00:02.000Z",
-    });
-    const recovery = readJson(root, artifactPath);
-    const issueLog = readJson(root, issueLogPath);
-    assert.deepEqual(recovery.entries.map((entry) => entry.kind), ["gate", "review"]);
-    assert.deepEqual(issueLog.entries.map((entry) => entry.kind), ["gate", "review"]);
+    }));
+    const recovery = readJson(root, `specs/${specId}/flow.json`).retryRecovery;
+    assert.deepEqual(recovery.entries.map((entry) => entry.kind), ["gate", "gate"]);
     assert.ok(recovery.entries[0].createdAt < recovery.entries[1].createdAt);
+    assert.deepEqual(readJson(root, artifactPath), { version: 1, entries: [] });
+    assert.deepEqual(readJson(root, issueLogPath), { entries: [] });
   });
 
   it("rolls artifact, issue-log, and flow bytes back when the atomic flow save fails", async () => {
@@ -676,33 +696,20 @@ describe("retry recovery contract", () => {
     cleanup.push(root);
     const before = snapshotRecoveryFiles(root);
 
-    assert.throws(() => applyRetryRecoveryGrant({
-      root,
-      spec: specPath,
-      flowManager: makeFlowManager(root),
-      input: new RetryRecoveryInput({
+    const input = new RetryRecoveryInput({
         action: "reset",
         kind: "gate",
         phase: "task-impl",
         reason,
         yes: true,
-      }),
-      eligibility: {
-        recoverable: true,
-        changedEvidence: new ChangedEvidenceSummary({
-          sourceKind: "implementation-diff",
-          baselineHash: "before",
-          currentHash: "after",
-          changedPaths: ["src/changed.js"],
-          truncated: false,
-        }),
-      },
-      attemptsBefore: 3,
+    });
+    assert.throws(() => applyRetryRecoveryGrant(recoveryGrantRequest(root, input, {
+      attempts: 3,
       maxAttempts: 3,
       faultInjector({ phase }) {
         if (phase === "before-state-temp-write") throw new Error("injected flow save failure");
       },
-    }), /injected flow save failure/);
+    })), /injected flow save failure/);
 
     assertNoMutation(root, before);
   });
@@ -1003,24 +1010,19 @@ describe("retry recovery contract", () => {
       changedPaths: ["src/changed.js"],
       truncated: false,
     });
-    const grant = applyRetryRecoveryGrant({
-      root,
-      spec: specPath,
-      flowManager: makeFlowManager(root),
-      input: new RetryRecoveryInput({
+    const input = new RetryRecoveryInput({
         action: "reset",
         kind: "gate",
         phase: "task-impl",
         reason,
         yes: true,
-      }),
-      eligibility: { recoverable: true, changedEvidence },
-      attemptsBefore: 5,
+    });
+    const grant = applyRetryRecoveryGrant(recoveryGrantRequest(root, input, {
+      attempts: 5,
       maxAttempts: 5,
       createdAt: "2026-05-18T00:00:05.000Z",
-    });
-    const artifact = readJson(root, artifactPath).entries.at(-1);
-    const issue = readJson(root, issueLogPath).entries.at(-1);
+    }));
+    const artifact = readJson(root, `specs/${specId}/flow.json`).retryRecovery.entries.at(-1);
     const view = buildRetryRecoveryView({
       kind: "gate",
       phase: "task-impl",
@@ -1038,9 +1040,9 @@ describe("retry recovery contract", () => {
     assert.equal(artifact.maxAttempts, 5);
     assert.equal(artifact.counterAfter, 4);
     assert.equal(artifact.createdAt, "2026-05-18T00:00:05.000Z");
-    assert.equal(issue.createdAt, artifact.createdAt);
     assert.equal(artifact.recoveryCommand, command);
-    assert.equal(issue.recoveryCommand, command);
+    assert.deepEqual(readJson(root, artifactPath), { version: 1, entries: [] });
+    assert.deepEqual(readJson(root, issueLogPath), { entries: [] });
     assert.equal(view.recoveryCommand, command);
   });
 
@@ -1102,16 +1104,11 @@ describe("retry recovery contract", () => {
       changedPaths: ["src/changed.js"],
       truncated: false,
     });
-    const grant = applyRetryRecoveryGrant({
-      root,
-      spec: specPath,
-      flowManager: makeFlowManager(root),
-      input,
-      eligibility: { recoverable: true, changedEvidence },
-      attemptsBefore: 3,
+    const grant = applyRetryRecoveryGrant(recoveryGrantRequest(root, input, {
+      attempts: 3,
       maxAttempts: 3,
       createdAt: "2026-05-18T00:00:03.000Z",
-    });
+    }));
     assert.equal(grant.counterAfter, 2);
 
     const display = buildRetryRecoveryView({

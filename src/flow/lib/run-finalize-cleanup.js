@@ -992,7 +992,22 @@ async function runTeardown(ctx, { worktreePath, mainRepoPath, reportRoot, specId
     try {
       syncMetadataFromWorktreeToMain(ctx.root, mainRepoPath, specId);
     } catch (err) {
-      process.stderr.write(`[senti] cleanup: metadata sync warning: ${err.message}\n`);
+      return Envelope.fail(
+        "run",
+        "finalize-cleanup",
+        "FINALIZE_METADATA_SYNC_FAILED",
+        [
+          `Finalize metadata sync failed: ${err.message}`,
+          "No finalize step, commit, active-flow, worktree, branch, or Git history cleanup was attempted.",
+          "Resolve the metadata authority or writer lock failure, then retry finalize-cleanup.",
+        ],
+        {
+          specId,
+          worktreePath: ctx.root,
+          mainRepoPath,
+          causeCode: err.code || null,
+        },
+      );
     }
   }
 

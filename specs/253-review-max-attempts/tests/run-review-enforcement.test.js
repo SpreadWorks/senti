@@ -10,6 +10,7 @@ import { setupFlow, setupFlowConfig, makeFlowManager, replaceFlowState } from ".
 import { writeStubAgentScript } from "../../../tests/helpers/stub-agent.js";
 import { updateReviewRetryCounter, countReviewRetry, checkReviewRetryBelowMax } from "../../../src/flow/lib/run-review.js";
 import { resolveLifecycle } from "../../../src/flow/definition.js";
+import { findStepById } from "../../../src/flow/lib/step-tree.js";
 
 const SDD_CMD = path.join(process.cwd(), "src/senti.js");
 
@@ -213,6 +214,10 @@ describe("R14: reset CLI followed by review CLI passes pre-check (no short-circu
       const flow = JSON.parse(fs.readFileSync(flowPath, "utf8"));
       flow.metrics = flow.metrics || [];
       flow.autoApprove = true;
+      const branchStep = findStepById(flow.steps, "branch");
+      branchStep.status = "done";
+      const specReviewStep = findStepById(flow.steps, "spec-review");
+      specReviewStep.status = "in_progress";
       for (let i = 0; i < 5; i++) {
         flow.metrics.push({ phase: "spec", counter: "reviewRetry", delta: 1, taskId: null, ts: new Date().toISOString() });
       }

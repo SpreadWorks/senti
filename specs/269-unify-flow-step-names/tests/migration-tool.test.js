@@ -7,10 +7,12 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
+import { applyMigration } from "../../../src/scripts/rename-phase-steps.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(__filename), "..", "..", "..");
 const toolPath = path.join(repoRoot, "src", "scripts", "rename-phase-steps.js");
+const sentiBin = path.join(repoRoot, "src", "senti.js");
 
 // flow.json with flow-scope (steps[]) and task-scope (tasks[].steps[]) step ids.
 function flowJson(id) {
@@ -309,6 +311,49 @@ test("--apply refuses a dirty secondary worktree without mutating main", () => {
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /every git worktree to be clean/);
   assert.deepEqual(fs.readFileSync(path.join(root, "specs", "alpha", "flow.json")), before);
+});
+
+test("maintenance lock closes the post-safety-check flow-start race without partial migration", () => {
+  const root = makeFixture();
+  fs.mkdirSync(path.join(root, ".senti"), { recursive: true });
+  fs.writeFileSync(path.join(root, ".senti", "config.json"), JSON.stringify({
+    type: "base",
+    lang: "en",
+    docs: { languages: ["en"], defaultLanguage: "en" },
+  }));
+  fs.writeFileSync(path.join(root, ".gitignore"), ".tmp/\n");
+  gitInit(root);
+  let flowStart;
+
+  const plan = applyMigration(root, {
+    afterMaintenanceAcquired() {
+      flowStart = spawnSync(process.execPath, [
+        sentiBin,
+        "flow",
+        "set",
+        "init",
+        "--request",
+        "must lose to offline maintenance",
+      ], {
+        cwd: root,
+        env: { ...process.env, SENTI_WORK_ROOT: root, SENTI_SOURCE_ROOT: root },
+        encoding: "utf8",
+      });
+    },
+  });
+
+  assert.notEqual(flowStart.status, 0, "flow activation must fail while migration owns maintenance");
+  assert.match(flowStart.stdout, /REPOSITORY_MAINTENANCE_BUSY/);
+  assert.ok(plan.changes.length > 0);
+  for (const id of ["alpha", "beta"]) {
+    const migrated = fs.readFileSync(path.join(root, "specs", id, "flow.json"), "utf8");
+    assert.match(migrated, /draft-gate/);
+    assert.doesNotMatch(migrated, /"gate-draft"/);
+  }
+  assert.equal(
+    fs.readdirSync(path.join(root, ".senti")).some((name) => name.startsWith(".active-flow")),
+    false,
+  );
 });
 
 // NOTE: R8's live-repository application (running the tool against this repo's specs/

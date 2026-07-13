@@ -5,7 +5,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { FlowManager } from "../lib/flow-manager.js";
+import { RepositoryMaintenanceLock } from "../lib/repository-maintenance-lock.js";
 import { ONE_TO_ONE_STEP_RENAMES, renameFlowStateStepIds } from "../lib/step-id-rename.js";
 
 const ONE_TO_ONE_TOKENS = Object.keys(ONE_TO_ONE_STEP_RENAMES).sort((a, b) => b.length - a.length);
@@ -47,23 +49,23 @@ class MigrationPlan {
     this.fileWrites.push({ filePath, content });
   }
 
-  apply() {
+  apply(maintenanceOwnerToken) {
     const manager = new FlowManager({
       root: this.root,
       mainRoot: this.root,
       inWorktree: false,
     });
-    this.#preflight(manager);
+    this.#preflight(manager, maintenanceOwnerToken);
     for (const specId of this.flowSpecs) {
       manager.mutate((state) => {
         const changes = renameFlowStateStepIds(state);
         if (changes.length === 0) throw new Error(`migration target changed before apply: ${specId}`);
-      }, { specId, stepIdMigration: true });
+      }, { specId, stepIdMigration: true, maintenanceOwnerToken });
     }
     for (const write of this.fileWrites) fs.writeFileSync(write.filePath, write.content);
   }
 
-  #preflight(manager) {
+  #preflight(manager, maintenanceOwnerToken) {
     const complete = "step-id migration preflight complete";
     for (const specId of this.flowSpecs) {
       try {
@@ -73,6 +75,7 @@ class MigrationPlan {
         }, {
           specId,
           stepIdMigration: true,
+          maintenanceOwnerToken,
           faultInjector({ phase }) {
             if (phase === "before-state-temp-open") throw new Error(complete);
           },
@@ -219,7 +222,14 @@ function assertApplySafety(topology) {
   assertRegistryConsistency(topology, activeFlows);
   for (const worktree of topology.worktrees) {
     assertNoWriterLocks(worktree);
-    if (runGit(worktree.path, ["status", "--porcelain"]).trim() !== "") {
+    if (runGit(worktree.path, [
+      "status",
+      "--porcelain",
+      "--",
+      ".",
+      ":!.senti/.repository-maintenance.lock",
+      ":!.senti/.repository-flow-operation.lock",
+    ]).trim() !== "") {
       throw new Error(`--apply requires every git worktree to be clean: ${worktree.path}`);
     }
   }
@@ -321,6 +331,26 @@ function printPlan(plan, apply) {
   }
 }
 
+export function applyMigration(requestedRoot, {
+  afterInitialSafety = () => {},
+  afterMaintenanceAcquired = () => {},
+} = {}) {
+  const topology = resolveRepositoryTopology(requestedRoot);
+  assertApplySafety(topology);
+  afterInitialSafety(topology);
+  const maintenance = new RepositoryMaintenanceLock({ mainRoot: topology.mainRoot });
+  maintenance.acquire();
+  try {
+    afterMaintenanceAcquired(topology);
+    assertApplySafety(topology);
+    const plan = buildPlan(topology.mainRoot, true);
+    plan.apply(maintenance.ownerToken);
+    return plan;
+  } finally {
+    maintenance.release();
+  }
+}
+
 function main() {
   const args = process.argv.slice(2);
   if (args.some((arg) => arg !== "--apply") || args.filter((arg) => arg === "--apply").length > 1) {
@@ -329,19 +359,21 @@ function main() {
   const apply = args.includes("--apply");
   const requestedRoot = path.resolve(process.env.SENTI_WORK_ROOT || process.cwd());
   let root = requestedRoot;
+  let plan;
   if (apply) {
-    const topology = resolveRepositoryTopology(requestedRoot);
-    assertApplySafety(topology);
-    root = topology.mainRoot;
+    plan = applyMigration(requestedRoot);
+    root = plan.root;
+  } else {
+    plan = buildPlan(root, false);
   }
-  const plan = buildPlan(root, apply);
-  if (apply) plan.apply();
   printPlan(plan, apply);
 }
 
-try {
-  main();
-} catch (error) {
-  process.stderr.write(`error: ${error.message}\n`);
-  process.exitCode = 1;
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  try {
+    main();
+  } catch (error) {
+    process.stderr.write(`error: ${error.message}\n`);
+    process.exitCode = 1;
+  }
 }

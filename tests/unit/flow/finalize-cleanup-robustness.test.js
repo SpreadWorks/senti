@@ -7,11 +7,14 @@ import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { setupFlow, makeFlowManager, replaceFlowState } from "../../helpers/flow-setup.js";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 import { findStepById } from "../../../src/flow/lib/step-tree.js";
+import { ProcessIdentitySource } from "../../../src/lib/flow-state-atomic-writer.js";
+import { FlowManager } from "../../../src/lib/flow-manager.js";
 
 function initGitRepo(root) {
   execFileSync("git", ["init", "--quiet", root], { encoding: "utf8" });
@@ -20,6 +23,21 @@ function initGitRepo(root) {
   fs.writeFileSync(path.join(root, "README.md"), "# Test Repo\n");
   execFileSync("git", ["-C", root, "add", "README.md"], { encoding: "utf8" });
   execFileSync("git", ["-C", root, "commit", "--quiet", "-m", "initial commit"], { encoding: "utf8" });
+}
+
+function writeLiveFlowWriterLock(root, specId) {
+  const statePath = path.join(root, "specs", specId, "flow.json");
+  const lockPath = path.join(path.dirname(statePath), ".flow.json.writer.lock");
+  const processIdentity = new ProcessIdentitySource().createOwner(crypto.randomUUID());
+  fs.writeFileSync(lockPath, `${JSON.stringify({
+    version: 2,
+    kind: "flow-state-writer",
+    processIdentity,
+    root: fs.realpathSync(root),
+    spec: `specs/${specId}/spec.json`,
+    statePath: fs.realpathSync(statePath),
+  }, null, 2)}\n`, { mode: 0o600 });
+  return lockPath;
 }
 
 describe("finalize-cleanup robustness", () => {
@@ -108,6 +126,79 @@ describe("finalize-cleanup robustness", () => {
       sequence: 6,
       runId: "winner",
     });
+  });
+
+  it("finalize stops before every teardown side effect when main metadata sync is busy, then succeeds on retry", async () => {
+    const { runTeardown } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
+    tmp = createTmpDir("senti-finalize-sync-required-");
+    const mainRoot = path.join(tmp, "main");
+    const worktreePath = path.join(tmp, "worktree");
+    const specId = "125";
+    const spec = `specs/${specId}/spec.json`;
+    const featureBranch = `feature/${specId}`;
+    initGitRepo(mainRoot);
+
+    const mainState = setupFlow(mainRoot, {
+      spec,
+      runId: "run-required-sync",
+      featureBranch,
+      baseBranch: "master",
+      worktree: true,
+    });
+    execFileSync("git", ["-C", mainRoot, "add", `specs/${specId}/flow.json`]);
+    execFileSync("git", ["-C", mainRoot, "commit", "--quiet", "-m", "add flow"]);
+    execFileSync("git", ["-C", mainRoot, "worktree", "add", "-b", featureBranch, worktreePath]);
+    const worktreeState = makeFlowManager(worktreePath).load(specId);
+    findStepById(worktreeState.steps, "finalize-merge").runtimeLog = { sequence: 7, runId: "worktree-log" };
+    replaceFlowState(worktreePath, worktreeState, { specId });
+    execFileSync("git", ["-C", worktreePath, "add", `specs/${specId}/flow.json`]);
+    execFileSync("git", ["-C", worktreePath, "commit", "--quiet", "-m", "record runtime log"]);
+
+    const fm = new FlowManager({ root: worktreePath, mainRoot, inWorktree: true, specId });
+    const registryPath = path.join(mainRoot, ".senti", ".active-flow");
+    const lockPath = writeLiveFlowWriterLock(mainRoot, specId);
+    const before = {
+      mainFlow: fs.readFileSync(path.join(mainRoot, `specs/${specId}/flow.json`)),
+      worktreeFlow: fs.readFileSync(path.join(worktreePath, `specs/${specId}/flow.json`)),
+      registry: fs.readFileSync(registryPath),
+      head: execFileSync("git", ["-C", mainRoot, "rev-parse", "HEAD"], { encoding: "utf8" }),
+      branches: execFileSync("git", ["-C", mainRoot, "branch", "--format=%(refname)"], { encoding: "utf8" }),
+      worktrees: execFileSync("git", ["-C", mainRoot, "worktree", "list", "--porcelain"], { encoding: "utf8" }),
+    };
+    const ctx = {
+      flowManager: fm,
+      flowState: worktreeState,
+      root: worktreePath,
+      mainRoot,
+      force: true,
+    };
+
+    const stopped = await runTeardown(ctx, {
+      worktreePath,
+      mainRepoPath: mainRoot,
+      reportRoot: mainRoot,
+      specId,
+    });
+
+    assert.equal(stopped.ok, false);
+    assert.equal(stopped.errors[0].code, "FINALIZE_METADATA_SYNC_FAILED");
+    assert.deepEqual(fs.readFileSync(path.join(mainRoot, `specs/${specId}/flow.json`)), before.mainFlow);
+    assert.deepEqual(fs.readFileSync(path.join(worktreePath, `specs/${specId}/flow.json`)), before.worktreeFlow);
+    assert.deepEqual(fs.readFileSync(registryPath), before.registry);
+    assert.equal(execFileSync("git", ["-C", mainRoot, "rev-parse", "HEAD"], { encoding: "utf8" }), before.head);
+    assert.equal(execFileSync("git", ["-C", mainRoot, "branch", "--format=%(refname)"], { encoding: "utf8" }), before.branches);
+    assert.equal(execFileSync("git", ["-C", mainRoot, "worktree", "list", "--porcelain"], { encoding: "utf8" }), before.worktrees);
+
+    fs.unlinkSync(lockPath);
+    const retried = await runTeardown(ctx, {
+      worktreePath,
+      mainRepoPath: mainRoot,
+      reportRoot: mainRoot,
+      specId,
+    });
+    assert.equal(retried.ok, true, JSON.stringify(retried));
+    assert.equal(fs.existsSync(worktreePath), false);
+    assert.equal(fs.existsSync(registryPath), false);
   });
 
   it("validateTeardown detects remaining branch", async () => {

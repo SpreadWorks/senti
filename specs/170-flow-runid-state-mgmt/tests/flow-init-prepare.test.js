@@ -1,183 +1,147 @@
-import { describe, it, afterEach } from "node:test";
+import { afterEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
-import fs from "fs";
-import { join } from "path";
-import { execFileSync } from "child_process";
+import fs from "node:fs";
+import path from "node:path";
+import { execFileSync, spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { createTmpDir, removeTmpDir } from "../../../tests/helpers/tmp-dir.js";
-import {
-  saveFlowState, loadFlowState, buildInitialSteps,
-  addActiveFlow, loadActiveFlows,
-} from "../../../src/lib/flow-state.js";
+import { FlowManager } from "../../../src/lib/flow-manager.js";
+import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 
-const FLOW_CMD = join(process.cwd(), "src/flow.js");
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+const sentiBin = path.join(repoRoot, "src", "senti.js");
 
-// ── flow set init → flow prepare --run-id integration ──────────────────────
+function initRepository(root) {
+  fs.mkdirSync(path.join(root, ".senti"), { recursive: true });
+  fs.writeFileSync(path.join(root, ".senti", "config.json"), JSON.stringify({
+    type: "base",
+    lang: "en",
+    docs: { languages: ["en"], defaultLanguage: "en" },
+  }));
+  fs.writeFileSync(path.join(root, ".gitignore"), ".tmp/\n.senti/output/\n");
+  fs.writeFileSync(path.join(root, "package.json"), JSON.stringify({ name: "run-id-fixture", version: "1.0.0" }));
+  execFileSync("git", ["init", "--quiet", "--initial-branch=main", root]);
+  execFileSync("git", ["-C", root, "config", "user.email", "test@example.com"]);
+  execFileSync("git", ["-C", root, "config", "user.name", "Test User"]);
+  execFileSync("git", ["-C", root, "add", "."]);
+  execFileSync("git", ["-C", root, "commit", "--quiet", "-m", "fixture"]);
+}
 
-describe("flow set init → prepare integration", () => {
+function runSenti(root, args) {
+  const result = spawnSync(process.execPath, [sentiBin, ...args], {
+    cwd: root,
+    env: { ...process.env, SENTI_WORK_ROOT: root, SENTI_SOURCE_ROOT: root },
+    encoding: "utf8",
+  });
+  return {
+    ...result,
+    envelope: result.stdout.trim() ? JSON.parse(result.stdout) : null,
+  };
+}
+
+function manager(root, specId = null) {
+  return new FlowManager({ root, mainRoot: root, inWorktree: false, specId });
+}
+
+describe("flow set init -> prepare integration", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  // ── Req 2: flow prepare saves runId to flow.json ───────────────────────
-
-  it("flow prepare without --run-id auto-generates runId in flow.json", () => {
-    tmp = createTmpDir();
+  it("rejects legacy flow state without runId byte-identically instead of transparent migration", () => {
+    tmp = createTmpDir("flow-runid-legacy-");
     const specId = "001-test";
-    const state = {
-      spec: `specs/${specId}/spec.md`,
+    const flowPath = path.join(tmp, "specs", specId, "flow.json");
+    fs.mkdirSync(path.dirname(flowPath), { recursive: true });
+    const legacy = {
+      spec: `specs/${specId}/spec.json`,
       baseBranch: "main",
       featureBranch: `feature/${specId}`,
-      worktree: false,
       steps: buildInitialSteps(),
       requirements: [],
+      tasks: [],
+      currentTaskId: null,
     };
-    saveFlowState(tmp, state);
-    addActiveFlow(tmp, specId, "local");
+    fs.writeFileSync(flowPath, `${JSON.stringify(legacy, null, 2)}\n`);
+    const before = fs.readFileSync(flowPath);
 
-    // loadFlowState should auto-assign runId (transparent migration)
-    const loaded = loadFlowState(tmp, specId);
-    assert.ok(loaded.runId, "runId should be auto-generated");
-    assert.equal(typeof loaded.runId, "string");
+    assert.throws(
+      () => manager(tmp, specId).load(),
+      (error) => error.code === "FLOW_STATE_SCHEMA_UNSUPPORTED",
+    );
+    assert.deepEqual(fs.readFileSync(flowPath), before);
   });
 
-  // ── Req 2: flow prepare with --run-id uses provided runId ──────────────
+  it("flow prepare without --run-id generates and persists a runId", () => {
+    tmp = createTmpDir("flow-runid-auto-");
+    initRepository(tmp);
 
-  it("flow.json can store a provided runId and delete preparing file", () => {
-    tmp = createTmpDir();
-    const runId = "provided-run-id-xyz";
-    const sddDir = join(tmp, ".sdd-forge");
-    fs.mkdirSync(sddDir, { recursive: true });
+    const prepared = runSenti(tmp, ["flow", "prepare", "--title", "auto run id", "--no-branch"]);
 
-    // Simulate flow set init: create .active-flow.<runId>
-    const preparingFile = join(sddDir, `.active-flow.${runId}`);
-    const preparingState = {
-      runId,
-      lifecycle: "preparing",
-      spec: null,
-      baseBranch: null,
-      featureBranch: null,
-      worktree: null,
-      steps: buildInitialSteps(),
-      requirements: [],
-      autoApprove: false,
-    };
-    fs.writeFileSync(preparingFile, JSON.stringify(preparingState, null, 2) + "\n");
-
-    // Simulate flow prepare: create flow.json with runId, delete preparing file
-    const specId = "001-test";
-    const state = {
-      spec: `specs/${specId}/spec.md`,
-      baseBranch: "main",
-      featureBranch: `feature/${specId}`,
-      worktree: false,
-      steps: buildInitialSteps(),
-      requirements: [],
-      runId,
-      lifecycle: "active",
-    };
-    saveFlowState(tmp, state);
-    addActiveFlow(tmp, specId, "local");
-    fs.unlinkSync(preparingFile);
-
-    // Verify
-    const loaded = loadFlowState(tmp, specId);
-    assert.equal(loaded.runId, runId);
-    assert.equal(loaded.lifecycle, "active");
-    assert.ok(!fs.existsSync(preparingFile));
+    assert.equal(prepared.status, 0, prepared.stderr || prepared.stdout);
+    assert.equal(prepared.envelope.ok, true);
+    const specId = prepared.envelope.data.spec.split("/")[1];
+    const state = manager(tmp, specId).load();
+    assert.equal(typeof state.runId, "string");
+    assert.ok(state.runId.length > 0);
+    assert.equal(state.runId, prepared.envelope.data.runId);
   });
 
-  // ── Req 5: flow get status returns runId ───────────────────────────────
+  it("prepare inherits a provided runId and consumes only that preparing record", () => {
+    tmp = createTmpDir("flow-runid-provided-");
+    initRepository(tmp);
+    const first = runSenti(tmp, ["flow", "set", "init", "--request", "selected request"]);
+    const retained = runSenti(tmp, ["flow", "set", "init", "--request", "unrelated request"]);
+    assert.equal(first.status, 0, first.stderr);
+    assert.equal(retained.status, 0, retained.stderr);
+    const runId = first.envelope.data.runId;
+    const retainedRunId = retained.envelope.data.runId;
 
-  it("flow get status includes runId in output", () => {
-    tmp = createTmpDir();
-    const specId = "001-test";
-    const runId = "status-test-run";
-    const state = {
-      spec: `specs/${specId}/spec.md`,
-      baseBranch: "main",
-      featureBranch: `feature/${specId}`,
-      worktree: false,
-      steps: buildInitialSteps(),
-      requirements: [],
-      runId,
-      lifecycle: "active",
-    };
-    saveFlowState(tmp, state);
-    addActiveFlow(tmp, specId, "local");
+    const prepared = runSenti(tmp, [
+      "flow", "prepare", "--title", "provided run id", "--no-branch", "--run-id", runId,
+    ]);
 
-    const loaded = loadFlowState(tmp, specId);
-    assert.equal(loaded.runId, runId);
+    assert.equal(prepared.status, 0, prepared.stderr || prepared.stdout);
+    assert.equal(prepared.envelope.data.runId, runId);
+    const specId = prepared.envelope.data.spec.split("/")[1];
+    const fm = manager(tmp, specId);
+    assert.equal(fm.load().request, "selected request");
+    assert.equal(fm.loadPreparingFlow(runId), null);
+    assert.equal(fm.loadPreparingFlow(retainedRunId).request, "unrelated request");
   });
 
-  // ── Req 5: runId-based resolution fallback to .active-flow.<runId> ─────
+  it("flow get status resolves the active flow by runId", () => {
+    tmp = createTmpDir("flow-runid-status-");
+    initRepository(tmp);
+    const prepared = runSenti(tmp, ["flow", "prepare", "--title", "status run id", "--no-branch"]);
+    assert.equal(prepared.status, 0, prepared.stderr || prepared.stdout);
+    const runId = prepared.envelope.data.runId;
 
-  it("runId can be resolved from .active-flow.<runId> when not in flow.json", () => {
-    tmp = createTmpDir();
-    const runId = "fallback-test-run";
-    const sddDir = join(tmp, ".sdd-forge");
-    fs.mkdirSync(sddDir, { recursive: true });
+    const status = runSenti(tmp, ["flow", "get", "status", runId]);
 
-    // Only .active-flow.<runId> exists, no flow.json
-    const preparingFile = join(sddDir, `.active-flow.${runId}`);
-    const preparingState = {
-      runId,
-      lifecycle: "preparing",
-      spec: null,
-      baseBranch: null,
-      featureBranch: null,
-      worktree: null,
-      steps: buildInitialSteps(),
-      requirements: [],
-      autoApprove: false,
-    };
-    fs.writeFileSync(preparingFile, JSON.stringify(preparingState, null, 2) + "\n");
-
-    // Verify the file can be read and parsed
-    const raw = JSON.parse(fs.readFileSync(preparingFile, "utf8"));
-    assert.equal(raw.runId, runId);
-    assert.equal(raw.lifecycle, "preparing");
+    assert.equal(status.status, 0, status.stderr || status.stdout);
+    assert.equal(status.envelope.ok, true);
+    assert.equal(status.envelope.data.runId, runId);
   });
 
-  // ── Req 6: stale cleanup during prepare ────────────────────────────────
+  it("aged preparing records remain byte-identical and discoverable", () => {
+    tmp = createTmpDir("flow-runid-aged-");
+    const fm = manager(tmp);
+    const agedRunId = fm.generateRunId();
+    const freshRunId = fm.generateRunId();
+    const agedPath = fm.createPreparingFlow(agedRunId, { request: "aged request" });
+    const freshPath = fm.createPreparingFlow(freshRunId, { request: "fresh request" });
+    const agedTime = new Date(Date.now() - 25 * 60 * 60 * 1000);
+    fs.utimesSync(agedPath, agedTime, agedTime);
+    const beforeAged = fs.readFileSync(agedPath);
+    const beforeFresh = fs.readFileSync(freshPath);
 
-  it("stale .active-flow.* files are identified for cleanup", () => {
-    tmp = createTmpDir();
-    const sddDir = join(tmp, ".sdd-forge");
-    fs.mkdirSync(sddDir, { recursive: true });
+    const listed = fm.listPreparingFlows();
 
-    // Create stale and fresh preparing files
-    const staleFile = join(sddDir, ".active-flow.stale-run");
-    const freshFile = join(sddDir, ".active-flow.fresh-run");
-    // Also create the .active-flow pointer (should not be touched)
-    const pointerFile = join(sddDir, ".active-flow");
-
-    fs.writeFileSync(staleFile, JSON.stringify({ runId: "stale-run", lifecycle: "preparing" }));
-    fs.writeFileSync(freshFile, JSON.stringify({ runId: "fresh-run", lifecycle: "preparing" }));
-    fs.writeFileSync(pointerFile, "[]");
-
-    // Set stale file to 25 hours ago
-    const staleTime = new Date(Date.now() - 25 * 60 * 60 * 1000);
-    fs.utimesSync(staleFile, staleTime, staleTime);
-
-    // Simulate cleanup: scan and delete stale files
-    const TTL_MS = 24 * 60 * 60 * 1000;
-    const now = Date.now();
-    const entries = fs.readdirSync(sddDir);
-    const activeFlowFiles = entries.filter((f) => f.startsWith(".active-flow."));
-    const staleFiles = activeFlowFiles.filter((f) => {
-      const stat = fs.statSync(join(sddDir, f));
-      return now - stat.mtimeMs > TTL_MS;
-    });
-
-    // Only the stale file should be marked for deletion
-    assert.equal(staleFiles.length, 1);
-    assert.ok(staleFiles[0].includes("stale-run"));
-
-    // Delete stale
-    for (const f of staleFiles) fs.unlinkSync(join(sddDir, f));
-
-    // Verify: fresh file still exists, pointer untouched
-    assert.ok(fs.existsSync(freshFile));
-    assert.ok(fs.existsSync(pointerFile));
-    assert.ok(!fs.existsSync(staleFile));
+    assert.ok(listed.includes(agedRunId));
+    assert.ok(listed.includes(freshRunId));
+    assert.deepEqual(fs.readFileSync(agedPath), beforeAged);
+    assert.deepEqual(fs.readFileSync(freshPath), beforeFresh);
+    assert.equal(path.dirname(agedPath), path.join(tmp, ".senti"));
+    assert.notEqual(path.dirname(agedPath), path.join(tmp, ".sdd-forge"));
   });
 });

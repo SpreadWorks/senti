@@ -1,13 +1,18 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { ProcessIdentity, ProcessIdentitySource } from "./process-identity.js";
+import {
+  RepositoryFlowOperationLock,
+  assertRepositoryMaintenanceAvailable,
+} from "./repository-maintenance-lock.js";
 
 const LOCK_VERSION = 2;
 const LOCK_KIND = "flow-state-writer";
 const MAX_TEMP_ATTEMPTS = 3;
 const MAX_LOCK_BYTES = 64 * 1024;
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
-const PROCESS_IDENTITY_MAX_BYTES = 4096;
+
+export { ProcessIdentity, ProcessIdentitySource } from "./process-identity.js";
 
 function serializeState(state) {
   return Buffer.from(`${JSON.stringify(state, null, 2)}\n`);
@@ -41,12 +46,6 @@ function pathMayExist(target) {
   } catch (cause) {
     return cause.code !== "ENOENT";
   }
-}
-
-function processIdentityUnavailable(message, cause) {
-  const error = new Error(message, { cause });
-  error.code = "FLOW_STATE_PROCESS_IDENTITY_UNAVAILABLE";
-  return error;
 }
 
 function assertBoundSpecId(boundSpecId) {
@@ -96,124 +95,6 @@ function prepareFlowStateDirectories(root, boundSpecId) {
       if (cause.code !== "EEXIST") throw authorityError(`${label} creation failed: ${directory}`, { cause });
     }
     assertRealDirectory(directory, label);
-  }
-}
-
-function readBoundedIdentityFile(file) {
-  const content = fs.readFileSync(file, "utf8");
-  if (Buffer.byteLength(content) > PROCESS_IDENTITY_MAX_BYTES) {
-    throw processIdentityUnavailable(`process identity file exceeds ${PROCESS_IDENTITY_MAX_BYTES} bytes: ${file}`);
-  }
-  return content;
-}
-
-function defaultBootIdentityReader() {
-  return readBoundedIdentityFile("/proc/sys/kernel/random/boot_id").trim();
-}
-
-function defaultProcessStartFingerprintReader(pid) {
-  const stat = readBoundedIdentityFile(`/proc/${pid}/stat`);
-  const commandEnd = stat.lastIndexOf(")");
-  if (commandEnd < 0) throw processIdentityUnavailable(`invalid process stat for pid ${pid}`);
-  const fieldsAfterCommand = stat.slice(commandEnd + 1).trim().split(/\s+/);
-  const startTime = fieldsAfterCommand[19];
-  if (!/^\d+$/.test(startTime ?? "")) {
-    throw processIdentityUnavailable(`invalid process start fingerprint for pid ${pid}`);
-  }
-  return startTime;
-}
-
-export class ProcessIdentity {
-  constructor({ pid, bootIdentity, startFingerprint, ownerToken }) {
-    if (!Number.isSafeInteger(pid) || pid < 1) throw new Error("process identity pid must be a positive integer");
-    if (typeof bootIdentity !== "string" || bootIdentity.trim() === "") {
-      throw new Error("process identity boot identity is required");
-    }
-    if (typeof startFingerprint !== "string" || !/^\d+$/.test(startFingerprint)) {
-      throw new Error("process identity start fingerprint must be numeric");
-    }
-    if (typeof ownerToken !== "string" || !UUID_PATTERN.test(ownerToken)) {
-      throw new Error("process identity owner token is invalid");
-    }
-    this.pid = pid;
-    this.bootIdentity = bootIdentity;
-    this.startFingerprint = startFingerprint;
-    this.ownerToken = ownerToken;
-    Object.freeze(this);
-  }
-
-  sameBirth(other) {
-    return other instanceof ProcessIdentity
-      && this.pid === other.pid
-      && this.bootIdentity === other.bootIdentity
-      && this.startFingerprint === other.startFingerprint;
-  }
-}
-
-class ProcessIdentityAssessment {
-  constructor(status, reason) {
-    this.status = status;
-    this.reason = reason;
-    Object.freeze(this);
-  }
-}
-
-export class ProcessIdentitySource {
-  constructor({
-    platform = process.platform,
-    pid = process.pid,
-    readBootIdentity = defaultBootIdentityReader,
-    readProcessStartFingerprint = defaultProcessStartFingerprintReader,
-  } = {}) {
-    this.platform = platform;
-    this.pid = pid;
-    this.readBootIdentity = readBootIdentity;
-    this.readProcessStartFingerprint = readProcessStartFingerprint;
-  }
-
-  createOwner(ownerToken) {
-    if (this.platform !== "linux") {
-      throw processIdentityUnavailable(`process identity is unsupported on ${this.platform}`);
-    }
-    try {
-      return new ProcessIdentity({
-        pid: this.pid,
-        bootIdentity: this.readBootIdentity(),
-        startFingerprint: this.readProcessStartFingerprint(this.pid),
-        ownerToken,
-      });
-    } catch (cause) {
-      if (cause.code === "FLOW_STATE_PROCESS_IDENTITY_UNAVAILABLE") throw cause;
-      throw processIdentityUnavailable("current process identity is unavailable", cause);
-    }
-  }
-
-  assess(owner) {
-    if (this.platform !== "linux") {
-      return new ProcessIdentityAssessment("unknown", `process identity is unsupported on ${this.platform}`);
-    }
-    let bootIdentity;
-    try {
-      bootIdentity = this.readBootIdentity();
-    } catch (cause) {
-      return new ProcessIdentityAssessment("unknown", `boot identity is unavailable: ${cause.message}`);
-    }
-    if (bootIdentity !== owner.bootIdentity) {
-      return new ProcessIdentityAssessment("stale", "lock owner belongs to another system boot");
-    }
-    let startFingerprint;
-    try {
-      startFingerprint = this.readProcessStartFingerprint(owner.pid);
-    } catch (cause) {
-      if (cause.code === "ENOENT" || cause.code === "ESRCH") {
-        return new ProcessIdentityAssessment("stale", `lock owner pid ${owner.pid} no longer exists`);
-      }
-      return new ProcessIdentityAssessment("unknown", `process start fingerprint is unavailable: ${cause.message}`);
-    }
-    if (startFingerprint !== owner.startFingerprint) {
-      return new ProcessIdentityAssessment("stale", `lock owner pid ${owner.pid} was reused`);
-    }
-    return new ProcessIdentityAssessment("live", `lock owner pid ${owner.pid} is active`);
   }
 }
 
@@ -678,21 +559,52 @@ class FlowStateWriterLock {
 }
 
 export class FlowStateCreator {
-  constructor({ root, boundSpecId, state, faultInjector = () => {} }) {
+  constructor({
+    root,
+    mainRoot = root,
+    boundSpecId,
+    state,
+    faultInjector = () => {},
+    maintenanceOwnerToken = null,
+    operationOwnerToken = null,
+    processIdentitySource = new ProcessIdentitySource(),
+  }) {
     const expectedSpec = `specs/${boundSpecId}/spec.json`;
     assertBoundSpecId(boundSpecId);
     if (state?.spec !== expectedSpec) {
       throw authorityError(`new state spec must exactly match bound authority ${expectedSpec}`);
     }
-    prepareFlowStateDirectories(root, boundSpecId);
-    this.authority = new FlowStatePathAuthority({ root, boundSpecId, requireExisting: false });
-    this.authority.assertExactSpec(state?.spec, "new state");
+    this.root = root;
+    this.boundSpecId = boundSpecId;
+    this.authority = null;
     this.identity = new FlowStateIdentity(state, "new state");
     this.content = serializeState(state);
     this.faults = new FaultBoundary(faultInjector);
+    this.repositoryOperation = new RepositoryFlowOperationLock({
+      mainRoot,
+      maintenanceOwnerToken,
+      operationOwnerToken,
+      processIdentitySource,
+    });
   }
 
   create() {
+    this.repositoryOperation.acquire();
+    try {
+      prepareFlowStateDirectories(this.root, this.boundSpecId);
+      this.authority = new FlowStatePathAuthority({
+        root: this.root,
+        boundSpecId: this.boundSpecId,
+        requireExisting: false,
+      });
+      this.authority.assertExactSpec(this.identity.spec, "new state");
+      return this.#create();
+    } finally {
+      this.repositoryOperation.release();
+    }
+  }
+
+  #create() {
     let descriptor = null;
     let created = false;
     let primary = null;
@@ -732,12 +644,14 @@ export class FlowStateCreator {
 export class AtomicFlowStateWriter {
   constructor({
     root,
+    mainRoot = root,
     boundSpecId,
     expectedOriginal,
     nextState,
     expectedRevision,
     faultInjector = () => {},
     processIdentitySource = new ProcessIdentitySource(),
+    maintenanceOwnerToken = null,
   }) {
     this.pathAuthority = new FlowStatePathAuthority({ root, boundSpecId });
     this.replacementAuthority = expectedOriginal == null && nextState == null
@@ -750,6 +664,9 @@ export class AtomicFlowStateWriter {
       });
     this.faults = new FaultBoundary(faultInjector);
     this.lock = new FlowStateWriterLock(this.pathAuthority, this.faults, processIdentitySource);
+    this.mainRoot = mainRoot;
+    this.maintenanceOwnerToken = maintenanceOwnerToken;
+    this.processIdentitySource = processIdentitySource;
   }
 
   save() {
@@ -765,6 +682,7 @@ export class AtomicFlowStateWriter {
     parseState = (content) => JSON.parse(content.toString("utf8")),
     validateState = () => {},
     onFailure = null,
+    passThroughError = null,
     allowIssueTransition = false,
   } = {}) {
     if (typeof mutator !== "function") throw new Error("flow state mutator must be a function");
@@ -780,11 +698,30 @@ export class AtomicFlowStateWriter {
         expectedRevision: new FlowStateRevision(current),
         allowIssueTransition,
       });
-    }, onFailure);
+    }, onFailure, passThroughError);
   }
 
-  #replace(resolveAuthority, onFailure = null) {
-    this.lock.acquire();
+  #replace(resolveAuthority, onFailure = null, passThroughError = null) {
+    assertRepositoryMaintenanceAvailable({
+      mainRoot: this.mainRoot,
+      maintenanceOwnerToken: this.maintenanceOwnerToken,
+      processIdentitySource: this.processIdentitySource,
+    });
+    try {
+      this.lock.acquire();
+    } catch (error) {
+      throw error;
+    }
+    try {
+      assertRepositoryMaintenanceAvailable({
+        mainRoot: this.mainRoot,
+        maintenanceOwnerToken: this.maintenanceOwnerToken,
+        processIdentitySource: this.processIdentitySource,
+      });
+    } catch (error) {
+      this.lock.release();
+      throw error;
+    }
     let descriptor = null;
     let tempPath = null;
     let committed = false;
@@ -839,6 +776,16 @@ export class AtomicFlowStateWriter {
     cleanup.append(this.lock.release());
     const residuePaths = [tempPath, writeAuthority.lockPath]
       .filter((candidate) => candidate && pathMayExist(candidate));
+
+    if (
+      primary
+      && cleanup.errors.length === 0
+      && residuePaths.length === 0
+      && typeof passThroughError === "function"
+      && passThroughError(primary)
+    ) {
+      throw primary;
+    }
 
     if (primary || cleanup.errors.length > 0) {
       const code = primary instanceof FlowStateAtomicSaveError

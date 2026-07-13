@@ -10,6 +10,7 @@
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { fetchNormalizedIssueBody } from "./issue-body-cache.js";
+import { RepositoryFlowOperationLock } from "../../lib/repository-maintenance-lock.js";
 
 export default class SetInitCommand extends FlowCommand {
   constructor() {
@@ -43,9 +44,16 @@ export default class SetInitCommand extends FlowCommand {
       );
     }
 
-    const runId = flowManager.generateRunId();
-    flowManager.createPreparingFlow(runId, extra);
-
-    return { runId, ...extra };
+    const operationLock = new RepositoryFlowOperationLock({
+      mainRoot: ctx.mainRoot || flowManager._mainRoot || ctx.root,
+    });
+    operationLock.acquire();
+    try {
+      const runId = flowManager.generateRunId();
+      flowManager.createPreparingFlow(runId, extra);
+      return { runId, ...extra };
+    } finally {
+      operationLock.release();
+    }
   }
 }

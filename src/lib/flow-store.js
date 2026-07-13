@@ -458,7 +458,12 @@ export class FlowStore {
     return bindCurrentFlowState(state, content, p);
   }
 
-  create(state, { faultInjector = () => {} } = {}) {
+  create(state, {
+    faultInjector = () => {},
+    maintenanceOwnerToken = null,
+    operationOwnerToken = null,
+    processIdentitySource,
+  } = {}) {
     const nextState = structuredClone(state);
     if (!Array.isArray(nextState.tasks)) nextState.tasks = [];
     if (!("currentTaskId" in nextState)) nextState.currentTaskId = null;
@@ -468,9 +473,13 @@ export class FlowStore {
     assertCurrentFlowStateSchema(nextState, p);
     return new FlowStateCreator({
       root: this._root,
+      mainRoot: this._mainRoot,
       boundSpecId: specId,
       state: nextState,
       faultInjector,
+      maintenanceOwnerToken,
+      operationOwnerToken,
+      processIdentitySource,
     }).create();
   }
 
@@ -484,15 +493,18 @@ export class FlowStore {
     expectedOriginal,
     faultInjector = () => {},
     processIdentitySource,
+    maintenanceOwnerToken,
   } = {}) {
     const writer = new AtomicFlowStateWriter({
       root: this._root,
+      mainRoot: this._mainRoot,
       boundSpecId,
       expectedOriginal,
       nextState: state,
       expectedRevision: FLOW_STATE_REVISIONS.get(expectedOriginal),
       faultInjector,
       processIdentitySource,
+      maintenanceOwnerToken,
     });
     assertCurrentFlowStateSchema(state, writer.pathAuthority.statePath);
     assertCurrentFlowStateSchema(expectedOriginal, writer.pathAuthority.statePath);
@@ -508,15 +520,18 @@ export class FlowStore {
     if (!specId) throw new Error("no active flow (flow.json not found)");
     return new AtomicFlowStateWriter({
       root: this._root,
+      mainRoot: this._mainRoot,
       boundSpecId: specId,
       faultInjector: opts.faultInjector,
       processIdentitySource: opts.processIdentitySource,
+      maintenanceOwnerToken: opts.maintenanceOwnerToken,
     }).mutate(mutator, {
       parseState: opts.stepIdMigration === true
         ? parseStepIdMigrationState
         : (content, statePath) => parseCurrentFlowState(content, statePath),
       validateState: assertCurrentFlowStateSchema,
       onFailure: opts.onFailure,
+      passThroughError: opts.passThroughError,
       allowIssueTransition: opts.allowIssueTransition === true,
     });
   }

@@ -15,8 +15,8 @@ import { flattenSteps } from "./step-tree.js";
 import { clearReviewStopState } from "./review-failure.js";
 import {
   RetryRecoveryInput,
-  applyRetryRecoveryGrant,
-  buildRecoveryEligibilityForState,
+  RetryRecoveryGrantError,
+  applyRetryReset,
   resolveRecoveryMaxAttempts,
 } from "./retry-recovery.js";
 
@@ -50,12 +50,10 @@ function resolveReviewResetPhases(ctx, phase) {
 }
 
 class RetryResetOperation {
-  constructor({ input, attemptsBefore, maxAttempts, eligibility = null }) {
+  constructor({ input, attemptsBefore, maxAttempts }) {
     this.input = input;
     this.attemptsBefore = attemptsBefore;
     this.maxAttempts = maxAttempts;
-    this.eligibility = eligibility;
-    this.exhausted = eligibility != null;
     Object.freeze(this);
   }
 
@@ -103,58 +101,44 @@ export default class SetRetryCommand extends FlowCommand {
         attempts: attemptsBefore,
         resolvedMax: resolveConfiguredMaxAttempts({ flowState: ctx.flowState }, p),
       });
-      let eligibility = null;
-      if (attemptsBefore >= maxAttempts) {
-        eligibility = buildRecoveryEligibilityForState({
-          root: ctx.root,
-          flowState: ctx.flowState,
-          kind,
-          phase: p,
-          attempts: attemptsBefore,
-          maxAttempts,
-        });
-        if (eligibility.recoverable !== true) {
-          return Envelope.fail(
-            "set",
-            "retry",
-            String(eligibility.reason || "recovery-not-eligible").replace(/-/g, "_").toUpperCase(),
-            `retry recovery rejected for ${kind}/${p}: ${eligibility.reason}`,
-            { kind, phase: p, attempts: attemptsBefore, max: maxAttempts, reason: eligibility.reason },
-          );
-        }
-      }
       operations.push(new RetryResetOperation({
         input: phaseInput,
         attemptsBefore,
         maxAttempts,
-        eligibility,
       }));
     }
 
     const grants = [];
     for (const op of operations) {
-      if (op.exhausted) {
-        const grant = applyRetryRecoveryGrant({
+      try {
+        const reset = applyRetryReset({
           root: ctx.root,
           spec: ctx.flowState.spec,
           flowManager: ctx.flowManager,
           input: op.input,
-          eligibility: op.eligibility,
-          attemptsBefore: op.attemptsBefore,
-          maxAttempts: op.maxAttempts,
+          expectedAttempts: op.attemptsBefore,
+          expectedMaxAttempts: op.maxAttempts,
+          expectedRunId: ctx.flowState.runId,
+          expectedHasIssue: Object.hasOwn(ctx.flowState, "issue"),
+          expectedIssue: ctx.flowState.issue,
+          resolveConfiguredMaxAttempts(state, targetPhase) {
+            return resolveConfiguredMaxAttempts({ flowState: state }, targetPhase);
+          },
+          afterReset: kind === "review"
+            ? (state) => clearReviewStopState(state, op.phase)
+            : null,
         });
-        grants.push(grant.toJSON());
-      } else {
-        ctx.flowManager.appendMetric(
-          { phase: op.phase, counter, delta: 0, reset: true },
-          { taskId: null },
+        if (reset.grant) grants.push(reset.grant.toJSON());
+      } catch (error) {
+        if (!(error instanceof RetryRecoveryGrantError)) throw error;
+        return Envelope.fail(
+          "set",
+          "retry",
+          error.code,
+          error.message,
+          error.data,
         );
       }
-    }
-    if (kind === "review") {
-      ctx.flowManager.mutate((state) => {
-        for (const p of resetPhases) clearReviewStopState(state, p);
-      });
     }
 
     return { action: input.action, kind, phase, phases: resetPhases, counter, reset: true, grants };
