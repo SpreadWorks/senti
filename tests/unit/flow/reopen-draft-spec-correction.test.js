@@ -1,5 +1,6 @@
 import { afterEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { Container } from "../../../src/lib/container.js";
@@ -8,6 +9,7 @@ import { FlowManager } from "../../../src/lib/flow-manager.js";
 import { buildInitialSteps, FLOW_STEPS } from "../../../src/lib/flow-helpers.js";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 import { resolveFlowContext } from "../../../src/flow/lib/flow-context.js";
+import GetNextActionCommand from "../../../src/flow/lib/get-next-action.js";
 import { RunReopenDraftCommand } from "../../../src/flow/lib/run-reopen-draft.js";
 import { findInProgressLeaf, findStepById, flattenSteps } from "../../../src/flow/lib/step-tree.js";
 import { makeDefaultTask } from "../../helpers/flow-setup.js";
@@ -42,14 +44,52 @@ function implementationSteps(activeStep = "implement") {
   return steps;
 }
 
-function task(overrides) {
+function task(overrides = {}) {
+  const steps = overrides.steps ?? [
+    { id: "task-impl", status: "pending" },
+    { id: "task-review", status: "pending" },
+    { id: "task-gate", status: "pending" },
+  ];
   return makeDefaultTask({
     ...overrides,
+    spec: overrides.spec ?? `specs/${SPEC_ID}/tasks/${overrides.id ?? "T-1"}.md`,
+    requirements: overrides.requirements ?? [],
+    summary: overrides.summary ?? null,
+    steps,
+  });
+}
+
+function startedTask(id = "T-1") {
+  return task({
+    id,
+    status: "in_progress",
     steps: [
-      { id: "task-impl", status: "pending" },
+      {
+        id: "task-impl",
+        status: "in_progress",
+        startedAt: "2026-07-13T00:02:00Z",
+        runtimeLog: { sequence: 71, result: "partial implementation" },
+      },
       { id: "task-review", status: "pending" },
       { id: "task-gate", status: "pending" },
     ],
+    requirements: [{ id: "R1", desc: "old requirement", status: "pending" }],
+  });
+}
+
+function completedTask(id = "T-1") {
+  return task({
+    id,
+    status: "done",
+    steps: ["task-impl", "task-review", "task-gate"].map((stepId, index) => ({
+      id: stepId,
+      status: "done",
+      startedAt: `2026-07-13T00:0${index + 2}:00Z`,
+      finishedAt: `2026-07-13T00:0${index + 3}:00Z`,
+      runtimeLog: { sequence: 60 + index, result: `${stepId} passed` },
+    })),
+    requirements: [{ id: "R1", desc: "old requirement", status: "done" }],
+    summary: "old completed implementation result",
   });
 }
 
@@ -72,6 +112,8 @@ function setupFlow(root, {
   currentTaskId,
   taskStatus,
   taskStepStatus,
+  tasks: suppliedTasks,
+  planRewinds,
   mainRoot = root,
   inWorktree = false,
 } = {}) {
@@ -87,6 +129,18 @@ function setupFlow(root, {
   writeJson(files.evidence, { version: "2", result: "pass", marker: "must stay byte-identical" });
   fs.mkdirSync(path.dirname(files.source), { recursive: true });
   fs.writeFileSync(files.source, "export const partial = true;\n");
+  const steps = implementationSteps(activeStep);
+  for (const id of ["draft-questions-review", "draft-gate", "spec-review", "spec-gate", "approval", "test-review", "implement"]) {
+    const step = findStepById(steps, id);
+    if (step?.status === "done" || step?.status === "in_progress") {
+      step.startedAt = "2026-07-13T00:00:00Z";
+      if (step.status === "done") step.finishedAt = "2026-07-13T00:01:00Z";
+      step.runtimeLog = {
+        sequence: id === "implement" ? 71 : id === "approval" ? 55 : 44,
+        result: `${id} historical result`,
+      };
+    }
+  }
   const state = {
     spec: SPEC_PATH,
     baseBranch: "main",
@@ -94,17 +148,18 @@ function setupFlow(root, {
     runId: "run-441",
     ...(issue == null ? {} : { issue }),
     worktree: inWorktree,
-    steps: implementationSteps(activeStep),
+    steps,
     requirements: [],
-    tasks: doneTask
-      ? [task({ id: "T-1", status: "done" }), task({ id: "T-2", status: "in_progress" })]
-      : [task({ id: "T-1", status: taskStatus ?? "pending" })],
+    tasks: suppliedTasks ?? (doneTask
+      ? [completedTask("T-1"), startedTask("T-2")]
+      : [task({ id: "T-1", status: taskStatus ?? "pending" })]),
     currentTaskId: currentTaskId === undefined ? (doneTask ? "T-2" : null) : currentTaskId,
     metrics: [
       { phase: "spec", counter: "gateRetry", delta: 1, taskId: null, ts: "2026-07-13T00:00:00Z" },
       { phase: "test", counter: "reviewRetry", delta: 1, taskId: null, ts: "2026-07-13T00:00:00Z" },
     ],
     retryLimits: { gate: 5, review: 4 },
+    ...(planRewinds && { planRewinds: structuredClone(planRewinds) }),
   };
   if (!doneTask && taskStepStatus) state.tasks[0].steps[0].status = taskStepStatus;
   const fm = new FlowManager({ root, mainRoot, inWorktree });
@@ -137,13 +192,23 @@ async function runDirect(root, input = targetInput(), options = {}) {
   return new RunReopenDraftCommand().run(makeContainer(root, options), input);
 }
 
+function git(root, args) {
+  return execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
+}
+
 describe("guarded single-state reopen for source-discovered spec corrections", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
   it("uses one public atomic flow save and leaves every non-flow byte unchanged", async () => {
     tmp = createTmpDir("reopen-single-state-");
-    const { files } = setupFlow(tmp);
+    const olderAudit = {
+      category: "spec-correction",
+      reason: "older correction",
+      target: { runId: "run-441", spec: SPEC_PATH, issue: 441 },
+      timestamp: "2026-07-12T00:00:00Z",
+    };
+    const { files } = setupFlow(tmp, { planRewinds: [olderAudit] });
     const before = snapshot(files);
     const container = makeContainer(tmp);
     const fm = container.get("flowManager");
@@ -180,12 +245,34 @@ describe("guarded single-state reopen for source-discovered spec corrections", (
       { phase: "test", counter: "reviewRetry", delta: 1, taskId: null, ts: "2026-07-13T00:00:00Z" },
     ]);
     assert.deepEqual(state.retryLimits, { gate: 5, review: 4 });
-    const audit = state.planRewinds.at(-1);
+    assert.equal(state.planRewinds.length, 2);
+    assert.deepEqual(state.planRewinds[0], olderAudit);
+    const audit = state.planRewinds[1];
     assert.equal(audit.category, "spec-correction");
     assert.equal(audit.reason, targetInput().reason);
     assert.deepEqual(audit.invalidatedPhases, ["plan", "impl"]);
     assert.equal(audit.previousState.activeStep, "implement");
     assert.equal(audit.previousState.stepStatuses.approval, "done");
+    const approval = audit.invalidatedResults.flowSteps.find((step) => step.id === "approval");
+    assert.deepEqual(approval.runtimeLog, { sequence: 55, result: "approval historical result" });
+    assert.equal(approval.status, "done");
+    assert.deepEqual(audit.invalidatedResults.approvals, [{
+      stepId: "approval",
+      status: "done",
+      userApproval: {
+        approved: true,
+        confirmed_at: "2026-07-13T00:00:00Z",
+        notes: "must stay byte-identical",
+      },
+    }]);
+    const implementation = audit.invalidatedResults.flowSteps.find((step) => step.id === "implement");
+    assert.deepEqual(implementation.runtimeLog, { sequence: 71, result: "implement historical result" });
+    assert.equal(implementation.status, "in_progress");
+    assert.deepEqual(audit.invalidatedResults.tasks, []);
+    assert.equal(audit.resultingState.activeStep, "draft");
+    assert.equal(audit.resultingState.currentTaskId, null);
+    assert.equal(audit.resultingState.stepStatuses.approval, "pending");
+    assert.equal(findStepById(state.steps, "approval").runtimeLog, undefined);
     assert.doesNotMatch(JSON.stringify(audit), /originIssue|Issue #441/);
   });
 
@@ -255,8 +342,8 @@ describe("guarded single-state reopen for source-discovered spec corrections", (
     }
   });
 
-  it("rechecks implement and zero-done eligibility after guards without changing bytes", async () => {
-    for (const options of [{ activeStep: "finalize-merge" }, { doneTask: true }]) {
+  it("rechecks the implement-stage eligibility after guards without changing bytes", async () => {
+    for (const options of [{ activeStep: "finalize-merge" }]) {
       tmp = createTmpDir("reopen-ineligible-");
       const { files } = setupFlow(tmp, options);
       const before = snapshot(files);
@@ -269,21 +356,49 @@ describe("guarded single-state reopen for source-discovered spec corrections", (
     }
   });
 
-  it("rejects every zero-done task that has already started", async () => {
+  it("rewinds in-progress and completed tasks without changing dirty implementation bytes", async () => {
     const cases = [
-      { currentTaskId: "T-1", taskStatus: "in_progress" },
-      { currentTaskId: null, taskStatus: "in_progress" },
-      { currentTaskId: null, taskStatus: "pending", taskStepStatus: "in_progress" },
-      { currentTaskId: null, taskStatus: "pending", taskStepStatus: "done" },
+      ["in-progress", [startedTask("T-1")], "T-1"],
+      ["completed-and-current", [completedTask("T-1"), startedTask("T-2")], "T-2"],
     ];
-    for (const options of cases) {
-      tmp = createTmpDir("reopen-started-task-");
-      const { files } = setupFlow(tmp, options);
+    for (const [name, tasks, currentTaskId] of cases) {
+      tmp = createTmpDir(`reopen-started-task-${name}-`);
+      git(tmp, ["init", "-q"]);
+      const { files, state: originalState } = setupFlow(tmp, { tasks, currentTaskId });
+      git(tmp, ["add", "."]);
+      git(tmp, ["-c", "user.name=Senti Test", "-c", "user.email=senti@example.invalid", "commit", "-qm", "fixture"]);
+      fs.writeFileSync(files.source, "export const partial = 'dirty implementation must survive';\n");
       const before = snapshot(files);
+      const sourceStatus = git(tmp, ["status", "--short", "--", "src"]);
+
       const result = await runDirect(tmp);
-      assert.equal(result.ok, false, JSON.stringify(options));
-      assert.equal(result.errors[0].code, "REOPEN_STAGE_UNSUPPORTED", JSON.stringify(options));
-      assert.deepEqual(snapshot(files), before, JSON.stringify(options));
+
+      assert.equal(result.ok, true, JSON.stringify(result.errors));
+      const after = snapshot(files);
+      for (const key of ["spec", "issueLog", "draft", "evidence", "source"]) {
+        assert.equal(after[key], before[key], `${name}:${key}`);
+      }
+      assert.equal(git(tmp, ["status", "--short", "--", "src"]), sourceStatus, name);
+      const state = JSON.parse(fs.readFileSync(files.flow, "utf8"));
+      assert.equal(state.currentTaskId, null, name);
+      for (const rewoundTask of state.tasks) {
+        assert.equal(rewoundTask.status, "pending", `${name}:${rewoundTask.id}`);
+        assert.equal(rewoundTask.summary, null, `${name}:${rewoundTask.id}:summary`);
+        assert.ok(rewoundTask.steps.every((step) => step.status === "pending"), `${name}:${rewoundTask.id}:steps`);
+        assert.ok(rewoundTask.steps.every((step) => step.runtimeLog == null), `${name}:${rewoundTask.id}:runtimeLog`);
+        assert.ok(rewoundTask.requirements.every((requirement) => requirement.status === "pending"), `${name}:${rewoundTask.id}:requirements`);
+      }
+      const audit = state.planRewinds.at(-1);
+      assert.deepEqual(audit.invalidatedResults.tasks, originalState.tasks, name);
+      assert.equal(audit.previousState.currentTaskId, currentTaskId, name);
+      assert.deepEqual(
+        audit.previousState.taskStatuses,
+        Object.fromEntries(originalState.tasks.map((taskState) => [taskState.id, taskState.status])),
+        name,
+      );
+      const next = await new GetNextActionCommand().run(makeContainer(tmp), targetInput());
+      assert.equal(next.step, "draft", name);
+      assert.equal(next.taskId, null, name);
       removeTmpDir(tmp);
       tmp = null;
     }
@@ -321,6 +436,58 @@ describe("guarded single-state reopen for source-discovered spec corrections", (
       residuePaths: [`${files.flow}.tmp`],
     });
     assert.deepEqual(snapshot(files), before);
+  });
+
+  it("fails closed before mutation when approval evidence cannot be preserved", async () => {
+    tmp = createTmpDir("reopen-unreadable-approval-");
+    const { files } = setupFlow(tmp);
+    fs.writeFileSync(files.spec, "{invalid approval evidence\n");
+    const before = snapshot(files);
+
+    const result = await runDirect(tmp);
+
+    assert.equal(result.ok, false);
+    assert.equal(result.errors[0].code, "REOPEN_EVIDENCE_UNREADABLE");
+    assert.deepEqual(snapshot(files), before);
+  });
+
+  it("converges a committed durability fault and makes an exact retry mutation-free", async () => {
+    tmp = createTmpDir("reopen-committed-retry-");
+    const { files } = setupFlow(tmp, { tasks: [startedTask("T-1")], currentTaskId: "T-1" });
+    const container = makeContainer(tmp);
+    const fm = container.get("flowManager");
+    const forRoot = fm.forRoot.bind(fm);
+    let injected = false;
+    fm.forRoot = (root, options) => {
+      const bound = forRoot(root, options);
+      const saveAtomic = bound.saveAtomic.bind(bound);
+      bound.saveAtomic = (state, atomicOptions) => saveAtomic(state, {
+        ...atomicOptions,
+        faultInjector(event) {
+          if (!injected && event.phase === "after-state-rename") {
+            injected = true;
+            throw new Error("simulated response loss after state replacement");
+          }
+        },
+      });
+      return bound;
+    };
+
+    const first = await new RunReopenDraftCommand().run(container, targetInput());
+
+    assert.equal(first.ok, true, JSON.stringify(first.errors));
+    assert.equal(first.data.recoveredCommittedWrite, true);
+    const convergedBytes = fs.readFileSync(files.flow);
+    const converged = JSON.parse(convergedBytes);
+    assert.equal(converged.planRewinds.length, 1);
+    assert.equal(findInProgressLeaf(converged.steps).id, "draft");
+
+    const retry = await runDirect(tmp);
+
+    assert.equal(retry.ok, true, JSON.stringify(retry.errors));
+    assert.equal(retry.data.idempotent, true);
+    assert.deepEqual(fs.readFileSync(files.flow), convergedBytes);
+    assert.equal(JSON.parse(fs.readFileSync(files.flow, "utf8")).planRewinds.length, 1);
   });
 
   it("preserves the existing plan and task-addition routes", async () => {
