@@ -35,7 +35,7 @@ function setupFlow(tmp, { withTask = false, completeTask = false } = {}) {
     if (!completeTask) state.currentTaskId = "T1";
   }
   const fm = makeFlowManager(tmp);
-  fm.save(state);
+  fm.create(state);
   fm.addActiveFlow("001-test", "local");
   return fm;
 }

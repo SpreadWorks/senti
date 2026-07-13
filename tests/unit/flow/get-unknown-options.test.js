@@ -17,7 +17,8 @@ const FLOW_CMD_ARGS_PREFIX = ["flow"];
 function setupFlowState(dir) {
   const specId = "001-test";
   const state = {
-    spec: `specs/${specId}/spec.md`,
+    spec: `specs/${specId}/spec.json`,
+    runId: `run-${specId}`,
     baseBranch: "main",
     featureBranch: "feature/001-test",
     steps: buildInitialSteps(),
@@ -25,7 +26,7 @@ function setupFlowState(dir) {
     tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
     currentTaskId: null,
   };
-  makeFlowManager(dir).save(state);
+  makeFlowManager(dir).create(state);
   makeFlowManager(dir).addActiveFlow(specId, "local");
 }
 
@@ -39,7 +40,7 @@ describe("flow get unknown options", () => {
 
     let threw = false;
     try {
-      execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "status", "--spec", "specs/999/spec.md"], {
+      execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "status", "--spec", "specs/999/spec.json"], {
         encoding: "utf8",
         env: { ...process.env, SENTI_WORK_ROOT: tmp },
       });
@@ -59,7 +60,7 @@ describe("flow get unknown options", () => {
 
     let threw = false;
     try {
-      execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "qa-count", "--spec", "specs/999/spec.md"], {
+      execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "qa-count", "--spec", "specs/999/spec.json"], {
         encoding: "utf8",
         env: { ...process.env, SENTI_WORK_ROOT: tmp },
       });

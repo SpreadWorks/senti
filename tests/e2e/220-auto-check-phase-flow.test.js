@@ -104,8 +104,9 @@ describe("e2e — phase-aware auto-check flow (spec 220)", () => {
     fs.writeFileSync(path.join(specDir, "spec.md"), "# placeholder");
     const steps = buildInitialSteps();
     findStepById(steps, "approval").status = "done";
-    makeFlowManager(tmp).save({
-      spec: "specs/050-approved/spec.md",
+    makeFlowManager(tmp).create({
+      spec: "specs/050-approved/spec.json",
+      runId: "run-050-approved",
       baseBranch: "main",
       featureBranch: "feature/050-approved",
       issue: 50,

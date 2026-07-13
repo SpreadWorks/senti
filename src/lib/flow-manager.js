@@ -182,14 +182,13 @@ export class FlowManager {
   loadReadOnly(specId) {
     return this._store.loadReadOnly(withSpecIdArgDefault(specId, this._boundSpecId));
   }
-  save(state) { return this._store.save(state); }
+  create(state, options) { return this._store.create(state, options); }
   saveAtomic(state, options = {}) {
     return this._store.saveAtomic(state, { ...options, boundSpecId: this._boundSpecId });
   }
   mutate(mutator, opts) { return this._store.mutate(mutator, withSpecIdDefault(opts, this._boundSpecId)); }
   pathFor(specId) { return this._store.pathFor(withSpecIdArgDefault(specId, this._boundSpecId)); }
   pathForCurrent() { return this._store.pathForCurrent(); }
-  rollbackLastRunIdMigration() { return this._store.rollbackLastRunIdMigration(); }
   /** Alias preserved for parity with the legacy `flowStatePath` public export. */
   flowStatePath() { return this._store.pathForCurrent(); }
   resolveWorktreePaths(state) { return this._store.resolveWorktreePaths(state); }

@@ -14,7 +14,7 @@ describe("R1: resolveCurrentContext returns sddPhase from nested steps", () => {
     const step = findStepById(state.steps, "draft");
     step.status = "in_progress";
     const fm = makeFlowManager(tmp);
-    fm.save(state);
+    fm.create(state);
 
     const ctx = fm.resolveCurrentContext();
     assert.equal(ctx.sddPhase, "draft");
@@ -27,7 +27,7 @@ describe("R1: resolveCurrentContext returns sddPhase from nested steps", () => {
       s.status = "done";
     }
     const fm = makeFlowManager(tmp);
-    fm.save(state);
+    fm.create(state);
 
     const ctx = fm.resolveCurrentContext();
     assert.equal(ctx.sddPhase, null);
@@ -42,7 +42,7 @@ describe("R1: resolveCurrentContext returns sddPhase from nested steps", () => {
     const step = findStepById(state.steps, "finalize-commit");
     step.status = "in_progress";
     const fm = makeFlowManager(tmp);
-    fm.save(state);
+    fm.create(state);
 
     const ctx = fm.resolveCurrentContext();
     assert.equal(ctx.sddPhase, "finalize-commit");

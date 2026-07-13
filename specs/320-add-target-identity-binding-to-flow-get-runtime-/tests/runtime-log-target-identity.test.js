@@ -51,7 +51,7 @@ function saveActiveFlow(root, specId, { issue, runId }) {
     currentTaskId: null,
   };
   const flowManager = makeFlowManager(root);
-  flowManager.save(state);
+  flowManager.create(state);
   flowManager.addActiveFlow(specId, "branch");
   return state;
 }

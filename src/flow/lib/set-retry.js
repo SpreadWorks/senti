@@ -49,10 +49,6 @@ function resolveReviewResetPhases(ctx, phase) {
   return ["draft-questions", "draft-coverage"];
 }
 
-function rollbackLoadOnlyRunIdMigration(ctx) {
-  ctx.flowManager?.rollbackLastRunIdMigration?.();
-}
-
 class RetryResetOperation {
   constructor({ input, attemptsBefore, maxAttempts, eligibility = null }) {
     this.input = input;
@@ -74,7 +70,6 @@ export default class SetRetryCommand extends FlowCommand {
     try {
       input = new RetryRecoveryInput(ctx);
     } catch (err) {
-      rollbackLoadOnlyRunIdMigration(ctx);
       return Envelope.fail(
         "set",
         "retry",
@@ -119,7 +114,6 @@ export default class SetRetryCommand extends FlowCommand {
           maxAttempts,
         });
         if (eligibility.recoverable !== true) {
-          rollbackLoadOnlyRunIdMigration(ctx);
           return Envelope.fail(
             "set",
             "retry",

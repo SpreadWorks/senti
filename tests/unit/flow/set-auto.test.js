@@ -61,7 +61,8 @@ function createTmpProject(agentResponse = passResponse()) {
 
 function createFlowState(tmp, request = "add a progress bar") {
   const state = {
-    spec: "specs/001-test/spec.md",
+    spec: "specs/001-test/spec.json",
+    runId: "run-001-test",
     baseBranch: "main",
     featureBranch: "feature/001-test",
     request,
@@ -69,7 +70,7 @@ function createFlowState(tmp, request = "add a progress bar") {
     tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
     currentTaskId: null,
   };
-  makeFlowManager(tmp).save(state);
+  makeFlowManager(tmp).create(state);
   makeFlowManager(tmp).addActiveFlow("001-test", "branch");
 }
 
@@ -220,7 +221,8 @@ describe("flow set auto", () => {
     const approvalStep = findStepById(steps, "approval");
     approvalStep.status = "done";
     const state = {
-      spec: "specs/001-test/spec.md",
+      spec: "specs/001-test/spec.json",
+      runId: "run-001-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
       request: "reset password and run migration", // also hits static gate
@@ -228,7 +230,7 @@ describe("flow set auto", () => {
       tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
       currentTaskId: null,
     };
-    makeFlowManager(tmp).save(state);
+    makeFlowManager(tmp).create(state);
     makeFlowManager(tmp).addActiveFlow("001-test", "branch");
 
     const res = runSetAuto(tmp, "on");
@@ -279,7 +281,8 @@ describe("flow set auto", () => {
     const steps = buildInitialSteps();
     findStepById(steps, "draft-gate").status = "done";
     const state = {
-      spec: "specs/001-test/spec.md",
+      spec: "specs/001-test/spec.json",
+      runId: "run-001-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
       request: REQUEST_MARKER,
@@ -287,7 +290,7 @@ describe("flow set auto", () => {
       tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
       currentTaskId: null,
     };
-    makeFlowManager(tmp).save(state);
+    makeFlowManager(tmp).create(state);
     makeFlowManager(tmp).addActiveFlow("001-test", "branch");
 
     const res = runSetAuto(tmp, "on");
@@ -321,8 +324,9 @@ describe("flow set auto", () => {
     );
     const steps = buildInitialSteps();
     findStepById(steps, "draft-gate").status = "done";
-    makeFlowManager(tmp).save({
-      spec: "specs/001-test/spec.md",
+    makeFlowManager(tmp).create({
+      spec: "specs/001-test/spec.json",
+      runId: "run-001-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
       request: "add a progress bar",
@@ -368,7 +372,8 @@ describe("flow set auto", () => {
 
     const REQUEST_MARKER = "ORIGINAL_REQUEST_TEXT_MARKER_12345";
     const state = {
-      spec: "specs/001-test/spec.md",
+      spec: "specs/001-test/spec.json",
+      runId: "run-001-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
       request: `add a progress bar ${REQUEST_MARKER}`,
@@ -376,7 +381,7 @@ describe("flow set auto", () => {
       tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
       currentTaskId: null,
     };
-    makeFlowManager(tmp).save(state);
+    makeFlowManager(tmp).create(state);
     makeFlowManager(tmp).addActiveFlow("001-test", "branch");
 
     const res = runSetAuto(tmp, "on");
@@ -588,7 +593,8 @@ describe("flow set auto", () => {
     const { dir, capturePath } = createCapturingProject();
     tmp = dir;
     const state = {
-      spec: "specs/001-test/spec.md",
+      spec: "specs/001-test/spec.json",
+      runId: "run-001-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
       request: "add a progress bar",
@@ -606,7 +612,7 @@ describe("flow set auto", () => {
         reason: "persisted by run auto-check",
       },
     };
-    makeFlowManager(tmp).save(state);
+    makeFlowManager(tmp).create(state);
     makeFlowManager(tmp).addActiveFlow("001-test", "branch");
 
     const res = runSetAuto(tmp, "on");
@@ -630,7 +636,8 @@ describe("flow set auto", () => {
     const { dir, capturePath } = createCapturingProject();
     tmp = dir;
     const state = {
-      spec: "specs/001-test/spec.md",
+      spec: "specs/001-test/spec.json",
+      runId: "run-001-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
       request: "add a progress bar",
@@ -647,7 +654,7 @@ describe("flow set auto", () => {
         reason: "legacy persisted by run auto-check",
       },
     };
-    makeFlowManager(tmp).save(state);
+    makeFlowManager(tmp).create(state);
     makeFlowManager(tmp).addActiveFlow("001-test", "branch");
 
     const res = runSetAuto(tmp, "on");

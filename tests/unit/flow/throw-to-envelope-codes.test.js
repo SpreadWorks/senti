@@ -52,7 +52,8 @@ function createTmpProject(agentResponse) {
 
 function createFlowState(tmp, extra = {}) {
   const state = {
-    spec: "specs/001-test/spec.md",
+    spec: "specs/001-test/spec.json",
+    runId: "run-001-test",
     baseBranch: "main",
     featureBranch: "feature/001-test",
     request: "add a progress bar",
@@ -61,7 +62,7 @@ function createFlowState(tmp, extra = {}) {
     currentTaskId: null,
     ...extra,
   };
-  makeFlowManager(tmp).save(state);
+  makeFlowManager(tmp).create(state);
   makeFlowManager(tmp).addActiveFlow("001-test", "branch");
 }
 

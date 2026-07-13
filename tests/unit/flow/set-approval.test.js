@@ -57,7 +57,8 @@ function setupSpec(tmp, specId, extras = {}) {
   fs.writeFileSync(path.join(specDir, "spec.json"), JSON.stringify(specJson, null, 2));
   fs.writeFileSync(path.join(specDir, "spec.md"), "# Spec\n");
   const state = {
-    spec: `specs/${specId}/spec.md`,
+    spec: `specs/${specId}/spec.json`,
+    runId: `run-${specId}`,
     baseBranch: "main",
     featureBranch: `feature/${specId}`,
     steps: buildInitialSteps(),
@@ -65,7 +66,7 @@ function setupSpec(tmp, specId, extras = {}) {
     tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
     currentTaskId: null,
   };
-  makeFlowManager(tmp).save(state);
+  makeFlowManager(tmp).create(state);
   makeFlowManager(tmp).addActiveFlow(specId, "branch");
   return specDir;
 }

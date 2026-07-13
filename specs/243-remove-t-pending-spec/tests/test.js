@@ -13,7 +13,7 @@ describe("243: Remove T-pending-spec placeholder", () => {
     const fm = makeFlowManager(tmp);
     const state = fm.load();
     state.tasks = [];
-    fm.save(state);
+    fm.create(state);
     const reloaded = fm.load();
     assert.ok(Array.isArray(reloaded.tasks));
     assert.equal(reloaded.tasks.length, 0);

@@ -90,7 +90,7 @@ function setupTestStepFixture(root, testSource) {
     currentTaskId: "T-1",
   };
   const flowManager = makeFlowManager(root);
-  flowManager.save(state);
+  flowManager.create(state);
   flowManager.addActiveFlow(specId, "branch");
   return { flowManager, spec };
 }
@@ -118,7 +118,7 @@ function setupTaskImplFixture(root) {
     currentTaskId: "T-1",
   };
   const flowManager = makeFlowManager(root);
-  flowManager.save(state);
+  flowManager.create(state);
   flowManager.addActiveFlow(specId, "branch");
   return flowManager;
 }

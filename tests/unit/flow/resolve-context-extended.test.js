@@ -22,7 +22,7 @@ describe("flow get resolve-context (extended fields)", () => {
   function setupFlowState(dir) {
     const specId = "001-test";
     const state = {
-      spec: `specs/${specId}/spec.md`,
+      spec: `specs/${specId}/spec.json`,
       baseBranch: "main",
       featureBranch: "feature/001-test",
       runId: "run-001-test",
@@ -32,7 +32,7 @@ describe("flow get resolve-context (extended fields)", () => {
       tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
       currentTaskId: null,
     };
-    makeFlowManager(dir).save(state);
+    makeFlowManager(dir).create(state);
     makeFlowManager(dir).addActiveFlow(specId, "local");
     return state;
   }

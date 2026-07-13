@@ -151,8 +151,9 @@ describe("T-3: spec render generates tasks/<id>.md", () => {
       const container = makeContainer(tmp);
       container.register("root", tmp);
       const fm = container.get("flowManager");
-      fm.save({
-        spec: "specs/001-test/spec.md",
+      fm.create({
+        spec: "specs/001-test/spec.json",
+        runId: "run-001-test",
         baseBranch: "main",
         featureBranch: "feature/001-test",
         steps: [{ id: "branch", status: "done" }],
@@ -198,8 +199,9 @@ describe("T-3: spec render generates tasks/<id>.md", () => {
       const container2 = makeContainer(tmp);
       container2.register("root", tmp);
       const fm2 = container2.get("flowManager");
-      fm2.save({
-        spec: "specs/002-fresh/spec.md",
+      fm2.create({
+        spec: "specs/002-fresh/spec.json",
+        runId: "run-002-fresh",
         baseBranch: "main",
         featureBranch: "feature/002-fresh",
         steps: [{ id: "branch", status: "done" }],

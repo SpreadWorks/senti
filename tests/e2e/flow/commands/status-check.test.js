@@ -17,7 +17,7 @@ describe("flow get check impl", () => {
     const state = makeFlowState();
     setStepDone(state, "spec-gate", "test");
     findStepById(state.steps, "test-review").status = "skipped";
-    makeFlowManager(tmp).save(state);
+    makeFlowManager(tmp).create(state);
     makeFlowManager(tmp).addActiveFlow("001-test", "local");
     const result = execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "check", "impl"], {
       encoding: "utf8",
@@ -32,7 +32,7 @@ describe("flow get check impl", () => {
     setStepDone(state, "spec-gate");
     findStepById(state.steps, "test").status = "skipped";
     findStepById(state.steps, "test-review").status = "skipped";
-    makeFlowManager(tmp).save(state);
+    makeFlowManager(tmp).create(state);
     makeFlowManager(tmp).addActiveFlow("001-test", "local");
     const result = execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "check", "impl"], {
       encoding: "utf8",
@@ -48,7 +48,7 @@ describe("flow get check impl", () => {
     const state = makeFlowState();
     // spec-gate and test are done but test-review is NOT done → prereq not met.
     setStepDone(state, "spec-gate", "test");
-    makeFlowManager(tmp).save(state);
+    makeFlowManager(tmp).create(state);
     makeFlowManager(tmp).addActiveFlow("001-test", "local");
     const result = execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "check", "impl"], {
       encoding: "utf8",

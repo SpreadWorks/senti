@@ -18,7 +18,7 @@ const repoRoot = path.resolve(path.dirname(__filename), "..", "..", "..");
 // A pre-269 flow state: flow-scope steps[] and task-scope tasks[].steps[] both use legacy ids.
 function legacyState() {
   return {
-    spec: "specs/001-test/spec.md",
+    spec: "specs/001-test/spec.json",
     baseBranch: "main",
     featureBranch: "feature/001-test",
     worktree: false,
@@ -45,6 +45,7 @@ function legacyState() {
       ] },
     ],
     currentTaskId: "T-1",
+    runId: "legacy-step-ids",
   };
 }
 
@@ -82,23 +83,20 @@ test("R10: rename maps resolve collision ids by scope", () => {
   assert.equal(TASK_STEP_RENAMES["gate-impl"], "task-gate");
 });
 
-test("R10: FlowManager.load migrates a persisted legacy flow.json to new step ids", () => {
+test("R10: FlowManager.load rejects persisted legacy step ids without changing bytes", () => {
   const tmp = createTmpDir();
   try {
     setupFlowConfig(tmp, "en");
     const fm = makeFlowManager(tmp);
-    // Persist a legacy-id flow.json verbatim, then reload through the migrating load path.
-    fm.save(legacyState());
-    const loaded = fm.load("001-test");
-
-    assert.deepEqual(leafIds(loaded.steps[1].children), ["implement", "impl-review", "impl-gate"]);
-    assert.deepEqual(loaded.tasks[0].steps.map((s) => s.id), ["task-impl", "task-review", "task-gate"]);
-
-    // The migrating load path persists the upgrade back to disk.
-    const onDisk = JSON.parse(fs.readFileSync(path.join(tmp, "specs", "001-test", "flow.json"), "utf8"));
-    const implChildren = onDisk.steps.find((s) => s.id === "impl").children.map((c) => c.id);
-    assert.ok(implChildren.includes("impl-review") && implChildren.includes("impl-gate"));
-    assert.ok(!implChildren.includes("review") && !implChildren.includes("gate-impl"));
+    const flowPath = path.join(tmp, "specs", "001-test", "flow.json");
+    fs.mkdirSync(path.dirname(flowPath), { recursive: true });
+    fs.writeFileSync(flowPath, `${JSON.stringify(legacyState(), null, 2)}\n`);
+    const before = fs.readFileSync(flowPath);
+    assert.throws(
+      () => fm.load("001-test"),
+      (error) => error.code === "FLOW_STATE_SCHEMA_UNSUPPORTED",
+    );
+    assert.deepEqual(fs.readFileSync(flowPath), before);
   } finally {
     removeTmpDir(tmp);
   }

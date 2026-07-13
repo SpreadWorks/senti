@@ -108,7 +108,7 @@ function setupFlow(root, {
   };
   if (!doneTask && taskStepStatus) state.tasks[0].steps[0].status = taskStepStatus;
   const fm = new FlowManager({ root, mainRoot, inWorktree });
-  fm.save(state);
+  fm.create(state);
   fm.addActiveFlow(SPEC_ID, inWorktree ? "worktree" : "local");
   return { files, state };
 }

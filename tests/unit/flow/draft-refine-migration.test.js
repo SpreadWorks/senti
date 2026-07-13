@@ -15,39 +15,37 @@ function writeFlowWithoutDraftRefine(tmp, overrides = {}) {
   const plan = steps.find((s) => s.id === "plan");
   plan.children = plan.children.filter((s) => s.id !== "draft-refine");
   const state = {
-    spec: `specs/${specId}/spec.md`,
+    spec: `specs/${specId}/spec.json`,
     baseBranch: "main",
     featureBranch: "feature/001-test",
     steps,
     requirements: [],
     tasks: [],
     currentTaskId: null,
+    runId: "legacy-draft-refine",
     ...overrides,
   };
   fs.writeFileSync(path.join(specDir, "flow.json"), JSON.stringify(state, null, 2) + "\n");
   return specId;
 }
 
-describe("draft-refine flow-state migration", () => {
+describe("legacy draft-refine flow-state rejection", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  it("inserts draft-refine before pending draft coverage review", () => {
+  it("rejects a missing draft-refine leaf without changing bytes", () => {
     tmp = createTmpDir();
     const specId = writeFlowWithoutDraftRefine(tmp);
-    const loaded = makeFlowManager(tmp).load(specId);
-
-    const refine = findStepById(loaded.steps, "draft-refine");
-    const coverage = findStepById(loaded.steps, "draft-coverage-review");
-
-    assert.equal(refine.status, "pending");
-    assert.equal(coverage.status, "pending");
-    const planIds = loaded.steps.find((s) => s.id === "plan").children.map((s) => s.id);
-    assert.ok(planIds.indexOf("draft-questions-review") < planIds.indexOf("draft-refine"));
-    assert.ok(planIds.indexOf("draft-refine") < planIds.indexOf("draft-coverage-review"));
+    const flowPath = path.join(tmp, "specs", specId, "flow.json");
+    const before = fs.readFileSync(flowPath);
+    assert.throws(
+      () => makeFlowManager(tmp).load(specId),
+      (error) => error.code === "FLOW_STATE_SCHEMA_UNSUPPORTED",
+    );
+    assert.deepEqual(fs.readFileSync(flowPath), before);
   });
 
-  it("marks draft-refine done when draft coverage already started", () => {
+  it("does not synthesize draft-refine for a started legacy flow", () => {
     tmp = createTmpDir();
     const steps = buildInitialSteps();
     findStepById(steps, "draft-refine").status = "pending";
@@ -60,19 +58,22 @@ describe("draft-refine flow-state migration", () => {
     const specDir = path.join(tmp, "specs", specId);
     fs.mkdirSync(specDir, { recursive: true });
     fs.writeFileSync(path.join(specDir, "flow.json"), JSON.stringify({
-      spec: `specs/${specId}/spec.md`,
+      spec: `specs/${specId}/spec.json`,
       baseBranch: "main",
       featureBranch: "feature/001-test",
       steps,
       requirements: [],
       tasks: [],
       currentTaskId: null,
+      runId: "legacy-started-draft-refine",
     }, null, 2) + "\n");
 
-    const loaded = makeFlowManager(tmp).load(specId);
-    const refine = findStepById(loaded.steps, "draft-refine");
-
-    assert.equal(refine.status, "done");
-    assert.equal(refine.finishedAt, "2026-05-13T00:00:00.000Z");
+    const flowPath = path.join(specDir, "flow.json");
+    const before = fs.readFileSync(flowPath);
+    assert.throws(
+      () => makeFlowManager(tmp).load(specId),
+      (error) => error.code === "FLOW_STATE_SCHEMA_UNSUPPORTED",
+    );
+    assert.deepEqual(fs.readFileSync(flowPath), before);
   });
 });

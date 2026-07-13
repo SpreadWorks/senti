@@ -46,7 +46,7 @@ function lockPath(root) {
 
 function setup(root, mode = 0o640) {
   const original = state("old");
-  baseManager(root).save(original);
+  baseManager(root).create(original);
   fs.chmodSync(flowPath(root), mode);
   return original;
 }
@@ -96,10 +96,14 @@ function waitForExit(child) {
 
 function writeStaleLock(root, overrides = {}) {
   fs.writeFileSync(lockPath(root), `${JSON.stringify({
-    version: 1,
+    version: 2,
     kind: "flow-state-writer",
-    token: "11111111-1111-4111-8111-111111111111",
-    pid: DEAD_PID,
+    processIdentity: {
+      pid: DEAD_PID,
+      bootIdentity: fs.readFileSync("/proc/sys/kernel/random/boot_id", "utf8").trim(),
+      startFingerprint: "1",
+      ownerToken: "11111111-1111-4111-8111-111111111111",
+    },
     root: fs.realpathSync(root),
     spec: SPEC_PATH,
     statePath: fs.realpathSync(flowPath(root)),

@@ -9,7 +9,7 @@ import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 
 function makeState(overrides = {}) {
   return {
-    spec: "specs/001-test/spec.md",
+    spec: "specs/001-test/spec.json",
     baseBranch: "main",
     featureBranch: "feature/001-test",
     worktree: false,
@@ -27,47 +27,45 @@ describe("flow-state runId management", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  // ── Req 4: transparent migration ───────────────────────────────────────
-
-  it("loadFlowState auto-assigns runId when flow.json lacks one", () => {
+  it("loadFlowState rejects a missing runId without changing persisted bytes", () => {
     tmp = createTmpDir();
     const state = makeState();
-    // Save without runId
-    makeFlowManager(tmp).save(state);
+    const flowPath = join(tmp, "specs/001-test/flow.json");
+    fs.mkdirSync(join(tmp, "specs/001-test"), { recursive: true });
+    fs.writeFileSync(flowPath, `${JSON.stringify(state, null, 2)}\n`);
     makeFlowManager(tmp).addActiveFlow("001-test", "local");
+    const before = fs.readFileSync(flowPath);
 
-    const loaded = makeFlowManager(tmp).load("001-test");
-    assert.ok(loaded.runId, "runId should be auto-assigned");
-    assert.equal(typeof loaded.runId, "string");
-    assert.ok(loaded.runId.length > 0);
-
-    // Verify it was persisted
-    const raw = JSON.parse(fs.readFileSync(join(tmp, "specs/001-test/flow.json"), "utf8"));
-    assert.equal(raw.runId, loaded.runId);
+    assert.throws(
+      () => makeFlowManager(tmp).load("001-test"),
+      (error) => error.code === "FLOW_STATE_SCHEMA_UNSUPPORTED",
+    );
+    assert.deepEqual(fs.readFileSync(flowPath), before);
   });
 
   it("loadFlowState preserves existing runId", () => {
     tmp = createTmpDir();
     const state = makeState({ runId: "existing-run-id-123" });
-    makeFlowManager(tmp).save(state);
+    makeFlowManager(tmp).create(state);
     makeFlowManager(tmp).addActiveFlow("001-test", "local");
 
     const loaded = makeFlowManager(tmp).load("001-test");
     assert.equal(loaded.runId, "existing-run-id-123");
   });
 
-  it("transparent migration assigns different runIds to different flows", () => {
+  it("create rejects missing runIds for every flow without creating files", () => {
     tmp = createTmpDir();
-    const state1 = makeState({ spec: "specs/001-test/spec.md" });
-    const state2 = makeState({ spec: "specs/002-other/spec.md", featureBranch: "feature/002-other" });
-    makeFlowManager(tmp).save(state1);
-    makeFlowManager(tmp).save(state2);
-
-    const loaded1 = makeFlowManager(tmp).load("001-test");
-    const loaded2 = makeFlowManager(tmp).load("002-other");
-    assert.ok(loaded1.runId);
-    assert.ok(loaded2.runId);
-    assert.notEqual(loaded1.runId, loaded2.runId);
+    const states = [
+      makeState(),
+      makeState({ spec: "specs/002-other/spec.json", featureBranch: "feature/002-other" }),
+    ];
+    for (const state of states) {
+      assert.throws(
+        () => makeFlowManager(tmp).create(state),
+        (error) => error.code === "FLOW_STATE_SCHEMA_UNSUPPORTED",
+      );
+      assert.equal(fs.existsSync(join(tmp, state.spec, "..", "flow.json")), false);
+    }
   });
 
   // ── Req 3: lifecycle field (spec 233: removed from flow.json) ──────────
@@ -75,7 +73,7 @@ describe("flow-state runId management", () => {
   it("flow.json without lifecycle field loads without error", () => {
     tmp = createTmpDir();
     const state = makeState({ runId: "test-run" });
-    makeFlowManager(tmp).save(state);
+    makeFlowManager(tmp).create(state);
 
     const loaded = makeFlowManager(tmp).load("001-test");
     assert.equal(loaded.lifecycle, undefined);
@@ -87,7 +85,7 @@ describe("flow-state runId management", () => {
   it("loadFlowState returns runId in state object", () => {
     tmp = createTmpDir();
     const state = makeState({ runId: "my-run-id" });
-    makeFlowManager(tmp).save(state);
+    makeFlowManager(tmp).create(state);
 
     const loaded = makeFlowManager(tmp).load("001-test");
     assert.equal(loaded.runId, "my-run-id");
@@ -172,7 +170,7 @@ describe("preparing state files (.active-flow.<runId>)", () => {
 
     // Simulate promotion: save flow.json + add to .active-flow + delete preparing file
     const state = makeState({ runId });
-    makeFlowManager(tmp).save(state);
+    makeFlowManager(tmp).create(state);
     makeFlowManager(tmp).addActiveFlow("001-test", "local");
     fs.unlinkSync(preparingFile);
 

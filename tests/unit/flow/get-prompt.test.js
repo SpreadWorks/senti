@@ -22,7 +22,7 @@ describe("flow get prompt", () => {
   function setupFlowState(dir) {
     const specId = "001-test";
     const state = {
-      spec: `specs/${specId}/spec.md`,
+      spec: `specs/${specId}/spec.json`,
       baseBranch: "main",
       featureBranch: "feature/001-test",
       runId: "run-001-test",
@@ -32,7 +32,7 @@ describe("flow get prompt", () => {
       tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
       currentTaskId: null,
     };
-    makeFlowManager(dir).save(state);
+    makeFlowManager(dir).create(state);
     makeFlowManager(dir).addActiveFlow(specId, "local");
   }
 
@@ -59,7 +59,7 @@ describe("flow get prompt", () => {
   function addSecondFlowState(dir) {
     const specId = "002-second";
     const state = {
-      spec: `specs/${specId}/spec.md`,
+      spec: `specs/${specId}/spec.json`,
       baseBranch: "main",
       featureBranch: "feature/002-second",
       runId: "run-002-second",
@@ -69,7 +69,7 @@ describe("flow get prompt", () => {
       tasks: [{ id: "T-2", title: "y", goal: "y", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
       currentTaskId: null,
     };
-    makeFlowManager(dir).save(state);
+    makeFlowManager(dir).create(state);
     makeFlowManager(dir).addActiveFlow(specId, "local");
   }
 

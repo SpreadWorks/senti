@@ -73,6 +73,7 @@ function setupBaseFixture(tmp, specId, specTasks) {
 
   const flowState = {
     spec: `specs/${specId}/spec.json`,
+    runId: `run-${specId}`,
     baseBranch: "main",
     featureBranch: `feature/${specId}`,
     steps: FLOW_STEPS.map((id) => ({

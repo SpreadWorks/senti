@@ -162,7 +162,7 @@ describe("R13: end-to-end persistence and follow-up short-circuit", () => {
       // Set autoApprove=true so review-draft max=1 (auto)
       const initial = mgr.load();
       initial.autoApprove = true;
-      mgr.save(initial);
+      mgr.create(initial);
       // Simulate 1 FAIL via updateReviewRetryCounter (= max for auto)
       const flow = mgr.load();
       updateReviewRetryCounter(

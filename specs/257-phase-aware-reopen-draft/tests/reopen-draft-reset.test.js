@@ -40,22 +40,22 @@ function writeArtifacts(root) {
 
 function setPlanState(root, activeStep) {
   const fm = makeFlowManager(root);
-  const state = fm.load();
-  for (const step of flattenSteps(state.steps)) step.status = "pending";
-  for (const id of ["branch", "prepare-spec", "draft", "review-draft-questions", "draft-refine", "review-draft-coverage", "gate-draft"]) {
-    const step = findStepById(state.steps, id);
-    if (step) step.status = "done";
-  }
-  if (activeStep === "test") {
-    for (const id of ["spec", "review-spec", "spec-repair", "gate", "approval"]) {
+  fm.mutate((state) => {
+    for (const step of flattenSteps(state.steps)) step.status = "pending";
+    for (const id of ["branch", "prepare-spec", "draft", "review-draft-questions", "draft-refine", "review-draft-coverage", "gate-draft"]) {
       const step = findStepById(state.steps, id);
       if (step) step.status = "done";
     }
-  }
-  findStepById(state.steps, activeStep).status = "in_progress";
-  state.tasks = [];
-  state.currentTaskId = null;
-  fm.save(state);
+    if (activeStep === "test") {
+      for (const id of ["spec", "review-spec", "spec-repair", "gate", "approval"]) {
+        const step = findStepById(state.steps, id);
+        if (step) step.status = "done";
+      }
+    }
+    findStepById(state.steps, activeStep).status = "in_progress";
+    state.tasks = [];
+    state.currentTaskId = null;
+  });
 }
 
 function setupPlanFlow(root, activeStep) {
@@ -178,10 +178,9 @@ describe("spec 257 reopen-draft reset matrix", () => {
       ],
     });
     writeArtifacts(tmp);
-    const fm = makeFlowManager(tmp);
-    const initial = fm.load();
-    findStepById(initial.steps, "approval").status = "done";
-    fm.save(initial);
+    makeFlowManager(tmp).mutate((state) => {
+      findStepById(state.steps, "approval").status = "done";
+    });
 
     const success = await runReopen(tmp, "implementation needs follow up task");
 
@@ -237,10 +236,9 @@ describe("spec 257 reopen-draft reset matrix", () => {
         makeDefaultTask({ id: "T-2", status: "in_progress" }),
       ],
     });
-    const fm = makeFlowManager(tmp);
-    const initial = fm.load();
-    findStepById(initial.steps, "approval").status = "done";
-    fm.save(initial);
+    makeFlowManager(tmp).mutate((state) => {
+      findStepById(state.steps, "approval").status = "done";
+    });
 
     const doneTask = await runReopen(tmp, "coverage implementation done task path");
 

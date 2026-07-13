@@ -16,14 +16,15 @@ function createTmpProject() {
 
 function createFlowState(tmp) {
   const state = {
-    spec: "specs/001-test/spec.md",
+    spec: "specs/001-test/spec.json",
+    runId: "run-test",
     baseBranch: "main",
     featureBranch: "feature/001-test",
     steps: buildInitialSteps(),
     tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
     currentTaskId: null,
   };
-  makeFlowManager(tmp).save(state);
+  makeFlowManager(tmp).create(state);
   makeFlowManager(tmp).addActiveFlow("001-test", "branch");
   return state;
 }

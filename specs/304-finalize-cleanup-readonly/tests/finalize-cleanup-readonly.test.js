@@ -457,7 +457,7 @@ test("R3: CLI finalize-cleanup --force forwards force semantics to worktree remo
       inWorktree: true,
       specId: SPEC_ID,
     });
-    worktreeFm.save(state);
+    worktreeFm.create(state);
     worktreeFm.addActiveFlow(SPEC_ID, "worktree");
     writeFlowState(roots.mainRoot, state);
 

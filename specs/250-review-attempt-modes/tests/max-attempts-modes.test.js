@@ -34,7 +34,8 @@ function runCli(tmp, args) {
 
 function setupFlow(tmp, overrides = {}) {
   const state = {
-    spec: "specs/250-review-attempt-modes/spec.md",
+    spec: "specs/250-review-attempt-modes/spec.json",
+    runId: "run-250-review-attempt-modes",
     baseBranch: "main",
     featureBranch: "feature/250-review-attempt-modes",
     steps: buildInitialSteps(),
@@ -44,7 +45,7 @@ function setupFlow(tmp, overrides = {}) {
     ...overrides,
   };
   const fm = makeFlowManager(tmp);
-  fm.save(state);
+  fm.create(state);
   fm.addActiveFlow("250-review-attempt-modes", "local");
   return state;
 }
@@ -134,7 +135,7 @@ describe("mode-specific flow maxAttempts", () => {
     tmp = createTmpDir();
     const state = setupFlow(tmp, { autoApprove: true });
     setFlowStep(state, "review-draft");
-    makeFlowManager(tmp).save(state);
+    makeFlowManager(tmp).create(state);
 
     const next = runCli(tmp, ["flow", "get", "next-action"]);
     assert.equal(next.step, "review-draft");
@@ -198,7 +199,7 @@ describe("mode-specific flow maxAttempts", () => {
       }],
     });
     setTaskStep(state, "T-1", "review");
-    makeFlowManager(tmp).save(state);
+    makeFlowManager(tmp).create(state);
 
     const next = runCli(tmp, ["flow", "get", "next-action"]);
     assert.equal(next.taskId, "T-1");
@@ -226,7 +227,7 @@ describe("mode-specific flow maxAttempts", () => {
 
     const state = setupFlow(tmp);
     for (const step of flattenSteps(state.steps)) step.status = "done";
-    makeFlowManager(tmp).save(state);
+    makeFlowManager(tmp).create(state);
     next = runCli(tmp, ["flow", "get", "next-action"]);
     assert.equal(next.step, null);
     assert.equal(Object.hasOwn(next, "maxAttempts"), false);

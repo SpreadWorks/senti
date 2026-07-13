@@ -2,7 +2,7 @@
  * src/lib/flow-store.js
  *
  * Owns `specs/<NNN>/flow.json` — the per-spec state file.
- * Provides load / save / mutate primitives plus the targeted setter helpers.
+ * Provides load / create / atomic mutation primitives plus targeted setters.
  *
  * Task-aware (cac6/T2): load enforces the new `tasks`/`currentTaskId` schema.
  * Mutators accept an optional `{ taskId }` scope argument; when omitted, scope
@@ -11,7 +11,6 @@
 
 import fs from "fs";
 import path from "path";
-import crypto from "crypto";
 import { normalizeAgentMetricDimension } from "./agent-metrics.js";
 import {
   hasExplicitOption,
@@ -19,7 +18,11 @@ import {
 import { runGit } from "./git-helpers.js";
 import { sentiDir } from "./config.js";
 import { renameFlowStateStepIds } from "./step-id-rename.js";
-import { AtomicFlowStateWriter } from "./flow-state-atomic-writer.js";
+import {
+  AtomicFlowStateWriter,
+  FlowStateCreator,
+  FlowStateRevision,
+} from "./flow-state-atomic-writer.js";
 import {
   STATE_FILE,
   specIdFromPath,
@@ -35,6 +38,7 @@ import { DRAFT_REVIEW_ROUTES } from "../flow/lib/draft-review-routes.js";
 const MAX_FLOW_STEPS_FOR_MIGRATION = 200;
 const MAX_FLOW_ARTIFACTS_FOR_MIGRATION = 500;
 const MAX_FLOW_STATE_READ_BYTES = 5 * 1024 * 1024;
+const FLOW_STATE_REVISIONS = new WeakMap();
 const DRAFT_REVIEW_ARTIFACT_REWRITES = new Map(
   DRAFT_REVIEW_ROUTES.flatMap((route) => [
     [`draft-review-${route.key}.md`, route.reviewArtifact],
@@ -55,26 +59,41 @@ function specIdFromBranch(root) {
   return null;
 }
 
+export class FlowStateSchemaUnsupportedError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "FlowStateSchemaUnsupportedError";
+    this.code = "FLOW_STATE_SCHEMA_UNSUPPORTED";
+  }
+}
+
+function schemaUnsupported(message) {
+  return new FlowStateSchemaUnsupportedError(message);
+}
+
 function assertFlowStateSchema(state, sourcePath) {
   const displayPath = sourcePath ?? "<unknown>";
   if (!state || typeof state !== "object") {
-    throw new Error(`flow-store: invalid flow state (not an object): ${displayPath}`);
+    throw schemaUnsupported(`flow-store: invalid flow state (not an object): ${displayPath}`);
+  }
+  if (typeof state.runId !== "string" || state.runId.trim() === "") {
+    throw schemaUnsupported(`flow-store: flow.json without a current runId rejected. Path: ${displayPath}.`);
   }
   if (!Array.isArray(state.tasks)) {
-    throw new Error(
+    throw schemaUnsupported(
       `flow-store: flow.json without 'tasks' array rejected. ` +
       `Path: ${displayPath}. ` +
       `Requires a 'tasks' array and a 'currentTaskId' field (string or null).`,
     );
   }
   if (!("currentTaskId" in state)) {
-    throw new Error(
+    throw schemaUnsupported(
       `flow-store: legacy flow.json without 'currentTaskId' field rejected. ` +
       `Path: ${displayPath}.`,
     );
   }
   if (state.metrics != null && !Array.isArray(state.metrics)) {
-    throw new Error(
+    throw schemaUnsupported(
       `flow-store: legacy flow.json with non-array 'metrics' rejected. ` +
       `Path: ${displayPath}. ` +
       `cac6/T10 requires 'metrics' to be an append-only entry array.`,
@@ -82,14 +101,14 @@ function assertFlowStateSchema(state, sourcePath) {
   }
   if (state.notes != null) {
     if (!Array.isArray(state.notes)) {
-      throw new Error(
+      throw schemaUnsupported(
         `flow-store: legacy flow.json with non-array 'notes' rejected. ` +
         `Path: ${displayPath}.`,
       );
     }
     const firstNonObj = state.notes.find((n) => n != null && typeof n !== "object");
     if (firstNonObj !== undefined) {
-      throw new Error(
+      throw schemaUnsupported(
         `flow-store: legacy flow.json with string-array 'notes' rejected. ` +
         `Path: ${displayPath}. ` +
         `cac6/T10 requires note entries to be objects {taskId, text, ts}.`,
@@ -98,12 +117,20 @@ function assertFlowStateSchema(state, sourcePath) {
   }
   for (const task of state.tasks) {
     if (task && ("metrics" in task || "notes" in task)) {
-      throw new Error(
+      throw schemaUnsupported(
         `flow-store: legacy flow.json with per-task metrics/notes rejected. ` +
         `Task: ${task.id}. Path: ${displayPath}. ` +
         `cac6/T10 moved metrics/notes to flat top-level arrays with taskId.`,
       );
     }
+  }
+}
+
+function assertCurrentFlowStateSchema(state, sourcePath) {
+  assertFlowStateSchema(state, sourcePath);
+  const migrationProbe = structuredClone(state);
+  if (migrateFlowState(migrationProbe)) {
+    throw schemaUnsupported(`flow-store: legacy flow step schema rejected. Path: ${sourcePath}.`);
   }
 }
 
@@ -278,95 +305,7 @@ function migrateDraftReviewTriageAndRepairSteps(state) {
   return changed;
 }
 
-function writeJsonArtifactIfMissing(specDir, filename, data) {
-  const filePath = path.join(specDir, filename);
-  if (fs.existsSync(filePath)) return false;
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + "\n", "utf8");
-  return true;
-}
-
-function createEmptyDraftMigrationArtifact(phaseStepId, summaryLabel) {
-  return {
-    version: 1,
-    phase: phaseStepId,
-    summary: `Migrated empty draft ${summaryLabel} artifact for an already completed flow.`,
-  };
-}
-
-function createEmptyDraftReviewArtifact(route, generatedAt) {
-  return {
-    ...createEmptyDraftMigrationArtifact(route.reviewStepId, "review"),
-    sourceDraft: "draft.json",
-    generatedAt,
-    verdict: "PASS",
-    blockingFindings: [],
-    advisoryFindings: [],
-    repairTargets: [],
-  };
-}
-
-function createEmptyDraftTriageArtifact(route) {
-  return {
-    ...createEmptyDraftMigrationArtifact(route.triageStepId, "triage"),
-    sourceReview: route.reviewArtifact,
-    items: [],
-  };
-}
-
-function createEmptyDraftRepairArtifact(route) {
-  return {
-    ...createEmptyDraftMigrationArtifact(route.repairStepId, "repair"),
-    sourceTriage: route.triageArtifact,
-    items: [],
-  };
-}
-
-function writeEmptyDraftReviewMigrationArtifacts(root, state) {
-  if (!state?.spec) return false;
-  const specDir = path.dirname(path.resolve(root, state.spec));
-  const generatedAt = new Date().toISOString();
-  const stepById = new Map(
-    boundedFlowStepListForMigration(state).map((step) => [step.id, step]),
-  );
-  let changed = false;
-  for (const route of DRAFT_REVIEW_ROUTES) {
-    const repairStep = stepById.get(route.repairStepId);
-    if (repairStep?.status !== "done") continue;
-    const artifacts = [
-      [route.reviewArtifact, createEmptyDraftReviewArtifact(route, generatedAt)],
-      [route.triageArtifact, createEmptyDraftTriageArtifact(route)],
-      [route.repairArtifact, createEmptyDraftRepairArtifact(route)],
-    ];
-    for (const [filename, artifact] of artifacts) {
-      changed = writeJsonArtifactIfMissing(specDir, filename, artifact) || changed;
-    }
-  }
-  return changed;
-}
-
-function appendFlowMigrationLog(root, state, step, reason, resolution) {
-  if (!state?.spec) return;
-  const specDir = path.dirname(path.resolve(root, state.spec));
-  const logPath = path.join(specDir, "issue-log.json");
-  let issueLog = { entries: [] };
-  if (fs.existsSync(logPath)) {
-    issueLog = JSON.parse(fs.readFileSync(logPath, "utf8"));
-    if (!Array.isArray(issueLog.entries)) issueLog.entries = [];
-  }
-  if (issueLog.entries.some((entry) => entry?.trigger === "flow-store migration" && entry?.reason === reason)) return;
-  issueLog.entries.push({
-    step,
-    reason,
-    trigger: "flow-store migration",
-    resolution,
-    taskId: null,
-    timestamp: new Date().toISOString(),
-  });
-  fs.mkdirSync(specDir, { recursive: true });
-  fs.writeFileSync(logPath, JSON.stringify(issueLog, null, 2) + "\n");
-}
-
-function readBoundedFlowStateText(filePath) {
+function readBoundedFlowStateContent(filePath) {
   const size = fs.statSync(filePath).size;
   if (size > MAX_FLOW_STATE_READ_BYTES) {
     throw new Error(
@@ -374,92 +313,32 @@ function readBoundedFlowStateText(filePath) {
       `(max ${MAX_FLOW_STATE_READ_BYTES})`,
     );
   }
-  return fs.readFileSync(filePath, "utf8");
+  return fs.readFileSync(filePath);
 }
 
-function canRollbackRunIdMigration(migration) {
-  try {
-    if (!migration?.path || !fs.existsSync(migration.path)) return false;
-    if (typeof migration.contentBeforeRunId !== "string") return false;
-    const state = JSON.parse(readBoundedFlowStateText(migration.path));
-    return state.runId === migration.runId;
-  } catch {
-    return false;
-  }
+function parseCurrentFlowState(content, sourcePath) {
+  const state = JSON.parse(content.toString("utf8"));
+  return bindCurrentFlowState(state, content, sourcePath);
 }
 
-function createRunIdMigration({ path: filePath, runId, contentBeforeRunId }) {
-  if (contentBeforeRunId.length > MAX_FLOW_STATE_READ_BYTES) {
-    throw new Error(
-      `flow-store: refusing to retain ${contentBeforeRunId.length} byte flow state ` +
-      `(max ${MAX_FLOW_STATE_READ_BYTES})`,
-    );
-  }
-  return { path: filePath, runId, contentBeforeRunId };
+function bindCurrentFlowState(state, content, sourcePath) {
+  assertCurrentFlowStateSchema(state, sourcePath);
+  FLOW_STATE_REVISIONS.set(state, new FlowStateRevision(content));
+  return state;
 }
 
-function migrateFlowState(state, sourcePath, { persist, root }) {
-  // Spec 269: rename pre-rename step ids to the <phase>-<concern>-<action> convention first,
-  // so the downstream shims (which expect the new names) and the active CLI definition can
-  // resolve every leaf. This self-heals any pre-269 flow.json — including the flow that
-  // implements the rename, whose own worktree CLI already runs the new definition.
+function migrateFlowState(state) {
   const renamedStepIds = renameFlowStateStepIds(state);
   const renamedChanged = renamedStepIds.length > 0;
   const reviewChanged = migrateDraftReviewSteps(state);
   const refineChanged = migrateDraftRefineStep(state);
   const draftReviewTriageRepairChanged = migrateDraftReviewTriageAndRepairSteps(state);
   const specRepairChanged = migrateSpecReviewTriageAndRepairSteps(state);
-  const changed = renamedChanged || reviewChanged || refineChanged || draftReviewTriageRepairChanged || specRepairChanged;
-  if (changed && persist) {
-    fs.writeFileSync(sourcePath, JSON.stringify(state, null, 2) + "\n", "utf8");
-    if (renamedChanged) {
-      appendFlowMigrationLog(
-        root,
-        state,
-        "step-id-rename",
-        `Renamed ${renamedStepIds.length} legacy step id(s) to the <phase>-<concern>-<action> convention.`,
-        renamedStepIds.map((c) => `${c.from}->${c.to}`).join(", "),
-      );
-    }
-    if (reviewChanged) {
-      appendFlowMigrationLog(
-        root,
-        state,
-        "review-draft",
-        "Migrated legacy review-draft step into draft-questions-review and draft-coverage-review.",
-        "Synthesized split draft review steps from legacy review-draft status.",
-      );
-    }
-    if (refineChanged) {
-      appendFlowMigrationLog(
-        root,
-        state,
-        "draft-refine",
-        "Inserted draft-refine between draft question review and draft coverage review.",
-        "Synthesized draft-refine status from surrounding draft review steps.",
-      );
-    }
-    if (specRepairChanged) {
-      appendFlowMigrationLog(
-        root,
-        state,
-        "spec-triage/spec-repair",
-        "Inserted spec-triage and spec-repair between spec review and spec gate.",
-        "Synthesized spec review triage and repair status from surrounding spec review, repair, and gate steps.",
-      );
-    }
-    if (draftReviewTriageRepairChanged) {
-      writeEmptyDraftReviewMigrationArtifacts(root, state);
-      appendFlowMigrationLog(
-        root,
-        state,
-        "draft-review-triage/repair",
-        "Inserted draft review triage and repair leaves before their mapped consumer steps.",
-        "Synthesized draft triage and repair status from their mapped consumer steps and rewrote legacy draft review artifact references to JSON names.",
-      );
-    }
-  }
-  return changed;
+  return renamedChanged
+    || reviewChanged
+    || refineChanged
+    || draftReviewTriageRepairChanged
+    || specRepairChanged;
 }
 
 /**
@@ -535,14 +414,6 @@ export class FlowStore {
     this._mainRoot = mainRoot;
     this._inWorktree = inWorktree;
     this._activeFlowsProvider = activeFlowsProvider;
-    this._lastRunIdMigration = null;
-  }
-
-  _clearStaleRunIdMigration(resolvedPath, runId) {
-    const migration = this._lastRunIdMigration;
-    if (migration?.path !== resolvedPath || migration?.runId !== runId) {
-      this._lastRunIdMigration = null;
-    }
   }
 
   pathFor(specId) {
@@ -556,94 +427,45 @@ export class FlowStore {
    * @returns {object|null}
    */
   load(specId) {
-    let state = null;
-    let resolvedPath = null;
-
-    if (specId) {
-      const p = specFlowPath(this._root, specId);
-      if (!fs.existsSync(p)) return null;
-      state = JSON.parse(fs.readFileSync(p, "utf8"));
-      resolvedPath = p;
-    } else if (this._inWorktree) {
-      const id = specIdFromBranch(this._root);
-      if (id) {
-        const p = specFlowPath(this._root, id);
-        if (fs.existsSync(p)) {
-          state = JSON.parse(fs.readFileSync(p, "utf8"));
-          resolvedPath = p;
-        }
-      }
-    }
-
-    if (!state) {
-      const flows = this._activeFlowsProvider().load();
-      const current = this._resolveCurrentFlow(flows);
-      if (!current) return null;
-      const p = specFlowPath(this._root, current.spec);
-      if (!fs.existsSync(p)) return null;
-      state = JSON.parse(fs.readFileSync(p, "utf8"));
-      resolvedPath = p;
-    }
-
-    migrateFlowState(state, resolvedPath, { persist: true, root: this._root });
-    assertFlowStateSchema(state, resolvedPath);
-
-    if (!state.runId) {
-      const contentBeforeRunId = readBoundedFlowStateText(resolvedPath);
-      state.runId = crypto.randomUUID();
-      try {
-        fs.writeFileSync(resolvedPath, JSON.stringify(state, null, 2) + "\n", "utf8");
-        this._lastRunIdMigration = createRunIdMigration({
-          path: resolvedPath,
-          runId: state.runId,
-          contentBeforeRunId,
-        });
-      } catch (err) {
-        this._lastRunIdMigration = null;
-        console.error(`[flow-state] WARN: failed to persist migrated runId: ${err.message}`);
-      }
-    } else {
-      this._clearStaleRunIdMigration(resolvedPath, state.runId);
-    }
-
-    return state;
-  }
-
-  rollbackLastRunIdMigration() {
-    const migration = this._lastRunIdMigration;
-    this._lastRunIdMigration = null;
-    if (!canRollbackRunIdMigration(migration)) return false;
-    fs.writeFileSync(migration.path, migration.contentBeforeRunId, "utf8");
-    return true;
+    const resolvedSpecId = this.#resolveSpecId(specId);
+    if (!resolvedSpecId) return null;
+    const resolvedPath = specFlowPath(this._root, resolvedSpecId);
+    if (!fs.existsSync(resolvedPath)) return null;
+    return parseCurrentFlowState(readBoundedFlowStateContent(resolvedPath), resolvedPath);
   }
 
   /**
-   * Read-only loader. Does NOT trigger transparent migration. Enforces the
-   * task-aware schema (throws on legacy files).
+   * Read-only loader. Enforces the current schema and never mutates storage.
    */
   loadReadOnly(specId) {
     const p = specFlowPath(this._root, specId);
     if (!fs.existsSync(p)) return null;
+    let content;
     let state;
     try {
-      state = JSON.parse(fs.readFileSync(p, "utf8"));
+      content = readBoundedFlowStateContent(p);
+      state = JSON.parse(content.toString("utf8"));
     } catch (err) {
       process.stderr.write(`[senti] flow-store.loadReadOnly: malformed flow.json at ${p}: ${err.message}\n`);
       return null;
     }
-    migrateFlowState(state, p, { persist: false, root: this._root });
-    assertFlowStateSchema(state, p);
-    return state;
+    return bindCurrentFlowState(state, content, p);
   }
 
-  save(state) {
-    // Guarantee the task-aware schema is always persisted.
-    if (!Array.isArray(state.tasks)) state.tasks = [];
-    if (!("currentTaskId" in state)) state.currentTaskId = null;
-    const specId = specIdFromPath(state.spec);
+  create(state, { faultInjector = () => {} } = {}) {
+    const nextState = structuredClone(state);
+    if (!Array.isArray(nextState.tasks)) nextState.tasks = [];
+    if (!("currentTaskId" in nextState)) nextState.currentTaskId = null;
+    const specId = specIdFromPath(nextState.spec);
+    if (!specId) throw schemaUnsupported("flow-store: new flow state requires a canonical spec path");
     const p = specFlowPath(this._root, specId);
-    fs.mkdirSync(path.dirname(p), { recursive: true });
-    fs.writeFileSync(p, JSON.stringify(state, null, 2) + "\n", "utf8");
+    assertCurrentFlowStateSchema(nextState, p);
+    return new FlowStateCreator({
+      root: this._root,
+      boundSpecId: specId,
+      state: nextState,
+      faultInjector,
+    }).create();
   }
 
   /**
@@ -651,26 +473,44 @@ export class FlowStore {
    * single-state primitive; callers remain responsible for command-level
    * eligibility and target guards.
    */
-  saveAtomic(state, { boundSpecId, expectedOriginal, faultInjector = () => {} } = {}) {
-    return new AtomicFlowStateWriter({
+  saveAtomic(state, {
+    boundSpecId,
+    expectedOriginal,
+    faultInjector = () => {},
+    processIdentitySource,
+  } = {}) {
+    const writer = new AtomicFlowStateWriter({
       root: this._root,
       boundSpecId,
       expectedOriginal,
       nextState: state,
+      expectedRevision: FLOW_STATE_REVISIONS.get(expectedOriginal),
       faultInjector,
-    }).save();
+      processIdentitySource,
+    });
+    assertCurrentFlowStateSchema(state, writer.pathAuthority.statePath);
+    assertCurrentFlowStateSchema(expectedOriginal, writer.pathAuthority.statePath);
+    return writer.save();
   }
 
-  mutate(mutator, opts) {
+  mutate(mutator, opts = {}) {
     // Spec 251: merge-onward post hooks operate on the main repo's flow.json
     // before .active-flow has been registered there. They pass an explicit
     // specId via opts so we can load by path without going through the
     // active-flow registry.
-    const specId = opts?.specId;
-    const state = specId ? this.load(specId) : this.load();
-    if (!state) throw new Error("no active flow (flow.json not found)");
-    mutator(state);
-    this.save(state);
+    const specId = this.#resolveSpecId(opts.specId);
+    if (!specId) throw new Error("no active flow (flow.json not found)");
+    return new AtomicFlowStateWriter({
+      root: this._root,
+      boundSpecId: specId,
+      faultInjector: opts.faultInjector,
+      processIdentitySource: opts.processIdentitySource,
+    }).mutate(mutator, {
+      parseState(content, statePath) {
+        return parseCurrentFlowState(content, statePath);
+      },
+      allowIssueTransition: opts.allowIssueTransition === true,
+    });
   }
 
   pathForCurrent() {
@@ -733,14 +573,10 @@ export class FlowStore {
     if (typeof iso !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/.test(iso)) {
       throw new Error(`invalid finalizedAt: expected ISO 8601 UTC (e.g. 2026-04-17T10:00:00.000Z), got ${iso}`);
     }
-    const p = specFlowPath(this._root, specId);
-    if (!fs.existsSync(p)) {
-      throw new Error(`flow.json not found for spec ${specId}: ${p}`);
-    }
-    const state = JSON.parse(fs.readFileSync(p, "utf8"));
-    if (!state.state || typeof state.state !== "object") state.state = {};
-    state.state.finalizedAt = iso;
-    fs.writeFileSync(p, JSON.stringify(state, null, 2) + "\n", "utf8");
+    return this.mutate((state) => {
+      if (!state.state || typeof state.state !== "object") state.state = {};
+      state.state.finalizedAt = iso;
+    }, { specId });
   }
 
   // ── targeted setters (scope-aware) ──────────────────────────────────────────
@@ -798,7 +634,9 @@ export class FlowStore {
   }
 
   setRequest(text, opts) { this.mutate((state) => { state.request = text; }, opts); }
-  setIssue(issue, opts) { this.mutate((state) => { state.issue = issue; }, opts); }
+  setIssue(issue, opts = {}) {
+    this.mutate((state) => { state.issue = issue; }, { ...opts, allowIssueTransition: true });
+  }
 
   /**
    * Append an entry to a flat top-level array on `state[arrayKey]` with
@@ -956,6 +794,16 @@ export class FlowStore {
   }
 
   // ── internal ────────────────────────────────────────────────────────────────
+
+  #resolveSpecId(specId) {
+    if (specId) return specId;
+    if (this._inWorktree) {
+      const branchSpecId = specIdFromBranch(this._root);
+      if (branchSpecId && fs.existsSync(specFlowPath(this._root, branchSpecId))) return branchSpecId;
+    }
+    const current = this._resolveCurrentFlow(this._activeFlowsProvider().load());
+    return current?.spec ?? null;
+  }
 
   _resolveCurrentFlow(flows) {
     if (flows.length === 0) return null;

@@ -520,7 +520,7 @@ test("R8: flow.json gateImplMemory stores behavior index including hash and pass
     assert.deepEqual(Object.keys(flowState.gateImplMemory.entries[0]).sort(), ["observationRef", "signature", "status"]);
 
     const flowManager = new FlowManager({ root: tmp, mainRoot: tmp, inWorktree: false, specId: "example" });
-    flowManager.save({
+    flowManager.create({
       spec: specRel,
       tasks: [],
       currentTaskId: null,

@@ -8,7 +8,8 @@ import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 
 function makeState(overrides = {}) {
   return {
-    spec: "specs/001-test/spec.md",
+    spec: "specs/001-test/spec.json",
+    runId: "run-test",
     baseBranch: "main",
     featureBranch: "feature/001-test",
     worktree: false,
@@ -44,7 +45,7 @@ function makeTask(overrides = {}) {
 function setupFlow(tmp, stateOverrides = {}) {
   const state = makeState(stateOverrides);
   const fm = makeFlowManager(tmp);
-  fm.save(state);
+  fm.create(state);
   fm.addActiveFlow("001-test", "local");
   return fm;
 }
@@ -218,7 +219,7 @@ describe("FlowManager task API", () => {
       // Manually write a legacy flow.json without tasks field.
       const p = path.join(tmp, "specs/001-test/flow.json");
       const legacy = {
-        spec: "specs/001-test/spec.md",
+        spec: "specs/001-test/spec.json",
         baseBranch: "main",
         featureBranch: "feature/001-test",
         worktree: false,

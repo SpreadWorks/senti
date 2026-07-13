@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "fs";
 import path from "path";
 import { createTmpDir, removeTmpDir, writeJson } from "../../helpers/tmp-dir.js";
-import { setupFlow, makeFlowManager, setStepDone, makeFlowState } from "../../helpers/flow-setup.js";
+import { setupFlow, makeFlowManager, replaceFlowState, setStepDone, makeFlowState } from "../../helpers/flow-setup.js";
 import { findStepById } from "../../../src/flow/lib/step-tree.js";
 
 describe("REQ-A3: get-next-action assumes non-empty tasks", () => {
@@ -23,7 +23,7 @@ describe("REQ-A3: get-next-action assumes non-empty tasks", () => {
     });
     setStepDone(state, "branch", "prepare-spec", "draft", "draft-gate", "spec", "spec-gate", "approval", "test");
     const fm = makeFlowManager(tmp);
-    fm.save(state);
+    replaceFlowState(tmp, state);
 
     const schemaDir = path.join(process.cwd(), "src/flow/schemas/next-action");
     const ctx = { flowState: fm.load(), flowManager: fm, schemaDir };
@@ -45,7 +45,7 @@ describe("REQ-A3: get-next-action assumes non-empty tasks", () => {
     const step = findStepById(state.steps, "finalize-commit");
     if (step) step.status = "in_progress";
     const fm = makeFlowManager(tmp);
-    fm.save(state);
+    replaceFlowState(tmp, state);
 
     const schemaDir = path.join(process.cwd(), "src/flow/schemas/next-action");
     const ctx = { flowState: fm.load(), flowManager: fm, schemaDir };

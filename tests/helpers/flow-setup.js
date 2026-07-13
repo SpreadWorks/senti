@@ -33,9 +33,9 @@ const DEFAULT_TASK = {
   added_round: 0,
   status: "pending",
   steps: [
-    { id: "impl", status: "pending" },
-    { id: "review", status: "pending" },
-    { id: "gate-impl", status: "pending" },
+    { id: "task-impl", status: "pending" },
+    { id: "task-review", status: "pending" },
+    { id: "task-gate", status: "pending" },
   ],
 };
 
@@ -45,7 +45,8 @@ export function makeDefaultTask(overrides = {}) {
 
 export function makeFlowState(overrides = {}) {
   return {
-    spec: "specs/001-test/spec.md",
+    spec: "specs/001-test/spec.json",
+    runId: "run-test",
     baseBranch: "main",
     featureBranch: "feature/001-test",
     steps: buildInitialSteps(),
@@ -59,11 +60,19 @@ export function makeFlowState(overrides = {}) {
 export function setupFlow(tmp, overrides = {}) {
   const state = makeFlowState(overrides);
   const fm = makeFlowManager(tmp);
-  fm.save(state);
+  fm.create(state);
   const specId = state.spec.split("/")[1];
   const mode = state.worktree ? "worktree" : state.featureBranch === state.baseBranch ? "local" : "branch";
   fm.addActiveFlow(specId, mode);
   return state;
+}
+
+export function replaceFlowState(root, state, options = {}) {
+  const replacement = structuredClone(state);
+  makeFlowManager(root).mutate((current) => {
+    for (const key of Object.keys(current)) delete current[key];
+    Object.assign(current, replacement);
+  }, options);
 }
 
 export function setStepDone(state, ...ids) {

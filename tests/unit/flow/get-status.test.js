@@ -21,7 +21,7 @@ describe("flow get status", () => {
   function setupFlowState(dir) {
     const specId = "001-test";
     const state = {
-      spec: `specs/${specId}/spec.md`,
+      spec: `specs/${specId}/spec.json`,
       baseBranch: "main",
       featureBranch: "feature/001-test",
       runId: "run-001-test",
@@ -37,7 +37,7 @@ describe("flow get status", () => {
       mergeStrategy: "squash",
       autoApprove: true,
     };
-    makeFlowManager(dir).save(state);
+    makeFlowManager(dir).create(state);
     makeFlowManager(dir).addActiveFlow(specId, "local");
     return state;
   }
@@ -85,8 +85,8 @@ describe("flow get status", () => {
     tmp = createTmpDir();
     setupFlowState(tmp);
     const secondSpec = "002-second";
-    makeFlowManager(tmp).save({
-      spec: `specs/${secondSpec}/spec.md`,
+    makeFlowManager(tmp).create({
+      spec: `specs/${secondSpec}/spec.json`,
       baseBranch: "main",
       featureBranch: `feature/${secondSpec}`,
       runId: "run-002-second",
@@ -111,7 +111,7 @@ describe("flow get status", () => {
     });
     const envelope = JSON.parse(result);
     assert.equal(envelope.ok, true);
-    assert.equal(envelope.data.spec, `specs/${secondSpec}/spec.md`);
+    assert.equal(envelope.data.spec, `specs/${secondSpec}/spec.json`);
     assert.equal(envelope.data.runId, "run-002-second");
   });
 

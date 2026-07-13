@@ -105,7 +105,7 @@ test("R2: dispatcher reaches the scenario-validity command implementation throug
   const fm = makeFlowManager(tmp);
   const state = baseState();
   findStepById(state.steps, "scenario-validity").status = "in_progress";
-  fm.save(state);
+  fm.create(state);
   fm.addActiveFlow(SPEC_ID, "local");
 
   let executeCount = 0;
@@ -155,7 +155,7 @@ test("R2: post hook marks scenario-validity done only on passing result", async 
     const state = baseState();
     findStepById(state.steps, "scenario-validity").status = "in_progress";
     const fm = makeFlowManager(tmp);
-    fm.save(state);
+    fm.create(state);
     fm.addActiveFlow(SPEC_ID, "local");
 
     await entry.post({ flowManager: fm }, { result: "block" });

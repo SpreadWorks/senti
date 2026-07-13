@@ -4,7 +4,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { spawnSync } from "node:child_process";
-import { setupFlow, setStepDone } from "../../helpers/flow-setup.js";
+import { replaceFlowState, setupFlow, setStepDone } from "../../helpers/flow-setup.js";
 import { makeFlowManager } from "../../helpers/flow-setup.js";
 import { findStepById } from "../../../src/flow/lib/step-tree.js";
 
@@ -45,7 +45,7 @@ describe("spec 232: autoUpgrade in next-action envelope (R3, T-4)", () => {
     setStepDone(state, "branch", "prepare-spec", "draft", "draft-gate", "spec", "spec-gate", "approval");
     const testStep = findStepById(state.steps, "test");
     testStep.status = "in_progress";
-    makeFlowManager(tmp).save(state);
+    replaceFlowState(tmp, state);
 
     const res = runNextAction(tmp);
     assert.equal(res.status, 0, res.stderr);
@@ -61,7 +61,7 @@ describe("spec 232: autoUpgrade in next-action envelope (R3, T-4)", () => {
     setStepDone(state, "branch", "prepare-spec", "draft", "draft-gate", "spec", "spec-gate", "approval");
     const testStep = findStepById(state.steps, "test");
     testStep.status = "in_progress";
-    makeFlowManager(tmp).save(state);
+    replaceFlowState(tmp, state);
 
     const res = runNextAction(tmp);
     assert.equal(res.status, 0, res.stderr);

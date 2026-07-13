@@ -21,9 +21,9 @@ function setupEnv(tmp) {
     lang: "js", type: "cli",
     docs: { languages: ["en"], defaultLanguage: "en" },
   });
-  const specPath = "specs/209-test/spec.md";
-  writeFile(tmp, specPath, "# Spec\n");
-  makeFlowManager(tmp).save({
+  const specPath = "specs/209-test/spec.json";
+  writeFile(tmp, specPath, "{}\n");
+  makeFlowManager(tmp).create({
     spec: specPath, baseBranch: "main", featureBranch: "feature/t",
     steps: buildInitialSteps(),
   });
@@ -78,7 +78,7 @@ describe("spec 209: set test-summary — failed[] support", () => {
     state.test = {
       summary: { unit: 10, integration: 5, exitCode: 1 },
     };
-    fm.save(state);
+    fm.create(state);
 
     const payload = JSON.stringify({
       failed: [{ id: "t1", reason: "r1" }, { id: "t2", reason: "r2" }],
@@ -113,7 +113,7 @@ describe("spec 209: set test-summary — failed[] support", () => {
     const fm = makeFlowManager(tmp);
     const state = fm.load();
     state.test = { baseline: { unit: 10, exitCode: 0 } };
-    fm.save(state);
+    fm.create(state);
 
     const payload = JSON.stringify({
       counts: { unit: 20 },

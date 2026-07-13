@@ -59,6 +59,7 @@ function setupForestFixture(tmp) {
 
   const flowState = {
     spec: SPEC_PATH,
+    runId: `run-${SPEC_ID}`,
     baseBranch: "main",
     featureBranch: `feature/${SPEC_ID}`,
     steps: FLOW_STEPS.map((id) => ({

@@ -17,53 +17,47 @@ function writeFlowWithoutSpecRepair(tmp, mutate = () => {}) {
   plan.children = plan.children.filter((s) => s.id !== "spec-repair");
   mutate(steps);
   fs.writeFileSync(path.join(specDir, "flow.json"), JSON.stringify({
-    spec: `specs/${specId}/spec.md`,
+    spec: `specs/${specId}/spec.json`,
     baseBranch: "main",
     featureBranch: "feature/001-test",
     steps,
     requirements: [],
     tasks: [],
     currentTaskId: null,
+    runId: "legacy-spec-repair",
   }, null, 2) + "\n");
   return specId;
 }
 
-describe("spec-repair flow-state migration", () => {
+describe("legacy spec-repair flow-state rejection", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  it("inserts spec-triage and spec-repair before pending spec gate", () => {
+  it("rejects missing spec repair leaves without changing bytes", () => {
     tmp = createTmpDir();
     const specId = writeFlowWithoutSpecRepair(tmp);
-    const loaded = makeFlowManager(tmp).load(specId);
-
-    const triage = findStepById(loaded.steps, "spec-triage");
-    const repair = findStepById(loaded.steps, "spec-repair");
-    const gate = findStepById(loaded.steps, "spec-gate");
-
-    assert.equal(triage.status, "pending");
-    assert.equal(repair.status, "pending");
-    assert.equal(gate.status, "pending");
-    const planIds = loaded.steps.find((s) => s.id === "plan").children.map((s) => s.id);
-    assert.ok(planIds.indexOf("spec-review") < planIds.indexOf("spec-triage"));
-    assert.ok(planIds.indexOf("spec-triage") < planIds.indexOf("spec-repair"));
-    assert.ok(planIds.indexOf("spec-repair") < planIds.indexOf("spec-gate"));
+    const flowPath = path.join(tmp, "specs", specId, "flow.json");
+    const before = fs.readFileSync(flowPath);
+    assert.throws(
+      () => makeFlowManager(tmp).load(specId),
+      (error) => error.code === "FLOW_STATE_SCHEMA_UNSUPPORTED",
+    );
+    assert.deepEqual(fs.readFileSync(flowPath), before);
   });
 
-  it("marks spec-triage and spec-repair done when spec gate already started", () => {
+  it("does not synthesize spec repair leaves for a started legacy flow", () => {
     tmp = createTmpDir();
     const specId = writeFlowWithoutSpecRepair(tmp, (steps) => {
       const gate = findStepById(steps, "spec-gate");
       gate.status = "in_progress";
       gate.startedAt = "2026-05-13T00:00:00.000Z";
     });
-    const loaded = makeFlowManager(tmp).load(specId);
-    const triage = findStepById(loaded.steps, "spec-triage");
-    const repair = findStepById(loaded.steps, "spec-repair");
-
-    assert.equal(triage.status, "done");
-    assert.equal(triage.finishedAt, "2026-05-13T00:00:00.000Z");
-    assert.equal(repair.status, "done");
-    assert.equal(repair.finishedAt, "2026-05-13T00:00:00.000Z");
+    const flowPath = path.join(tmp, "specs", specId, "flow.json");
+    const before = fs.readFileSync(flowPath);
+    assert.throws(
+      () => makeFlowManager(tmp).load(specId),
+      (error) => error.code === "FLOW_STATE_SCHEMA_UNSUPPORTED",
+    );
+    assert.deepEqual(fs.readFileSync(flowPath), before);
   });
 });

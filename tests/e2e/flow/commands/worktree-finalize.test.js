@@ -44,6 +44,7 @@ function setupSpecOnlyFlow(tmp) {
   initGitRepo(tmp);
   const state = makeFlowState({
     spec: "specs/001-test/spec.json",
+    runId: "run-001-test",
     baseBranch: "main",
     featureBranch: "main", // spec-only mode
   });
@@ -70,7 +71,7 @@ function setupSpecOnlyFlow(tmp) {
   fs.mkdirSync(specDir, { recursive: true });
   fs.writeFileSync(path.join(specDir, "spec.json"), JSON.stringify({ goal: "x", scope: { in: [], out: [] }, requirements: [] }) + "\n");
   fs.writeFileSync(path.join(specDir, "spec.md"), "# spec\n## Goal\nx\n## Scope\n");
-  makeFlowManager(tmp).save(state);
+  makeFlowManager(tmp).create(state);
   makeFlowManager(tmp).addActiveFlow("001-test", "local");
 }
 

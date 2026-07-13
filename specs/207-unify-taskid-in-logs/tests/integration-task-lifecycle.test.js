@@ -33,7 +33,7 @@ describe("task lifecycle: taskId across scope transitions", () => {
   it("partitions metrics by task boundary and flow scope", () => {
     tmp = createTmpDir();
     const fm = makeFlowManager(tmp);
-    fm.save(makeFlowState());
+    fm.create(makeFlowState());
     fm.addActiveFlow("001-test", "local");
 
     // 1. Flow-scope metric (no task yet)

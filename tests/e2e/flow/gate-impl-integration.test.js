@@ -23,7 +23,8 @@ import { FLOW_STEPS } from "../../../src/lib/flow-helpers.js";
 
 const CMD = path.join(process.cwd(), "src/senti.js");
 const SPEC_ID = "001-test";
-const SPEC_PATH = `specs/${SPEC_ID}/spec.md`;
+const SPEC_PATH = `specs/${SPEC_ID}/spec.json`;
+const SPEC_MARKDOWN_PATH = `specs/${SPEC_ID}/spec.md`;
 
 function minimalSpecJson() {
   return {
@@ -93,7 +94,7 @@ function setupFixture(tmp, {
   });
   writeJson(tmp, "package.json", { name: "fixture", version: "0.0.0" });
 
-  writeFile(tmp, SPEC_PATH, specMarkdown);
+  writeFile(tmp, SPEC_MARKDOWN_PATH, specMarkdown);
   // Post-T8: run-gate loads spec.json via the single validated load path.
   writeJson(tmp, `specs/${SPEC_ID}/spec.json`, specJson);
   if (fileMap) writeJson(tmp, `specs/${SPEC_ID}/file-map.json`, fileMap);
@@ -121,6 +122,7 @@ function setupFixture(tmp, {
   }
   writeJson(tmp, `specs/${SPEC_ID}/flow.json`, {
     spec: SPEC_PATH,
+    runId: `run-${SPEC_ID}`,
     baseBranch: "main",
     featureBranch: `feature/${SPEC_ID}`,
     steps: FLOW_STEPS.map((id) => ({ id, status: "pending" })),

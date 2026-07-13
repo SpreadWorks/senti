@@ -20,6 +20,7 @@ import { FlowCommand } from "./base-command.js";
 import { writeIssueMd } from "./issue-body-cache.js";
 import { discoverFlowCommandHooks, readProjectConfig, runFlowCommandWithPluginLifecycle } from "../../lib/plugin-registry.js";
 import { Envelope } from "../../lib/flow-envelope.js";
+import { FlowManager } from "../../lib/flow-manager.js";
 
 const MAX_PLUGIN_RUNTIME_SYNC_FILES = 2000;
 const REQUIRED_WORKTREE_BRANCH_FILES = Object.freeze([".senti/config.json"]);
@@ -291,7 +292,7 @@ export async function runPrepareWithPluginHooks({ root, title, request, noBranch
     title,
     plugins: { flowCommandHooks: plans },
   };
-  fs.writeFileSync(flowPath, JSON.stringify(state, null, 2) + "\n", "utf8");
+  new FlowManager({ root, mainRoot: root, inWorktree: false }).create(state);
   const lifecycle = await runFlowCommandWithPluginLifecycle(root, plans, {
     command: "prepare",
     flow: state,
@@ -476,7 +477,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
         ...extra,
       };
       state.plugins = { flowCommandHooks: await hookSnapshotFor(specRoot) };
-      flowManager.forRoot(specRoot).save(state);
+      flowManager.forRoot(specRoot).create(state);
       await runFlowCommandWithPluginLifecycle(specRoot, state.plugins.flowCommandHooks, {
         command: "prepare",
         flow: state,

@@ -98,7 +98,7 @@ describe("flow set note", () => {
     tmp = createTmpDir();
     const state = makeFlowState();
     delete state.notes;
-    makeFlowManager(tmp).save(state);
+    makeFlowManager(tmp).create(state);
     makeFlowManager(tmp).addActiveFlow("001-test", "local");
     execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "set", "note", "new note"], {
       encoding: "utf8",

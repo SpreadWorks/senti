@@ -86,7 +86,7 @@ function setupFlowAtStep(root, step) {
   }
 
   const fm = makeFlowManager(root);
-  fm.save(state);
+  fm.create(state);
   fm.addActiveFlow(specId, "local");
 }
 

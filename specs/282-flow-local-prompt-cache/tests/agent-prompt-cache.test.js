@@ -62,11 +62,12 @@ function hasCacheHitEvidence(root, flowState) {
 function setupActiveFlow(root, specId = "001-cache") {
   const fm = makeFlowManager(root);
   const state = makeFlowState({
-    spec: `specs/${specId}/spec.md`,
+    spec: `specs/${specId}/spec.json`,
+    runId: `run-${specId}`,
     featureBranch: `feature/${specId}`,
     metrics: [],
   });
-  fm.save(state);
+  fm.create(state);
   fm.addActiveFlow(specId, "local");
   return fm;
 }
@@ -337,11 +338,12 @@ test("R6: cache does not cross active flow scopes and is disabled without active
   const sameRootCount = path.join(firstRoot, "same-root-count.txt");
   firstFlow.removeActiveFlow("001-cache");
   const secondState = makeFlowState({
-    spec: "specs/002-cache/spec.md",
+    spec: "specs/002-cache/spec.json",
+    runId: "run-002-cache",
     featureBranch: "feature/002-cache",
     metrics: [],
   });
-  firstFlow.save(secondState);
+  firstFlow.create(secondState);
   firstFlow.addActiveFlow("002-cache", "local");
   const sameRootSecondFlowAgent = makeCountingAgent({ root: firstRoot, countFile: sameRootCount, flowManager: firstFlow });
   await sameRootSecondFlowAgent.call("scope prompt", { commandId: "flow.review" });

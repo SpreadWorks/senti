@@ -68,7 +68,7 @@ function setupFinalizeFixture() {
     currentTaskId: null,
   };
   const flowManager = makeFlowManager(root);
-  flowManager.save(state);
+  flowManager.create(state);
   flowManager.addActiveFlow(SPEC_ID, "local");
 
   return { root, flowManager, state };

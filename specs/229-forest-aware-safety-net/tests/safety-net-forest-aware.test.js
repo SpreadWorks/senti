@@ -35,7 +35,8 @@ function runCli(tmp, args) {
 function setupActiveFlow(tmp, overrides = {}) {
   const specId = "229-test";
   const state = {
-    spec: `specs/${specId}/spec.md`,
+    spec: `specs/${specId}/spec.json`,
+    runId: `run-${specId}`,
     baseBranch: "main",
     featureBranch: "feature/229-test",
     steps: buildInitialSteps(),
@@ -45,7 +46,7 @@ function setupActiveFlow(tmp, overrides = {}) {
     ...overrides,
   };
   const fm = makeFlowManager(tmp);
-  fm.save(state);
+  fm.create(state);
   fm.addActiveFlow(specId, "local");
   return state;
 }
@@ -96,7 +97,7 @@ describe("spec 229: forest-aware safety-net fallback", () => {
         currentTaskId: null,
       });
       for (const s of state.steps) s.status = "done";
-      makeFlowManager(tmp).save(state);
+      makeFlowManager(tmp).create(state);
 
       const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
       assert.equal(exitCode, 0, "exits cleanly via forest-aware fallback");
@@ -120,7 +121,7 @@ describe("spec 229: forest-aware safety-net fallback", () => {
         currentTaskId: null,
       });
       for (const s of state.steps) s.status = "done";
-      makeFlowManager(tmp).save(state);
+      makeFlowManager(tmp).create(state);
 
       const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
       assert.equal(exitCode, 0);
@@ -143,7 +144,7 @@ describe("spec 229: forest-aware safety-net fallback", () => {
         currentTaskId: null,
       });
       for (const s of state.steps) s.status = "done";
-      makeFlowManager(tmp).save(state);
+      makeFlowManager(tmp).create(state);
 
       const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
       assert.equal(exitCode, 0);
@@ -169,7 +170,7 @@ describe("spec 229: forest-aware safety-net fallback", () => {
         currentTaskId: "T-1",
       });
       for (const s of state.steps) s.status = "done";
-      makeFlowManager(tmp).save(state);
+      makeFlowManager(tmp).create(state);
 
       const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
       assert.equal(exitCode, 0);

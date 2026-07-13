@@ -56,7 +56,7 @@ function setupDraftGateFlow(root) {
   );
   findStepById(state.steps, "draft-gate").status = "in_progress";
   const fm = makeFlowManager(root);
-  fm.save(state);
+  fm.create(state);
   fm.addActiveFlow(specId, "local");
 }
 

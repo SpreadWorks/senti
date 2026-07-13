@@ -13,6 +13,7 @@ const SPEC_ID = "291-submodule-worktree-cleanup";
 function makeFlowState() {
   return {
     spec: `specs/${SPEC_ID}/spec.json`,
+    runId: `run-${SPEC_ID}`,
     baseBranch: "main",
     featureBranch: "feature/submodule-cleanup",
     worktree: true,
@@ -153,7 +154,7 @@ async function runCleanupScenario(scenario) {
   fs.mkdirSync(specDir, { recursive: true });
   const state = makeFlowState();
   const mainFlowManager = new FlowManager({ root: mainRoot, mainRoot, inWorktree: false, specId: SPEC_ID });
-  mainFlowManager.save(state);
+  mainFlowManager.create(state);
   mainFlowManager.addActiveFlow(SPEC_ID, "worktree");
   fs.writeFileSync(path.join(specDir, "report.json"), JSON.stringify({ text: "Final report text" }, null, 2));
 

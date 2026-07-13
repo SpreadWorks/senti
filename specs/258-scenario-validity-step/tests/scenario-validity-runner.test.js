@@ -205,7 +205,7 @@ function setupFixture({
   if (step) step.status = "in_progress";
 
   const flowManager = makeFlowManager(root);
-  flowManager.save(state);
+  flowManager.create(state);
   flowManager.addActiveFlow(SPEC_ID, "local");
   return { root, state, flowManager, timeoutSeconds };
 }

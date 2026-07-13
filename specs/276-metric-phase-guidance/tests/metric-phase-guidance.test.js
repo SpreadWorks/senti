@@ -49,7 +49,7 @@ function metricExamples(section) {
 function setupTempFlow(root) {
   const specId = "001-test";
   const state = makeFlowState({ spec: `specs/${specId}/spec.json` });
-  makeFlowManager(root).save(state);
+  makeFlowManager(root).create(state);
   makeFlowManager(root).addActiveFlow(specId, "local");
 }
 

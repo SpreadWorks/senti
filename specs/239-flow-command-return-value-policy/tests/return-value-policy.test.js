@@ -56,7 +56,8 @@ describe("R2: get-next-action — all steps completed", () => {
     const steps = buildInitialSteps();
     for (const s of flattenSteps(steps)) s.status = "done";
     const state = {
-      spec: "specs/001-test/spec.md",
+      spec: "specs/001-test/spec.json",
+      runId: "run-001-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
       steps,
@@ -65,7 +66,7 @@ describe("R2: get-next-action — all steps completed", () => {
       currentTaskId: null,
     };
     const fm = makeFlowManager(tmp);
-    fm.save(state);
+    fm.create(state);
     fm.addActiveFlow("001-test", "local");
 
     const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);

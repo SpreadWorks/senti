@@ -494,7 +494,10 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
       assert.equal(envUnknown.errors[0].code, "UNKNOWN_TASK_ID");
 
       // no target at all (no currentTaskId, no --task-id) → fail envelope
-      setupFlow(tmp, { tasks: [task], currentTaskId: null });
+      fm.mutate((current) => {
+        current.tasks = [task];
+        current.currentTaskId = null;
+      });
       const fm2 = makeFlowManager(tmp);
       const state2 = fm2.load();
       const envNoTarget = await cmd.execute({

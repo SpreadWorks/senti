@@ -2,7 +2,7 @@
 //
 // Two consumers depend on this:
 //   - src/scripts/rename-phase-steps.js — the historical-data migration tool (static files).
-//   - src/lib/flow-store.js — on-load migration so any pre-269 flow.json self-heals at runtime.
+//   - src/lib/flow-store.js — read-time schema probe that rejects legacy flow state.
 //
 // Keeping the maps and the structural rename in one place prevents the two paths from drifting.
 

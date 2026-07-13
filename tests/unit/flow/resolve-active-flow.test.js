@@ -17,7 +17,7 @@ describe("resolveActiveFlow", () => {
 
   function setupFlow(dir, specId = "001-test") {
     const state = {
-      spec: `specs/${specId}/spec.md`,
+      spec: `specs/${specId}/spec.json`,
       baseBranch: "main",
       featureBranch: `feature/${specId}`,
       runId: `run-${specId}`,
@@ -27,7 +27,7 @@ describe("resolveActiveFlow", () => {
       tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
       currentTaskId: null,
     };
-    makeFlowManager(dir).save(state);
+    makeFlowManager(dir).create(state);
     makeFlowManager(dir).addActiveFlow(specId, "local");
     return state;
   }
@@ -61,7 +61,7 @@ describe("resolveActiveFlow", () => {
       const specDir = path.join(tmp, "specs", specId);
       fs.mkdirSync(specDir, { recursive: true });
       fs.writeFileSync(path.join(specDir, "flow.json"), JSON.stringify({
-        spec: `specs/${specId}/spec.md`,
+        spec: `specs/${specId}/spec.json`,
         baseBranch: "main",
         featureBranch: `feature/${specId}`,
         steps: buildInitialSteps(),
@@ -80,7 +80,7 @@ describe("resolveActiveFlow", () => {
     setupFlow(tmp, "001-first");
     // Add a second active flow
     const state2 = {
-      spec: "specs/002-second/spec.md",
+      spec: "specs/002-second/spec.json",
       baseBranch: "main",
       featureBranch: "feature/002-second",
       runId: "run-002-second",
@@ -88,7 +88,7 @@ describe("resolveActiveFlow", () => {
       steps: buildInitialSteps(),
       requirements: [],
     };
-    makeFlowManager(tmp).save(state2);
+    makeFlowManager(tmp).create(state2);
     makeFlowManager(tmp).addActiveFlow("002-second", "local");
 
     assert.throws(
@@ -101,7 +101,7 @@ describe("resolveActiveFlow", () => {
     tmp = createTmpDir();
     setupFlow(tmp, "001-first");
     const state2 = {
-      spec: "specs/002-second/spec.md",
+      spec: "specs/002-second/spec.json",
       baseBranch: "main",
       featureBranch: "feature/002-second",
       runId: "run-002-second",
@@ -109,7 +109,7 @@ describe("resolveActiveFlow", () => {
       steps: buildInitialSteps(),
       requirements: [],
     };
-    makeFlowManager(tmp).save(state2);
+    makeFlowManager(tmp).create(state2);
     makeFlowManager(tmp).addActiveFlow("002-second", "local");
 
     const result = makeFlowManager(tmp).resolveActiveFlow(null, { selectSpecId: "002-second" });
@@ -121,7 +121,7 @@ describe("resolveActiveFlow", () => {
     tmp = createTmpDir();
     setupFlow(tmp, "001-first");
     const state2 = {
-      spec: "specs/002-second/spec.md",
+      spec: "specs/002-second/spec.json",
       baseBranch: "main",
       featureBranch: "feature/002-second",
       runId: "run-002-second",
@@ -129,7 +129,7 @@ describe("resolveActiveFlow", () => {
       steps: buildInitialSteps(),
       requirements: [],
     };
-    makeFlowManager(tmp).save(state2);
+    makeFlowManager(tmp).create(state2);
     makeFlowManager(tmp).addActiveFlow("002-second", "local");
 
     const result = makeFlowManager(tmp).resolveActiveFlow(null, { selectRunId: "run-002-second" });
@@ -141,7 +141,7 @@ describe("resolveActiveFlow", () => {
     tmp = createTmpDir();
     setupFlow(tmp, "001-first");
     const state2 = {
-      spec: "specs/002-second/spec.md",
+      spec: "specs/002-second/spec.json",
       baseBranch: "main",
       featureBranch: "feature/002-second",
       runId: "run-002-second",
@@ -149,7 +149,7 @@ describe("resolveActiveFlow", () => {
       steps: buildInitialSteps(),
       requirements: [],
     };
-    makeFlowManager(tmp).save(state2);
+    makeFlowManager(tmp).create(state2);
     makeFlowManager(tmp).addActiveFlow("002-second", "local");
 
     const result = makeFlowManager(tmp).resolveActiveFlow(null, { selectIssue: 222 });

@@ -47,7 +47,7 @@ function saveFlow(tmp, specId, { issue, runId, autoApprove }) {
     tasks: [],
     currentTaskId: null,
   };
-  makeFlowManager(tmp).save(state, { specId });
+  makeFlowManager(tmp).create(state, { specId });
   makeFlowManager(tmp).addActiveFlow(specId, "branch");
   return state;
 }
@@ -222,7 +222,7 @@ describe("target flow status mismatch guard", () => {
     tmpDirs.push(tmp);
     const state = saveFlow(tmp, "399-target", { issue: 399, runId: "run-target-399", autoApprove: true });
     setOnlyStepInProgress(state, "approval");
-    makeFlowManager(tmp).save(state);
+    makeFlowManager(tmp).create(state);
 
     const status = runFlow(tmp, ["get", "status", "run-target-399"]);
     const next = runFlow(tmp, ["get", "next-action"]);
@@ -242,7 +242,7 @@ describe("target flow status mismatch guard", () => {
     tmpDirs.push(tmp);
     const state = saveFlow(tmp, "399-target", { issue: 399, runId: "run-target-399", autoApprove: true });
     setOnlyStepInProgress(state, "finalize-cleanup");
-    makeFlowManager(tmp).save(state);
+    makeFlowManager(tmp).create(state);
 
     const res = runFlow(tmp, ["run", "finalize-cleanup"]);
     const saved = makeFlowManager(tmp).load("399-target");

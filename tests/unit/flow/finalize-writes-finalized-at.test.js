@@ -16,9 +16,11 @@ describe("flow finalize — state.finalizedAt write (R1)", () => {
       docs: { languages: ["ja"], defaultLanguage: "ja" },
     });
     writeJson(tmp, "specs/001-alpha/flow.json", {
-      spec: "specs/001-alpha/spec.md",
+      spec: "specs/001-alpha/spec.json",
       runId: "test-run",
-      metrics: {},
+      metrics: [],
+      tasks: [],
+      currentTaskId: null,
     });
 
     const iso = "2026-04-17T10:30:00.000Z";
@@ -39,8 +41,10 @@ describe("flow finalize — state.finalizedAt write (R1)", () => {
       docs: { languages: ["ja"], defaultLanguage: "ja" },
     });
     writeJson(tmp, "specs/001-alpha/flow.json", {
-      spec: "specs/001-alpha/spec.md",
+      spec: "specs/001-alpha/spec.json",
       runId: "test-run",
+      tasks: [],
+      currentTaskId: null,
     });
 
     assert.throws(

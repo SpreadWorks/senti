@@ -45,7 +45,7 @@ function setupFlowState(root) {
     currentTaskId: null,
   };
   const flowManager = makeFlowManager(root);
-  flowManager.save(state);
+  flowManager.create(state);
   flowManager.addActiveFlow(specId, "local");
   return state;
 }

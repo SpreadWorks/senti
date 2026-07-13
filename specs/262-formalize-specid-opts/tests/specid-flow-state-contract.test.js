@@ -32,6 +32,7 @@ function makeTask(id) {
 function makeState(specId, overrides = {}) {
   return {
     spec: `specs/${specId}/spec.json`,
+    runId: `run-${specId}`,
     baseBranch: "main",
     featureBranch: `feature/${specId}`,
     worktree: false,
@@ -45,7 +46,7 @@ function makeState(specId, overrides = {}) {
 
 function setupSpec(root, specId, overrides = {}) {
   const fm = makeManager(root);
-  fm.save(makeState(specId, overrides));
+  fm.create(makeState(specId, overrides));
 }
 
 function readFlow(root, specId) {

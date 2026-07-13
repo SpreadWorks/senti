@@ -37,10 +37,10 @@ function setupProject(tmp, { testExitCode = 0 } = {}) {
       },
     },
   });
-  const specPath = "specs/209-test/spec.md";
-  writeFile(tmp, specPath, "# Spec\n");
+  const specPath = "specs/209-test/spec.json";
+  writeFile(tmp, specPath, "{}\n");
   const fm = makeFlowManager(tmp);
-  fm.save({
+  fm.create({
     spec: specPath, baseBranch: "main", featureBranch: "feature/t",
     steps: buildInitialSteps(),
   });

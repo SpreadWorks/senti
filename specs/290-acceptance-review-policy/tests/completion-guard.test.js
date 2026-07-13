@@ -71,6 +71,7 @@ function setupFlow(tmp, stateOverrides = {}, artifact = null) {
 
   const state = {
     spec: `specs/${specId}/spec.json`,
+    runId: `run-${specId}`,
     baseBranch: "main",
     featureBranch: "feature/001-test",
     steps: buildInitialSteps(),
@@ -89,7 +90,7 @@ function setupFlow(tmp, stateOverrides = {}, artifact = null) {
   findStepById(state.steps, "acceptance-review").status = "in_progress";
 
   const fm = makeFlowManager(tmp);
-  fm.save(state);
+  fm.create(state);
   fm.addActiveFlow(specId, "local");
 }
 

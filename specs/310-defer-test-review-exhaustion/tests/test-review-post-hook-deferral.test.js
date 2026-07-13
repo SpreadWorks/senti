@@ -105,7 +105,7 @@ function makeActiveFlowFixture() {
     metrics: retryMetrics("test", 9),
   };
   const flowManager = makeFlowManager(fixture.root);
-  flowManager.save(flowState);
+  flowManager.create(flowState);
   flowManager.addActiveFlow("demo", "local");
   writeJson(fixture.specDir, "test-review.json", {
     verdict: "FAIL",
@@ -363,6 +363,7 @@ test("R8: acceptance-review derives blocked and user-decision outcomes for defer
   const stillOpen = buildAcceptanceReviewArtifactFromEvidence({ specDir: fixture.specDir });
   const flowState = {
     spec: "specs/demo/spec.json",
+    runId: "run-demo",
     acceptanceReview: { round: 1 },
     steps: buildInitialSteps(),
   };

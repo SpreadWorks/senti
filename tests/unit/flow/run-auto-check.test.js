@@ -51,8 +51,9 @@ function setupProject(tmp, { aiResponse } = {}) {
 
 function seedFlowState(tmp, { request = "add a progress bar with bounded scope" } = {}) {
   fs.mkdirSync(path.join(tmp, "specs", "001-test"), { recursive: true });
-  makeFlowManager(tmp).save({
-    spec: "specs/001-test/spec.md",
+  makeFlowManager(tmp).create({
+    spec: "specs/001-test/spec.json",
+    runId: "run-001-test",
     baseBranch: "main",
     featureBranch: "feature/001-test",
     request,

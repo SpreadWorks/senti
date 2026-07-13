@@ -120,7 +120,7 @@ function setupActiveFlow(overrides = {}) {
     ...overrides,
   };
   const fm = makeFlowManager(root);
-  fm.save(state);
+  fm.create(state);
   fm.addActiveFlow(specId, "local");
   return { root, runId: state.runId };
 }
@@ -184,7 +184,7 @@ function setupRunIdSelectionFlows() {
   writeSpec(root, activeSpecId);
   writeSpec(root, selectedSpecId);
   const fm = makeFlowManager(root);
-  fm.save({
+  fm.create({
     spec: `specs/${activeSpecId}/spec.json`,
     baseBranch: "main",
     featureBranch: "feature/active-status",
@@ -201,7 +201,7 @@ function setupRunIdSelectionFlows() {
     mergeStrategy: "merge",
     autoApprove: false,
   });
-  fm.save({
+  fm.create({
     spec: `specs/${selectedSpecId}/spec.json`,
     baseBranch: "main",
     featureBranch: "feature/selected-status",

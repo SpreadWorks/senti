@@ -14,7 +14,7 @@ import { execFileSync } from "child_process";
 import { join } from "path";
 import fs from "node:fs";
 import pathMod from "node:path";
-import { makeFlowManager } from "../../helpers/flow-setup.js";
+import { makeFlowManager, replaceFlowState } from "../../helpers/flow-setup.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import {
   FLOW_STEPS,
@@ -45,7 +45,8 @@ function runCli(tmp, args) {
 function setupActiveFlow(tmp, overrides = {}) {
   const specId = "001-test";
   const state = {
-    spec: `specs/${specId}/spec.md`,
+    spec: `specs/${specId}/spec.json`,
+    runId: `run-${specId}`,
     baseBranch: "main",
     featureBranch: "feature/001-test",
     steps: buildInitialSteps(),
@@ -55,7 +56,7 @@ function setupActiveFlow(tmp, overrides = {}) {
     ...overrides,
   };
   const fm = makeFlowManager(tmp);
-  fm.save(state);
+  fm.create(state);
   fm.addActiveFlow(specId, "local");
   return state;
 }
@@ -86,7 +87,7 @@ describe("flow get next-action", () => {
       tmp = createTmpDir();
       const state = setupActiveFlow(tmp);
       setFlowStepInProgress(state, "draft");
-      makeFlowManager(tmp).save(state);
+      replaceFlowState(tmp, state);
 
       const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
       assert.equal(exitCode, 0);
@@ -130,7 +131,7 @@ describe("flow get next-action", () => {
         }],
       });
       setTaskStepInProgress(state, "001", "task-impl");
-      makeFlowManager(tmp).save(state);
+      replaceFlowState(tmp, state);
 
       const { envelope } = runCli(tmp, ["flow", "get", "next-action"]);
       assert.equal(envelope.ok, true);
@@ -145,7 +146,7 @@ describe("flow get next-action", () => {
       tmp = createTmpDir();
       const state = setupActiveFlow(tmp);
       setFlowStepInProgress(state, "spec-gate");
-      makeFlowManager(tmp).save(state);
+      replaceFlowState(tmp, state);
 
       const { envelope } = runCli(tmp, ["flow", "get", "next-action"]);
       assert.equal(envelope.ok, true);
@@ -159,7 +160,7 @@ describe("flow get next-action", () => {
       tmp = createTmpDir();
       const state = setupActiveFlow(tmp);
       setFlowStepInProgress(state, "approval");
-      makeFlowManager(tmp).save(state);
+      replaceFlowState(tmp, state);
       const { envelope } = runCli(tmp, ["flow", "get", "next-action"]);
       assert.equal(envelope.data.requires_approval, true);
     });
@@ -168,7 +169,7 @@ describe("flow get next-action", () => {
       tmp = createTmpDir();
       const state = setupActiveFlow(tmp);
       setFlowStepInProgress(state, "finalize-commit");
-      makeFlowManager(tmp).save(state);
+      replaceFlowState(tmp, state);
       const { envelope } = runCli(tmp, ["flow", "get", "next-action"]);
       assert.equal(envelope.data.requires_approval, true);
     });
@@ -182,7 +183,7 @@ describe("flow get next-action", () => {
       ];
       for (const id of falsyFlowSteps) {
         setFlowStepInProgress(state, id);
-        makeFlowManager(tmp).save(state);
+        replaceFlowState(tmp, state);
         const { envelope } = runCli(tmp, ["flow", "get", "next-action"]);
         assert.equal(envelope.ok, true, `ok for flow.${id}`);
         assert.equal(envelope.data.requires_approval, false, `requires_approval false for flow.${id}`);
@@ -195,7 +196,7 @@ describe("flow get next-action", () => {
       tmp = createTmpDir();
       const state = setupActiveFlow(tmp);
       setFlowStepInProgress(state, "spec");
-      makeFlowManager(tmp).save(state);
+      replaceFlowState(tmp, state);
       const { envelope } = runCli(tmp, ["flow", "get", "next-action"]);
       const ctx = envelope.data.context;
       assert.ok(Array.isArray(ctx.kinds), "kinds is array");
@@ -207,7 +208,7 @@ describe("flow get next-action", () => {
       tmp = createTmpDir();
       const state = setupActiveFlow(tmp);
       setFlowStepInProgress(state, "spec");
-      makeFlowManager(tmp).save(state);
+      replaceFlowState(tmp, state);
       const { envelope } = runCli(tmp, ["flow", "get", "next-action"]);
       const ctx = envelope.data.context;
       // No raw content fields — only path descriptors
@@ -220,14 +221,14 @@ describe("flow get next-action", () => {
       tmp = createTmpDir();
       const state = setupActiveFlow(tmp);
       setFlowStepInProgress(state, "spec-repair");
-      makeFlowManager(tmp).save(state);
+      replaceFlowState(tmp, state);
 
       const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
       assert.equal(exitCode, 0);
       assert.equal(envelope.data.step, "spec-repair");
       assert.equal(envelope.data.action, "write-spec");
       assert.equal(envelope.data.instructions.key, "plan.spec-repair");
-      assert.deepEqual(envelope.data.context.paths, { spec: "specs/001-test/spec.md" });
+      assert.deepEqual(envelope.data.context.paths, { spec: "specs/001-test/spec.json" });
       assert.equal(envelope.data.output_schema.type, "object");
     });
 
@@ -235,14 +236,14 @@ describe("flow get next-action", () => {
       tmp = createTmpDir();
       const state = setupActiveFlow(tmp);
       setFlowStepInProgress(state, "spec-triage");
-      makeFlowManager(tmp).save(state);
+      replaceFlowState(tmp, state);
 
       const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
       assert.equal(exitCode, 0);
       assert.equal(envelope.data.step, "spec-triage");
       assert.equal(envelope.data.action, "write-spec");
       assert.equal(envelope.data.instructions.key, "plan.spec-triage");
-      assert.deepEqual(envelope.data.context.paths, { spec: "specs/001-test/spec.md" });
+      assert.deepEqual(envelope.data.context.paths, { spec: "specs/001-test/spec.json" });
       assert.equal(envelope.data.output_schema.type, "object");
     });
   });
@@ -252,7 +253,7 @@ describe("flow get next-action", () => {
       tmp = createTmpDir();
       const state = setupActiveFlow(tmp);
       setFlowStepInProgress(state, "spec-gate");
-      makeFlowManager(tmp).save(state);
+      replaceFlowState(tmp, state);
       const { envelope } = runCli(tmp, ["flow", "get", "next-action"]);
       const schema = envelope.data.output_schema;
       assert.equal(typeof schema, "object");
@@ -263,7 +264,7 @@ describe("flow get next-action", () => {
       tmp = createTmpDir();
       const state = setupActiveFlow(tmp);
       setFlowStepInProgress(state, "spec-gate");
-      makeFlowManager(tmp).save(state);
+      replaceFlowState(tmp, state);
       const { envelope } = runCli(tmp, ["flow", "get", "next-action"]);
       const schema = envelope.data.output_schema;
       const valid = { verdict: "pass" };
@@ -285,7 +286,7 @@ describe("flow get next-action", () => {
       steps.forEach((step, index) => {
         step.status = index <= gateDraftIndex ? "done" : "pending";
       });
-      makeFlowManager(tmp).save(state);
+      replaceFlowState(tmp, state);
 
       const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
       assert.equal(exitCode, 0, "exits cleanly via auto-recovery");
@@ -303,7 +304,7 @@ describe("flow get next-action", () => {
       tmp = createTmpDir();
       const state = setupActiveFlow(tmp);
       for (const s of flattenSteps(state.steps)) s.status = "done";
-      makeFlowManager(tmp).save(state);
+      replaceFlowState(tmp, state);
 
       const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
       assert.equal(envelope.ok, true);
@@ -320,7 +321,7 @@ describe("flow get next-action", () => {
       const state = setupActiveFlow(tmp, {
         steps: [{ id: "__unknown-step__", status: "in_progress" }],
       });
-      makeFlowManager(tmp).save(state);
+      replaceFlowState(tmp, state);
       const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
       assert.equal(envelope.ok, false);
       assert.notEqual(exitCode, 0);
@@ -345,7 +346,7 @@ describe("flow get next-action", () => {
       });
       for (const stepId of TASK_STEPS_PLAN) {
         setTaskStepInProgress(state, "001", stepId);
-        makeFlowManager(tmp).save(state);
+        replaceFlowState(tmp, state);
         const { envelope } = runCli(tmp, ["flow", "get", "next-action"]);
         assert.equal(envelope.ok, true, `task.${stepId} has rule`);
         assert.equal(envelope.data.taskId, "001");
@@ -364,7 +365,7 @@ describe("flow get next-action", () => {
       tmp = createTmpDir();
       const state = setupActiveFlow(tmp);
       setFlowStepInProgress(state, "spec");
-      makeFlowManager(tmp).save(state);
+      replaceFlowState(tmp, state);
       const { envelope } = runCli(tmp, ["flow", "get", "next-action"]);
       const ins = envelope.data.instructions;
       assert.equal(typeof ins, "object");
@@ -378,7 +379,7 @@ describe("flow get next-action", () => {
       tmp = createTmpDir();
       const state = setupActiveFlow(tmp);
       setFlowStepInProgress(state, "spec");
-      makeFlowManager(tmp).save(state);
+      replaceFlowState(tmp, state);
       const { envelope } = runCli(tmp, ["flow", "get", "next-action"]);
       const ins = envelope.data.instructions;
       assert.equal(typeof ins.key, "string");
@@ -400,7 +401,7 @@ describe("flow get next-action", () => {
         }],
       });
       setTaskStepInProgress(state, "001", "task-impl");
-      makeFlowManager(tmp).save(state);
+      replaceFlowState(tmp, state);
       const { envelope } = runCli(tmp, ["flow", "get", "next-action"]);
       const ins = envelope.data.instructions;
       assert.equal(typeof ins.content, "string");
@@ -411,7 +412,7 @@ describe("flow get next-action", () => {
       tmp = createTmpDir();
       const state = setupActiveFlow(tmp);
       setFlowStepInProgress(state, "draft");
-      makeFlowManager(tmp).save(state);
+      replaceFlowState(tmp, state);
       const { envelope } = runCli(tmp, ["flow", "get", "next-action"]);
       const ins = envelope.data.instructions;
       // ins.key is "plan.draft" → src/flow/prompts/plan/draft.md

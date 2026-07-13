@@ -89,22 +89,24 @@ describe("flow-state (specs-based storage)", () => {
     tmp = createTmpDir();
     const specId = "001-test";
     const state = {
-      spec: `specs/${specId}/spec.md`,
+      spec: `specs/${specId}/spec.json`,
+      runId: "run-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
     };
-    makeFlowManager(tmp).save(state);
+    makeFlowManager(tmp).create(state);
     assert.ok(fs.existsSync(join(tmp, "specs", specId, "flow.json")));
   });
 
   it("saveFlowState does NOT write to .senti/flow.json", () => {
     tmp = createTmpDir();
     const state = {
-      spec: "specs/001-test/spec.md",
+      spec: "specs/001-test/spec.json",
+      runId: "run-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
     };
-    makeFlowManager(tmp).save(state);
+    makeFlowManager(tmp).create(state);
     assert.ok(!fs.existsSync(join(tmp, ".senti", "flow.json")));
   });
 
@@ -112,7 +114,8 @@ describe("flow-state (specs-based storage)", () => {
     tmp = createTmpDir();
     const specId = "001-test";
     const state = {
-      spec: `specs/${specId}/spec.md`,
+      spec: `specs/${specId}/spec.json`,
+      runId: "run-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
       tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
@@ -125,11 +128,11 @@ describe("flow-state (specs-based storage)", () => {
     makeFlowManager(tmp).addActiveFlow(specId, "local");
 
     const loaded = makeFlowManager(tmp).load();
-    // Core fields must be preserved; runId is auto-assigned by transparent migration
+    // Reads preserve the current-schema state without implicit migration.
     assert.equal(loaded.spec, state.spec);
     assert.equal(loaded.baseBranch, state.baseBranch);
     assert.equal(loaded.featureBranch, state.featureBranch);
-    assert.ok(loaded.runId, "runId should be auto-assigned by transparent migration");
+    assert.equal(loaded.runId, state.runId);
   });
 
   it("loadFlowState returns null when no .active-flow exists", () => {
@@ -141,11 +144,12 @@ describe("flow-state (specs-based storage)", () => {
     tmp = createTmpDir();
     const specId = "001-test";
     const state = {
-      spec: `specs/${specId}/spec.md`,
+      spec: `specs/${specId}/spec.json`,
+      runId: "run-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
     };
-    makeFlowManager(tmp).save(state);
+    makeFlowManager(tmp).create(state);
     makeFlowManager(tmp).addActiveFlow(specId, "local");
 
     makeFlowManager(tmp).clearFlowState(specId);
@@ -167,7 +171,8 @@ describe("flow-state steps and requirements", () => {
   function setupFlow(dir) {
     const specId = "001-test";
     const state = {
-      spec: `specs/${specId}/spec.md`,
+      spec: `specs/${specId}/spec.json`,
+      runId: "run-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
       steps: buildInitialSteps(),
@@ -175,7 +180,7 @@ describe("flow-state steps and requirements", () => {
       tasks: [{ id: "T-default", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
       currentTaskId: null,
     };
-    makeFlowManager(dir).save(state);
+    makeFlowManager(dir).create(state);
     makeFlowManager(dir).addActiveFlow(specId, "local");
     return specId;
   }
@@ -267,10 +272,10 @@ describe("flow-state steps and requirements", () => {
     setupFlow(tmp);
     const fm = makeFlowManager(tmp);
     // Mark every leaf done.
-    const state = fm.load();
-    const flat = flattenSteps(state.steps);
-    for (const s of flat) s.status = "done";
-    fm.save(state);
+    fm.mutate((state) => {
+      for (const step of flattenSteps(state.steps)) step.status = "done";
+    });
+    const flat = flattenSteps(fm.load().steps);
     // Transition final leaf step again — no pending left, so nothing to promote.
     const lastStep = flat[flat.length - 1];
     fm.updateStepStatus(lastStep.id, "done");
@@ -288,7 +293,8 @@ describe("setIssue", () => {
   function setupFlow(dir) {
     const specId = "001-test";
     const state = {
-      spec: `specs/${specId}/spec.md`,
+      spec: `specs/${specId}/spec.json`,
+      runId: "run-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
       steps: buildInitialSteps(),
@@ -296,7 +302,7 @@ describe("setIssue", () => {
       tasks: [{ id: "T-default", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
       currentTaskId: null,
     };
-    makeFlowManager(dir).save(state);
+    makeFlowManager(dir).create(state);
     makeFlowManager(dir).addActiveFlow(specId, "local");
     return specId;
   }

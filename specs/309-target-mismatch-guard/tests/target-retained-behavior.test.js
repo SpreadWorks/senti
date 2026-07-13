@@ -45,7 +45,7 @@ function saveLocalFlow(tmp, specId, opts) {
   writeSpec(tmp, specId);
   const state = flowState(specId, opts);
   const fm = makeFlowManager(tmp);
-  fm.save(state, { specId });
+  fm.create(state, { specId });
   fm.addActiveFlow(specId, "branch");
   return state;
 }
@@ -83,7 +83,7 @@ describe("target-matched retained behavior", () => {
 
     const mainFm = makeFlowManager(tmp);
     const worktreeFm = mainFm.forRoot(wtRoot, { specId });
-    worktreeFm.save(flowState(specId, {
+    worktreeFm.create(flowState(specId, {
       issue: 403,
       runId: "run-target-403",
       autoApprove: true,
@@ -121,7 +121,7 @@ describe("target-matched retained behavior", () => {
     tmpDirs.push(tmp);
     const state = saveLocalFlow(tmp, "403-target", { issue: 403, runId: "run-target-403", autoApprove: true });
     setOnlyStepInProgress(state, "approval");
-    makeFlowManager(tmp).save(state, { specId: "403-target" });
+    makeFlowManager(tmp).create(state, { specId: "403-target" });
 
     const next = runFlow(tmp, ["get", "next-action", "--expect-issue", "403"]);
 
@@ -135,7 +135,7 @@ describe("target-matched retained behavior", () => {
     tmpDirs.push(tmp);
     const state = saveLocalFlow(tmp, "403-target", { issue: 403, runId: "run-target-403", autoApprove: true });
     state.tasks = [{ id: "T-1", title: "task", goal: "task", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }];
-    makeFlowManager(tmp).save(state, { specId: "403-target" });
+    makeFlowManager(tmp).create(state, { specId: "403-target" });
 
     const runCommand = runFlow(tmp, ["run", "start-task", "--task-id", "T-1", "--expect-issue", "403"]);
     const repairCommand = runFlow(tmp, ["run", "reopen-draft", "--reason", "matched target retained repair", "--expect-issue", "403"]);
@@ -149,7 +149,7 @@ describe("target-matched retained behavior", () => {
     tmpDirs.push(tmp);
     const state = saveLocalFlow(tmp, "403-target", { issue: 403, runId: "run-target-403", autoApprove: true });
     setOnlyStepInProgress(state, "finalize-cleanup");
-    makeFlowManager(tmp).save(state, { specId: "403-target" });
+    makeFlowManager(tmp).create(state, { specId: "403-target" });
 
     const res = runFlow(tmp, ["run", "finalize-cleanup", "--expect-issue", "403"]);
 

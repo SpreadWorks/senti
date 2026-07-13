@@ -51,8 +51,9 @@ function seedActiveFlow(tmp, { steps, issue, request, draftBody } = {}) {
   if (draftBody != null) {
     fs.writeFileSync(path.join(specDir, "draft.json"), draftBody);
   }
-  makeFlowManager(tmp).save({
-    spec: "specs/001-test/spec.md",
+  makeFlowManager(tmp).create({
+    spec: "specs/001-test/spec.json",
+    runId: "run-001-test",
     baseBranch: "main",
     featureBranch: "feature/001-test",
     issue: issue ?? 100,

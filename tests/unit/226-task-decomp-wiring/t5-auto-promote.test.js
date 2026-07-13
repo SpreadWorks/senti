@@ -169,7 +169,7 @@ describe("T-5: auto-promote function and callers", () => {
       makePendingTask("T-2"),
     ];
     setupFlow(tmp, {
-      spec: "specs/226-gate-impl/spec.md",
+      spec: "specs/226-gate-impl/spec.json",
       tasks,
       currentTaskId: "T-1",
     });
@@ -232,7 +232,7 @@ describe("T-5: auto-promote function and callers", () => {
       makePendingTask("T-2"),
     ];
     setupFlow(tmp, {
-      spec: "specs/226-complete-sep/spec.md",
+      spec: "specs/226-complete-sep/spec.json",
       tasks,
       currentTaskId: "T-1",
     });
@@ -269,7 +269,7 @@ describe("T-5: auto-promote function and callers", () => {
     }
     setupFlow(tmp, { tasks, currentTaskId: null, steps });
     const fm = makeFlowManager(tmp);
-    fm.save(fm.load()); // persist through load/save to validate schema
+    fm.mutate(() => {}); // persist through the shared writer to validate schema
 
     const CLI = path.join(process.cwd(), "src/senti.js");
     const out = execFileSync("node", [CLI, "flow", "get", "next-action"], {
