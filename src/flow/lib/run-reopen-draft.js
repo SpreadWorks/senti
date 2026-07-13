@@ -409,7 +409,9 @@ function executeSpecCorrection({ flowManager, root, specId, state, reason }) {
     timestamp,
   });
   if (!Object.hasOwn(nextState, "planRewinds")) nextState.planRewinds = [];
-  nextState.planRewinds.push(audit.toJSON());
+  const auditEntry = audit.toJSON();
+  auditEntry.previousEntryDigest = nextState.planRewinds.at(-1)?.entryDigest ?? null;
+  nextState.planRewinds.push(auditEntry);
   try {
     sealLatestPlanRewind(nextState);
   } catch (err) {

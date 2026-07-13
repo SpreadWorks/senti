@@ -17,6 +17,8 @@ import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 
 const SPEC_ID = "441-reopen-spec-correction";
 const SPEC_PATH = `specs/${SPEC_ID}/spec.json`;
+const SECOND_REASON = "A second source contradiction was verified.";
+const THIRD_REASON = "A third source contradiction was verified.";
 
 function makeContainer(root, { mainRoot = root, inWorktree = false, flowManager } = {}) {
   const container = new Container();
@@ -203,6 +205,23 @@ async function setupConvergedReopen(root) {
   return fixture;
 }
 
+function progressToStartedImplementation(files) {
+  const state = JSON.parse(fs.readFileSync(files.flow, "utf8"));
+  state.steps = implementationSteps("implement");
+  state.tasks = [startedTask("T-1")];
+  state.currentTaskId = "T-1";
+  writeJson(files.flow, state);
+}
+
+async function setupTwoRewindHistory(root) {
+  const fixture = await setupConvergedReopen(root);
+  progressToStartedImplementation(fixture.files);
+  const second = await runDirect(root, targetInput({ reason: SECOND_REASON }));
+  assert.equal(second.ok, true, JSON.stringify(second.errors));
+  progressToStartedImplementation(fixture.files);
+  return fixture;
+}
+
 describe("guarded single-state reopen for source-discovered spec corrections", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
@@ -276,8 +295,9 @@ describe("guarded single-state reopen for source-discovered spec corrections", (
     assert.doesNotMatch(JSON.stringify(audit), /originIssue|Issue #441/);
   });
 
-  it("rejects every present non-array plan rewind history without changing bytes", async () => {
+  it("rejects every present unanchored or non-array plan rewind history without changing bytes", async () => {
     for (const [name, planRewinds] of [
+      ["unanchored-empty", []],
       ["null", null],
       ["object", { retained: "evidence" }],
       ["string", "retained evidence"],
@@ -300,22 +320,28 @@ describe("guarded single-state reopen for source-discovered spec corrections", (
   it("appends a new correction without changing a valid historical audit", async () => {
     tmp = createTmpDir("reopen-append-valid-history-");
     const { files } = await setupConvergedReopen(tmp);
-    const progressed = JSON.parse(fs.readFileSync(files.flow, "utf8"));
-    const historicalAudit = structuredClone(progressed.planRewinds[0]);
-    progressed.steps = implementationSteps("implement");
-    progressed.tasks = [startedTask("T-1")];
-    progressed.currentTaskId = "T-1";
-    writeJson(files.flow, progressed);
+    const firstState = JSON.parse(fs.readFileSync(files.flow, "utf8"));
+    const historicalAudit = structuredClone(firstState.planRewinds[0]);
+    progressToStartedImplementation(files);
 
-    const second = await runDirect(tmp, targetInput({ reason: "A second source contradiction was verified." }));
+    const second = await runDirect(tmp, targetInput({ reason: SECOND_REASON }));
 
     assert.equal(second.ok, true, JSON.stringify(second.errors));
     const state = JSON.parse(fs.readFileSync(files.flow, "utf8"));
     assert.equal(state.planRewinds.length, 2);
     assert.deepEqual(state.planRewinds[0], historicalAudit);
-    assert.equal(state.planRewinds[1].reason, "A second source contradiction was verified.");
+    assert.equal(state.planRewinds[1].reason, SECOND_REASON);
+    assert.match(state.planRewinds[0].entryDigest, /^[a-f0-9]{64}$/);
+    assert.equal(state.planRewinds[0].previousEntryDigest, null);
+    assert.match(state.planRewinds[1].entryDigest, /^[a-f0-9]{64}$/);
+    assert.equal(state.planRewinds[1].previousEntryDigest, state.planRewinds[0].entryDigest);
+    assert.deepEqual(state.planRewindChain, {
+      version: 1,
+      entryCount: 2,
+      headDigest: state.planRewinds[1].entryDigest,
+    });
     const convergedBytes = fs.readFileSync(files.flow);
-    const retry = await runDirect(tmp, targetInput({ reason: "A second source contradiction was verified." }));
+    const retry = await runDirect(tmp, targetInput({ reason: SECOND_REASON }));
     assert.equal(retry.ok, true, JSON.stringify(retry.errors));
     assert.equal(retry.data.idempotent, true);
     assert.deepEqual(fs.readFileSync(files.flow), convergedBytes);
@@ -337,6 +363,50 @@ describe("guarded single-state reopen for source-discovered spec corrections", (
     assert.equal(result.ok, false);
     assert.equal(result.errors[0].code, "REOPEN_AUDIT_INVALID");
     assert.deepEqual(snapshot(files), before);
+  });
+
+  it("rejects every shape-valid history mutation before sealing another rewind", async () => {
+    const cases = [
+      ["reason", (state) => { state.planRewinds[0].reason = "shape-valid rewritten reason"; }],
+      ["previous-state", (state) => { state.planRewinds[0].previousState.currentTaskId = null; }],
+      ["resulting-state", (state) => {
+        state.planRewinds[0].resultingState.tasks[0].requirementStatuses[0].id = "R-forged";
+      }],
+      ["invalidated-result", (state) => {
+        state.planRewinds[0].invalidatedResults.tasks[0].requirements[0].desc = "rewritten evidence";
+      }],
+      ["runtime-log", (state) => {
+        const implementation = state.planRewinds[0].invalidatedResults.flowSteps
+          .find((step) => step.id === "implement");
+        implementation.runtimeLog.result = "rewritten runtime evidence";
+      }],
+      ["state-digest", (state) => { state.planRewinds[0].stateDigest = "0".repeat(64); }],
+      ["entry-digest", (state) => { state.planRewinds[0].entryDigest = "0".repeat(64); }],
+      ["chain-link", (state) => { state.planRewinds[1].previousEntryDigest = "0".repeat(64); }],
+      ["chain-authority", (state) => {
+        state.planRewindChain = { ...(state.planRewindChain || {}), entryCount: 1 };
+      }],
+      ["delete", (state) => { state.planRewinds.shift(); }],
+      ["duplicate", (state) => { state.planRewinds.push(structuredClone(state.planRewinds[0])); }],
+      ["reorder", (state) => { state.planRewinds.reverse(); }],
+    ];
+
+    for (const [name, mutate] of cases) {
+      tmp = createTmpDir(`reopen-chain-mutation-${name}-`);
+      const { files } = await setupTwoRewindHistory(tmp);
+      const state = JSON.parse(fs.readFileSync(files.flow, "utf8"));
+      mutate(state);
+      writeJson(files.flow, state);
+      const before = snapshot(files);
+
+      const result = await runDirect(tmp, targetInput({ reason: THIRD_REASON }));
+
+      assert.equal(result.ok, false, name);
+      assert.equal(result.errors[0].code, "REOPEN_AUDIT_INVALID", name);
+      assert.deepEqual(snapshot(files), before, name);
+      removeTmpDir(tmp);
+      tmp = null;
+    }
   });
 
   it("accepts explicit Issue presence or absence without fabricating identity", async () => {

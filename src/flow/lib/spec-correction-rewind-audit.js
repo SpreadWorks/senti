@@ -1,7 +1,8 @@
 /**
  * Closed schema and transaction-integrity boundary for spec-correction rewind
- * history. Historical entries retain their evidence; only the latest entry's
- * digest is compared with the current flow authority for exact retry proof.
+ * history. entryDigest seals each immutable entry and links it to its
+ * predecessor; planRewindChain anchors the ordered history length and head;
+ * stateDigest proves the complete latest rewind transaction for exact retry.
  */
 
 import { createHash } from "node:crypto";
@@ -15,8 +16,10 @@ const TASK_STATUSES = new Set(["pending", "in_progress", "done", "skipped"]);
 const TASK_REQUIREMENT_STATUSES = new Set(["pending", "done"]);
 const AUDIT_KEYS = Object.freeze([
   "category",
+  "entryDigest",
   "invalidatedPhases",
   "invalidatedResults",
+  "previousEntryDigest",
   "previousState",
   "reason",
   "resultingState",
@@ -24,6 +27,7 @@ const AUDIT_KEYS = Object.freeze([
   "target",
   "timestamp",
 ]);
+const CHAIN_KEYS = Object.freeze(["entryCount", "headDigest", "version"]);
 const PREVIOUS_STATE_KEYS = Object.freeze(["activeStep", "currentTaskId", "stepStatuses", "taskStatuses"]);
 const RESULTING_STATE_KEYS = Object.freeze(["activeStep", "currentTaskId", "stepStatuses", "tasks"]);
 const INVALIDATED_RESULT_KEYS = Object.freeze(["approvals", "flowSteps", "tasks"]);
@@ -70,6 +74,41 @@ export class PlanRewindAuditValidationError extends Error {
     super(message);
     this.name = "PlanRewindAuditValidationError";
     this.code = "REOPEN_AUDIT_INVALID";
+  }
+}
+
+class CanonicalJson {
+  constructor(value) {
+    this.value = value;
+    Object.freeze(this);
+  }
+
+  serialize() {
+    return CanonicalJson.serializeValue(this.value);
+  }
+
+  digest() {
+    return createHash("sha256").update(this.serialize()).digest("hex");
+  }
+
+  static serializeValue(value) {
+    if (value === null || typeof value === "string" || typeof value === "boolean") {
+      return JSON.stringify(value);
+    }
+    if (typeof value === "number") {
+      if (!Number.isFinite(value)) throw new PlanRewindAuditValidationError("canonical JSON rejects non-finite numbers");
+      return JSON.stringify(value);
+    }
+    if (Array.isArray(value)) {
+      return `[${value.map((entry) => CanonicalJson.serializeValue(entry)).join(",")}]`;
+    }
+    if (isPlainObject(value)) {
+      const fields = Object.keys(value)
+        .sort()
+        .map((key) => `${JSON.stringify(key)}:${CanonicalJson.serializeValue(value[key])}`);
+      return `{${fields.join(",")}}`;
+    }
+    throw new PlanRewindAuditValidationError(`canonical JSON rejects value type '${typeof value}'`);
   }
 }
 
@@ -392,8 +431,14 @@ function validateInvalidatedPhases(phases, previousState, path) {
 class PlanRewindAuditEntrySchema {
   constructor(value, state, index, { sealed = true } = {}) {
     const path = `planRewinds[${index}]`;
-    assertExactKeys(value, sealed ? AUDIT_KEYS : AUDIT_KEYS.filter((key) => key !== "stateDigest"), [], path);
+    const requiredKeys = sealed
+      ? AUDIT_KEYS
+      : AUDIT_KEYS.filter((key) => key !== "entryDigest" && key !== "stateDigest");
+    assertExactKeys(value, requiredKeys, [], path);
     if (value.category !== CATEGORY) invalid(`${path}.category`, `must be '${CATEGORY}'`);
+    if (value.previousEntryDigest !== null && !DIGEST_PATTERN.test(value.previousEntryDigest)) {
+      invalid(`${path}.previousEntryDigest`, "must be a lowercase SHA-256 digest or null");
+    }
     assertString(value.reason, `${path}.reason`);
     if (value.reason !== value.reason.trim() || value.reason.length > 500 || value.reason.includes("\0")) {
       invalid(`${path}.reason`, "must be trimmed, NUL-free, and at most 500 characters");
@@ -416,39 +461,113 @@ class PlanRewindAuditEntrySchema {
     if (sealed && (typeof value.stateDigest !== "string" || !DIGEST_PATTERN.test(value.stateDigest))) {
       invalid(`${path}.stateDigest`, "must be a 64-character lowercase SHA-256 digest");
     }
+    if (sealed && (typeof value.entryDigest !== "string" || !DIGEST_PATTERN.test(value.entryDigest))) {
+      invalid(`${path}.entryDigest`, "must be a 64-character lowercase SHA-256 digest");
+    }
     this.value = value;
     Object.freeze(this);
   }
 }
 
+function digestAuditEntry(entry) {
+  // entryDigest covers stateDigest, the predecessor link, and all evidence.
+  const clone = structuredClone(entry);
+  delete clone.entryDigest;
+  return new CanonicalJson(clone).digest();
+}
+
 function digestLatestTransaction(state) {
+  // The latest self-digests and derived chain head are excluded to avoid a
+  // cycle; their payload and ordering are independently proven by entryDigest.
   const clone = structuredClone(state);
   const latest = clone.planRewinds.at(-1);
   delete latest.stateDigest;
-  return createHash("sha256").update(JSON.stringify(clone)).digest("hex");
+  delete latest.entryDigest;
+  delete clone.planRewindChain;
+  return new CanonicalJson(clone).digest();
+}
+
+class PlanRewindChainAuthority {
+  constructor(value, path = "planRewindChain") {
+    assertExactKeys(value, CHAIN_KEYS, [], path);
+    if (value.version !== 1) invalid(`${path}.version`, "must be 1");
+    if (!Number.isSafeInteger(value.entryCount) || value.entryCount < 0) {
+      invalid(`${path}.entryCount`, "must be a non-negative integer");
+    }
+    if (value.entryCount === 0) {
+      if (value.headDigest !== null) invalid(`${path}.headDigest`, "must be null for an empty history");
+    } else if (typeof value.headDigest !== "string" || !DIGEST_PATTERN.test(value.headDigest)) {
+      invalid(`${path}.headDigest`, "must be a lowercase SHA-256 digest");
+    }
+    this.version = value.version;
+    this.entryCount = value.entryCount;
+    this.headDigest = value.headDigest;
+    Object.freeze(this);
+  }
+
+  matches(entryCount, headDigest) {
+    return this.entryCount === entryCount && this.headDigest === headDigest;
+  }
+
+  toJSON() {
+    return {
+      version: this.version,
+      entryCount: this.entryCount,
+      headDigest: this.headDigest,
+    };
+  }
 }
 
 export class PlanRewindAuditHistory {
   constructor(state, { latestUnsealed = false } = {}) {
-    if (!Object.hasOwn(state, "planRewinds")) {
+    const hasHistory = Object.hasOwn(state, "planRewinds");
+    const hasChain = Object.hasOwn(state, "planRewindChain");
+    if (!hasHistory) {
+      if (hasChain) invalid("planRewindChain", "cannot exist without planRewinds");
       this.entries = Object.freeze([]);
+      this.chain = null;
       Object.freeze(this);
       return;
     }
     if (!Array.isArray(state.planRewinds)) invalid("planRewinds", "must be an array when present");
+    if (latestUnsealed && state.planRewinds.length === 0) {
+      invalid("planRewinds", "latest unsealed history must not be empty");
+    }
     const timestamps = new Set();
-    const digests = new Set();
+    const stateDigests = new Set();
+    const entryDigests = new Set();
     this.entries = Object.freeze(state.planRewinds.map((entry, index) => {
       const sealed = !(latestUnsealed && index === state.planRewinds.length - 1);
       const validated = new PlanRewindAuditEntrySchema(entry, state, index, { sealed });
+      const expectedPrevious = index === 0 ? null : state.planRewinds[index - 1].entryDigest;
+      if (entry.previousEntryDigest !== expectedPrevious) {
+        invalid(`planRewinds[${index}].previousEntryDigest`, "does not match the preceding entry digest");
+      }
       if (timestamps.has(entry.timestamp)) invalid(`planRewinds[${index}].timestamp`, "duplicates an existing audit");
       timestamps.add(entry.timestamp);
       if (sealed) {
-        if (digests.has(entry.stateDigest)) invalid(`planRewinds[${index}].stateDigest`, "duplicates an existing audit");
-        digests.add(entry.stateDigest);
+        const computedDigest = digestAuditEntry(entry);
+        if (computedDigest !== entry.entryDigest) {
+          invalid(`planRewinds[${index}].entryDigest`, "does not match the canonical entry payload");
+        }
+        if (stateDigests.has(entry.stateDigest)) invalid(`planRewinds[${index}].stateDigest`, "duplicates an existing audit");
+        if (entryDigests.has(entry.entryDigest)) invalid(`planRewinds[${index}].entryDigest`, "duplicates an existing audit");
+        stateDigests.add(entry.stateDigest);
+        entryDigests.add(entry.entryDigest);
       }
       return validated;
     }));
+    const sealedCount = latestUnsealed ? this.entries.length - 1 : this.entries.length;
+    const expectedHead = sealedCount === 0 ? null : this.entries[sealedCount - 1].value.entryDigest;
+    if (!hasChain) {
+      if (!latestUnsealed || sealedCount !== 0) invalid("planRewindChain", "is required for a sealed history");
+      this.chain = null;
+    } else {
+      this.chain = new PlanRewindChainAuthority(state.planRewindChain);
+      if (!this.chain.matches(sealedCount, expectedHead)) {
+        invalid("planRewindChain", "does not match the sealed history length and head digest");
+      }
+    }
     Object.freeze(this);
   }
 
@@ -479,6 +598,12 @@ export function sealLatestPlanRewind(state) {
   const latest = history.latest;
   if (!latest) invalid("planRewinds", "cannot seal an empty history");
   latest.stateDigest = digestLatestTransaction(state);
+  latest.entryDigest = digestAuditEntry(latest);
+  state.planRewindChain = new PlanRewindChainAuthority({
+    version: 1,
+    entryCount: state.planRewinds.length,
+    headDigest: latest.entryDigest,
+  }).toJSON();
   new PlanRewindAuditHistory(state);
   return latest.stateDigest;
 }
