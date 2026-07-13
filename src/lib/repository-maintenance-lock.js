@@ -187,9 +187,11 @@ export class RepositoryFlowOperationLock {
     processIdentitySource = new ProcessIdentitySource(),
   }) {
     const repositoryAuthority = new RepositoryLockAuthority(mainRoot);
+    this.lockPath = path.join(repositoryAuthority.mainRoot, ".senti", FLOW_OPERATION_FILE);
     this.maintenanceOwnerToken = maintenanceOwnerToken;
     this.operationOwnerToken = operationOwnerToken;
     this.borrowed = false;
+    this.acquiredOwnerToken = null;
     this.maintenance = new ProcessOwnedRepositoryLock({
       repositoryAuthority,
       kind: MAINTENANCE_KIND,
@@ -214,12 +216,14 @@ export class RepositoryFlowOperationLock {
       && existing.processIdentity.ownerToken === this.operationOwnerToken
     ) {
       this.borrowed = true;
+      this.acquiredOwnerToken = this.operationOwnerToken;
       return this.operationOwnerToken;
     }
     const token = this.lock.acquire({ claimStale: true });
     try {
       const after = inspectForeign(this.maintenance, this.maintenanceOwnerToken);
       if (after) throw after;
+      this.acquiredOwnerToken = token;
       return token;
     } catch (primaryError) {
       try {
@@ -236,11 +240,29 @@ export class RepositoryFlowOperationLock {
     }
   }
 
+  assertOwned() {
+    const owner = this.lock.inspect();
+    if (
+      this.acquiredOwnerToken == null
+      || owner == null
+      || owner.processIdentity.ownerToken !== this.acquiredOwnerToken
+    ) {
+      throw repositoryErrorFactory(FLOW_OPERATION_KIND)(
+        "ownership-changed",
+        "repository flow-operation ownership changed",
+        { lockPath: this.lockPath },
+      );
+    }
+    return this.acquiredOwnerToken;
+  }
+
   release() {
     if (this.borrowed) {
       this.borrowed = false;
+      this.acquiredOwnerToken = null;
       return;
     }
     this.lock.release();
+    this.acquiredOwnerToken = null;
   }
 }

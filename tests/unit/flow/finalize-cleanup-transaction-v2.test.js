@@ -122,7 +122,7 @@ function crashFinalizeBeforeIndexRename(root, specId) {
     const indexPath = path.join(root, ".git", "index");
     const originalRename = fs.renameSync;
     fs.renameSync = (source, target) => {
-      if (path.basename(source) === "publication.index" && target === indexPath) {
+      if (path.basename(source).startsWith("publication-") && target === indexPath) {
         process.kill(process.pid, "SIGKILL");
       }
       return originalRename(source, target);
@@ -140,6 +140,84 @@ function crashFinalizeBeforeIndexRename(root, specId) {
   return spawnSync(process.execPath, ["--input-type=module", "-e", script], {
     cwd: root,
     encoding: "utf8",
+  });
+}
+
+function crashFinalizeAfterPlannedPublicationSourceFsync(root, specId) {
+  const script = `
+    import fs from "node:fs";
+    import { AtomicJsonFile } from ${JSON.stringify(pathToFileURL(atomicJsonModule).href)};
+    import { RunFinalizeCleanupCommand } from ${JSON.stringify(pathToFileURL(finalizeModule).href)};
+    import { FlowManager } from ${JSON.stringify(pathToFileURL(flowManagerModule).href)};
+    let publicationWorkspace = null;
+    const originalWrite = AtomicJsonFile.prototype.write;
+    AtomicJsonFile.prototype.write = function observePublicationPlan(value) {
+      const result = originalWrite.call(this, value);
+      if (value?.indexLockAuthority?.publishPhase === "planned") {
+        publicationWorkspace = value.tempIndexAuthority.workspacePath;
+      }
+      return result;
+    };
+    const originalFsync = fs.fsyncSync;
+    fs.fsyncSync = (descriptor) => {
+      originalFsync(descriptor);
+      if (publicationWorkspace == null) return;
+      let openedPath = "";
+      try { openedPath = fs.readlinkSync(\`/proc/self/fd/\${descriptor}\`); } catch {}
+      if (openedPath === publicationWorkspace) {
+        process.kill(process.pid, "SIGKILL");
+      }
+    };
+    const root = ${JSON.stringify(root)};
+    const specId = ${JSON.stringify(specId)};
+    const flowManager = new FlowManager({ root, mainRoot: root, inWorktree: false, specId });
+    await new RunFinalizeCleanupCommand().execute({
+      root,
+      flowManager,
+      flowState: flowManager.loadReadOnly(specId),
+      autoRescue: false,
+      force: false,
+    });
+  `;
+  return spawnSync(process.execPath, ["--input-type=module", "-e", script], {
+    cwd: root,
+    encoding: "utf8",
+  });
+}
+
+function finalizeChildBlockedAfterPublicationPlan(root, specId, reachedPath, blockerPath) {
+  const script = `
+    import fs from "node:fs";
+    import { AtomicJsonFile } from ${JSON.stringify(pathToFileURL(atomicJsonModule).href)};
+    import { RunFinalizeCleanupCommand } from ${JSON.stringify(pathToFileURL(finalizeModule).href)};
+    import { FlowManager } from ${JSON.stringify(pathToFileURL(flowManagerModule).href)};
+    const originalWrite = AtomicJsonFile.prototype.write;
+    let blocked = false;
+    AtomicJsonFile.prototype.write = function blockAfterPublicationPlan(value) {
+      const result = originalWrite.call(this, value);
+      if (!blocked && value?.indexLockAuthority?.publishPhase === "planned") {
+        blocked = true;
+        fs.writeFileSync(${JSON.stringify(reachedPath)}, "reached\\n");
+        const wait = new Int32Array(new SharedArrayBuffer(4));
+        while (fs.existsSync(${JSON.stringify(blockerPath)})) Atomics.wait(wait, 0, 0, 20);
+      }
+      return result;
+    };
+    const root = ${JSON.stringify(root)};
+    const specId = ${JSON.stringify(specId)};
+    const flowManager = new FlowManager({ root, mainRoot: root, inWorktree: false, specId });
+    const result = await new RunFinalizeCleanupCommand().execute({
+      root,
+      flowManager,
+      flowState: flowManager.loadReadOnly(specId),
+      autoRescue: false,
+      force: false,
+    });
+    process.stdout.write(JSON.stringify(result.toJSON ? result.toJSON() : result));
+  `;
+  return spawn(process.execPath, ["--input-type=module", "-e", script], {
+    cwd: root,
+    stdio: ["ignore", "pipe", "pipe"],
   });
 }
 
@@ -570,6 +648,48 @@ test("two finalize CLI processes elect one transaction winner", async () => {
   }
 });
 
+test("two compliant Senti publication processes exclude the loser before source create, verify, or rename", async () => {
+  const root = createTmpDir("finalize-publication-authority-race-");
+  try {
+    initGitRepo(root);
+    const specId = "186";
+    setupFinalizeFlow(root, specId);
+    const reached = path.join(root, ".git", "publication-plan-reached");
+    const blocker = path.join(root, ".git", "publication-plan-blocker");
+    fs.writeFileSync(blocker, "block\n");
+    const first = finalizeChildBlockedAfterPublicationPlan(root, specId, reached, blocker);
+    const firstDone = childResult(first);
+    await waitForFile(reached);
+    const journal = JSON.parse(fs.readFileSync(recoveryJournal(root), "utf8"));
+    assert.equal(journal.indexLockAuthority.publishPhase, "planned");
+    const publicationPath = path.join(
+      journal.tempIndexAuthority.workspacePath,
+      journal.indexLockAuthority.publicationName,
+    );
+    assert.equal(fs.existsSync(publicationPath), false);
+    const beforeLoser = {
+      index: fs.readFileSync(path.join(root, ".git", "index")),
+      journal: fs.readFileSync(recoveryJournal(root)),
+      workspace: fs.readdirSync(journal.tempIndexAuthority.workspacePath).sort(),
+    };
+
+    const second = await childResult(finalizeChild(root, specId));
+    const secondValue = JSON.parse(second.stdout);
+    assert.equal(secondValue.ok, false, JSON.stringify(secondValue));
+    assert.equal(secondValue.errors[0].code, "REPOSITORY_FLOW_OPERATION_BUSY");
+    assert.deepEqual(fs.readFileSync(path.join(root, ".git", "index")), beforeLoser.index);
+    assert.deepEqual(fs.readFileSync(recoveryJournal(root)), beforeLoser.journal);
+    assert.deepEqual(fs.readdirSync(journal.tempIndexAuthority.workspacePath).sort(), beforeLoser.workspace);
+    assert.equal(fs.existsSync(publicationPath), false);
+
+    fs.unlinkSync(blocker);
+    const firstResult = await firstDone;
+    assert.equal(JSON.parse(firstResult.stdout).ok, true, firstResult.stderr);
+  } finally {
+    removeTmpDir(root);
+  }
+});
+
 test("preserves malformed journal and transaction lock release failures in causal order", async () => {
   const root = createTmpDir("finalize-lock-release-order-");
   try {
@@ -793,7 +913,7 @@ test("revalidates commit authority after the expectation journal becomes durable
     let changed = false;
     AtomicJsonFile.prototype.write = function writeThenChangeFeature(value) {
       const result = originalWrite.call(this, value);
-      if (!changed && value?.version === 6 && value.commitExpectation) {
+      if (!changed && value?.version === 7 && value.commitExpectation) {
         changed = true;
         const oldFeature = git(root, ["rev-parse", fixture.featureBranch]);
         const tree = git(root, ["rev-parse", `${oldFeature}^{tree}`]);
@@ -985,6 +1105,143 @@ test("retry publishes journaled index bytes after SIGKILL immediately before ind
     assert.equal(retried.ok, true, JSON.stringify(retried));
     assert.equal(fs.existsSync(lockPath), false);
     assert.equal(git(root, ["status", "--porcelain", "--", `specs/${specId}`]), "");
+  } finally {
+    removeTmpDir(root);
+  }
+});
+
+test("retry adopts only its journal-first publication source after the source durability crash gap", async () => {
+  const root = createTmpDir("finalize-index-publication-plan-crash-");
+  try {
+    initGitRepo(root);
+    const specId = "187";
+    setupFinalizeFlow(root, specId);
+    const crashed = crashFinalizeAfterPlannedPublicationSourceFsync(root, specId);
+    assert.equal(crashed.signal, "SIGKILL", crashed.stderr);
+    const journal = JSON.parse(fs.readFileSync(recoveryJournal(root), "utf8"));
+    assert.equal(journal.phase, "commit-durable");
+    assert.equal(journal.indexLockAuthority.publishPhase, "planned");
+    assert.match(journal.indexLockAuthority.publicationToken, /^[0-9a-f-]{36}$/);
+    assert.match(journal.indexLockAuthority.publicationName, /^publication-[0-9a-f-]{36}\.index$/);
+    assert.match(journal.indexLockAuthority.expectedIndexRevision, /^[a-f0-9]{64}$/);
+    assert.equal(typeof journal.indexLockAuthority.expectedIndexMode, "number");
+    assert.equal(journal.indexLockAuthority.publicationDev, null);
+    assert.equal(fs.existsSync(path.join(
+      journal.tempIndexAuthority.workspacePath,
+      journal.indexLockAuthority.publicationName,
+    )), true);
+
+    const retried = await runFinalize(root, specId);
+    assert.equal(retried.ok, true, JSON.stringify(retried));
+    assert.equal(git(root, ["status", "--porcelain", "--", `specs/${specId}`]), "");
+  } finally {
+    removeTmpDir(root);
+  }
+});
+
+test("retry preserves an unknown workspace artifact and leaves the caller index unchanged", async () => {
+  const root = createTmpDir("finalize-index-publication-unknown-");
+  try {
+    initGitRepo(root);
+    const specId = "188";
+    setupFinalizeFlow(root, specId);
+    const crashed = crashFinalizeAfterPlannedPublicationSourceFsync(root, specId);
+    assert.equal(crashed.signal, "SIGKILL", crashed.stderr);
+    const journal = JSON.parse(fs.readFileSync(recoveryJournal(root), "utf8"));
+    const unknownPath = path.join(journal.tempIndexAuthority.workspacePath, "unknown.index");
+    const unknownBytes = Buffer.from("unknown publication authority\n");
+    fs.writeFileSync(unknownPath, unknownBytes);
+    const indexBefore = fs.readFileSync(path.join(root, ".git", "index"));
+
+    const stopped = await runFinalize(root, specId);
+
+    assert.equal(stopped.ok, false, JSON.stringify(stopped));
+    assert.equal(stopped.errors[0].code, "FINALIZE_TEMP_INDEX_AUTHORITY_FAILED");
+    assert.deepEqual(fs.readFileSync(path.join(root, ".git", "index")), indexBefore);
+    assert.deepEqual(fs.readFileSync(unknownPath), unknownBytes);
+  } finally {
+    removeTmpDir(root);
+  }
+});
+
+for (const drift of ["workspace-mode", "owner-mode", "owner-content", "owner-identity"]) {
+  test(`workspace ${drift} drift fails closed before journaled index publication`, async () => {
+    const root = createTmpDir(`finalize-index-workspace-${drift}-`);
+    try {
+      initGitRepo(root);
+      const specId = {
+        "workspace-mode": "189",
+        "owner-mode": "190",
+        "owner-content": "191",
+        "owner-identity": "193",
+      }[drift];
+      setupFinalizeFlow(root, specId);
+      const crashed = crashFinalizeAfterPlannedPublicationSourceFsync(root, specId);
+      assert.equal(crashed.signal, "SIGKILL", crashed.stderr);
+      const journal = JSON.parse(fs.readFileSync(recoveryJournal(root), "utf8"));
+      const workspacePath = journal.tempIndexAuthority.workspacePath;
+      const ownerPath = path.join(workspacePath, ".owner");
+      if (drift === "workspace-mode") {
+        fs.chmodSync(workspacePath, 0o755);
+      } else if (drift === "owner-mode") {
+        fs.chmodSync(ownerPath, 0o644);
+      } else if (drift === "owner-content") {
+        fs.writeFileSync(ownerPath, "foreign owner\n");
+      } else {
+        fs.renameSync(ownerPath, `${ownerPath}.original`);
+        fs.writeFileSync(ownerPath, `${journal.tempIndexAuthority.token}\n`, { mode: 0o600 });
+      }
+      const indexBefore = fs.readFileSync(path.join(root, ".git", "index"));
+
+      const stopped = await runFinalize(root, specId);
+
+      assert.equal(stopped.ok, false, JSON.stringify(stopped));
+      assert.equal(stopped.errors[0].code, "FINALIZE_TEMP_INDEX_AUTHORITY_FAILED");
+      assert.deepEqual(fs.readFileSync(path.join(root, ".git", "index")), indexBefore);
+      assert.equal(fs.existsSync(workspacePath), true);
+    } finally {
+      removeTmpDir(root);
+    }
+  });
+}
+
+test("workspace UID is revalidated at the publication boundary", async () => {
+  const root = createTmpDir("finalize-index-workspace-uid-");
+  try {
+    initGitRepo(root);
+    const specId = "192";
+    setupFinalizeFlow(root, specId);
+    const indexPath = path.join(root, ".git", "index");
+    const indexBefore = fs.readFileSync(indexPath);
+    const originalWrite = AtomicJsonFile.prototype.write;
+    const originalLstat = fs.lstatSync;
+    let workspacePath = null;
+    AtomicJsonFile.prototype.write = function observePublicationPlan(value) {
+      const result = originalWrite.call(this, value);
+      if (value?.indexLockAuthority?.publishPhase === "planned") {
+        workspacePath = value.tempIndexAuthority.workspacePath;
+      }
+      return result;
+    };
+    fs.lstatSync = (target, ...args) => {
+      const stat = originalLstat(target, ...args);
+      if (workspacePath && path.resolve(String(target)) === workspacePath) {
+        return new Proxy(stat, { get: (value, property) => property === "uid" ? stat.uid + 1 : value[property] });
+      }
+      return stat;
+    };
+    let stopped;
+    try {
+      stopped = await runFinalize(root, specId);
+    } finally {
+      AtomicJsonFile.prototype.write = originalWrite;
+      fs.lstatSync = originalLstat;
+    }
+
+    assert.notEqual(workspacePath, null);
+    assert.equal(stopped.ok, false, JSON.stringify(stopped));
+    assert.equal(stopped.errors[0].code, "FINALIZE_TEMP_INDEX_AUTHORITY_FAILED");
+    assert.deepEqual(fs.readFileSync(indexPath), indexBefore);
   } finally {
     removeTmpDir(root);
   }
