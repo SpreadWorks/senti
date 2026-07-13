@@ -1024,6 +1024,101 @@ function assertRealFinalizeFile(filePath, label) {
   return stat;
 }
 
+function readFinalizeDescriptorBytes(descriptor) {
+  const stat = fs.fstatSync(descriptor);
+  const bytes = Buffer.alloc(stat.size);
+  let offset = 0;
+  while (offset < bytes.length) {
+    const count = fs.readSync(descriptor, bytes, offset, bytes.length - offset, offset);
+    if (!Number.isSafeInteger(count) || count <= 0) {
+      throw new Error("finalize descriptor read ended before the journaled size");
+    }
+    offset += count;
+  }
+  return { stat, bytes };
+}
+
+function writeFinalizeDescriptorBytes(descriptor, bytes) {
+  let offset = 0;
+  while (offset < bytes.length) {
+    const count = fs.writeSync(descriptor, bytes, offset, bytes.length - offset, offset);
+    if (!Number.isSafeInteger(count) || count <= 0) {
+      throw new Error("finalize descriptor write made no progress");
+    }
+    offset += count;
+  }
+}
+
+function finalizeIndexAcquireCleanupError(primary, {
+  descriptor,
+  createdIdentity,
+  lockPath,
+  authority,
+}) {
+  const cleanupErrors = [];
+  let descriptorClosed = true;
+  try {
+    fs.closeSync(descriptor);
+  } catch (error) {
+    descriptorClosed = false;
+    cleanupErrors.push(error);
+  }
+  let status = descriptorClosed ? "foreign" : "descriptor-close-failed";
+  let residue = true;
+  let unlinked = false;
+  try {
+    if (!descriptorClosed) throw Object.assign(new Error("created caller index lock descriptor close failed"), {
+      code: "FINALIZE_INDEX_CLEANUP_SKIPPED",
+    });
+    const before = assertRealFinalizeFile(lockPath, "created caller index lock cleanup");
+    const bytes = fs.readFileSync(lockPath);
+    const after = assertRealFinalizeFile(lockPath, "created caller index lock cleanup");
+    const owned = (
+      before.dev === createdIdentity.dev
+      && before.ino === createdIdentity.ino
+      && after.dev === createdIdentity.dev
+      && after.ino === createdIdentity.ino
+      && before.nlink === 1
+      && after.nlink === 1
+      && authority.contentState(bytes) === "marker"
+    );
+    if (owned) {
+      fs.unlinkSync(lockPath);
+      unlinked = true;
+      status = "removed-owned";
+      residue = false;
+      fsyncDirectory(path.dirname(lockPath));
+    }
+  } catch (error) {
+    if (unlinked) {
+      status = "removed-owned-durability-uncertain";
+      cleanupErrors.push(error);
+    } else if (error.code === "ENOENT") {
+      status = "missing";
+      residue = false;
+    } else if (error.code === "FINALIZE_INDEX_CLEANUP_SKIPPED") {
+      // The close failure is already retained; do not inspect or mutate the pathname.
+    } else {
+      status = "inspection-failed";
+      cleanupErrors.push(error);
+    }
+  }
+  const cleanupResidue = Object.freeze({ lockPath, status, residue });
+  if (cleanupErrors.length === 0) {
+    primary.cleanupResidue = cleanupResidue;
+    return primary;
+  }
+  const combined = new AggregateError(
+    [primary, ...cleanupErrors],
+    "caller index lock acquisition and authority cleanup both failed",
+    { cause: primary },
+  );
+  combined.code = primary.code || "FINALIZE_INDEX_RECONCILIATION_FAILED";
+  combined.lockPath = lockPath;
+  combined.cleanupResidue = cleanupResidue;
+  return combined;
+}
+
 class FinalizeTempIndexWorkspace {
   constructor(authority, targetRoot) {
     this.authority = authority;
@@ -1158,9 +1253,11 @@ class FinalizeCallerIndexLease {
     const marker = FinalizeIndexLockAuthority.marker(authority.token);
     let descriptor;
     let created = false;
+    let createdIdentity = null;
     try {
       descriptor = fs.openSync(lockPath, fs.constants.O_RDWR | fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_NOFOLLOW, 0o600);
       created = true;
+      createdIdentity = fs.fstatSync(descriptor);
     } catch (cause) {
       if (cause.code !== "EEXIST") {
         throw Object.assign(new Error("caller index lock acquisition failed", { cause }), {
@@ -1191,15 +1288,13 @@ class FinalizeCallerIndexLease {
         fs.fsyncSync(descriptor);
         fsyncDirectory(gitDirectory);
       }
-      const descriptorStat = fs.fstatSync(descriptor);
+      const { stat: descriptorStat, bytes: currentBytes } = readFinalizeDescriptorBytes(descriptor);
       const pathStat = assertRealFinalizeFile(lockPath, "caller index lock");
-      const currentBytes = Buffer.alloc(descriptorStat.size);
-      const currentLength = fs.readSync(descriptor, currentBytes, 0, currentBytes.length, 0);
       if (
         descriptorStat.dev !== pathStat.dev
         || descriptorStat.ino !== pathStat.ino
         || (authority.dev !== null && !authority.matches(descriptorStat))
-        || authority.contentState(currentBytes.subarray(0, currentLength)) === "foreign"
+        || authority.contentState(currentBytes) === "foreign"
       ) {
         throw Object.assign(new Error("caller index lock is busy"), {
           code: "FINALIZE_INDEX_RECONCILIATION_BUSY",
@@ -1212,9 +1307,25 @@ class FinalizeCallerIndexLease {
         descriptor,
       });
     } catch (error) {
-      try { fs.closeSync(descriptor); } catch {}
       if (created) {
-        try { fs.unlinkSync(lockPath); } catch {}
+        throw finalizeIndexAcquireCleanupError(error, {
+          descriptor,
+          createdIdentity,
+          lockPath,
+          authority,
+        });
+      }
+      try {
+        fs.closeSync(descriptor);
+      } catch (cleanupError) {
+        const combined = new AggregateError(
+          [error, cleanupError],
+          "caller index lock acquisition and descriptor cleanup both failed",
+          { cause: error },
+        );
+        combined.code = error.code || "FINALIZE_INDEX_RECONCILIATION_FAILED";
+        combined.lockPath = lockPath;
+        throw combined;
       }
       throw error;
     }
@@ -1251,10 +1362,8 @@ class FinalizeCallerIndexLease {
     ) {
       throw new Error("finalize caller index publication lacks durable content authority");
     }
-    const stat = fs.fstatSync(this.descriptor);
-    const currentBytes = Buffer.alloc(stat.size);
-    const currentLength = fs.readSync(this.descriptor, currentBytes, 0, currentBytes.length, 0);
-    const contentState = this.authority.contentState(currentBytes.subarray(0, currentLength));
+    const { stat, bytes: currentBytes } = readFinalizeDescriptorBytes(this.descriptor);
+    const contentState = this.authority.contentState(currentBytes);
     if (contentState === "foreign") {
       throw Object.assign(new Error("caller index lock content is busy"), {
         code: "FINALIZE_INDEX_RECONCILIATION_BUSY",
@@ -1263,12 +1372,25 @@ class FinalizeCallerIndexLease {
     }
     if (contentState === "marker") {
       fs.ftruncateSync(this.descriptor, 0);
-      fs.writeSync(this.descriptor, bytes, 0, bytes.length, 0);
+      writeFinalizeDescriptorBytes(this.descriptor, bytes);
       fs.fchmodSync(this.descriptor, this.authority.expectedIndexMode);
       fs.fsyncSync(this.descriptor);
     } else if ((stat.mode & 0o777) !== this.authority.expectedIndexMode) {
       throw Object.assign(new Error("caller index lock mode is busy"), {
         code: "FINALIZE_INDEX_RECONCILIATION_BUSY",
+        lockPath: this.lockPath,
+      });
+    }
+    const verified = readFinalizeDescriptorBytes(this.descriptor);
+    if (
+      verified.stat.dev !== this.authority.dev
+      || verified.stat.ino !== this.authority.ino
+      || verified.stat.size !== bytes.length
+      || (verified.stat.mode & 0o777) !== this.authority.expectedIndexMode
+      || this.authority.contentState(verified.bytes) !== "expected-index"
+    ) {
+      throw Object.assign(new Error("caller index lock publication verification failed"), {
+        code: "FINALIZE_INDEX_RECONCILIATION_FAILED",
         lockPath: this.lockPath,
       });
     }

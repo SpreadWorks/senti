@@ -1020,6 +1020,127 @@ test("retry never mutates foreign content in the journaled index lock inode", as
   }
 });
 
+test("index lease acquisition cleanup never unlinks a foreign inode replacement", async () => {
+  const root = createTmpDir("finalize-index-acquire-foreign-inode-");
+  try {
+    initGitRepo(root);
+    const specId = "172";
+    setupFinalizeFlow(root, specId);
+    const before = preCommitSnapshot(root, specId);
+    const lockPath = path.join(root, ".git", "index.lock");
+    const foreignBytes = Buffer.from("foreign replacement after index lease create\n");
+    const originalFsync = fs.fsyncSync;
+    let replaced = false;
+    fs.fsyncSync = (descriptor) => {
+      originalFsync(descriptor);
+      if (replaced) return;
+      let openedPath = "";
+      try { openedPath = fs.readlinkSync(`/proc/self/fd/${descriptor}`); } catch {}
+      if (openedPath !== lockPath) return;
+      replaced = true;
+      fs.unlinkSync(lockPath);
+      fs.writeFileSync(lockPath, foreignBytes);
+    };
+    let stopped;
+    try {
+      stopped = await runFinalize(root, specId);
+    } finally {
+      fs.fsyncSync = originalFsync;
+    }
+
+    assert.equal(replaced, true);
+    assert.equal(stopped.ok, false, JSON.stringify(stopped));
+    assert.equal(stopped.errors[0].code, "FINALIZE_INDEX_RECONCILIATION_BUSY");
+    assertPreCommitSnapshot(root, specId, before);
+    assert.deepEqual(fs.readFileSync(lockPath), foreignBytes);
+  } finally {
+    fs.rmSync(path.join(root, ".git", "index.lock"), { force: true });
+    removeTmpDir(root);
+  }
+});
+
+test("index publication completes and verifies repeated short writes before rename", async () => {
+  const root = createTmpDir("finalize-index-publish-short-write-");
+  try {
+    initGitRepo(root);
+    const specId = "173";
+    setupFinalizeFlow(root, specId);
+    const lockPath = path.join(root, ".git", "index.lock");
+    const originalWrite = fs.writeSync;
+    let shortWrites = 0;
+    let publishing = false;
+    fs.writeSync = (descriptor, buffer, offset, length, position) => {
+      let openedPath = "";
+      try { openedPath = fs.readlinkSync(`/proc/self/fd/${descriptor}`); } catch {}
+      if (openedPath === lockPath && offset === 0 && buffer.subarray(0, 4).toString("ascii") === "DIRC") {
+        publishing = true;
+      }
+      if (publishing && openedPath === lockPath && length > 17) {
+        shortWrites += 1;
+        return originalWrite(descriptor, buffer, offset, 17, position);
+      }
+      return originalWrite(descriptor, buffer, offset, length, position);
+    };
+    let result;
+    try {
+      result = await runFinalize(root, specId);
+    } finally {
+      fs.writeSync = originalWrite;
+    }
+
+    assert.ok(shortWrites > 1);
+    assert.equal(result.ok, true, JSON.stringify(result));
+    assert.equal(fs.existsSync(lockPath), false);
+    assert.equal(git(root, ["status", "--porcelain", "--", `specs/${specId}`]), "");
+  } finally {
+    removeTmpDir(root);
+  }
+});
+
+test("zero-progress index publication never renames a partial lock over the caller index", async () => {
+  const root = createTmpDir("finalize-index-publish-zero-write-");
+  try {
+    initGitRepo(root);
+    const specId = "174";
+    setupFinalizeFlow(root, specId);
+    const indexPath = path.join(root, ".git", "index");
+    const lockPath = `${indexPath}.lock`;
+    const indexBefore = fs.readFileSync(indexPath);
+    const originalWrite = fs.writeSync;
+    let blocked = false;
+    fs.writeSync = (descriptor, buffer, offset, length, position) => {
+      let openedPath = "";
+      try { openedPath = fs.readlinkSync(`/proc/self/fd/${descriptor}`); } catch {}
+      if (
+        !blocked
+        && openedPath === lockPath
+        && offset === 0
+        && buffer.subarray(0, 4).toString("ascii") === "DIRC"
+      ) {
+        blocked = true;
+        return 0;
+      }
+      return originalWrite(descriptor, buffer, offset, length, position);
+    };
+    let stopped;
+    try {
+      stopped = await runFinalize(root, specId);
+    } finally {
+      fs.writeSync = originalWrite;
+    }
+
+    assert.equal(blocked, true);
+    assert.equal(stopped.ok, false, JSON.stringify(stopped));
+    assert.equal(stopped.errors[0].code, "FINALIZE_INDEX_RECONCILIATION_FAILED");
+    assert.deepEqual(fs.readFileSync(indexPath), indexBefore);
+    const journal = JSON.parse(fs.readFileSync(recoveryJournal(root), "utf8"));
+    assert.equal(journal.indexLockAuthority.publishPhase, "publishing");
+    assert.equal(fs.statSync(lockPath).ino, journal.indexLockAuthority.ino);
+  } finally {
+    removeTmpDir(root);
+  }
+});
+
 test("foreign empty finalize workspace is never adopted or mutated", async () => {
   const root = createTmpDir("finalize-empty-workspace-race-");
   try {

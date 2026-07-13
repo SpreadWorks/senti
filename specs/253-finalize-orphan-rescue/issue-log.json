@@ -410,6 +410,24 @@
       "taskId": null,
       "timestamp": "2026-07-13T18:45:00Z",
       "issueLogId": "issue-441-immutable-audit-index-publish-resumed-ref-workspace"
+    },
+    {
+      "step": "immutable-audit-remediation",
+      "issue": 441,
+      "reason": "The immutable re-audit of commit dced91ff found that caller-index lease acquisition cleanup could unlink a foreign inode that replaced the newly created lock pathname, and that publication treated one fs.writeSync return as a complete index write before rename.",
+      "trigger": "Third post-commit immutable-tree audit before merge authorization.",
+      "resolution": "Exclusive lock creation now snapshots its inode. Failed acquisition cleanup closes the descriptor and unlinks only after the live pathname is revalidated as one real non-hardlinked file with the created device/inode and exact marker content; foreign, missing, close-failed, inspection-failed, and directory-fsync states are returned as structured cleanup residue without deleting a foreign pathname. Index publication uses positional write-all and read-all loops, rejects zero progress, fsyncs the payload, and verifies the same open descriptor's device/inode, full byte length, mode, and expected SHA-256 before rename.",
+      "testCorrections": [
+        "Restricted the short-write and zero-progress injectors to the DIRC index payload so they do not fire on the earlier lock-marker write; all publication assertions remain strict."
+      ],
+      "testEvidence": {
+        "red": "/tmp/flow-441-red-index-cleanup-short-write.log",
+        "targetedGreen": "/tmp/flow-441-green-index-cleanup-write-matrix-r2.log",
+        "focusedFinalizeGreen": "/tmp/flow-441-candidate13-focused-finalize-transaction.log"
+      },
+      "taskId": null,
+      "timestamp": "2026-07-13T19:10:00Z",
+      "issueLogId": "issue-441-immutable-audit-index-cleanup-write-all"
     }
   ]
 }
