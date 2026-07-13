@@ -5,7 +5,7 @@ import path from "node:path";
 import { AtomicJsonFile } from "./atomic-json-file.js";
 import { RealDirectoryAuthority } from "./process-owned-lock.js";
 
-const VERSION = 6;
+const VERSION = 7;
 const PHASES = new Set(["staged", "applying", "rolling-back", "rolled-back", "applied"]);
 
 export class OfflineMigrationJournalRemovalError extends Error {
@@ -82,6 +82,163 @@ function fsyncDirectory(directory) {
     }
   }
   if (primary) throw primary;
+}
+
+class OfflineMigrationWorkspaceAuthority {
+  constructor({ root, relativePath, token, dev = null, ino = null }) {
+    this.root = path.resolve(root);
+    const located = withinRoot(this.root, path.join(this.root, relativePath));
+    if (
+      !located.relative.startsWith(".senti/recovery/offline-migration-workspaces/")
+      || typeof token !== "string"
+      || !/^[0-9a-f-]{36}$/.test(token)
+      || (dev === null) !== (ino === null)
+      || (dev !== null && ![dev, ino].every(Number.isSafeInteger))
+    ) {
+      throw new Error("migration workspace authority is invalid");
+    }
+    this.relativePath = located.relative;
+    this.token = token;
+    this.dev = dev;
+    this.ino = ino;
+    Object.freeze(this);
+  }
+
+  static plan(root) {
+    const token = crypto.randomUUID();
+    return new OfflineMigrationWorkspaceAuthority({
+      root,
+      relativePath: `.senti/recovery/offline-migration-workspaces/${token}`,
+      token,
+    });
+  }
+
+  static fromStored(root, value) {
+    exactKeys(value, ["relativePath", "token", "dev", "ino"], "migration workspace authority");
+    return new OfflineMigrationWorkspaceAuthority({ root, ...value });
+  }
+
+  withIdentity(stat) {
+    return new OfflineMigrationWorkspaceAuthority({
+      root: this.root,
+      relativePath: this.relativePath,
+      token: this.token,
+      dev: stat.dev,
+      ino: stat.ino,
+    });
+  }
+
+  matches(stat) {
+    return this.dev !== null && stat.dev === this.dev && stat.ino === this.ino;
+  }
+
+  toJSON() {
+    return { relativePath: this.relativePath, token: this.token, dev: this.dev, ino: this.ino };
+  }
+}
+
+class OfflineMigrationWorkspace {
+  constructor(authority) {
+    this.authority = authority;
+    this.root = authority.root;
+    this.directory = path.join(this.root, authority.relativePath);
+  }
+
+  static acquire(authority, { allowMissing = false } = {}) {
+    const directory = path.join(authority.root, authority.relativePath);
+    const parent = path.dirname(directory);
+    if (allowMissing && authority.dev !== null && !fs.existsSync(directory)) return null;
+    const senti = new RealDirectoryAuthority(path.join(authority.root, ".senti"));
+    senti.ensure();
+    const recovery = new RealDirectoryAuthority(path.join(authority.root, ".senti", "recovery"), {
+      create: true,
+      parentAuthority: senti,
+    });
+    recovery.ensure();
+    new RealDirectoryAuthority(parent, { create: true, parentAuthority: recovery }).ensure();
+    let created = false;
+    try {
+      fs.mkdirSync(directory, { mode: 0o700 });
+      created = true;
+    } catch (error) {
+      if (error.code === "ENOENT" && allowMissing && authority.dev !== null) return null;
+      if (error.code !== "EEXIST") throw error;
+    }
+    let stat;
+    try {
+      stat = statRealDirectory(directory, "migration private workspace");
+    } catch (error) {
+      if (error.code === "ENOENT" && allowMissing && authority.dev !== null) return null;
+      throw error;
+    }
+    if (
+      (stat.mode & 0o077) !== 0
+      || (typeof process.getuid === "function" && stat.uid !== process.getuid())
+      || (authority.dev !== null && !authority.matches(stat))
+    ) {
+      throw new Error("migration private workspace authority changed");
+    }
+    const markerPath = path.join(directory, ".owner");
+    const marker = `${authority.token}\n`;
+    if (fs.existsSync(markerPath)) {
+      statRealFile(markerPath, "migration workspace owner marker");
+      if (fs.readFileSync(markerPath, "utf8") !== marker) {
+        throw new Error("migration private workspace owner marker changed");
+      }
+    } else {
+      if (!created && fs.readdirSync(directory).length > 0) {
+        throw new Error("migration private workspace is not owned");
+      }
+      const descriptor = fs.openSync(markerPath, "wx", 0o600);
+      try {
+        fs.writeFileSync(descriptor, marker);
+        fs.fsyncSync(descriptor);
+      } finally {
+        fs.closeSync(descriptor);
+      }
+      fsyncDirectory(directory);
+    }
+    return new OfflineMigrationWorkspace(authority.withIdentity(stat));
+  }
+
+  assertAuthority() {
+    const stat = statRealDirectory(this.directory, "migration private workspace");
+    if (!this.authority.matches(stat)) throw new Error("migration private workspace identity changed");
+  }
+
+  planGenerationPath(targetPath) {
+    this.assertAuthority();
+    const targetDirectory = statRealDirectory(path.dirname(targetPath), "migration target directory");
+    const workspaceDirectory = statRealDirectory(this.directory, "migration private workspace");
+    if (targetDirectory.dev !== workspaceDirectory.dev) {
+      throw new Error("migration target and private workspace are on different filesystems");
+    }
+    const fileName = `.${path.basename(targetPath)}.${crypto.randomUUID()}.migration.tmp`;
+    return path.join(this.directory, fileName);
+  }
+
+  assertContains(filePath) {
+    this.assertAuthority();
+    if (path.dirname(path.resolve(filePath)) !== this.directory) {
+      throw new Error("migration generation is outside its private workspace");
+    }
+  }
+
+  cleanup() {
+    this.assertAuthority();
+    const entries = fs.readdirSync(this.directory);
+    if (entries.some((entry) => entry !== ".owner")) {
+      throw new Error("migration private workspace contains generation residue");
+    }
+    const markerPath = path.join(this.directory, ".owner");
+    statRealFile(markerPath, "migration workspace owner marker");
+    if (fs.readFileSync(markerPath, "utf8") !== `${this.authority.token}\n`) {
+      throw new Error("migration private workspace owner marker changed");
+    }
+    fs.unlinkSync(markerPath);
+    fs.rmdirSync(this.directory);
+    fsyncDirectory(path.dirname(this.directory));
+  }
 }
 
 class OfflineMigrationDirectoryEntry {
@@ -236,7 +393,7 @@ export class OfflineMigrationDirectorySnapshot {
 }
 
 class OfflineMigrationGeneration {
-  constructor({ root, targetRelativePath, relativeTempPath, dev, ino, mode, revision, reserved, prepared }) {
+  constructor({ root, targetRelativePath, relativeTempPath, reservationToken, dev, ino, mode, revision, reserved, prepared }) {
     this.root = path.resolve(root);
     const target = withinRoot(this.root, path.join(this.root, targetRelativePath));
     const temporary = withinRoot(this.root, path.join(this.root, relativeTempPath));
@@ -244,8 +401,9 @@ class OfflineMigrationGeneration {
       typeof targetRelativePath !== "string"
       || typeof relativeTempPath !== "string"
       || !relativeTempPath.endsWith(".migration.tmp")
-      || path.dirname(temporary.resolved) !== path.dirname(target.resolved)
       || !path.basename(relativeTempPath).startsWith(`.${path.basename(targetRelativePath)}.`)
+      || typeof reservationToken !== "string"
+      || !/^[0-9a-f-]{36}$/.test(reservationToken)
       || !Number.isSafeInteger(mode)
       || !/^[a-f0-9]{64}$/.test(String(revision))
       || typeof reserved !== "boolean"
@@ -257,6 +415,7 @@ class OfflineMigrationGeneration {
     }
     this.targetRelativePath = targetRelativePath;
     this.relativeTempPath = relativeTempPath;
+    this.reservationToken = reservationToken;
     this.dev = dev;
     this.ino = ino;
     this.mode = mode;
@@ -269,7 +428,7 @@ class OfflineMigrationGeneration {
   static fromStored(root, value) {
     exactKeys(
       value,
-      ["targetRelativePath", "relativeTempPath", "dev", "ino", "mode", "revision", "reserved", "prepared"],
+      ["targetRelativePath", "relativeTempPath", "reservationToken", "dev", "ino", "mode", "revision", "reserved", "prepared"],
       "migration generation",
     );
     return new OfflineMigrationGeneration({ root, ...value });
@@ -286,11 +445,19 @@ class OfflineMigrationGeneration {
     return this.prepared && this.matchesIdentity(stat) && hash(bytes) === this.revision;
   }
 
+  matchesReservation(stat, bytes) {
+    return !this.reserved
+      && stat.nlink === 1
+      && (stat.mode & 0o777) === this.mode
+      && bytes.equals(Buffer.from(`senti-migration-reservation-v1:${this.reservationToken}\n`));
+  }
+
   asPrepared() {
     return new OfflineMigrationGeneration({
       root: this.root,
       targetRelativePath: this.targetRelativePath,
       relativeTempPath: this.relativeTempPath,
+      reservationToken: this.reservationToken,
       dev: this.dev,
       ino: this.ino,
       mode: this.mode,
@@ -305,6 +472,7 @@ class OfflineMigrationGeneration {
       root: this.root,
       targetRelativePath: this.targetRelativePath,
       relativeTempPath: this.relativeTempPath,
+      reservationToken: this.reservationToken,
       dev: stat.dev,
       ino: stat.ino,
       mode: this.mode,
@@ -318,6 +486,7 @@ class OfflineMigrationGeneration {
     return {
       relativeTempPath: this.relativeTempPath,
       targetRelativePath: this.targetRelativePath,
+      reservationToken: this.reservationToken,
       dev: this.dev,
       ino: this.ino,
       mode: this.mode,
@@ -329,20 +498,25 @@ class OfflineMigrationGeneration {
 }
 
 class AtomicBytesFile {
-  constructor(root, filePath) {
+  constructor(root, filePath, workspace) {
     this.root = path.resolve(root);
     this.filePath = filePath;
     this.directory = path.dirname(filePath);
     this.authority = new RealDirectoryAuthority(this.directory);
+    if (!(workspace instanceof OfflineMigrationWorkspace)) {
+      throw new Error("migration private workspace is required");
+    }
+    this.workspace = workspace;
   }
 
   plan(bytes, mode) {
     this.authority.assertStable();
-    const tempPath = path.join(this.directory, `.${path.basename(this.filePath)}.${crypto.randomUUID()}.migration.tmp`);
+    const tempPath = this.workspace.planGenerationPath(this.filePath);
     return new OfflineMigrationGeneration({
       root: this.root,
       targetRelativePath: withinRoot(this.root, this.filePath).relative,
       relativeTempPath: withinRoot(this.root, tempPath).relative,
+      reservationToken: crypto.randomUUID(),
       dev: null,
       ino: null,
       mode,
@@ -358,11 +532,13 @@ class AtomicBytesFile {
       throw new Error("migration generation intent targets a different file");
     }
     const tempPath = path.join(this.root, generation.relativeTempPath);
+    this.workspace.assertContains(tempPath);
     let descriptor = null;
     let created = false;
     try {
       descriptor = fs.openSync(tempPath, "wx", generation.mode);
       created = true;
+      fs.writeFileSync(descriptor, `senti-migration-reservation-v1:${generation.reservationToken}\n`);
       fs.fchmodSync(descriptor, generation.mode);
       fs.fsyncSync(descriptor);
       fs.closeSync(descriptor);
@@ -398,6 +574,7 @@ class AtomicBytesFile {
       throw new Error("migration reserved generation targets a different file");
     }
     const tempPath = path.join(this.root, generation.relativeTempPath);
+    this.workspace.assertContains(tempPath);
     const descriptor = fs.openSync(
       tempPath,
       fs.constants.O_WRONLY | (fs.constants.O_NOFOLLOW || 0),
@@ -427,6 +604,7 @@ class AtomicBytesFile {
     }
     if (!generation.prepared) throw new Error("migration generation is not prepared for commit");
     const tempPath = path.join(this.root, generation.relativeTempPath);
+    this.workspace.assertContains(tempPath);
     const stat = statRealFile(tempPath, "migration prepared generation");
     const bytes = fs.readFileSync(tempPath);
     if (!generation.matches(stat, bytes)) throw new Error("migration prepared generation changed before rename");
@@ -531,6 +709,7 @@ export class OfflineMigrationTarget {
       : rollbackGeneration instanceof OfflineMigrationGeneration
         ? rollbackGeneration
         : OfflineMigrationGeneration.fromStored(this.root, rollbackGeneration);
+    this.workspace = null;
   }
 
   static capture(root, filePath, planned) {
@@ -599,55 +778,66 @@ export class OfflineMigrationTarget {
     return "foreign";
   }
 
+  bindWorkspace(workspace) {
+    if (!(workspace instanceof OfflineMigrationWorkspace)) {
+      throw new Error("migration target workspace is invalid");
+    }
+    this.workspace = workspace;
+  }
+
   planOriginal() {
     if (this.rollbackGeneration == null) {
-      this.rollbackGeneration = new AtomicBytesFile(this.root, this.filePath).plan(this.original, this.mode);
+      this.rollbackGeneration = new AtomicBytesFile(this.root, this.filePath, this.workspace).plan(this.original, this.mode);
     }
   }
 
   reserveOriginal() {
-    this.rollbackGeneration = new AtomicBytesFile(this.root, this.filePath)
+    this.rollbackGeneration = new AtomicBytesFile(this.root, this.filePath, this.workspace)
       .reserve(this.rollbackGeneration);
   }
 
   prepareOriginal() {
-    this.rollbackGeneration = new AtomicBytesFile(this.root, this.filePath)
+    this.rollbackGeneration = new AtomicBytesFile(this.root, this.filePath, this.workspace)
       .prepare(this.rollbackGeneration, this.original);
   }
 
   commitOriginal() {
-    new AtomicBytesFile(this.root, this.filePath).commit(this.rollbackGeneration);
+    new AtomicBytesFile(this.root, this.filePath, this.workspace).commit(this.rollbackGeneration);
   }
 
   planPlanned() {
     if (this.plannedGeneration == null) {
-      this.plannedGeneration = new AtomicBytesFile(this.root, this.filePath).plan(this.planned, this.mode);
+      this.plannedGeneration = new AtomicBytesFile(this.root, this.filePath, this.workspace).plan(this.planned, this.mode);
     }
   }
 
   reservePlanned() {
-    this.plannedGeneration = new AtomicBytesFile(this.root, this.filePath)
+    this.plannedGeneration = new AtomicBytesFile(this.root, this.filePath, this.workspace)
       .reserve(this.plannedGeneration);
   }
 
   preparePlanned() {
-    this.plannedGeneration = new AtomicBytesFile(this.root, this.filePath)
+    this.plannedGeneration = new AtomicBytesFile(this.root, this.filePath, this.workspace)
       .prepare(this.plannedGeneration, this.planned);
   }
 
   commitPlanned() {
-    new AtomicBytesFile(this.root, this.filePath).commit(this.plannedGeneration);
+    new AtomicBytesFile(this.root, this.filePath, this.workspace).commit(this.plannedGeneration);
   }
 
   cleanupPreparedGenerations() {
     for (const generation of [this.plannedGeneration, this.rollbackGeneration]) {
       if (generation == null) continue;
       const tempPath = path.join(this.root, generation.relativeTempPath);
+      this.workspace.assertContains(tempPath);
       try {
         const stat = statRealFile(tempPath, "migration cleanup generation");
+        const bytes = fs.readFileSync(tempPath);
         if (
           generation.targetRelativePath !== this.relativePath
-          || (generation.reserved && !generation.matchesIdentity(stat))
+          || (generation.reserved
+            ? !generation.matchesIdentity(stat)
+            : !generation.matchesReservation(stat, bytes))
         ) {
           throw new Error("migration cleanup generation authority changed");
         }
@@ -676,7 +866,7 @@ export class OfflineMigrationTarget {
 }
 
 class MigrationJournal {
-  constructor({ name, root, phase, applyIndex, rollbackIndex, authorities, snapshots, targets, updatedAt }) {
+  constructor({ name, root, phase, applyIndex, rollbackIndex, workspace, authorities, snapshots, targets, updatedAt }) {
     if (typeof name !== "string" || name === "") throw new Error("migration journal name is invalid");
     if (!PHASES.has(phase)) throw new Error(`migration journal phase is invalid: ${phase}`);
     if (!Number.isSafeInteger(applyIndex) || !Number.isSafeInteger(rollbackIndex)) {
@@ -687,6 +877,9 @@ class MigrationJournal {
     this.phase = phase;
     this.applyIndex = applyIndex;
     this.rollbackIndex = rollbackIndex;
+    this.workspace = workspace instanceof OfflineMigrationWorkspaceAuthority
+      ? workspace
+      : OfflineMigrationWorkspaceAuthority.fromStored(this.root, workspace);
     this.authorities = authorities;
     this.snapshots = snapshots;
     this.targets = targets;
@@ -704,6 +897,7 @@ class MigrationJournal {
       phase: "staged",
       applyIndex: 0,
       rollbackIndex: targets.length - 1,
+      workspace: OfflineMigrationWorkspaceAuthority.plan(root),
       authorities,
       snapshots,
       targets,
@@ -714,7 +908,7 @@ class MigrationJournal {
   static fromStored(name, root, value) {
     exactKeys(value, [
       "version", "name", "root", "phase", "applyIndex", "rollbackIndex",
-      "authorities", "snapshots", "targets", "updatedAt",
+      "workspace", "authorities", "snapshots", "targets", "updatedAt",
     ], "migration journal");
     if (value.version !== VERSION || value.name !== name || path.resolve(value.root) !== path.resolve(root)) {
       throw new Error("migration journal targets a different authority");
@@ -728,13 +922,31 @@ class MigrationJournal {
     if (new Set(targets.map((target) => target.relativePath)).size !== targets.length) {
       throw new Error("migration journal contains duplicate targets");
     }
-    return new MigrationJournal({ ...value, root, authorities, snapshots, targets });
+    return new MigrationJournal({
+      ...value,
+      root,
+      workspace: OfflineMigrationWorkspaceAuthority.fromStored(root, value.workspace),
+      authorities,
+      snapshots,
+      targets,
+    });
   }
 
   advance(phase, { applyIndex = this.applyIndex, rollbackIndex = this.rollbackIndex } = {}) {
     this.phase = phase;
     this.applyIndex = applyIndex;
     this.rollbackIndex = rollbackIndex;
+    this.updatedAt = new Date().toISOString();
+  }
+
+  ownWorkspace(authority) {
+    if (!(authority instanceof OfflineMigrationWorkspaceAuthority)) {
+      throw new Error("migration workspace authority is invalid");
+    }
+    if (authority.token !== this.workspace.token || authority.relativePath !== this.workspace.relativePath) {
+      throw new Error("migration workspace intent changed");
+    }
+    this.workspace = authority;
     this.updatedAt = new Date().toISOString();
   }
 
@@ -746,6 +958,7 @@ class MigrationJournal {
       phase: this.phase,
       applyIndex: this.applyIndex,
       rollbackIndex: this.rollbackIndex,
+      workspace: this.workspace.toJSON(),
       authorities: this.authorities.map((item) => item.toJSON()),
       snapshots: this.snapshots.map((item) => item.toJSON()),
       targets: this.targets.map((item) => item.toJSON()),
@@ -861,6 +1074,7 @@ export class OfflineMigrationTransaction {
     this.store.write(this.journal);
     let primary = null;
     try {
+      this.#acquireWorkspace();
       for (let index = 0; index < this.journal.targets.length; index += 1) {
         const target = this.journal.targets[index];
         if (target.classify() !== "original") throw new Error(`migration target is not original: ${target.relativePath}`);
@@ -881,6 +1095,7 @@ export class OfflineMigrationTransaction {
       primary = error;
     }
     if (!primary) {
+      this.#cleanupWorkspace(this.#acquireWorkspace({ allowMissing: true }));
       this.store.remove(this.journal);
       return;
     }
@@ -910,6 +1125,7 @@ export class OfflineMigrationTransaction {
       for (const target of this.journal.targets) {
         if (target.classify() !== "planned") throw new Error(`applied migration target is foreign: ${target.relativePath}`);
       }
+      this.#cleanupWorkspace(this.#acquireWorkspace({ allowMissing: true }));
       this.store.remove(this.journal);
       return { recovered: true, completed: true };
     }
@@ -917,10 +1133,12 @@ export class OfflineMigrationTransaction {
       for (const target of this.journal.targets) {
         if (target.classify() !== "original") throw new Error(`rolled-back migration target is foreign: ${target.relativePath}`);
       }
+      this.#cleanupWorkspace(this.#acquireWorkspace({ allowMissing: true }));
       this.store.remove(this.journal);
       return { recovered: true, completed: false };
     }
     if (this.journal.phase === "rolling-back") {
+      this.#acquireWorkspace();
       this.#continueRollback();
       this.store.remove(this.journal);
       return { recovered: true, completed: false };
@@ -931,10 +1149,13 @@ export class OfflineMigrationTransaction {
           throw new Error(`staged migration target is foreign: ${target.relativePath}`);
         }
       }
+      this.#acquireWorkspace();
       this.#rollback();
       this.store.remove(this.journal);
       return { recovered: true, completed: false };
     }
+
+    this.#acquireWorkspace();
 
     let contiguousPlanned = 0;
     for (let index = 0; index < this.journal.targets.length; index += 1) {
@@ -953,6 +1174,7 @@ export class OfflineMigrationTransaction {
     if (contiguousPlanned === this.journal.targets.length) {
       this.journal.advance("applied", { applyIndex: contiguousPlanned, rollbackIndex: -1 });
       this.store.write(this.journal);
+      this.#cleanupWorkspace(this.#acquireWorkspace({ allowMissing: true }));
       this.store.remove(this.journal);
       return { recovered: true, completed: true };
     }
@@ -962,6 +1184,7 @@ export class OfflineMigrationTransaction {
   }
 
   #rollback() {
+    this.#acquireWorkspace();
     this.journal.advance("rolling-back", { rollbackIndex: this.journal.targets.length - 1 });
     this.store.write(this.journal);
     this.#continueRollback();
@@ -994,5 +1217,23 @@ export class OfflineMigrationTransaction {
     for (const target of this.journal.targets) target.cleanupPreparedGenerations();
     this.journal.advance("rolled-back", { applyIndex: 0, rollbackIndex: -1 });
     this.store.write(this.journal);
+    this.#cleanupWorkspace(this.#acquireWorkspace({ allowMissing: true }));
+  }
+
+  #acquireWorkspace({ allowMissing = false } = {}) {
+    const workspace = OfflineMigrationWorkspace.acquire(this.journal.workspace, { allowMissing });
+    if (workspace == null) return null;
+    if (this.journal.workspace.dev === null) {
+      this.journal.ownWorkspace(workspace.authority);
+      this.store.write(this.journal);
+    }
+    for (const target of this.journal.targets) target.bindWorkspace(workspace);
+    return workspace;
+  }
+
+  #cleanupWorkspace(workspace) {
+    if (workspace == null) return;
+    for (const target of this.journal.targets) target.cleanupPreparedGenerations();
+    workspace.cleanup();
   }
 }

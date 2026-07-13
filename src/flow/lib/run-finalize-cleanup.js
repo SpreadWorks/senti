@@ -61,7 +61,7 @@ const RECOVERY_OPTIONS_DIRTY = ["commit-or-stash-first", "retry-without-rescue"]
 const SUBMODULE_RECOVERY_OPTIONS_DIRTY = ["commit-or-stash-first", "clean-submodules-and-retry", "manual-remove-after-review"];
 const SUBMODULE_RECOVERY_OPTIONS_STATUS = ["inspect-status-manually", "clean-submodules-and-retry", "manual-remove-after-review"];
 const SUBMODULE_RECOVERY_OPTIONS_FORCE = ["inspect-worktree-manually", "manual-remove-after-review", "retry-after-fixing-git-error"];
-const FINALIZE_TEARDOWN_VERSION = 3;
+const FINALIZE_TEARDOWN_VERSION = 4;
 const GIT_OBJECT_ID = /^[a-f0-9]{40}$/;
 const SHA256 = /^[a-f0-9]{64}$/;
 const FINALIZE_BEFORE_IMAGE_MAX_FILES = 512;
@@ -478,6 +478,107 @@ class FinalizeTreeBeforeImage {
   }
 }
 
+class FinalizeIndexLockAuthority {
+  constructor({ token, dev = null, ino = null }) {
+    if (typeof token !== "string" || !/^[0-9a-f-]{36}$/.test(token)) {
+      throw new Error("finalize caller index lock token is invalid");
+    }
+    if ((dev === null) !== (ino === null)) {
+      throw new Error("finalize caller index lock identity is incomplete");
+    }
+    if (dev !== null && (![dev, ino].every(Number.isSafeInteger) || dev < 0 || ino < 0)) {
+      throw new Error("finalize caller index lock identity is invalid");
+    }
+    this.token = token;
+    this.dev = dev;
+    this.ino = ino;
+    Object.freeze(this);
+  }
+
+  static plan() {
+    return new FinalizeIndexLockAuthority({ token: crypto.randomUUID() });
+  }
+
+  static fromStored(value) {
+    assertExactObjectKeys(value, ["token", "dev", "ino"], "finalize caller index lock authority");
+    return new FinalizeIndexLockAuthority(value);
+  }
+
+  withIdentity(stat) {
+    return new FinalizeIndexLockAuthority({ token: this.token, dev: stat.dev, ino: stat.ino });
+  }
+
+  matches(stat) {
+    return this.dev !== null && stat.dev === this.dev && stat.ino === this.ino;
+  }
+
+  toJSON() {
+    return { token: this.token, dev: this.dev, ino: this.ino };
+  }
+}
+
+class FinalizeTempIndexAuthority {
+  constructor({ workspacePath, token, dev = null, ino = null }) {
+    const tempRoot = fs.realpathSync(os.tmpdir());
+    if (
+      typeof workspacePath !== "string"
+      || path.dirname(workspacePath) !== tempRoot
+      || !path.basename(workspacePath).startsWith("senti-finalize-index-")
+    ) {
+      throw new Error("finalize temporary index workspace path is invalid");
+    }
+    if (typeof token !== "string" || !/^[0-9a-f-]{36}$/.test(token)) {
+      throw new Error("finalize temporary index workspace token is invalid");
+    }
+    if ((dev === null) !== (ino === null)) {
+      throw new Error("finalize temporary index workspace identity is incomplete");
+    }
+    if (dev !== null && (![dev, ino].every(Number.isSafeInteger) || dev < 0 || ino < 0)) {
+      throw new Error("finalize temporary index workspace identity is invalid");
+    }
+    this.workspacePath = workspacePath;
+    this.token = token;
+    this.dev = dev;
+    this.ino = ino;
+    Object.freeze(this);
+  }
+
+  static plan() {
+    const token = crypto.randomUUID();
+    return new FinalizeTempIndexAuthority({
+      workspacePath: path.join(fs.realpathSync(os.tmpdir()), `senti-finalize-index-${token}`),
+      token,
+    });
+  }
+
+  static fromStored(value) {
+    assertExactObjectKeys(value, ["workspacePath", "token", "dev", "ino"], "finalize temporary index authority");
+    return new FinalizeTempIndexAuthority(value);
+  }
+
+  withIdentity(stat) {
+    return new FinalizeTempIndexAuthority({
+      workspacePath: this.workspacePath,
+      token: this.token,
+      dev: stat.dev,
+      ino: stat.ino,
+    });
+  }
+
+  matches(stat) {
+    return this.dev !== null && stat.dev === this.dev && stat.ino === this.ino;
+  }
+
+  toJSON() {
+    return {
+      workspacePath: this.workspacePath,
+      token: this.token,
+      dev: this.dev,
+      ino: this.ino,
+    };
+  }
+}
+
 class FinalizeTeardownTransaction {
   constructor({
     transactionId,
@@ -487,6 +588,8 @@ class FinalizeTeardownTransaction {
     phase = "prepared",
     result = null,
     commitExpectation = null,
+    indexLockAuthority = null,
+    tempIndexAuthority = null,
     beforeImages = [],
     issueLogIds = [],
     updatedAt = new Date().toISOString(),
@@ -520,6 +623,16 @@ class FinalizeTeardownTransaction {
       : (commitExpectation instanceof FinalizeCommitExpectation
         ? commitExpectation
         : FinalizeCommitExpectation.fromStored(commitExpectation));
+    this.indexLockAuthority = indexLockAuthority == null
+      ? null
+      : indexLockAuthority instanceof FinalizeIndexLockAuthority
+        ? indexLockAuthority
+        : FinalizeIndexLockAuthority.fromStored(indexLockAuthority);
+    this.tempIndexAuthority = tempIndexAuthority == null
+      ? null
+      : tempIndexAuthority instanceof FinalizeTempIndexAuthority
+        ? tempIndexAuthority
+        : FinalizeTempIndexAuthority.fromStored(tempIndexAuthority);
     if (!Array.isArray(beforeImages) || beforeImages.length > 2) {
       throw new Error("finalize teardown before-images are invalid");
     }
@@ -539,6 +652,18 @@ class FinalizeTeardownTransaction {
       }
       if (this.result.phase.name !== this.phase.name) {
         throw new Error("finalize teardown phase and result phase must match");
+      }
+      if (
+        !this.phase.atLeast("index-reconciled")
+        && (this.indexLockAuthority == null || this.tempIndexAuthority == null)
+      ) {
+        throw new Error("commit-durable finalize teardown requires index recovery authority");
+      }
+      if (
+        this.phase.atLeast("index-reconciled")
+        && (this.indexLockAuthority != null || this.tempIndexAuthority != null)
+      ) {
+        throw new Error("index-reconciled finalize teardown retains stale index authority");
       }
     } else if (!this.commitRequired) {
       if (!this.phase.atLeast("validated") || this.commitExpectation || !this.result || this.result.commitSha != null) {
@@ -563,6 +688,8 @@ class FinalizeTeardownTransaction {
       "phase",
       "result",
       "commitExpectation",
+      "indexLockAuthority",
+      "tempIndexAuthority",
       "beforeImages",
       "issueLogIds",
       "updatedAt",
@@ -624,6 +751,60 @@ class FinalizeTeardownTransaction {
     return this;
   }
 
+  planIndexLock() {
+    if (this.phase.atLeast("index-reconciled")) throw new Error("finalize caller index lock is already reconciled");
+    this.indexLockAuthority = FinalizeIndexLockAuthority.plan();
+    this.updatedAt = new Date().toISOString();
+    return this.indexLockAuthority;
+  }
+
+  ownIndexLock(authority) {
+    if (this.phase.atLeast("index-reconciled")) throw new Error("finalize caller index lock is already reconciled");
+    const candidate = authority instanceof FinalizeIndexLockAuthority
+      ? authority
+      : FinalizeIndexLockAuthority.fromStored(authority);
+    if (this.indexLockAuthority != null && candidate.token !== this.indexLockAuthority.token) {
+      throw new Error("finalize caller index lock intent changed");
+    }
+    this.indexLockAuthority = candidate;
+    this.updatedAt = new Date().toISOString();
+  }
+
+  clearIndexLock() {
+    this.indexLockAuthority = null;
+    this.updatedAt = new Date().toISOString();
+  }
+
+  planTempIndexWorkspace() {
+    if (this.phase.atLeast("index-reconciled")) throw new Error("finalize temporary index workspace is already reconciled");
+    this.tempIndexAuthority = FinalizeTempIndexAuthority.plan();
+    this.updatedAt = new Date().toISOString();
+    return this.tempIndexAuthority;
+  }
+
+  ownTempIndexWorkspace(authority) {
+    if (this.phase.atLeast("index-reconciled")) throw new Error("finalize temporary index workspace is already reconciled");
+    const candidate = authority instanceof FinalizeTempIndexAuthority
+      ? authority
+      : FinalizeTempIndexAuthority.fromStored(authority);
+    if (
+      this.tempIndexAuthority != null
+      && (
+        candidate.token !== this.tempIndexAuthority.token
+        || candidate.workspacePath !== this.tempIndexAuthority.workspacePath
+      )
+    ) {
+      throw new Error("finalize temporary index workspace intent changed");
+    }
+    this.tempIndexAuthority = candidate;
+    this.updatedAt = new Date().toISOString();
+  }
+
+  clearTempIndexWorkspace() {
+    this.tempIndexAuthority = null;
+    this.updatedAt = new Date().toISOString();
+  }
+
   setBeforeImages(beforeImages) {
     if (this.phase.name !== "prepared" || this.beforeImages.length > 0) {
       throw new Error("finalize before-images can only be attached once while prepared");
@@ -646,6 +827,8 @@ class FinalizeTeardownTransaction {
     this.phase = FinalizeTeardownPhase.from("prepared");
     this.result = null;
     this.commitExpectation = null;
+    this.indexLockAuthority = null;
+    this.tempIndexAuthority = null;
     this.beforeImages = [];
     this.issueLogIds = [];
     this.updatedAt = new Date().toISOString();
@@ -680,6 +863,8 @@ class FinalizeTeardownTransaction {
       phase: this.phase.name,
       result: this.result?.toJSON() ?? null,
       commitExpectation: this.commitExpectation?.toJSON() ?? null,
+      indexLockAuthority: this.indexLockAuthority?.toJSON() ?? null,
+      tempIndexAuthority: this.tempIndexAuthority?.toJSON() ?? null,
       beforeImages: this.beforeImages.map((entry) => entry.toJSON()),
       issueLogIds: [...this.issueLogIds],
       updatedAt: this.updatedAt,
@@ -709,14 +894,278 @@ function hashCommitMessage(message) {
   return crypto.createHash("sha256").update(message).digest("hex");
 }
 
-function buildExpectedPathspecTree(targetRoot, expectedParent, commitPaths) {
-  const tempIndex = path.join(os.tmpdir(), `senti-finalize-index-${process.pid}-${crypto.randomUUID()}`);
+const FINALIZE_TEMP_INDEX_BASE_NAMES = new Set(["expected.index", "commit.index", "reconcile.index"]);
+const FINALIZE_TEMP_INDEX_NAMES = new Set([
+  ...FINALIZE_TEMP_INDEX_BASE_NAMES,
+  ...[...FINALIZE_TEMP_INDEX_BASE_NAMES].map((name) => `${name}.lock`),
+]);
+const FINALIZE_TEMP_OWNER_FILE = ".owner";
+
+function fsyncDirectory(directoryPath) {
+  const descriptor = fs.openSync(directoryPath, "r");
+  try {
+    fs.fsyncSync(descriptor);
+  } finally {
+    fs.closeSync(descriptor);
+  }
+}
+
+function assertRealFinalizeFile(filePath, label) {
+  const stat = fs.lstatSync(filePath);
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1 || fs.realpathSync(filePath) !== filePath) {
+    throw new Error(`${label} must be one real file`);
+  }
+  return stat;
+}
+
+class FinalizeTempIndexWorkspace {
+  constructor(authority, targetRoot) {
+    this.authority = authority;
+    this.targetRoot = targetRoot;
+    this.indexPath = path.join(targetRoot, ".git", "index");
+  }
+
+  static acquire(authority, targetRoot) {
+    const marker = `${authority.token}\n`;
+    let created = false;
+    try {
+      fs.mkdirSync(authority.workspacePath, { mode: 0o700 });
+      created = true;
+    } catch (error) {
+      if (error.code !== "EEXIST") throw error;
+    }
+    const stat = fs.lstatSync(authority.workspacePath);
+    if (
+      !stat.isDirectory()
+      || stat.isSymbolicLink()
+      || fs.realpathSync(authority.workspacePath) !== authority.workspacePath
+      || (stat.mode & 0o077) !== 0
+      || (typeof process.getuid === "function" && stat.uid !== process.getuid())
+      || (authority.dev !== null && !authority.matches(stat))
+    ) {
+      throw Object.assign(new Error("finalize temporary index workspace authority diverged"), {
+        code: "FINALIZE_TEMP_INDEX_AUTHORITY_FAILED",
+      });
+    }
+    const markerPath = path.join(authority.workspacePath, FINALIZE_TEMP_OWNER_FILE);
+    if (fs.existsSync(markerPath)) {
+      assertRealFinalizeFile(markerPath, "finalize temporary index owner marker");
+      if (fs.readFileSync(markerPath, "utf8") !== marker) {
+        throw Object.assign(new Error("finalize temporary index owner marker diverged"), {
+          code: "FINALIZE_TEMP_INDEX_AUTHORITY_FAILED",
+        });
+      }
+    } else {
+      const entries = fs.readdirSync(authority.workspacePath);
+      if (!created && entries.length > 0) {
+        throw Object.assign(new Error("finalize temporary index workspace is not owned"), {
+          code: "FINALIZE_TEMP_INDEX_AUTHORITY_FAILED",
+        });
+      }
+      const descriptor = fs.openSync(markerPath, "wx", 0o600);
+      try {
+        fs.writeFileSync(descriptor, marker);
+        fs.fsyncSync(descriptor);
+      } finally {
+        fs.closeSync(descriptor);
+      }
+      fsyncDirectory(authority.workspacePath);
+    }
+    assertRealFinalizeFile(path.join(targetRoot, ".git", "index"), "caller index authority");
+    return new FinalizeTempIndexWorkspace(authority.withIdentity(stat), targetRoot);
+  }
+
+  assertAuthority() {
+    const stat = fs.lstatSync(this.authority.workspacePath);
+    if (
+      !stat.isDirectory()
+      || stat.isSymbolicLink()
+      || fs.realpathSync(this.authority.workspacePath) !== this.authority.workspacePath
+      || !this.authority.matches(stat)
+    ) {
+      throw Object.assign(new Error("finalize temporary index workspace identity changed"), {
+        code: "FINALIZE_TEMP_INDEX_AUTHORITY_FAILED",
+      });
+    }
+  }
+
+  prepare(name) {
+    if (!FINALIZE_TEMP_INDEX_BASE_NAMES.has(name)) throw new Error("invalid finalize temporary index name");
+    this.assertAuthority();
+    const filePath = path.join(this.authority.workspacePath, name);
+    fs.copyFileSync(this.indexPath, filePath, fs.constants.COPYFILE_EXCL);
+    fs.chmodSync(filePath, 0o600);
+    assertRealFinalizeFile(filePath, "finalize temporary index");
+    return filePath;
+  }
+
+  remove(name) {
+    if (!FINALIZE_TEMP_INDEX_NAMES.has(name)) throw new Error("invalid finalize temporary index name");
+    this.assertAuthority();
+    const filePath = path.join(this.authority.workspacePath, name);
+    try {
+      assertRealFinalizeFile(filePath, "finalize temporary index");
+      fs.unlinkSync(filePath);
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
+  }
+
+  cleanup() {
+    this.assertAuthority();
+    const allowed = new Set([...FINALIZE_TEMP_INDEX_NAMES, FINALIZE_TEMP_OWNER_FILE]);
+    const entries = fs.readdirSync(this.authority.workspacePath);
+    if (entries.some((entry) => !allowed.has(entry))) {
+      throw Object.assign(new Error("finalize temporary index workspace contains foreign entries"), {
+        code: "FINALIZE_TEMP_INDEX_AUTHORITY_FAILED",
+      });
+    }
+    for (const entry of entries.filter((candidate) => candidate !== FINALIZE_TEMP_OWNER_FILE)) {
+      this.remove(entry);
+    }
+    const markerPath = path.join(this.authority.workspacePath, FINALIZE_TEMP_OWNER_FILE);
+    assertRealFinalizeFile(markerPath, "finalize temporary index owner marker");
+    if (fs.readFileSync(markerPath, "utf8") !== `${this.authority.token}\n`) {
+      throw Object.assign(new Error("finalize temporary index owner marker diverged"), {
+        code: "FINALIZE_TEMP_INDEX_AUTHORITY_FAILED",
+      });
+    }
+    fs.unlinkSync(markerPath);
+    fs.rmdirSync(this.authority.workspacePath);
+    fsyncDirectory(path.dirname(this.authority.workspacePath));
+  }
+}
+
+class FinalizeCallerIndexLease {
+  constructor({ authority, targetRoot, descriptor }) {
+    this.authority = authority;
+    this.gitDirectory = path.join(targetRoot, ".git");
+    this.indexPath = path.join(this.gitDirectory, "index");
+    this.lockPath = `${this.indexPath}.lock`;
+    this.descriptor = descriptor;
+  }
+
+  static acquire(authority, targetRoot) {
+    const gitDirectory = path.join(targetRoot, ".git");
+    const indexPath = path.join(gitDirectory, "index");
+    const lockPath = `${indexPath}.lock`;
+    assertRealFinalizeFile(indexPath, "caller index authority");
+    const marker = `senti-finalize-index-lock-v1:${authority.token}\n`;
+    let descriptor;
+    let created = false;
+    try {
+      descriptor = fs.openSync(lockPath, fs.constants.O_RDWR | fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_NOFOLLOW, 0o600);
+      created = true;
+    } catch (cause) {
+      if (cause.code !== "EEXIST") {
+        throw Object.assign(new Error("caller index lock acquisition failed", { cause }), {
+          code: "FINALIZE_INDEX_RECONCILIATION_FAILED",
+          lockPath,
+        });
+      }
+      try {
+        assertRealFinalizeFile(lockPath, "caller index lock");
+        if (fs.readFileSync(lockPath, "utf8") !== marker) {
+          throw Object.assign(new Error("caller index lock is busy"), {
+            code: "FINALIZE_INDEX_RECONCILIATION_BUSY",
+            lockPath,
+          });
+        }
+        descriptor = fs.openSync(lockPath, fs.constants.O_RDWR | fs.constants.O_NOFOLLOW);
+      } catch (error) {
+        if (error.code?.startsWith("FINALIZE_")) throw error;
+        throw Object.assign(new Error("caller index lock is busy", { cause: error }), {
+          code: "FINALIZE_INDEX_RECONCILIATION_BUSY",
+          lockPath,
+        });
+      }
+    }
+    try {
+      if (created) {
+        fs.writeFileSync(descriptor, marker);
+        fs.fsyncSync(descriptor);
+        fsyncDirectory(gitDirectory);
+      }
+      const descriptorStat = fs.fstatSync(descriptor);
+      const pathStat = assertRealFinalizeFile(lockPath, "caller index lock");
+      const markerBytes = Buffer.alloc(Buffer.byteLength(marker) + 1);
+      const markerLength = fs.readSync(descriptor, markerBytes, 0, markerBytes.length, 0);
+      if (
+        descriptorStat.dev !== pathStat.dev
+        || descriptorStat.ino !== pathStat.ino
+        || (authority.dev !== null && !authority.matches(descriptorStat))
+        || markerBytes.subarray(0, markerLength).toString("utf8") !== marker
+      ) {
+        throw Object.assign(new Error("caller index lock authority diverged"), {
+          code: "FINALIZE_INDEX_RECONCILIATION_FAILED",
+          lockPath,
+        });
+      }
+      return new FinalizeCallerIndexLease({
+        authority: authority.withIdentity(descriptorStat),
+        targetRoot,
+        descriptor,
+      });
+    } catch (error) {
+      try { fs.closeSync(descriptor); } catch {}
+      if (created) {
+        try { fs.unlinkSync(lockPath); } catch {}
+      }
+      throw error;
+    }
+  }
+
+  assertAuthority() {
+    const descriptorStat = fs.fstatSync(this.descriptor);
+    const pathStat = assertRealFinalizeFile(this.lockPath, "caller index lock");
+    if (
+      descriptorStat.dev !== pathStat.dev
+      || descriptorStat.ino !== pathStat.ino
+      || !this.authority.matches(pathStat)
+    ) {
+      throw Object.assign(new Error("caller index lock authority changed"), {
+        code: "FINALIZE_INDEX_RECONCILIATION_FAILED",
+        lockPath: this.lockPath,
+      });
+    }
+  }
+
+  publish(bytes, mode) {
+    this.assertAuthority();
+    fs.ftruncateSync(this.descriptor, 0);
+    fs.writeSync(this.descriptor, bytes, 0, bytes.length, 0);
+    fs.fchmodSync(this.descriptor, mode & 0o777);
+    fs.fsyncSync(this.descriptor);
+    fs.closeSync(this.descriptor);
+    this.descriptor = null;
+    fs.renameSync(this.lockPath, this.indexPath);
+    fsyncDirectory(this.gitDirectory);
+  }
+
+  release() {
+    this.assertAuthority();
+    fs.closeSync(this.descriptor);
+    this.descriptor = null;
+    fs.unlinkSync(this.lockPath);
+    fsyncDirectory(this.gitDirectory);
+  }
+
+  detach() {
+    if (this.descriptor == null) return;
+    fs.closeSync(this.descriptor);
+    this.descriptor = null;
+  }
+}
+
+function buildExpectedPathspecTree(targetRoot, expectedParent, commitPaths, workspace) {
+  const tempIndex = workspace.prepare("expected.index");
   const env = { ...process.env, GIT_INDEX_FILE: tempIndex };
   let primaryError = null;
   let tree = null;
   try {
     const read = runGit(["-C", targetRoot, "read-tree", expectedParent], { env });
     if (!read.ok) throw gitFailure("FINALIZE_TREE_BUILD_FAILED", "temporary index read-tree failed", read);
+    fs.chmodSync(tempIndex, 0o600);
     const add = runGit(["-C", targetRoot, "add", "--", ...commitPaths], { env });
     if (!add.ok) throw gitFailure("FINALIZE_TREE_BUILD_FAILED", "temporary index git add failed", add);
     tree = gitValueWithOptions(targetRoot, ["write-tree"], "finalize staged tree", { env });
@@ -725,14 +1174,14 @@ function buildExpectedPathspecTree(targetRoot, expectedParent, commitPaths) {
   }
   let cleanupError = null;
   try {
-    fs.unlinkSync(tempIndex);
+    workspace.remove("expected.index");
   } catch (error) {
-    if (error.code !== "ENOENT") cleanupError = error;
+    cleanupError = error;
   }
   try {
-    fs.unlinkSync(`${tempIndex}.lock`);
+    workspace.remove("expected.index.lock");
   } catch (error) {
-    if (error.code !== "ENOENT" && cleanupError == null) cleanupError = error;
+    if (cleanupError == null) cleanupError = error;
   }
   if (primaryError && cleanupError) {
     throw new AggregateError(
@@ -746,8 +1195,8 @@ function buildExpectedPathspecTree(targetRoot, expectedParent, commitPaths) {
   return tree;
 }
 
-function runIsolatedFinalizeCommit({ targetRoot, expectedParent, commitMessage, commitPaths }) {
-  const tempIndex = path.join(os.tmpdir(), `senti-finalize-commit-index-${process.pid}-${crypto.randomUUID()}`);
+function runIsolatedFinalizeCommit({ targetRoot, expectedParent, commitMessage, commitPaths, workspace }) {
+  const tempIndex = workspace.prepare("commit.index");
   const env = { ...process.env, GIT_INDEX_FILE: tempIndex };
   let result = null;
   let primaryError = null;
@@ -756,7 +1205,7 @@ function runIsolatedFinalizeCommit({ targetRoot, expectedParent, commitMessage, 
     if (!readTree.ok) {
       result = { stage: "read-tree", result: readTree };
     } else {
-      if (fs.existsSync(tempIndex)) fs.chmodSync(tempIndex, 0o600);
+      fs.chmodSync(tempIndex, 0o600);
       const add = runGit(["-C", targetRoot, "add", "--", ...commitPaths], { env });
       if (!add.ok) {
         result = { stage: "add", result: add };
@@ -776,12 +1225,15 @@ function runIsolatedFinalizeCommit({ targetRoot, expectedParent, commitMessage, 
     primaryError = error;
   }
   const cleanupErrors = [];
-  for (const candidate of [tempIndex, `${tempIndex}.lock`]) {
-    try {
-      fs.unlinkSync(candidate);
-    } catch (error) {
-      if (error.code !== "ENOENT") cleanupErrors.push(error);
-    }
+  try {
+    workspace.remove("commit.index");
+  } catch (error) {
+    cleanupErrors.push(error);
+  }
+  try {
+    workspace.remove("commit.index.lock");
+  } catch (error) {
+    cleanupErrors.push(error);
   }
   if (primaryError && cleanupErrors.length > 0) {
     throw new AggregateError(
@@ -882,11 +1334,9 @@ function readFinalizeTree(targetRoot, treeish, commitPaths) {
   return parseFinalizeIndexSnapshot(result.stdout, { tree: true });
 }
 
-function reconcileFinalizeCallerIndex(expectation) {
+function reconcileFinalizeCallerIndex(expectation, callerIndexLease, workspace) {
   const { targetRoot, expectedParent, commitPaths } = expectation;
-  const gitDirectory = path.join(targetRoot, ".git");
-  const indexPath = path.join(gitDirectory, "index");
-  const lockPath = `${indexPath}.lock`;
+  const indexPath = path.join(targetRoot, ".git", "index");
   let indexStat;
   try {
     indexStat = fs.lstatSync(indexPath);
@@ -900,21 +1350,7 @@ function reconcileFinalizeCallerIndex(expectation) {
       code: "FINALIZE_INDEX_RECONCILIATION_FAILED",
     });
   }
-  let lockDescriptor;
-  try {
-    lockDescriptor = fs.openSync(lockPath, "wx", 0o600);
-  } catch (cause) {
-    const error = new Error("caller index reconciliation lock is busy", { cause });
-    error.code = cause.code === "EEXIST"
-      ? "FINALIZE_INDEX_RECONCILIATION_BUSY"
-      : "FINALIZE_INDEX_RECONCILIATION_FAILED";
-    error.lockPath = lockPath;
-    throw error;
-  }
-
-  const tempIndex = path.join(os.tmpdir(), `senti-finalize-reconcile-index-${process.pid}-${crypto.randomUUID()}`);
-  let lockOwned = true;
-  let tempOwned = false;
+  let tempPrepared = false;
   let primaryError = null;
   try {
     const current = readFinalizeIndex(targetRoot, commitPaths);
@@ -925,14 +1361,14 @@ function reconcileFinalizeCallerIndex(expectation) {
       && !current.matches(relativePath, committed)
     ));
     if (updatePaths.length > 0) {
-      fs.copyFileSync(indexPath, tempIndex, fs.constants.COPYFILE_EXCL);
-      tempOwned = true;
-      fs.chmodSync(tempIndex, 0o600);
+      const tempIndex = workspace.prepare("reconcile.index");
+      tempPrepared = true;
       const env = { ...process.env, GIT_INDEX_FILE: tempIndex };
       const reset = runGit(["-C", targetRoot, "reset", "--quiet", "HEAD", "--", ...updatePaths], { env });
       if (!reset.ok) {
         throw gitFailure("FINALIZE_INDEX_RECONCILIATION_FAILED", "caller index reconciliation failed", reset);
       }
+      fs.chmodSync(tempIndex, 0o600);
       const reconciled = readFinalizeIndex(targetRoot, commitPaths, env);
       for (const relativePath of updatePaths) {
         if (!reconciled.matches(relativePath, committed)) {
@@ -942,39 +1378,20 @@ function reconcileFinalizeCallerIndex(expectation) {
         }
       }
       const bytes = fs.readFileSync(tempIndex);
-      fs.unlinkSync(tempIndex);
-      tempOwned = false;
-      fs.writeFileSync(lockDescriptor, bytes);
-      fs.fchmodSync(lockDescriptor, indexStat.mode & 0o777);
-      fs.fsyncSync(lockDescriptor);
-      fs.closeSync(lockDescriptor);
-      lockDescriptor = null;
-      fs.renameSync(lockPath, indexPath);
-      lockOwned = false;
-      const descriptor = fs.openSync(gitDirectory, "r");
-      try {
-        fs.fsyncSync(descriptor);
-      } finally {
-        fs.closeSync(descriptor);
-      }
+      workspace.remove("reconcile.index");
+      tempPrepared = false;
+      callerIndexLease.publish(bytes, indexStat.mode);
+    } else {
+      callerIndexLease.release();
     }
   } catch (error) {
     primaryError = error;
   }
   const cleanupErrors = [];
-  if (lockDescriptor != null) {
-    try { fs.closeSync(lockDescriptor); } catch (error) { cleanupErrors.push(error); }
+  if (tempPrepared) {
+    try { workspace.remove("reconcile.index"); } catch (error) { cleanupErrors.push(error); }
   }
-  if (tempOwned) {
-    try { fs.unlinkSync(tempIndex); } catch (error) {
-      if (error.code !== "ENOENT") cleanupErrors.push(error);
-    }
-  }
-  if (lockOwned) {
-    try { fs.unlinkSync(lockPath); } catch (error) {
-      if (error.code !== "ENOENT") cleanupErrors.push(error);
-    }
-  }
+  try { workspace.remove("reconcile.index.lock"); } catch (error) { cleanupErrors.push(error); }
   if (primaryError && cleanupErrors.length > 0) {
     throw new AggregateError(
       [primaryError, ...cleanupErrors],
@@ -1004,6 +1421,7 @@ function buildCommitExpectation({
   state,
   commitMessage,
   commitPaths,
+  workspace,
   worktreePath = null,
 }) {
   const resolvedTargetRoot = fs.realpathSync(targetRoot);
@@ -1015,7 +1433,7 @@ function buildCommitExpectation({
     targetRoot: resolvedTargetRoot,
     headRef,
     expectedParent,
-    stagedTree: buildExpectedPathspecTree(resolvedTargetRoot, expectedParent, commitPaths),
+    stagedTree: buildExpectedPathspecTree(resolvedTargetRoot, expectedParent, commitPaths, workspace),
     messageHash: hashCommitMessage(commitMessage),
     baseRef: gitValue(resolvedTargetRoot, ["rev-parse", state.baseBranch], "finalize base ref"),
     featureRef: gitValue(resolvedTargetRoot, ["rev-parse", state.featureBranch], "finalize feature ref"),
@@ -2917,7 +3335,25 @@ export function runDetachedAutoRescue({
   journal.advance("worktree-added");
   store.write(journal);
 
-  let outcome = AutoRescueOutcome.fromResult(cherryPickRange(tempWorktreePath, range, runGitFn));
+  let outcome;
+  try {
+    outcome = AutoRescueOutcome.fromResult(cherryPickRange(tempWorktreePath, range, runGitFn));
+  } catch (primaryError) {
+    if (primaryError.code !== "AUTO_RESCUE_CONFLICT_PROBE_FAILED") throw primaryError;
+    const cleanup = completeAutoRescueCleanup(store, journal, null, runGitFn, worktreeAuthoritySource);
+    if (cleanup?.ok === false) {
+      const cleanupError = Object.assign(new Error("auto-rescue cleanup failed after Git probe failure"), {
+        code: cleanup.code,
+        cleanupAuthority: cleanup.cleanupAuthority,
+      });
+      throw new AggregateError(
+        [primaryError, cleanupError],
+        "auto-rescue Git probe and temporary worktree cleanup both failed",
+        { cause: primaryError },
+      );
+    }
+    throw primaryError;
+  }
   journal.recordWorktreeAuthority(worktreeAuthoritySource.capture(tempWorktreePath));
   if (outcome.abortFailure) {
     journal.advance("abort-failed", outcome);
@@ -2981,16 +3417,6 @@ export function runAutoRescue({
   specId,
   allowedIssueLogId = null,
 }) {
-  let dirtyFiles;
-  try {
-    dirtyFiles = listMainRepoDirtyFiles(mainRepoPath, specId, allowedIssueLogId);
-  } catch (error) {
-    return { ok: false, code: error.code || "MAIN_REPO_STATUS_FAILED", message: error.message };
-  }
-  if (dirtyFiles.length > 0) {
-    return { ok: false, code: "MAIN_REPO_DIRTY", dirtyFiles };
-  }
-
   const range = `${baseline}..${featureBranch}`;
   const identity = autoRescueIdentity({
     mainRepoPath, baseBranch, baseline, featureBranch, specId, allowedIssueLogId,
@@ -3010,6 +3436,16 @@ export function runAutoRescue({
         cleanupAuthority: error.cleanupAuthority,
       };
     }
+  }
+
+  let dirtyFiles;
+  try {
+    dirtyFiles = listMainRepoDirtyFiles(mainRepoPath, specId, allowedIssueLogId);
+  } catch (error) {
+    return { ok: false, code: error.code || "MAIN_REPO_STATUS_FAILED", message: error.message };
+  }
+  if (dirtyFiles.length > 0) {
+    return { ok: false, code: "MAIN_REPO_DIRTY", dirtyFiles };
   }
 
   try {
@@ -3073,9 +3509,26 @@ function cherryPickRange(repoPath, range, runGitFn = runGit) {
     }
     // Genuine conflict.
     const statusRes = runGitFn(["-C", repoPath, "diff", "--name-only", "--diff-filter=U"]);
-    const conflictFiles = statusRes.ok
-      ? statusRes.stdout.split("\n").map((s) => s.trim()).filter(Boolean)
-      : [];
+    if (!statusRes.ok) {
+      const primaryError = gitFailure(
+        "AUTO_RESCUE_CONFLICT_PROBE_FAILED",
+        "cherry-pick conflict file probe failed",
+        statusRes,
+      );
+      const abort = runGitFn(["-C", repoPath, "cherry-pick", "--abort"]);
+      if (!abort.ok) {
+        const abortError = AutoRescueAbortFailure.fromGitResult(abort).toError();
+        const error = new AggregateError(
+          [primaryError, abortError],
+          "auto-rescue conflict probe and abort both failed",
+          { cause: primaryError },
+        );
+        error.code = primaryError.code;
+        throw error;
+      }
+      throw primaryError;
+    }
+    const conflictFiles = statusRes.stdout.split("\n").map((s) => s.trim()).filter(Boolean);
     const abort = runGitFn(["-C", repoPath, "cherry-pick", "--abort"]);
     const abortFailure = abort.ok ? null : AutoRescueAbortFailure.fromGitResult(abort);
     return AutoRescueOutcome.failure(
@@ -3862,6 +4315,80 @@ function gitFailure(code, message, result) {
   return error;
 }
 
+function acquireFinalizeTempIndexWorkspace(transactionStore, transaction, targetRoot) {
+  if (transaction.tempIndexAuthority == null) {
+    transaction.planTempIndexWorkspace();
+    transactionStore.write(transaction);
+  } else if (
+    transaction.tempIndexAuthority.dev !== null
+    && !fs.existsSync(transaction.tempIndexAuthority.workspacePath)
+  ) {
+    transaction.planTempIndexWorkspace();
+    transactionStore.write(transaction);
+  }
+  const workspace = FinalizeTempIndexWorkspace.acquire(transaction.tempIndexAuthority, targetRoot);
+  if (transaction.tempIndexAuthority.dev === null) {
+    transaction.ownTempIndexWorkspace(workspace.authority);
+    try {
+      transactionStore.write(transaction);
+    } catch (error) {
+      throw Object.assign(error, { finalizeTempIndexWorkspace: workspace });
+    }
+  }
+  return workspace;
+}
+
+function acquireFinalizeCallerIndexLease(transactionStore, transaction, targetRoot) {
+  const lockPath = path.join(targetRoot, ".git", "index.lock");
+  if (transaction.indexLockAuthority == null) {
+    if (fs.existsSync(lockPath)) {
+      throw Object.assign(new Error("caller index lock is busy"), {
+        code: "FINALIZE_INDEX_RECONCILIATION_BUSY",
+        lockPath,
+      });
+    }
+    transaction.planIndexLock();
+    transactionStore.write(transaction);
+  } else if (transaction.indexLockAuthority.dev !== null && !fs.existsSync(lockPath)) {
+    transaction.planIndexLock();
+    transactionStore.write(transaction);
+  }
+  const lease = FinalizeCallerIndexLease.acquire(transaction.indexLockAuthority, targetRoot);
+  if (transaction.indexLockAuthority.dev === null) {
+    transaction.ownIndexLock(lease.authority);
+    try {
+      transactionStore.write(transaction);
+    } catch (error) {
+      lease.detach();
+      throw error;
+    }
+  }
+  return lease;
+}
+
+function cleanupFinalizePreparedAuthorities(
+  transactionStore,
+  transaction,
+  targetRoot,
+  { callerIndexLease = null, tempIndexWorkspace = null } = {},
+) {
+  if (transaction.indexLockAuthority != null) {
+    const lockPath = path.join(targetRoot, ".git", "index.lock");
+    if (callerIndexLease == null && fs.existsSync(lockPath)) {
+      callerIndexLease = FinalizeCallerIndexLease.acquire(transaction.indexLockAuthority, targetRoot);
+    }
+    if (callerIndexLease != null) callerIndexLease.release();
+    transaction.clearIndexLock();
+  }
+  if (transaction.tempIndexAuthority != null) {
+    if (tempIndexWorkspace == null && fs.existsSync(transaction.tempIndexAuthority.workspacePath)) {
+      tempIndexWorkspace = FinalizeTempIndexWorkspace.acquire(transaction.tempIndexAuthority, targetRoot);
+    }
+    if (tempIndexWorkspace != null) tempIndexWorkspace.cleanup();
+    transaction.clearTempIndexWorkspace();
+  }
+}
+
 async function runTeardownTransaction(ctx, { worktreePath, mainRepoPath, reportRoot, specId }, transactionStore) {
   const state = ctx.flowState;
   const { featureBranch, worktree, baseBranch } = state;
@@ -3880,6 +4407,8 @@ async function runTeardownTransaction(ctx, { worktreePath, mainRepoPath, reportR
   const targetFm = (worktree && mainRepoPath) ? ctx.flowManager.forRoot(mainRepoPath) : ctx.flowManager;
   const transactionExisted = transactionStore.hasExisting();
   const transaction = transactionStore.loadOrCreate();
+  let callerIndexLease = null;
+  let tempIndexWorkspace = null;
   if (!transactionExisted) transactionStore.write(transaction);
   if (!transaction.phase.atLeast("commit-durable") && transaction.commitExpectation) {
     const recovery = inspectExpectedCommit(transaction.commitExpectation, { targetRoot, state });
@@ -3890,6 +4419,7 @@ async function runTeardownTransaction(ctx, { worktreePath, mainRepoPath, reportR
     }
   }
   if (!transaction.phase.atLeast("commit-durable") && transaction.beforeImages.length > 0) {
+    cleanupFinalizePreparedAuthorities(transactionStore, transaction, targetRoot);
     restorePreparedFinalize(
       transactionStore,
       transaction,
@@ -3919,6 +4449,12 @@ async function runTeardownTransaction(ctx, { worktreePath, mainRepoPath, reportR
   };
   const failBeforeCommit = (env, primaryError = null) => {
     try {
+      cleanupFinalizePreparedAuthorities(transactionStore, transaction, targetRoot, {
+        callerIndexLease,
+        tempIndexWorkspace,
+      });
+      callerIndexLease = null;
+      tempIndexWorkspace = null;
       restorePreparedFinalize(
         transactionStore,
         transaction,
@@ -4024,11 +4560,30 @@ async function runTeardownTransaction(ctx, { worktreePath, mainRepoPath, reportR
         }),
       });
     } catch (err) {
-      pluginLifecycle = {
-        warnings: [{ code: "PLUGIN_LIFECYCLE_FAILED", message: err.message }],
-        issueLogEntries: [{ reason: `plugin finalize-cleanup lifecycle failed: ${err.message}`, payload: { code: "PLUGIN_LIFECYCLE_FAILED" } }],
-        data: {},
-      };
+      return failBeforeCommit(Envelope.fail(
+        "run",
+        "finalize-cleanup",
+        "PLUGIN_LIFECYCLE_FAILED",
+        `Plugin finalize-cleanup lifecycle failed: ${err.message}`,
+        { causeCode: err.code || null },
+      ), err);
+    }
+    const pluginHookFailure = (pluginLifecycle.warnings || [])
+      .find((warning) => warning.code === "PLUGIN_HOOK_FAILED");
+    if (pluginHookFailure) {
+      const error = Object.assign(new Error(pluginHookFailure.message), {
+        code: "PLUGIN_LIFECYCLE_FAILED",
+      });
+      return failBeforeCommit(Envelope.fail(
+        "run",
+        "finalize-cleanup",
+        error.code,
+        `Plugin finalize-cleanup lifecycle failed: ${error.message}`,
+        {
+          pluginId: pluginHookFailure.pluginId || null,
+          hook: pluginHookFailure.hook || null,
+        },
+      ), error);
     }
 
     if (worktree && mainRepoPath) {
@@ -4062,6 +4617,24 @@ async function runTeardownTransaction(ctx, { worktreePath, mainRepoPath, reportR
     if (!commitPaths.includes(flowJsonRel)) {
       throw new Error("finalize flow state mutation is absent from the prepared tree diff");
     }
+    try {
+      callerIndexLease = acquireFinalizeCallerIndexLease(transactionStore, transaction, targetRoot);
+      tempIndexWorkspace = acquireFinalizeTempIndexWorkspace(transactionStore, transaction, targetRoot);
+    } catch (error) {
+      if (
+        error.code === "FINALIZE_INDEX_RECONCILIATION_BUSY"
+        && transaction.indexLockAuthority?.dev === null
+      ) {
+        transaction.clearIndexLock();
+      }
+      return failBeforeCommit(Envelope.fail(
+        "run",
+        "finalize-cleanup",
+        error.code || "FINALIZE_INDEX_AUTHORITY_FAILED",
+        error.message,
+        { lockPath: error.lockPath || null },
+      ), error);
+    }
     const commitMsg = `chore: finalize ${specId}`;
     const commitExpectation = buildCommitExpectation({
       transaction,
@@ -4069,6 +4642,7 @@ async function runTeardownTransaction(ctx, { worktreePath, mainRepoPath, reportR
       state,
       commitMessage: commitMsg,
       commitPaths,
+      workspace: tempIndexWorkspace,
       worktreePath: worktree && mainRepoPath ? (worktreePath || ctx.root) : null,
     });
     transaction.expectCommit(commitExpectation);
@@ -4078,6 +4652,7 @@ async function runTeardownTransaction(ctx, { worktreePath, mainRepoPath, reportR
       state,
       commitMessage: commitMsg,
       commitPaths,
+      workspace: tempIndexWorkspace,
       worktreePath: worktree && mainRepoPath ? (worktreePath || ctx.root) : null,
     });
     const isolatedCommit = runIsolatedFinalizeCommit({
@@ -4085,6 +4660,7 @@ async function runTeardownTransaction(ctx, { worktreePath, mainRepoPath, reportR
       expectedParent: commitExpectation.expectedParent,
       commitMessage: commitMsg,
       commitPaths,
+      workspace: tempIndexWorkspace,
     });
     if (isolatedCommit.stage === "read-tree" && !isolatedCommit.result.ok) {
       const primary = gitFailure(
@@ -4138,11 +4714,23 @@ async function runTeardownTransaction(ctx, { worktreePath, mainRepoPath, reportR
       transaction.clearBeforeImages();
       transactionStore.write(transaction);
     }
-    throwIsolatedIndexCleanup(isolatedCommit);
+    try {
+      throwIsolatedIndexCleanup(isolatedCommit);
+    } catch (error) {
+      callerIndexLease.detach();
+      callerIndexLease = null;
+      throw error;
+    }
     } catch (error) {
       if (error.finalizeRestoreAttempted === true) throw error;
       if (!transaction.phase.atLeast("commit-durable") && transaction.beforeImages.length > 0) {
         try {
+          cleanupFinalizePreparedAuthorities(transactionStore, transaction, targetRoot, {
+            callerIndexLease,
+            tempIndexWorkspace,
+          });
+          callerIndexLease = null;
+          tempIndexWorkspace = null;
           restorePreparedFinalize(
             transactionStore,
             transaction,
@@ -4166,8 +4754,19 @@ async function runTeardownTransaction(ctx, { worktreePath, mainRepoPath, reportR
 
   if (transaction.phase.atLeast("commit-durable") && !transaction.phase.atLeast("index-reconciled")) {
     try {
-      reconcileFinalizeCallerIndex(transaction.commitExpectation);
+      if (callerIndexLease == null) {
+        callerIndexLease = acquireFinalizeCallerIndexLease(transactionStore, transaction, targetRoot);
+      }
+      if (tempIndexWorkspace == null) {
+        tempIndexWorkspace = acquireFinalizeTempIndexWorkspace(transactionStore, transaction, targetRoot);
+      }
+      reconcileFinalizeCallerIndex(transaction.commitExpectation, callerIndexLease, tempIndexWorkspace);
+      callerIndexLease = null;
+      tempIndexWorkspace.cleanup();
+      tempIndexWorkspace = null;
     } catch (error) {
+      callerIndexLease?.detach();
+      callerIndexLease = null;
       return failAfterCommit(Envelope.fail(
         "run",
         "finalize-cleanup",
@@ -4176,6 +4775,8 @@ async function runTeardownTransaction(ctx, { worktreePath, mainRepoPath, reportR
         { lockPath: error.lockPath || null },
       ));
     }
+    transaction.clearIndexLock();
+    transaction.clearTempIndexWorkspace();
     transaction.advance("index-reconciled", { commitSha: transaction.result.commitSha });
     transactionStore.write(transaction);
   }

@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
 import { afterEach, describe, it } from "node:test";
+import { pathToFileURL } from "node:url";
 
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { makeFlowState } from "../../helpers/flow-setup.js";
@@ -52,6 +53,25 @@ function runCli(root) {
   return spawnSync(process.execPath, [SCRIPT, "--apply"], {
     cwd: root,
     env: { ...process.env, SENTI_WORK_ROOT: root },
+    encoding: "utf8",
+  });
+}
+
+function crashAfterGenerationReservation(root) {
+  const script = `
+    import fs from "node:fs";
+    const originalFsync = fs.fsyncSync;
+    fs.fsyncSync = (descriptor) => {
+      originalFsync(descriptor);
+      let openedPath = "";
+      try { openedPath = fs.readlinkSync(\`/proc/self/fd/\${descriptor}\`); } catch {}
+      if (openedPath.endsWith(".migration.tmp")) process.kill(process.pid, "SIGKILL");
+    };
+    const { applyMigration } = await import(${JSON.stringify(pathToFileURL(SCRIPT).href)});
+    applyMigration(${JSON.stringify(root)});
+  `;
+  return spawnSync(process.execPath, ["--input-type=module", "-e", script], {
+    cwd: root,
     encoding: "utf8",
   });
 }
@@ -364,6 +384,64 @@ describe("rename-phase-steps migration transaction", () => {
     assert.deepEqual(recovered, { recovered: true, completed: false });
     assert.equal(fs.existsSync(journalPath), false);
     assert.deepEqual(fs.readFileSync(flowPath), before);
+  });
+
+  it("recovers a SIGKILL between generation reservation and inode identity journaling", () => {
+    const root = createTmpDir("rename-transaction-reservation-sigkill-");
+    roots.push(root);
+    initRepository(root);
+    const specId = "441-reservation-sigkill";
+    const dir = seedSpec(root, specId, { issue: false, review: false });
+    const flowPath = path.join(dir, "flow.json");
+    const before = fs.readFileSync(flowPath);
+    commitAll(root);
+
+    const crashed = crashAfterGenerationReservation(root);
+    assert.equal(crashed.signal, "SIGKILL", crashed.stderr);
+    const journalPath = path.join(root, JOURNAL);
+    const interrupted = JSON.parse(fs.readFileSync(journalPath, "utf8"));
+    const generation = interrupted.targets.find((target) => target.plannedGeneration)?.plannedGeneration;
+    assert.equal(generation.reserved, false);
+    const tempPath = path.join(root, generation.relativeTempPath);
+    assert.match(fs.readFileSync(tempPath, "utf8"), /senti-migration-reservation-v1/);
+
+    const recovered = OfflineMigrationTransaction.recover({
+      root,
+      name: "rename-phase-steps",
+      journalPath: JOURNAL,
+    });
+    assert.deepEqual(recovered, { recovered: true, completed: false });
+    assert.equal(fs.existsSync(tempPath), false);
+    assert.equal(fs.existsSync(journalPath), false);
+    assert.deepEqual(fs.readFileSync(flowPath), before);
+  });
+
+  it("does not delete a foreign replacement at an unjournaled generation inode", () => {
+    const root = createTmpDir("rename-transaction-reservation-foreign-");
+    roots.push(root);
+    initRepository(root);
+    const specId = "441-reservation-foreign";
+    seedSpec(root, specId, { issue: false, review: false });
+    commitAll(root);
+
+    const crashed = crashAfterGenerationReservation(root);
+    assert.equal(crashed.signal, "SIGKILL", crashed.stderr);
+    const interrupted = JSON.parse(fs.readFileSync(path.join(root, JOURNAL), "utf8"));
+    const generation = interrupted.targets.find((target) => target.plannedGeneration)?.plannedGeneration;
+    const tempPath = path.join(root, generation.relativeTempPath);
+    fs.unlinkSync(tempPath);
+    fs.writeFileSync(tempPath, "foreign replacement", { mode: generation.mode });
+
+    assert.throws(
+      () => OfflineMigrationTransaction.recover({
+        root,
+        name: "rename-phase-steps",
+        journalPath: JOURNAL,
+      }),
+      /generation authority changed|reservation|foreign/i,
+    );
+    assert.equal(fs.readFileSync(tempPath, "utf8"), "foreign replacement");
+    assert.equal(fs.existsSync(path.join(root, JOURNAL)), true);
   });
 
   for (const phase of ["staged", "applying", "rolling-back"]) {

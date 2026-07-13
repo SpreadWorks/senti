@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync, spawn } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
@@ -23,6 +23,7 @@ import { findStepById } from "../../../src/flow/lib/step-tree.js";
 
 const finalizeModule = path.resolve("src/flow/lib/run-finalize-cleanup.js");
 const flowManagerModule = path.resolve("src/lib/flow-manager.js");
+const atomicJsonModule = path.resolve("src/lib/atomic-json-file.js");
 
 function git(root, args) {
   return execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
@@ -761,7 +762,7 @@ test("revalidates commit authority after the expectation journal becomes durable
     let changed = false;
     AtomicJsonFile.prototype.write = function writeThenChangeFeature(value) {
       const result = originalWrite.call(this, value);
-      if (!changed && value?.version === 3 && value.commitExpectation) {
+      if (!changed && value?.version === 4 && value.commitExpectation) {
         changed = true;
         const oldFeature = git(root, ["rev-parse", fixture.featureBranch]);
         const tree = git(root, ["rev-parse", `${oldFeature}^{tree}`]);
@@ -809,7 +810,7 @@ test("rejects finalize when HEAD is not the configured base branch", async () =>
   }
 });
 
-test("a caller index lock defers reconciliation after isolated commit and retry completes cleanly", async () => {
+test("a foreign caller index lock halts before commit and retry completes cleanly", async () => {
   const root = createTmpDir("finalize-git-add-failure-");
   try {
     initGitRepo(root);
@@ -827,11 +828,11 @@ test("a caller index lock defers reconciliation after isolated commit and retry 
 
     assert.equal(result.ok, false, JSON.stringify(result));
     assert.equal(result.errors[0].code, "FINALIZE_INDEX_RECONCILIATION_BUSY");
-    assert.notEqual(git(root, ["rev-parse", "HEAD"]), before.head);
+    assert.equal(git(root, ["rev-parse", "HEAD"]), before.head);
     assert.deepEqual(fs.readFileSync(path.join(root, ".git", "index")), before.index);
     assert.deepEqual(fs.readFileSync(indexLock), before.indexLock);
     assert.equal(recoveryJournals(root).length, 1);
-    assert.equal(JSON.parse(fs.readFileSync(recoveryJournal(root), "utf8")).phase, "commit-durable");
+    assert.equal(JSON.parse(fs.readFileSync(recoveryJournal(root), "utf8")).phase, "prepared");
 
     fs.unlinkSync(indexLock);
     const retried = await runFinalize(root, specId);
@@ -839,6 +840,96 @@ test("a caller index lock defers reconciliation after isolated commit and retry 
     assert.equal(git(root, ["status", "--porcelain", "--", `specs/${specId}`]), "");
   } finally {
     fs.rmSync(path.join(root, ".git", "index.lock"), { force: true });
+    removeTmpDir(root);
+  }
+});
+
+test("a caller index lock race after durable intent restores without deleting the winner", async () => {
+  const root = createTmpDir("finalize-index-lock-race-");
+  try {
+    initGitRepo(root);
+    const specId = "166";
+    setupFinalizeFlow(root, specId);
+    const before = preCommitSnapshot(root, specId);
+    const indexLock = path.join(root, ".git", "index.lock");
+    const originalWrite = AtomicJsonFile.prototype.write;
+    let raced = false;
+    AtomicJsonFile.prototype.write = function createForeignLockAfterIntent(value) {
+      const result = originalWrite.call(this, value);
+      if (!raced && value?.indexLockAuthority?.dev === null && value?.tempIndexAuthority == null) {
+        raced = true;
+        fs.writeFileSync(indexLock, "foreign winner\n");
+      }
+      return result;
+    };
+    let stopped;
+    try {
+      stopped = await runFinalize(root, specId);
+    } finally {
+      AtomicJsonFile.prototype.write = originalWrite;
+    }
+
+    assert.equal(raced, true);
+    assert.equal(stopped.ok, false, JSON.stringify(stopped));
+    assert.equal(stopped.errors[0].code, "FINALIZE_INDEX_RECONCILIATION_BUSY");
+    assertPreCommitSnapshot(root, specId, before);
+    assert.equal(fs.readFileSync(indexLock, "utf8"), "foreign winner\n");
+    const journal = JSON.parse(fs.readFileSync(recoveryJournal(root), "utf8"));
+    assert.equal(journal.phase, "prepared");
+    assert.equal(journal.indexLockAuthority, null);
+  } finally {
+    fs.rmSync(path.join(root, ".git", "index.lock"), { force: true });
+    removeTmpDir(root);
+  }
+});
+
+test("retry adopts its journaled caller index lock after SIGKILL", async () => {
+  const root = createTmpDir("finalize-index-lock-sigkill-");
+  try {
+    initGitRepo(root);
+    const specId = "167";
+    setupFinalizeFlow(root, specId);
+    const headBefore = git(root, ["rev-parse", "HEAD"]);
+    const script = `
+      import { AtomicJsonFile } from ${JSON.stringify(pathToFileURL(atomicJsonModule).href)};
+      import { RunFinalizeCleanupCommand } from ${JSON.stringify(pathToFileURL(finalizeModule).href)};
+      import { FlowManager } from ${JSON.stringify(pathToFileURL(flowManagerModule).href)};
+      const originalWrite = AtomicJsonFile.prototype.write;
+      AtomicJsonFile.prototype.write = function crashAfterIndexLease(value) {
+        const result = originalWrite.call(this, value);
+        if (value?.indexLockAuthority?.dev != null && value?.tempIndexAuthority == null) {
+          process.kill(process.pid, "SIGKILL");
+        }
+        return result;
+      };
+      const root = ${JSON.stringify(root)};
+      const specId = ${JSON.stringify(specId)};
+      const flowManager = new FlowManager({ root, mainRoot: root, inWorktree: false, specId });
+      await new RunFinalizeCleanupCommand().execute({
+        root,
+        flowManager,
+        flowState: flowManager.loadReadOnly(specId),
+        autoRescue: false,
+        force: false,
+      });
+    `;
+    const crashed = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
+      cwd: root,
+      encoding: "utf8",
+    });
+    assert.equal(crashed.signal, "SIGKILL", crashed.stderr);
+    assert.equal(git(root, ["rev-parse", "HEAD"]), headBefore);
+    const journal = JSON.parse(fs.readFileSync(recoveryJournal(root), "utf8"));
+    assert.equal(journal.phase, "prepared");
+    assert.equal(typeof journal.indexLockAuthority.dev, "number");
+    const lockPath = path.join(root, ".git", "index.lock");
+    assert.equal(fs.statSync(lockPath).ino, journal.indexLockAuthority.ino);
+
+    const retried = await runFinalize(root, specId);
+    assert.equal(retried.ok, true, JSON.stringify(retried));
+    assert.equal(fs.existsSync(lockPath), false);
+    assert.equal(git(root, ["status", "--porcelain", "--", `specs/${specId}`]), "");
+  } finally {
     removeTmpDir(root);
   }
 });
@@ -915,7 +1006,7 @@ test("post-commit isolated-index cleanup failure retains commit authority for re
     const originalUnlink = fs.unlinkSync;
     let injected = false;
     fs.unlinkSync = (target, ...args) => {
-      if (!injected && String(target).includes("senti-finalize-commit-index-")) {
+      if (!injected && String(target).endsWith(`${path.sep}commit.index`)) {
         injected = true;
         throw Object.assign(new Error("injected isolated index cleanup failure"), { code: "EIO" });
       }
@@ -1017,8 +1108,8 @@ for (const fault of FINALIZE_GIT_FAULTS) {
       const wrapper = path.join(bin, "git");
       const realGit = execFileSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).trim();
       const indexSelector = fault === "expected-tree"
-        ? "*senti-finalize-index-*"
-        : "*senti-finalize-commit-index-*";
+        ? "*/expected.index"
+        : "*/commit.index";
       const commandSelector = fault === "isolated-read-tree"
         ? "read-tree"
         : fault === "isolated-add"
@@ -1071,7 +1162,7 @@ test("isolated finalize index is private, temporary, and reconciles a clean call
     const realGit = execFileSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).trim();
     fs.writeFileSync(wrapper, [
       "#!/bin/sh",
-      "case \"$GIT_INDEX_FILE\" in *senti-finalize-commit-index-*)",
+      "case \"$GIT_INDEX_FILE\" in */commit.index)",
       "  case \" $* \" in *\" add \"*)",
       "    test -f \"$GIT_INDEX_FILE\" || exit 74",
       "    test \"$(stat -c %a \"$GIT_INDEX_FILE\")\" = 600 || exit 75",
@@ -1180,6 +1271,57 @@ test("plugin artifact and retained metadata fault restores main and worktree tre
     assert.deepEqual(journal.beforeImages, []);
     const retried = await runFinalize(root, specId, { flowManager: fixture.flowManager, flowState: fixture.state });
     assert.equal(retried.ok, true, JSON.stringify(retried));
+  } finally {
+    removeTmpDir(root);
+  }
+});
+
+test("plugin lifecycle exceptions fail-stop and restore the prepared tree", async () => {
+  const root = createTmpDir("finalize-plugin-lifecycle-fail-stop-");
+  try {
+    initGitRepo(root);
+    const specId = "188";
+    const fixture = setupFinalizeFlow(root, specId);
+    const pluginId = "finalize-throw";
+    const pluginRoot = path.join(root, ".senti", "plugins", pluginId);
+    fs.mkdirSync(path.join(pluginRoot, "hooks"), { recursive: true });
+    fs.writeFileSync(path.join(root, ".senti", "config.json"), `${JSON.stringify({
+      plugin: { packages: [{ id: pluginId }] },
+    }, null, 2)}\n`);
+    fs.writeFileSync(path.join(pluginRoot, "hooks", "finalize.js"), `
+      export default function register(api) {
+        return class FinalizeThrowHook extends api.FlowCommandHook {
+          static command = "finalize-cleanup";
+          static hook = "pre";
+          async run(context) {
+            await context.artifacts.writeText("partial.txt", "must be rolled back");
+            throw new Error("injected plugin lifecycle failure");
+          }
+        };
+      }
+    `);
+    fixture.state.plugins = { flowCommandHooks: [{
+      apiVersion: 1,
+      pluginId,
+      module: "hooks/finalize.js",
+      className: "FinalizeThrowHook",
+      command: "finalize-cleanup",
+      hook: "pre",
+      priority: 0,
+    }] };
+    replaceFlowState(root, fixture.state, { specId });
+    git(root, ["add", `specs/${specId}/flow.json`]);
+    git(root, ["commit", "--quiet", "-m", "record failing plugin"]);
+    const before = preCommitSnapshot(root, specId);
+
+    const stopped = await runFinalize(root, specId, { flowState: fixture.state });
+
+    assert.equal(stopped.ok, false, JSON.stringify(stopped));
+    assert.equal(stopped.errors[0].code, "PLUGIN_LIFECYCLE_FAILED");
+    assertPreCommitSnapshot(root, specId, before);
+    const journal = JSON.parse(fs.readFileSync(recoveryJournal(root), "utf8"));
+    assert.equal(journal.phase, "prepared");
+    assert.deepEqual(journal.beforeImages, []);
   } finally {
     removeTmpDir(root);
   }

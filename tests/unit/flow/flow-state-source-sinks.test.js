@@ -121,6 +121,7 @@ function collectSinkCapabilities(source) {
     for (const item of match[1].split(",")) {
       const parts = item.trim().split(/\s+as\s+/);
       if (sinkApis.has(parts[0])) state.aliases.add(parts[1] || parts[0]);
+      if (parts[0] === "promises") state.namespaces.add(parts[1] || parts[0]);
     }
   }
   for (const match of source.matchAll(/import\s+(?:[A-Za-z_$][\w$]*\s*,\s*)?\{([^}]+)\}\s*from\s*["'](?:node:)?fs\/promises["']/g)) {
@@ -148,6 +149,10 @@ function collectSinkCapabilities(source) {
         const [property, alias = property] = item.trim().split(/\s*:\s*/);
         const fromNamespace = state.namespaces.has(match[2]) && sinkApis.has(property);
         const fromProperty = state.properties.has(`${match[2]}.${property}`);
+        if (state.namespaces.has(match[2]) && property === "promises" && !state.namespaces.has(alias)) {
+          state.namespaces.add(alias);
+          changed = true;
+        }
         if ((fromNamespace || fromProperty) && !state.aliases.has(alias)) {
           state.aliases.add(alias);
           changed = true;
@@ -484,6 +489,17 @@ const capabilityFixtures = new Map([
     import { flowStatePath } from "${allowedOwner}";
     const target = flowStatePath(root, id);
     await persist(target, "named promises");
+  `],
+  ["promises-object-named-import", `
+    import { promises as fsp } from "node:fs";
+    import { flowStatePath } from "${allowedOwner}";
+    await fsp.writeFile(flowStatePath(root, id), "named promises object");
+  `],
+  ["promises-object-destructuring", `
+    import fs from "node:fs";
+    import { flowStatePath } from "${allowedOwner}";
+    const { promises: fsp } = fs;
+    await fsp.writeFile(flowStatePath(root, id), "destructured promises object");
   `],
   ["promises-namespace-alias", `
     import fs from "node:fs";

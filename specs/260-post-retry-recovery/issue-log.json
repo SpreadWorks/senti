@@ -609,6 +609,27 @@
       "taskId": null,
       "timestamp": "2026-07-13T17:40:01Z",
       "issueLogId": "issue-441-independent-audit-migration-closed-world-remediation"
+    },
+    {
+      "step": "immutable-audit-remediation",
+      "issue": 441,
+      "reason": "The immutable audit of commit 6daec257 found a SIGKILL window after offline migration created and fsynced a generation inode but before its device/inode identity reached journal v6; recovery could then unlink an unbound same-path replacement. The flow-state sink guard also missed named or destructured node:fs promises namespaces.",
+      "trigger": "Post-commit immutable-tree migration and guardrail audit before merge authorization.",
+      "resolution": "Offline migration journal v7 owns a token-marked 0700 workspace under the repository recovery authority, binds its directory device/inode before generation work, and places every planned and rollback generation inside that same-filesystem namespace. Each pre-identity generation contains a journaled reservation token; recovery removes it only when token, mode, real-file, and workspace authority match, while a same-path foreign replacement stops closed and remains untouched. The sink capability scanner now propagates both import { promises as alias } from node:fs and const { promises: alias } = fs into write-sink detection without widening the two allowed owners.",
+      "testCorrections": [
+        "Added a real SIGKILL fixture at the generation fsync boundary and verified cleanup plus byte-identical target rollback.",
+        "Added a same-path foreign replacement fixture that requires recovery failure, retained journal authority, and no foreign-file deletion.",
+        "Added named and destructured fs.promises namespace bypass fixtures to the existing scanner capability matrix."
+      ],
+      "testEvidence": {
+        "migrationGreen": "/tmp/flow-441-migration-workspace-wip2.log",
+        "scannerGreen": "/tmp/flow-441-sink-scanner-wip.log",
+        "focusedGreen": "/tmp/flow-441-post-audit-focused-v7.log",
+        "postRecordUnion": "/tmp/flow-441-candidate11-authority-union-post-record.log"
+      },
+      "taskId": null,
+      "timestamp": "2026-07-13T18:10:01Z",
+      "issueLogId": "issue-441-immutable-audit-migration-workspace-scanner"
     }
   ]
 }

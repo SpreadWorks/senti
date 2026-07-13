@@ -363,6 +363,29 @@
       "taskId": null,
       "timestamp": "2026-07-13T17:40:00Z",
       "issueLogId": "issue-441-independent-audit-finalize-rescue-remediation"
+    },
+    {
+      "step": "immutable-audit-remediation",
+      "issue": 441,
+      "reason": "The immutable audit of commit 6daec257 found that finalize advanced HEAD before acquiring the caller index lock, temporary indexes were created directly under the public temporary directory, pending auto-rescue ref journals were checked after dirty preflight, and plugin hook exceptions could still become warnings followed by success.",
+      "trigger": "Post-commit immutable-tree audit before merge authorization.",
+      "resolution": "Finalize teardown journal v4 durably plans and inode-binds a caller index lease plus a private 0700 temporary-index workspace before commit construction, retains both through commit durability and caller-index reconciliation, and reclaims an owned stale lock after SIGKILL. A foreign lock, including a race after durable intent, halts before HEAD mutation and is never deleted. Expected-tree, commit, and reconcile indexes are initialized mode 0600 inside the owned workspace. Plugin lifecycle exceptions and PLUGIN_HOOK_FAILED results now fail-stop through exact prepared rollback. Public auto-rescue resumes a pending ref-update journal before ordinary dirty preflight, materializes a checked-out base, adopts a successful CAS reported as failure only after probing the expected new OID, and reports a failed conflict-file probe as AUTO_RESCUE_CONFLICT_PROBE_FAILED rather than an ordinary conflict.",
+      "testCorrections": [
+        "Changed the foreign caller index-lock fixture from accepting post-commit deferral to requiring byte-identical HEAD, index, and prepared-state restoration before retry.",
+        "Updated journal version and private-index path selectors to the v4 transaction workspace without relaxing fault, cleanup, or retry assertions.",
+        "Kept pre-outcome rescue exceptions on their established durable-residue route; only the newly owned conflict-file-probe failure performs immediate verified cleanup."
+      ],
+      "testEvidence": {
+        "finalizeGreen": "/tmp/flow-441-finalize-index-wip5.log",
+        "autoRescueGreen": "/tmp/flow-441-auto-rescue-wip3.log",
+        "indexRaceGreen": "/tmp/flow-441-candidate11-index-lock-race.log",
+        "rescueContractGreen": "/tmp/flow-441-candidate11-auto-rescue-contract-fix.log",
+        "focusedGreen": "/tmp/flow-441-post-audit-focused-v7.log",
+        "postRecordUnion": "/tmp/flow-441-candidate11-authority-union-post-record.log"
+      },
+      "taskId": null,
+      "timestamp": "2026-07-13T18:10:00Z",
+      "issueLogId": "issue-441-immutable-audit-finalize-index-rescue-plugin"
     }
   ]
 }

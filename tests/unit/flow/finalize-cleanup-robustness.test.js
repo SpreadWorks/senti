@@ -8,7 +8,8 @@ import assert from "node:assert/strict";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
-import { execFileSync, spawn } from "child_process";
+import { execFileSync, spawn, spawnSync } from "child_process";
+import { pathToFileURL } from "node:url";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { setupFlow, makeFlowManager, replaceFlowState } from "../../helpers/flow-setup.js";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
@@ -275,6 +276,154 @@ describe("finalize-cleanup robustness", () => {
 
     assert.equal(result.ok, true, JSON.stringify(result));
     assert.equal(fs.readFileSync(path.join(tmp, "rescued.txt"), "utf8"), "rescued on base\n");
+    assert.equal(execFileSync("git", ["-C", tmp, "status", "--porcelain"], { encoding: "utf8" }), "");
+  });
+
+  it("public auto-rescue resumes a ref-update crash before dirty preflight", async () => {
+    const { runAutoRescue } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
+    tmp = createTmpDir("senti-auto-rescue-ref-crash-");
+    initGitRepo(tmp);
+    const baseBranch = execFileSync("git", ["-C", tmp, "branch", "--show-current"], { encoding: "utf8" }).trim();
+    const baseline = execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+    const featureBranch = "feature/ref-crash-rescue";
+    execFileSync("git", ["-C", tmp, "checkout", "-qb", featureBranch]);
+    fs.writeFileSync(path.join(tmp, "rescued-after-crash.txt"), "recovered\n");
+    execFileSync("git", ["-C", tmp, "add", "rescued-after-crash.txt"]);
+    execFileSync("git", ["-C", tmp, "commit", "-qm", "rescue after ref crash"]);
+    execFileSync("git", ["-C", tmp, "checkout", "-q", baseBranch]);
+
+    const bin = path.join(tmp, ".git", "crash-bin");
+    fs.mkdirSync(bin);
+    const realGit = execFileSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).trim();
+    fs.writeFileSync(path.join(bin, "git"), [
+      "#!/bin/sh",
+      `real=${JSON.stringify(realGit)}`,
+      'case "$*" in *update-ref*refs/heads/*)',
+      '  "$real" "$@" || exit $?',
+      '  kill -KILL "$SENTI_RESCUE_PID"',
+      "  sleep 5",
+      "  exit 91",
+      ";; esac",
+      'exec "$real" "$@"',
+      "",
+    ].join("\n"), { mode: 0o755 });
+    const moduleUrl = pathToFileURL(path.resolve("src/flow/lib/run-finalize-cleanup.js")).href;
+    const child = spawnSync(process.execPath, ["--input-type=module", "-e", `
+      const { runAutoRescue } = await import(${JSON.stringify(moduleUrl)});
+      process.env.SENTI_RESCUE_PID = String(process.pid);
+      runAutoRescue(${JSON.stringify({
+        mainRepoPath: tmp,
+        baseBranch,
+        baseline,
+        featureBranch,
+        specId: "ref-crash-rescue",
+      })});
+    `], {
+      cwd: tmp,
+      env: { ...process.env, PATH: `${bin}${path.delimiter}${process.env.PATH}` },
+      encoding: "utf8",
+    });
+    assert.equal(child.signal, "SIGKILL", child.stderr);
+    assert.notEqual(execFileSync("git", ["-C", tmp, "rev-parse", baseBranch], { encoding: "utf8" }).trim(), baseline);
+    assert.notEqual(execFileSync("git", ["-C", tmp, "status", "--porcelain"], { encoding: "utf8" }), "");
+
+    const resumed = runAutoRescue({
+      mainRepoPath: tmp,
+      baseBranch,
+      baseline,
+      featureBranch,
+      specId: "ref-crash-rescue",
+    });
+    assert.equal(resumed.ok, true, JSON.stringify(resumed));
+    assert.equal(fs.readFileSync(path.join(tmp, "rescued-after-crash.txt"), "utf8"), "recovered\n");
+    assert.equal(execFileSync("git", ["-C", tmp, "status", "--porcelain"], { encoding: "utf8" }), "");
+  });
+
+  it("auto-rescue adopts a successful ref CAS reported as a Git failure", async () => {
+    const { runAutoRescue } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
+    tmp = createTmpDir("senti-auto-rescue-ref-ambiguous-");
+    initGitRepo(tmp);
+    const baseBranch = execFileSync("git", ["-C", tmp, "branch", "--show-current"], { encoding: "utf8" }).trim();
+    const baseline = execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+    const featureBranch = "feature/ref-ambiguous-rescue";
+    execFileSync("git", ["-C", tmp, "checkout", "-qb", featureBranch]);
+    fs.writeFileSync(path.join(tmp, "ambiguous-ref.txt"), "adopted\n");
+    execFileSync("git", ["-C", tmp, "add", "ambiguous-ref.txt"]);
+    execFileSync("git", ["-C", tmp, "commit", "-qm", "ambiguous ref rescue"]);
+    execFileSync("git", ["-C", tmp, "checkout", "-q", baseBranch]);
+    const bin = path.join(tmp, ".git", "ambiguous-bin");
+    fs.mkdirSync(bin);
+    const realGit = execFileSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).trim();
+    fs.writeFileSync(path.join(bin, "git"), [
+      "#!/bin/sh",
+      `real=${JSON.stringify(realGit)}`,
+      'case "$*" in *update-ref*refs/heads/*)',
+      '  "$real" "$@" || exit $?',
+      "  echo injected-ambiguous-result >&2",
+      "  exit 73",
+      ";; esac",
+      'exec "$real" "$@"',
+      "",
+    ].join("\n"), { mode: 0o755 });
+    const oldPath = process.env.PATH;
+    process.env.PATH = `${bin}${path.delimiter}${oldPath}`;
+    let result;
+    try {
+      result = runAutoRescue({
+        mainRepoPath: tmp,
+        baseBranch,
+        baseline,
+        featureBranch,
+        specId: "ref-ambiguous-rescue",
+      });
+    } finally {
+      process.env.PATH = oldPath;
+    }
+    assert.equal(result.ok, true, JSON.stringify(result));
+    assert.equal(fs.readFileSync(path.join(tmp, "ambiguous-ref.txt"), "utf8"), "adopted\n");
+    assert.equal(execFileSync("git", ["-C", tmp, "status", "--porcelain"], { encoding: "utf8" }), "");
+  });
+
+  it("auto-rescue fails closed when conflict-file probing fails", async () => {
+    const { runAutoRescue } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
+    tmp = createTmpDir("senti-auto-rescue-conflict-probe-");
+    initGitRepo(tmp);
+    const baseBranch = execFileSync("git", ["-C", tmp, "branch", "--show-current"], { encoding: "utf8" }).trim();
+    const baseline = execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+    const featureBranch = "feature/conflict-probe-rescue";
+    execFileSync("git", ["-C", tmp, "checkout", "-qb", featureBranch]);
+    fs.writeFileSync(path.join(tmp, "README.md"), "feature version\n");
+    execFileSync("git", ["-C", tmp, "commit", "-qam", "feature conflict"]);
+    execFileSync("git", ["-C", tmp, "checkout", "-q", baseBranch]);
+    fs.writeFileSync(path.join(tmp, "README.md"), "base version\n");
+    execFileSync("git", ["-C", tmp, "commit", "-qam", "base conflict"]);
+    const baseHead = execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+    const bin = path.join(tmp, ".git", "probe-bin");
+    fs.mkdirSync(bin);
+    const realGit = execFileSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).trim();
+    fs.writeFileSync(path.join(bin, "git"), [
+      "#!/bin/sh",
+      'case "$*" in *diff*--name-only*--diff-filter=U*) echo injected-conflict-probe >&2; exit 74;; esac',
+      `exec ${JSON.stringify(realGit)} "$@"`,
+      "",
+    ].join("\n"), { mode: 0o755 });
+    const oldPath = process.env.PATH;
+    process.env.PATH = `${bin}${path.delimiter}${oldPath}`;
+    try {
+      assert.throws(
+        () => runAutoRescue({
+          mainRepoPath: tmp,
+          baseBranch,
+          baseline,
+          featureBranch,
+          specId: "conflict-probe-rescue",
+        }),
+        (error) => error.code === "AUTO_RESCUE_CONFLICT_PROBE_FAILED",
+      );
+    } finally {
+      process.env.PATH = oldPath;
+    }
+    assert.equal(execFileSync("git", ["-C", tmp, "rev-parse", baseBranch], { encoding: "utf8" }).trim(), baseHead);
     assert.equal(execFileSync("git", ["-C", tmp, "status", "--porcelain"], { encoding: "utf8" }), "");
   });
 
