@@ -186,7 +186,7 @@ class OfflineMigrationWorkspace {
         throw new Error("migration private workspace owner marker changed");
       }
     } else {
-      if (!created && fs.readdirSync(directory).length > 0) {
+      if (!created) {
         throw new Error("migration private workspace is not owned");
       }
       const descriptor = fs.openSync(markerPath, "wx", 0o600);

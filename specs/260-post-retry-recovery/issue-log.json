@@ -630,6 +630,24 @@
       "taskId": null,
       "timestamp": "2026-07-13T18:10:01Z",
       "issueLogId": "issue-441-immutable-audit-migration-workspace-scanner"
+    },
+    {
+      "step": "immutable-audit-remediation",
+      "issue": 441,
+      "reason": "The second immutable audit found that offline migration treated an unmarked empty EEXIST workspace as owned, allowing a foreign directory created after durable path intent to receive an owner marker and later be deleted.",
+      "trigger": "Second post-commit immutable-tree migration audit before merge authorization.",
+      "resolution": "Offline migration now accepts a newly planned workspace only when its exclusive mkdir succeeds. Any EEXIST workspace without the exact transaction owner marker stops closed even when empty and remains untouched. Once the owned 0700 workspace device/inode is journaled, generation creation continues exclusively beneath that parent with the existing exact path and reservation-token authority.",
+      "testCorrections": [],
+      "testEvidence": {
+        "workspaceRed": "/tmp/flow-441-red-migration-workspace.log",
+        "workspaceGreen": "/tmp/flow-441-green-migration-workspace.log",
+        "focusedMigrationGreen": "/tmp/flow-441-focused-migration.log",
+        "preRecordUnion": "/tmp/flow-441-candidate12-authority-union-pre-record.log"
+      },
+      "result": "The migration transaction suite and the strengthened serial authority union passed before records.",
+      "taskId": null,
+      "timestamp": "2026-07-13T18:45:01Z",
+      "issueLogId": "issue-441-immutable-audit-foreign-empty-workspace"
     }
   ]
 }

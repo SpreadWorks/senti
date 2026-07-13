@@ -272,6 +272,72 @@ describe("R9: detached auto-rescue transaction authority", () => {
     });
   }
 
+  it("adopts a resumed ref update that reached the expected OID before reporting failure", () => {
+    const root = createTmpDir("auto-rescue-resumed-ref-ambiguous-");
+    const temp = path.join(os.tmpdir(), "senti-rescue-tmp-resumed-ref-ambiguous");
+    let registered = false;
+    let currentBase = OLD_BASE;
+    let cherryPicks = 0;
+    let updates = 0;
+    let ambiguousUpdate = false;
+    const runGitFn = (args) => {
+      if (args.includes("--verify")) return gitResult(true, `${currentBase}\n`);
+      if (args.includes("list") && args.includes("--porcelain")) {
+        return gitResult(true, registered ? `worktree ${temp}\n` : "");
+      }
+      if (args.includes("add") && args.includes("--detach")) {
+        registered = true;
+        return gitResult(true);
+      }
+      if (args.includes("cherry-pick")) {
+        cherryPicks += 1;
+        return gitResult(true);
+      }
+      if (args.includes("rev-parse") && args.includes("HEAD")) return gitResult(true, `${NEW_BASE}\n`);
+      if (args.includes("update-ref")) {
+        updates += 1;
+        assert.equal(ambiguousUpdate, true);
+        assert.equal(currentBase, OLD_BASE);
+        currentBase = NEW_BASE;
+        return gitResult(false, "", "injected ambiguous update-ref result");
+      }
+      if (args.includes("remove") && args.includes("--force")) {
+        registered = false;
+        return gitResult(true);
+      }
+      throw new Error(`unexpected git command: ${args.join(" ")}`);
+    };
+    const originalWrite = AtomicJsonFile.prototype.write;
+    let injected = false;
+    AtomicJsonFile.prototype.write = function crashAfterPreparedRefUpdate(value) {
+      const result = originalWrite.call(this, value);
+      if (!injected && value?.phase === "ref-update-prepared") {
+        injected = true;
+        throw new Error("crash after prepared ref update");
+      }
+      return result;
+    };
+    try {
+      assert.throws(
+        () => runDetachedAutoRescue(rescueArgs(root, runGitFn, "resumed-ref-ambiguous")),
+        /crash after prepared ref update/,
+      );
+    } finally {
+      AtomicJsonFile.prototype.write = originalWrite;
+    }
+    try {
+      ambiguousUpdate = true;
+      const resumed = runDetachedAutoRescue(rescueArgs(root, runGitFn, "resumed-ref-ambiguous"));
+      assert.equal(resumed.ok, true, JSON.stringify(resumed));
+      assert.equal(currentBase, NEW_BASE);
+      assert.equal(cherryPicks, 1);
+      assert.equal(updates, 1);
+      assert.equal(registered, false);
+    } finally {
+      removeTmpDir(root);
+    }
+  });
+
   for (const scenario of [
     {
       name: "conflict abort",

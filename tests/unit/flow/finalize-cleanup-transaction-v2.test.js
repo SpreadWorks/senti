@@ -112,6 +112,37 @@ function finalizeChild(root, specId, options = {}) {
   });
 }
 
+function crashFinalizeBeforeIndexRename(root, specId) {
+  const script = `
+    import fs from "node:fs";
+    import path from "node:path";
+    import { RunFinalizeCleanupCommand } from ${JSON.stringify(pathToFileURL(finalizeModule).href)};
+    import { FlowManager } from ${JSON.stringify(pathToFileURL(flowManagerModule).href)};
+    const root = ${JSON.stringify(root)};
+    const indexPath = path.join(root, ".git", "index");
+    const originalRename = fs.renameSync;
+    fs.renameSync = (source, target) => {
+      if (source === indexPath + ".lock" && target === indexPath) {
+        process.kill(process.pid, "SIGKILL");
+      }
+      return originalRename(source, target);
+    };
+    const specId = ${JSON.stringify(specId)};
+    const flowManager = new FlowManager({ root, mainRoot: root, inWorktree: false, specId });
+    await new RunFinalizeCleanupCommand().execute({
+      root,
+      flowManager,
+      flowState: flowManager.loadReadOnly(specId),
+      autoRescue: false,
+      force: false,
+    });
+  `;
+  return spawnSync(process.execPath, ["--input-type=module", "-e", script], {
+    cwd: root,
+    encoding: "utf8",
+  });
+}
+
 async function waitForFile(filePath, timeoutMs = 10_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -762,7 +793,7 @@ test("revalidates commit authority after the expectation journal becomes durable
     let changed = false;
     AtomicJsonFile.prototype.write = function writeThenChangeFeature(value) {
       const result = originalWrite.call(this, value);
-      if (!changed && value?.version === 4 && value.commitExpectation) {
+      if (!changed && value?.version === 5 && value.commitExpectation) {
         changed = true;
         const oldFeature = git(root, ["rev-parse", fixture.featureBranch]);
         const tree = git(root, ["rev-parse", `${oldFeature}^{tree}`]);
@@ -929,6 +960,100 @@ test("retry adopts its journaled caller index lock after SIGKILL", async () => {
     assert.equal(retried.ok, true, JSON.stringify(retried));
     assert.equal(fs.existsSync(lockPath), false);
     assert.equal(git(root, ["status", "--porcelain", "--", `specs/${specId}`]), "");
+  } finally {
+    removeTmpDir(root);
+  }
+});
+
+test("retry publishes journaled index bytes after SIGKILL immediately before index rename", async () => {
+  const root = createTmpDir("finalize-index-publish-sigkill-");
+  try {
+    initGitRepo(root);
+    const specId = "169";
+    setupFinalizeFlow(root, specId);
+    const crashed = crashFinalizeBeforeIndexRename(root, specId);
+    assert.equal(crashed.signal, "SIGKILL", crashed.stderr);
+    const journal = JSON.parse(fs.readFileSync(recoveryJournal(root), "utf8"));
+    const lockPath = path.join(root, ".git", "index.lock");
+    assert.equal(journal.phase, "commit-durable");
+    assert.equal(journal.indexLockAuthority.publishPhase, "publishing");
+    assert.match(journal.indexLockAuthority.markerRevision, /^[a-f0-9]{64}$/);
+    assert.match(journal.indexLockAuthority.expectedIndexRevision, /^[a-f0-9]{64}$/);
+    assert.equal(fs.statSync(lockPath).ino, journal.indexLockAuthority.ino);
+
+    const retried = await runFinalize(root, specId);
+    assert.equal(retried.ok, true, JSON.stringify(retried));
+    assert.equal(fs.existsSync(lockPath), false);
+    assert.equal(git(root, ["status", "--porcelain", "--", `specs/${specId}`]), "");
+  } finally {
+    removeTmpDir(root);
+  }
+});
+
+test("retry never mutates foreign content in the journaled index lock inode", async () => {
+  const root = createTmpDir("finalize-index-publish-foreign-content-");
+  try {
+    initGitRepo(root);
+    const specId = "171";
+    setupFinalizeFlow(root, specId);
+    const crashed = crashFinalizeBeforeIndexRename(root, specId);
+    assert.equal(crashed.signal, "SIGKILL", crashed.stderr);
+    const journalPath = recoveryJournal(root);
+    const journalBefore = JSON.parse(fs.readFileSync(journalPath, "utf8"));
+    const lockPath = path.join(root, ".git", "index.lock");
+    const ownedIno = fs.statSync(lockPath).ino;
+    fs.writeFileSync(lockPath, "foreign same-inode content\n");
+    assert.equal(fs.statSync(lockPath).ino, ownedIno);
+    const foreignBytes = fs.readFileSync(lockPath);
+
+    const stopped = await runFinalize(root, specId);
+
+    assert.equal(stopped.ok, false, JSON.stringify(stopped));
+    assert.equal(stopped.errors[0].code, "FINALIZE_INDEX_RECONCILIATION_BUSY");
+    assert.deepEqual(fs.readFileSync(lockPath), foreignBytes);
+    const journalAfter = JSON.parse(fs.readFileSync(journalPath, "utf8"));
+    assert.equal(journalAfter.phase, "commit-durable");
+    assert.deepEqual(journalAfter.indexLockAuthority, journalBefore.indexLockAuthority);
+    assert.equal(journalAfter.result.ok, false);
+  } finally {
+    removeTmpDir(root);
+  }
+});
+
+test("foreign empty finalize workspace is never adopted or mutated", async () => {
+  const root = createTmpDir("finalize-empty-workspace-race-");
+  try {
+    initGitRepo(root);
+    const specId = "170";
+    setupFinalizeFlow(root, specId);
+    const before = preCommitSnapshot(root, specId);
+    const originalWrite = AtomicJsonFile.prototype.write;
+    let foreignWorkspace = null;
+    AtomicJsonFile.prototype.write = function createForeignEmptyWorkspace(value) {
+      const result = originalWrite.call(this, value);
+      if (
+        foreignWorkspace == null
+        && value?.indexLockAuthority?.dev != null
+        && value?.tempIndexAuthority?.dev === null
+      ) {
+        foreignWorkspace = value.tempIndexAuthority.workspacePath;
+        fs.mkdirSync(foreignWorkspace, { mode: 0o700 });
+      }
+      return result;
+    };
+    let stopped;
+    try {
+      stopped = await runFinalize(root, specId);
+    } finally {
+      AtomicJsonFile.prototype.write = originalWrite;
+    }
+
+    assert.notEqual(foreignWorkspace, null);
+    assert.equal(stopped.ok, false, JSON.stringify(stopped));
+    assert.match(stopped.errors[0].code, /FINALIZE_TEMP_INDEX_(BUSY|AUTHORITY_FAILED)/);
+    assertPreCommitSnapshot(root, specId, before);
+    assert.deepEqual(fs.readdirSync(foreignWorkspace), []);
+    assert.equal(JSON.parse(fs.readFileSync(recoveryJournal(root), "utf8")).phase, "prepared");
   } finally {
     removeTmpDir(root);
   }

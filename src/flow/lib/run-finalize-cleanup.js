@@ -61,7 +61,7 @@ const RECOVERY_OPTIONS_DIRTY = ["commit-or-stash-first", "retry-without-rescue"]
 const SUBMODULE_RECOVERY_OPTIONS_DIRTY = ["commit-or-stash-first", "clean-submodules-and-retry", "manual-remove-after-review"];
 const SUBMODULE_RECOVERY_OPTIONS_STATUS = ["inspect-status-manually", "clean-submodules-and-retry", "manual-remove-after-review"];
 const SUBMODULE_RECOVERY_OPTIONS_FORCE = ["inspect-worktree-manually", "manual-remove-after-review", "retry-after-fixing-git-error"];
-const FINALIZE_TEARDOWN_VERSION = 4;
+const FINALIZE_TEARDOWN_VERSION = 5;
 const GIT_OBJECT_ID = /^[a-f0-9]{40}$/;
 const SHA256 = /^[a-f0-9]{64}$/;
 const FINALIZE_BEFORE_IMAGE_MAX_FILES = 512;
@@ -479,7 +479,15 @@ class FinalizeTreeBeforeImage {
 }
 
 class FinalizeIndexLockAuthority {
-  constructor({ token, dev = null, ino = null }) {
+  constructor({
+    token,
+    dev = null,
+    ino = null,
+    markerRevision,
+    publishPhase = "marker",
+    expectedIndexRevision = null,
+    expectedIndexMode = null,
+  }) {
     if (typeof token !== "string" || !/^[0-9a-f-]{36}$/.test(token)) {
       throw new Error("finalize caller index lock token is invalid");
     }
@@ -489,23 +497,104 @@ class FinalizeIndexLockAuthority {
     if (dev !== null && (![dev, ino].every(Number.isSafeInteger) || dev < 0 || ino < 0)) {
       throw new Error("finalize caller index lock identity is invalid");
     }
+    if (markerRevision !== FinalizeIndexLockAuthority.revision(FinalizeIndexLockAuthority.marker(token))) {
+      throw new Error("finalize caller index lock marker revision is invalid");
+    }
+    if (!new Set(["marker", "publishing"]).has(publishPhase)) {
+      throw new Error("finalize caller index lock publish phase is invalid");
+    }
+    if (
+      (publishPhase === "marker" && (expectedIndexRevision !== null || expectedIndexMode !== null))
+      || (
+        publishPhase === "publishing"
+        && (
+          dev === null
+          || !SHA256.test(String(expectedIndexRevision))
+          || !Number.isInteger(expectedIndexMode)
+          || expectedIndexMode < 0
+          || expectedIndexMode > 0o777
+        )
+      )
+    ) {
+      throw new Error("finalize caller index lock publication authority is invalid");
+    }
     this.token = token;
     this.dev = dev;
     this.ino = ino;
+    this.markerRevision = markerRevision;
+    this.publishPhase = publishPhase;
+    this.expectedIndexRevision = expectedIndexRevision;
+    this.expectedIndexMode = expectedIndexMode;
     Object.freeze(this);
   }
 
   static plan() {
-    return new FinalizeIndexLockAuthority({ token: crypto.randomUUID() });
+    const token = crypto.randomUUID();
+    return new FinalizeIndexLockAuthority({
+      token,
+      markerRevision: FinalizeIndexLockAuthority.revision(FinalizeIndexLockAuthority.marker(token)),
+    });
   }
 
   static fromStored(value) {
-    assertExactObjectKeys(value, ["token", "dev", "ino"], "finalize caller index lock authority");
+    assertExactObjectKeys(value, [
+      "token",
+      "dev",
+      "ino",
+      "markerRevision",
+      "publishPhase",
+      "expectedIndexRevision",
+      "expectedIndexMode",
+    ], "finalize caller index lock authority");
     return new FinalizeIndexLockAuthority(value);
   }
 
+  static marker(token) {
+    return Buffer.from(`senti-finalize-index-lock-v1:${token}\n`);
+  }
+
+  static revision(bytes) {
+    return crypto.createHash("sha256").update(bytes).digest("hex");
+  }
+
   withIdentity(stat) {
-    return new FinalizeIndexLockAuthority({ token: this.token, dev: stat.dev, ino: stat.ino });
+    return new FinalizeIndexLockAuthority({
+      ...this.toJSON(),
+      dev: stat.dev,
+      ino: stat.ino,
+    });
+  }
+
+  forPublication(bytes, mode) {
+    if (this.dev === null) throw new Error("finalize caller index lock needs durable identity before publication");
+    const expectedIndexRevision = FinalizeIndexLockAuthority.revision(bytes);
+    const expectedIndexMode = mode & 0o777;
+    if (
+      this.publishPhase === "publishing"
+      && (
+        this.expectedIndexRevision !== expectedIndexRevision
+        || this.expectedIndexMode !== expectedIndexMode
+      )
+    ) {
+      throw new Error("finalize caller index publication changed after becoming durable");
+    }
+    return new FinalizeIndexLockAuthority({
+      ...this.toJSON(),
+      publishPhase: "publishing",
+      expectedIndexRevision,
+      expectedIndexMode,
+    });
+  }
+
+  contentState(bytes) {
+    if (bytes.equals(FinalizeIndexLockAuthority.marker(this.token))) return "marker";
+    if (
+      this.publishPhase === "publishing"
+      && FinalizeIndexLockAuthority.revision(bytes) === this.expectedIndexRevision
+    ) {
+      return "expected-index";
+    }
+    return "foreign";
   }
 
   matches(stat) {
@@ -513,7 +602,15 @@ class FinalizeIndexLockAuthority {
   }
 
   toJSON() {
-    return { token: this.token, dev: this.dev, ino: this.ino };
+    return {
+      token: this.token,
+      dev: this.dev,
+      ino: this.ino,
+      markerRevision: this.markerRevision,
+      publishPhase: this.publishPhase,
+      expectedIndexRevision: this.expectedIndexRevision,
+      expectedIndexMode: this.expectedIndexMode,
+    };
   }
 }
 
@@ -770,6 +867,15 @@ class FinalizeTeardownTransaction {
     this.updatedAt = new Date().toISOString();
   }
 
+  authorizeIndexPublication(bytes, mode) {
+    if (this.phase.atLeast("index-reconciled") || this.indexLockAuthority == null) {
+      throw new Error("finalize caller index lock is unavailable for publication");
+    }
+    this.indexLockAuthority = this.indexLockAuthority.forPublication(bytes, mode);
+    this.updatedAt = new Date().toISOString();
+    return this.indexLockAuthority;
+  }
+
   clearIndexLock() {
     this.indexLockAuthority = null;
     this.updatedAt = new Date().toISOString();
@@ -956,10 +1062,9 @@ class FinalizeTempIndexWorkspace {
         });
       }
     } else {
-      const entries = fs.readdirSync(authority.workspacePath);
-      if (!created && entries.length > 0) {
+      if (!created) {
         throw Object.assign(new Error("finalize temporary index workspace is not owned"), {
-          code: "FINALIZE_TEMP_INDEX_AUTHORITY_FAILED",
+          code: "FINALIZE_TEMP_INDEX_BUSY",
         });
       }
       const descriptor = fs.openSync(markerPath, "wx", 0o600);
@@ -1050,7 +1155,7 @@ class FinalizeCallerIndexLease {
     const indexPath = path.join(gitDirectory, "index");
     const lockPath = `${indexPath}.lock`;
     assertRealFinalizeFile(indexPath, "caller index authority");
-    const marker = `senti-finalize-index-lock-v1:${authority.token}\n`;
+    const marker = FinalizeIndexLockAuthority.marker(authority.token);
     let descriptor;
     let created = false;
     try {
@@ -1063,14 +1168,14 @@ class FinalizeCallerIndexLease {
           lockPath,
         });
       }
+      if (authority.dev === null) {
+        throw Object.assign(new Error("caller index lock is busy"), {
+          code: "FINALIZE_INDEX_RECONCILIATION_BUSY",
+          lockPath,
+        });
+      }
       try {
         assertRealFinalizeFile(lockPath, "caller index lock");
-        if (fs.readFileSync(lockPath, "utf8") !== marker) {
-          throw Object.assign(new Error("caller index lock is busy"), {
-            code: "FINALIZE_INDEX_RECONCILIATION_BUSY",
-            lockPath,
-          });
-        }
         descriptor = fs.openSync(lockPath, fs.constants.O_RDWR | fs.constants.O_NOFOLLOW);
       } catch (error) {
         if (error.code?.startsWith("FINALIZE_")) throw error;
@@ -1088,16 +1193,16 @@ class FinalizeCallerIndexLease {
       }
       const descriptorStat = fs.fstatSync(descriptor);
       const pathStat = assertRealFinalizeFile(lockPath, "caller index lock");
-      const markerBytes = Buffer.alloc(Buffer.byteLength(marker) + 1);
-      const markerLength = fs.readSync(descriptor, markerBytes, 0, markerBytes.length, 0);
+      const currentBytes = Buffer.alloc(descriptorStat.size);
+      const currentLength = fs.readSync(descriptor, currentBytes, 0, currentBytes.length, 0);
       if (
         descriptorStat.dev !== pathStat.dev
         || descriptorStat.ino !== pathStat.ino
         || (authority.dev !== null && !authority.matches(descriptorStat))
-        || markerBytes.subarray(0, markerLength).toString("utf8") !== marker
+        || authority.contentState(currentBytes.subarray(0, currentLength)) === "foreign"
       ) {
-        throw Object.assign(new Error("caller index lock authority diverged"), {
-          code: "FINALIZE_INDEX_RECONCILIATION_FAILED",
+        throw Object.assign(new Error("caller index lock is busy"), {
+          code: "FINALIZE_INDEX_RECONCILIATION_BUSY",
           lockPath,
         });
       }
@@ -1130,12 +1235,43 @@ class FinalizeCallerIndexLease {
     }
   }
 
+  authorizePublication(authority) {
+    if (!(authority instanceof FinalizeIndexLockAuthority) || !this.authority.matches(authority)) {
+      throw new Error("finalize caller index publication authority changed identity");
+    }
+    this.authority = authority;
+  }
+
   publish(bytes, mode) {
     this.assertAuthority();
-    fs.ftruncateSync(this.descriptor, 0);
-    fs.writeSync(this.descriptor, bytes, 0, bytes.length, 0);
-    fs.fchmodSync(this.descriptor, mode & 0o777);
-    fs.fsyncSync(this.descriptor);
+    if (
+      this.authority.publishPhase !== "publishing"
+      || FinalizeIndexLockAuthority.revision(bytes) !== this.authority.expectedIndexRevision
+      || (mode & 0o777) !== this.authority.expectedIndexMode
+    ) {
+      throw new Error("finalize caller index publication lacks durable content authority");
+    }
+    const stat = fs.fstatSync(this.descriptor);
+    const currentBytes = Buffer.alloc(stat.size);
+    const currentLength = fs.readSync(this.descriptor, currentBytes, 0, currentBytes.length, 0);
+    const contentState = this.authority.contentState(currentBytes.subarray(0, currentLength));
+    if (contentState === "foreign") {
+      throw Object.assign(new Error("caller index lock content is busy"), {
+        code: "FINALIZE_INDEX_RECONCILIATION_BUSY",
+        lockPath: this.lockPath,
+      });
+    }
+    if (contentState === "marker") {
+      fs.ftruncateSync(this.descriptor, 0);
+      fs.writeSync(this.descriptor, bytes, 0, bytes.length, 0);
+      fs.fchmodSync(this.descriptor, this.authority.expectedIndexMode);
+      fs.fsyncSync(this.descriptor);
+    } else if ((stat.mode & 0o777) !== this.authority.expectedIndexMode) {
+      throw Object.assign(new Error("caller index lock mode is busy"), {
+        code: "FINALIZE_INDEX_RECONCILIATION_BUSY",
+        lockPath: this.lockPath,
+      });
+    }
     fs.closeSync(this.descriptor);
     this.descriptor = null;
     fs.renameSync(this.lockPath, this.indexPath);
@@ -1334,7 +1470,22 @@ function readFinalizeTree(targetRoot, treeish, commitPaths) {
   return parseFinalizeIndexSnapshot(result.stdout, { tree: true });
 }
 
-function reconcileFinalizeCallerIndex(expectation, callerIndexLease, workspace) {
+class FinalizeIndexPublication {
+  constructor(bytes, mode) {
+    if (!Buffer.isBuffer(bytes) || !Number.isInteger(mode)) {
+      throw new Error("finalize index publication is invalid");
+    }
+    this.bytes = Buffer.from(bytes);
+    this.mode = mode & 0o777;
+    Object.freeze(this);
+  }
+
+  publish(lease) {
+    lease.publish(this.bytes, this.mode);
+  }
+}
+
+function prepareFinalizeCallerIndexReconciliation(expectation, workspace) {
   const { targetRoot, expectedParent, commitPaths } = expectation;
   const indexPath = path.join(targetRoot, ".git", "index");
   let indexStat;
@@ -1352,6 +1503,7 @@ function reconcileFinalizeCallerIndex(expectation, callerIndexLease, workspace) 
   }
   let tempPrepared = false;
   let primaryError = null;
+  let publication = null;
   try {
     const current = readFinalizeIndex(targetRoot, commitPaths);
     const parent = readFinalizeTree(targetRoot, expectedParent, commitPaths);
@@ -1380,9 +1532,7 @@ function reconcileFinalizeCallerIndex(expectation, callerIndexLease, workspace) 
       const bytes = fs.readFileSync(tempIndex);
       workspace.remove("reconcile.index");
       tempPrepared = false;
-      callerIndexLease.publish(bytes, indexStat.mode);
-    } else {
-      callerIndexLease.release();
+      publication = new FinalizeIndexPublication(bytes, indexStat.mode);
     }
   } catch (error) {
     primaryError = error;
@@ -1405,6 +1555,7 @@ function reconcileFinalizeCallerIndex(expectation, callerIndexLease, workspace) 
       cause: cleanupErrors[0],
     });
   }
+  return publication;
 }
 
 function gitValueWithOptions(root, args, label, options) {
@@ -3244,6 +3395,11 @@ function materializeAutoRescueBase(store, journal, runGitFn) {
   }
 }
 
+function probeAutoRescueRefOid(mainRepoPath, baseRef, runGitFn) {
+  const probe = runGitFn(["-C", mainRepoPath, "rev-parse", "--verify", baseRef]);
+  return probe.ok ? probe.stdout.trim() : null;
+}
+
 export function runDetachedAutoRescue({
   mainRepoPath,
   baseBranch,
@@ -3275,10 +3431,16 @@ export function runDetachedAutoRescue({
           existing.expectedUpdatedSha, existing.expectedBaseSha,
         ]);
         if (!update.ok) {
-          const error = new Error("auto-rescue prepared ref update could not be resumed");
-          error.code = "AUTO_RESCUE_CLEANUP_FAILED";
-          error.cleanupAuthority = autoRescueRecoveryAuthority(store, existing, existing.phase);
-          throw error;
+          const observedOid = probeAutoRescueRefOid(mainRepoPath, baseRef, runGitFn);
+          if (observedOid === existing.expectedBaseSha) {
+            const error = new Error("auto-rescue prepared ref update could not be resumed");
+            error.code = "AUTO_RESCUE_CLEANUP_FAILED";
+            error.cleanupAuthority = autoRescueRecoveryAuthority(store, existing, existing.phase);
+            throw error;
+          }
+          if (observedOid !== existing.expectedUpdatedSha) {
+            throw autoRescueAuthorityFailure(store, existing, "auto-rescue resumed ref update result is ambiguous");
+          }
         }
       } else if (currentOid !== existing.expectedUpdatedSha) {
         const error = new Error("auto-rescue base ref diverged from both journaled OIDs");
@@ -3388,10 +3550,10 @@ export function runDetachedAutoRescue({
         expectedBaseSha,
       ]);
       if (!updateRes.ok) {
-        const refProbe = runGitFn(["-C", mainRepoPath, "rev-parse", "--verify", baseRef]);
-        if (refProbe.ok && refProbe.stdout.trim() === updatedSha) {
+        const observedOid = probeAutoRescueRefOid(mainRepoPath, baseRef, runGitFn);
+        if (observedOid === updatedSha) {
           outcome = AutoRescueOutcome.success();
-        } else if (refProbe.ok && refProbe.stdout.trim() === expectedBaseSha) {
+        } else if (observedOid === expectedBaseSha) {
           outcome = AutoRescueOutcome.failure("MAIN_REPO_LOCKED");
         } else {
           throw autoRescueAuthorityFailure(store, journal, "auto-rescue ref update result is ambiguous");
@@ -4340,6 +4502,7 @@ function acquireFinalizeTempIndexWorkspace(transactionStore, transaction, target
 
 function acquireFinalizeCallerIndexLease(transactionStore, transaction, targetRoot) {
   const lockPath = path.join(targetRoot, ".git", "index.lock");
+  const indexPath = path.join(targetRoot, ".git", "index");
   if (transaction.indexLockAuthority == null) {
     if (fs.existsSync(lockPath)) {
       throw Object.assign(new Error("caller index lock is busy"), {
@@ -4350,6 +4513,29 @@ function acquireFinalizeCallerIndexLease(transactionStore, transaction, targetRo
     transaction.planIndexLock();
     transactionStore.write(transaction);
   } else if (transaction.indexLockAuthority.dev !== null && !fs.existsSync(lockPath)) {
+    if (transaction.indexLockAuthority.publishPhase === "publishing") {
+      let indexStat;
+      let indexBytes;
+      try {
+        indexStat = assertRealFinalizeFile(indexPath, "published caller index");
+        indexBytes = fs.readFileSync(indexPath);
+      } catch (cause) {
+        throw Object.assign(new Error("published caller index authority is unavailable", { cause }), {
+          code: "FINALIZE_INDEX_RECONCILIATION_BUSY",
+          lockPath,
+        });
+      }
+      if (
+        !transaction.indexLockAuthority.matches(indexStat)
+        || transaction.indexLockAuthority.contentState(indexBytes) !== "expected-index"
+        || (indexStat.mode & 0o777) !== transaction.indexLockAuthority.expectedIndexMode
+      ) {
+        throw Object.assign(new Error("published caller index authority diverged"), {
+          code: "FINALIZE_INDEX_RECONCILIATION_BUSY",
+          lockPath,
+        });
+      }
+    }
     transaction.planIndexLock();
     transactionStore.write(transaction);
   }
@@ -4627,6 +4813,12 @@ async function runTeardownTransaction(ctx, { worktreePath, mainRepoPath, reportR
       ) {
         transaction.clearIndexLock();
       }
+      if (
+        error.code === "FINALIZE_TEMP_INDEX_BUSY"
+        && transaction.tempIndexAuthority?.dev === null
+      ) {
+        transaction.clearTempIndexWorkspace();
+      }
       return failBeforeCommit(Envelope.fail(
         "run",
         "finalize-cleanup",
@@ -4760,7 +4952,18 @@ async function runTeardownTransaction(ctx, { worktreePath, mainRepoPath, reportR
       if (tempIndexWorkspace == null) {
         tempIndexWorkspace = acquireFinalizeTempIndexWorkspace(transactionStore, transaction, targetRoot);
       }
-      reconcileFinalizeCallerIndex(transaction.commitExpectation, callerIndexLease, tempIndexWorkspace);
+      const publication = prepareFinalizeCallerIndexReconciliation(
+        transaction.commitExpectation,
+        tempIndexWorkspace,
+      );
+      if (publication == null) {
+        callerIndexLease.release();
+      } else {
+        transaction.authorizeIndexPublication(publication.bytes, publication.mode);
+        transactionStore.write(transaction);
+        callerIndexLease.authorizePublication(transaction.indexLockAuthority);
+        publication.publish(callerIndexLease);
+      }
       callerIndexLease = null;
       tempIndexWorkspace.cleanup();
       tempIndexWorkspace = null;

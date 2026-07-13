@@ -386,6 +386,43 @@ describe("rename-phase-steps migration transaction", () => {
     assert.deepEqual(fs.readFileSync(flowPath), before);
   });
 
+  it("never adopts or mutates a foreign empty migration workspace", () => {
+    const root = createTmpDir("rename-transaction-empty-workspace-race-");
+    roots.push(root);
+    initRepository(root);
+    const specId = "441-empty-workspace";
+    const dir = seedSpec(root, specId, { issue: false, review: false });
+    const flowPath = path.join(dir, "flow.json");
+    const before = fs.readFileSync(flowPath);
+    commitAll(root);
+    const journalPath = path.join(root, JOURNAL);
+    const originalRename = fs.renameSync;
+    let foreignWorkspace = null;
+    fs.renameSync = (from, to) => {
+      if (foreignWorkspace == null && path.resolve(String(to)) === journalPath) {
+        const next = JSON.parse(fs.readFileSync(from, "utf8"));
+        originalRename(from, to);
+        foreignWorkspace = path.join(root, next.workspace.relativePath);
+        fs.mkdirSync(foreignWorkspace, { recursive: true, mode: 0o700 });
+        return;
+      }
+      return originalRename(from, to);
+    };
+    try {
+      assert.throws(
+        () => applyMigration(root),
+        /workspace.*not owned|workspace.*authority|migration apply and rollback/i,
+      );
+    } finally {
+      fs.renameSync = originalRename;
+    }
+
+    assert.notEqual(foreignWorkspace, null);
+    assert.deepEqual(fs.readdirSync(foreignWorkspace), []);
+    assert.deepEqual(fs.readFileSync(flowPath), before);
+    assert.equal(fs.existsSync(journalPath), true);
+  });
+
   it("recovers a SIGKILL between generation reservation and inode identity journaling", () => {
     const root = createTmpDir("rename-transaction-reservation-sigkill-");
     roots.push(root);

@@ -386,6 +386,30 @@
       "taskId": null,
       "timestamp": "2026-07-13T18:10:00Z",
       "issueLogId": "issue-441-immutable-audit-finalize-index-rescue-plugin"
+    },
+    {
+      "step": "immutable-audit-remediation",
+      "issue": 441,
+      "reason": "The immutable audit of commit 2b33c2ca found that an owned caller index lock became unrecoverable if SIGKILL landed after its marker was replaced with final index bytes but before rename, and that resumed auto-rescue treated a successful ref CAS reported as failure differently from the fresh path. It also found that finalize could adopt an unmarked empty temporary workspace created by a foreign racer after durable path intent.",
+      "trigger": "Second post-commit immutable-tree audit before merge authorization.",
+      "resolution": "Finalize teardown journal v5 records the owned lock inode, deterministic marker revision, marker/publishing phase, expected index revision, and expected mode before the first index-data write. Recovery adopts only the same inode containing either the exact marker or exact authorized index revision; it completes the close-to-rename SIGKILL window, while foreign content returns BUSY without byte mutation. Resumed auto-rescue now post-probes every nonzero update-ref result and distinguishes expected-new adoption, expected-old retry failure, and third-OID authority failure exactly like the fresh path. An unmarked EEXIST temporary workspace is never adopted or modified; the owned 0700 workspace identity is durable before exclusive temporary-index creation.",
+      "testCorrections": [
+        "Updated the finalize journal-version selector from v4 to v5 so the existing post-expectation authority race remains attached to the current strict schema.",
+        "Kept the foreign index-lock content byte-preservation assertion exact while allowing failAfterCommit to durably record the BUSY result in its transaction journal."
+      ],
+      "testEvidence": {
+        "publishAndWorkspaceRed": "/tmp/flow-441-red-finalize-boundaries.log",
+        "resumedRefRed": "/tmp/flow-441-red-resumed-ref.log",
+        "publishAndWorkspaceGreen": "/tmp/flow-441-green-finalize-boundaries.log",
+        "foreignContentGreen": "/tmp/flow-441-green-index-foreign-content.log",
+        "resumedRefGreen": "/tmp/flow-441-green-resumed-ref.log",
+        "focusedFinalizeGreen": "/tmp/flow-441-focused-finalize-transaction-r2.log",
+        "preRecordUnion": "/tmp/flow-441-candidate12-authority-union-pre-record.log"
+      },
+      "result": "The strengthened serial authority union passed 197/197 before records.",
+      "taskId": null,
+      "timestamp": "2026-07-13T18:45:00Z",
+      "issueLogId": "issue-441-immutable-audit-index-publish-resumed-ref-workspace"
     }
   ]
 }
