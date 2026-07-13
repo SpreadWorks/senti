@@ -491,12 +491,10 @@ class PlanRewindChainAuthority {
   constructor(value, path = "planRewindChain") {
     assertExactKeys(value, CHAIN_KEYS, [], path);
     if (value.version !== 1) invalid(`${path}.version`, "must be 1");
-    if (!Number.isSafeInteger(value.entryCount) || value.entryCount < 0) {
-      invalid(`${path}.entryCount`, "must be a non-negative integer");
+    if (!Number.isSafeInteger(value.entryCount) || value.entryCount < 1) {
+      invalid(`${path}.entryCount`, "must be a positive integer");
     }
-    if (value.entryCount === 0) {
-      if (value.headDigest !== null) invalid(`${path}.headDigest`, "must be null for an empty history");
-    } else if (typeof value.headDigest !== "string" || !DIGEST_PATTERN.test(value.headDigest)) {
+    if (typeof value.headDigest !== "string" || !DIGEST_PATTERN.test(value.headDigest)) {
       invalid(`${path}.headDigest`, "must be a lowercase SHA-256 digest");
     }
     this.version = value.version;
@@ -530,9 +528,7 @@ export class PlanRewindAuditHistory {
       return;
     }
     if (!Array.isArray(state.planRewinds)) invalid("planRewinds", "must be an array when present");
-    if (latestUnsealed && state.planRewinds.length === 0) {
-      invalid("planRewinds", "latest unsealed history must not be empty");
-    }
+    if (state.planRewinds.length === 0) invalid("planRewinds", "must be non-empty when present");
     const timestamps = new Set();
     const stateDigests = new Set();
     const entryDigests = new Set();

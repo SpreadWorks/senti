@@ -116,6 +116,7 @@ function setupFlow(root, {
   taskStepStatus,
   tasks: suppliedTasks,
   planRewinds,
+  planRewindChain,
   mainRoot = root,
   inWorktree = false,
 } = {}) {
@@ -162,6 +163,7 @@ function setupFlow(root, {
     ],
     retryLimits: { gate: 5, review: 4 },
     ...(planRewinds !== undefined && { planRewinds: structuredClone(planRewinds) }),
+    ...(planRewindChain !== undefined && { planRewindChain: structuredClone(planRewindChain) }),
   };
   if (!doneTask && taskStepStatus) state.tasks[0].steps[0].status = taskStepStatus;
   const fm = new FlowManager({ root, mainRoot, inWorktree });
@@ -295,16 +297,39 @@ describe("guarded single-state reopen for source-discovered spec corrections", (
     assert.doesNotMatch(JSON.stringify(audit), /originIssue|Issue #441/);
   });
 
-  it("rejects every present unanchored or non-array plan rewind history without changing bytes", async () => {
-    for (const [name, planRewinds] of [
-      ["unanchored-empty", []],
-      ["null", null],
-      ["object", { retained: "evidence" }],
-      ["string", "retained evidence"],
-      ["number", 7],
+  it("accepts only an absent rewind history as the fresh-state genesis", async () => {
+    tmp = createTmpDir("reopen-fresh-history-genesis-");
+    const { files } = setupFlow(tmp);
+
+    const result = await runDirect(tmp);
+
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const state = JSON.parse(fs.readFileSync(files.flow, "utf8"));
+    assert.equal(state.planRewinds.length, 1);
+    assert.deepEqual(state.planRewindChain, {
+      version: 1,
+      entryCount: 1,
+      headDigest: state.planRewinds[0].entryDigest,
+    });
+  });
+
+  it("rejects every present empty, partial, or non-array rewind authority without changing bytes", async () => {
+    for (const [name, setup] of [
+      ["unanchored-empty", { planRewinds: [] }],
+      ["anchored-empty", {
+        planRewinds: [],
+        planRewindChain: { version: 1, entryCount: 0, headDigest: null },
+      }],
+      ["chain-only", {
+        planRewindChain: { version: 1, entryCount: 0, headDigest: null },
+      }],
+      ["null", { planRewinds: null }],
+      ["object", { planRewinds: { retained: "evidence" } }],
+      ["string", { planRewinds: "retained evidence" }],
+      ["number", { planRewinds: 7 }],
     ]) {
       tmp = createTmpDir(`reopen-invalid-history-${name}-`);
-      const { files } = setupFlow(tmp, { planRewinds });
+      const { files } = setupFlow(tmp, setup);
       const before = snapshot(files);
 
       const result = await runDirect(tmp);
@@ -315,6 +340,23 @@ describe("guarded single-state reopen for source-discovered spec corrections", (
       removeTmpDir(tmp);
       tmp = null;
     }
+  });
+
+  it("rejects laundering a valid rewind history through an empty anchored replacement", async () => {
+    tmp = createTmpDir("reopen-reject-truncated-history-");
+    const { files } = await setupConvergedReopen(tmp);
+    progressToStartedImplementation(files);
+    const truncated = JSON.parse(fs.readFileSync(files.flow, "utf8"));
+    truncated.planRewinds = [];
+    truncated.planRewindChain = { version: 1, entryCount: 0, headDigest: null };
+    writeJson(files.flow, truncated);
+    const before = snapshot(files);
+
+    const result = await runDirect(tmp, targetInput({ reason: SECOND_REASON }));
+
+    assert.equal(result.ok, false);
+    assert.equal(result.errors[0].code, "REOPEN_AUDIT_INVALID");
+    assert.deepEqual(snapshot(files), before);
   });
 
   it("appends a new correction without changing a valid historical audit", async () => {
