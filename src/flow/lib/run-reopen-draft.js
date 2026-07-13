@@ -27,6 +27,7 @@ import { ReopenDraftTransaction } from "./reopen-draft-transaction.js";
 
 const MAX_REASON_LENGTH = 500;
 const SPEC_CORRECTION_CATEGORY = "spec-correction";
+const REOPEN_CATEGORIES = new Set([undefined, "task-addition", SPEC_CORRECTION_CATEGORY]);
 
 function draftReviewArtifactNamesForReopen() {
   return DRAFT_REVIEW_ROUTES.flatMap((route) => [
@@ -206,7 +207,7 @@ function serializeJson(value) {
   return `${JSON.stringify(value, null, 2)}\n`;
 }
 
-function executeSpecCorrection({ root, mainRoot, state, reason }) {
+function executeSpecCorrection({ root, state, reason }) {
   const tasks = Array.isArray(state.tasks) ? state.tasks : [];
   const previousActiveStep = findInProgressLeaf(state.steps || [])?.id ?? null;
   const timestamp = new Date().toISOString();
@@ -218,8 +219,7 @@ function executeSpecCorrection({ root, mainRoot, state, reason }) {
     invalidatedEvidence: SPEC_CORRECTION_STALE_ARTIFACTS,
     timestamp,
   });
-  const specPath = path.resolve(root, state.spec);
-  const spec = JSON.parse(fs.readFileSync(specPath, "utf8"));
+  const spec = JSON.parse(fs.readFileSync(path.resolve(root, state.spec), "utf8"));
   const issueLog = loadIssueLog(root, state.spec);
   const resetSteps = resetStepSequence(state, specCorrectionResetStepIds());
   state.currentTaskId = null;
@@ -246,8 +246,9 @@ function executeSpecCorrection({ root, mainRoot, state, reason }) {
   let transaction;
   try {
     transaction = new ReopenDraftTransaction({
-      root: mainRoot,
-      specPath,
+      root,
+      specPath: state.spec,
+      identity: { runId: state.runId, issue: state.issue ?? null },
       contents: {
         flow: serializeJson(state),
         spec: serializeJson(spec),
@@ -263,6 +264,7 @@ function executeSpecCorrection({ root, mainRoot, state, reason }) {
       {
         journalPath: err.journalPath ?? null,
         recovered: err.recovered ?? false,
+        committed: err.committed === true,
         transaction: "issue-441-reopen-draft",
       },
     );
@@ -282,9 +284,17 @@ function executeSpecCorrection({ root, mainRoot, state, reason }) {
 
 export class RunReopenDraftCommand extends FlowCommand {
   async run(container, input = {}) {
+    const recoveryFailure = this.runRecoveryPreflight(container, input);
+    if (recoveryFailure) return recoveryFailure;
+    if (!REOPEN_CATEGORIES.has(input.category)) {
+      return Envelope.fail(
+        "run",
+        "reopen-draft",
+        "ARGS_ERROR",
+        `--category must be task-addition or ${SPEC_CORRECTION_CATEGORY}`,
+      );
+    }
     if (input.category === SPEC_CORRECTION_CATEGORY) {
-      const recoveryFailure = this.runRecoveryPreflight(container, input);
-      if (recoveryFailure) return recoveryFailure;
       let reason;
       try {
         reason = validateReason(input.reason);
@@ -321,7 +331,6 @@ export class RunReopenDraftCommand extends FlowCommand {
         }
         return executeSpecCorrection({
           root: container.get("paths").root,
-          mainRoot: container.get("mainRoot") || container.get("paths").root,
           state: flowState,
           reason,
         });

@@ -18,12 +18,12 @@ import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 const SPEC_ID = "441-reopen-spec-correction";
 const SPEC_PATH = `specs/${SPEC_ID}/spec.json`;
 
-function makeContainer(root) {
+function makeContainer(root, { mainRoot = root, inWorktree = false } = {}) {
   const container = new Container();
-  const flowManager = new FlowManager({ root, mainRoot: root, inWorktree: false });
+  const flowManager = new FlowManager({ root, mainRoot, inWorktree });
   container.register("paths", { root });
-  container.register("mainRoot", root);
-  container.register("inWorktree", false);
+  container.register("mainRoot", mainRoot);
+  container.register("inWorktree", inWorktree);
   container.register("config", {
     lang: "en",
     type: "base",
@@ -60,7 +60,13 @@ function currentTask(overrides) {
   });
 }
 
-function setupFlow(root, { issue = 441, activeStep = "implement", doneTask = false } = {}) {
+function setupFlow(root, {
+  issue = 441,
+  activeStep = "implement",
+  doneTask = false,
+  mainRoot = root,
+  inWorktree = false,
+} = {}) {
   const specDir = path.join(root, "specs", SPEC_ID);
   const partialSource = path.join(root, "src", "partial-implementation.js");
   const evidence = path.join(specDir, "test-execute-result.json");
@@ -95,7 +101,7 @@ function setupFlow(root, { issue = 441, activeStep = "implement", doneTask = fal
     ],
     retryLimits: { gate: 5, review: 4 },
   };
-  const fm = new FlowManager({ root, mainRoot: root, inWorktree: false });
+  const fm = new FlowManager({ root, mainRoot, inWorktree });
   fm.save(state);
   fm.addActiveFlow(SPEC_ID, "worktree");
   return { partialSource, evidence, specDir };
@@ -278,12 +284,18 @@ describe("guarded reopen for source-discovered spec corrections", () => {
     removeTmpDir(tmp);
     tmp = createTmpDir("reopen-task-addition-");
     setupFlow(tmp, { doneTask: true });
+    const beforeTaskAddition = makeContainer(tmp).get("flowManager").load(SPEC_ID);
     const taskAddition = await runReopen(tmp, targetInput({ category: "task-addition" }));
     assert.equal(taskAddition.ok, true, JSON.stringify(taskAddition.errors));
     assert.equal(taskAddition.data.mode, "implementation");
     const state = makeContainer(tmp).get("flowManager").load(SPEC_ID);
     assert.equal(findStepById(state.steps, "draft").status, "in_progress");
     assert.equal(state.tasks[0].status, "done");
+    assert.deepEqual(state.tasks, beforeTaskAddition.tasks);
+    assert.deepEqual(state.metrics, beforeTaskAddition.metrics);
+    assert.equal(state.currentTaskId, beforeTaskAddition.currentTaskId);
+    assert.equal(state.issue, beforeTaskAddition.issue);
+    assert.equal(JSON.parse(fs.readFileSync(issueLogPath(tmp), "utf8")).entries.length, 1);
   });
 
   it("keeps category mandatory for zero-done correction and preserves the pre-implementation plan route", async () => {
@@ -295,13 +307,51 @@ describe("guarded reopen for source-discovered spec corrections", () => {
     assert.equal(missingCategory.ok, false);
     assert.equal(missingCategory.errors[0].code, "NO_DONE_TASK");
 
+    const durable = transactionFiles(tmp);
+    const beforeUnknown = snapshot(tmp, durable);
+    const unknown = await runReopen(tmp, targetInput({ category: "typo-correction" }));
+    assert.equal(unknown.ok, false);
+    assert.equal(unknown.errors[0].code, "ARGS_ERROR");
+    assert.deepEqual(snapshot(tmp, durable), beforeUnknown);
+
     removeTmpDir(tmp);
     tmp = createTmpDir("reopen-plan-route-");
     setupFlow(tmp, { activeStep: "spec" });
+    const beforePlan = makeContainer(tmp).get("flowManager").load(SPEC_ID);
     const planRoute = await runReopen(tmp, targetInput({ category: undefined }));
     assert.equal(planRoute.ok, true, JSON.stringify(planRoute.errors));
     assert.equal(planRoute.data.mode, "pre-implementation");
-    assert.equal(findInProgressLeaf(makeContainer(tmp).get("flowManager").load(SPEC_ID).steps).id, "draft");
+    const afterPlan = makeContainer(tmp).get("flowManager").load(SPEC_ID);
+    assert.equal(findInProgressLeaf(afterPlan.steps).id, "draft");
+    assert.deepEqual(afterPlan.tasks, beforePlan.tasks);
+    assert.deepEqual(afterPlan.metrics, beforePlan.metrics);
+    assert.equal(afterPlan.currentTaskId, beforePlan.currentTaskId);
+    assert.equal(afterPlan.issue, beforePlan.issue);
+    assert.equal(JSON.parse(fs.readFileSync(issueLogPath(tmp), "utf8")).entries.length, 1);
+  });
+
+  it("commits the guarded correction only in the resolved worktree authority root", async () => {
+    tmp = createTmpDir("reopen-worktree-authority-");
+    const worktree = path.join(tmp, ".senti", "worktree", "feature-441-authority");
+    setupFlow(worktree, { mainRoot: tmp, inWorktree: true });
+    const mainSpecDir = path.join(tmp, "specs", SPEC_ID);
+    writeJson(path.join(mainSpecDir, "flow.json"), { sentinel: "main-flow-must-not-change" });
+    writeJson(path.join(mainSpecDir, "spec.json"), { sentinel: "main-spec-must-not-change" });
+    writeJson(path.join(mainSpecDir, "issue-log.json"), { entries: [{ sentinel: "main-log-must-not-change" }] });
+    const mainBefore = snapshot(tmp, transactionFiles(tmp));
+
+    const result = await new RunReopenDraftCommand().run(
+      makeContainer(worktree, { mainRoot: tmp, inWorktree: true }),
+      targetInput(),
+    );
+
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    assert.equal(result.data.transaction.authorityRoot, fs.realpathSync(worktree));
+    assert.deepEqual(snapshot(tmp, transactionFiles(tmp)), mainBefore);
+    const worktreeState = new FlowManager({ root: worktree, mainRoot: tmp, inWorktree: true }).load(SPEC_ID);
+    assert.equal(findInProgressLeaf(worktreeState.steps).id, "draft");
+    assert.equal(JSON.parse(fs.readFileSync(path.join(worktree, SPEC_PATH), "utf8")).user_approval.approved, false);
+    assert.equal(JSON.parse(fs.readFileSync(issueLogPath(worktree), "utf8")).entries.at(-1).originIssue, 441);
   });
 
   it("rolls back every file boundary without changing any durable byte", () => {
@@ -313,6 +363,7 @@ describe("guarded reopen for source-discovered spec corrections", () => {
       const transaction = new ReopenDraftTransaction({
         root: tmp,
         specPath: SPEC_PATH,
+        identity: { runId: "run-441", issue: 441 },
         contents: transactionContents(tmp),
         faultInjector(event) {
           if (event.phase === "before-apply" && event.key === key) {
@@ -340,6 +391,7 @@ describe("guarded reopen for source-discovered spec corrections", () => {
     const transaction = new ReopenDraftTransaction({
       root: tmp,
       specPath: SPEC_PATH,
+      identity: { runId: "run-441", issue: 441 },
       contents: transactionContents(tmp),
       faultInjector(event) {
         if (event.phase === "after-apply" && event.key === "spec") {
@@ -363,6 +415,7 @@ describe("guarded reopen for source-discovered spec corrections", () => {
     const transaction = new ReopenDraftTransaction({
       root: tmp,
       specPath: SPEC_PATH,
+      identity: { runId: "run-441", issue: 441 },
       contents: transactionContents(tmp),
       faultInjector(event) {
         if (event.phase === "after-apply" && event.key === "flow") {
@@ -393,6 +446,7 @@ describe("guarded reopen for source-discovered spec corrections", () => {
     const transaction = new ReopenDraftTransaction({
       root: tmp,
       specPath: SPEC_PATH,
+      identity: { runId: "run-441", issue: 441 },
       contents: transactionContents(tmp),
       faultInjector(event) {
         if (event.phase === "after-apply" && event.key === "flow") {

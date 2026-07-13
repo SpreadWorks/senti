@@ -68,19 +68,26 @@ export class FlowCommand extends Command {
   }
 
   runRecoveryPreflight(container, input = {}) {
-    const root = container.get("mainRoot") || container.get("paths")?.root;
+    const root = container.get("paths")?.root;
     if (!root) return null;
     try {
-      new ReopenDraftRecoveryPreflight({ root }).run();
+      new ReopenDraftRecoveryPreflight({
+        root,
+        mainRoot: container.has("mainRoot") ? container.get("mainRoot") : root,
+      }).run();
       return null;
     } catch (err) {
       return Envelope.fail(
         input._envelopeType || "run",
         input._envelopeKey || "flow",
-        "TRANSACTION_RECOVERY_FAILED",
+        err.code === "TRANSACTION_IN_PROGRESS"
+          ? "TRANSACTION_IN_PROGRESS"
+          : "TRANSACTION_RECOVERY_FAILED",
         err.message,
         {
           journalPath: err.journalPath ?? null,
+          lockPath: err.lockPath ?? null,
+          committed: err.committed === true,
           recovered: false,
           transaction: "issue-441-reopen-draft",
         },
