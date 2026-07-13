@@ -6,7 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { makeFlowManager } from "../../../tests/helpers/flow-setup.js";
+import { makeFlowManager, replaceFlowState } from "../../../tests/helpers/flow-setup.js";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 import { flattenSteps, findStepById } from "../../../src/flow/lib/step-tree.js";
 
@@ -141,7 +141,7 @@ describe("explicit flow target mismatch guard", () => {
     tmpDirs.push(tmp);
     const state = saveFlow(tmp, "402-active", { issue: 402, runId: "run-active-402", autoApprove: true });
     setOnlyStepInProgress(state, "approval");
-    makeFlowManager(tmp).create(state, { specId: "402-active" });
+    replaceFlowState(tmp, state, { specId: "402-active" });
     const before = snapshotSteps(tmp, "402-active");
 
     const res = runFlow(tmp, ["get", "next-action", "--expect-issue", "403"]);
@@ -160,7 +160,7 @@ describe("explicit flow target mismatch guard", () => {
     tmpDirs.push(tmp);
     const state = saveFlow(tmp, "402-active", { issue: 402, runId: "run-active-402" });
     for (const step of flattenSteps(state.steps)) step.status = "pending";
-    makeFlowManager(tmp).create(state, { specId: "402-active" });
+    replaceFlowState(tmp, state, { specId: "402-active" });
     const before = snapshotSteps(tmp, "402-active");
 
     const res = runFlow(tmp, ["get", "next-action", "--expect-issue", "403"]);
@@ -177,7 +177,7 @@ describe("explicit flow target mismatch guard", () => {
     tmpDirs.push(tmp);
     const state = saveFlow(tmp, "402-active", { issue: 402, runId: "run-active-402" });
     state.tasks = [{ id: "T-1", title: "task", goal: "task", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }];
-    makeFlowManager(tmp).create(state, { specId: "402-active" });
+    replaceFlowState(tmp, state, { specId: "402-active" });
     const commandPaths = [
       ["get", "next-action", "--expect-issue", "403"],
       ["run", "review", "--phase", "spec", "--expect-issue", "403"],
@@ -230,7 +230,7 @@ describe("explicit flow target mismatch guard", () => {
     tmpDirs.push(tmp);
     const state = saveFlow(tmp, "402-active", { issue: 402, runId: "run-active-402" });
     for (const step of flattenSteps(state.steps)) step.status = "pending";
-    makeFlowManager(tmp).create(state, { specId: "402-active" });
+    replaceFlowState(tmp, state, { specId: "402-active" });
     const before = snapshotSteps(tmp, "402-active");
 
     const res = runFlow(tmp, ["get", "next-action", "--expect-spec", "403-target"]);
@@ -247,7 +247,7 @@ describe("explicit flow target mismatch guard", () => {
     tmpDirs.push(tmp);
     const state = saveFlow(tmp, "402-active", { issue: 402, runId: "run-active-402" });
     state.tasks = [{ id: "T-1", title: "task", goal: "task", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }];
-    makeFlowManager(tmp).create(state, { specId: "402-active" });
+    replaceFlowState(tmp, state, { specId: "402-active" });
     const before = snapshotSteps(tmp, "402-active");
 
     const res = runFlow(tmp, ["run", "start-task", "--task-id", "T-1", "--expect-run-id", "run-target-403"]);

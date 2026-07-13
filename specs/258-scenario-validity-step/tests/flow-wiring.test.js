@@ -7,18 +7,19 @@ import { Command } from "../../../src/lib/command.js";
 import { dispatch } from "../../../src/lib/dispatcher.js";
 import { FLOW_STEPS, buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 import {
-  FLOW_DEFINITION,
+  collectFlowNodes,
   collectLeafIds,
   deriveNextAction,
-  findStepById,
   resolveNodeFor,
 } from "../../../src/flow/definition.js";
+import { findStepById } from "../../../src/flow/lib/step-tree.js";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 import { makeFlowManager } from "../../../tests/helpers/flow-setup.js";
 import { createTmpDir, removeTmpDir } from "../../../tests/helpers/tmp-dir.js";
 
 const SPEC_ID = "258-scenario-validity-step";
 const SPEC_REL = `specs/${SPEC_ID}/spec.json`;
+const FLOW_DEFINITION = collectFlowNodes();
 
 function planLeafIdsFromDefinition() {
   const plan = FLOW_DEFINITION.find((node) => node.id === "plan");
@@ -29,6 +30,7 @@ function planLeafIdsFromDefinition() {
 function baseState() {
   return {
     spec: SPEC_REL,
+    runId: "run-258-scenario-validity-step",
     baseBranch: "main",
     featureBranch: "feature/258-scenario-validity-step",
     steps: buildInitialSteps(),
@@ -51,19 +53,19 @@ function assertNoScenarioValidityArtifacts(root) {
   );
 }
 
-test("R1: FLOW_DEFINITION plan leaves contain test -> scenario-validity -> review-test contiguously", () => {
+test("R1: FLOW_DEFINITION plan leaves contain test -> scenario-validity -> test-review contiguously", () => {
   const planLeafIds = planLeafIdsFromDefinition();
   const indexOfTest = planLeafIds.indexOf("test");
   assert.ok(indexOfTest >= 0, "test leaf exists in plan branch");
   assert.deepEqual(planLeafIds.slice(indexOfTest, indexOfTest + 3), [
     "test",
     "scenario-validity",
-    "review-test",
+    "test-review",
   ]);
 
   const testIndex = FLOW_STEPS.indexOf("test");
   const scenarioIndex = FLOW_STEPS.indexOf("scenario-validity");
-  const reviewIndex = FLOW_STEPS.indexOf("review-test");
+  const reviewIndex = FLOW_STEPS.indexOf("test-review");
   assert.ok(testIndex >= 0, "test step exists");
   assert.equal(scenarioIndex, testIndex + 1, "scenario-validity immediately follows test");
   assert.equal(reviewIndex, scenarioIndex + 1, "review-test immediately follows scenario-validity");
@@ -79,7 +81,7 @@ test("R1: scenario-validity leaf metadata resolves from FLOW_DEFINITION", () => 
   assert.equal(node.resolveMaxAttempts({ autoApprove: false }), 3);
   assert.equal(node.resolveMaxAttempts({ autoApprove: true }), 3);
 
-  const next = deriveNextAction("flow", "scenario-validity", { autoApprove: false });
+  const next = deriveNextAction({ scope: "flow", stepId: "scenario-validity", context: { autoApprove: false } });
   assert.equal(next.action, "run-scenario-validity");
   assert.equal(next.instructionsKey, "plan.scenario-validity");
   assert.equal(next.outputSchemaRef, "next-action/scenario-validity.schema.json");
@@ -93,7 +95,7 @@ test("R2: registry exposes internal active-flow-only scenario-validity command m
   assert.equal(entry.internal, true, "scenario-validity is an internal flow command");
   assert.equal(entry.requiresFlow, true, "scenario-validity requires an active flow");
   assert.deepEqual(entry.args?.positional || [], [], "no user-facing positional args");
-  assert.match(entry.help, /Usage: sdd-forge flow run scenario-validity/);
+  assert.match(entry.help, /Usage: senti flow run scenario-validity/);
   assert.match(String(entry.command), /run-scenario-validity\.js/);
   assert.equal(typeof entry.command, "function");
   assert.equal(typeof entry.post, "function");

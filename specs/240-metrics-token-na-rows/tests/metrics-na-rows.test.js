@@ -2,10 +2,10 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { buildRowsFromMetrics } from "../../../src/metrics/commands/token.js";
 import { createTmpDir, removeTmpDir } from "../../../tests/helpers/tmp-dir.js";
-import { makeFlowManager, setupFlow, setStepDone } from "../../../tests/helpers/flow-setup.js";
-import { findStepById, flattenSteps } from "../../../src/flow/definition.js";
+import { makeFlowManager, replaceFlowState, setupFlow, setStepDone } from "../../../tests/helpers/flow-setup.js";
+import { findStepById, flattenSteps } from "../../../src/flow/lib/step-tree.js";
 
-describe("R1: resolveCurrentContext returns sddPhase from nested steps", () => {
+describe("R1: resolveCurrentContext returns sentiPhase from nested steps", () => {
   let tmp;
   it("returns the in_progress leaf step id as sddPhase", () => {
     tmp = createTmpDir();
@@ -14,10 +14,10 @@ describe("R1: resolveCurrentContext returns sddPhase from nested steps", () => {
     const step = findStepById(state.steps, "draft");
     step.status = "in_progress";
     const fm = makeFlowManager(tmp);
-    fm.create(state);
+    replaceFlowState(tmp, state);
 
     const ctx = fm.resolveCurrentContext();
-    assert.equal(ctx.sddPhase, "draft");
+    assert.equal(ctx.sentiPhase, "draft");
   });
 
   it("returns null sddPhase when no step is in_progress", () => {
@@ -27,10 +27,10 @@ describe("R1: resolveCurrentContext returns sddPhase from nested steps", () => {
       s.status = "done";
     }
     const fm = makeFlowManager(tmp);
-    fm.create(state);
+    replaceFlowState(tmp, state);
 
     const ctx = fm.resolveCurrentContext();
-    assert.equal(ctx.sddPhase, null);
+    assert.equal(ctx.sentiPhase, null);
   });
 
   it("returns the correct leaf when a deeper nested step is in_progress", () => {
@@ -42,10 +42,10 @@ describe("R1: resolveCurrentContext returns sddPhase from nested steps", () => {
     const step = findStepById(state.steps, "finalize-commit");
     step.status = "in_progress";
     const fm = makeFlowManager(tmp);
-    fm.create(state);
+    replaceFlowState(tmp, state);
 
     const ctx = fm.resolveCurrentContext();
-    assert.equal(ctx.sddPhase, "finalize-commit");
+    assert.equal(ctx.sentiPhase, "finalize-commit");
   });
 });
 

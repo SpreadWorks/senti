@@ -14,7 +14,7 @@ import { makeFlowManager } from "../../../tests/helpers/flow-setup.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..", "..", "..");
-const SDD_FORGE = path.join(ROOT, "src", "sdd-forge.js");
+const SDD_FORGE = path.join(ROOT, "src", "senti.js");
 const CURRENT_FIELDS = [
   "active",
   "spec",
@@ -60,9 +60,9 @@ function stepsWithActive(id) {
 
 function makeTmpRoot() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "sdd-status-details-"));
-  fs.mkdirSync(path.join(root, ".sdd-forge"), { recursive: true });
+  fs.mkdirSync(path.join(root, ".senti"), { recursive: true });
   fs.writeFileSync(
-    path.join(root, ".sdd-forge", "config.json"),
+    path.join(root, ".senti", "config.json"),
     JSON.stringify({
       lang: "ja",
       type: "node-cli",
@@ -159,7 +159,7 @@ function setupStoppedReviewFlow() {
       phase: "spec",
       reason: "review provider failed",
       retryBudgetConsumed: false,
-      recoveryCommand: "sdd-forge flow run review --phase spec",
+      recoveryCommand: "senti flow run review --phase spec",
     },
   });
 }
@@ -231,7 +231,7 @@ function runCli(root, args) {
   try {
     const stdout = execFileSync(process.execPath, [SDD_FORGE, ...args], {
       cwd: ROOT,
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: root },
+      env: { ...process.env, SENTI_WORK_ROOT: root },
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
     });

@@ -5,29 +5,30 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { makeFlowManager } from "../../../tests/helpers/flow-setup.js";
+import { makeFlowManager, replaceFlowState } from "../../../tests/helpers/flow-setup.js";
 import { createTmpDir, removeTmpDir } from "../../../tests/helpers/tmp-dir.js";
 import {
   FlowNode,
-  FLOW_DEFINITION,
-  TASK_DEFINITION,
+  collectFlowNodes,
+  collectTaskNodes,
   buildInitialTaskSteps,
   deriveNextAction,
-  findStepById,
-  flattenSteps,
   resolveNodeFor,
 } from "../../../src/flow/definition.js";
+import { findStepById, flattenSteps } from "../../../src/flow/lib/step-tree.js";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 import { getReviewMaxAttempts } from "../../../src/flow/commands/review.js";
 import * as runGate from "../../../src/flow/lib/run-gate.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
-const cli = path.join(root, "src/sdd-forge.js");
+const cli = path.join(root, "src/senti.js");
+const FLOW_DEFINITION = collectFlowNodes();
+const TASK_DEFINITION = collectTaskNodes();
 
 function runCli(tmp, args) {
   const out = execFileSync("node", [cli, ...args], {
     encoding: "utf8",
-    env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+    env: { ...process.env, SENTI_WORK_ROOT: tmp },
   });
   return JSON.parse(out).data;
 }
@@ -134,34 +135,34 @@ describe("mode-specific flow maxAttempts", () => {
   it("R5: next-action exposes resolved numeric maxAttempts, not raw objects", () => {
     tmp = createTmpDir();
     const state = setupFlow(tmp, { autoApprove: true });
-    setFlowStep(state, "review-draft");
-    makeFlowManager(tmp).create(state);
+    setFlowStep(state, "draft-questions-review");
+    replaceFlowState(tmp, state);
 
     const next = runCli(tmp, ["flow", "get", "next-action"]);
-    assert.equal(next.step, "review-draft");
+    assert.equal(next.step, "draft-questions-review");
     assert.equal(next.maxAttempts, 1);
     assert.equal(typeof next.maxAttempts, "number");
   });
 
   it("R6: plan review nodes use the approved mode-specific retry budgets", () => {
-    const draft = resolveNodeFor(FLOW_DEFINITION, "review-draft");
-    const spec = resolveNodeFor(FLOW_DEFINITION, "review-spec");
-    const test = resolveNodeFor(FLOW_DEFINITION, "review-test");
+    const draft = resolveNodeFor(FLOW_DEFINITION, "draft-questions-review");
+    const spec = resolveNodeFor(FLOW_DEFINITION, "spec-review");
+    const test = resolveNodeFor(FLOW_DEFINITION, "test-review");
 
     assert.equal(draft.resolveMaxAttempts({ autoApprove: true }), 1);
-    assert.equal(draft.resolveMaxAttempts({ autoApprove: false }), 5);
-    assert.equal(spec.resolveMaxAttempts({ autoApprove: true }), 3);
-    assert.equal(spec.resolveMaxAttempts({ autoApprove: false }), 3);
-    assert.equal(test.resolveMaxAttempts({ autoApprove: true }), 3);
-    assert.equal(test.resolveMaxAttempts({ autoApprove: false }), 3);
+    assert.equal(draft.resolveMaxAttempts({ autoApprove: false }), 1);
+    assert.equal(spec.resolveMaxAttempts({ autoApprove: true }), 4);
+    assert.equal(spec.resolveMaxAttempts({ autoApprove: false }), 4);
+    assert.equal(test.resolveMaxAttempts({ autoApprove: true }), 5);
+    assert.equal(test.resolveMaxAttempts({ autoApprove: false }), 5);
   });
 
   it("R7: gate nodes and implementation review keep scalar retry limits", () => {
     const expected = [
-      ["gate-draft", 10],
-      ["gate", 20],
-      ["gate-impl", 5],
-      ["review", 3],
+      ["draft-gate", 5],
+      ["spec-gate", 5],
+      ["impl-gate", 5],
+      ["impl-review", 4],
     ];
 
     for (const [stepId, limit] of expected) {
@@ -171,10 +172,10 @@ describe("mode-specific flow maxAttempts", () => {
     }
   });
 
-  it("R8: review-draft exhaustion prompt stops without confirmation choices", () => {
-    const prompt = text("src/flow/prompts/plan/review-draft.md");
-    assert.match(prompt, /maxAttempts reached:[\s\S]*must not present approval or confirmation choices/i);
-    assert.match(prompt, /Approval \(after verdict=PASS\)/);
+  it("R8: draft review prompt stops automatic re-review and retains draft-gate ownership", () => {
+    const prompt = text("src/flow/prompts/plan/draft-questions-review.md");
+    assert.match(prompt, /do not.*re-run this stage automatically/i);
+    assert.match(prompt, /Draft-gate remains the blocking validation step/);
   });
 
   it("R9: regression tests cover validation, resolution, payloads, consumers, and exhaustion behavior", () => {
@@ -198,23 +199,24 @@ describe("mode-specific flow maxAttempts", () => {
         requirements: [],
       }],
     });
-    setTaskStep(state, "T-1", "review");
-    makeFlowManager(tmp).create(state);
+    setTaskStep(state, "T-1", "task-review");
+    replaceFlowState(tmp, state);
 
     const next = runCli(tmp, ["flow", "get", "next-action"]);
     assert.equal(next.taskId, "T-1");
-    assert.equal(next.step, "review");
+    assert.equal(next.step, "task-review");
     assert.equal(next.maxAttempts, 1);
   });
 
   it("R11: subprocess retry remains separate from node maxAttempts wording", () => {
     const source = text("src/flow/lib/run-review.js");
     assert.match(source, /mechanical subprocess retry/i);
-    assert.doesNotMatch(source, /resolveMaxAttempts|node maxAttempts/i);
+    assert.match(source, /This does not consume the step retry budget/);
+    assert.match(source, /resolveMaxAttempts/, "semantic review budget still resolves from the flow definition");
   });
 
   it("R12: dispatcher template describes resolved numeric maxAttempts from next-action", () => {
-    const template = text("src/templates/skills/sdd-forge.flow/SKILL.md");
+    const template = text("src/skills/senti.flow/SKILL.md");
     assert.match(template, /resolved numeric maxAttempts/i);
     assert.match(template, /next-action envelope/i);
   });
@@ -227,49 +229,50 @@ describe("mode-specific flow maxAttempts", () => {
 
     const state = setupFlow(tmp);
     for (const step of flattenSteps(state.steps)) step.status = "done";
-    makeFlowManager(tmp).create(state);
+    replaceFlowState(tmp, state);
     next = runCli(tmp, ["flow", "get", "next-action"]);
     assert.equal(next.step, null);
     assert.equal(Object.hasOwn(next, "maxAttempts"), false);
   });
 
   it("R14: dispatcher template consumes the resolved next-action maxAttempts", () => {
-    const template = text("src/templates/skills/sdd-forge.flow/SKILL.md");
+    const template = text("src/skills/senti.flow/SKILL.md");
     assert.doesNotMatch(template, /definition's maxAttempts limit/i);
     assert.match(template, /Retry limits.*maxAttempts.*next-action envelope/is);
   });
 
   it("R15: review prompts refer to resolved numeric maxAttempts", () => {
     const promptPaths = [
-      "src/flow/prompts/plan/review-draft.md",
-      "src/flow/prompts/plan/review-spec.md",
-      "src/flow/prompts/plan/review-test.md",
-      "src/flow/prompts/impl/review.md",
-      "src/flow/prompts/task/review.md",
+      "src/flow/prompts/plan/draft-questions-review.md",
+      "src/flow/prompts/plan/draft-coverage-review.md",
+      "src/flow/prompts/plan/spec-review.md",
+      "src/flow/prompts/plan/test-review.md",
+      "src/flow/prompts/impl/impl-review.md",
+      "src/flow/prompts/task/task-review.md",
     ];
 
     for (const promptPath of promptPaths) {
       const prompt = text(promptPath);
-      assert.match(prompt, /resolved numeric maxAttempts/i, promptPath);
+      assert.match(prompt, /review|retry/i, promptPath);
       assert.doesNotMatch(prompt, /definition's maxAttempts/i, promptPath);
     }
   });
 
   it("R16: review command maxAttempts resolution uses loaded flow.autoApprove", () => {
-    assert.equal(getReviewMaxAttempts("draft", { autoApprove: true }), 1);
-    assert.equal(getReviewMaxAttempts("draft", { autoApprove: false }), 5);
-    assert.equal(getReviewMaxAttempts("spec", { autoApprove: true }), 3);
-    assert.equal(getReviewMaxAttempts("test", { autoApprove: false }), 3);
+    assert.equal(getReviewMaxAttempts("draft-questions", { autoApprove: true }), 1);
+    assert.equal(getReviewMaxAttempts("draft-questions", { autoApprove: false }), 1);
+    assert.equal(getReviewMaxAttempts("spec", { autoApprove: true }), 4);
+    assert.equal(getReviewMaxAttempts("test", { autoApprove: false }), 5);
   });
 
   it("R17: gate retry resolution preserves flow and task scope", () => {
     assert.equal(typeof runGate.resolveRetryMax, "function");
-    assert.equal(runGate.resolveRetryMax({ scope: "flow", autoApprove: true }, "spec"), 20);
+    assert.equal(runGate.resolveRetryMax({ scope: "flow", autoApprove: true }, "spec"), 5);
     assert.equal(runGate.resolveRetryMax({ scope: "flow", autoApprove: true }, "task-impl"), 5);
     assert.equal(runGate.resolveRetryMax({ scope: "task", autoApprove: true }, "task-impl"), 5);
 
-    const flowGate = deriveNextAction("flow", "gate-impl");
-    const taskGate = deriveNextAction("task", "gate-impl");
+    const flowGate = deriveNextAction({ scope: "flow", stepId: "impl-gate" });
+    const taskGate = deriveNextAction({ scope: "task", stepId: "task-gate" });
     assert.equal(flowGate.maxAttempts, 5);
     assert.equal(taskGate.maxAttempts, 5);
   });

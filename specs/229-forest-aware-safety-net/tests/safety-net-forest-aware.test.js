@@ -9,21 +9,22 @@ import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "child_process";
 import { join } from "path";
-import { makeFlowManager } from "../../../tests/helpers/flow-setup.js";
+import { makeFlowManager, replaceFlowState } from "../../../tests/helpers/flow-setup.js";
 import { createTmpDir, removeTmpDir } from "../../../tests/helpers/tmp-dir.js";
 import {
   FLOW_STEPS,
   buildInitialSteps,
   buildInitialTaskSteps,
 } from "../../../src/lib/flow-helpers.js";
+import { flattenSteps } from "../../../src/flow/lib/step-tree.js";
 
-const CLI = join(process.cwd(), "src/sdd-forge.js");
+const CLI = join(process.cwd(), "src/senti.js");
 
 function runCli(tmp, args) {
   try {
     const out = execFileSync("node", [CLI, ...args], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp },
     });
     return { envelope: JSON.parse(out), exitCode: 0 };
   } catch (err) {
@@ -65,7 +66,7 @@ function makeTask(id, { parent = null, status = "pending", steps = null } = {}) 
 }
 
 function setAllFlowStepsDone(state) {
-  for (const s of state.steps) s.status = "done";
+  for (const s of flattenSteps(state.steps)) s.status = "done";
 }
 
 function setAllTaskStepsPending(task) {
@@ -96,8 +97,8 @@ describe("spec 229: forest-aware safety-net fallback", () => {
         tasks,
         currentTaskId: null,
       });
-      for (const s of state.steps) s.status = "done";
-      makeFlowManager(tmp).create(state);
+      setAllFlowStepsDone(state);
+      replaceFlowState(tmp, state);
 
       const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
       assert.equal(exitCode, 0, "exits cleanly via forest-aware fallback");
@@ -120,8 +121,8 @@ describe("spec 229: forest-aware safety-net fallback", () => {
         tasks,
         currentTaskId: null,
       });
-      for (const s of state.steps) s.status = "done";
-      makeFlowManager(tmp).create(state);
+      setAllFlowStepsDone(state);
+      replaceFlowState(tmp, state);
 
       const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
       assert.equal(exitCode, 0);
@@ -143,15 +144,15 @@ describe("spec 229: forest-aware safety-net fallback", () => {
         tasks,
         currentTaskId: null,
       });
-      for (const s of state.steps) s.status = "done";
-      makeFlowManager(tmp).create(state);
+      setAllFlowStepsDone(state);
+      replaceFlowState(tmp, state);
 
       const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
       assert.equal(exitCode, 0);
       assert.equal(envelope.ok, true);
       assert.equal(envelope.data.taskId, "T-1");
-      // First task step should be write-tests (first in TASK_STEPS_PLAN)
-      assert.equal(envelope.data.step, "write-tests",
+      // First current task step is task-impl.
+      assert.equal(envelope.data.step, "task-impl",
         "first pending step in task is promoted to in_progress");
     });
   });
@@ -169,14 +170,14 @@ describe("spec 229: forest-aware safety-net fallback", () => {
         tasks,
         currentTaskId: "T-1",
       });
-      for (const s of state.steps) s.status = "done";
-      makeFlowManager(tmp).create(state);
+      setAllFlowStepsDone(state);
+      replaceFlowState(tmp, state);
 
       const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
       assert.equal(exitCode, 0);
       assert.equal(envelope.ok, true);
       assert.equal(envelope.data.taskId, "T-1");
-      assert.equal(envelope.data.step, "write-tests",
+      assert.equal(envelope.data.step, "task-impl",
         "normal path: existing in_progress step is used without fallback");
     });
   });

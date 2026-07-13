@@ -6,7 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { makeFlowManager } from "../../../tests/helpers/flow-setup.js";
+import { makeFlowManager, replaceFlowState } from "../../../tests/helpers/flow-setup.js";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 import { flattenSteps, findStepById } from "../../../src/flow/lib/step-tree.js";
 
@@ -73,14 +73,14 @@ function extractIssueEntryGuardCommand() {
   const skill = read("src/skills/senti.flow/SKILL.md");
   const entryIndex = skill.indexOf("### A. Entry");
   const dispatcherIndex = skill.indexOf("### C. Dispatcher loop");
-  const guardIndex = skill.indexOf("senti flow get status <runId> --expect-issue <n>", entryIndex);
+  const guardIndex = skill.indexOf("senti flow get status <runId> --expect-run-id <runId>", entryIndex);
 
   assert.notEqual(entryIndex, -1, "flow skill must contain an Entry section");
   assert.notEqual(guardIndex, -1, "flow entry guidance must name the issue-targeted status guard");
   assert.notEqual(dispatcherIndex, -1, "flow skill must contain a Dispatcher loop section");
   assert.ok(entryIndex < guardIndex && guardIndex < dispatcherIndex, "issue-targeted status guard must be in Entry before Dispatcher loop");
 
-  return ["get", "status", "run-active-397", "--expect-issue", "399"];
+  return ["get", "status", "run-active-397", "--expect-run-id", "run-active-397", "--expect-issue", "399"];
 }
 
 describe("target flow status mismatch guard", () => {
@@ -222,7 +222,7 @@ describe("target flow status mismatch guard", () => {
     tmpDirs.push(tmp);
     const state = saveFlow(tmp, "399-target", { issue: 399, runId: "run-target-399", autoApprove: true });
     setOnlyStepInProgress(state, "approval");
-    makeFlowManager(tmp).create(state);
+    replaceFlowState(tmp, state, { specId: "399-target" });
 
     const status = runFlow(tmp, ["get", "status", "run-target-399"]);
     const next = runFlow(tmp, ["get", "next-action"]);
@@ -242,7 +242,7 @@ describe("target flow status mismatch guard", () => {
     tmpDirs.push(tmp);
     const state = saveFlow(tmp, "399-target", { issue: 399, runId: "run-target-399", autoApprove: true });
     setOnlyStepInProgress(state, "finalize-cleanup");
-    makeFlowManager(tmp).create(state);
+    replaceFlowState(tmp, state, { specId: "399-target" });
 
     const res = runFlow(tmp, ["run", "finalize-cleanup"]);
     const saved = makeFlowManager(tmp).load("399-target");

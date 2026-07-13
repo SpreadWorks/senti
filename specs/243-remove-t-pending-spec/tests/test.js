@@ -1,7 +1,7 @@
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { createTmpDir, removeTmpDir } from "../../../tests/helpers/tmp-dir.js";
-import { setupFlow, makeFlowManager, makeDefaultTask } from "../../../tests/helpers/flow-setup.js";
+import { setupFlow, makeFlowManager, makeDefaultTask, replaceFlowState } from "../../../tests/helpers/flow-setup.js";
 
 describe("243: Remove T-pending-spec placeholder", () => {
   let tmp;
@@ -13,7 +13,7 @@ describe("243: Remove T-pending-spec placeholder", () => {
     const fm = makeFlowManager(tmp);
     const state = fm.load();
     state.tasks = [];
-    fm.create(state);
+    replaceFlowState(tmp, state);
     const reloaded = fm.load();
     assert.ok(Array.isArray(reloaded.tasks));
     assert.equal(reloaded.tasks.length, 0);

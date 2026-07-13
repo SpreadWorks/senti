@@ -763,6 +763,8 @@ export class AtomicFlowStateWriter {
 
   mutate(mutator, {
     parseState = (content) => JSON.parse(content.toString("utf8")),
+    validateState = () => {},
+    onFailure = null,
     allowIssueTransition = false,
   } = {}) {
     if (typeof mutator !== "function") throw new Error("flow state mutator must be a function");
@@ -770,6 +772,7 @@ export class AtomicFlowStateWriter {
       const expectedOriginal = parseState(current, this.pathAuthority.statePath);
       const nextState = structuredClone(expectedOriginal);
       mutator(nextState);
+      validateState(nextState, this.pathAuthority.statePath);
       return new FlowStateWriteAuthority({
         pathAuthority: this.pathAuthority,
         expectedOriginal,
@@ -777,10 +780,10 @@ export class AtomicFlowStateWriter {
         expectedRevision: new FlowStateRevision(current),
         allowIssueTransition,
       });
-    });
+    }, onFailure);
   }
 
-  #replace(resolveAuthority) {
+  #replace(resolveAuthority, onFailure = null) {
     this.lock.acquire();
     let descriptor = null;
     let tempPath = null;
@@ -820,6 +823,14 @@ export class AtomicFlowStateWriter {
       this.faults.emit("after-state-dir-fsync", { statePath: writeAuthority.statePath });
     } catch (cause) {
       primary = cause;
+    }
+
+    if (primary && !committed && typeof onFailure === "function") {
+      try {
+        onFailure(primary);
+      } catch (rollbackError) {
+        primary = new AggregateError([primary, rollbackError], "flow state mutation rollback failed");
+      }
     }
 
     if (descriptor != null) cleanup.close("before-state-cleanup-close", descriptor, tempPath);

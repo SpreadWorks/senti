@@ -24,7 +24,7 @@ import {
   writeReviewStopState,
 } from "./review-failure.js";
 import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
-import { persistCurrentRecoveryBaseline } from "./retry-recovery.js";
+import { persistCurrentRecoveryBaseline, resolveRecoveryMaxAttempts } from "./retry-recovery.js";
 import {
   assertAuditedBroadMode,
   evaluateTaskScope,
@@ -291,9 +291,10 @@ export function checkReviewRetryBelowMax(ctx, phase) {
   const flowState = ctx?.flowState || {};
   if (flowState.currentTaskId != null) return null; // R15
   const persistedPhase = reviewPhaseKeyForCtx(ctx, phase);
-  let max;
+  const count = countReviewRetry(flowState.metrics, persistedPhase);
+  let resolvedMax;
   try {
-    max = resolveReviewRetryMax({ flowState }, persistedPhase);
+    resolvedMax = resolveReviewRetryMax({ flowState }, persistedPhase);
   } catch (err) {
     if (err.code === "UNKNOWN_REVIEW_PHASE") {
       return Envelope.fail("run", "review", "UNKNOWN_REVIEW_PHASE",
@@ -302,7 +303,13 @@ export function checkReviewRetryBelowMax(ctx, phase) {
     }
     throw err;
   }
-  const count = countReviewRetry(flowState.metrics, persistedPhase);
+  const max = resolveRecoveryMaxAttempts({
+    flowState,
+    kind: "review",
+    phase: persistedPhase,
+    attempts: count,
+    resolvedMax,
+  });
   if (count < max) return null;
   const deferred = tryDeferReviewRetryExhaustion(ctx, persistedPhase, count);
   if (deferred) return deferred;

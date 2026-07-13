@@ -7,12 +7,12 @@ import { afterEach, describe, it } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../../tests/helpers/tmp-dir.js";
-import { setupFlow, setupFlowConfig } from "../../../tests/helpers/flow-setup.js";
+import { makeFlowManager, setupFlow, setupFlowConfig } from "../../../tests/helpers/flow-setup.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(__filename), "..", "..", "..");
 const recoveryPath = path.join(repoRoot, "src/flow/lib/retry-recovery.js");
-const sddForgeBin = path.join(repoRoot, "src/sdd-forge.js");
+const sentiBin = path.join(repoRoot, "src/senti.js");
 const specId = "001-test";
 const specPath = `specs/${specId}/spec.json`;
 const artifactPath = `specs/${specId}/retry-recovery.json`;
@@ -57,7 +57,7 @@ function setStepStatus(steps, id, status) {
 }
 
 function setupRecoveryFixture({
-  activeStep = "gate-impl",
+  activeStep = "task-gate",
   kind = "gate",
   phase = "task-impl",
   attempts = 3,
@@ -117,13 +117,20 @@ function setupRecoveryFixture({
             attemptsBefore: maxAttempts,
             maxAttempts,
             counterAfter: maxAttempts - 1,
-            recoveryCommand: `sdd-forge flow set retry reset ${kind} ${phase} --reason "${reason}" --yes`,
+            recoveryCommand: `senti flow set retry reset ${kind} ${phase} --reason "${reason}" --yes`,
             createdAt: "2026-05-18T00:00:00.000Z",
           }],
         }
       : undefined,
   });
   setStepStatus(state.steps, activeStep, "in_progress");
+  for (const task of state.tasks || []) {
+    if (setStepStatus(task.steps, activeStep, "in_progress")) {
+      setStepStatus(state.steps, "branch", "done");
+      task.status = "in_progress";
+      state.currentTaskId = task.id;
+    }
+  }
   writeJson(root, `specs/${specId}/flow.json`, state);
   writeJson(root, issueLogPath, { entries: [] });
   writeJson(root, artifactPath, { version: 1, entries: [] });
@@ -139,12 +146,12 @@ function snapshotRecoveryFiles(root) {
   };
 }
 
-function runSdd(root, args) {
+function runSenti(root, args) {
   try {
-    const stdout = execFileSync(process.execPath, [sddForgeBin, ...args], {
+    const stdout = execFileSync(process.execPath, [sentiBin, ...args], {
       cwd: repoRoot,
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: root, SDD_FORGE_SOURCE_ROOT: root },
+      env: { ...process.env, SENTI_WORK_ROOT: root, SENTI_SOURCE_ROOT: root },
     });
     return { status: 0, envelope: JSON.parse(stdout) };
   } catch (error) {
@@ -206,7 +213,7 @@ describe("retry recovery contract", () => {
     ];
     for (const args of invalidCommands) {
       const before = snapshotRecoveryFiles(root);
-      const result = runSdd(root, args);
+      const result = runSenti(root, args);
       assert.notEqual(result.status, 0, `invalid command must fail: ${args.join(" ")}`);
       assert.equal(result.envelope.ok, false);
       assertNoMutation(root, before);
@@ -215,19 +222,19 @@ describe("retry recovery contract", () => {
 
   it("R1: R2: R6: R7: TC-1 TC-2 TC-3: valid CLI recovery grants each recoverable target independently", async () => {
     const cases = [
-      { kind: "gate", phase: "task-impl", activeStep: "gate-impl" },
-      { kind: "gate", phase: "integration", activeStep: "gate-impl" },
-      { kind: "review", phase: "draft-questions", activeStep: "review-draft-questions" },
-      { kind: "review", phase: "draft-coverage", activeStep: "review-draft-coverage" },
-      { kind: "review", phase: "spec", activeStep: "review-spec" },
-      { kind: "review", phase: "test", activeStep: "review-test" },
-      { kind: "review", phase: "impl", activeStep: "review" },
+      { kind: "gate", phase: "task-impl", activeStep: "task-gate" },
+      { kind: "gate", phase: "integration", activeStep: "impl-gate" },
+      { kind: "review", phase: "draft-questions", activeStep: "draft-questions-review" },
+      { kind: "review", phase: "draft-coverage", activeStep: "draft-coverage-review" },
+      { kind: "review", phase: "spec", activeStep: "spec-review" },
+      { kind: "review", phase: "test", activeStep: "test-review" },
+      { kind: "review", phase: "impl", activeStep: "impl-review" },
     ];
 
     for (const item of cases) {
       const root = setupRecoveryFixture(item);
       cleanup.push(root);
-      const result = runSdd(root, [
+      const result = runSenti(root, [
         "flow",
         "set",
         "retry",
@@ -287,8 +294,8 @@ describe("retry recovery contract", () => {
     for (const [phase, canonicalPhase] of [
       ["draft-questions", "draft-questions"],
       ["draft-coverage", "draft-coverage"],
-      ["review-draft-questions", "draft-questions"],
-      ["review-draft-coverage", "draft-coverage"],
+      ["draft-questions-review", "draft-questions"],
+      ["draft-coverage-review", "draft-coverage"],
       ["spec", "spec"],
       ["test", "test"],
       ["impl", "impl"],
@@ -321,13 +328,13 @@ describe("retry recovery contract", () => {
   it("R2: R8: TC-11 TC-12: exhausted gate draft and spec display no recovery command and reject reset", () => {
     for (const phase of ["draft", "spec"]) {
       const root = setupRecoveryFixture({
-        activeStep: phase === "draft" ? "gate-draft" : "gate",
+        activeStep: phase === "draft" ? "draft-gate" : "spec-gate",
         kind: "gate",
         phase,
       });
       cleanup.push(root);
-      const next = runSdd(root, ["flow", "get", "next-action"]);
-      const status = runSdd(root, ["flow", "get", "status"]);
+      const next = runSenti(root, ["flow", "get", "next-action"]);
+      const status = runSenti(root, ["flow", "get", "status"]);
       for (const envelope of [next.envelope, status.envelope]) {
         const view = envelope.data.retryRecovery || envelope.data.gateStop || envelope.data.reviewStop;
         assert.equal(view.kind, "gate");
@@ -337,7 +344,7 @@ describe("retry recovery contract", () => {
         assert.equal(view.recoveryCommand, null);
       }
       const before = snapshotRecoveryFiles(root);
-      const reset = runSdd(root, [
+      const reset = runSenti(root, [
         "flow",
         "set",
         "retry",
@@ -369,7 +376,7 @@ describe("retry recovery contract", () => {
     });
 
     const failBaseline = persistReviewRecoveryBaseline(state, {
-      phase: "review-draft-questions",
+      phase: "draft-questions-review",
       trigger: "review-verdict-fail",
       fingerprint,
       createdAt: "2026-05-18T00:00:00.000Z",
@@ -480,7 +487,7 @@ describe("retry recovery contract", () => {
 
   it("R5: TC-17: unchanged exhausted reset is rejected by CLI without byte changes", () => {
     const root = setupRecoveryFixture({
-      activeStep: "review-spec",
+      activeStep: "spec-review",
       kind: "review",
       phase: "spec",
       baselineHash: "same",
@@ -488,7 +495,7 @@ describe("retry recovery contract", () => {
     });
     cleanup.push(root);
     const before = snapshotRecoveryFiles(root);
-    const result = runSdd(root, [
+    const result = runSenti(root, [
       "flow",
       "set",
       "retry",
@@ -535,7 +542,7 @@ describe("retry recovery contract", () => {
     const grant = applyRetryRecoveryGrant({
       root,
       spec: specPath,
-      flowState: before,
+      flowManager: makeFlowManager(root),
       input,
       eligibility: { recoverable: true, changedEvidence },
       attemptsBefore: 4,
@@ -569,7 +576,7 @@ describe("retry recovery contract", () => {
     assert.equal(entry.attemptsBefore, 4);
     assert.equal(entry.maxAttempts, 4);
     assert.equal(entry.counterAfter, 3);
-    assert.equal(entry.recoveryCommand, `sdd-forge flow set retry reset gate task-impl --reason "${reason}" --yes`);
+    assert.equal(entry.recoveryCommand, `senti flow set retry reset gate task-impl --reason "${reason}" --yes`);
     assert.equal(issue.recoveryCommand, entry.recoveryCommand);
     assert.equal(issue.createdAt, entry.createdAt);
     assert.equal(lastMetric.counter, "gateRetry");
@@ -604,7 +611,7 @@ describe("retry recovery contract", () => {
     applyRetryRecoveryGrant({
       root,
       spec: specPath,
-      flowState: firstFlow,
+      flowManager: makeFlowManager(root),
       input: new RetryRecoveryInput({
         action: "reset",
         kind: "gate",
@@ -630,7 +637,7 @@ describe("retry recovery contract", () => {
     applyRetryRecoveryGrant({
       root,
       spec: specPath,
-      flowState: secondFlow,
+      flowManager: makeFlowManager(root),
       input: new RetryRecoveryInput({
         action: "reset",
         kind: "review",
@@ -659,6 +666,47 @@ describe("retry recovery contract", () => {
     assert.ok(recovery.entries[0].createdAt < recovery.entries[1].createdAt);
   });
 
+  it("rolls artifact, issue-log, and flow bytes back when the atomic flow save fails", async () => {
+    const {
+      ChangedEvidenceSummary,
+      RetryRecoveryInput,
+      applyRetryRecoveryGrant,
+    } = await loadRecovery();
+    const root = setupRecoveryFixture({ attempts: 3, maxAttempts: 3 });
+    cleanup.push(root);
+    const before = snapshotRecoveryFiles(root);
+
+    assert.throws(() => applyRetryRecoveryGrant({
+      root,
+      spec: specPath,
+      flowManager: makeFlowManager(root),
+      input: new RetryRecoveryInput({
+        action: "reset",
+        kind: "gate",
+        phase: "task-impl",
+        reason,
+        yes: true,
+      }),
+      eligibility: {
+        recoverable: true,
+        changedEvidence: new ChangedEvidenceSummary({
+          sourceKind: "implementation-diff",
+          baselineHash: "before",
+          currentHash: "after",
+          changedPaths: ["src/changed.js"],
+          truncated: false,
+        }),
+      },
+      attemptsBefore: 3,
+      maxAttempts: 3,
+      faultInjector({ phase }) {
+        if (phase === "before-state-temp-write") throw new Error("injected flow save failure");
+      },
+    }), /injected flow save failure/);
+
+    assertNoMutation(root, before);
+  });
+
   it("R6: requirement verification exposes the full recovery audit entry schema", async () => {
     const { ChangedEvidenceSummary, RetryRecoveryEntry } = await loadRecovery();
     const entry = new RetryRecoveryEntry({
@@ -678,7 +726,7 @@ describe("retry recovery contract", () => {
       attemptsBefore: 3,
       maxAttempts: 3,
       counterAfter: 2,
-      recoveryCommand: `sdd-forge flow set retry reset review spec --reason "${reason}" --yes`,
+      recoveryCommand: `senti flow set retry reset review spec --reason "${reason}" --yes`,
       createdAt: "2026-05-18T00:00:02.000Z",
     }).toJSON();
 
@@ -838,14 +886,14 @@ describe("retry recovery contract", () => {
   });
 
   it("R8: TC-23 TC-24: next-action and status show exhausted recovery details", async () => {
-    const root = setupRecoveryFixture({ activeStep: "review-spec", kind: "review", phase: "spec" });
+    const root = setupRecoveryFixture({ activeStep: "spec-review", kind: "review", phase: "spec" });
     cleanup.push(root);
-    const reset = runSdd(root, ["flow", "set", "retry", "reset", "review", "spec", "--reason", reason, "--yes"]);
+    const reset = runSenti(root, ["flow", "set", "retry", "reset", "review", "spec", "--reason", reason, "--yes"]);
     assert.equal(reset.status, 0);
     assert.equal(reset.envelope.ok, true);
 
-    const next = runSdd(root, ["flow", "get", "next-action"]);
-    const status = runSdd(root, ["flow", "get", "status"]);
+    const next = runSenti(root, ["flow", "get", "next-action"]);
+    const status = runSenti(root, ["flow", "get", "status"]);
     for (const envelope of [next.envelope, status.envelope]) {
       const view = envelope.data.reviewStop || envelope.data.retryRecovery;
       assert.equal(view.kind, "review");
@@ -862,18 +910,19 @@ describe("retry recovery contract", () => {
 
   it("R8: TC-23 TC-24: next-action and status display gate, review, and unrecoverable exhaustion", () => {
     const cases = [
-      { kind: "gate", phase: "task-impl", activeStep: "gate-impl", recoverable: true },
-      { kind: "review", phase: "spec", activeStep: "review-spec", recoverable: true },
-      { kind: "gate", phase: "spec", activeStep: "gate", recoverable: false },
+      { kind: "gate", phase: "integration", activeStep: "impl-gate", recoverable: true },
+      { kind: "review", phase: "spec", activeStep: "spec-review", recoverable: true },
+      { kind: "gate", phase: "spec", activeStep: "spec-gate", recoverable: false },
     ];
 
     for (const item of cases) {
       const root = setupRecoveryFixture(item);
       cleanup.push(root);
-      const next = runSdd(root, ["flow", "get", "next-action"]);
-      const status = runSdd(root, ["flow", "get", "status"]);
+      const next = runSenti(root, ["flow", "get", "next-action"]);
+      const status = runSenti(root, ["flow", "get", "status"]);
       for (const envelope of [next.envelope, status.envelope]) {
         const view = envelope.data.retryRecovery || envelope.data.reviewStop || envelope.data.gateStop;
+        assert.ok(view, `missing retry recovery view for ${item.kind}/${item.phase}: ${JSON.stringify(envelope.data)}`);
         assert.equal(view.kind, item.kind);
         assert.equal(view.phase, item.phase);
         assert.equal(view.canonicalPhase, item.phase);
@@ -946,7 +995,7 @@ describe("retry recovery contract", () => {
     } = await loadRecovery();
     const root = setupRecoveryFixture({ attempts: 5, maxAttempts: 5 });
     cleanup.push(root);
-    const command = `sdd-forge flow set retry reset gate task-impl --reason "${reason}" --yes`;
+    const command = `senti flow set retry reset gate task-impl --reason "${reason}" --yes`;
     const changedEvidence = new ChangedEvidenceSummary({
       sourceKind: "implementation-diff",
       baselineHash: "before",
@@ -957,7 +1006,7 @@ describe("retry recovery contract", () => {
     const grant = applyRetryRecoveryGrant({
       root,
       spec: specPath,
-      flowState: readJson(root, `specs/${specId}/flow.json`),
+      flowManager: makeFlowManager(root),
       input: new RetryRecoveryInput({
         action: "reset",
         kind: "gate",
@@ -997,7 +1046,7 @@ describe("retry recovery contract", () => {
 
   it("R10: TC-26 TC-27 TC-28: CLI help, prompts, and generated skill template document audited recovery", () => {
     const help = execFileSync(process.execPath, [
-      sddForgeBin,
+      sentiBin,
       "flow",
       "set",
       "retry",
@@ -1007,8 +1056,8 @@ describe("retry recovery contract", () => {
     assert.match(help, /one re-evaluation/);
     assert.match(help, /unchanged evidence/i);
 
-    const prompt = fs.readFileSync(path.join(repoRoot, "src/flow/prompts/plan/review-test.md"), "utf8");
-    const template = fs.readFileSync(path.join(repoRoot, "src/templates/skills/sdd-forge.flow/SKILL.md"), "utf8");
+    const prompt = fs.readFileSync(path.join(repoRoot, "src/flow/prompts/task/task-review.md"), "utf8");
+    const template = fs.readFileSync(path.join(repoRoot, "src/skills/senti.flow/SKILL.md"), "utf8");
     for (const text of [prompt, template]) {
       assert.match(text, /flow set retry reset <gate\|review> <phase> --reason <text> --yes/);
       assert.match(text, /required --reason|reason is required/i);
@@ -1026,7 +1075,7 @@ describe("retry recovery contract", () => {
       buildRetryRecoveryView,
       evaluateRecoveryEligibility,
     } = await loadRecovery();
-    const root = setupRecoveryFixture({ activeStep: "gate-impl", kind: "gate", phase: "task-impl" });
+    const root = setupRecoveryFixture({ activeStep: "task-gate", kind: "gate", phase: "task-impl" });
     cleanup.push(root);
     const flow = readJson(root, `specs/${specId}/flow.json`);
     const input = new RetryRecoveryInput({
@@ -1056,7 +1105,7 @@ describe("retry recovery contract", () => {
     const grant = applyRetryRecoveryGrant({
       root,
       spec: specPath,
-      flowState: flow,
+      flowManager: makeFlowManager(root),
       input,
       eligibility: { recoverable: true, changedEvidence },
       attemptsBefore: 3,

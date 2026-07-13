@@ -10,21 +10,21 @@ import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { join } from "path";
 import { execFileSync } from "child_process";
-import { makeFlowManager } from "../../../tests/helpers/flow-setup.js";
+import { makeFlowManager, replaceFlowState } from "../../../tests/helpers/flow-setup.js";
 import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../../../tests/helpers/tmp-dir.js";
 import { buildInitialSteps, specIdFromPath } from "../../../src/lib/flow-helpers.js";
 
-const FLOW_CMD = join(process.cwd(), "src/sdd-forge.js");
+const FLOW_CMD = join(process.cwd(), "src/senti.js");
 
 function setupEnv(tmp) {
-  writeJson(tmp, ".sdd-forge/config.json", {
+  writeJson(tmp, ".senti/config.json", {
     lang: "js", type: "cli",
     docs: { languages: ["en"], defaultLanguage: "en" },
   });
   const specPath = "specs/209-test/spec.json";
   writeFile(tmp, specPath, "{}\n");
   makeFlowManager(tmp).create({
-    spec: specPath, baseBranch: "main", featureBranch: "feature/t",
+    spec: specPath, runId: "run-209-test", baseBranch: "main", featureBranch: "feature/t",
     steps: buildInitialSteps(),
   });
   makeFlowManager(tmp).addActiveFlow(specIdFromPath(specPath), "branch");
@@ -35,12 +35,13 @@ function runCLI(args, tmp, expectFail = false) {
   try {
     const out = execFileSync("node", [FLOW_CMD, "flow", ...args], {
       encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      env: { ...process.env, SENTI_WORK_ROOT: tmp },
     });
     return JSON.parse(out);
   } catch (err) {
     if (!expectFail) throw err;
-    return JSON.parse(err.stdout || err.stderr || "{}");
+    const output = err.stdout || err.stderr || "";
+    try { return JSON.parse(output); } catch { return { ok: false, raw: output }; }
   }
 }
 
@@ -48,16 +49,16 @@ describe("spec 209: set test-summary — failed[] support", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  it("accepts --json with failed[] and saves to test.summary", () => {
+  it("removed test-summary command rejects --json without mutating flow state", () => {
     tmp = setupEnv(createTmpDir());
     const payload = JSON.stringify({
       counts: { unit: 3, failed: 1 },
       failed: [{ id: "test_a", reason: "AssertionError" }],
     });
-    const result = runCLI(["set", "test-summary", "--json", payload], tmp);
-    assert.equal(result.ok, true);
-    const flow = makeFlowManager(tmp).load();
-    assert.deepEqual(flow.test.summary.failed, [{ id: "test_a", reason: "AssertionError" }]);
+    const before = makeFlowManager(tmp).load();
+    const result = runCLI(["set", "test-summary", "--json", payload], tmp, true);
+    assert.equal(result.ok, false);
+    assert.deepEqual(makeFlowManager(tmp).load(), before);
   });
 
   it("rejects empty id in failed[]", () => {
@@ -68,6 +69,7 @@ describe("spec 209: set test-summary — failed[] support", () => {
     });
     const result = runCLI(["set", "test-summary", "--json", payload], tmp, true);
     assert.equal(result.ok, false);
+    assert.match(result.raw || "", /test-summary|Usage:/);
   });
 
   it("--mode fallback preserves existing exitCode/counts, writes only failed[]", () => {
@@ -78,20 +80,19 @@ describe("spec 209: set test-summary — failed[] support", () => {
     state.test = {
       summary: { unit: 10, integration: 5, exitCode: 1 },
     };
-    fm.create(state);
+    replaceFlowState(tmp, state);
 
     const payload = JSON.stringify({
       failed: [{ id: "t1", reason: "r1" }, { id: "t2", reason: "r2" }],
     });
-    const result = runCLI(["set", "test-summary", "--mode", "fallback", "--json", payload], tmp);
-    assert.equal(result.ok, true);
+    const result = runCLI(["set", "test-summary", "--mode", "fallback", "--json", payload], tmp, true);
+    assert.equal(result.ok, false);
 
     const flow = fm.load();
     assert.equal(flow.test.summary.unit, 10, "unit preserved");
     assert.equal(flow.test.summary.integration, 5, "integration preserved");
     assert.equal(flow.test.summary.exitCode, 1, "exitCode preserved");
-    assert.equal(flow.test.summary.failed.length, 2);
-    assert.equal(flow.test.summary.failed[0].id, "t1");
+    assert.equal(flow.test.summary.failed, undefined);
   });
 
   it("--baseline flag routes to test.baseline", () => {
@@ -100,12 +101,11 @@ describe("spec 209: set test-summary — failed[] support", () => {
       counts: { unit: 2, failed: 1 },
       failed: [{ id: "pre_existing", reason: "known failure" }],
     });
-    const result = runCLI(["set", "test-summary", "--baseline", "--json", payload], tmp);
-    assert.equal(result.ok, true);
+    const result = runCLI(["set", "test-summary", "--baseline", "--json", payload], tmp, true);
+    assert.equal(result.ok, false);
     const flow = makeFlowManager(tmp).load();
-    assert.ok(flow.test.baseline, "test.baseline exists");
-    assert.equal(flow.test.baseline.failed[0].id, "pre_existing");
-    assert.equal(flow.test.summary, undefined, "test.summary not written");
+    assert.equal(flow.test, undefined, "removed command cannot create test evidence");
+    assert.equal(Object.hasOwn(flow, "test"), false, "test.summary is not written implicitly");
   });
 
   it("baseline tool monopoly: rejects AI write when baseline.exitCode is present", () => {
@@ -113,7 +113,7 @@ describe("spec 209: set test-summary — failed[] support", () => {
     const fm = makeFlowManager(tmp);
     const state = fm.load();
     state.test = { baseline: { unit: 10, exitCode: 0 } };
-    fm.create(state);
+    replaceFlowState(tmp, state);
 
     const payload = JSON.stringify({
       counts: { unit: 20 },
@@ -121,5 +121,6 @@ describe("spec 209: set test-summary — failed[] support", () => {
     });
     const result = runCLI(["set", "test-summary", "--baseline", "--json", payload], tmp, true);
     assert.equal(result.ok, false);
+    assert.deepEqual(makeFlowManager(tmp).load().test.baseline, { unit: 10, exitCode: 0 });
   });
 });

@@ -6,11 +6,12 @@ import path from "node:path";
 import fs from "node:fs";
 import { execFileSync } from "node:child_process";
 import { createTmpDir, removeTmpDir } from "../../../tests/helpers/tmp-dir.js";
-import { setupFlow, setupFlowConfig, makeFlowManager } from "../../../tests/helpers/flow-setup.js";
+import { setupFlow, setupFlowConfig, makeFlowManager, replaceFlowState } from "../../../tests/helpers/flow-setup.js";
 import { writeStubAgentScript } from "../../../tests/helpers/stub-agent.js";
 import { updateReviewRetryCounter, countReviewRetry, checkReviewRetryBelowMax } from "../../../src/flow/lib/run-review.js";
+import { resolveLifecycle } from "../../../src/flow/definition.js";
 
-const SDD_CMD = path.join(process.cwd(), "src/sdd-forge.js");
+const SDD_CMD = path.join(process.cwd(), "src/senti.js");
 
 function seedReviewFails(tmp, phase, count) {
   const flowPath = path.join(tmp, "specs/001-test/flow.json");
@@ -31,14 +32,14 @@ describe("R2 R3: count >= max short-circuits with REVIEW_MAX_ATTEMPTS_EXCEEDED a
     try {
       setupFlowConfig(tmp, "ja");
       setupFlow(tmp, { featureBranch: "feature/001-test", baseBranch: "main" });
-      seedReviewFails(tmp, "draft", 5);
+      seedReviewFails(tmp, "spec", 5);
 
       let out;
       try {
         out = execFileSync(
           "node",
-          [SDD_CMD, "flow", "run", "review", "--phase", "draft"],
-          { encoding: "utf8", env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp } },
+          [SDD_CMD, "flow", "run", "review", "--phase", "spec"],
+          { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } },
         );
       } catch (e) {
         out = e.stdout || "";
@@ -46,7 +47,7 @@ describe("R2 R3: count >= max short-circuits with REVIEW_MAX_ATTEMPTS_EXCEEDED a
       const env = JSON.parse(out);
       assert.equal(env.ok, false);
       assert.equal(env.errors[0].code, "REVIEW_MAX_ATTEMPTS_EXCEEDED");
-      assert.equal(env.data.phase, "draft");
+      assert.equal(env.data.phase, "spec");
       assert.equal(typeof env.data.attempts, "number");
       assert.equal(typeof env.data.max, "number");
       assert.ok(env.data.attempts >= env.data.max, "attempts >= max");
@@ -60,7 +61,7 @@ describe("R2 R3: count >= max short-circuits with REVIEW_MAX_ATTEMPTS_EXCEEDED a
     try {
       setupFlowConfig(tmp, "ja");
       setupFlow(tmp, { featureBranch: "feature/001-test", baseBranch: "main" });
-      seedReviewFails(tmp, "draft", 5);
+      seedReviewFails(tmp, "spec", 5);
       const before = JSON.parse(
         fs.readFileSync(path.join(tmp, "specs/001-test/flow.json"), "utf8"),
       );
@@ -69,8 +70,8 @@ describe("R2 R3: count >= max short-circuits with REVIEW_MAX_ATTEMPTS_EXCEEDED a
       try {
         execFileSync(
           "node",
-          [SDD_CMD, "flow", "run", "review", "--phase", "draft"],
-          { encoding: "utf8", env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp } },
+          [SDD_CMD, "flow", "run", "review", "--phase", "spec"],
+          { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } },
         );
       } catch (_) { /* expected non-zero exit */ }
 
@@ -104,8 +105,7 @@ describe("R4 R29: review post hook is async and updates counter before step stat
       setupFlow(tmp, { featureBranch: "feature/001-test", baseBranch: "main" });
       // simulating throw via test would require monkey-patching; rely on AC15 coverage by the integration scenario.
       // Here we assert the precedence-related contract: post hook imports updateReviewRetryCounter from run-review.js
-      const reg = await import("../../../src/flow/registry.js");
-      const src = reg.FLOW_COMMANDS?.run?.review?.post?.toString?.() || "";
+      const src = fs.readFileSync(path.join(process.cwd(), "src/flow/registry.js"), "utf8");
       assert.ok(
         src.includes("updateReviewRetryCounter"),
         "post hook must invoke updateReviewRetryCounter (R29)",
@@ -133,8 +133,7 @@ describe("R10 R22: post hook failure is observable via dispatcher warning", () =
   it("R22: updateReviewRetryCounter does NOT swallow errors internally", async () => {
     // Contract: counter update errors must propagate to dispatcher (not be caught in post hook itself).
     // Verified by inspecting registry post hook source for absence of try/catch around updateReviewRetryCounter.
-    const reg = await import("../../../src/flow/registry.js");
-    const src = reg.FLOW_COMMANDS?.run?.review?.post?.toString?.() || "";
+    const src = fs.readFileSync(path.join(process.cwd(), "src/flow/registry.js"), "utf8");
     assert.ok(src.includes("updateReviewRetryCounter"), "must call updateReviewRetryCounter");
     // The R22 contract: do not silently swallow. Implementation may still log, but errors must reach dispatcher.
     // This is a structural assertion; full E2E happens at AC6/AC15.
@@ -159,26 +158,27 @@ describe("R13: end-to-end persistence and follow-up short-circuit", () => {
       setupFlow(tmp, { featureBranch: "feature/001-test", baseBranch: "main" });
       const flowPath = path.join(tmp, "specs/001-test/flow.json");
       const mgr = makeFlowManager(tmp);
-      // Set autoApprove=true so review-draft max=1 (auto)
+      // Persist enough spec review failures to reach the current scalar budget.
       const initial = mgr.load();
       initial.autoApprove = true;
-      mgr.create(initial);
-      // Simulate 1 FAIL via updateReviewRetryCounter (= max for auto)
-      const flow = mgr.load();
-      updateReviewRetryCounter(
-        { phase: "draft", flowState: flow, flowManager: mgr },
-        { result: "ok", artifacts: { phase: "draft", verdict: "FAIL" } },
-      );
+      replaceFlowState(tmp, initial);
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        const flow = mgr.load();
+        updateReviewRetryCounter(
+          { root: tmp, phase: "spec", flowState: flow, flowManager: mgr },
+          { result: "ok", artifacts: { phase: "spec", retryPhase: "spec", verdict: "FAIL" } },
+        );
+      }
       // Reload from disk and verify count
       const reloaded = JSON.parse(fs.readFileSync(flowPath, "utf8"));
-      assert.equal(countReviewRetry(reloaded.metrics, "draft"), 1, "after 1 FAIL via updateReviewRetryCounter, count must be 1");
+      assert.equal(countReviewRetry(reloaded.metrics, "spec"), 4, "four FAIL outcomes reach the current spec-review budget");
       // Subsequent CLI invocation must short-circuit with REVIEW_MAX_ATTEMPTS_EXCEEDED
       let out;
       try {
         out = execFileSync(
           "node",
-          [SDD_CMD, "flow", "run", "review", "--phase", "draft"],
-          { encoding: "utf8", env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp } },
+          [SDD_CMD, "flow", "run", "review", "--phase", "spec"],
+          { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } },
         );
       } catch (e) { out = e.stdout || ""; }
       const env = JSON.parse(out);
@@ -199,7 +199,7 @@ describe("R14: reset CLI followed by review CLI passes pre-check (no short-circu
       // Stub the agent so that review subprocess does not actually invoke real CLI
       // (review needs an AI provider; stub returns a minimal valid response).
       const stubScript = writeStubAgentScript(tmp, "stub-agent.js", JSON.stringify({ verdict: "PASS", proposals: [] }));
-      const cfgPath = path.join(tmp, ".sdd-forge", "config.json");
+      const cfgPath = path.join(tmp, ".senti", "config.json");
       const cfg = JSON.parse(fs.readFileSync(cfgPath, "utf8"));
       cfg.agent = cfg.agent || {};
       cfg.agent.default = "stub";
@@ -214,25 +214,38 @@ describe("R14: reset CLI followed by review CLI passes pre-check (no short-circu
       flow.metrics = flow.metrics || [];
       flow.autoApprove = true;
       for (let i = 0; i < 5; i++) {
-        flow.metrics.push({ phase: "draft", counter: "reviewRetry", delta: 1, taskId: null, ts: new Date().toISOString() });
+        flow.metrics.push({ phase: "spec", counter: "reviewRetry", delta: 1, taskId: null, ts: new Date().toISOString() });
       }
-      fs.writeFileSync(flowPath, JSON.stringify(flow, null, 2));
+      flow.reviewRecoveryBaselines = [{
+        kind: "review",
+        phase: "spec",
+        canonicalPhase: "spec",
+        fingerprint: {
+          sourceKind: "spec-json",
+          hash: "before",
+          paths: ["specs/001-test/spec.json"],
+          truncated: false,
+        },
+        createdAt: "2026-07-13T00:00:00.000Z",
+      }];
+      fs.writeFileSync(path.join(tmp, "specs/001-test/spec.json"), '{"requirements":[]}\n');
+      replaceFlowState(tmp, flow);
       // Reset
       execFileSync(
         "node",
-        [SDD_CMD, "flow", "set", "retry", "reset", "review", "draft", "--yes"],
-        { encoding: "utf8", env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp } },
+        [SDD_CMD, "flow", "set", "retry", "reset", "review", "spec", "--reason", "Spec evidence changed after review fixes.", "--yes"],
+        { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } },
       );
       const reloaded = JSON.parse(fs.readFileSync(flowPath, "utf8"));
-      assert.equal(countReviewRetry(reloaded.metrics, "draft"), 0, "reset must zero count");
+      assert.equal(countReviewRetry(reloaded.metrics, "spec"), 4, "recovery must leave exactly one re-evaluation before the persisted max of five");
       // Subsequent CLI: pre-check must NOT return REVIEW_MAX_ATTEMPTS_EXCEEDED.
       let out;
       let exitCode = 0;
       try {
         out = execFileSync(
           "node",
-          [SDD_CMD, "flow", "run", "review", "--phase", "draft"],
-          { encoding: "utf8", env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp } },
+          [SDD_CMD, "flow", "run", "review", "--phase", "spec"],
+          { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } },
         );
       } catch (e) {
         out = e.stdout || "";
@@ -258,13 +271,17 @@ describe("R14: reset CLI followed by review CLI passes pre-check (no short-circu
 
 describe("R21: impl review step status remains 'done' on counter-driven retry", () => {
   it("R21: review post hook still calls tryUpdateStepStatus to mark impl step done after counter update", async () => {
-    const reg = await import("../../../src/flow/registry.js");
-    const src = reg.FLOW_COMMANDS?.run?.review?.post?.toString?.() || "";
-    assert.ok(src.includes("tryUpdateStepStatus"), "post hook must still mark step done (R21)");
-    // Order check: updateReviewRetryCounter should appear before tryUpdateStepStatus in source
-    const idxCounter = src.indexOf("updateReviewRetryCounter");
-    const idxStep = src.indexOf("tryUpdateStepStatus");
-    assert.ok(idxCounter >= 0 && idxStep >= 0, "both must be present");
-    assert.ok(idxCounter < idxStep, "counter update must precede step status update (R29)");
+    const actions = resolveLifecycle({
+      event: "review:post",
+      command: "run-review",
+      phase: "impl",
+      currentStepId: "impl-review",
+      result: { artifacts: { phase: "impl", verdict: "PASS" } },
+      flowState: { currentTaskId: null },
+    });
+    assert.deepEqual(actions.map((action) => action.constructor.name), ["IncrementMetric", "SetStepStatus"]);
+    assert.equal(actions[0].counter, "reviewRetry");
+    assert.equal(actions[1].step, "impl-review");
+    assert.equal(actions[1].status, "done");
   });
 });

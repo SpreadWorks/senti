@@ -134,6 +134,12 @@ function assertCurrentFlowStateSchema(state, sourcePath) {
   }
 }
 
+function parseStepIdMigrationState(content, sourcePath) {
+  const state = JSON.parse(content.toString("utf8"));
+  assertFlowStateSchema(state, sourcePath);
+  return state;
+}
+
 function flowStepList(state) {
   const plan = Array.isArray(state?.steps)
     ? state.steps.find((s) => s?.id === "plan" && Array.isArray(s.children))
@@ -506,9 +512,11 @@ export class FlowStore {
       faultInjector: opts.faultInjector,
       processIdentitySource: opts.processIdentitySource,
     }).mutate(mutator, {
-      parseState(content, statePath) {
-        return parseCurrentFlowState(content, statePath);
-      },
+      parseState: opts.stepIdMigration === true
+        ? parseStepIdMigrationState
+        : (content, statePath) => parseCurrentFlowState(content, statePath),
+      validateState: assertCurrentFlowStateSchema,
+      onFailure: opts.onFailure,
       allowIssueTransition: opts.allowIssueTransition === true,
     });
   }

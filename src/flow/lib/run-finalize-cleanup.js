@@ -42,6 +42,7 @@ import { resolveLatestReportPath, readReportText } from "./run-report-show.js";
 import { flattenSteps } from "./step-tree.js";
 import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
 import { runFlowCommandWithPluginLifecycle } from "../../lib/plugin-registry.js";
+import { FlowManager } from "../../lib/flow-manager.js";
 
 const ORPHAN_COMMIT_LIST_LIMIT = 50;
 const SUBMODULE_DIAGNOSTIC_LIMIT = 50;
@@ -1125,27 +1126,26 @@ export function syncMetadataFromWorktreeToMain(worktreeRoot, mainRoot, specId) {
   if (!fs.existsSync(wtPath) || !fs.existsSync(mainPath)) return;
 
   const wtState = JSON.parse(fs.readFileSync(wtPath, "utf8"));
-  const mainState = JSON.parse(fs.readFileSync(mainPath, "utf8"));
-
-  let mutated = false;
   const wtSteps = flattenSteps(wtState.steps || []);
-  const mainSteps = flattenSteps(mainState.steps || []);
+  const flowManager = new FlowManager({ root: mainRoot, mainRoot, inWorktree: false, specId });
+  flowManager.mutate((mainState) => {
+    const mainSteps = flattenSteps(mainState.steps || []);
+    for (const wtStep of wtSteps) {
+      if (!wtStep.runtimeLog) continue;
+      const mainStep = mainSteps.find((s) => s.id === wtStep.id);
+      if (!mainStep) continue;
 
-  for (const wtStep of wtSteps) {
-    if (!wtStep.runtimeLog) continue;
-    const mainStep = mainSteps.find((s) => s.id === wtStep.id);
-    if (!mainStep) continue;
-
-    // Adopt the worktree log if the main one is missing or has a different sequence.
-    if (!mainStep.runtimeLog || mainStep.runtimeLog.sequence !== wtStep.runtimeLog.sequence) {
-      mainStep.runtimeLog = { ...wtStep.runtimeLog };
-      mutated = true;
+      const mainSequence = mainStep.runtimeLog?.sequence;
+      const worktreeSequence = wtStep.runtimeLog.sequence;
+      // Preserve a concurrent main writer; only advance to a newer worktree log.
+      if (
+        !mainStep.runtimeLog
+        || (Number.isSafeInteger(worktreeSequence) && worktreeSequence > mainSequence)
+      ) {
+        mainStep.runtimeLog = { ...wtStep.runtimeLog };
+      }
     }
-  }
-
-  if (mutated) {
-    fs.writeFileSync(mainPath, JSON.stringify(mainState, null, 2) + "\n", "utf8");
-  }
+  }, { specId });
 }
 
 export function validateTeardown({ worktreePath, mainRepoPath, featureBranch, specId }) {

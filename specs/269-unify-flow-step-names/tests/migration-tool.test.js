@@ -6,31 +6,39 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(__filename), "..", "..", "..");
 const toolPath = path.join(repoRoot, "src", "scripts", "rename-phase-steps.js");
 
 // flow.json with flow-scope (steps[]) and task-scope (tasks[].steps[]) step ids.
-function flowJson() {
+function flowJson(id) {
+  const steps = buildInitialSteps();
+  const legacyFlowIds = {
+    "draft-gate": "gate-draft",
+    "spec-gate": "gate",
+    "impl-review": "review",
+    "impl-gate": "gate-impl",
+  };
+  for (const container of steps) {
+    for (const step of container.children || []) step.id = legacyFlowIds[step.id] || step.id;
+  }
   return {
-    steps: [
-      { id: "plan", children: [
-        { id: "gate-draft", status: "done" },
-        { id: "gate", status: "done" },
-      ] },
-      { id: "impl", children: [
-        { id: "review", status: "done" },
-        { id: "gate-impl", status: "done" },
-      ] },
-    ],
+    spec: `specs/${id}/spec.json`,
+    runId: `run-${id}`,
+    baseBranch: "main",
+    featureBranch: `feature/${id}`,
+    requirements: [],
+    steps,
     tasks: [
-      { id: "T-1", steps: [
+      { id: "T-1", title: "task", goal: "task", parent: null, origin: "plan", added_round: 0, status: "done", steps: [
         { id: "impl", status: "done" },
         { id: "review", status: "done" },
         { id: "gate-impl", status: "done" },
       ] },
     ],
+    currentTaskId: null,
   };
 }
 
@@ -84,31 +92,31 @@ function retroJson() {
   };
 }
 
-function makeFixture() {
+function makeFixture({ registry = null } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "rename-steps-"));
   const writeSpec = (id, { active = false } = {}) => {
     const dir = path.join(root, "specs", id);
     fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(path.join(dir, "flow.json"), JSON.stringify(flowJson(), null, 2));
+    fs.writeFileSync(path.join(dir, "spec.json"), "{}\n");
+    fs.writeFileSync(path.join(dir, "flow.json"), JSON.stringify(flowJson(id), null, 2));
     fs.writeFileSync(path.join(dir, "issue-log.json"), JSON.stringify(issueLogJson(), null, 2));
     fs.writeFileSync(path.join(dir, "review.md"), REVIEW_MD);
     fs.writeFileSync(path.join(dir, "report.json"), JSON.stringify(reportJson(), null, 2));
     fs.writeFileSync(path.join(dir, "retro.json"), JSON.stringify(retroJson(), null, 2));
   };
   writeSpec("alpha");
-  writeSpec("active-spec");
-  fs.mkdirSync(path.join(root, ".sdd-forge"), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, ".sdd-forge", ".active-flow"),
-    JSON.stringify([{ spec: "active-spec", mode: "worktree" }]),
-  );
+  writeSpec("beta");
+  if (registry != null) {
+    fs.mkdirSync(path.join(root, ".senti"), { recursive: true });
+    fs.writeFileSync(path.join(root, ".senti", ".active-flow"), registry);
+  }
   return root;
 }
 
 function runTool(root, args) {
   return spawnSync("node", [toolPath, ...args], {
     cwd: root,
-    env: { ...process.env, SDD_WORK_ROOT: root },
+    env: { ...process.env, SENTI_WORK_ROOT: root },
     encoding: "utf8",
   });
 }
@@ -118,6 +126,13 @@ function gitInit(root) {
   g("init", "-q");
   g("-c", "user.email=t@t", "-c", "user.name=t", "add", "-A");
   spawnSync("git", ["-C", root, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "fixture"], { encoding: "utf8" });
+}
+
+function addWorktree(root, name = "other") {
+  const worktree = path.join(path.dirname(root), `${path.basename(root)}-${name}`);
+  const result = spawnSync("git", ["-C", root, "worktree", "add", "-q", "-b", name, worktree], { encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
+  return worktree;
 }
 
 test("R7: dry-run (default) reports changes and writes nothing, exit 0", () => {
@@ -155,7 +170,7 @@ test("R7: --apply refuses a dirty git worktree", () => {
   assert.notEqual(res.status, 0, "--apply must refuse when the git worktree has uncommitted changes");
 });
 
-test("R8: --apply converts flow.json by scope and leaves issue-log collisions and active flow untouched", () => {
+test("R8: --apply converts flow.json by scope on a clean repository with no active-flow registry", () => {
   assert.ok(fs.existsSync(toolPath), "migration tool src/scripts/rename-phase-steps.js must exist");
   const root = makeFixture();
   gitInit(root);
@@ -167,8 +182,10 @@ test("R8: --apply converts flow.json by scope and leaves issue-log collisions an
   const implLeaves = alphaFlow.steps[1].children.map((s) => s.id);
   const taskLeaves = alphaFlow.tasks[0].steps.map((s) => s.id);
   // 1:1 and flow-scope collision conversions
-  assert.deepEqual(planLeaves, ["draft-gate", "spec-gate"]);
-  assert.deepEqual(implLeaves, ["impl-review", "impl-gate"]);
+  assert.ok(planLeaves.includes("draft-gate"));
+  assert.ok(planLeaves.includes("spec-gate"));
+  assert.ok(implLeaves.includes("impl-review"));
+  assert.ok(implLeaves.includes("impl-gate"));
   // task-scope collision conversions
   assert.deepEqual(taskLeaves, ["task-impl", "task-review", "task-gate"]);
 
@@ -188,9 +205,8 @@ test("R8: --apply converts flow.json by scope and leaves issue-log collisions an
     "impl",
   ]);
 
-  const activeFlow = fs.readFileSync(path.join(root, "specs", "active-spec", "flow.json"), "utf8");
-  assert.ok(activeFlow.includes("gate-impl"), "active flow's flow.json must be excluded (unchanged)");
-  assert.ok(!activeFlow.includes("impl-gate"), "active flow's flow.json must not be converted");
+  const betaFlow = fs.readFileSync(path.join(root, "specs", "beta", "flow.json"), "utf8");
+  assert.ok(betaFlow.includes("impl-gate"), "every inactive historical flow should be converted");
 
   // review.md: unambiguous gate-draft renamed in code-block + path; prose kept;
   // collision id gate-impl left as-is (flat file, no scope) and NOT scope-guessed.
@@ -209,6 +225,90 @@ test("R8: --apply converts flow.json by scope and leaves issue-log collisions an
   assert.ok(retro.evidence_path.includes("draft-gate"), "retro.json path-string value must be renamed");
   assert.ok(retro.lesson.includes("gate-draft"), "retro.json prose value must be untouched");
   assert.equal(retro.collision_path, "logs/gate-impl/run.json", "retro.json collision id path must be left unchanged");
+});
+
+test("--apply fails closed on a malformed active-flow registry without mutation", () => {
+  const root = makeFixture({ registry: "{broken\n" });
+  gitInit(root);
+  const before = fs.readFileSync(path.join(root, "specs", "alpha", "flow.json"));
+  const result = runTool(root, ["--apply"]);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /active-flow registry is malformed/);
+  assert.deepEqual(fs.readFileSync(path.join(root, "specs", "alpha", "flow.json")), before);
+});
+
+test("--apply refuses any active flow without mutating historical files", () => {
+  const root = makeFixture({ registry: JSON.stringify([{ spec: "alpha", mode: "local" }]) });
+  gitInit(root);
+  const before = fs.readFileSync(path.join(root, "specs", "beta", "flow.json"));
+  const result = runTool(root, ["--apply"]);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /any flow is active/);
+  assert.deepEqual(fs.readFileSync(path.join(root, "specs", "beta", "flow.json")), before);
+});
+
+test("--apply fails closed on registry/worktree inconsistency", () => {
+  const root = makeFixture({ registry: JSON.stringify([{ spec: "alpha", mode: "worktree" }]) });
+  gitInit(root);
+  const before = fs.readFileSync(path.join(root, "specs", "alpha", "flow.json"));
+  const result = runTool(root, ["--apply"]);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /registry\/worktree mismatch/);
+  assert.deepEqual(fs.readFileSync(path.join(root, "specs", "alpha", "flow.json")), before);
+});
+
+test("--apply preflights every flow authority before mutating any target", () => {
+  const root = makeFixture();
+  const alphaPath = path.join(root, "specs", "alpha", "flow.json");
+  const alpha = JSON.parse(fs.readFileSync(alphaPath, "utf8"));
+  alpha.spec = "specs/beta/spec.json";
+  fs.writeFileSync(alphaPath, JSON.stringify(alpha, null, 2));
+  gitInit(root);
+  const beforeAlpha = fs.readFileSync(alphaPath);
+  const beforeBeta = fs.readFileSync(path.join(root, "specs", "beta", "flow.json"));
+
+  const result = runTool(root, ["--apply"]);
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /bound authority|identity differs/);
+  assert.deepEqual(fs.readFileSync(alphaPath), beforeAlpha);
+  assert.deepEqual(fs.readFileSync(path.join(root, "specs", "beta", "flow.json")), beforeBeta);
+});
+
+test("--apply resolves the main authority when invoked from another worktree", () => {
+  const root = makeFixture();
+  gitInit(root);
+  const worktree = addWorktree(root);
+  const result = runTool(worktree, ["--apply"]);
+  assert.equal(result.status, 0, result.stderr);
+  const main = fs.readFileSync(path.join(root, "specs", "alpha", "flow.json"), "utf8");
+  const other = fs.readFileSync(path.join(worktree, "specs", "alpha", "flow.json"), "utf8");
+  assert.match(main, /draft-gate/);
+  assert.match(other, /gate-draft/);
+});
+
+test("--apply refuses a writer lock without mutation", () => {
+  const root = makeFixture();
+  const lockPath = path.join(root, "specs", "alpha", ".flow.json.writer.lock");
+  fs.writeFileSync(lockPath, "locked\n");
+  gitInit(root);
+  const before = fs.readFileSync(path.join(root, "specs", "alpha", "flow.json"));
+  const result = runTool(root, ["--apply"]);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /flow writer lock is present/);
+  assert.deepEqual(fs.readFileSync(path.join(root, "specs", "alpha", "flow.json")), before);
+});
+
+test("--apply refuses a dirty secondary worktree without mutating main", () => {
+  const root = makeFixture();
+  gitInit(root);
+  const worktree = addWorktree(root);
+  fs.writeFileSync(path.join(worktree, "dirty.txt"), "dirty\n");
+  const before = fs.readFileSync(path.join(root, "specs", "alpha", "flow.json"));
+  const result = runTool(root, ["--apply"]);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /every git worktree to be clean/);
+  assert.deepEqual(fs.readFileSync(path.join(root, "specs", "alpha", "flow.json")), before);
 });
 
 // NOTE: R8's live-repository application (running the tool against this repo's specs/

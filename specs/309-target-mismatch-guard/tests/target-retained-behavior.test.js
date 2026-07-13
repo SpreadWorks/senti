@@ -6,7 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { makeFlowManager } from "../../../tests/helpers/flow-setup.js";
+import { makeFlowManager, replaceFlowState } from "../../../tests/helpers/flow-setup.js";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 import { flattenSteps, findStepById } from "../../../src/flow/lib/step-tree.js";
 
@@ -121,7 +121,7 @@ describe("target-matched retained behavior", () => {
     tmpDirs.push(tmp);
     const state = saveLocalFlow(tmp, "403-target", { issue: 403, runId: "run-target-403", autoApprove: true });
     setOnlyStepInProgress(state, "approval");
-    makeFlowManager(tmp).create(state, { specId: "403-target" });
+    replaceFlowState(tmp, state, { specId: "403-target" });
 
     const next = runFlow(tmp, ["get", "next-action", "--expect-issue", "403"]);
 
@@ -135,7 +135,7 @@ describe("target-matched retained behavior", () => {
     tmpDirs.push(tmp);
     const state = saveLocalFlow(tmp, "403-target", { issue: 403, runId: "run-target-403", autoApprove: true });
     state.tasks = [{ id: "T-1", title: "task", goal: "task", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }];
-    makeFlowManager(tmp).create(state, { specId: "403-target" });
+    replaceFlowState(tmp, state, { specId: "403-target" });
 
     const runCommand = runFlow(tmp, ["run", "start-task", "--task-id", "T-1", "--expect-issue", "403"]);
     const repairCommand = runFlow(tmp, ["run", "reopen-draft", "--reason", "matched target retained repair", "--expect-issue", "403"]);
@@ -149,7 +149,7 @@ describe("target-matched retained behavior", () => {
     tmpDirs.push(tmp);
     const state = saveLocalFlow(tmp, "403-target", { issue: 403, runId: "run-target-403", autoApprove: true });
     setOnlyStepInProgress(state, "finalize-cleanup");
-    makeFlowManager(tmp).create(state, { specId: "403-target" });
+    replaceFlowState(tmp, state, { specId: "403-target" });
 
     const res = runFlow(tmp, ["run", "finalize-cleanup", "--expect-issue", "403"]);
 

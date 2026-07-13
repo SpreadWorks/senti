@@ -692,10 +692,30 @@ export function persistCurrentRecoveryBaseline({ root, flowState, kind, phase, t
   });
 }
 
+class RetryRecoveryFileSnapshot {
+  constructor(target) {
+    this.target = target;
+    this.content = fs.existsSync(target) ? fs.readFileSync(target) : null;
+  }
+
+  restore() {
+    if (this.content != null) {
+      fs.writeFileSync(this.target, this.content);
+      return;
+    }
+    try { fs.unlinkSync(this.target); } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
+  }
+}
+
 export function applyRetryRecoveryGrant(input = {}) {
   const root = requireString(input.root, "root");
   const spec = requireString(input.spec, "spec");
-  const flowState = input.flowState || {};
+  const flowManager = input.flowManager;
+  if (!flowManager || typeof flowManager.mutate !== "function") {
+    throw new Error("flowManager is required");
+  }
   const recoveryInput = input.input instanceof RetryRecoveryInput
     ? input.input
     : new RetryRecoveryInput(input.input || {});
@@ -710,43 +730,52 @@ export function applyRetryRecoveryGrant(input = {}) {
   const maxAttempts = requireSafeInteger(input.maxAttempts, "maxAttempts");
   const counterAfter = Math.max(0, maxAttempts - 1);
   const createdAt = requireString(input.createdAt || new Date().toISOString(), "createdAt");
-  const { filePath, artifact } = readRecoveryArtifact(root, spec);
-  const entry = new RetryRecoveryEntry({
-    id: `recovery-${String(artifact.entries.length + 1).padStart(3, "0")}`,
-    kind: recoveryInput.kind,
-    phase: recoveryInput.phase,
-    canonicalPhase: recoveryInput.canonicalPhase,
-    reason: recoveryInput.reason,
-    changedEvidence,
-    permittedReevaluationCount: PERMITTED_REEVALUATION_COUNT,
-    attemptsBefore,
-    maxAttempts,
-    counterAfter,
-    recoveryCommand: recoveryCommandFor(recoveryInput),
-    createdAt,
-  });
-  const entryJson = entry.toJSON();
-  artifact.entries.push(entryJson);
-  writeJson(filePath, artifact);
+  const specDir = path.dirname(path.resolve(root, spec));
+  const { filePath } = readRecoveryArtifact(root, spec);
+  const issueLogPath = path.join(specDir, "issue-log.json");
+  let snapshots = [];
+  let entry;
+  flowManager.mutate((flowState) => {
+    snapshots = [filePath, issueLogPath].map((target) => new RetryRecoveryFileSnapshot(target));
+    const { artifact } = readRecoveryArtifact(root, spec);
+    entry = new RetryRecoveryEntry({
+      id: `recovery-${String(artifact.entries.length + 1).padStart(3, "0")}`,
+      kind: recoveryInput.kind,
+      phase: recoveryInput.phase,
+      canonicalPhase: recoveryInput.canonicalPhase,
+      reason: recoveryInput.reason,
+      changedEvidence,
+      permittedReevaluationCount: PERMITTED_REEVALUATION_COUNT,
+      attemptsBefore,
+      maxAttempts,
+      counterAfter,
+      recoveryCommand: recoveryCommandFor(recoveryInput),
+      createdAt,
+    });
+    const entryJson = entry.toJSON();
+    artifact.entries.push(entryJson);
+    writeJson(filePath, artifact);
 
-  const issueLog = loadIssueLog(root, spec);
-  issueLog.entries.push({
-    step: "retry-recovery",
-    ...entryJson,
-  });
-  saveIssueLog(root, spec, issueLog);
+    const issueLog = loadIssueLog(root, spec);
+    issueLog.entries.push({ step: "retry-recovery", ...entryJson });
+    saveIssueLog(root, spec, issueLog);
 
-  const metrics = buildOneAttemptGrantMetrics({
-    counter: counterForKind(recoveryInput.kind),
-    phase: recoveryInput.canonicalPhase,
-    maxAttempts,
+    const metrics = buildOneAttemptGrantMetrics({
+      counter: counterForKind(recoveryInput.kind),
+      phase: recoveryInput.canonicalPhase,
+      maxAttempts,
+    });
+    flowState.retryRecovery = artifact;
+    flowState.metrics = Array.isArray(flowState.metrics) ? flowState.metrics : [];
+    for (const metric of metrics) {
+      flowState.metrics.push({ ...metric, taskId: null, ts: new Date().toISOString() });
+    }
+  }, {
+    faultInjector: input.faultInjector,
+    onFailure() {
+      for (const snapshot of snapshots.reverse()) snapshot.restore();
+    },
   });
-  flowState.retryRecovery = artifact;
-  flowState.metrics = Array.isArray(flowState.metrics) ? flowState.metrics : [];
-  for (const metric of metrics) {
-    flowState.metrics.push({ ...metric, taskId: null, ts: new Date().toISOString() });
-  }
-  writeJson(path.join(path.dirname(path.resolve(root, spec)), "flow.json"), flowState);
   return entry;
 }
 

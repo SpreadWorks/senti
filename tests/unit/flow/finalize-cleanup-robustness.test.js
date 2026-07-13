@@ -9,8 +9,9 @@ import path from "path";
 import fs from "fs";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
-import { setupFlow, makeFlowManager } from "../../helpers/flow-setup.js";
+import { setupFlow, makeFlowManager, replaceFlowState } from "../../helpers/flow-setup.js";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
+import { findStepById } from "../../../src/flow/lib/step-tree.js";
 
 function initGitRepo(root) {
   execFileSync("git", ["init", "--quiet", root], { encoding: "utf8" });
@@ -57,7 +58,7 @@ describe("finalize-cleanup robustness", () => {
     assert.equal(path.resolve(ctx.flowManager._root), path.resolve(mainRoot), "new flowManager should be rooted in main");
   });
 
-  it("syncMetadataFromWorktreeToMain copies runtime logs", async () => {
+  it("syncMetadataFromWorktreeToMain copies runtime logs without replacing a concurrent writer's fields", async () => {
     const { syncMetadataFromWorktreeToMain } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
     tmp = createTmpDir("senti-sync-metadata-");
     const mainRoot = path.join(tmp, "main");
@@ -68,26 +69,45 @@ describe("finalize-cleanup robustness", () => {
     fs.mkdirSync(wtSpecDir, { recursive: true });
     fs.mkdirSync(mainSpecDir, { recursive: true });
 
-    const baseState = {
-      spec: `specs/${specId}/spec.json`,
-      steps: [
-        { id: "finalize-merge", status: "done" }
-      ]
-    };
-
-    const wtState = JSON.parse(JSON.stringify(baseState));
-    wtState.steps[0].runtimeLog = { sequence: 5, runId: "abc" };
-
-    const mainState = JSON.parse(JSON.stringify(baseState));
-
-    fs.writeFileSync(path.join(wtSpecDir, "flow.json"), JSON.stringify(wtState, null, 2));
-    fs.writeFileSync(path.join(mainSpecDir, "flow.json"), JSON.stringify(mainState, null, 2));
+    const spec = `specs/${specId}/spec.json`;
+    const mainState = setupFlow(mainRoot, { spec, runId: "run-main", concurrentWriter: "winner" });
+    const wtState = setupFlow(worktreeRoot, { spec, runId: "run-main" });
+    const wtFinalize = findStepById(wtState.steps, "finalize-merge");
+    wtFinalize.runtimeLog = { sequence: 5, runId: "abc" };
+    replaceFlowState(worktreeRoot, wtState, { specId });
 
     syncMetadataFromWorktreeToMain(worktreeRoot, mainRoot, specId);
 
     const mainAfter = JSON.parse(fs.readFileSync(path.join(mainSpecDir, "flow.json"), "utf8"));
-    assert.ok(mainAfter.steps[0].runtimeLog, "runtimeLog should have been synced");
-    assert.equal(mainAfter.steps[0].runtimeLog.sequence, 5);
+    const finalize = findStepById(mainAfter.steps, "finalize-merge");
+    assert.ok(finalize.runtimeLog, "runtimeLog should have been synced");
+    assert.equal(finalize.runtimeLog.sequence, 5);
+    assert.equal(mainAfter.concurrentWriter, "winner");
+  });
+
+  it("syncMetadataFromWorktreeToMain preserves a concurrent writer's newer runtime log", async () => {
+    const { syncMetadataFromWorktreeToMain } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
+    tmp = createTmpDir("senti-sync-metadata-winner-");
+    const mainRoot = path.join(tmp, "main");
+    const worktreeRoot = path.join(tmp, "worktree");
+    const specId = "124";
+    const spec = `specs/${specId}/spec.json`;
+    fs.mkdirSync(mainRoot);
+    fs.mkdirSync(worktreeRoot);
+    const mainState = setupFlow(mainRoot, { spec, runId: "run-shared" });
+    const worktreeState = setupFlow(worktreeRoot, { spec, runId: "run-shared" });
+    findStepById(mainState.steps, "finalize-merge").runtimeLog = { sequence: 6, runId: "winner" };
+    findStepById(worktreeState.steps, "finalize-merge").runtimeLog = { sequence: 5, runId: "stale" };
+    replaceFlowState(mainRoot, mainState, { specId });
+    replaceFlowState(worktreeRoot, worktreeState, { specId });
+
+    syncMetadataFromWorktreeToMain(worktreeRoot, mainRoot, specId);
+
+    const saved = makeFlowManager(mainRoot).load(specId);
+    assert.deepEqual(findStepById(saved.steps, "finalize-merge").runtimeLog, {
+      sequence: 6,
+      runId: "winner",
+    });
   });
 
   it("validateTeardown detects remaining branch", async () => {

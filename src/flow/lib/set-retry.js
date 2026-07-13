@@ -137,7 +137,7 @@ export default class SetRetryCommand extends FlowCommand {
         const grant = applyRetryRecoveryGrant({
           root: ctx.root,
           spec: ctx.flowState.spec,
-          flowState: ctx.flowManager.load(),
+          flowManager: ctx.flowManager,
           input: op.input,
           eligibility: op.eligibility,
           attemptsBefore: op.attemptsBefore,
