@@ -410,4 +410,269 @@ describe("finalize-cleanup robustness", () => {
     const entries = JSON.parse(fs.readFileSync(issuePath, "utf8")).entries;
     assert.equal(entries.filter((entry) => /FORCED_ORPHAN_DROP/.test(entry.reason || "")).length, 1);
   });
+
+  it("post-commit teardown failures retain durable audit and active recovery until an idempotent retry succeeds", async () => {
+    const { RunFinalizeCleanupCommand } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
+    const failures = [
+      ["worktree-remove", "WORKTREE_REMOVE_FAILED", "commit-durable"],
+      ["branch-delete", "BRANCH_DELETE_FAILED", "worktree-removed"],
+      ["teardown-validation", "TEARDOWN_VALIDATION_FAILED", "branch-deleted"],
+    ];
+
+    for (const [faultPhase, expectedCode, expectedPhase] of failures) {
+      const root = createTmpDir(`senti-finalize-post-commit-${faultPhase}-`);
+      try {
+        initGitRepo(root);
+        const specId = `13${failures.findIndex(([phase]) => phase === faultPhase)}`;
+        const spec = `specs/${specId}/spec.json`;
+        const featureBranch = `feature/${specId}`;
+        const worktreePath = path.join(root, ".senti", "worktree", featureBranch.replaceAll("/", "-"));
+        const fm = makeFlowManager(root);
+        const state = setupFlow(root, {
+          spec,
+          runId: `run-${faultPhase}`,
+          baseBranch: "master",
+          featureBranch,
+          worktree: true,
+        });
+        state.state = {};
+        replaceFlowState(root, state, { specId });
+        fm.addActiveFlow(specId, "branch");
+        execFileSync("git", ["-C", root, "add", `specs/${specId}/flow.json`]);
+        execFileSync("git", ["-C", root, "commit", "--quiet", "-m", "add flow authority"]);
+        execFileSync("git", ["-C", root, "worktree", "add", "-b", featureBranch, worktreePath]);
+        const branchBlocker = path.join(root, "branch-blocker");
+        if (faultPhase === "worktree-remove") {
+          execFileSync("git", ["-C", root, "worktree", "lock", worktreePath]);
+        }
+        if (faultPhase === "branch-delete") {
+          execFileSync("git", ["-C", root, "worktree", "add", "--force", branchBlocker, featureBranch]);
+        }
+        const referenceHook = path.join(root, ".git", "hooks", "reference-transaction");
+        if (faultPhase === "teardown-validation") {
+          fs.writeFileSync(referenceHook, [
+            "#!/bin/sh",
+            'if [ "$1" = "committed" ]; then',
+            `  mkdir -p ${JSON.stringify(worktreePath)}`,
+            "fi",
+            "",
+          ].join("\n"), { mode: 0o755 });
+        }
+        const issuePath = path.join(root, `specs/${specId}/issue-log.json`);
+        fs.writeFileSync(issuePath, `${JSON.stringify({
+          entries: [{ issueLogId: "other-writer", reason: "independent audit" }],
+        }, null, 2)}\n`);
+        const headBefore = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+
+        const failed = await new RunFinalizeCleanupCommand().execute({
+          root,
+          flowState: state,
+          flowManager: fm,
+          force: true,
+        });
+
+        assert.equal(failed.ok, false, faultPhase);
+        assert.equal(failed.errors[0].code, expectedCode, faultPhase);
+        const committedHead = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+        assert.notEqual(committedHead, headBefore, `${faultPhase}: audit commit must be durable`);
+        const committedIssue = JSON.parse(execFileSync("git", [
+          "-C", root, "show", `HEAD:specs/${specId}/issue-log.json`,
+        ], { encoding: "utf8" }));
+        assert.equal(committedIssue.entries.filter((entry) => /FORCED_ORPHAN_DROP/.test(entry.reason || "")).length, 1);
+        assert.equal(committedIssue.entries.filter((entry) => entry.issueLogId === "other-writer").length, 1);
+        const liveEntries = JSON.parse(fs.readFileSync(issuePath, "utf8")).entries;
+        assert.equal(liveEntries.filter((entry) => /FORCED_ORPHAN_DROP/.test(entry.reason || "")).length, 1, faultPhase);
+        assert.equal(liveEntries.filter((entry) => entry.issueLogId === "other-writer").length, 1, faultPhase);
+        assert.equal(fs.existsSync(path.join(root, ".senti", ".active-flow")), true, faultPhase);
+        assert.equal(fs.existsSync(path.join(root, ".senti", "last-finalized-spec")), false, faultPhase);
+        assert.equal(fs.existsSync(worktreePath), faultPhase !== "branch-delete", faultPhase);
+        const recoveryDir = path.join(root, ".senti", "recovery", "finalize-cleanup");
+        const recoveryFiles = fs.readdirSync(recoveryDir);
+        assert.equal(recoveryFiles.length, 1, faultPhase);
+        const transactionPath = path.join(recoveryDir, recoveryFiles[0]);
+        assert.equal(fs.existsSync(transactionPath), true, faultPhase);
+        assert.equal(JSON.parse(fs.readFileSync(transactionPath, "utf8")).phase, expectedPhase, faultPhase);
+
+        if (faultPhase === "worktree-remove") {
+          const transactionBytes = fs.readFileSync(transactionPath);
+          const transactionValue = JSON.parse(transactionBytes);
+          const authorityBefore = {
+            flow: fs.readFileSync(path.join(root, `specs/${specId}/flow.json`)),
+            issue: fs.readFileSync(issuePath),
+            active: fs.readFileSync(path.join(root, ".senti", ".active-flow")),
+            head: execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }),
+            worktrees: execFileSync("git", ["-C", root, "worktree", "list", "--porcelain"], { encoding: "utf8" }),
+          };
+          const external = path.join(root, "journal-external-sentinel");
+          const tamperCases = [
+            ["malformed", () => fs.writeFileSync(transactionPath, "{broken\n")],
+            ["unknown-field", () => fs.writeFileSync(transactionPath, `${JSON.stringify({ ...transactionValue, unexpected: true })}\n`)],
+            ["foreign-identity", () => fs.writeFileSync(transactionPath, `${JSON.stringify({
+              ...transactionValue,
+              identity: { ...transactionValue.identity, runId: "foreign-run" },
+            })}\n`)],
+            ["symlink", () => {
+              fs.writeFileSync(external, transactionBytes);
+              fs.unlinkSync(transactionPath);
+              fs.symlinkSync(external, transactionPath);
+            }],
+            ["hardlink", () => {
+              fs.writeFileSync(external, transactionBytes);
+              fs.unlinkSync(transactionPath);
+              fs.linkSync(external, transactionPath);
+            }],
+          ];
+          for (const [label, tamper] of tamperCases) {
+            fs.rmSync(transactionPath, { force: true });
+            fs.rmSync(external, { force: true });
+            fs.writeFileSync(transactionPath, transactionBytes);
+            tamper();
+            await assert.rejects(
+              () => new RunFinalizeCleanupCommand().execute({
+                root,
+                flowState: fm.loadReadOnly(specId),
+                flowManager: fm,
+                force: true,
+              }),
+              undefined,
+              label,
+            );
+            assert.deepEqual(fs.readFileSync(path.join(root, `specs/${specId}/flow.json`)), authorityBefore.flow, label);
+            assert.deepEqual(fs.readFileSync(issuePath), authorityBefore.issue, label);
+            assert.deepEqual(fs.readFileSync(path.join(root, ".senti", ".active-flow")), authorityBefore.active, label);
+            assert.equal(execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }), authorityBefore.head, label);
+            assert.equal(execFileSync("git", ["-C", root, "worktree", "list", "--porcelain"], { encoding: "utf8" }), authorityBefore.worktrees, label);
+            if (fs.existsSync(external)) assert.deepEqual(fs.readFileSync(external), transactionBytes, label);
+          }
+          fs.rmSync(transactionPath, { force: true });
+          fs.rmSync(external, { force: true });
+          fs.writeFileSync(transactionPath, transactionBytes);
+        }
+
+        if (faultPhase === "worktree-remove") {
+          execFileSync("git", ["-C", root, "worktree", "unlock", worktreePath]);
+        }
+        if (faultPhase === "branch-delete") {
+          execFileSync("git", ["-C", root, "worktree", "remove", "--force", branchBlocker]);
+        }
+        if (faultPhase === "teardown-validation") {
+          fs.unlinkSync(referenceHook);
+          fs.rmSync(worktreePath, { recursive: true, force: true });
+        }
+
+        const retried = await new RunFinalizeCleanupCommand().execute({
+          root,
+          flowState: fm.loadReadOnly(specId),
+          flowManager: fm,
+          force: true,
+        });
+        assert.equal(retried.ok, true, `${faultPhase}: ${JSON.stringify(retried)}`);
+        assert.equal(fs.existsSync(transactionPath), false, faultPhase);
+        assert.equal(fs.existsSync(path.join(root, ".senti", ".active-flow")), false, faultPhase);
+        assert.equal(fs.existsSync(path.join(root, ".senti", "last-finalized-spec")), true, faultPhase);
+        const finalEntries = JSON.parse(fs.readFileSync(issuePath, "utf8")).entries;
+        assert.equal(finalEntries.filter((entry) => /FORCED_ORPHAN_DROP/.test(entry.reason || "")).length, 1);
+        assert.equal(finalEntries.filter((entry) => entry.issueLogId === "other-writer").length, 1);
+        assert.equal(execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim(), committedHead);
+      } finally {
+        removeTmpDir(root);
+      }
+    }
+  });
+
+  it("completion publication preserves a durable recovery authority across pointer and active-flow failures", async () => {
+    const { RunFinalizeCleanupCommand } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
+    const failures = [
+      ["pointer-write", "FINALIZE_POINTER_WRITE_FAILED", "validated"],
+      ["active-clear", "ACTIVE_FLOW_CLEAR_FAILED", "pointer-written"],
+    ];
+
+    for (const [faultPhase, expectedCode, expectedPhase] of failures) {
+      const root = createTmpDir(`senti-finalize-completion-${faultPhase}-`);
+      try {
+        initGitRepo(root);
+        const specId = faultPhase === "pointer-write" ? "133" : "134";
+        const spec = `specs/${specId}/spec.json`;
+        const featureBranch = `feature/${specId}`;
+        const worktreePath = path.join(root, ".senti", "worktree", featureBranch.replaceAll("/", "-"));
+        const fm = makeFlowManager(root);
+        const state = setupFlow(root, {
+          spec,
+          runId: `run-${faultPhase}`,
+          baseBranch: "master",
+          featureBranch,
+          worktree: true,
+        });
+        state.state = {};
+        replaceFlowState(root, state, { specId });
+        fm.addActiveFlow(specId, "branch");
+        const activePath = path.join(root, ".senti", ".active-flow");
+        const activeBytes = fs.readFileSync(activePath);
+        execFileSync("git", ["-C", root, "add", `specs/${specId}/flow.json`]);
+        execFileSync("git", ["-C", root, "commit", "--quiet", "-m", "add flow authority"]);
+        execFileSync("git", ["-C", root, "worktree", "add", "-b", featureBranch, worktreePath]);
+
+        const pointerPath = path.join(root, ".senti", "last-finalized-spec");
+        const activeBackup = `${activePath}.saved`;
+        const referenceHook = path.join(root, ".git", "hooks", "reference-transaction");
+        if (faultPhase === "pointer-write") {
+          fs.mkdirSync(pointerPath);
+        } else {
+          fs.writeFileSync(referenceHook, [
+            "#!/bin/sh",
+            'if [ "$1" = "committed" ] && grep -q "refs/heads/' + featureBranch + '"; then',
+            `  mv ${JSON.stringify(activePath)} ${JSON.stringify(activeBackup)}`,
+            `  mkdir ${JSON.stringify(activePath)}`,
+            "fi",
+            "",
+          ].join("\n"), { mode: 0o755 });
+        }
+
+        const headBefore = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+        const failed = await new RunFinalizeCleanupCommand().execute({
+          root,
+          flowState: state,
+          flowManager: fm,
+          force: true,
+        });
+
+        assert.equal(failed.ok, false, faultPhase);
+        assert.equal(failed.errors[0].code, expectedCode, faultPhase);
+        assert.equal(failed.data.teardown.phase, expectedPhase, faultPhase);
+        const committedHead = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+        assert.notEqual(committedHead, headBefore, `${faultPhase}: finalize commit must remain durable`);
+        const recoveryDir = path.join(root, ".senti", "recovery", "finalize-cleanup");
+        const recoveryFiles = fs.readdirSync(recoveryDir);
+        assert.equal(recoveryFiles.length, 1, faultPhase);
+        const transactionPath = path.join(recoveryDir, recoveryFiles[0]);
+        assert.equal(JSON.parse(fs.readFileSync(transactionPath, "utf8")).phase, expectedPhase, faultPhase);
+        assert.equal(fs.existsSync(pointerPath), true, faultPhase);
+        if (faultPhase === "pointer-write") {
+          assert.equal(fs.statSync(pointerPath).isDirectory(), true);
+          assert.deepEqual(fs.readFileSync(activePath), activeBytes);
+          fs.rmdirSync(pointerPath);
+        } else {
+          assert.equal(fs.statSync(activePath).isDirectory(), true);
+          assert.deepEqual(fs.readFileSync(activeBackup), activeBytes);
+          fs.unlinkSync(referenceHook);
+          fs.rmdirSync(activePath);
+          fs.renameSync(activeBackup, activePath);
+        }
+
+        const retried = await new RunFinalizeCleanupCommand().execute({
+          root,
+          flowState: fm.loadReadOnly(specId),
+          flowManager: fm,
+          force: true,
+        });
+        assert.equal(retried.ok, true, `${faultPhase}: ${JSON.stringify(retried)}`);
+        assert.equal(execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim(), committedHead);
+        assert.equal(fs.existsSync(transactionPath), false, faultPhase);
+        assert.equal(fs.existsSync(activePath), false, faultPhase);
+        assert.equal(fs.readFileSync(pointerPath, "utf8").trim(), spec);
+      } finally {
+        removeTmpDir(root);
+      }
+    }
+  });
 });

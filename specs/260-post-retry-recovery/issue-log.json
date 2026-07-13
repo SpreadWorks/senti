@@ -333,6 +333,84 @@
       "issueLogId": "issue-441-candidate7-final-verification",
       "taskId": null,
       "timestamp": "2026-07-13T10:00:00Z"
+    },
+    {
+      "step": "direct-fix-audit",
+      "issue": 441,
+      "reason": "Candidate8 evidence review rejected an initial finalize test as invalid and kept archived noncanonical failures out of the valid union.",
+      "trigger": "Test-validity classification before accepting any RED result or changing product code.",
+      "resolution": "The initial reference-transaction hook returned failure during the commit itself, so it never crossed the commit-durable boundary and `/tmp/flow-441-candidate8-finalize-postcommit-prefix-fail.log` is not evidence. It was replaced by a real Git prefix failure after a durable commit; that valid RED is `/tmp/flow-441-candidate8-finalize-postcommit-real-prefix-fail.log`. Candidate7's exact baseline comparison already established that the archived spec170/spec253/spec269 failures are noncanonical and pre-existing, so they remain unchanged. Candidate8 uses the explicit valid manifest plus canonical `npm test --`; no failing test was weakened or edited to pass.",
+      "testEvidence": {
+        "invalidFinalizeRedExcluded": "/tmp/flow-441-candidate8-finalize-postcommit-prefix-fail.log",
+        "validFinalizeRed": "/tmp/flow-441-candidate8-finalize-postcommit-real-prefix-fail.log",
+        "noncanonicalCurrent": "/tmp/flow-441-candidate7-focused-union-serial.log",
+        "noncanonicalBaseline": "/tmp/flow-441-candidate7-historical-spec-baseline.log",
+        "validManifest": "/tmp/flow-441-candidate8-valid-union.manifest"
+      },
+      "issueLogId": "issue-441-candidate8-test-validity-classification",
+      "taskId": null,
+      "timestamp": "2026-07-13T11:45:00Z"
+    },
+    {
+      "step": "direct-fix-audit",
+      "issue": 441,
+      "reason": "Candidate8 closed six independent audit findings covering post-commit finalize recovery, lock transition failures, offline migration atomicity, retry authority convergence, sink-capability bypasses, and immutable verification evidence.",
+      "trigger": "Exhaustive final audit of candidate7 failure boundaries and evidence integrity.",
+      "resolution": "Finalize teardown now journals exact flow identity and every durable phase, never compensates a committed audit, and resumes destructive and completion publication idempotently. Process-owned locks report ordered primary/cleanup failures with owner, phase, visibility, durability uncertainty, and residue. The rename migration validates all authorities before mutation and uses a durable all-target transaction with exact-byte rollback/recovery. Retry recovery enforces a one-way flow -> issue-log -> public-artifact convergence lattice with one canonical payload per grant and rejects divergence before mutation. The source guard tracks flow-path taint separately from sink capabilities through aliases, computed members, Reflect.apply, and callback bridges, with only exact owner-module allowlisting. Final external verification logs bind command output to one clean commit SHA and tree at both boundaries.",
+      "findings": [
+        {
+          "id": "finalize-post-commit-recovery",
+          "rootCause": "Cleanup treated every failure as pre-commit and had no durable phase authority after Git history changed.",
+          "invariant": "Once commit-durable is journaled, audit compensation is forbidden and every remaining destructive/publication phase is monotonic and retryable.",
+          "red": "/tmp/flow-441-candidate8-finalize-postcommit-real-prefix-fail.log",
+          "green": "/tmp/flow-441-candidate8-finalize-finding1-focused.log"
+        },
+        {
+          "id": "process-owned-lock-failure-semantics",
+          "rootCause": "Publish/release/stale-removal cleanup failures were swallowed or lost transition state.",
+          "invariant": "Every failed transition preserves the primary failure first and exposes phase, owner, visible publication, durability uncertainty, and temp/visible residue after all cleanup attempts.",
+          "red": "/tmp/flow-441-candidate8-lock-exact-red-valid.log",
+          "green": "/tmp/flow-441-candidate8-lock-focused.log"
+        },
+        {
+          "id": "offline-migration-transaction",
+          "rootCause": "The migration applied independent files incrementally without a durable all-target recovery authority.",
+          "invariant": "All real non-hardlinked authorities and planned bytes are captured before mutation; apply/rollback indexes are durable and recovery accepts only exact original or planned bytes.",
+          "red": "/tmp/flow-441-candidate8-migration-exact-red.log",
+          "green": "/tmp/flow-441-candidate8-migration-full-focused.log"
+        },
+        {
+          "id": "retry-authority-convergence",
+          "rootCause": "Resume checked grant presence without proving unique canonical payload equality or publication order across three authorities.",
+          "invariant": "A grant progresses only absent -> flow -> flow+issue -> flow+issue+public; duplicates, divergent payloads, and out-of-order presence fail before mutation.",
+          "red": "/tmp/flow-441-candidate8-retry-convergence-exact-red-matrix.log",
+          "green": "/tmp/flow-441-candidate8-retry-focused-attempt3.log"
+        },
+        {
+          "id": "flow-state-sink-capability-guard",
+          "rootCause": "The static guard followed direct callee names but not first-class filesystem sink capabilities.",
+          "invariant": "A finding requires both flow-path taint and sink capability taint, including namespace, computed property, Reflect.apply, and callback propagation; allowlisting is exact-path only.",
+          "red": "/tmp/flow-441-candidate8-sink-exact-red-matrix.log",
+          "green": "/tmp/flow-441-candidate8-sink-green-attempt1.log"
+        },
+        {
+          "id": "immutable-verification-evidence",
+          "rootCause": "Earlier final logs did not record a source commit and tree, so outputs could not be independently joined to immutable bytes.",
+          "invariant": "Each final external log records commit, tree, clean status, exact command, and UTC start/end; ending commit/tree/status must equal the prelude.",
+          "red": "candidate7 final logs lack commit/tree preludes",
+          "green": "/tmp/flow-441-candidate8-immutable-union.log and /tmp/flow-441-candidate8-immutable-npm-test.log"
+        }
+      ],
+      "testEvidence": {
+        "staticAudit": "/tmp/flow-441-candidate8-direct-audit.log",
+        "preRecordUnion": "/tmp/flow-441-candidate8-valid-union-precommit.log",
+        "finalBytesUnion": "/tmp/flow-441-candidate8-valid-union-final-bytes.log",
+        "immutableUnion": "/tmp/flow-441-candidate8-immutable-union.log",
+        "immutableCanonical": "/tmp/flow-441-candidate8-immutable-npm-test.log"
+      },
+      "issueLogId": "issue-441-candidate8-six-finding-final-audit",
+      "taskId": null,
+      "timestamp": "2026-07-13T11:46:00Z"
     }
   ]
 }

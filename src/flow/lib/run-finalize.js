@@ -6,6 +6,7 @@
  */
 
 import fs from "fs";
+import crypto from "node:crypto";
 import path from "path";
 import { runCmd, assertOk } from "../../lib/process.js";
 import { specIdFromPath } from "../../lib/flow-helpers.js";
@@ -45,8 +46,42 @@ export function finalizeOnError(stepName, trigger) {
 export function writeLastFinalizedPointer(targetRoot, specPath) {
   if (!targetRoot || !specPath) return;
   const pointerAbs = path.join(targetRoot, LAST_FINALIZED_SPEC_POINTER_REL_PATH);
-  fs.mkdirSync(path.dirname(pointerAbs), { recursive: true });
-  fs.writeFileSync(pointerAbs, specPath + "\n");
+  const directory = path.dirname(pointerAbs);
+  const tempPath = path.join(directory, `.last-finalized-spec.${crypto.randomUUID()}.tmp`);
+  fs.mkdirSync(directory, { recursive: true });
+  let descriptor = null;
+  let renamed = false;
+  try {
+    descriptor = fs.openSync(tempPath, "wx", 0o644);
+    fs.writeFileSync(descriptor, specPath + "\n");
+    fs.fsyncSync(descriptor);
+    fs.closeSync(descriptor);
+    descriptor = null;
+    fs.renameSync(tempPath, pointerAbs);
+    renamed = true;
+    descriptor = fs.openSync(directory, "r");
+    fs.fsyncSync(descriptor);
+    fs.closeSync(descriptor);
+    descriptor = null;
+  } catch (error) {
+    const cleanupErrors = [];
+    if (descriptor != null) {
+      try { fs.closeSync(descriptor); } catch (cleanupError) { cleanupErrors.push(cleanupError); }
+    }
+    if (!renamed) {
+      try { fs.unlinkSync(tempPath); } catch (cleanupError) {
+        if (cleanupError.code !== "ENOENT") cleanupErrors.push(cleanupError);
+      }
+    }
+    if (cleanupErrors.length > 0) {
+      throw new AggregateError(
+        [error, ...cleanupErrors],
+        `last-finalized pointer publication and cleanup both failed: ${pointerAbs}`,
+        { cause: error },
+      );
+    }
+    throw error;
+  }
 }
 
 export function commitOrSkip(args, opts) {

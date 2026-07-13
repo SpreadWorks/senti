@@ -1,4 +1,5 @@
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 import { ProcessIdentitySource } from "./process-identity.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "./process-owned-lock.js";
 
@@ -6,6 +7,14 @@ const MAINTENANCE_KIND = "repository-maintenance";
 const FLOW_OPERATION_KIND = "repository-flow-operation";
 const MAINTENANCE_FILE = ".repository-maintenance.lock";
 const FLOW_OPERATION_FILE = ".repository-flow-operation.lock";
+
+export function resolveRepositoryLockRoot(root) {
+  const resolved = path.resolve(root);
+  const result = spawnSync("git", ["-C", resolved, "rev-parse", "--git-common-dir"], { encoding: "utf8" });
+  if (result.status !== 0) return resolved;
+  const commonDirectory = path.resolve(resolved, result.stdout.trim());
+  return path.basename(commonDirectory) === ".git" ? path.dirname(commonDirectory) : resolved;
+}
 
 export class RepositoryLockError extends Error {
   constructor(code, message, { lockPath, cause } = {}) {
@@ -67,8 +76,8 @@ class ProcessOwnedRepositoryLock {
     return this.core.processIdentity;
   }
 
-  acquire() {
-    return this.core.acquire();
+  acquire({ claimStale = false } = {}) {
+    return this.core.acquire({ claimStale });
   }
 
   release() {
@@ -187,8 +196,7 @@ export class RepositoryFlowOperationLock {
       this.borrowed = true;
       return this.operationOwnerToken;
     }
-    if (existing) throw this.lock.conflict(existing);
-    const token = this.lock.acquire();
+    const token = this.lock.acquire({ claimStale: true });
     try {
       const after = inspectForeign(this.maintenance, this.maintenanceOwnerToken);
       if (after) throw after;

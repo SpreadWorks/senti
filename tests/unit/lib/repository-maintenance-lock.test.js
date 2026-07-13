@@ -166,4 +166,48 @@ describe("repository maintenance lock", () => {
       }
     }
   });
+
+  it("reclaims only a proven-stale flow-operation owner and preserves all rejected owners", () => {
+    tmp = createTmpDir("repository-flow-operation-stale-");
+    const lockPath = path.join(tmp, ".senti", ".repository-flow-operation.lock");
+    fs.mkdirSync(path.dirname(lockPath), { recursive: true });
+    const owner = (overrides = {}) => ({
+      version: 1,
+      kind: "repository-flow-operation",
+      mainRoot: fs.realpathSync(tmp),
+      processIdentity: {
+        pid: process.pid,
+        bootIdentity: "boot",
+        startFingerprint: "100",
+        ownerToken: "11111111-1111-4111-8111-111111111111",
+      },
+      ...overrides,
+    });
+
+    fs.writeFileSync(lockPath, `${JSON.stringify(owner({
+      processIdentity: { ...owner().processIdentity, bootIdentity: "old-boot" },
+    }))}\n`);
+    const reclaimed = new RepositoryFlowOperationLock({ mainRoot: tmp, processIdentitySource: identitySource() });
+    assert.notEqual(reclaimed.acquire(), owner().processIdentity.ownerToken);
+    reclaimed.release();
+    assert.equal(fs.existsSync(lockPath), false);
+
+    const rejected = [
+      ["live", owner(), identitySource(), "REPOSITORY_FLOW_OPERATION_BUSY"],
+      ["unknown", owner(), identitySource({ unknown: true }), "REPOSITORY_FLOW_OPERATION_LOCK_UNKNOWN"],
+      ["corrupt", { broken: true }, identitySource(), "REPOSITORY_FLOW_OPERATION_LOCK_CORRUPT"],
+      ["foreign-authority", owner({ mainRoot: path.join(tmp, "foreign") }), identitySource(), "REPOSITORY_FLOW_OPERATION_LOCK_CORRUPT"],
+    ];
+    for (const [label, value, source, code] of rejected) {
+      const bytes = `${JSON.stringify(value)}\n`;
+      fs.writeFileSync(lockPath, bytes);
+      assert.throws(
+        () => new RepositoryFlowOperationLock({ mainRoot: tmp, processIdentitySource: source }).acquire(),
+        (error) => error.code === code,
+        label,
+      );
+      assert.equal(fs.readFileSync(lockPath, "utf8"), bytes, label);
+      fs.unlinkSync(lockPath);
+    }
+  });
 });

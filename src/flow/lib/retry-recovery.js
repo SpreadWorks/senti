@@ -435,6 +435,19 @@ export class ChangedEvidenceSummary {
       changed: this.changed,
     };
   }
+
+  equals(other) {
+    const candidate = other instanceof ChangedEvidenceSummary
+      ? other
+      : ChangedEvidenceSummary.fromStored(other);
+    return this.sourceKind === candidate.sourceKind
+      && this.baselineHash === candidate.baselineHash
+      && this.currentHash === candidate.currentHash
+      && this.truncated === candidate.truncated
+      && this.changed === candidate.changed
+      && this.changedPaths.length === candidate.changedPaths.length
+      && this.changedPaths.every((item, index) => item === candidate.changedPaths[index]);
+  }
 }
 
 export class ReviewRecoveryBaseline {
@@ -516,6 +529,77 @@ export class RetryRecoveryEntry {
       recoveryCommand: this.recoveryCommand,
       createdAt: this.createdAt,
     };
+  }
+
+  equals(other) {
+    const candidate = other instanceof RetryRecoveryEntry
+      ? other
+      : RetryRecoveryEntry.fromStored(other);
+    return this.id === candidate.id
+      && this.kind === candidate.kind
+      && this.phase === candidate.phase
+      && this.canonicalPhase === candidate.canonicalPhase
+      && this.reason === candidate.reason
+      && this.changedEvidence.equals(candidate.changedEvidence)
+      && this.permittedReevaluationCount === candidate.permittedReevaluationCount
+      && this.attemptsBefore === candidate.attemptsBefore
+      && this.maxAttempts === candidate.maxAttempts
+      && this.counterAfter === candidate.counterAfter
+      && this.recoveryCommand === candidate.recoveryCommand
+      && this.createdAt === candidate.createdAt;
+  }
+}
+
+const RETRY_RECOVERY_AUDIT_KEYS = Object.freeze([
+  "step", "grantId", ...PUBLIC_RECOVERY_ENTRY_KEYS, "timestamp", "issueLogId",
+]);
+
+export class RetryRecoveryAuditEntry {
+  constructor({ grant, step = "retry-recovery", grantId, timestamp, issueLogId } = {}) {
+    this.grant = grant instanceof RetryRecoveryEntry ? grant : RetryRecoveryEntry.fromStored(grant || {});
+    this.step = requireString(step, "retry recovery audit step");
+    this.grantId = requireString(grantId || this.grant.id, "retry recovery audit grantId");
+    this.timestamp = requireString(timestamp || this.grant.createdAt, "retry recovery audit timestamp");
+    this.issueLogId = requireString(issueLogId || this.grant.id, "retry recovery audit issueLogId");
+    if (this.step !== "retry-recovery" || this.grantId !== this.grant.id || this.issueLogId !== this.grant.id) {
+      throw new Error(`retry recovery audit identity diverges from grant: ${this.grant.id}`);
+    }
+  }
+
+  static identifies(value, grantId) {
+    return value?.grantId === grantId || value?.id === grantId || value?.issueLogId === grantId;
+  }
+
+  static fromStored(value) {
+    assertExactKeys(value, RETRY_RECOVERY_AUDIT_KEYS, "retry recovery audit entry");
+    const grantValue = Object.fromEntries(PUBLIC_RECOVERY_ENTRY_KEYS.map((key) => [key, value[key]]));
+    return new RetryRecoveryAuditEntry({
+      grant: RetryRecoveryEntry.fromStored(grantValue),
+      step: value.step,
+      grantId: value.grantId,
+      timestamp: value.timestamp,
+      issueLogId: value.issueLogId,
+    });
+  }
+
+  equalsGrant(grant) {
+    return this.grant.equals(grant)
+      && this.timestamp === grant.createdAt
+      && this.grantId === grant.id
+      && this.issueLogId === grant.id;
+  }
+
+  toIssueLogInput() {
+    return {
+      step: this.step,
+      grantId: this.grantId,
+      ...this.grant.toJSON(),
+      timestamp: this.timestamp,
+    };
+  }
+
+  toJSON() {
+    return { ...this.toIssueLogInput(), issueLogId: this.issueLogId };
   }
 }
 
@@ -984,7 +1068,7 @@ class RetryRecoveryArtifact {
       this.entries.push(entry);
       return true;
     }
-    if (JSON.stringify(existing.toJSON()) !== JSON.stringify(entry.toJSON())) {
+    if (!existing.equals(entry)) {
       throw new Error(`retry recovery id has divergent content: ${entry.id}`);
     }
     return false;
@@ -1062,7 +1146,7 @@ function loadRecoveryAuthority(root, spec, { artifactFaultInjector, transactionF
     if (
       transaction.status === "pending"
       && publicEntry
-      && JSON.stringify(publicEntry.toJSON()) !== JSON.stringify(transaction.grant.toJSON())
+      && !publicEntry.equals(transaction.grant)
     ) {
       throw new Error(`pending retry transaction diverges from public grant: ${transaction.grantId}`);
     }
@@ -1174,9 +1258,47 @@ function assertTransactionAuthority(transaction, spec, flowState) {
   }
 }
 
-function hasFlowGrant(flowState, grantId) {
-  return Array.isArray(flowState.retryRecovery?.entries)
-    && flowState.retryRecovery.entries.some((entry) => entry?.id === grantId);
+function matchingFlowGrants(flowState, grant) {
+  if (flowState.retryRecovery == null) return [];
+  assertExactKeys(flowState.retryRecovery, ["version", "entries"], "flow retry recovery authority");
+  if (flowState.retryRecovery.version !== RECOVERY_ARTIFACT_VERSION || !Array.isArray(flowState.retryRecovery.entries)) {
+    throw new Error("flow retry recovery authority is invalid");
+  }
+  const matches = flowState.retryRecovery.entries
+    .filter((entry) => entry?.id === grant.id)
+    .map((entry) => RetryRecoveryEntry.fromStored(entry));
+  if (matches.length > 1) throw new Error(`duplicate flow retry recovery id: ${grant.id}`);
+  if (matches.length === 1 && !matches[0].equals(grant)) {
+    throw new Error(`flow retry recovery payload diverges: ${grant.id}`);
+  }
+  return matches;
+}
+
+function matchingIssueAudits(issueDocument, grant) {
+  const matches = issueDocument.entries
+    .filter((entry) => RetryRecoveryAuditEntry.identifies(entry, grant.id))
+    .map((entry) => RetryRecoveryAuditEntry.fromStored(entry));
+  if (matches.length > 1) throw new Error(`duplicate issue-log retry recovery id: ${grant.id}`);
+  if (matches.length === 1 && !matches[0].equalsGrant(grant)) {
+    throw new Error(`issue-log retry recovery payload diverges: ${grant.id}`);
+  }
+  return matches;
+}
+
+function assertRecoveryConvergence({ record, artifact, flowState, issueDocument }) {
+  const grant = record.grant;
+  const flow = matchingFlowGrants(flowState, grant).length === 1;
+  const issue = matchingIssueAudits(issueDocument, grant).length === 1;
+  const publicMatches = artifact.entries.filter((entry) => entry.id === grant.id);
+  if (publicMatches.length > 1) throw new Error(`duplicate public retry recovery id: ${grant.id}`);
+  if (publicMatches.length === 1 && !publicMatches[0].equals(grant)) {
+    throw new Error(`public retry recovery payload diverges: ${grant.id}`);
+  }
+  const published = publicMatches.length === 1;
+  if ((issue && !flow) || (published && (!flow || !issue))) {
+    throw new Error(`retry recovery authorities are out of order: ${grant.id}`);
+  }
+  return { flow, issue, published };
 }
 
 function buildPendingRecord(observation, recoveryInput, createdAt) {
@@ -1380,6 +1502,7 @@ export function applyRetryReset(input = {}) {
     processIdentitySource: input.processIdentitySource,
   });
   operation.acquire();
+  let operationError = null;
   try {
     const authority = loadRecoveryAuthority(root, spec, {
       artifactFaultInjector: input.artifactFaultInjector,
@@ -1395,7 +1518,7 @@ export function applyRetryReset(input = {}) {
     // Validate the independent audit authority before publishing a private
     // transaction or mutating flow state. The later append still fresh-reads
     // under its own writer lock.
-    issueLogStore.read();
+    let issueSnapshot = issueLogStore.read();
     const observation = currentObservation({
       root,
       spec,
@@ -1419,11 +1542,15 @@ export function applyRetryReset(input = {}) {
     } else {
       assertExpectedRequest(input, observation, recoveryInput);
       const committed = artifact.latestCommitted(recoveryInput.kind, recoveryInput.canonicalPhase);
-      if (
-        committed
-        && hasFlowGrant(observation.flowState, committed.id)
-        && observation.attempts === committed.counterAfter
-      ) {
+      const committedConvergence = committed
+        ? assertRecoveryConvergence({
+            record: { grant: committed },
+            artifact,
+            flowState: observation.flowState,
+            issueDocument: issueSnapshot.document,
+          })
+        : null;
+      if (committedConvergence?.flow && observation.attempts === committed.counterAfter) {
         throw retryRequestError(
           "RECOVERY_ALREADY_GRANTED",
           recoveryInput,
@@ -1451,7 +1578,13 @@ export function applyRetryReset(input = {}) {
     }
 
     let fresh = flowManager.loadReadOnly(specIdFromPath(spec));
-    if (!hasFlowGrant(fresh, record.grantId)) {
+    let convergence = assertRecoveryConvergence({
+      record,
+      artifact,
+      flowState: fresh,
+      issueDocument: issueSnapshot.document,
+    });
+    if (!convergence.flow) {
       try {
         flowManager.mutate((flowState, writerContext) => {
           const expected = {
@@ -1565,7 +1698,7 @@ export function applyRetryReset(input = {}) {
         });
       } catch (error) {
         fresh = flowManager.loadReadOnly(specIdFromPath(spec));
-        if (!hasFlowGrant(fresh, record.grantId)) {
+        if (matchingFlowGrants(fresh, record.grant).length === 0) {
           record = record.reject({
               code: error.code || "FLOW_MUTATION_FAILED",
               message: error.message || String(error),
@@ -1578,15 +1711,36 @@ export function applyRetryReset(input = {}) {
       emitRecoveryPhase(input, "after-flow-commit", record);
     }
 
-    issueLogStore.append({
-      step: "retry-recovery",
-      grantId: record.grantId,
-      ...record.grant.toJSON(),
-      timestamp: record.grant.createdAt,
-    }, record.grantId);
+    convergence = assertRecoveryConvergence({
+      record,
+      artifact,
+      flowState: fresh,
+      issueDocument: issueSnapshot.document,
+    });
+    const audit = new RetryRecoveryAuditEntry({ grant: record.grant });
+    issueLogStore.append(audit.toIssueLogInput(), record.grantId);
+    issueSnapshot = issueLogStore.read();
+    convergence = assertRecoveryConvergence({
+      record,
+      artifact,
+      flowState: fresh,
+      issueDocument: issueSnapshot.document,
+    });
     emitRecoveryPhase(input, "after-issue-log", record);
-    if (artifact.append(record.grant)) artifactStore.write(artifact.toJSON());
-    emitRecoveryPhase(input, "after-artifact-commit", record);
+    if (!convergence.published) {
+      if (artifact.append(record.grant)) artifactStore.write(artifact.toJSON());
+      emitRecoveryPhase(input, "after-artifact-commit", record);
+    }
+    const finalArtifact = readRecoveryArtifact(artifactStore);
+    const finalConvergence = assertRecoveryConvergence({
+      record,
+      artifact: finalArtifact,
+      flowState: flowManager.loadReadOnly(specIdFromPath(spec)),
+      issueDocument: issueLogStore.read().document,
+    });
+    if (!finalConvergence.flow || !finalConvergence.issue || !finalConvergence.published) {
+      throw new Error(`retry recovery authorities did not converge: ${record.grantId}`);
+    }
     transactionStore.write(null);
     return {
       grant: record.grant,
@@ -1594,8 +1748,22 @@ export function applyRetryReset(input = {}) {
       maxAttempts: record.request.maxAttempts,
       counterAfter: record.grant.counterAfter,
     };
+  } catch (error) {
+    operationError = error;
+    throw error;
   } finally {
-    operation.release();
+    try {
+      operation.release();
+    } catch (releaseError) {
+      if (operationError) {
+        throw new AggregateError(
+          [operationError, releaseError],
+          "retry recovery operation and lock release both failed",
+          { cause: operationError },
+        );
+      }
+      throw releaseError;
+    }
   }
 }
 

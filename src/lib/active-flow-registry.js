@@ -15,9 +15,51 @@ import { sentiDir } from "./config.js";
 import { runGit } from "./git-helpers.js";
 import { ACTIVE_FLOW_FILE } from "./flow-helpers.js";
 import { flowStatePath } from "./flow-state-atomic-writer.js";
+import { AtomicJsonFile } from "./atomic-json-file.js";
 
 function activeFlowPath(mainRoot) {
   return path.join(sentiDir(mainRoot), ACTIVE_FLOW_FILE);
+}
+
+function readActiveFlowAuthority(filePath) {
+  let stat;
+  try {
+    stat = fs.lstatSync(filePath);
+  } catch (error) {
+    if (error.code === "ENOENT") return null;
+    throw error;
+  }
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1 || fs.realpathSync(filePath) !== path.resolve(filePath)) {
+    throw new Error(`active-flow authority must be one real non-hardlinked file: ${filePath}`);
+  }
+  const value = JSON.parse(fs.readFileSync(filePath, "utf8"));
+  if (!Array.isArray(value)) throw new Error(`active-flow authority must contain an array: ${filePath}`);
+  return value;
+}
+
+function removeDurably(filePath) {
+  fs.unlinkSync(filePath);
+  const descriptor = fs.openSync(path.dirname(filePath), "r");
+  let primaryError = null;
+  try {
+    fs.fsyncSync(descriptor);
+  } catch (error) {
+    primaryError = error;
+  } finally {
+    try {
+      fs.closeSync(descriptor);
+    } catch (cleanupError) {
+      if (primaryError) {
+        throw new AggregateError(
+          [primaryError, cleanupError],
+          `active-flow removal durability and descriptor cleanup both failed: ${filePath}`,
+          { cause: primaryError },
+        );
+      }
+      throw cleanupError;
+    }
+  }
+  if (primaryError) throw primaryError;
 }
 
 function runGitFailOpenBoolean(args, predicate, contextLabel) {
@@ -86,14 +128,15 @@ export class ActiveFlowRegistry {
    * @param {string} specId
    */
   remove(specId) {
-    const flows = this.load();
-    const filtered = flows.filter((f) => f.spec !== specId);
     const p = activeFlowPath(this._mainRoot);
+    const flows = readActiveFlowAuthority(p);
+    if (flows == null) return;
+    const filtered = flows.filter((f) => f.spec !== specId);
     if (filtered.length === 0) {
-      try { fs.unlinkSync(p); } catch (err) { if (err.code !== "ENOENT") console.error(err); }
+      removeDurably(p);
       return;
     }
-    fs.writeFileSync(p, JSON.stringify(filtered, null, 2) + "\n", "utf8");
+    new AtomicJsonFile(p).write(filtered);
   }
 
   /**

@@ -5,6 +5,10 @@ import path from "node:path";
 import { AtomicJsonFile } from "../../lib/atomic-json-file.js";
 import { ProcessIdentitySource } from "../../lib/process-identity.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "../../lib/process-owned-lock.js";
+import {
+  RepositoryFlowOperationLock,
+  resolveRepositoryLockRoot,
+} from "../../lib/repository-maintenance-lock.js";
 
 const LOCK_WAIT_ATTEMPTS = 500;
 const LOCK_WAIT_MS = 10;
@@ -99,8 +103,15 @@ export class IssueLogStore {
     processIdentitySource = new ProcessIdentitySource(),
     faultInjector,
     allowLegacyArray = false,
+    mainRoot = null,
+    maintenanceOwnerToken = null,
   } = {}) {
     this.root = path.resolve(requireAuthorityString(root, "issue-log root"));
+    this.mainRoot = mainRoot == null
+      ? resolveRepositoryLockRoot(this.root)
+      : path.resolve(mainRoot);
+    this.maintenanceOwnerToken = maintenanceOwnerToken;
+    this.processIdentitySource = processIdentitySource;
     this.spec = requireAuthorityString(spec, "issue-log spec");
     const resolvedSpec = path.resolve(this.root, this.spec);
     const relative = path.relative(this.root, resolvedSpec);
@@ -193,6 +204,49 @@ export class IssueLogStore {
   }
 
   #withLock(operation) {
+    const repositoryOperation = new RepositoryFlowOperationLock({
+      mainRoot: this.mainRoot,
+      maintenanceOwnerToken: this.maintenanceOwnerToken,
+      processIdentitySource: this.processIdentitySource,
+    });
+    let repositoryAcquired = false;
+    for (let attempt = 0; attempt < LOCK_WAIT_ATTEMPTS; attempt += 1) {
+      try {
+        repositoryOperation.acquire();
+        repositoryAcquired = true;
+        break;
+      } catch (error) {
+        if (error.code !== "REPOSITORY_FLOW_OPERATION_BUSY") throw error;
+        waitForWriter();
+      }
+    }
+    if (!repositoryAcquired) throw issueLogError("busy", "repository flow-operation lock wait limit exceeded");
+    let result;
+    let primaryError;
+    try {
+      result = this.#withWriterLock(operation);
+    } catch (error) {
+      primaryError = error;
+    }
+    let releaseError;
+    try {
+      repositoryOperation.release();
+    } catch (error) {
+      releaseError = error;
+    }
+    if (primaryError && releaseError) {
+      throw new AggregateError(
+        [primaryError, releaseError],
+        "issue-log operation and repository barrier release both failed",
+        { cause: primaryError },
+      );
+    }
+    if (primaryError) throw primaryError;
+    if (releaseError) throw releaseError;
+    return result;
+  }
+
+  #withWriterLock(operation) {
     let acquired = false;
     for (let attempt = 0; attempt < LOCK_WAIT_ATTEMPTS; attempt += 1) {
       try {

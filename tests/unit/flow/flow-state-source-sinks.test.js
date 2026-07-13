@@ -8,6 +8,10 @@ import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const srcRoot = path.join(repoRoot, "src");
 const allowedOwner = path.join(srcRoot, "lib", "flow-state-atomic-writer.js");
+const allowedSinkOwners = new Set([
+  allowedOwner,
+  path.join(srcRoot, "lib", "flow-store.js"),
+]);
 const sinkApis = new Set([
   "writeFileSync", "writeFile", "appendFileSync", "appendFile",
   "renameSync", "rename", "copyFileSync", "copyFile", "openSync",
@@ -65,55 +69,75 @@ function expressionIsFlowPath(expression, state) {
   return false;
 }
 
-function collectSinkAliases(source) {
-  const aliases = new Set(sinkApis);
-  const properties = new Set();
+function normalizedMemberExpression(expression) {
+  return expression
+    .trim()
+    .replace(/\s+/g, "")
+    .replace(/\[['"]([A-Za-z_$][\w$]*)['"]\]/g, ".$1");
+}
+
+function expressionIsSinkCapability(expression, state) {
+  const normalized = normalizedMemberExpression(expression);
+  if (state.aliases.has(normalized) || state.properties.has(normalized)) return true;
+  const member = /^([A-Za-z_$][\w$]*)\.([A-Za-z_$][\w$]*)$/.exec(normalized);
+  return Boolean(
+    member
+    && state.namespaces.has(member[1])
+    && sinkApis.has(member[2]),
+  );
+}
+
+function collectSinkCapabilities(source) {
+  const state = {
+    aliases: new Set(),
+    namespaces: new Set(),
+    properties: new Set(),
+  };
+  for (const match of source.matchAll(/import\s+([A-Za-z_$][\w$]*)\s*(?:,\s*\{[^}]+\})?\s*from\s*["'](?:node:)?fs["']/g)) {
+    state.namespaces.add(match[1]);
+  }
+  for (const match of source.matchAll(/import\s+\*\s+as\s+([A-Za-z_$][\w$]*)\s+from\s*["'](?:node:)?fs["']/g)) {
+    state.namespaces.add(match[1]);
+  }
   for (const match of source.matchAll(/import\s+(?:[A-Za-z_$][\w$]*\s*,\s*)?\{([^}]+)\}\s*from\s*["'](?:node:)?fs["']/g)) {
     for (const item of match[1].split(",")) {
       const parts = item.trim().split(/\s+as\s+/);
-      if (sinkApis.has(parts[0])) aliases.add(parts[1] || parts[0]);
+      if (sinkApis.has(parts[0])) state.aliases.add(parts[1] || parts[0]);
     }
   }
   let changed = true;
   while (changed) {
     changed = false;
-    for (const match of source.matchAll(/\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:fs\.)?([A-Za-z_$][\w$]*)\s*;/g)) {
-      if (aliases.has(match[2]) && !aliases.has(match[1])) {
-        aliases.add(match[1]);
+    for (const match of source.matchAll(/\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*([^;\n]+)\s*;/g)) {
+      if (expressionIsSinkCapability(match[2], state) && !state.aliases.has(match[1])) {
+        state.aliases.add(match[1]);
         changed = true;
-      }
-    }
-    for (const match of source.matchAll(/\b(?:const|let|var)\s*\{([^}]+)\}\s*=\s*fs\s*;/g)) {
-      for (const item of match[1].split(",")) {
-        const [property, alias = property] = item.trim().split(/\s*:\s*/);
-        if (sinkApis.has(property) && !aliases.has(alias)) {
-          aliases.add(alias);
-          changed = true;
-        }
-      }
-    }
-    for (const match of source.matchAll(/\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*\{([^;}]+)\}/g)) {
-      for (const property of match[2].matchAll(/([A-Za-z_$][\w$]*)\s*:\s*(?:fs\.)?([A-Za-z_$][\w$]*)/g)) {
-        if (aliases.has(property[2])) {
-          const key = `${match[1]}.${property[1]}`;
-          if (!properties.has(key)) {
-            properties.add(key);
-            changed = true;
-          }
-        }
       }
     }
     for (const match of source.matchAll(/\b(?:const|let|var)\s*\{([^}]+)\}\s*=\s*([A-Za-z_$][\w$]*)\s*;/g)) {
       for (const item of match[1].split(",")) {
         const [property, alias = property] = item.trim().split(/\s*:\s*/);
-        if (properties.has(`${match[2]}.${property}`) && !aliases.has(alias)) {
-          aliases.add(alias);
+        const fromNamespace = state.namespaces.has(match[2]) && sinkApis.has(property);
+        const fromProperty = state.properties.has(`${match[2]}.${property}`);
+        if ((fromNamespace || fromProperty) && !state.aliases.has(alias)) {
+          state.aliases.add(alias);
           changed = true;
         }
       }
     }
+    for (const match of source.matchAll(/\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*\{([^;}]+)\}/g)) {
+      for (const property of match[2].matchAll(/([A-Za-z_$][\w$]*)\s*:\s*([^,}]+)/g)) {
+        if (expressionIsSinkCapability(property[2], state)) {
+          const key = `${match[1]}.${property[1]}`;
+          if (!state.properties.has(key)) {
+            state.properties.add(key);
+            changed = true;
+          }
+        }
+      }
+    }
   }
-  return aliases;
+  return state;
 }
 
 function analyzeFlowPaths(source) {
@@ -181,8 +205,10 @@ function analyzeFlowPaths(source) {
   return state;
 }
 
-function firstArgument(source, openParen) {
+function argumentsAt(source, openParen) {
+  const argumentsFound = [];
   let index = openParen + 1;
+  let start = index;
   let depth = 0;
   let quote = null;
   while (index < source.length) {
@@ -198,27 +224,90 @@ function firstArgument(source, openParen) {
     if (char === "'" || char === '"' || char === "`") quote = char;
     else if (char === "(" || char === "[" || char === "{") depth += 1;
     else if (char === ")" || char === "]" || char === "}") {
-      if (depth === 0) break;
+      if (depth === 0) {
+        argumentsFound.push(source.slice(start, index));
+        break;
+      }
       depth -= 1;
-    } else if (char === "," && depth === 0) break;
+    } else if (char === "," && depth === 0) {
+      argumentsFound.push(source.slice(start, index));
+      start = index + 1;
+    }
     index += 1;
   }
-  return source.slice(openParen + 1, index);
+  if (argumentsFound.length === 1 && argumentsFound[0].trim() === "") return [];
+  return argumentsFound;
+}
+
+function callExpressions(source) {
+  return source.matchAll(
+    /\b([A-Za-z_$][\w$]*(?:\s*(?:\.\s*[A-Za-z_$][\w$]*|\[\s*["'][A-Za-z_$][\w$]*["']\s*\]))*)\s*\(/g,
+  );
+}
+
+function callbackBridges(source) {
+  const bridges = [];
+  const functions = balancedBlocks(
+    source,
+    /\b(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*\{/g,
+  );
+  for (const block of functions) {
+    const header = /function\s+([A-Za-z_$][\w$]*)\s*\(([^)]*)\)/.exec(block.header);
+    if (!header) continue;
+    const parameters = header[2].split(",").map((parameter) => parameter.trim());
+    for (const call of callExpressions(block.body)) {
+      const callbackIndex = parameters.indexOf(normalizedMemberExpression(call[1]));
+      if (callbackIndex === -1) continue;
+      const openParen = call.index + call[0].lastIndexOf("(");
+      const calledArguments = argumentsAt(block.body, openParen);
+      for (let pathIndex = 0; pathIndex < parameters.length; pathIndex += 1) {
+        if (pathIndex === callbackIndex) continue;
+        if (identifierAppears(calledArguments[0] || "", parameters[pathIndex])) {
+          bridges.push({ name: header[1], callbackIndex, pathIndex });
+        }
+      }
+    }
+  }
+  return bridges;
 }
 
 function directFlowStateSinks(filePath) {
-  if (filePath === allowedOwner) return [];
+  if (allowedSinkOwners.has(path.resolve(filePath))) return [];
   const source = fs.readFileSync(filePath, "utf8");
   const paths = analyzeFlowPaths(source);
-  const aliases = collectSinkAliases(source);
+  const capabilities = collectSinkCapabilities(source);
   const findings = [];
-  const calls = /\b(?:fs\.)?([A-Za-z_$][\w$]*)\s*\(/g;
-  for (const match of source.matchAll(calls)) {
-    if (!aliases.has(match[1])) continue;
+  for (const match of callExpressions(source)) {
+    if (!expressionIsSinkCapability(match[1], capabilities)) continue;
     const openParen = match.index + match[0].lastIndexOf("(");
-    const argument = firstArgument(source, openParen);
+    const [argument = ""] = argumentsAt(source, openParen);
     if (expressionIsFlowPath(argument, paths)) {
-      findings.push(`${path.relative(repoRoot, filePath)}: ${match[1]}(${argument.trim()}`);
+      findings.push(`${path.relative(repoRoot, filePath)}: ${normalizedMemberExpression(match[1])}(${argument.trim()}`);
+    }
+  }
+  for (const match of source.matchAll(/\bReflect\s*\.\s*apply\s*\(/g)) {
+    const openParen = match.index + match[0].lastIndexOf("(");
+    const [capability = "", , argumentList = ""] = argumentsAt(source, openParen);
+    const trimmedList = argumentList.trim();
+    if (!expressionIsSinkCapability(capability, capabilities)) continue;
+    if (!trimmedList.startsWith("[") || !trimmedList.endsWith("]")) continue;
+    const [argument = ""] = argumentsAt(`(${trimmedList.slice(1, -1)})`, 0);
+    if (expressionIsFlowPath(argument, paths)) {
+      findings.push(`${path.relative(repoRoot, filePath)}: Reflect.apply(${capability.trim()}, ${argument.trim()}`);
+    }
+  }
+  const bridges = callbackBridges(source);
+  for (const match of callExpressions(source)) {
+    const callee = normalizedMemberExpression(match[1]);
+    for (const bridge of bridges.filter(({ name }) => name === callee)) {
+      const openParen = match.index + match[0].lastIndexOf("(");
+      const callArgumentsFound = argumentsAt(source, openParen);
+      if (
+        expressionIsSinkCapability(callArgumentsFound[bridge.callbackIndex] || "", capabilities)
+        && expressionIsFlowPath(callArgumentsFound[bridge.pathIndex] || "", paths)
+      ) {
+        findings.push(`${path.relative(repoRoot, filePath)}: ${callee}(sink capability, flow path)`);
+      }
     }
   }
   return [...new Set(findings)];
@@ -261,6 +350,48 @@ test("scanner detects indirect aliases, properties, destructuring, streams, and 
     removeTmpDir(tmp);
   }
 });
+
+const capabilityFixtures = new Map([
+  ["reflect-apply", `
+    import fs from "node:fs";
+    import { flowStatePath } from "${allowedOwner}";
+    const target = flowStatePath(root, id);
+    Reflect.apply(fs.writeFileSync, fs, [target, "reflect"]);
+  `],
+  ["namespace-alias", `
+    import * as io from "node:fs";
+    import { flowStatePath } from "${allowedOwner}";
+    const target = flowStatePath(root, id);
+    io.writeFileSync(target, "namespace");
+  `],
+  ["computed-property", `
+    import fs from "node:fs";
+    import { flowStatePath } from "${allowedOwner}";
+    const target = flowStatePath(root, id);
+    fs["writeFileSync"](target, "computed");
+  `],
+  ["callback-reference", `
+    import fs from "node:fs";
+    import { flowStatePath } from "${allowedOwner}";
+    const target = flowStatePath(root, id);
+    function invoke(callback, output) { callback(output, "callback"); }
+    invoke(fs.writeFileSync, target);
+  `],
+]);
+
+for (const [label, source] of capabilityFixtures) {
+  test(`scanner detects ${label} sink capability`, () => {
+    const tmp = createTmpDir("flow-sink-capability-adversarial-");
+    try {
+      const fixture = path.join(tmp, `${label}.js`);
+      fs.writeFileSync(fixture, source);
+      const findings = directFlowStateSinks(fixture);
+      assert.ok(findings.length > 0, `${label} bypassed scanner`);
+    } finally {
+      removeTmpDir(tmp);
+    }
+  });
+}
 
 test("flow state path ownership and every source write sink stay in the shared writer", () => {
   const files = sourceFiles(srcRoot);

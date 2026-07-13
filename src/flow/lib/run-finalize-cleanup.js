@@ -44,6 +44,7 @@ import { flattenSteps } from "./step-tree.js";
 import { IssueLogStore } from "./issue-log-store.js";
 import { runFlowCommandWithPluginLifecycle } from "../../lib/plugin-registry.js";
 import { FlowManager } from "../../lib/flow-manager.js";
+import { AtomicJsonFile } from "../../lib/atomic-json-file.js";
 
 const ORPHAN_COMMIT_LIST_LIMIT = 50;
 const SUBMODULE_DIAGNOSTIC_LIMIT = 50;
@@ -55,6 +56,209 @@ const RECOVERY_OPTIONS_DIRTY = ["commit-or-stash-first", "retry-without-rescue"]
 const SUBMODULE_RECOVERY_OPTIONS_DIRTY = ["commit-or-stash-first", "clean-submodules-and-retry", "manual-remove-after-review"];
 const SUBMODULE_RECOVERY_OPTIONS_STATUS = ["inspect-status-manually", "clean-submodules-and-retry", "manual-remove-after-review"];
 const SUBMODULE_RECOVERY_OPTIONS_FORCE = ["inspect-worktree-manually", "manual-remove-after-review", "retry-after-fixing-git-error"];
+const FINALIZE_TEARDOWN_VERSION = 1;
+const FINALIZE_TEARDOWN_PHASES = Object.freeze([
+  "pre-commit",
+  "commit-durable",
+  "worktree-removed",
+  "branch-deleted",
+  "validated",
+  "pointer-written",
+  "active-cleared",
+]);
+
+function assertExactObjectKeys(value, keys, label) {
+  if (value == null || typeof value !== "object" || Array.isArray(value)) throw new Error(`${label} must be an object`);
+  const actual = Object.keys(value).sort();
+  const expected = [...keys].sort();
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`${label} has an invalid schema`);
+}
+
+export class FinalizeTeardownPhase {
+  constructor(name) {
+    if (!FINALIZE_TEARDOWN_PHASES.includes(name)) throw new Error(`invalid finalize teardown phase: ${name}`);
+    this.name = name;
+    this.index = FINALIZE_TEARDOWN_PHASES.indexOf(name);
+    Object.freeze(this);
+  }
+
+  static from(value) {
+    return value instanceof FinalizeTeardownPhase ? value : new FinalizeTeardownPhase(value);
+  }
+
+  atLeast(other) {
+    return this.index >= FinalizeTeardownPhase.from(other).index;
+  }
+}
+
+export class FinalizeTeardownResult {
+  constructor({ phase, ok, code = null, commitSha = null, at = new Date().toISOString() }) {
+    this.phase = FinalizeTeardownPhase.from(phase);
+    this.ok = ok === true;
+    this.code = code == null ? null : String(code);
+    this.commitSha = commitSha == null ? null : String(commitSha);
+    this.at = String(at);
+    Object.freeze(this);
+  }
+
+  static fromStored(value) {
+    assertExactObjectKeys(value, ["phase", "ok", "code", "commitSha", "at"], "finalize teardown result");
+    if (typeof value.ok !== "boolean") throw new Error("finalize teardown result.ok must be boolean");
+    return new FinalizeTeardownResult(value);
+  }
+
+  toJSON() {
+    return {
+      phase: this.phase.name,
+      ok: this.ok,
+      code: this.code,
+      commitSha: this.commitSha,
+      at: this.at,
+    };
+  }
+}
+
+class FinalizeTeardownTransaction {
+  constructor({ identity, phase = "pre-commit", result = null, updatedAt = new Date().toISOString() }) {
+    const required = ["runId", "spec", "featureBranch", "baseBranch"];
+    if (!identity || required.some((key) => typeof identity[key] !== "string" || identity[key] === "")) {
+      throw new Error("finalize teardown transaction identity is invalid");
+    }
+    this.identity = Object.freeze({
+      runId: identity.runId,
+      spec: identity.spec,
+      issue: identity.issue ?? null,
+      featureBranch: identity.featureBranch,
+      baseBranch: identity.baseBranch,
+    });
+    this.phase = FinalizeTeardownPhase.from(phase);
+    this.result = result == null
+      ? null
+      : (result instanceof FinalizeTeardownResult ? result : new FinalizeTeardownResult(result));
+    this.updatedAt = String(updatedAt);
+  }
+
+  static fromStored(value) {
+    assertExactObjectKeys(value, ["version", "identity", "phase", "result", "updatedAt"], "finalize teardown transaction");
+    if (value.version !== FINALIZE_TEARDOWN_VERSION) throw new Error("unsupported finalize teardown transaction version");
+    assertExactObjectKeys(
+      value.identity,
+      ["runId", "spec", "issue", "featureBranch", "baseBranch"],
+      "finalize teardown identity",
+    );
+    return new FinalizeTeardownTransaction({
+      ...value,
+      result: value.result == null ? null : FinalizeTeardownResult.fromStored(value.result),
+    });
+  }
+
+  static create(state) {
+    return new FinalizeTeardownTransaction({ identity: finalizeTeardownIdentity(state) });
+  }
+
+  matches(state) {
+    return JSON.stringify(this.identity) === JSON.stringify(finalizeTeardownIdentity(state));
+  }
+
+  advance(phase, { ok = true, code = null, commitSha = this.result?.commitSha ?? null } = {}) {
+    const next = FinalizeTeardownPhase.from(phase);
+    if (next.index < this.phase.index) throw new Error(`finalize teardown phase cannot move backward: ${this.phase.name} -> ${next.name}`);
+    this.phase = next;
+    this.result = new FinalizeTeardownResult({ phase: next, ok, code, commitSha });
+    this.updatedAt = new Date().toISOString();
+    return this;
+  }
+
+  fail(code) {
+    this.result = new FinalizeTeardownResult({
+      phase: this.phase,
+      ok: false,
+      code,
+      commitSha: this.result?.commitSha ?? null,
+    });
+    this.updatedAt = new Date().toISOString();
+    return this;
+  }
+
+  toJSON() {
+    return {
+      version: FINALIZE_TEARDOWN_VERSION,
+      identity: this.identity,
+      phase: this.phase.name,
+      result: this.result?.toJSON() ?? null,
+      updatedAt: this.updatedAt,
+    };
+  }
+}
+
+function finalizeTeardownIdentity(state) {
+  return {
+    runId: state.runId,
+    spec: state.spec,
+    issue: state.issue ?? null,
+    featureBranch: state.featureBranch,
+    baseBranch: state.baseBranch,
+  };
+}
+
+function ensureRealDirectory(directory) {
+  const parent = path.dirname(directory);
+  if (parent !== directory && !fs.existsSync(parent)) ensureRealDirectory(parent);
+  try {
+    fs.mkdirSync(directory);
+  } catch (error) {
+    if (error.code !== "EEXIST") throw error;
+  }
+  const stat = fs.lstatSync(directory);
+  if (!stat.isDirectory() || stat.isSymbolicLink() || fs.realpathSync(directory) !== path.resolve(directory)) {
+    throw new Error(`finalize teardown recovery authority must be a real directory: ${directory}`);
+  }
+}
+
+class FinalizeTeardownTransactionStore {
+  constructor(mainRoot, state) {
+    const identity = finalizeTeardownIdentity(state);
+    const token = crypto.createHash("sha256").update(JSON.stringify(identity)).digest("hex");
+    this.directory = path.join(mainRoot, ".senti", "recovery", "finalize-cleanup");
+    ensureRealDirectory(this.directory);
+    this.path = path.join(this.directory, `${token}.json`);
+    this.file = new AtomicJsonFile(this.path);
+    this.state = state;
+  }
+
+  loadOrCreate() {
+    try {
+      const stat = fs.lstatSync(this.path);
+      if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
+        throw new Error(`finalize teardown transaction must be one real non-hardlinked file: ${this.path}`);
+      }
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
+    const value = this.file.read(null);
+    const transaction = value == null
+      ? FinalizeTeardownTransaction.create(this.state)
+      : FinalizeTeardownTransaction.fromStored(value);
+    if (!transaction.matches(this.state)) throw new Error("finalize teardown transaction targets a different flow");
+    if (value == null) this.write(transaction);
+    return transaction;
+  }
+
+  write(transaction) {
+    this.file.write(transaction.toJSON());
+  }
+
+  remove() {
+    let descriptor = null;
+    try {
+      fs.unlinkSync(this.path);
+      descriptor = fs.openSync(this.directory, "r");
+      fs.fsyncSync(descriptor);
+    } finally {
+      if (descriptor != null) fs.closeSync(descriptor);
+    }
+  }
+}
 
 function buildReportField(mainRoot) {
   // The embedded cleanup report is the same report-show text generated from
@@ -1002,100 +1206,125 @@ async function runTeardown(ctx, { worktreePath, mainRepoPath, reportRoot, specId
   // (i) metadata sync + finalize-cleanup → 'done'.
   const targetRoot = (worktree && mainRepoPath) ? mainRepoPath : ctx.root;
   const targetFm = (worktree && mainRepoPath) ? ctx.flowManager.forRoot(mainRepoPath) : ctx.flowManager;
+  const transactionStore = new FinalizeTeardownTransactionStore(reportRoot, state);
+  const transaction = transactionStore.loadOrCreate();
+  const attachTransaction = (env) => {
+    if (env.data == null) env.data = {};
+    env.data.teardown = transaction.result?.toJSON() ?? new FinalizeTeardownResult({
+      phase: transaction.phase,
+      ok: env.ok,
+      code: env.errors?.[0]?.code ?? null,
+    }).toJSON();
+    return env;
+  };
+  const failAfterCommit = (env) => {
+    transaction.fail(env.errors?.[0]?.code || "FINALIZE_TEARDOWN_FAILED");
+    transactionStore.write(transaction);
+    return attachTransaction(env);
+  };
 
-  // Spec 272: sync unreflected flow metadata (e.g. retry success logs) from
-  // worktree to main before teardown.
-  if (worktree && mainRepoPath && ctx.root !== mainRepoPath) {
+  if (!transaction.phase.atLeast("commit-durable")) {
+    // Spec 272: sync unreflected flow metadata (e.g. retry success logs) from
+    // worktree to main before teardown.
+    if (worktree && mainRepoPath && ctx.root !== mainRepoPath) {
+      try {
+        syncMetadataFromWorktreeToMain(ctx.root, mainRepoPath, specId);
+      } catch (err) {
+        transactionStore.remove();
+        return attachTransaction(Envelope.fail(
+          "run",
+          "finalize-cleanup",
+          "FINALIZE_METADATA_SYNC_FAILED",
+          [
+            `Finalize metadata sync failed: ${err.message}`,
+            "No finalize step, commit, active-flow, worktree, branch, or Git history cleanup was attempted.",
+            "Resolve the metadata authority or writer lock failure, then retry finalize-cleanup.",
+          ],
+          {
+            specId,
+            worktreePath: ctx.root,
+            mainRepoPath,
+            causeCode: err.code || null,
+          },
+        ));
+      }
+    }
+
     try {
-      syncMetadataFromWorktreeToMain(ctx.root, mainRepoPath, specId);
+      pluginLifecycle = await runFlowCommandWithPluginLifecycle(pluginContext.root, state.plugins?.flowCommandHooks || [], {
+        command: "finalize-cleanup",
+        flow: pluginContext.flow,
+        main: async () => ({
+          ok: true,
+          data: {
+            specPath: state.spec,
+            issueLogPath: `specs/${specId}/issue-log.json`,
+            artifactPath: pluginContext.artifactPath,
+          },
+        }),
+      });
     } catch (err) {
-      return Envelope.fail(
-        "run",
-        "finalize-cleanup",
-        "FINALIZE_METADATA_SYNC_FAILED",
-        [
-          `Finalize metadata sync failed: ${err.message}`,
-          "No finalize step, commit, active-flow, worktree, branch, or Git history cleanup was attempted.",
-          "Resolve the metadata authority or writer lock failure, then retry finalize-cleanup.",
-        ],
-        {
-          specId,
-          worktreePath: ctx.root,
-          mainRepoPath,
-          causeCode: err.code || null,
-        },
-      );
+      pluginLifecycle = {
+        warnings: [{ code: "PLUGIN_LIFECYCLE_FAILED", message: err.message }],
+        issueLogEntries: [{ reason: `plugin finalize-cleanup lifecycle failed: ${err.message}`, payload: { code: "PLUGIN_LIFECYCLE_FAILED" } }],
+        data: {},
+      };
     }
-  }
 
-  try {
-    pluginLifecycle = await runFlowCommandWithPluginLifecycle(pluginContext.root, state.plugins?.flowCommandHooks || [], {
-      command: "finalize-cleanup",
-      flow: pluginContext.flow,
-      main: async () => ({
-        ok: true,
-        data: {
-          specPath: state.spec,
-          issueLogPath: `specs/${specId}/issue-log.json`,
-          artifactPath: pluginContext.artifactPath,
-        },
-      }),
-    });
-  } catch (err) {
-    pluginLifecycle = {
-      warnings: [{ code: "PLUGIN_LIFECYCLE_FAILED", message: err.message }],
-      issueLogEntries: [{ reason: `plugin finalize-cleanup lifecycle failed: ${err.message}`, payload: { code: "PLUGIN_LIFECYCLE_FAILED" } }],
-      data: {},
-    };
-  }
-
-  if (worktree && mainRepoPath) {
-    const finalizeCleanupStep = flattenSteps(state.steps || []).find((step) => step.id === "finalize-cleanup");
-    retainedCleanupMetadata = recordFinalizeCleanupPostCommandMetadata({
-      flowManager: ctx.flowManager,
-      specId,
-      metrics: Array.isArray(state.metrics) ? state.metrics : [],
-      runtimeLog: finalizeCleanupStep?.runtimeLog || null,
-      notes: Array.isArray(state.notes) ? state.notes : [],
-      issueLogEntries: pluginLifecycle.issueLogEntries || [],
-      pluginArtifacts: pluginLifecycle.data?.pluginHooks || [],
-    });
-  }
-
-  const flowJsonRel = `specs/${specId}/flow.json`;
-  targetFm.updateStepStatus("finalize-cleanup", "done", { specId });
-
-  // (ii) stage + commit. Stage flow.json plus issue-log if present so audit
-  // entries written by --force / CHERRY_PICK_CONFLICT during the same run
-  // become atomically persisted (R14).
-  runGit(["-C", targetRoot, "add", "--", flowJsonRel]);
-  const issueLogRel = `specs/${specId}/issue-log.json`;
-  if (fs.existsSync(path.join(targetRoot, issueLogRel))) {
-    runGit(["-C", targetRoot, "add", "--", issueLogRel]);
-  }
-  const commitMsg = `chore: finalize ${specId}`;
-  const commitPaths = [flowJsonRel];
-  if (fs.existsSync(path.join(targetRoot, issueLogRel))) {
-    commitPaths.push(issueLogRel);
-  }
-  const commitRes = runGit(["-C", targetRoot, "commit", "-m", commitMsg, "--", ...commitPaths]);
-  if (!commitRes.ok) {
-    // (iii) rollback so retry is meaningful.
-    try {
-      targetFm.updateStepStatus("finalize-cleanup", "in_progress", { specId });
-    } catch (rollbackErr) {
-      process.stderr.write(`[senti] cleanup rollback failed: ${rollbackErr.message}\n`);
+    if (worktree && mainRepoPath) {
+      const finalizeCleanupStep = flattenSteps(state.steps || []).find((step) => step.id === "finalize-cleanup");
+      retainedCleanupMetadata = recordFinalizeCleanupPostCommandMetadata({
+        flowManager: ctx.flowManager,
+        specId,
+        metrics: Array.isArray(state.metrics) ? state.metrics : [],
+        runtimeLog: finalizeCleanupStep?.runtimeLog || null,
+        notes: Array.isArray(state.notes) ? state.notes : [],
+        issueLogEntries: pluginLifecycle.issueLogEntries || [],
+        pluginArtifacts: pluginLifecycle.data?.pluginHooks || [],
+      });
     }
-    return Envelope.fail("run", "finalize-cleanup", "COMMIT_FAILED", [
-      `git commit failed: ${commitRes.stderr || commitRes.stdout || "unknown"}`,
-    ]);
+
+    const flowJsonRel = `specs/${specId}/flow.json`;
+    targetFm.updateStepStatus("finalize-cleanup", "done", { specId });
+
+    // (ii) stage + commit. Stage flow.json plus issue-log if present so audit
+    // entries written by --force / CHERRY_PICK_CONFLICT during the same run
+    // become atomically persisted (R14).
+    runGit(["-C", targetRoot, "add", "--", flowJsonRel]);
+    const issueLogRel = `specs/${specId}/issue-log.json`;
+    if (fs.existsSync(path.join(targetRoot, issueLogRel))) {
+      runGit(["-C", targetRoot, "add", "--", issueLogRel]);
+    }
+    const commitMsg = `chore: finalize ${specId}`;
+    const commitPaths = [flowJsonRel];
+    if (fs.existsSync(path.join(targetRoot, issueLogRel))) commitPaths.push(issueLogRel);
+    const commitRes = runGit(["-C", targetRoot, "commit", "-m", commitMsg, "--", ...commitPaths]);
+    if (!commitRes.ok) {
+      try {
+        targetFm.updateStepStatus("finalize-cleanup", "in_progress", { specId });
+      } catch (rollbackErr) {
+        process.stderr.write(`[senti] cleanup rollback failed: ${rollbackErr.message}\n`);
+      }
+      transaction.fail("COMMIT_FAILED");
+      transactionStore.remove();
+      return attachTransaction(Envelope.fail("run", "finalize-cleanup", "COMMIT_FAILED", [
+        `git commit failed: ${commitRes.stderr || commitRes.stdout || "unknown"}`,
+      ]));
+    }
+    const committedHead = runGit(["-C", targetRoot, "rev-parse", "HEAD"]);
+    if (!committedHead.ok) {
+      transaction.fail("COMMIT_DURABILITY_UNCONFIRMED");
+      transactionStore.write(transaction);
+      return attachTransaction(Envelope.fail("run", "finalize-cleanup", "COMMIT_DURABILITY_UNCONFIRMED", [
+        `Finalize commit succeeded but HEAD could not be resolved: ${committedHead.stderr || committedHead.stdout || "unknown"}`,
+      ]));
+    }
+    transaction.advance("commit-durable", { commitSha: committedHead.stdout.trim() });
+    transactionStore.write(transaction);
   }
 
-  // (iv) commit succeeded — pointer + active-flow clear + worktree teardown.
-  writeLastFinalizedPointer(reportRoot, state.spec);
-  ctx.flowManager.clearFlowState(specId);
-
-  if (worktree && mainRepoPath) {
+  // (iii) Commit is durable. Resume destructive phases without revisiting the commit.
+  if (!transaction.phase.atLeast("worktree-removed") && worktree && mainRepoPath) {
     const wtPath = worktreePath || ctx.root;
     if (fs.existsSync(wtPath)) {
       const removeResult = removeWorktreeForCleanup({
@@ -1104,27 +1333,83 @@ async function runTeardown(ctx, { worktreePath, mainRepoPath, reportRoot, specId
         featureBranch,
         force: ctx.force === true,
       });
-      if (!removeResult.ok) return removeResult.env;
+      if (!removeResult.ok) return failAfterCommit(removeResult.env);
     }
-    const branchDelete = deleteFeatureBranchForCleanup({ mainRepoPath, featureBranch });
-    if (!branchDelete.ok) return branchDelete.env;
-  } else {
-    const branchRes = runGit(["branch", "-D", featureBranch], { cwd: targetRoot });
-    if (!branchRes.ok && !branchRes.stderr.includes("not found")) {
-      return Envelope.fail("run", "finalize-cleanup", "BRANCH_DELETE_FAILED", [
-        `git branch -D ${featureBranch} failed: ${branchRes.stderr || branchRes.stdout || "unknown"}`,
-      ]);
-    }
+    transaction.advance("worktree-removed");
+    transactionStore.write(transaction);
+  } else if (!transaction.phase.atLeast("worktree-removed")) {
+    transaction.advance("worktree-removed");
+    transactionStore.write(transaction);
   }
 
-  // (v) strict post-teardown validation.
-  const validation = validateTeardown({ worktreePath, mainRepoPath, featureBranch, specId });
-  if (!validation.ok) {
-    return Envelope.fail("run", "finalize-cleanup", "TEARDOWN_VALIDATION_FAILED", [
-      "Teardown appeared to succeed but resources remain:",
-      ...validation.reasons.map((r) => `- ${r}`),
-    ]);
+  if (!transaction.phase.atLeast("branch-deleted") && worktree && mainRepoPath) {
+    const branchDelete = deleteFeatureBranchForCleanup({ mainRepoPath, featureBranch });
+    if (!branchDelete.ok) return failAfterCommit(branchDelete.env);
+    transaction.advance("branch-deleted");
+    transactionStore.write(transaction);
+  } else if (!transaction.phase.atLeast("branch-deleted")) {
+    const branchRes = runGit(["branch", "-D", featureBranch], { cwd: targetRoot });
+    if (!branchRes.ok && !branchRes.stderr.includes("not found")) {
+      return failAfterCommit(Envelope.fail("run", "finalize-cleanup", "BRANCH_DELETE_FAILED", [
+        `git branch -D ${featureBranch} failed: ${branchRes.stderr || branchRes.stdout || "unknown"}`,
+      ]));
+    }
+    transaction.advance("branch-deleted");
+    transactionStore.write(transaction);
   }
+
+  if (!transaction.phase.atLeast("validated")) {
+    const validation = validateTeardown({
+      worktreePath,
+      mainRepoPath: mainRepoPath || targetRoot,
+      featureBranch,
+      specId,
+    });
+    if (!validation.ok) {
+      return failAfterCommit(Envelope.fail("run", "finalize-cleanup", "TEARDOWN_VALIDATION_FAILED", [
+        "Teardown appeared to succeed but resources remain:",
+        ...validation.reasons.map((r) => `- ${r}`),
+      ]));
+    }
+    transaction.advance("validated");
+    transactionStore.write(transaction);
+  }
+
+  // (iv) Publish completion only after strict validation. Each durable authority
+  // transition is journaled before the next one begins, so a crash or I/O error
+  // cannot remove every recovery route at once.
+  if (!transaction.phase.atLeast("pointer-written")) {
+    try {
+      writeLastFinalizedPointer(reportRoot, state.spec);
+    } catch (error) {
+      return failAfterCommit(Envelope.fail(
+        "run",
+        "finalize-cleanup",
+        "FINALIZE_POINTER_WRITE_FAILED",
+        `Finalize commit and teardown are durable, but completion pointer publication failed: ${error.message}`,
+        { causeCode: error.code || null },
+      ));
+    }
+    transaction.advance("pointer-written");
+    transactionStore.write(transaction);
+  }
+
+  if (!transaction.phase.atLeast("active-cleared")) {
+    try {
+      ctx.flowManager.clearFlowState(specId);
+    } catch (error) {
+      return failAfterCommit(Envelope.fail(
+        "run",
+        "finalize-cleanup",
+        "ACTIVE_FLOW_CLEAR_FAILED",
+        `Finalize completion pointer is durable, but active-flow cleanup failed: ${error.message}`,
+        { causeCode: error.code || null },
+      ));
+    }
+    transaction.advance("active-cleared");
+    transactionStore.write(transaction);
+  }
+  transactionStore.remove();
 
   const env = attachReport(
     Envelope.ok("run", "finalize-cleanup", {
@@ -1143,7 +1428,7 @@ async function runTeardown(ctx, { worktreePath, mainRepoPath, reportRoot, specId
   if (worktree && mainRepoPath) {
     attachOtherFlowMetadataWarning(env, mainRepoPath, specId);
   }
-  return env;
+  return attachTransaction(env);
 }
 
 /**
@@ -1255,23 +1540,26 @@ async function runForcedTeardown(ctx, opts) {
 
   const teardown = await runTeardown(ctx, opts);
   if (!teardown.ok) {
-    try {
-      restoreIssueLog(auditTarget, state.spec, auditId);
-    } catch (err) {
-      return Envelope.fail(
-        "run",
-        "finalize-cleanup",
-        "ISSUE_LOG_AUDIT_COMPENSATION_FAILED",
-        [
-          `Teardown failed with ${teardown.errors?.[0]?.code || "unknown error"}.`,
-          `The forced teardown audit entry could not be compensated: ${err.message}`,
-        ],
-        {
-          originalTeardown: teardown.toJSON ? teardown.toJSON() : teardown,
-          causeCode: err.code || null,
-          auditId,
-        },
-      );
+    const failedPhase = teardown.data?.teardown?.phase ?? "pre-commit";
+    if (!FinalizeTeardownPhase.from(failedPhase).atLeast("commit-durable")) {
+      try {
+        restoreIssueLog(auditTarget, state.spec, auditId);
+      } catch (err) {
+        return Envelope.fail(
+          "run",
+          "finalize-cleanup",
+          "ISSUE_LOG_AUDIT_COMPENSATION_FAILED",
+          [
+            `Teardown failed with ${teardown.errors?.[0]?.code || "unknown error"}.`,
+            `The forced teardown audit entry could not be compensated: ${err.message}`,
+          ],
+          {
+            originalTeardown: teardown.toJSON ? teardown.toJSON() : teardown,
+            causeCode: err.code || null,
+            auditId,
+          },
+        );
+      }
     }
     return teardown;
   }

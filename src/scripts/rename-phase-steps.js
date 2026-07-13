@@ -10,9 +10,17 @@ import { FlowManager } from "../lib/flow-manager.js";
 import { RepositoryMaintenanceLock } from "../lib/repository-maintenance-lock.js";
 import { ONE_TO_ONE_STEP_RENAMES, renameFlowStateStepIds } from "../lib/step-id-rename.js";
 import { IssueLogStore } from "../flow/lib/issue-log-store.js";
+import {
+  OfflineMigrationAuthority,
+  OfflineMigrationTarget,
+  OfflineMigrationTransaction,
+} from "../lib/offline-migration-transaction.js";
 
 const ONE_TO_ONE_TOKENS = Object.keys(ONE_TO_ONE_STEP_RENAMES).sort((a, b) => b.length - a.length);
 const ACTIVE_FLOW_LIMIT = 1024 * 1024;
+const MIGRATION_NAME = "rename-phase-steps";
+const MIGRATION_JOURNAL = path.join(".senti", "migrations", `${MIGRATION_NAME}.json`);
+const MIGRATION_FILES = Object.freeze(["flow.json", "issue-log.json", "report.json", "retro.json", "review.md"]);
 
 class RepositoryWorktree {
   constructor(worktreePath, branch = null) {
@@ -37,6 +45,7 @@ class MigrationPlan {
     this.flowSpecs = [];
     this.fileWrites = [];
     this.issueLogMutations = [];
+    this.authorities = [];
   }
 
   change(file, from, to) {
@@ -51,6 +60,10 @@ class MigrationPlan {
     this.fileWrites.push({ filePath, content });
   }
 
+  authority(filePath, kind) {
+    this.authorities.push(OfflineMigrationAuthority.capture(this.root, filePath, kind));
+  }
+
   issueLog(spec, expectedRevision) {
     this.issueLogMutations.push({ spec, expectedRevision });
   }
@@ -63,30 +76,18 @@ class MigrationPlan {
     });
     this.#preflight(manager, maintenanceOwnerToken);
     this.#preflightIssueLogs();
-    for (const specId of this.flowSpecs) {
-      manager.mutate((state) => {
-        const changes = renameFlowStateStepIds(state);
-        if (changes.length === 0) throw new Error(`migration target changed before apply: ${specId}`);
-      }, { specId, stepIdMigration: true, maintenanceOwnerToken });
-    }
-    for (const mutation of this.issueLogMutations) {
-      const store = new IssueLogStore({
-        root: this.root,
-        spec: mutation.spec,
-        allowLegacyArray: true,
-      });
-      store.mutate(mutation.expectedRevision, (document) => {
-        let changed = false;
-        for (const entry of document.entries) {
-          if (entry && typeof entry.step === "string" && ONE_TO_ONE_STEP_RENAMES[entry.step]) {
-            entry.step = ONE_TO_ONE_STEP_RENAMES[entry.step];
-            changed = true;
-          }
-        }
-        if (!changed) throw new Error(`migration issue-log target changed before apply: ${mutation.spec}`);
-      });
-    }
-    for (const write of this.fileWrites) fs.writeFileSync(write.filePath, write.content);
+    const targets = this.fileWrites.map((write) => OfflineMigrationTarget.capture(
+      this.root,
+      write.filePath,
+      Buffer.from(write.content),
+    ));
+    new OfflineMigrationTransaction({
+      root: this.root,
+      name: MIGRATION_NAME,
+      journalPath: MIGRATION_JOURNAL,
+      authorities: this.authorities,
+      targets,
+    }).apply();
   }
 
   #preflightIssueLogs() {
@@ -254,12 +255,12 @@ function assertNoWriterLocks(worktree) {
   }
 }
 
-function assertApplySafety(topology) {
+function assertApplySafety(topology, { checkClean = true } = {}) {
   const activeFlows = readActiveFlows(topology.mainRoot);
   assertRegistryConsistency(topology, activeFlows);
   for (const worktree of topology.worktrees) {
     assertNoWriterLocks(worktree);
-    if (runGit(worktree.path, [
+    if (checkClean && runGit(worktree.path, [
       "status",
       "--porcelain",
       "--",
@@ -291,37 +292,37 @@ function planFlowJson(dir, id, plan, strict) {
   if (changes.length === 0) return;
   for (const change of changes) plan.change(`specs/${id}/flow.json`, change.from, change.to);
   plan.flow(id);
+  plan.file(flowPath, `${JSON.stringify(state, null, 2)}\n`);
 }
 
 function planIssueLog(dir, id, plan) {
   const filePath = path.join(dir, "issue-log.json");
   if (!fs.existsSync(filePath)) return;
-  let snapshot;
-  try {
-    snapshot = new IssueLogStore({
-      root: plan.root,
-      spec: `specs/${id}/spec.json`,
-      allowLegacyArray: true,
-    }).read();
-  } catch (_) {
-    return;
-  }
+  const snapshot = new IssueLogStore({
+    root: plan.root,
+    spec: `specs/${id}/spec.json`,
+    allowLegacyArray: true,
+  }).read();
   const entries = snapshot.document.entries;
   let changed = false;
   for (const entry of entries) {
     if (entry && typeof entry.step === "string" && ONE_TO_ONE_STEP_RENAMES[entry.step]) {
       plan.change(`specs/${id}/issue-log.json`, `step: ${entry.step}`, `step: ${ONE_TO_ONE_STEP_RENAMES[entry.step]}`);
+      entry.step = ONE_TO_ONE_STEP_RENAMES[entry.step];
       changed = true;
     }
   }
-  if (changed) plan.issueLog(`specs/${id}/spec.json`, snapshot.revision);
+  if (changed) {
+    plan.issueLog(`specs/${id}/spec.json`, snapshot.revision);
+    plan.file(filePath, `${JSON.stringify(snapshot.document.toJSON(), null, 2)}\n`);
+  }
 }
 
-function planReportRetro(dir, id, plan) {
+function planReportRetro(dir, id, plan, strict) {
   for (const fileName of ["report.json", "retro.json"]) {
     const filePath = path.join(dir, fileName);
     if (!fs.existsSync(filePath)) continue;
-    const data = readJson(filePath, `specs/${id}/${fileName}`, false);
+    const data = readJson(filePath, `specs/${id}/${fileName}`, strict);
     if (!data) continue;
     const changes = [];
     const output = transformPathStrings(data, changes);
@@ -347,13 +348,31 @@ function buildPlan(root, strict) {
   const plan = new MigrationPlan(root);
   const specsDir = path.join(root, "specs");
   if (!fs.existsSync(specsDir)) return plan;
-  const ids = fs.readdirSync(specsDir)
-    .filter((id) => fs.statSync(path.join(specsDir, id)).isDirectory());
-  for (const id of ids) {
+  OfflineMigrationAuthority.capture(root, specsDir, "directory");
+  const entries = fs.readdirSync(specsDir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (entry.isSymbolicLink()) throw new Error(`migration spec directory must not be a symlink: specs/${entry.name}`);
+    if (!entry.isDirectory()) continue;
+    const id = entry.name;
     const dir = path.join(specsDir, id);
+    plan.authority(dir, "directory");
+    const specAuthority = ["spec.json", "spec.md"]
+      .map((fileName) => path.join(dir, fileName))
+      .find((filePath) => fs.existsSync(filePath));
+    if (specAuthority) plan.authority(specAuthority, "file");
+    for (const fileName of MIGRATION_FILES) {
+      const filePath = path.join(dir, fileName);
+      try {
+        fs.lstatSync(filePath);
+      } catch (error) {
+        if (error.code === "ENOENT") continue;
+        throw error;
+      }
+      OfflineMigrationAuthority.capture(root, filePath, "file");
+    }
     planFlowJson(dir, id, plan, strict);
     planIssueLog(dir, id, plan);
-    planReportRetro(dir, id, plan);
+    planReportRetro(dir, id, plan, strict);
     planReviewMarkdown(dir, id, plan);
   }
   return plan;
@@ -380,11 +399,25 @@ export function applyMigration(requestedRoot, {
   afterPlanBuilt = () => {},
 } = {}) {
   const topology = resolveRepositoryTopology(requestedRoot);
-  assertApplySafety(topology);
+  const journalPath = path.join(topology.mainRoot, MIGRATION_JOURNAL);
+  let journalPresent = false;
+  try {
+    fs.lstatSync(journalPath);
+    journalPresent = true;
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+  }
+  assertApplySafety(topology, { checkClean: !journalPresent });
   afterInitialSafety(topology);
   const maintenance = new RepositoryMaintenanceLock({ mainRoot: topology.mainRoot });
   maintenance.acquire();
   try {
+    const recovery = OfflineMigrationTransaction.recover({
+      root: topology.mainRoot,
+      name: MIGRATION_NAME,
+      journalPath: MIGRATION_JOURNAL,
+    });
+    if (recovery.completed) return new MigrationPlan(topology.mainRoot);
     afterMaintenanceAcquired(topology);
     assertApplySafety(topology);
     const plan = buildPlan(topology.mainRoot, true);
