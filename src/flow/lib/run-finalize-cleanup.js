@@ -30,6 +30,7 @@
  */
 
 import fs from "fs";
+import crypto from "node:crypto";
 import os from "os";
 import path from "path";
 import { Envelope } from "../../lib/flow-envelope.js";
@@ -40,7 +41,7 @@ import { FlowCommand } from "./base-command.js";
 import { writeLastFinalizedPointer } from "./run-finalize.js";
 import { resolveLatestReportPath, readReportText } from "./run-report-show.js";
 import { flattenSteps } from "./step-tree.js";
-import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
+import { IssueLogStore } from "./issue-log-store.js";
 import { runFlowCommandWithPluginLifecycle } from "../../lib/plugin-registry.js";
 import { FlowManager } from "../../lib/flow-manager.js";
 
@@ -451,13 +452,15 @@ export function recordFinalizeCleanupPostCommandMetadata({
   if (issueLogEntries.length > 0) {
     const specPath = state.spec || `specs/${specId}/spec.json`;
     const owner = resolver.cleanupSurfaceOwner("issue-log", { specId });
-    const issueLog = loadIssueLog(mainRoot, specPath);
     const timestamp = new Date().toISOString();
-    issueLog.entries.push(...issueLogEntries.map((entry) => ({
-      ...entry,
-      timestamp: entry?.timestamp || timestamp,
-    })));
-    saveIssueLog(mainRoot, specPath, issueLog);
+    new IssueLogStore({ root: mainRoot, spec: specPath }).appendMany(issueLogEntries.map((entry) => {
+      const normalized = { ...entry, timestamp: entry?.timestamp || timestamp };
+      const idempotencyKey = entry?.issueLogId || `finalize-cleanup-lifecycle-${crypto
+        .createHash("sha256")
+        .update(JSON.stringify(normalized))
+        .digest("hex")}`;
+      return { entry: normalized, idempotencyKey };
+    }));
     writtenPaths.push(owner.path);
     surfaces.add("issue-log");
   }
@@ -550,22 +553,30 @@ function readOrphanCommits(repoPath, baseline, featureBranch) {
  * unconditionally to the main repo (not the worktree, which may be deleted by
  * later teardown).
  */
-function appendIssueLog(mainRepoPath, specPath, entry) {
-  const snapshotBefore = loadIssueLog(mainRepoPath, specPath);
-  // Deep clone via JSON so the snapshot is decoupled from later mutations.
-  const snapshot = JSON.parse(JSON.stringify(snapshotBefore));
-  const next = JSON.parse(JSON.stringify(snapshotBefore));
-  next.entries.push({
+function appendIssueLog(mainRepoPath, specPath, entry, idempotencyKey) {
+  new IssueLogStore({ root: mainRepoPath, spec: specPath }).append({
     ...entry,
-    timestamp: new Date().toISOString(),
-  });
-  saveIssueLog(mainRepoPath, specPath, next);
-  return snapshot;
+    timestamp: entry.timestamp || new Date().toISOString(),
+  }, idempotencyKey);
+  return idempotencyKey;
 }
 
-function restoreIssueLog(mainRepoPath, specPath, snapshot) {
-  if (!snapshot) return;
-  saveIssueLog(mainRepoPath, specPath, snapshot);
+function restoreIssueLog(mainRepoPath, specPath, idempotencyKey) {
+  if (!idempotencyKey) return;
+  new IssueLogStore({ root: mainRepoPath, spec: specPath }).compensate(idempotencyKey);
+}
+
+function finalizeAuditId(kind, state, details = {}) {
+  return `finalize-cleanup-${crypto
+    .createHash("sha256")
+    .update(JSON.stringify({
+      kind,
+      runId: state.runId,
+      spec: state.spec,
+      issue: state.issue ?? null,
+      ...details,
+    }))
+    .digest("hex")}`;
 }
 
 /**
@@ -869,9 +880,15 @@ export class RunFinalizeCleanupCommand extends FlowCommand {
             resolution:
               "cherry-pick aborted; user must resolve manually via archive + individual cherry-pick",
             taskId: null,
-          });
+          }, finalizeAuditId("cherry-pick-conflict", state, { baseline, featureBranch }));
         } catch (err) {
-          process.stderr.write(`[senti] cleanup: audit log append failed: ${err.message}\n`);
+          return Envelope.fail(
+            "run",
+            "finalize-cleanup",
+            "ISSUE_LOG_AUDIT_FAILED",
+            `Required cherry-pick conflict audit append failed: ${err.message}`,
+            { originalCode: "CHERRY_PICK_CONFLICT", causeCode: err.code || null },
+          );
         }
       }
       const failPayload = {
@@ -1204,9 +1221,13 @@ async function runForcedTeardown(ctx, opts) {
   const droppedTruncated = opts.droppedTruncated ?? false;
   const auditTarget = mainRepoPath || ctx.root;
 
-  let snapshot = null;
+  const auditId = finalizeAuditId("forced-orphan-drop", state, {
+    baseline,
+    featureBranch,
+    droppedCommits: droppedCommits.map((commit) => commit.sha),
+  });
   try {
-    snapshot = appendIssueLog(auditTarget, state.spec, {
+    appendIssueLog(auditTarget, state.spec, {
       step: "finalize-cleanup",
       reason:
         "FORCED_ORPHAN_DROP: feature branch deleted via --force despite orphan / divergent state",
@@ -1217,20 +1238,40 @@ async function runForcedTeardown(ctx, opts) {
           : opts.diverged
           ? "baseline diverged (history rewrite); branch deleted without rescue"
           : "baseline missing; branch deleted without rescue",
+      droppedCommits,
+      droppedCount,
+      droppedTruncated,
       taskId: null,
-    });
+    }, auditId);
   } catch (err) {
-    process.stderr.write(`[senti] cleanup: audit log append failed: ${err.message}\n`);
+    return Envelope.fail(
+      "run",
+      "finalize-cleanup",
+      "ISSUE_LOG_AUDIT_FAILED",
+      `Required forced teardown audit append failed: ${err.message}`,
+      { causeCode: err.code || null },
+    );
   }
 
   const teardown = await runTeardown(ctx, opts);
-  if (!teardown.ok && snapshot) {
-    // Commit failed during teardown → restore audit log to its pre-write state
-    // so the next retry sees a clean tree (R14 snapshot rollback).
+  if (!teardown.ok) {
     try {
-      restoreIssueLog(auditTarget, state.spec, snapshot);
+      restoreIssueLog(auditTarget, state.spec, auditId);
     } catch (err) {
-      process.stderr.write(`[senti] cleanup: audit log rollback failed: ${err.message}\n`);
+      return Envelope.fail(
+        "run",
+        "finalize-cleanup",
+        "ISSUE_LOG_AUDIT_COMPENSATION_FAILED",
+        [
+          `Teardown failed with ${teardown.errors?.[0]?.code || "unknown error"}.`,
+          `The forced teardown audit entry could not be compensated: ${err.message}`,
+        ],
+        {
+          originalTeardown: teardown.toJSON ? teardown.toJSON() : teardown,
+          causeCode: err.code || null,
+          auditId,
+        },
+      );
     }
     return teardown;
   }

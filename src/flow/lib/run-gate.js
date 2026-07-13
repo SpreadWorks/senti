@@ -44,7 +44,7 @@ import {
   VALID_LEVEL_PHASE_COMBINATIONS,
 } from "../../lib/constants.js";
 import { FlowCommand } from "./base-command.js";
-import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
+import { appendIssueLogEntry, loadIssueLog } from "./set-issue-log.js";
 import { resolveGateStepId, resolveGatePhaseFromState } from "./gate-step.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { contractFromGateArtifact, repoRelative } from "./flow-judgment-contract.js";
@@ -3711,7 +3711,6 @@ export {
 };
 
 export function appendIssueLogFromGateResult(ctx, result) {
-  const issueLog = loadIssueLog(ctx.root, ctx.flowState?.spec);
   const observations = result?.artifacts?.nextAction?.diagnosis?.observations || [];
   const reasons = result?.artifacts?.issues?.length
     ? result.artifacts.issues.join("; ")
@@ -3763,18 +3762,15 @@ export function appendIssueLogFromGateResult(ctx, result) {
       update(ctx.flowState);
     }
   }
-  issueLog.entries.push(entry);
-  saveIssueLog(ctx.root, ctx.flowState?.spec, issueLog);
+  appendIssueLogEntry(ctx.root, ctx.flowState?.spec, entry);
 }
 
 export function appendIssueLogFromGateError(ctx, err) {
-  const issueLog = loadIssueLog(ctx.root, ctx.flowState?.spec);
-  issueLog.entries.push({
+  appendIssueLogEntry(ctx.root, ctx.flowState?.spec, {
     step: resolveGateStepId(ctx.phase),
     phase: ctx.phase,
     reason: err.message || String(err),
     trigger: "gate onError hook (auto)",
     timestamp: new Date().toISOString(),
   });
-  saveIssueLog(ctx.root, ctx.flowState?.spec, issueLog);
 }

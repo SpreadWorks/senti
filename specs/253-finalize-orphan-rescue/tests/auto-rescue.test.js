@@ -50,14 +50,10 @@ describe("R9: --auto-rescue cherry-picks safely with proper preconditions", () =
 describe("R14: audit log durability and dirty-check exclusion", () => {
   it("R14: audit log writes to main repo path (not worktree) for cherry-pick conflict", () => {
     const src = readCleanupSrc();
-    const conflictBlock = src.match(/CHERRY_PICK_CONFLICT[\s\S]{0,2000}/);
-    if (conflictBlock) {
-      assert.ok(
-        conflictBlock[0].includes("mainRepoPath") ||
-          conflictBlock[0].includes("saveIssueLog"),
-        "conflict path must persist audit log to main repo",
-      );
-    }
+    assert.ok(
+      src.includes("appendIssueLog(mainRepoPath, state.spec"),
+      "conflict path must persist audit log to main repo",
+    );
   });
   it("R14: dirty-check excludes issue-log.json via pathspec when retrying after conflict", () => {
     const src = readCleanupSrc();
@@ -67,11 +63,12 @@ describe("R14: audit log durability and dirty-check exclusion", () => {
       "dirty check must exclude issue-log.json so retry after conflict is not blocked",
     );
   });
-  it("R14: audit log rollback uses content snapshot (not entry pop) for concurrent safety", () => {
+  it("R14: audit rollback uses stable-id compensation through the shared store", () => {
     const src = readCleanupSrc();
     assert.ok(
-      src.includes("loadIssueLog") || src.includes("snapshot"),
-      "rollback must reload pre-write content (snapshot) rather than popping the last entry",
+      src.includes("IssueLogStore") && src.includes(".compensate(idempotencyKey)"),
+      "rollback must remove only its stable audit id through IssueLogStore",
     );
+    assert.ok(!src.includes("saveIssueLog("), "whole-file issue-log rollback must not remain");
   });
 });

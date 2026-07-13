@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 import { FlowManager } from "../lib/flow-manager.js";
 import { RepositoryMaintenanceLock } from "../lib/repository-maintenance-lock.js";
 import { ONE_TO_ONE_STEP_RENAMES, renameFlowStateStepIds } from "../lib/step-id-rename.js";
+import { IssueLogStore } from "../flow/lib/issue-log-store.js";
 
 const ONE_TO_ONE_TOKENS = Object.keys(ONE_TO_ONE_STEP_RENAMES).sort((a, b) => b.length - a.length);
 const ACTIVE_FLOW_LIMIT = 1024 * 1024;
@@ -35,6 +36,7 @@ class MigrationPlan {
     this.changes = [];
     this.flowSpecs = [];
     this.fileWrites = [];
+    this.issueLogMutations = [];
   }
 
   change(file, from, to) {
@@ -49,6 +51,10 @@ class MigrationPlan {
     this.fileWrites.push({ filePath, content });
   }
 
+  issueLog(spec, expectedRevision) {
+    this.issueLogMutations.push({ spec, expectedRevision });
+  }
+
   apply(maintenanceOwnerToken) {
     const manager = new FlowManager({
       root: this.root,
@@ -56,13 +62,44 @@ class MigrationPlan {
       inWorktree: false,
     });
     this.#preflight(manager, maintenanceOwnerToken);
+    this.#preflightIssueLogs();
     for (const specId of this.flowSpecs) {
       manager.mutate((state) => {
         const changes = renameFlowStateStepIds(state);
         if (changes.length === 0) throw new Error(`migration target changed before apply: ${specId}`);
       }, { specId, stepIdMigration: true, maintenanceOwnerToken });
     }
+    for (const mutation of this.issueLogMutations) {
+      const store = new IssueLogStore({
+        root: this.root,
+        spec: mutation.spec,
+        allowLegacyArray: true,
+      });
+      store.mutate(mutation.expectedRevision, (document) => {
+        let changed = false;
+        for (const entry of document.entries) {
+          if (entry && typeof entry.step === "string" && ONE_TO_ONE_STEP_RENAMES[entry.step]) {
+            entry.step = ONE_TO_ONE_STEP_RENAMES[entry.step];
+            changed = true;
+          }
+        }
+        if (!changed) throw new Error(`migration issue-log target changed before apply: ${mutation.spec}`);
+      });
+    }
     for (const write of this.fileWrites) fs.writeFileSync(write.filePath, write.content);
+  }
+
+  #preflightIssueLogs() {
+    for (const mutation of this.issueLogMutations) {
+      const current = new IssueLogStore({
+        root: this.root,
+        spec: mutation.spec,
+        allowLegacyArray: true,
+      }).read();
+      if (current.revision !== mutation.expectedRevision) {
+        throw new Error(`issue-log changed after migration planning: ${mutation.spec}`);
+      }
+    }
   }
 
   #preflight(manager, maintenanceOwnerToken) {
@@ -259,19 +296,25 @@ function planFlowJson(dir, id, plan, strict) {
 function planIssueLog(dir, id, plan) {
   const filePath = path.join(dir, "issue-log.json");
   if (!fs.existsSync(filePath)) return;
-  const data = readJson(filePath, `specs/${id}/issue-log.json`, false);
-  if (!data) return;
-  const entries = Array.isArray(data) ? data : Array.isArray(data.entries) ? data.entries : null;
-  if (!entries) return;
+  let snapshot;
+  try {
+    snapshot = new IssueLogStore({
+      root: plan.root,
+      spec: `specs/${id}/spec.json`,
+      allowLegacyArray: true,
+    }).read();
+  } catch (_) {
+    return;
+  }
+  const entries = snapshot.document.entries;
   let changed = false;
   for (const entry of entries) {
     if (entry && typeof entry.step === "string" && ONE_TO_ONE_STEP_RENAMES[entry.step]) {
       plan.change(`specs/${id}/issue-log.json`, `step: ${entry.step}`, `step: ${ONE_TO_ONE_STEP_RENAMES[entry.step]}`);
-      entry.step = ONE_TO_ONE_STEP_RENAMES[entry.step];
       changed = true;
     }
   }
-  if (changed) plan.file(filePath, `${JSON.stringify(data, null, 2)}\n`);
+  if (changed) plan.issueLog(`specs/${id}/spec.json`, snapshot.revision);
 }
 
 function planReportRetro(dir, id, plan) {
@@ -334,6 +377,7 @@ function printPlan(plan, apply) {
 export function applyMigration(requestedRoot, {
   afterInitialSafety = () => {},
   afterMaintenanceAcquired = () => {},
+  afterPlanBuilt = () => {},
 } = {}) {
   const topology = resolveRepositoryTopology(requestedRoot);
   assertApplySafety(topology);
@@ -344,6 +388,7 @@ export function applyMigration(requestedRoot, {
     afterMaintenanceAcquired(topology);
     assertApplySafety(topology);
     const plan = buildPlan(topology.mainRoot, true);
+    afterPlanBuilt(topology, plan);
     plan.apply(maintenance.ownerToken);
     return plan;
   } finally {

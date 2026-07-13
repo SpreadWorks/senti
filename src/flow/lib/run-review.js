@@ -23,7 +23,7 @@ import {
   clearReviewStopState,
   writeReviewStopState,
 } from "./review-failure.js";
-import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
+import { appendIssueLogEntry } from "./set-issue-log.js";
 import { persistCurrentRecoveryBaseline, resolveRecoveryMaxAttempts } from "./retry-recovery.js";
 import {
   assertAuditedBroadMode,
@@ -547,9 +547,8 @@ export { PHASE_REVIEW_PARSERS, parseTestReviewOutput, parseSpecReviewOutput, par
 export function appendIssueLogFromTestReviewToolingFailure(ctx, result) {
   if (ctx?.phase !== "test") return;
   if (result?.artifacts?.verdict !== "TOOLING_FAILURE") return;
-  const issueLog = loadIssueLog(ctx.root, ctx.flowState?.spec);
   const artifactPath = result?.changed?.find((p) => /test-review\.(json|md)$/.test(p));
-  issueLog.entries.push({
+  appendIssueLogEntry(ctx.root, ctx.flowState?.spec, {
     step: "test-review",
     phase: "test",
     failureKind: "tooling_failure",
@@ -559,7 +558,6 @@ export function appendIssueLogFromTestReviewToolingFailure(ctx, result) {
     ...(artifactPath && { artifact: artifactPath }),
     timestamp: new Date().toISOString(),
   });
-  saveIssueLog(ctx.root, ctx.flowState?.spec, issueLog);
 }
 
 const DEFAULT_RETRY_COUNT = 2;

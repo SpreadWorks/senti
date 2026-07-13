@@ -13,10 +13,12 @@ import { listChangedFilesDetailed } from "../../lib/git-helpers.js";
 import { ProcessIdentitySource } from "../../lib/process-identity.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "../../lib/process-owned-lock.js";
 import { specIdFromPath } from "../../lib/flow-helpers.js";
+import { IssueLogStore } from "./issue-log-store.js";
 
 export const RECOVERY_REASON_MIN_LENGTH = 20;
 export const RECOVERY_REASON_MAX_LENGTH = 500;
 export const RECOVERY_ARTIFACT_FILE = "retry-recovery.json";
+export const RECOVERY_TRANSACTION_FILE = ".retry-recovery.transaction.json";
 
 const RECOVERY_ARTIFACT_VERSION = 1;
 const PERMITTED_REEVALUATION_COUNT = 1;
@@ -45,6 +47,40 @@ const REVIEW_INPUT_PHASES = Object.freeze([
   "test",
   "impl",
 ]);
+
+const PUBLIC_RECOVERY_ENTRY_KEYS = Object.freeze([
+  "id", "kind", "phase", "canonicalPhase", "reason", "changedEvidence",
+  "permittedReevaluationCount", "attemptsBefore", "maxAttempts", "counterAfter",
+  "recoveryCommand", "createdAt",
+]);
+const CHANGED_EVIDENCE_KEYS = Object.freeze([
+  "sourceKind", "baselineHash", "currentHash", "changedPaths", "truncated", "changed",
+]);
+const RECOVERY_TRANSACTION_KEYS = Object.freeze([
+  "grantId", "status", "fingerprint", "expectedFlowRevision", "request", "grant",
+  "rejection", "createdAt", "updatedAt",
+]);
+const RECOVERY_REQUEST_KEYS = Object.freeze([
+  "runId", "spec", "hasIssue", "issue", "kind", "phase", "canonicalPhase", "reason",
+  "attempts", "maxAttempts", "changedEvidence",
+]);
+
+function assertExactKeys(value, expected, name) {
+  if (value == null || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`${name} must be an object`);
+  }
+  const actual = Object.keys(value).sort();
+  const wanted = [...expected].sort();
+  if (actual.length !== wanted.length || actual.some((key, index) => key !== wanted[index])) {
+    throw new Error(`${name} has an invalid schema`);
+  }
+}
+
+function requireSha256(value, name) {
+  const hash = requireString(value, name);
+  if (!/^[a-f0-9]{64}$/i.test(hash)) throw new Error(`${name} must be a SHA-256 digest`);
+  return hash;
+}
 
 function requireString(value, name) {
   if (typeof value !== "string" || value.trim() === "") {
@@ -196,22 +232,26 @@ function appendRecoveryBaseline(state, baseline) {
   state.reviewRecoveryBaselines.push(baseline.toJSON());
 }
 
-function loadAuthoritativeRecoveryArtifact(root, flowState) {
+function loadAuthoritativeRecoveryAuthority(root, flowState) {
   if (typeof root !== "string" || root.trim() === "") {
     throw new Error("retry recovery root authority is required");
   }
   if (typeof flowState?.spec !== "string" || flowState.spec.trim() === "") {
     throw new Error("retry recovery spec authority is required");
   }
-  return readRecoveryArtifact(new AtomicJsonFile(retryRecoveryArtifactPath(root, flowState.spec)));
+  return loadRecoveryAuthority(root, flowState.spec);
+}
+
+function loadAuthoritativeRecoveryArtifact(root, flowState) {
+  return loadAuthoritativeRecoveryAuthority(root, flowState).artifact;
 }
 
 export function resolveRecoveryMaxAttempts({ root, flowState, kind, phase, attempts, resolvedMax }) {
   const target = resolveRecoveryTarget(kind, phase);
-  const artifact = loadAuthoritativeRecoveryArtifact(root, flowState);
+  const { artifact, transaction } = loadAuthoritativeRecoveryAuthority(root, flowState);
   // Pending requests freeze the in-flight budget; only committed grants govern later attempts.
-  if (artifact.pending) return Math.max(1, artifact.pending.request.maxAttempts);
-  const recovery = artifact.latestCommitted(kind, target.canonicalPhase)?.grant ?? null;
+  if (transaction?.status === "pending") return Math.max(1, transaction.request.maxAttempts);
+  const recovery = artifact.latestCommitted(kind, target.canonicalPhase);
   if (Number.isSafeInteger(recovery?.maxAttempts) && recovery.maxAttempts > 0) {
     return recovery.maxAttempts;
   }
@@ -368,6 +408,23 @@ export class ChangedEvidenceSummary {
     this.changed = input.changed ?? (this.baselineHash !== this.currentHash || this.changedPaths.length > 0);
   }
 
+  static fromStored(value) {
+    assertExactKeys(value, CHANGED_EVIDENCE_KEYS, "changedEvidence");
+    requireString(value.baselineHash, "changedEvidence.baselineHash");
+    requireString(value.currentHash, "changedEvidence.currentHash");
+    if (typeof value.truncated !== "boolean" || typeof value.changed !== "boolean") {
+      throw new Error("changedEvidence flags must be boolean");
+    }
+    if (!Array.isArray(value.changedPaths)) {
+      throw new Error("changedEvidence.changedPaths must be an array");
+    }
+    const evidence = new ChangedEvidenceSummary(value);
+    if (evidence.changedPaths.length !== value.changedPaths.length) {
+      throw new Error("changedEvidence.changedPaths must contain unique bounded relative paths");
+    }
+    return evidence;
+  }
+
   toJSON() {
     return {
       sourceKind: this.sourceKind,
@@ -424,6 +481,24 @@ export class RetryRecoveryEntry {
     this.counterAfter = requireSafeInteger(input.counterAfter, "counterAfter");
     this.recoveryCommand = requireString(input.recoveryCommand, "recoveryCommand");
     this.createdAt = requireString(input.createdAt, "createdAt");
+    if (!VALID_KINDS.includes(this.kind)) throw new Error(`invalid recovery kind: ${this.kind}`);
+    if (this.permittedReevaluationCount !== PERMITTED_REEVALUATION_COUNT) {
+      throw new Error("permittedReevaluationCount must grant exactly one re-evaluation");
+    }
+    if (this.maxAttempts === 0 || this.attemptsBefore !== this.maxAttempts) {
+      throw new Error("public recovery entry requires an exhausted retry budget");
+    }
+    if (this.counterAfter !== this.maxAttempts - 1) {
+      throw new Error("counterAfter must grant exactly one retry attempt");
+    }
+  }
+
+  static fromStored(value) {
+    assertExactKeys(value, PUBLIC_RECOVERY_ENTRY_KEYS, "retry recovery entry");
+    return new RetryRecoveryEntry({
+      ...value,
+      changedEvidence: ChangedEvidenceSummary.fromStored(value.changedEvidence),
+    });
   }
 
   toJSON() {
@@ -626,7 +701,7 @@ export function buildRecoveryEligibilityForState({ root, flowState, kind, phase,
       : null,
   });
   const latest = loadAuthoritativeRecoveryArtifact(root, flowState)
-    .latestCommitted(kind, target.canonicalPhase)?.grant;
+    .latestCommitted(kind, target.canonicalPhase);
   if (
     eligibility.recoverable === true
     && latest?.changedEvidence?.currentHash === eligibility.changedEvidence?.currentHash
@@ -642,8 +717,8 @@ export function buildRecoveryEligibilityForState({ root, flowState, kind, phase,
 
 export function buildStateRetryRecoveryView({ root, flowState, kind, phase, attempts, max, reason }) {
   const target = resolveRecoveryTarget(kind, phase);
-  const artifact = loadAuthoritativeRecoveryArtifact(root, flowState);
-  if (artifact.pending) {
+  const { artifact, transaction } = loadAuthoritativeRecoveryAuthority(root, flowState);
+  if (transaction?.status === "pending") {
     return buildRetryRecoveryView({
       kind,
       phase,
@@ -652,11 +727,11 @@ export function buildStateRetryRecoveryView({ root, flowState, kind, phase, atte
       max,
       recoveryPossible: false,
       recoveryReason: "recovery-resume-required",
-      changedEvidence: artifact.pending.request.changedEvidence,
-      reason: artifact.pending.request.reason,
+      changedEvidence: transaction.request.changedEvidence,
+      reason: transaction.request.reason,
     });
   }
-  const latest = artifact.latestCommitted(kind, target.canonicalPhase)?.grant ?? null;
+  const latest = artifact.latestCommitted(kind, target.canonicalPhase);
   if (latest && attempts < max) {
     return buildRetryRecoveryView({
       kind,
@@ -783,7 +858,23 @@ class RetryRecoveryRequestSnapshot {
         ? input.changedEvidence
         : new ChangedEvidenceSummary(input.changedEvidence))
       : null;
+    if (!VALID_KINDS.includes(this.kind)) throw new Error(`invalid request kind: ${this.kind}`);
+    if (typeof input.hasIssue !== "boolean") throw new Error("request.hasIssue must be boolean");
+    if (this.hasIssue && !Number.isSafeInteger(this.issue)) throw new Error("request.issue must be an integer");
     Object.freeze(this);
+  }
+
+  static fromStored(value) {
+    assertExactKeys(value, RECOVERY_REQUEST_KEYS, "retry recovery request");
+    if (value.hasIssue === false && value.issue !== null) {
+      throw new Error("stored request.issue must be null when absent");
+    }
+    return new RetryRecoveryRequestSnapshot({
+      ...value,
+      changedEvidence: value.changedEvidence == null
+        ? null
+        : ChangedEvidenceSummary.fromStored(value.changedEvidence),
+    });
   }
 
   matchesInput(input) {
@@ -809,20 +900,20 @@ class RetryRecoveryRequestSnapshot {
   }
 }
 
-export class RetryRecoveryRecord {
+export class RetryRecoveryTransaction {
   constructor(input = {}) {
     this.grantId = requireString(input.grantId, "grantId");
-    if (!["pending", "committed", "rejected"].includes(input.status)) {
-      throw new Error(`invalid retry recovery record status: ${input.status}`);
+    if (!["pending", "rejected"].includes(input.status)) {
+      throw new Error(`invalid retry recovery transaction status: ${input.status}`);
     }
     this.status = input.status;
-    this.fingerprint = requireString(input.fingerprint, "fingerprint");
-    this.expectedFlowRevision = requireString(input.expectedFlowRevision, "expectedFlowRevision");
+    this.fingerprint = requireSha256(input.fingerprint, "fingerprint");
+    this.expectedFlowRevision = requireSha256(input.expectedFlowRevision, "expectedFlowRevision");
     this.request = input.request instanceof RetryRecoveryRequestSnapshot
       ? input.request
-      : new RetryRecoveryRequestSnapshot(input.request || {});
+      : RetryRecoveryRequestSnapshot.fromStored(input.request || {});
     this.grant = input.grant
-      ? (input.grant instanceof RetryRecoveryEntry ? input.grant : new RetryRecoveryEntry(input.grant))
+      ? (input.grant instanceof RetryRecoveryEntry ? input.grant : RetryRecoveryEntry.fromStored(input.grant))
       : null;
     this.rejection = input.rejection == null
       ? null
@@ -832,18 +923,27 @@ export class RetryRecoveryRecord {
         };
     this.createdAt = requireString(input.createdAt, "createdAt");
     this.updatedAt = requireString(input.updatedAt || input.createdAt, "updatedAt");
-    if (this.status === "committed" && this.grant == null) {
-      throw new Error("committed retry recovery record requires a grant");
+    if (this.status === "pending" && (this.grant == null || this.rejection != null)) {
+      throw new Error("pending retry recovery transaction requires a grant and forbids rejection details");
     }
-    if (this.status === "rejected" && this.rejection == null) {
-      throw new Error("rejected retry recovery record requires rejection details");
+    if (this.status === "rejected" && (this.grant != null || this.rejection == null)) {
+      throw new Error("rejected retry recovery transaction requires rejection details and forbids a grant");
+    }
+    if (this.grant && this.grant.id !== this.grantId) {
+      throw new Error("retry recovery transaction grantId must match its grant");
     }
   }
 
-  withStatus(status, { rejection = null, updatedAt = new Date().toISOString() } = {}) {
-    return new RetryRecoveryRecord({
+  static fromStored(value) {
+    assertExactKeys(value, RECOVERY_TRANSACTION_KEYS, "retry recovery transaction");
+    return new RetryRecoveryTransaction(value);
+  }
+
+  reject(rejection, updatedAt = new Date().toISOString()) {
+    return new RetryRecoveryTransaction({
       ...this.toJSON(),
-      status,
+      status: "rejected",
+      grant: null,
       rejection,
       updatedAt,
     });
@@ -866,37 +966,34 @@ export class RetryRecoveryRecord {
 
 class RetryRecoveryArtifact {
   constructor(value = {}) {
+    assertExactKeys(value, ["version", "entries"], RECOVERY_ARTIFACT_FILE);
     if (value.version !== RECOVERY_ARTIFACT_VERSION || !Array.isArray(value.entries)) {
       throw new Error(`Invalid ${RECOVERY_ARTIFACT_FILE}`);
     }
-    this.entries = value.entries.map((entry) => new RetryRecoveryRecord(entry));
-  }
-
-  get pending() {
-    for (let index = this.entries.length - 1; index >= 0; index -= 1) {
-      if (this.entries[index].status === "pending") return this.entries[index];
+    this.entries = value.entries.map((entry) => RetryRecoveryEntry.fromStored(entry));
+    const ids = new Set();
+    for (const entry of this.entries) {
+      if (ids.has(entry.id)) throw new Error(`duplicate retry recovery id: ${entry.id}`);
+      ids.add(entry.id);
     }
-    return null;
   }
 
-  append(record) {
-    this.entries.push(record);
-  }
-
-  replace(record) {
-    const index = this.entries.findIndex((entry) => entry.grantId === record.grantId);
-    if (index < 0) throw new Error(`retry recovery record is missing: ${record.grantId}`);
-    this.entries[index] = record;
+  append(entry) {
+    const existing = this.entries.find((item) => item.id === entry.id);
+    if (!existing) {
+      this.entries.push(entry);
+      return true;
+    }
+    if (JSON.stringify(existing.toJSON()) !== JSON.stringify(entry.toJSON())) {
+      throw new Error(`retry recovery id has divergent content: ${entry.id}`);
+    }
+    return false;
   }
 
   latestCommitted(kind, canonicalPhase) {
     for (let index = this.entries.length - 1; index >= 0; index -= 1) {
-      const record = this.entries[index];
-      if (
-        record.status === "committed"
-        && record.request.kind === kind
-        && record.request.canonicalPhase === canonicalPhase
-      ) return record;
+      const entry = this.entries[index];
+      if (entry.kind === kind && entry.canonicalPhase === canonicalPhase) return entry;
     }
     return null;
   }
@@ -909,12 +1006,68 @@ class RetryRecoveryArtifact {
   }
 }
 
+class RetryRecoveryTransactionStore {
+  constructor(store, value) {
+    assertExactKeys(value, ["version", "transaction"], RECOVERY_TRANSACTION_FILE);
+    if (value.version !== RECOVERY_ARTIFACT_VERSION) throw new Error(`Invalid ${RECOVERY_TRANSACTION_FILE}`);
+    this.store = store;
+    this.transaction = value.transaction == null
+      ? null
+      : RetryRecoveryTransaction.fromStored(value.transaction);
+  }
+
+  write(transaction) {
+    this.store.write({
+      version: RECOVERY_ARTIFACT_VERSION,
+      transaction: transaction?.toJSON() ?? null,
+    });
+    this.transaction = transaction;
+  }
+}
+
 function retryRecoveryArtifactPath(root, spec) {
   return path.join(path.dirname(path.resolve(root, spec)), RECOVERY_ARTIFACT_FILE);
 }
 
+function retryRecoveryTransactionPath(root, spec) {
+  return path.join(path.dirname(path.resolve(root, spec)), RECOVERY_TRANSACTION_FILE);
+}
+
 function readRecoveryArtifact(store) {
   return new RetryRecoveryArtifact(store.read({ version: RECOVERY_ARTIFACT_VERSION, entries: [] }));
+}
+
+function readRecoveryTransactionStore(store) {
+  return new RetryRecoveryTransactionStore(
+    store,
+    store.read({ version: RECOVERY_ARTIFACT_VERSION, transaction: null }),
+  );
+}
+
+function loadRecoveryAuthority(root, spec, { artifactFaultInjector, transactionFaultInjector } = {}) {
+  const artifactStore = new AtomicJsonFile(retryRecoveryArtifactPath(root, spec), {
+    faultInjector: artifactFaultInjector,
+  });
+  const privateStore = readRecoveryTransactionStore(new AtomicJsonFile(
+    retryRecoveryTransactionPath(root, spec),
+    { faultInjector: transactionFaultInjector },
+  ));
+  const artifact = readRecoveryArtifact(artifactStore);
+  const transaction = privateStore.transaction;
+  if (transaction) {
+    const publicEntry = artifact.entries.find((entry) => entry.id === transaction.grantId);
+    if (transaction.status === "rejected" && publicEntry) {
+      throw new Error(`rejected retry transaction conflicts with public grant: ${transaction.grantId}`);
+    }
+    if (
+      transaction.status === "pending"
+      && publicEntry
+      && JSON.stringify(publicEntry.toJSON()) !== JSON.stringify(transaction.grant.toJSON())
+    ) {
+      throw new Error(`pending retry transaction diverges from public grant: ${transaction.grantId}`);
+    }
+  }
+  return { artifact, artifactStore, transaction, transactionStore: privateStore };
 }
 
 export function loadRetryRecoveryArtifact(root, spec) {
@@ -1008,6 +1161,19 @@ function assertExpectedRequest(input, observation, recoveryInput) {
   }
 }
 
+function assertTransactionAuthority(transaction, spec, flowState) {
+  if (!transaction) return;
+  const sameIssue = transaction.request.hasIssue === Object.hasOwn(flowState, "issue")
+    && (!transaction.request.hasIssue || Number(flowState.issue) === transaction.request.issue);
+  if (
+    transaction.request.spec !== spec
+    || transaction.request.runId !== flowState.runId
+    || !sameIssue
+  ) {
+    throw new Error(`retry recovery transaction targets a foreign flow: ${transaction.grantId}`);
+  }
+}
+
 function hasFlowGrant(flowState, grantId) {
   return Array.isArray(flowState.retryRecovery?.entries)
     && flowState.retryRecovery.entries.some((entry) => entry?.id === grantId);
@@ -1039,7 +1205,16 @@ function buildPendingRecord(observation, recoveryInput, createdAt) {
     request: observation.request,
     expectedFlowRevision: observation.revision.digest,
   });
-  return new RetryRecoveryRecord({
+  if (grant == null) {
+    throw retryRequestError(
+      String(observation.eligibility.reason || "recovery-not-eligible").replace(/-/g, "_").toUpperCase(),
+      recoveryInput,
+      observation.attempts,
+      observation.maxAttempts,
+      observation.eligibility.reason,
+    );
+  }
+  return new RetryRecoveryTransaction({
     grantId,
     status: "pending",
     fingerprint,
@@ -1050,38 +1225,6 @@ function buildPendingRecord(observation, recoveryInput, createdAt) {
     createdAt,
     updatedAt: createdAt,
   });
-}
-
-class RetryRecoveryIssueLog {
-  constructor(value = {}) {
-    if (!Array.isArray(value.entries)) {
-      throw new Error('Invalid issue-log.json: "entries" must be an array');
-    }
-    this.entries = value.entries;
-  }
-
-  append(record) {
-    if (this.entries.some((entry) => entry?.grantId === record.grantId)) return false;
-    this.entries.push({
-      step: "retry-recovery",
-      grantId: record.grantId,
-      ...record.grant.toJSON(),
-      timestamp: record.grant.createdAt,
-    });
-    return true;
-  }
-
-  toJSON() {
-    return { entries: this.entries };
-  }
-}
-
-function readRecoveryIssueLog(store) {
-  return new RetryRecoveryIssueLog(store.read({ entries: [] }));
-}
-
-function appendRecoveryIssueLog({ store, issueLog, record }) {
-  if (issueLog.append(record)) store.write(issueLog.toJSON());
 }
 
 function emitRecoveryPhase(input, phase, record) {
@@ -1238,15 +1381,21 @@ export function applyRetryReset(input = {}) {
   });
   operation.acquire();
   try {
-    const artifactStore = new AtomicJsonFile(retryRecoveryArtifactPath(root, spec), {
-      faultInjector: input.artifactFaultInjector,
+    const authority = loadRecoveryAuthority(root, spec, {
+      artifactFaultInjector: input.artifactFaultInjector,
+      transactionFaultInjector: input.transactionFaultInjector,
     });
-    const artifact = readRecoveryArtifact(artifactStore);
-    const issueLogStore = new AtomicJsonFile(
-      path.join(path.dirname(path.resolve(root, spec)), "issue-log.json"),
-      { faultInjector: input.issueLogFaultInjector },
-    );
-    const issueLog = readRecoveryIssueLog(issueLogStore);
+    const { artifact, artifactStore, transactionStore } = authority;
+    const issueLogStore = new IssueLogStore({
+      root,
+      spec,
+      faultInjector: input.issueLogFaultInjector,
+      processIdentitySource: input.processIdentitySource,
+    });
+    // Validate the independent audit authority before publishing a private
+    // transaction or mutating flow state. The later append still fresh-reads
+    // under its own writer lock.
+    issueLogStore.read();
     const observation = currentObservation({
       root,
       spec,
@@ -1254,8 +1403,9 @@ export function applyRetryReset(input = {}) {
       recoveryInput,
       resolveConfiguredMaxAttempts: input.resolveConfiguredMaxAttempts,
     });
+    assertTransactionAuthority(authority.transaction, spec, observation.flowState);
 
-    let record = artifact.pending;
+    let record = authority.transaction?.status === "pending" ? authority.transaction : null;
     if (record) {
       if (!record.request.matchesInput(recoveryInput)) {
         throw retryRequestError(
@@ -1271,9 +1421,8 @@ export function applyRetryReset(input = {}) {
       const committed = artifact.latestCommitted(recoveryInput.kind, recoveryInput.canonicalPhase);
       if (
         committed
-        && committed.grant
-        && hasFlowGrant(observation.flowState, committed.grantId)
-        && observation.attempts === committed.grant.counterAfter
+        && hasFlowGrant(observation.flowState, committed.id)
+        && observation.attempts === committed.counterAfter
       ) {
         throw retryRequestError(
           "RECOVERY_ALREADY_GRANTED",
@@ -1283,13 +1432,21 @@ export function applyRetryReset(input = {}) {
           "recovery-already-granted",
         );
       }
-      if (observation.attempts < observation.maxAttempts && input.requireExhausted !== true) {
+      if (observation.attempts < observation.maxAttempts) {
+        if (input.requireExhausted === true) {
+          throw retryRequestError(
+            "RETRY_NOT_EXHAUSTED",
+            recoveryInput,
+            observation.attempts,
+            observation.maxAttempts,
+            "retry-not-exhausted",
+          );
+        }
         return applyNormalRetryReset({ input, flowManager, recoveryInput, observation });
       }
       const createdAt = requireString(input.createdAt || new Date().toISOString(), "createdAt");
       record = buildPendingRecord(observation, recoveryInput, createdAt);
-      artifact.append(record);
-      artifactStore.write(artifact.toJSON());
+      transactionStore.write(record);
       emitRecoveryPhase(input, "after-pending", record);
     }
 
@@ -1409,39 +1566,28 @@ export function applyRetryReset(input = {}) {
       } catch (error) {
         fresh = flowManager.loadReadOnly(specIdFromPath(spec));
         if (!hasFlowGrant(fresh, record.grantId)) {
-          record = record.withStatus("rejected", {
-            rejection: {
+          record = record.reject({
               code: error.code || "FLOW_MUTATION_FAILED",
               message: error.message || String(error),
-            },
           });
-          artifact.replace(record);
-          artifactStore.write(artifact.toJSON());
+          transactionStore.write(record);
         }
         throw error;
       }
       fresh = flowManager.loadReadOnly(specIdFromPath(spec));
-      if (record.grant == null) {
-        return {
-          grant: null,
-          attemptsBefore: record.request.attempts,
-          maxAttempts: record.request.maxAttempts,
-          counterAfter: 0,
-        };
-      }
       emitRecoveryPhase(input, "after-flow-commit", record);
     }
 
-    appendRecoveryIssueLog({
-      store: issueLogStore,
-      issueLog,
-      record,
-    });
+    issueLogStore.append({
+      step: "retry-recovery",
+      grantId: record.grantId,
+      ...record.grant.toJSON(),
+      timestamp: record.grant.createdAt,
+    }, record.grantId);
     emitRecoveryPhase(input, "after-issue-log", record);
-    record = record.withStatus("committed");
-    artifact.replace(record);
-    artifactStore.write(artifact.toJSON());
+    if (artifact.append(record.grant)) artifactStore.write(artifact.toJSON());
     emitRecoveryPhase(input, "after-artifact-commit", record);
+    transactionStore.write(null);
     return {
       grant: record.grant,
       attemptsBefore: record.request.attempts,

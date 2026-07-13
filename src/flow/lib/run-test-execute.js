@@ -27,7 +27,7 @@ import { resolveSpecDir } from "../../lib/spec-json.js";
 import { sentiOutputDir } from "../../lib/config.js";
 import { listChangedFilesDetailed } from "../../lib/git-helpers.js";
 import { FlowCommand } from "./base-command.js";
-import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
+import { appendIssueLogEntry } from "./set-issue-log.js";
 import {
   RAW_OUTPUT_RELATIVE,
   TEST_EXECUTE_RESULT_FILE,
@@ -55,14 +55,13 @@ const MAX_TEST_EXECUTE_REQUIREMENTS = 500;
 const NO_TESTS_DECLARED_REASON = "no_tests_declared";
 
 function recordPrerequisiteIssue(root, state, err) {
-  const issueLog = loadIssueLog(root, state.spec);
   let changedFileCount = null;
   try {
     changedFileCount = listChangedFilesDetailed({ cwd: root, baseBranch: state.baseBranch || "main" }).length;
   } catch (_) {
     changedFileCount = null;
   }
-  issueLog.entries.push({
+  appendIssueLogEntry(root, state.spec, {
     step: "test-execute",
     reason: `test-execute prerequisite failed before normal v2 artifact creation: ${err.message || String(err)}`,
     failureKind: "prerequisite",
@@ -75,7 +74,6 @@ function recordPrerequisiteIssue(root, state, err) {
     taskId: null,
     timestamp: new Date().toISOString(),
   });
-  saveIssueLog(root, state.spec, issueLog);
 }
 
 function listSpecTestFiles(specDir) {

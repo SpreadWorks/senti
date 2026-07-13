@@ -5,6 +5,7 @@ import { validateSchema } from "../../lib/schema-validate.js";
 import { resolveSpecDir } from "../../lib/spec-json.js";
 import { collectFlowLeafIds } from "../definition.js";
 import { findStepById } from "./step-tree.js";
+import { appendIssueLogEntry } from "./set-issue-log.js";
 import {
   readFlowFindingsArtifact,
   readBoundedSourceArtifact,
@@ -295,11 +296,7 @@ function acceptanceArtifactPath(state) {
 }
 
 function appendIssueLog(root, state, reason) {
-  const specDir = resolveSpecDir(path.resolve(root, state.spec));
-  const file = path.join(specDir, "issue-log.json");
-  const data = fs.existsSync(file) ? readJson(file) : { entries: [] };
-  data.entries = Array.isArray(data.entries) ? data.entries : [];
-  data.entries.push({
+  appendIssueLogEntry(root, state.spec, {
     step: "acceptance-review",
     reason,
     trigger: "acceptance-decision",
@@ -307,7 +304,6 @@ function appendIssueLog(root, state, reason) {
     taskId: null,
     timestamp: new Date().toISOString(),
   });
-  writeJson(file, data);
 }
 
 export function applyAcceptanceReviewResult({ root, flowManager, artifact }) {

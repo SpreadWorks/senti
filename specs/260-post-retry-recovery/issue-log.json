@@ -275,6 +275,64 @@
       },
       "taskId": null,
       "timestamp": "2026-07-13T08:50:21Z"
+    },
+    {
+      "step": "direct-fix-audit",
+      "issue": 441,
+      "reason": "Corrected candidate-added crash tests that had made pending, committed, and rejected transaction wrappers part of the public retry-recovery.json contract, contradicting the unchanged spec260 v1 shape of exact top-level version/entries and exact 12-field committed entries.",
+      "trigger": "Independent artifact-schema and crash-recovery audit after candidate6.",
+      "resolution": "Public assertions now require exact v1 keys and forbid transaction metadata leakage. Pending/rejected state is validated in the separate exact private transaction authority; unchanged and pre-exhaustion rejection leave both authorities unmodified; crash tests validate private pending resume, direct public append exactly once, stale lock reclamation, byte/mode preservation, and lock release.",
+      "testEvidence": {
+        "publicSchemaPreFixFailure": "/tmp/flow-441-candidate7-artifact-schema-prefix-fail.log",
+        "privateTamperPreFixFailure": "/tmp/flow-441-candidate7-artifact-tamper-prefix-fail.log",
+        "privateTamperPostFixPass": "/tmp/flow-441-candidate7-artifact-tamper-private-pass.log",
+        "sigkillPreFixFailure": "/tmp/flow-441-candidate7-sigkill-prefix-fail.log"
+      },
+      "issueLogId": "issue-441-spec260-public-private-test-correction",
+      "taskId": null,
+      "timestamp": "2026-07-13T09:00:00Z"
+    },
+    {
+      "step": "direct-fix-audit",
+      "issue": 441,
+      "reason": "The first candidate7 broad union included historical spec-local suites and reported 37 failures; exact same-command comparison found no current-only failure.",
+      "trigger": "Baseline classification before changing any failing test or product code.",
+      "resolution": "Left every archived failing suite unchanged. On clean 3ccdf06d, `node --test --test-concurrency=1 specs/170-*/tests/*.test.js specs/253-*/tests/*.test.js specs/260-post-retry-recovery/tests/*.test.js specs/269-*/tests/*.test.js` reported 38 failures; every one of the current 37 failures had the same failing test name on baseline, while two baseline-only spec253 R16 source checks are now replaced by the stronger public lifecycle test. The affected archived suites are spec170 fix-plan/strict-validation, spec253 review-max-attempts, spec269 promote-workflow-cli, and spec269 unify-flow-step-names. Canonical discovery roots in tests/helpers/test-runner-search-dirs.js are tests/unit plus tests/e2e, with tests/agent added only for --agent/--all; specs/**/tests is noncanonical. Current-only failures: 0.",
+      "testEvidence": {
+        "broadCurrent": "/tmp/flow-441-candidate7-focused-union-serial.log",
+        "exactBaseline": "/tmp/flow-441-candidate7-historical-spec-baseline.log"
+      },
+      "issueLogId": "issue-441-candidate7-archived-suite-baseline-classification",
+      "taskId": null,
+      "timestamp": "2026-07-13T09:40:00Z"
+    },
+    {
+      "step": "direct-fix-audit",
+      "issue": 441,
+      "reason": "The first valid focused union exposed that IssueLogStore accepted only spec.json even though the current resolver, CLI help, and canonical final-regression tests explicitly support both spec.json and spec.md authorities.",
+      "trigger": "Canonical direct-module regression after archived-suite classification.",
+      "resolution": "The boundary now accepts only basename spec.json or spec.md under the same bounded real spec directory. Existing spec targets must be regular non-symlink files; arbitrary filenames, escaped roots, symlink targets, and non-files remain rejected without issue-log or external mutation. Missing spec targets remain valid for prepare/draft flows whose flow authority is created before the spec file.",
+      "testEvidence": {
+        "specMdPreFixFailure": "/tmp/flow-441-candidate7-valid-focused-union-serial.log",
+        "boundedAuthoritiesPostFixPass": "/tmp/flow-441-candidate7-spec-authority-postfix-pass.log"
+      },
+      "issueLogId": "issue-441-candidate7-current-spec-authorities",
+      "taskId": null,
+      "timestamp": "2026-07-13T09:50:00Z"
+    },
+    {
+      "step": "direct-fix-audit",
+      "issue": 441,
+      "reason": "Candidate7 final verification completed after exact public/private retry authority separation, shared issue-log serialization, crash-boundary recovery, finalize compensation, and static sink hardening.",
+      "trigger": "Final static audit, valid focused union, and canonical repository regression before commit.",
+      "resolution": "All changed JavaScript passed node --check, changed JSON parsed, and git diff --check passed. Added direct issue-log, flow.json, and foreign retry-artifact sinks were zero; all runtime issue writers use IssueLogStore or appendIssueLogEntry. The serial valid union passed 290 tests and the canonical regression passed 2154 unit plus 225 integration tests with zero failures. This evidence entry is the final diff change, so both test commands are rerun against the final bytes before commit.",
+      "testEvidence": {
+        "validFocusedUnion": "/tmp/flow-441-candidate7-valid-focused-union-serial-r2.log",
+        "canonicalFullBeforeFinalAuditEntry": "/tmp/flow-441-candidate7-npm-test-full.log"
+      },
+      "issueLogId": "issue-441-candidate7-final-verification",
+      "taskId": null,
+      "timestamp": "2026-07-13T10:00:00Z"
     }
   ]
 }

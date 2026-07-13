@@ -29,7 +29,7 @@ import { flattenSteps } from "./lib/step-tree.js";
 import { DRAFT_REVIEW_ROUTES, draftReviewRouteForRetryPhase } from "./lib/draft-review-routes.js";
 import { assertStepCompletionTransitionAllowed } from "./lib/flow-judgment-contract.js";
 import { runFlowCommandHooks } from "../lib/plugin-registry.js";
-import { loadIssueLog, saveIssueLog } from "./lib/set-issue-log.js";
+import { appendIssueLogEntry } from "./lib/set-issue-log.js";
 
 /**
  * Successful command-result statuses that map to a flow step status of 'done'.
@@ -441,8 +441,7 @@ async function applyLifecycleActionsFromRegistry(ctx, input, result = null, err 
   if (hookResult.issueLogEntries.length && ctx.flowState?.spec) {
     for (const entry of hookResult.issueLogEntries) {
       tryAppendIssueLog(() => {
-        const issueLog = loadIssueLog(ctx.root, ctx.flowState.spec);
-        issueLog.entries.push({
+        appendIssueLogEntry(ctx.root, ctx.flowState.spec, {
           step: "plugin-hook",
           reason: entry.reason,
           trigger: `${command}.${hook}`,
@@ -451,7 +450,6 @@ async function applyLifecycleActionsFromRegistry(ctx, input, result = null, err 
           pluginId: entry.pluginId,
           timestamp: new Date().toISOString(),
         });
-        saveIssueLog(ctx.root, ctx.flowState.spec, issueLog);
       });
     }
   }

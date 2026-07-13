@@ -8,13 +8,14 @@ import assert from "node:assert/strict";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
-import { execFileSync } from "child_process";
+import { execFileSync, spawn } from "child_process";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { setupFlow, makeFlowManager, replaceFlowState } from "../../helpers/flow-setup.js";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 import { findStepById } from "../../../src/flow/lib/step-tree.js";
 import { ProcessIdentitySource } from "../../../src/lib/flow-state-atomic-writer.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
+import { IssueLogStore } from "../../../src/flow/lib/issue-log-store.js";
 
 function initGitRepo(root) {
   execFileSync("git", ["init", "--quiet", root], { encoding: "utf8" });
@@ -263,5 +264,150 @@ describe("finalize-cleanup robustness", () => {
 
     // Cleanup the worktree for real so we can delete tmp
     execFileSync("git", ["-C", mainRoot, "worktree", "remove", "--force", worktreePath], { encoding: "utf8" });
+  });
+
+  it("forced teardown failure compensates only its stable audit id after another process appends", async () => {
+    const { RunFinalizeCleanupCommand } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
+    tmp = createTmpDir("senti-finalize-audit-compensation-");
+    initGitRepo(tmp);
+    const specId = "126";
+    const spec = `specs/${specId}/spec.json`;
+    const featureBranch = "feature/126";
+    const state = setupFlow(tmp, {
+      spec,
+      runId: "run-compensation",
+      baseBranch: "master",
+      featureBranch,
+      worktree: false,
+    });
+    state.state = {};
+    replaceFlowState(tmp, state, { specId });
+    execFileSync("git", ["-C", tmp, "branch", featureBranch]);
+    const issuePath = path.join(tmp, `specs/${specId}/issue-log.json`);
+    fs.writeFileSync(issuePath, `${JSON.stringify({ entries: [{ issueLogId: "existing", reason: "existing" }] }, null, 2)}\n`);
+    const marker = path.join(tmp, "concurrent-appended");
+    const hook = path.join(tmp, ".git", "hooks", "pre-commit");
+    fs.writeFileSync(hook, `#!/bin/sh\nwhile [ ! -f ${JSON.stringify(marker)} ]; do sleep 0.01; done\nexit 1\n`, { mode: 0o755 });
+    const watcherScript = `
+      const fs = require("node:fs");
+      const issuePath = ${JSON.stringify(issuePath)};
+      const marker = ${JSON.stringify(marker)};
+      const wait = new Int32Array(new SharedArrayBuffer(4));
+      for (let attempt = 0; attempt < 500; attempt += 1) {
+        const value = JSON.parse(fs.readFileSync(issuePath, "utf8"));
+        if (value.entries.some((entry) => /FORCED_ORPHAN_DROP/.test(entry.reason || ""))) {
+          value.entries.push({ issueLogId: "concurrent-writer", reason: "concurrent" });
+          fs.writeFileSync(issuePath, JSON.stringify(value, null, 2) + "\\n");
+          fs.writeFileSync(marker, "done");
+          process.exit(0);
+        }
+        Atomics.wait(wait, 0, 0, 10);
+      }
+      process.exit(2);
+    `;
+    const watcher = spawn(process.execPath, ["-e", watcherScript], { stdio: "ignore" });
+    const watcherDone = new Promise((resolve) => watcher.on("close", resolve));
+
+    const result = await new RunFinalizeCleanupCommand().execute({
+      root: tmp,
+      flowState: state,
+      flowManager: makeFlowManager(tmp),
+      force: true,
+    });
+    assert.equal(await watcherDone, 0);
+
+    assert.equal(result.ok, false);
+    assert.equal(result.errors[0].code, "COMMIT_FAILED");
+    const entries = JSON.parse(fs.readFileSync(issuePath, "utf8")).entries;
+    assert.deepEqual(entries.map((entry) => entry.issueLogId), ["existing", "concurrent-writer"]);
+    assert.equal(entries.some((entry) => /FORCED_ORPHAN_DROP/.test(entry.reason || "")), false);
+  });
+
+  it("forced teardown fails closed before destructive work when audit append fails", async () => {
+    const { RunFinalizeCleanupCommand } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
+    tmp = createTmpDir("senti-finalize-audit-fail-stop-");
+    initGitRepo(tmp);
+    const specId = "127";
+    const spec = `specs/${specId}/spec.json`;
+    const featureBranch = "feature/127";
+    const state = setupFlow(tmp, {
+      spec,
+      runId: "run-audit-fail-stop",
+      baseBranch: "master",
+      featureBranch,
+      worktree: false,
+    });
+    state.state = {};
+    replaceFlowState(tmp, state, { specId });
+    execFileSync("git", ["-C", tmp, "branch", featureBranch]);
+    const issuePath = path.join(tmp, `specs/${specId}/issue-log.json`);
+    fs.mkdirSync(issuePath);
+    const before = {
+      flow: fs.readFileSync(path.join(tmp, `specs/${specId}/flow.json`)),
+      head: execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }),
+      branches: execFileSync("git", ["-C", tmp, "branch", "--format=%(refname)"], { encoding: "utf8" }),
+      worktrees: execFileSync("git", ["-C", tmp, "worktree", "list", "--porcelain"], { encoding: "utf8" }),
+    };
+
+    const result = await new RunFinalizeCleanupCommand().execute({
+      root: tmp,
+      flowState: state,
+      flowManager: makeFlowManager(tmp),
+      force: true,
+    });
+
+    assert.equal(result.ok, false);
+    assert.equal(result.errors[0].code, "ISSUE_LOG_AUDIT_FAILED");
+    assert.deepEqual(fs.readFileSync(path.join(tmp, `specs/${specId}/flow.json`)), before.flow);
+    assert.equal(execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }), before.head);
+    assert.equal(execFileSync("git", ["-C", tmp, "branch", "--format=%(refname)"], { encoding: "utf8" }), before.branches);
+    assert.equal(execFileSync("git", ["-C", tmp, "worktree", "list", "--porcelain"], { encoding: "utf8" }), before.worktrees);
+    assert.equal(fs.statSync(issuePath).isDirectory(), true);
+  });
+
+  it("forced teardown reports compensation failure with the original teardown failure and one audit entry", async () => {
+    const { RunFinalizeCleanupCommand } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
+    tmp = createTmpDir("senti-finalize-audit-compensation-failure-");
+    initGitRepo(tmp);
+    const specId = "128";
+    const spec = `specs/${specId}/spec.json`;
+    const featureBranch = "feature/128";
+    const state = setupFlow(tmp, {
+      spec,
+      runId: "run-compensation-failure",
+      baseBranch: "master",
+      featureBranch,
+      worktree: false,
+    });
+    state.state = {};
+    replaceFlowState(tmp, state, { specId });
+    execFileSync("git", ["-C", tmp, "branch", featureBranch]);
+    const issuePath = path.join(tmp, `specs/${specId}/issue-log.json`);
+    fs.writeFileSync(issuePath, '{"entries":[]}\n');
+    fs.writeFileSync(path.join(tmp, ".git", "hooks", "pre-commit"), "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+    const originalCompensate = IssueLogStore.prototype.compensate;
+    IssueLogStore.prototype.compensate = () => {
+      const error = new Error("injected compensation failure");
+      error.code = "INJECTED_COMPENSATION_FAILURE";
+      throw error;
+    };
+    let result;
+    try {
+      result = await new RunFinalizeCleanupCommand().execute({
+        root: tmp,
+        flowState: state,
+        flowManager: makeFlowManager(tmp),
+        force: true,
+      });
+    } finally {
+      IssueLogStore.prototype.compensate = originalCompensate;
+    }
+
+    assert.equal(result.ok, false);
+    assert.equal(result.errors[0].code, "ISSUE_LOG_AUDIT_COMPENSATION_FAILED");
+    assert.equal(result.data.originalTeardown.errors[0].code, "COMMIT_FAILED");
+    assert.equal(result.data.causeCode, "INJECTED_COMPENSATION_FAILURE");
+    const entries = JSON.parse(fs.readFileSync(issuePath, "utf8")).entries;
+    assert.equal(entries.filter((entry) => /FORCED_ORPHAN_DROP/.test(entry.reason || "")).length, 1);
   });
 });

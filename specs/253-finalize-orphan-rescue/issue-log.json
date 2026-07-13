@@ -243,6 +243,40 @@
       "resolution": "baseline missing; branch deleted without rescue",
       "taskId": null,
       "timestamp": "2026-05-08T15:04:13.669Z"
+    },
+    {
+      "step": "test",
+      "reason": "Corrected stale source-inspection assertions that treated whole-file saveIssueLog snapshots as the required concurrency contract, even though snapshot restoration can erase a successful concurrent append.",
+      "trigger": "shared issue-log writer and crash-safe finalize-cleanup audit review",
+      "resolution": "Replaced implementation-name checks with shared-lock stable-ID compensation and fail-stop assertions, backed by public-command behavioral tests for another-process preservation, audit append failure, compensation failure, and exactly-once audit identity.",
+      "guardrailCandidate": "Concurrent audit rollback tests must assert preserved writer identities and fail-stop behavior rather than requiring a whole-file persistence helper by name.",
+      "taskId": null,
+      "timestamp": "2026-07-13T00:00:00.000Z",
+      "issueLogId": "issue-441-spec253-shared-issue-log-test-correction"
+    },
+    {
+      "step": "test",
+      "reason": "Replaced the R16 registry source-window scan after it failed unchanged on the clean baseline because registry growth moved the metadata writer outside an arbitrary 8000-character slice.",
+      "trigger": "serial canonical spec253 regression comparison against commit 3ccdf06d",
+      "resolution": "The replacement invokes the public finalize-merge registry post hook and verifies the persisted mergeStrategy and featureBranchSquashedSha through FlowManager readback.",
+      "guardrailCandidate": "Registry wiring tests should execute the public lifecycle hook and read authoritative state instead of bounding source text by character count.",
+      "taskId": null,
+      "timestamp": "2026-07-13T00:00:01.000Z",
+      "issueLogId": "issue-441-spec253-r16-behavioral-test-correction"
+    },
+    {
+      "step": "direct-fix-audit",
+      "issue": 441,
+      "reason": "Candidate7 self-audit found that IssueLogStore's finally-based lock release masked the primary operation error when both the operation and cleanup failed.",
+      "trigger": "Shared issue-log lock ordering and cleanup-failure audit before the broader focused regression.",
+      "resolution": "IssueLogStore now reports an ordered AggregateError with the operation as cause, preserves unchanged file bytes and mode, leaves the failed lock cleanup observable, and supports a clean retry after explicit lock release.",
+      "testEvidence": {
+        "dualFailurePreFixFailure": "/tmp/flow-441-candidate7-issue-log-dualfail-prefix-fail.log",
+        "issueLogStorePostFixPass": "/tmp/flow-441-candidate7-issue-log-store-pass.log"
+      },
+      "taskId": null,
+      "timestamp": "2026-07-13T09:30:00Z",
+      "issueLogId": "issue-441-spec253-issue-log-release-error-preservation"
     }
   ]
 }

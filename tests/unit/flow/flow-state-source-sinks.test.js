@@ -50,6 +50,7 @@ function propertyAppears(expression, property) {
 
 function expressionIsFlowPath(expression, state) {
   if (/['"`]flow\.json['"`]/.test(expression)) return true;
+  if (/\[\s*['"`]flow['"`]\s*,\s*['"`]json['"`]\s*\]\.join\(\s*['"`]\.['"`]\s*\)/.test(expression)) return true;
   if (/\bSTATE_FILE\b/.test(expression)) return true;
   if (/\bflowStatePath\s*\(/.test(expression)) return true;
   for (const name of state.returningFunctions) {
@@ -66,6 +67,7 @@ function expressionIsFlowPath(expression, state) {
 
 function collectSinkAliases(source) {
   const aliases = new Set(sinkApis);
+  const properties = new Set();
   for (const match of source.matchAll(/import\s+(?:[A-Za-z_$][\w$]*\s*,\s*)?\{([^}]+)\}\s*from\s*["'](?:node:)?fs["']/g)) {
     for (const item of match[1].split(",")) {
       const parts = item.trim().split(/\s+as\s+/);
@@ -79,6 +81,35 @@ function collectSinkAliases(source) {
       if (aliases.has(match[2]) && !aliases.has(match[1])) {
         aliases.add(match[1]);
         changed = true;
+      }
+    }
+    for (const match of source.matchAll(/\b(?:const|let|var)\s*\{([^}]+)\}\s*=\s*fs\s*;/g)) {
+      for (const item of match[1].split(",")) {
+        const [property, alias = property] = item.trim().split(/\s*:\s*/);
+        if (sinkApis.has(property) && !aliases.has(alias)) {
+          aliases.add(alias);
+          changed = true;
+        }
+      }
+    }
+    for (const match of source.matchAll(/\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*\{([^;}]+)\}/g)) {
+      for (const property of match[2].matchAll(/([A-Za-z_$][\w$]*)\s*:\s*(?:fs\.)?([A-Za-z_$][\w$]*)/g)) {
+        if (aliases.has(property[2])) {
+          const key = `${match[1]}.${property[1]}`;
+          if (!properties.has(key)) {
+            properties.add(key);
+            changed = true;
+          }
+        }
+      }
+    }
+    for (const match of source.matchAll(/\b(?:const|let|var)\s*\{([^}]+)\}\s*=\s*([A-Za-z_$][\w$]*)\s*;/g)) {
+      for (const item of match[1].split(",")) {
+        const [property, alias = property] = item.trim().split(/\s*:\s*/);
+        if (properties.has(`${match[2]}.${property}`) && !aliases.has(alias)) {
+          aliases.add(alias);
+          changed = true;
+        }
       }
     }
   }
@@ -211,9 +242,19 @@ test("scanner detects indirect aliases, properties, destructuring, streams, and 
       append(target, "three");
       stream(target).write("four");
       function indirect(flowJsonPath) { append(flowJsonPath, "five"); }
+      const { writeFileSync: persist } = fs;
+      const computedName = ["flow", "json"].join(".");
+      function computedTarget(base, specId) {
+        return path.join(base, "specs", specId, computedName);
+      }
+      const computedPath = computedTarget(root, id);
+      persist(computedPath, "six");
+      const methods = { sink: fs.writeFileSync };
+      const { sink: indirectSink } = methods;
+      indirectSink(computedTarget(root, id), "seven");
     `);
     const findings = directFlowStateSinks(fixture);
-    for (const sink of ["writeFileSync", "writer", "append", "stream"]) {
+    for (const sink of ["writeFileSync", "writer", "append", "stream", "persist", "indirectSink"]) {
       assert.ok(findings.some((finding) => finding.includes(sink)), `missing ${sink}: ${findings.join("\n")}`);
     }
   } finally {

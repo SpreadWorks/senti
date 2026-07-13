@@ -12,11 +12,11 @@
  * ctx.repairRef          — commit hash or changed file references (optional object)
  */
 
-import fs from "fs";
-import path from "path";
+import crypto from "node:crypto";
 import { FlowCommand, resolveExplicitTaskOption } from "./base-command.js";
 import { resolveTaskIdForEntry } from "../../lib/flow-store.js";
 import { Envelope } from "../../lib/flow-envelope.js";
+import { IssueLogStore } from "./issue-log-store.js";
 
 /**
  * Load issue-log.json from specs/<spec>/ directory.
@@ -25,29 +25,13 @@ import { Envelope } from "../../lib/flow-envelope.js";
  * @returns {{ entries: Object[] }}
  */
 export function loadIssueLog(root, specPath) {
-  const specDir = path.dirname(path.resolve(root, specPath));
-  const logPath = path.join(specDir, "issue-log.json");
-  if (fs.existsSync(logPath)) {
-    const raw = JSON.parse(fs.readFileSync(logPath, "utf8"));
-    if (!raw.entries || !Array.isArray(raw.entries)) {
-      throw new Error('Invalid issue-log.json: "entries" must be an array');
-    }
-    return raw;
-  }
-  return { entries: [] };
+  const snapshot = new IssueLogStore({ root, spec: specPath }).read();
+  return snapshot.toJSON();
 }
 
-/**
- * Save issue-log.json to specs/<spec>/ directory.
- * @param {string} root - project root
- * @param {string} specPath - relative spec path
- * @param {{ entries: Object[] }} issueLog
- */
-export function saveIssueLog(root, specPath, issueLog) {
-  const specDir = path.dirname(path.resolve(root, specPath));
-  const logPath = path.join(specDir, "issue-log.json");
-  fs.mkdirSync(specDir, { recursive: true });
-  fs.writeFileSync(logPath, JSON.stringify(issueLog, null, 2) + "\n");
+export function appendIssueLogEntry(root, specPath, entry, idempotencyKey = null) {
+  const key = idempotencyKey || entry?.issueLogId || entry?.grantId || `issue-log-${crypto.randomUUID()}`;
+  return new IssueLogStore({ root, spec: specPath }).append(entry, key);
 }
 
 const MIN_REASON_LENGTH = 20;
@@ -143,10 +127,8 @@ export default class SetIssueLogCommand extends FlowCommand {
       timestamp: new Date().toISOString(),
     };
 
-    const issueLog = loadIssueLog(root, state.spec);
-    issueLog.entries.push(entry);
-    saveIssueLog(root, state.spec, issueLog);
+    const result = appendIssueLogEntry(root, state.spec, entry);
 
-    return { entry, total: issueLog.entries.length };
+    return { entry: result.entry, total: result.total };
   }
 }

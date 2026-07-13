@@ -4,6 +4,9 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createTmpDir, removeTmpDir } from "../../../tests/helpers/tmp-dir.js";
+import { makeFlowManager, setupFlow } from "../../../tests/helpers/flow-setup.js";
+import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -19,29 +22,29 @@ function readFinalizeMergeSrc() {
     "utf8",
   );
 }
-function readRegistrySrc() {
-  return fs.readFileSync(
-    path.resolve(__dirname, "../../../src/flow/registry.js"),
-    "utf8",
-  );
-}
-
 describe("R16: flow state schema includes baseline and merge route", () => {
-  it("R16: registry post hook persists state.featureBranchSquashedSha and state.mergeStrategy", () => {
-    const src = readRegistrySrc();
-    // Scope the search to the actual finalize-merge entry definition (the
-    // quoted key form), not the first incidental mention in a comment.
-    const entryBlock = src.match(/["']finalize-merge["']:\s*\{[\s\S]{0,8000}/);
-    assert.ok(entryBlock, "finalize-merge entry required in registry");
-    assert.ok(
-      entryBlock[0].includes("featureBranchSquashedSha") ||
-        entryBlock[0].includes("squashBaseline"),
-      "post hook must persist squash baseline SHA",
-    );
-    assert.ok(
-      entryBlock[0].includes("mergeStrategy"),
-      "post hook must persist mergeStrategy",
-    );
+  it("R16: registry post hook persists state.featureBranchSquashedSha and state.mergeStrategy", async () => {
+    const root = createTmpDir("finalize-merge-outcome-");
+    try {
+      const state = setupFlow(root);
+      const specId = path.basename(path.dirname(state.spec));
+      const flowManager = makeFlowManager(root);
+      await FLOW_COMMANDS.run["finalize-merge"].post({
+        root,
+        specId,
+        flowState: state,
+        flowManager,
+      }, {
+        status: "done",
+        strategy: "squash",
+        mergedFromSha: "a".repeat(40),
+      });
+      const saved = flowManager.load(specId);
+      assert.equal(saved.state.mergeStrategy, "squash");
+      assert.equal(saved.state.featureBranchSquashedSha, "a".repeat(40));
+    } finally {
+      removeTmpDir(root);
+    }
   });
   it("R16: schema validation rejects invalid route/baseline combinations", () => {
     const flowStorePath = path.resolve(__dirname, "../../../src/lib/flow-store.js");

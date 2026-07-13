@@ -1,7 +1,7 @@
 // spec: R7 R8
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -354,6 +354,44 @@ test("maintenance lock closes the post-safety-check flow-start race without part
     fs.readdirSync(path.join(root, ".senti")).some((name) => name.startsWith(".active-flow")),
     false,
   );
+});
+
+test("issue-log revision conflict stops migration before writes and replan preserves the concurrent entry", () => {
+  const root = makeFixture();
+  for (const id of ["alpha", "beta"]) {
+    const file = path.join(root, "specs", id, "issue-log.json");
+    fs.writeFileSync(file, `${JSON.stringify({ entries: JSON.parse(fs.readFileSync(file, "utf8")) }, null, 2)}\n`);
+  }
+  gitInit(root);
+  const alphaFlow = path.join(root, "specs", "alpha", "flow.json");
+  const betaFlow = path.join(root, "specs", "beta", "flow.json");
+  const alphaIssue = path.join(root, "specs", "alpha", "issue-log.json");
+  const before = {
+    alphaFlow: fs.readFileSync(alphaFlow),
+    betaFlow: fs.readFileSync(betaFlow),
+  };
+
+  assert.throws(() => applyMigration(root, {
+    afterPlanBuilt() {
+      const value = JSON.parse(fs.readFileSync(alphaIssue, "utf8"));
+      value.entries.push({ step: "concurrent-step", reason: "concurrent", timestamp: "now" });
+      fs.writeFileSync(alphaIssue, `${JSON.stringify(value, null, 2)}\n`);
+    },
+  }), /issue-log changed after migration planning/);
+
+  assert.deepEqual(fs.readFileSync(alphaFlow), before.alphaFlow);
+  assert.deepEqual(fs.readFileSync(betaFlow), before.betaFlow);
+  let entries = JSON.parse(fs.readFileSync(alphaIssue, "utf8")).entries;
+  assert.equal(entries.filter((entry) => entry.step === "concurrent-step").length, 1);
+  assert.equal(entries.some((entry) => entry.step === "gate-draft"), true);
+
+  execFileSync("git", ["-C", root, "add", "specs/alpha/issue-log.json"]);
+  execFileSync("git", ["-C", root, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "concurrent append"]);
+  applyMigration(root);
+  entries = JSON.parse(fs.readFileSync(alphaIssue, "utf8")).entries;
+  assert.equal(entries.filter((entry) => entry.step === "concurrent-step").length, 1);
+  assert.equal(entries.some((entry) => entry.step === "draft-gate"), true);
+  assert.equal(entries.some((entry) => entry.step === "gate-draft"), false);
 });
 
 // NOTE: R8's live-repository application (running the tool against this repo's specs/

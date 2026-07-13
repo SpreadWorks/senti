@@ -9,7 +9,7 @@
 
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
-import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
+import { appendIssueLogEntry } from "./set-issue-log.js";
 import { FLOW_STEPS, PHASE_MAP } from "../../lib/flow-helpers.js";
 import { findInProgressLeaf, findStepById } from "./step-tree.js";
 import { DRAFT_REVIEW_ROUTES } from "./draft-review-routes.js";
@@ -168,9 +168,7 @@ function validateCorrectionGuards(ctx, state) {
 }
 
 function appendIssueLog(root, state, entry) {
-  const log = loadIssueLog(root, state.spec);
-  log.entries.push({ ...entry, timestamp: new Date().toISOString() });
-  saveIssueLog(root, state.spec, log);
+  appendIssueLogEntry(root, state.spec, { ...entry, timestamp: new Date().toISOString() });
 }
 
 function executeSpecCorrection({ flowManager, root, specId, state, reason }) {

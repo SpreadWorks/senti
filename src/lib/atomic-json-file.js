@@ -5,15 +5,46 @@ import { RealDirectoryAuthority } from "./process-owned-lock.js";
 
 function fsyncDirectory(directory) {
   const descriptor = fs.openSync(directory, "r");
+  let primaryError = null;
   try {
     fs.fsyncSync(descriptor);
+  } catch (cause) {
+    primaryError = cause;
   } finally {
-    fs.closeSync(descriptor);
+    try {
+      fs.closeSync(descriptor);
+    } catch (cleanupError) {
+      if (primaryError) {
+        throw new AggregateError(
+          [primaryError, cleanupError],
+          "Directory durability sync and descriptor cleanup both failed",
+          { cause: primaryError },
+        );
+      }
+      throw cleanupError;
+    }
   }
+  if (primaryError) throw primaryError;
 }
 
 function sameFile(left, right) {
   return left.dev === right.dev && left.ino === right.ino;
+}
+
+export class AtomicJsonWriteError extends Error {
+  constructor(message, { cause, phase, committedToVisibleName, durabilityUnknown }) {
+    super(message, { cause });
+    this.name = "AtomicJsonWriteError";
+    this.code = durabilityUnknown
+      ? "ATOMIC_JSON_DURABILITY_UNCERTAIN"
+      : "ATOMIC_JSON_WRITE_FAILED";
+    this.phase = phase;
+    this.committedToVisibleName = committedToVisibleName;
+    this.durabilityUnknown = durabilityUnknown;
+    // Retained as a concise compatibility alias for callers deciding whether
+    // an idempotent fresh-read retry is required.
+    this.committed = committedToVisibleName;
+  }
 }
 
 export class AtomicJsonFile {
@@ -57,6 +88,8 @@ export class AtomicJsonFile {
     const tempPath = path.join(this.directory, `.${path.basename(this.filePath)}.${crypto.randomUUID()}.tmp`);
     let descriptor = null;
     let mode = 0o644;
+    let phase = "inspect-visible-file";
+    let committedToVisibleName = false;
     try {
       try {
         const current = fs.lstatSync(this.filePath);
@@ -67,23 +100,55 @@ export class AtomicJsonFile {
       } catch (cause) {
         if (cause.code !== "ENOENT") throw cause;
       }
-      this.faultInjector({ phase: "before-json-temp-open", filePath: this.filePath });
+      phase = "before-json-temp-open";
+      this.faultInjector({ phase, filePath: this.filePath });
       descriptor = fs.openSync(tempPath, "wx", mode);
-      this.faultInjector({ phase: "before-json-temp-write", filePath: this.filePath });
+      phase = "before-json-temp-write";
+      this.faultInjector({ phase, filePath: this.filePath });
       fs.writeFileSync(descriptor, `${JSON.stringify(value, null, 2)}\n`);
       fs.fchmodSync(descriptor, mode);
+      phase = "temp-file-fsync";
       fs.fsyncSync(descriptor);
+      phase = "temp-file-close";
       fs.closeSync(descriptor);
       descriptor = null;
       this.directoryAuthority.assertStable();
-      this.faultInjector({ phase: "before-json-rename", filePath: this.filePath });
+      phase = "before-json-rename";
+      this.faultInjector({ phase, filePath: this.filePath });
       fs.renameSync(tempPath, this.filePath);
+      committedToVisibleName = true;
+      phase = "directory-fsync";
       fsyncDirectory(this.directory);
     } catch (cause) {
+      const cleanupErrors = [];
       if (descriptor != null) {
-        try { fs.closeSync(descriptor); } catch (_) {}
+        try { fs.closeSync(descriptor); } catch (cleanupError) { cleanupErrors.push(cleanupError); }
       }
-      try { fs.unlinkSync(tempPath); } catch (_) {}
+      if (!committedToVisibleName) {
+        try { fs.unlinkSync(tempPath); } catch (cleanupError) {
+          if (cleanupError.code !== "ENOENT") cleanupErrors.push(cleanupError);
+        }
+      }
+      if (committedToVisibleName) {
+        throw new AtomicJsonWriteError(
+          `JSON write reached the visible name but durability is uncertain: ${this.filePath}`,
+          {
+            cause: cleanupErrors.length > 0
+              ? new AggregateError([cause, ...cleanupErrors], "JSON durability and cleanup failed", { cause })
+              : cause,
+            phase,
+            committedToVisibleName: true,
+            durabilityUnknown: true,
+          },
+        );
+      }
+      if (cleanupErrors.length > 0) {
+        throw new AggregateError(
+          [cause, ...cleanupErrors],
+          `JSON write failed before commit and cleanup also failed: ${this.filePath}`,
+          { cause },
+        );
+      }
       throw cause;
     }
   }

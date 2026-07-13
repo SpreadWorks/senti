@@ -9,7 +9,7 @@ import fs from "fs";
 import path from "path";
 import { runCmd, assertOk } from "../../lib/process.js";
 import { specIdFromPath } from "../../lib/flow-helpers.js";
-import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
+import { appendIssueLogEntry, loadIssueLog } from "./set-issue-log.js";
 import {
   isGhAvailable,
   commentOnIssue,
@@ -31,15 +31,13 @@ import { readRetroResultIfExists } from "./retro-artifacts.js";
 export function finalizeOnError(stepName, trigger) {
   return (ctx, err) => {
     try {
-      const issueLog = loadIssueLog(ctx.root, ctx.flowState.spec);
       const entry = {
         step: stepName,
         reason: err.message || String(err),
         timestamp: new Date().toISOString(),
       };
       if (trigger) entry.trigger = trigger;
-      issueLog.entries.push(entry);
-      saveIssueLog(ctx.root, ctx.flowState.spec, issueLog);
+      appendIssueLogEntry(ctx.root, ctx.flowState.spec, entry);
     } catch (e) { console.error("[issue-log hook]", e.message); }
   };
 }

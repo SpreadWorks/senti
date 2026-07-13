@@ -31,30 +31,27 @@ describe("R10: --force forces deletion with audit log", () => {
   });
   it("R10: --force path persists audit log with droppedCommits metadata", () => {
     const src = readCleanupSrc();
-    const forceBlock = src.match(/FORCED_ORPHAN_DROP[\s\S]{0,2000}/);
-    assert.ok(forceBlock, "FORCED_ORPHAN_DROP block must exist");
-    const block = forceBlock[0];
-    assert.ok(
-      block.includes("saveIssueLog") || block.includes("droppedCommits"),
-      "--force path must record dropped commits to audit log",
-    );
+    assert.ok(src.includes("FORCED_ORPHAN_DROP"), "FORCED_ORPHAN_DROP block must exist");
+    assert.ok(src.includes("droppedCommits,"), "--force path must record dropped commits to audit log");
+    assert.ok(src.includes("appendIssueLog(auditTarget"), "--force audit must use the shared append boundary");
+    assert.ok(src.includes('finalizeAuditId("forced-orphan-drop"'), "--force audit must use a stable id");
   });
 });
 
 describe("R15: per-code mandatory audit log policy", () => {
-  it("R15: validation/detection errors do not invoke saveIssueLog", () => {
+  it("R15: validation/detection errors do not invoke the issue-log append boundary", () => {
     const src = readCleanupSrc();
     const argsErrBlock = src.match(/ARGS_ERROR[\s\S]{0,500}/);
     if (argsErrBlock) {
       assert.ok(
-        !argsErrBlock[0].includes("saveIssueLog"),
+        !argsErrBlock[0].includes("appendIssueLog"),
         "ARGS_ERROR path must not write audit log",
       );
     }
     const baselineMissingBlock = src.match(/SQUASH_BASELINE_MISSING[\s\S]{0,800}/);
     if (baselineMissingBlock) {
       assert.ok(
-        !baselineMissingBlock[0].includes("saveIssueLog"),
+        !baselineMissingBlock[0].includes("appendIssueLog"),
         "SQUASH_BASELINE_MISSING path must not write audit log",
       );
     }
@@ -64,14 +61,14 @@ describe("R15: per-code mandatory audit log policy", () => {
     const forcedBlock = src.match(/FORCED_ORPHAN_DROP[\s\S]{0,2000}/);
     assert.ok(forcedBlock, "FORCED_ORPHAN_DROP block must exist");
     assert.ok(
-      forcedBlock[0].includes("saveIssueLog"),
-      "FORCED_ORPHAN_DROP must call saveIssueLog",
+      src.includes("appendIssueLog(auditTarget"),
+      "FORCED_ORPHAN_DROP must use the shared append boundary",
     );
-    const conflictBlock = src.match(/CHERRY_PICK_CONFLICT[\s\S]{0,2000}/);
-    assert.ok(conflictBlock, "CHERRY_PICK_CONFLICT block must exist");
+    assert.ok(src.includes("CHERRY_PICK_CONFLICT"), "CHERRY_PICK_CONFLICT block must exist");
     assert.ok(
-      conflictBlock[0].includes("saveIssueLog"),
-      "CHERRY_PICK_CONFLICT must call saveIssueLog",
+      src.includes("appendIssueLog(mainRepoPath, state.spec"),
+      "CHERRY_PICK_CONFLICT must use the shared append boundary",
     );
+    assert.ok(src.includes("ISSUE_LOG_AUDIT_FAILED"), "mandatory audit failure must fail closed");
   });
 });

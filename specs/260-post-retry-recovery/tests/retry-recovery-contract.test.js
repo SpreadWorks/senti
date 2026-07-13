@@ -17,8 +17,122 @@ const sentiBin = path.join(repoRoot, "src/senti.js");
 const specId = "001-test";
 const specPath = `specs/${specId}/spec.json`;
 const artifactPath = `specs/${specId}/retry-recovery.json`;
+const transactionPath = `specs/${specId}/.retry-recovery.transaction.json`;
 const issueLogPath = `specs/${specId}/issue-log.json`;
 const reason = "Re-evaluate after implementation evidence changed.";
+const publicRecoveryEntryFields = [
+  "attemptsBefore",
+  "canonicalPhase",
+  "changedEvidence",
+  "counterAfter",
+  "createdAt",
+  "id",
+  "kind",
+  "maxAttempts",
+  "permittedReevaluationCount",
+  "phase",
+  "reason",
+  "recoveryCommand",
+];
+
+function assertPublicRecoveryArtifact(value) {
+  assert.deepEqual(Object.keys(value).sort(), ["entries", "version"]);
+  assert.equal(value.version, 1);
+  assert.ok(Array.isArray(value.entries));
+  for (const entry of value.entries) {
+    assert.deepEqual(Object.keys(entry).sort(), publicRecoveryEntryFields);
+    assert.match(entry.id, /^recovery-/);
+    assert.ok(["gate", "review"].includes(entry.kind));
+    assert.equal(typeof entry.phase, "string");
+    assert.equal(typeof entry.canonicalPhase, "string");
+    assert.equal(typeof entry.reason, "string");
+    assert.deepEqual(Object.keys(entry.changedEvidence).sort(), [
+      "baselineHash", "changed", "changedPaths", "currentHash", "sourceKind", "truncated",
+    ]);
+    for (const field of ["permittedReevaluationCount", "attemptsBefore", "maxAttempts", "counterAfter"]) {
+      assert.ok(Number.isSafeInteger(entry[field]) && entry[field] >= 0, field);
+    }
+    assert.equal(typeof entry.recoveryCommand, "string");
+    assert.equal(typeof entry.createdAt, "string");
+  }
+  return value;
+}
+
+function assertPrivateRecoveryTransaction(value) {
+  assert.deepEqual(Object.keys(value).sort(), ["transaction", "version"]);
+  assert.equal(value.version, 1);
+  if (value.transaction == null) return null;
+  const transaction = value.transaction;
+  assert.deepEqual(Object.keys(transaction).sort(), [
+    "createdAt", "expectedFlowRevision", "fingerprint", "grant", "grantId", "rejection",
+    "request", "status", "updatedAt",
+  ]);
+  assert.ok(["pending", "rejected"].includes(transaction.status));
+  if (transaction.status === "pending") {
+    assert.equal(transaction.rejection, null);
+    assertPublicRecoveryArtifact({ version: 1, entries: [transaction.grant] });
+    assert.equal(transaction.grantId, transaction.grant.id);
+  } else {
+    assert.equal(transaction.grant, null);
+    assert.deepEqual(Object.keys(transaction.rejection).sort(), ["code", "message"]);
+  }
+  return transaction;
+}
+
+function readPrivateRecoveryTransaction(root) {
+  if (!fs.existsSync(path.join(root, transactionPath))) return null;
+  return assertPrivateRecoveryTransaction(readJson(root, transactionPath));
+}
+
+function publicRecoveryEntry(id = "recovery-11111111-1111-4111-8111-111111111111") {
+  return {
+    id,
+    kind: "gate",
+    phase: "task-impl",
+    canonicalPhase: "task-impl",
+    reason,
+    changedEvidence: {
+      sourceKind: "implementation-diff",
+      baselineHash: "a".repeat(64),
+      currentHash: "b".repeat(64),
+      changedPaths: ["src/changed.js"],
+      truncated: false,
+      changed: true,
+    },
+    permittedReevaluationCount: 1,
+    attemptsBefore: 3,
+    maxAttempts: 3,
+    counterAfter: 2,
+    recoveryCommand: `senti flow set retry reset gate task-impl --reason "${reason}" --yes`,
+    createdAt: "2026-05-18T00:00:00.000Z",
+  };
+}
+
+function pendingRecoveryTransaction(grant = publicRecoveryEntry()) {
+  return {
+    grantId: grant?.id || "recovery-11111111-1111-4111-8111-111111111111",
+    status: "pending",
+    fingerprint: "c".repeat(64),
+    expectedFlowRevision: "d".repeat(64),
+    request: {
+      runId: "run-test",
+      spec: specPath,
+      hasIssue: false,
+      issue: null,
+      kind: "gate",
+      phase: "task-impl",
+      canonicalPhase: "task-impl",
+      reason,
+      attempts: 3,
+      maxAttempts: 3,
+      changedEvidence: grant?.changedEvidence || null,
+    },
+    grant,
+    rejection: null,
+    createdAt: "2026-05-18T00:00:00.000Z",
+    updatedAt: "2026-05-18T00:00:00.000Z",
+  };
+}
 
 async function loadRecovery() {
   assert.ok(fs.existsSync(recoveryPath), "src/flow/lib/retry-recovery.js should exist");
@@ -140,10 +254,21 @@ function setupRecoveryFixture({
 }
 
 function snapshotRecoveryFiles(root) {
+  const flowFile = path.join(root, `specs/${specId}/flow.json`);
+  const issueFile = path.join(root, issueLogPath);
+  const recoveryFile = path.join(root, artifactPath);
+  const transactionFile = path.join(root, transactionPath);
   return {
-    flow: fs.readFileSync(path.join(root, `specs/${specId}/flow.json`), "utf8"),
-    issueLog: fs.readFileSync(path.join(root, issueLogPath), "utf8"),
-    recovery: fs.readFileSync(path.join(root, artifactPath), "utf8"),
+    flow: fs.readFileSync(flowFile, "utf8"),
+    flowMode: fs.statSync(flowFile).mode & 0o777,
+    issueLog: fs.readFileSync(issueFile, "utf8"),
+    issueLogMode: fs.statSync(issueFile).mode & 0o777,
+    recovery: fs.readFileSync(recoveryFile, "utf8"),
+    recoveryMode: fs.statSync(recoveryFile).mode & 0o777,
+    transaction: fs.existsSync(transactionFile)
+      ? fs.readFileSync(transactionFile, "utf8")
+      : null,
+    transactionMode: fs.existsSync(transactionFile) ? fs.statSync(transactionFile).mode & 0o777 : null,
   };
 }
 
@@ -190,8 +315,9 @@ function spawnSenti(root, args, { importFile, env = {} } = {}) {
   child.stdout.on("data", (chunk) => { stdout += chunk; });
   child.stderr.on("data", (chunk) => { stderr += chunk; });
   return new Promise((resolve) => {
-    child.on("close", (status) => resolve({
+    child.on("close", (status, signal) => resolve({
       status,
+      signal,
       envelope: JSON.parse(stdout || "{}"),
       stderr,
     }));
@@ -199,9 +325,24 @@ function spawnSenti(root, args, { importFile, env = {} } = {}) {
 }
 
 function assertNoMutation(root, before) {
-  assert.equal(fs.readFileSync(path.join(root, `specs/${specId}/flow.json`), "utf8"), before.flow);
-  assert.equal(fs.readFileSync(path.join(root, issueLogPath), "utf8"), before.issueLog);
-  assert.equal(fs.readFileSync(path.join(root, artifactPath), "utf8"), before.recovery);
+  const flowFile = path.join(root, `specs/${specId}/flow.json`);
+  const issueFile = path.join(root, issueLogPath);
+  const recoveryFile = path.join(root, artifactPath);
+  const transactionFile = path.join(root, transactionPath);
+  assert.equal(fs.readFileSync(flowFile, "utf8"), before.flow);
+  assert.equal(fs.statSync(flowFile).mode & 0o777, before.flowMode);
+  assert.equal(fs.readFileSync(issueFile, "utf8"), before.issueLog);
+  assert.equal(fs.statSync(issueFile).mode & 0o777, before.issueLogMode);
+  assert.equal(fs.readFileSync(recoveryFile, "utf8"), before.recovery);
+  assert.equal(fs.statSync(recoveryFile).mode & 0o777, before.recoveryMode);
+  const transaction = fs.existsSync(transactionFile)
+    ? fs.readFileSync(transactionFile, "utf8")
+    : null;
+  assert.equal(transaction, before.transaction);
+  assert.equal(
+    fs.existsSync(transactionFile) ? fs.statSync(transactionFile).mode & 0o777 : null,
+    before.transactionMode,
+  );
 }
 
 function recoveryGrantRequest(root, input, {
@@ -281,7 +422,9 @@ describe("retry recovery contract", () => {
       "--reason", reason, "--yes",
     ]);
     assert.equal(result.status, 0, JSON.stringify(result));
-    assert.equal(readJson(root, artifactPath).entries[0].status, "committed");
+    const artifact = assertPublicRecoveryArtifact(readJson(root, artifactPath));
+    assert.equal(artifact.entries.length, 1);
+    assert.equal(readPrivateRecoveryTransaction(root), null);
     assert.throws(() => resolveRecoveryMaxAttempts({
       flowState: flow,
       kind: "gate",
@@ -289,6 +432,96 @@ describe("retry recovery contract", () => {
       attempts: 3,
       resolvedMax: 3,
     }), /root authority is required/);
+  });
+
+  it("R6: real CLI output matches the unchanged public retry-recovery v1 schema", () => {
+    const root = setupRecoveryFixture();
+    cleanup.push(root);
+    const result = runSenti(root, [
+      "flow", "set", "retry", "reset", "gate", "task-impl",
+      "--reason", reason, "--yes",
+    ]);
+    assert.equal(result.status, 0, JSON.stringify(result));
+    const artifact = assertPublicRecoveryArtifact(readJson(root, artifactPath));
+    assert.equal(artifact.entries.length, 1);
+    assert.equal(artifact.entries[0].kind, "gate");
+    assert.equal(artifact.entries[0].phase, "task-impl");
+  });
+
+  it("rejects tampered recovery artifacts without side effects and permits retry after repair", () => {
+    const grant = publicRecoveryEntry();
+    const pending = pendingRecoveryTransaction(grant);
+    const invalidArtifacts = [
+      {
+        name: "multiple-pending-transactions",
+        privateValue: { version: 1, transaction: [pending, { ...pending, grantId: "recovery-22222222-2222-4222-8222-222222222222" }] },
+      },
+      {
+        name: "pending-without-grant",
+        privateValue: { version: 1, transaction: pendingRecoveryTransaction(null) },
+      },
+      {
+        name: "pending-with-rejection",
+        privateValue: { version: 1, transaction: { ...pending, rejection: { code: "BAD", message: "invalid pending rejection" } } },
+      },
+      {
+        name: "rejected-with-grant",
+        privateValue: { version: 1, transaction: { ...pending, status: "rejected", rejection: { code: "BAD", message: "invalid rejected grant" } } },
+      },
+      {
+        name: "foreign-grant-id",
+        privateValue: { version: 1, transaction: { ...pending, grantId: "recovery-22222222-2222-4222-8222-222222222222" } },
+      },
+      {
+        name: "foreign-spec",
+        privateValue: { version: 1, transaction: { ...pending, request: { ...pending.request, spec: "specs/999-foreign/spec.json" } } },
+      },
+      {
+        name: "foreign-run-id",
+        privateValue: { version: 1, transaction: { ...pending, request: { ...pending.request, runId: "run-foreign" } } },
+      },
+      {
+        name: "unexpected-private-key",
+        privateValue: { version: 1, transaction: { ...pending, unexpected: true } },
+      },
+      {
+        name: "duplicate-public-grant-id",
+        publicValue: { version: 1, entries: [grant, { ...grant }] },
+      },
+      {
+        name: "missing-public-required-field",
+        publicValue: { version: 1, entries: [{ ...grant, recoveryCommand: undefined }] },
+      },
+    ];
+
+    for (const tamper of invalidArtifacts) {
+      const root = setupRecoveryFixture();
+      cleanup.push(root);
+      const external = createTmpDir("retry-recovery-tamper-external-");
+      cleanup.push(external);
+      const sentinel = path.join(external, "sentinel");
+      fs.writeFileSync(sentinel, "unchanged");
+      if (tamper.publicValue) writeJson(root, artifactPath, tamper.publicValue);
+      if (tamper.privateValue) writeJson(root, transactionPath, tamper.privateValue);
+      const before = snapshotRecoveryFiles(root);
+      const result = runSenti(root, [
+        "flow", "set", "retry", "reset", "gate", "task-impl",
+        "--reason", reason, "--yes",
+      ]);
+      assert.notEqual(result.status, 0, tamper.name);
+      assertNoMutation(root, before);
+      assert.equal(fs.readFileSync(sentinel, "utf8"), "unchanged", tamper.name);
+      assert.equal(fs.existsSync(path.join(root, "specs", specId, ".retry-recovery.lock")), false, tamper.name);
+
+      writeJson(root, artifactPath, { version: 1, entries: [] });
+      writeJson(root, transactionPath, { version: 1, transaction: null });
+      const retry = runSenti(root, [
+        "flow", "set", "retry", "reset", "gate", "task-impl",
+        "--reason", reason, "--yes",
+      ]);
+      assert.equal(retry.status, 0, `${tamper.name}: ${JSON.stringify(retry)}`);
+      assertPublicRecoveryArtifact(readJson(root, artifactPath));
+    }
   });
 
   it("R1: TC-4 TC-5 TC-6 TC-7 TC-8 TC-9 TC-10: command input validates before side effects", async () => {
@@ -364,15 +597,15 @@ describe("retry recovery contract", () => {
       assert.equal(result.status, 0, `${item.kind}/${item.phase} reset should exit 0`);
       assert.equal(result.envelope.ok, true);
       const flow = readJson(root, `specs/${specId}/flow.json`);
-      const recovery = readJson(root, artifactPath);
+      const recovery = assertPublicRecoveryArtifact(readJson(root, artifactPath));
       const issueLog = readJson(root, issueLogPath);
       assert.equal(flow.retryRecovery.entries.length, 1, `${item.kind}/${item.phase} writes one flow recovery entry`);
       assert.equal(recovery.entries.length, 1, "artifact records one durable grant");
-      assert.equal(recovery.entries[0].status, "committed");
-      assert.equal(recovery.entries[0].grant.kind, item.kind);
-      assert.equal(recovery.entries[0].grant.phase, item.phase);
+      assert.equal(recovery.entries[0].kind, item.kind);
+      assert.equal(recovery.entries[0].phase, item.phase);
+      assert.equal(readPrivateRecoveryTransaction(root), null);
       assert.equal(issueLog.entries.length, 1, "issue-log records one durable grant");
-      assert.equal(issueLog.entries[0].grantId, recovery.entries[0].grantId);
+      assert.equal(issueLog.entries[0].grantId, recovery.entries[0].id);
       assert.equal(flow.retryRecovery.entries[0].kind, item.kind);
       assert.equal(flow.retryRecovery.entries[0].phase, item.phase);
       assert.equal(flow.retryRecovery.entries[0].counterAfter, 2);
@@ -606,7 +839,7 @@ describe("retry recovery contract", () => {
     assert.equal(missingBaseline.reason, "missing-baseline");
   });
 
-  it("R5: TC-17: unchanged exhausted reset records rejection without flow or issue-log changes", () => {
+  it("R5: TC-17: unchanged exhausted reset leaves public and private audit authorities unchanged", () => {
     const root = setupRecoveryFixture({
       activeStep: "spec-review",
       kind: "review",
@@ -632,10 +865,9 @@ describe("retry recovery contract", () => {
     assert.equal(result.envelope.errors[0].code, "UNCHANGED_EVIDENCE");
     assert.equal(fs.readFileSync(path.join(root, `specs/${specId}/flow.json`), "utf8"), before.flow);
     assert.equal(fs.readFileSync(path.join(root, issueLogPath), "utf8"), before.issueLog);
-    const artifact = readJson(root, artifactPath);
-    assert.equal(artifact.entries.length, 1);
-    assert.equal(artifact.entries[0].status, "rejected");
-    assert.equal(artifact.entries[0].rejection.code, "UNCHANGED_EVIDENCE");
+    const artifact = assertPublicRecoveryArtifact(readJson(root, artifactPath));
+    assert.equal(artifact.entries.length, 0);
+    assert.equal(readPrivateRecoveryTransaction(root), null);
   });
 
   it("two CLI processes released from the same pre-lock barrier commit exactly one grant", async () => {
@@ -685,15 +917,65 @@ describe("retry recovery contract", () => {
     );
     const flow = readJson(root, `specs/${specId}/flow.json`);
     assert.equal(flow.retryRecovery.entries.length, 1);
-    const recovery = readJson(root, artifactPath);
+    const recovery = assertPublicRecoveryArtifact(readJson(root, artifactPath));
     const issueLog = readJson(root, issueLogPath);
     assert.equal(recovery.entries.length, 1);
-    assert.equal(recovery.entries[0].status, "committed");
+    assert.equal(readPrivateRecoveryTransaction(root), null);
     assert.equal(issueLog.entries.length, 1);
-    assert.equal(issueLog.entries[0].grantId, recovery.entries[0].grantId);
+    assert.equal(issueLog.entries[0].grantId, recovery.entries[0].id);
     const grantMetrics = flow.metrics.slice(3);
     assert.equal(grantMetrics.filter((metric) => metric.reset === true).length, 1);
     assert.equal(grantMetrics.filter((metric) => metric.delta === 2).length, 1);
+  });
+
+  it("serializes a concurrent issue-log CLI append with retry recovery without lost entries", async () => {
+    const root = setupRecoveryFixture();
+    cleanup.push(root);
+    const barrierDir = path.join(root, ".issue-log-barrier");
+    const readyPath = path.join(barrierDir, "ready");
+    const releasePath = path.join(barrierDir, "release");
+    const hookPath = path.join(root, "issue-log-write-barrier.mjs");
+    fs.mkdirSync(barrierDir);
+    fs.writeFileSync(hookPath, `
+      import fs from "node:fs";
+      import path from "node:path";
+      import { AtomicJsonFile } from ${JSON.stringify(pathToFileURL(path.join(repoRoot, "src/lib/atomic-json-file.js")).href)};
+      const original = AtomicJsonFile.prototype.write;
+      let paused = false;
+      AtomicJsonFile.prototype.write = function writeWithIssueLogBarrier(value) {
+        if (!paused && path.basename(this.filePath) === "issue-log.json") {
+          paused = true;
+          fs.writeFileSync(process.env.ISSUE_LOG_READY, "ready");
+          const deadline = Date.now() + 5000;
+          while (!fs.existsSync(process.env.ISSUE_LOG_RELEASE)) {
+            if (Date.now() >= deadline) throw new Error("issue-log barrier timed out");
+            Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10);
+          }
+        }
+        return original.call(this, value);
+      };
+    `);
+    const recovery = spawnSenti(root, [
+      "flow", "set", "retry", "reset", "gate", "task-impl",
+      "--reason", reason, "--yes",
+    ], {
+      importFile: hookPath,
+      env: { ISSUE_LOG_READY: readyPath, ISSUE_LOG_RELEASE: releasePath },
+    });
+    await waitFor(() => fs.existsSync(readyPath), "retry process must pause before issue-log write");
+    const concurrent = spawnSenti(root, [
+      "flow", "set", "issue-log",
+      "--step", "concurrent-writer",
+      "--reason", "Concurrent writer entry must remain durable.",
+    ]);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    fs.writeFileSync(releasePath, "release");
+    const [recoveryResult, concurrentResult] = await Promise.all([recovery, concurrent]);
+    assert.equal(recoveryResult.status, 0, JSON.stringify(recoveryResult));
+    assert.equal(concurrentResult.status, 0, JSON.stringify(concurrentResult));
+    const entries = readJson(root, issueLogPath).entries;
+    assert.equal(entries.filter((entry) => entry.step === "retry-recovery").length, 1);
+    assert.equal(entries.filter((entry) => entry.step === "concurrent-writer").length, 1);
   });
 
   it("pending recovery resumes idempotently after each durable crash phase", async () => {
@@ -716,9 +998,10 @@ describe("retry recovery contract", () => {
         },
       }), new RegExp(`crash:${phase}`));
 
-      const pending = readJson(root, artifactPath);
-      assert.equal(pending.entries.length, 1, phase);
-      assert.equal(pending.entries[0].status, "pending", phase);
+      const publicBeforeResume = assertPublicRecoveryArtifact(readJson(root, artifactPath));
+      assert.equal(publicBeforeResume.entries.length, 0, phase);
+      const pending = readPrivateRecoveryTransaction(root);
+      assert.equal(pending.status, "pending", phase);
       const pendingFlow = readJson(root, `specs/${specId}/flow.json`);
       assert.equal(resolveRecoveryMaxAttempts({
         root,
@@ -734,18 +1017,19 @@ describe("retry recovery contract", () => {
       const resumed = applyRetryRecoveryGrant(
         recoveryGrantRequest(root, input, { attempts: 3, maxAttempts: 3 }),
       );
-      assert.equal(resumed.id, pending.entries[0].grantId, phase);
-      const artifact = readJson(root, artifactPath);
+      assert.equal(resumed.id, pending.grantId, phase);
+      const artifact = assertPublicRecoveryArtifact(readJson(root, artifactPath));
       const issueLog = readJson(root, issueLogPath);
       const flow = readJson(root, `specs/${specId}/flow.json`);
       assert.equal(artifact.entries.length, 1, phase);
-      assert.equal(artifact.entries[0].status, "committed", phase);
+      assert.equal(artifact.entries[0].id, resumed.id, phase);
+      assert.equal(readPrivateRecoveryTransaction(root), null, phase);
       assert.equal(issueLog.entries.filter((entry) => entry.grantId === resumed.id).length, 1, phase);
       assert.equal(flow.retryRecovery.entries.filter((entry) => entry.id === resumed.id).length, 1, phase);
     }
   });
 
-  it("a crash after artifact commit reports already granted without duplicate append", async () => {
+  it("a crash after public artifact commit resumes the private transaction without duplicate append", async () => {
     const { RetryRecoveryInput, applyRetryRecoveryGrant } = await loadRecovery();
     const root = setupRecoveryFixture();
     cleanup.push(root);
@@ -762,14 +1046,96 @@ describe("retry recovery contract", () => {
         if (event.phase === "after-artifact-commit") throw new Error("crash:after-artifact-commit");
       },
     }), /crash:after-artifact-commit/);
-    const before = snapshotRecoveryFiles(root);
+    const beforeArtifact = assertPublicRecoveryArtifact(readJson(root, artifactPath));
+    assert.equal(beforeArtifact.entries.length, 1);
+    assert.equal(readPrivateRecoveryTransaction(root).status, "pending");
     const result = runSenti(root, [
       "flow", "set", "retry", "reset", "gate", "task-impl",
       "--reason", reason, "--yes",
     ]);
-    assert.notEqual(result.status, 0);
-    assert.equal(result.envelope.errors[0].code, "RECOVERY_ALREADY_GRANTED");
-    assertNoMutation(root, before);
+    assert.equal(result.status, 0, JSON.stringify(result));
+    const artifact = assertPublicRecoveryArtifact(readJson(root, artifactPath));
+    assert.deepEqual(artifact, beforeArtifact);
+    assert.equal(readPrivateRecoveryTransaction(root), null);
+    assert.equal(readJson(root, issueLogPath).entries.filter((entry) => entry.grantId === artifact.entries[0].id).length, 1);
+  });
+
+  it("real SIGKILL at every durable boundary is reclaimed and converges exactly once", async () => {
+    const phases = ["pending", "flow", "issue", "artifact"];
+    for (const phase of phases) {
+      const root = setupRecoveryFixture();
+      cleanup.push(root);
+      const marker = path.join(root, `.sigkill-${phase}`);
+      const hookPath = path.join(root, `sigkill-${phase}.mjs`);
+      fs.writeFileSync(hookPath, `
+        import fs from "node:fs";
+        import path from "node:path";
+        import { AtomicJsonFile } from ${JSON.stringify(pathToFileURL(path.join(repoRoot, "src/lib/atomic-json-file.js")).href)};
+        import { AtomicFlowStateWriter } from ${JSON.stringify(pathToFileURL(path.join(repoRoot, "src/lib/flow-state-atomic-writer.js")).href)};
+        const crash = (phase) => {
+          if (process.env.RECOVERY_CRASH_PHASE !== phase) return;
+          fs.writeFileSync(process.env.RECOVERY_CRASH_MARKER, phase);
+          process.kill(process.pid, "SIGKILL");
+        };
+        const originalJsonWrite = AtomicJsonFile.prototype.write;
+        AtomicJsonFile.prototype.write = function writeWithCrash(value) {
+          const result = originalJsonWrite.call(this, value);
+          const name = path.basename(this.filePath);
+          const records = Array.isArray(value?.entries) ? value.entries : [];
+          if (
+            name === ".retry-recovery.transaction.json"
+            && value?.transaction?.status === "pending"
+          ) crash("pending");
+          if (
+            name === "issue-log.json"
+            && records.some((entry) => typeof entry?.grantId === "string")
+          ) crash("issue");
+          if (
+            name === "retry-recovery.json"
+            && records.length > 0
+            && records.every((entry) => typeof entry?.kind === "string")
+          ) crash("artifact");
+          return result;
+        };
+        const originalFlowMutate = AtomicFlowStateWriter.prototype.mutate;
+        AtomicFlowStateWriter.prototype.mutate = function mutateWithCrash(...args) {
+          const result = originalFlowMutate.apply(this, args);
+          const state = JSON.parse(fs.readFileSync(this.pathAuthority.statePath, "utf8"));
+          if (state.retryRecovery?.entries?.length > 0) crash("flow");
+          return result;
+        };
+      `);
+      const killed = spawnSenti(root, [
+        "flow", "set", "retry", "reset", "gate", "task-impl",
+        "--reason", reason, "--yes",
+      ], {
+        importFile: hookPath,
+        env: { RECOVERY_CRASH_PHASE: phase, RECOVERY_CRASH_MARKER: marker },
+      });
+      await waitFor(() => fs.existsSync(marker), `${phase}: child must reach durable boundary`);
+      const killedResult = await killed;
+      assert.equal(killedResult.signal, "SIGKILL", phase);
+      assert.equal(fs.existsSync(path.join(root, "specs", specId, ".retry-recovery.lock")), true, phase);
+
+      const resumed = runSenti(root, [
+        "flow", "set", "retry", "reset", "gate", "task-impl",
+        "--reason", reason, "--yes",
+      ]);
+      if (resumed.status !== 0) {
+        assert.equal(resumed.envelope.errors[0].code, "RECOVERY_ALREADY_GRANTED", `${phase}: ${JSON.stringify(resumed)}`);
+      }
+      const artifact = assertPublicRecoveryArtifact(readJson(root, artifactPath));
+      const issueLog = readJson(root, issueLogPath);
+      const flow = readJson(root, `specs/${specId}/flow.json`);
+      assert.equal(artifact.entries.length, 1, phase);
+      assert.equal(issueLog.entries.filter((entry) => entry.grantId === artifact.entries[0].id).length, 1, phase);
+      assert.equal(flow.retryRecovery.entries.filter((entry) => entry.id === artifact.entries[0].id).length, 1, phase);
+      const metrics = flow.metrics.slice(3);
+      assert.equal(metrics.filter((entry) => entry.reset === true).length, 1, phase);
+      assert.equal(metrics.filter((entry) => entry.delta === 2).length, 1, phase);
+      assert.equal(fs.existsSync(path.join(root, "specs", specId, ".retry-recovery.lock")), false, phase);
+      assert.equal(fs.existsSync(path.join(root, "specs", specId, ".issue-log.lock")), false, phase);
+    }
   });
 
   it("explicit retry claims a stale recovery owner while unknown and corrupt owners fail closed", async () => {
@@ -810,7 +1176,8 @@ describe("retry recovery contract", () => {
       "--reason", reason, "--yes",
     ]);
     assert.equal(resumed.status, 0, JSON.stringify(resumed));
-    assert.equal(readJson(root, artifactPath).entries[0].status, "committed");
+    assertPublicRecoveryArtifact(readJson(root, artifactPath));
+    assert.equal(readPrivateRecoveryTransaction(root), null);
 
     const secondRoot = setupRecoveryFixture();
     cleanup.push(secondRoot);
@@ -868,15 +1235,15 @@ describe("retry recovery contract", () => {
     assert.notEqual(after.recovery, before.recovery);
     assert.notEqual(after.issueLog, before.issueLog);
     const flow = JSON.parse(after.flow);
-    const artifact = JSON.parse(after.recovery);
+    const artifact = assertPublicRecoveryArtifact(JSON.parse(after.recovery));
     const issueLog = JSON.parse(after.issueLog);
     assert.equal(flow.retryRecovery.entries.length, 1);
     assert.equal(flow.retryRecovery.entries[0].reason, reason);
     assert.equal(artifact.entries.length, 1);
-    assert.equal(artifact.entries[0].status, "committed");
-    assert.equal(artifact.entries[0].grant.id, flow.retryRecovery.entries[0].id);
+    assert.equal(artifact.entries[0].id, flow.retryRecovery.entries[0].id);
+    assert.equal(readPrivateRecoveryTransaction(root), null);
     assert.equal(issueLog.entries.length, 1);
-    assert.equal(issueLog.entries[0].grantId, artifact.entries[0].grantId);
+    assert.equal(issueLog.entries[0].grantId, artifact.entries[0].id);
   });
 
   it("R5: R6: R7: TC-18 TC-19 TC-20: granted recovery appends audit artifacts after eligibility succeeds", async () => {
@@ -933,13 +1300,13 @@ describe("retry recovery contract", () => {
     assert.equal(entry.maxAttempts, 4);
     assert.equal(entry.counterAfter, 3);
     assert.equal(entry.recoveryCommand, `senti flow set retry reset gate task-impl --reason "${reason}" --yes`);
-    const artifact = readJson(root, artifactPath);
+    const artifact = assertPublicRecoveryArtifact(readJson(root, artifactPath));
     const issueLog = readJson(root, issueLogPath);
     assert.equal(artifact.entries.length, 1);
-    assert.equal(artifact.entries[0].status, "committed");
-    assert.equal(artifact.entries[0].grant.id, entry.id);
+    assert.equal(artifact.entries[0].id, entry.id);
+    assert.equal(readPrivateRecoveryTransaction(root), null);
     assert.equal(issueLog.entries.length, 1);
-    assert.equal(issueLog.entries[0].grantId, artifact.entries[0].grantId);
+    assert.equal(issueLog.entries[0].grantId, artifact.entries[0].id);
     assert.equal(lastMetric.counter, "gateRetry");
     assert.equal(lastMetric.delta, 3);
     assert.ok(new Date(lastMetric.ts) >= new Date(entry.createdAt), "metrics are appended after artifact creation");
@@ -993,12 +1360,13 @@ describe("retry recovery contract", () => {
     assert.ok(recovery.entries[0].createdAt < recovery.entries[1].createdAt);
     const artifact = readJson(root, artifactPath);
     const issueLog = readJson(root, issueLogPath);
-    assert.deepEqual(artifact.entries.map((record) => record.status), ["committed", "committed"]);
-    assert.deepEqual(artifact.entries.map((record) => record.grant.kind), ["gate", "gate"]);
-    assert.deepEqual(issueLog.entries.map((entry) => entry.grantId), artifact.entries.map((record) => record.grantId));
+    assertPublicRecoveryArtifact(artifact);
+    assert.deepEqual(artifact.entries.map((entry) => entry.kind), ["gate", "gate"]);
+    assert.deepEqual(issueLog.entries.map((entry) => entry.grantId), artifact.entries.map((entry) => entry.id));
+    assert.equal(readPrivateRecoveryTransaction(root), null);
   });
 
-  it("marks the artifact rejected and leaves issue-log and flow bytes unchanged when flow save fails", async () => {
+  it("records a private rejection and leaves public artifact, issue-log, and flow bytes unchanged when flow save fails", async () => {
     const {
       ChangedEvidenceSummary,
       RetryRecoveryInput,
@@ -1025,10 +1393,12 @@ describe("retry recovery contract", () => {
 
     assert.equal(fs.readFileSync(path.join(root, `specs/${specId}/flow.json`), "utf8"), before.flow);
     assert.equal(fs.readFileSync(path.join(root, issueLogPath), "utf8"), before.issueLog);
-    const artifact = readJson(root, artifactPath);
-    assert.equal(artifact.entries.length, 1);
-    assert.equal(artifact.entries[0].status, "rejected");
-    assert.match(artifact.entries[0].rejection.message, /injected flow save failure/);
+    const artifact = assertPublicRecoveryArtifact(readJson(root, artifactPath));
+    assert.equal(artifact.entries.length, 0);
+    const transaction = readPrivateRecoveryTransaction(root);
+    assert.equal(transaction.status, "rejected");
+    assert.equal(transaction.grant, null);
+    assert.match(transaction.rejection.message, /injected flow save failure/);
   });
 
   it("rejects a symlinked issue-log authority before mutation and releases the operation lock", async () => {
@@ -1072,12 +1442,14 @@ describe("retry recovery contract", () => {
     const grant = applyRetryRecoveryGrant(
       recoveryGrantRequest(root, input, { attempts: 3, maxAttempts: 3 }),
     );
-    assert.equal(readJson(root, artifactPath).entries[0].status, "committed");
+    const repairedArtifact = assertPublicRecoveryArtifact(readJson(root, artifactPath));
+    assert.equal(repairedArtifact.entries[0].id, grant.id);
+    assert.equal(readPrivateRecoveryTransaction(root), null);
     assert.equal(readJson(root, issueLogPath).entries[0].grantId, grant.id);
     assert.deepEqual(fs.readFileSync(externalIssueLog), before.external);
   });
 
-  it("direct recovery grant before exhaustion is rejected durably without flow or issue-log changes", async () => {
+  it("direct recovery grant before exhaustion is rejected without public or private audit mutation", async () => {
     const { RetryRecoveryInput, applyRetryRecoveryGrant } = await loadRecovery();
     const root = setupRecoveryFixture({
       attempts: 2,
@@ -1099,10 +1471,9 @@ describe("retry recovery contract", () => {
     );
     assert.equal(fs.readFileSync(path.join(root, `specs/${specId}/flow.json`), "utf8"), before.flow);
     assert.equal(fs.readFileSync(path.join(root, issueLogPath), "utf8"), before.issueLog);
-    const artifact = readJson(root, artifactPath);
-    assert.equal(artifact.entries.length, 1);
-    assert.equal(artifact.entries[0].status, "rejected");
-    assert.equal(artifact.entries[0].rejection.code, "RETRY_NOT_EXHAUSTED");
+    const artifact = assertPublicRecoveryArtifact(readJson(root, artifactPath));
+    assert.equal(artifact.entries.length, 0);
+    assert.equal(readPrivateRecoveryTransaction(root), null);
   });
 
   it("R6: requirement verification exposes the full recovery audit entry schema", async () => {
@@ -1432,12 +1803,13 @@ describe("retry recovery contract", () => {
     assert.equal(artifact.counterAfter, 4);
     assert.equal(artifact.createdAt, "2026-05-18T00:00:05.000Z");
     assert.equal(artifact.recoveryCommand, command);
-    const recoveryRecord = readJson(root, artifactPath).entries.at(-1);
+    const publicArtifact = assertPublicRecoveryArtifact(readJson(root, artifactPath));
+    const recoveryRecord = publicArtifact.entries.at(-1);
     const issueEntry = readJson(root, issueLogPath).entries.at(-1);
-    assert.equal(recoveryRecord.status, "committed");
-    assert.equal(recoveryRecord.grant.id, artifact.id);
-    assert.equal(issueEntry.grantId, recoveryRecord.grantId);
+    assert.equal(recoveryRecord.id, artifact.id);
+    assert.equal(issueEntry.grantId, recoveryRecord.id);
     assert.equal(issueEntry.id, artifact.id);
+    assert.equal(readPrivateRecoveryTransaction(root), null);
     assert.equal(view.recoveryCommand, command);
   });
 

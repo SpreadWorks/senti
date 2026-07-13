@@ -34,7 +34,7 @@ import {
   runProcessDetailed,
   withChangedFileFingerprints,
 } from "./test-regression.js";
-import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
+import { appendIssueLogEntry, loadIssueLog } from "./set-issue-log.js";
 
 const FAILURE_KINDS = Object.freeze({
   CURRENT_CHANGE: "caused_by_current_change",
@@ -845,8 +845,7 @@ function countFixAttempts({ failures, commandIdentity, currentFingerprints }) {
 }
 
 function recordFinalRegressionFailure(root, state, artifact) {
-  const issueLog = loadIssueLog(root, state.spec);
-  issueLog.entries.push({
+  appendIssueLogEntry(root, state.spec, {
     step: "final-regression",
     result: "fail",
     failureKind: artifact.failureKind,
@@ -862,7 +861,6 @@ function recordFinalRegressionFailure(root, state, artifact) {
     nextRecommendedAction: artifact.nextRecommendedAction,
     timestamp: new Date().toISOString(),
   });
-  saveIssueLog(root, state.spec, issueLog);
 }
 
 function recordAndProceedInput(ctx) {
